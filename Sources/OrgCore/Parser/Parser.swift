@@ -16,10 +16,25 @@ struct Parser {
     var i = 0
 
     init(text: String, defaults: OrgSettings) {
-        lines = splitRawLines(text)
-        info = lines.map { classifyLine($0.content) }
-        blockEnds = Parser.matchEnds(info)
-        settings = SettingsScanner.scan(lines: lines, info: info, blockEnds: blockEnds, defaults: defaults)
+        let lines = splitRawLines(text)
+        let info = lines.map { classifyLine($0.content) }
+        let ends = Parser.matchEnds(info)
+        let settings = SettingsScanner.scan(lines: lines, info: info, blockEnds: ends, defaults: defaults)
+        self.init(lines: lines, info: info, blockEnds: ends, settings: settings)
+    }
+
+    /// Parses part of a document with the settings already read from the whole file.
+    init(text: String, settings: OrgSettings) {
+        let lines = splitRawLines(text)
+        let info = lines.map { classifyLine($0.content) }
+        self.init(lines: lines, info: info, blockEnds: Parser.matchEnds(info), settings: settings)
+    }
+
+    private init(lines: [RawLine], info: [ClassifiedLine], blockEnds: [Int: Int], settings: OrgSettings) {
+        self.lines = lines
+        self.info = info
+        self.blockEnds = blockEnds
+        self.settings = settings
     }
 
     static func matchEnds(_ info: [ClassifiedLine]) -> [Int: Int] {
