@@ -45,6 +45,7 @@ struct RoundTripTests {
             let tree = OrgParser.parse(text)
             #expect(tree.text == text, "document \(n)")
             #expect(checkLengths(tree.root), "document \(n)")
+            _ = DocumentModel(tree: tree)
         }
     }
 
@@ -74,6 +75,7 @@ struct RoundTripTests {
             let source = SourceText(bytes: bytes)
             let tree = OrgParser.parse(source.text)
             #expect(source.encode(tree.text) == bytes, "\(file.path)")
+            _ = DocumentModel(tree: tree)
         }
     }
 }
