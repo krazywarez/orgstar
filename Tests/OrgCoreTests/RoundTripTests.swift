@@ -20,6 +20,10 @@ let fragments = [
     ":LOGBOOK:", "CLOCK: [2026-10-04 Sun 10:00]", "SCHEDULED: <2026-10-04 Sun>", "- item", "  - nested",
     "\t+ tab", "1. one", "| a | b |", "|---+---|", "#+TBLFM: $2=$1", "# comment", ": fixed", "-----",
     "[fn:1] note", "#+NAME: x", "plain text", "é", "😀", "e\u{301}", " ", "\t", "\n", "\n", "\r\n", "\r", "",
+    "*bold*", "/it/ ", "=v=", "~c~", "_u_", "+s+", "*", "/", "=", "[[https://a.b][d *b*]]", "[[x]]", "[[", "]]",
+    "<2026-10-04 Sun 10:00 +1w -2d>", "[2026-10-04]--[2026-10-05]", "<", ">", "[fn:2]", "[fn::in [x]]", "[1/3]",
+    "[50%]", "<<t>>", "{{{m(a)}}}", "\\(x\\)", "a\\\\", "x^2", "^{y}", "src_sh{echo}", "https://e.com.",
+    "<https://e.com>", "| *a* | b |", "||", "- [X] done", "+ [ ] todo", "-",
 ]
 
 func randomDocument(_ rng: inout SeededGenerator) -> String {
