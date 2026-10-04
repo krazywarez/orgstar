@@ -17,7 +17,7 @@ struct ParserSectionTests {
     }
 
     @Test func zerothSectionHoldsPreamble() {
-        #expect(nodeKinds("text\n* a\n") == [.document, .zerothSection, .paragraph, .section, .heading])
+        #expect(nodeKinds("text\n* a\n") == [.document, .zerothSection, .paragraph, .section, .heading, .title])
     }
 
     @Test func sectionsNestByLevel() {
@@ -30,10 +30,11 @@ struct ParserSectionTests {
     }
 
     @Test func headingTokens() {
-        let parts = tokens(of: .heading, in: "** TODO [#A] Write the plan  :work:urgent:  \n")
-        #expect(parts.map(\.kind) == [.stars, .whitespace, .todoKeyword, .whitespace, .priority, .whitespace, .title, .whitespace, .tags, .whitespace, .newline])
+        let text = "** TODO [#A] Write the plan  :work:urgent:  \n"
+        let parts = tokens(of: .heading, in: text)
+        #expect(parts.map(\.kind) == [.stars, .whitespace, .todoKeyword, .whitespace, .priority, .whitespace, .whitespace, .tags, .whitespace, .newline])
         #expect(parts.first { $0.kind == .tags }?.text == ":work:urgent:")
-        #expect(parts.first { $0.kind == .title }?.text == "Write the plan")
+        #expect(OrgParser.parse(text).root.descendants().first { $0.kind == .title }?.text == "Write the plan")
     }
 
     @Test func todoKeywordsComeFromSettings() {

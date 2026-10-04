@@ -77,10 +77,7 @@ struct Parser {
         headingLine(lines[i])
         i += 1
         if i < lines.count, info[i].cls == .planning {
-            builder.start(.planning)
-            line(i)
-            i += 1
-            builder.finish()
+            single(.planning)
         }
         if i < lines.count, case .drawerBegin(let name) = info[i].cls, name.uppercased() == "PROPERTIES",
            let end = blockEnds[i] {
@@ -173,11 +170,26 @@ struct Parser {
         }
     }
 
+    /// Kinds whose single line holds inline objects (timestamps on planning and clock lines).
+    static let inlineLineKinds: Set<SyntaxKind> = [.planning, .clock]
+
     mutating func single(_ kind: SyntaxKind) {
         builder.start(kind)
-        line(i)
+        if Self.inlineLineKinds.contains(kind) {
+            let rest = whitespace(lines[i].content)
+            inline(rest)
+            builder.token(.newline, lines[i].ending)
+        } else {
+            line(i)
+        }
         i += 1
         builder.finish()
+    }
+
+    /// Source text from `start` through the end of line `last`, including its line ending.
+    func span(from start: Substring.Index, through last: Int) -> Substring {
+        let base = lines[last].ending.base
+        return base[start..<lines[last].ending.endIndex]
     }
 
     mutating func consecutive(_ kind: SyntaxKind, limit: Int, floor: Int?, matching: (LineClass) -> Bool) {
@@ -192,7 +204,7 @@ struct Parser {
     mutating func table(limit: Int, floor: Int?) {
         builder.start(.table)
         while i < limit, info[i].cls == .tableRow, within(floor, i) {
-            single(.tableRow)
+            tableRow()
         }
         while i < limit, info[i].cls == .keyword(key: "TBLFM"), within(floor, i) {
             single(.tableFormula)
@@ -200,15 +212,47 @@ struct Parser {
         builder.finish()
     }
 
-    mutating func footnoteDefinition(limit: Int) {
-        builder.start(.footnoteDefinition)
-        line(i)
-        i += 1
-        while i < limit, info[i].cls == .plain {
-            line(i)
-            i += 1
+    /// A rule row (`|---+---|`) is one text token. Other rows alternate `|` markers and cells;
+    /// every pair of pipes gets a cell, even an empty one, so columns line up.
+    mutating func tableRow() {
+        builder.start(.tableRow)
+        let rest = whitespace(lines[i].content)
+        if rest.hasPrefix("|-") {
+            builder.token(.text, rest)
+        } else {
+            var cellStart = rest.startIndex
+            var index = rest.startIndex
+            while index < rest.endIndex {
+                if rest[index] == "|" {
+                    if index > rest.startIndex { tableCell(rest[cellStart..<index]) }
+                    builder.token(.marker, "|")
+                    cellStart = rest.index(after: index)
+                }
+                index = rest.index(after: index)
+            }
+            if cellStart < rest.endIndex { tableCell(rest[cellStart...]) }
         }
+        builder.token(.newline, lines[i].ending)
         builder.finish()
+        i += 1
+    }
+
+    mutating func tableCell(_ text: Substring) {
+        builder.start(.tableCell)
+        inline(text)
+        builder.finish()
+    }
+
+    mutating func footnoteDefinition(limit: Int) {
+        var end = i + 1
+        while end < limit, info[end].cls == .plain { end += 1 }
+        let content = lines[i].content
+        let close = content.firstIndex(of: "]")!
+        builder.start(.footnoteDefinition)
+        builder.token(.marker, content[...close])
+        inline(span(from: content.index(after: close), through: end - 1))
+        builder.finish()
+        i = end
     }
 
     mutating func list(limit: Int, floor: Int?) {
@@ -224,8 +268,25 @@ struct Parser {
     /// inside the item when the item or list continues after it; two end the list.
     mutating func item(base: Int, limit: Int) {
         builder.start(.item)
-        line(i)
-        i += 1
+        var rest = whitespace(lines[i].content)
+        let bullet = rest.prefix { $0 != " " && $0 != "\t" }
+        builder.token(.bullet, bullet)
+        rest = whitespace(rest.dropFirst(bullet.count))
+        if let box = checkbox(rest) {
+            builder.token(.checkbox, box)
+            rest = whitespace(rest.dropFirst(box.count))
+        }
+        // The rest of the bullet line and its continuation lines are the item's first paragraph.
+        var end = i + 1
+        while end < limit, within(base, end), continuesParagraph(end) { end += 1 }
+        if rest.isEmpty, end == i + 1 {
+            builder.token(.newline, lines[i].ending)
+        } else {
+            builder.start(.paragraph)
+            inline(span(from: rest.startIndex, through: end - 1))
+            builder.finish()
+        }
+        i = end
         while i < limit, !isHeading(i) {
             if info[i].cls == .blank {
                 var j = i
@@ -245,15 +306,23 @@ struct Parser {
         builder.finish()
     }
 
+    /// `[ ]`, `[X]`, `[x]` or `[-]`, followed by whitespace or end of line.
+    func checkbox(_ s: Substring) -> Substring? {
+        guard s.count >= 3, s.first == "[", "Xx -".contains(s.dropFirst().first!),
+              s.dropFirst(2).first == "]" else { return nil }
+        let after = s.dropFirst(3)
+        guard after.isEmpty || after.first == " " || after.first == "\t" else { return nil }
+        return s.prefix(3)
+    }
+
+    /// The paragraph's lines are one inline run, so emphasis and links can cross a line break.
     mutating func paragraph(limit: Int, floor: Int?) {
+        var end = i + 1
+        while end < limit, within(floor, end), continuesParagraph(end) { end += 1 }
         builder.start(.paragraph)
-        line(i)
-        i += 1
-        while i < limit, within(floor, i), continuesParagraph(i) {
-            line(i)
-            i += 1
-        }
+        inline(span(from: lines[i].content.startIndex, through: end - 1))
         builder.finish()
+        i = end
     }
 
     /// Lines that don't start an element of their own.
@@ -307,7 +376,11 @@ struct Parser {
         }
 
         let parts = splitTags(rest)
-        builder.token(.title, parts.title)
+        if !parts.title.isEmpty {
+            builder.start(.title)
+            inline(parts.title)
+            builder.finish()
+        }
         builder.token(.whitespace, parts.gap)
         builder.token(.tags, parts.tags)
         builder.token(.whitespace, parts.trailing)

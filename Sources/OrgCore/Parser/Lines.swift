@@ -27,7 +27,7 @@ func splitRawLines(_ text: String) -> [RawLine] {
         }
     }
     if lineStart != scalars.endIndex {
-        lines.append(RawLine(content: text[lineStart...], ending: ""))
+        lines.append(RawLine(content: text[lineStart...], ending: text[text.endIndex...]))
     }
     return lines
 }
