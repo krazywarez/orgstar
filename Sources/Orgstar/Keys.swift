@@ -13,6 +13,8 @@ struct KeyHint: Hashable {
 struct EchoArea: View {
     let commands: AppCommands
     @State private var showingHints = false
+    @State private var answer = ""
+    @FocusState private var answerFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,7 +30,25 @@ struct EchoArea: View {
                 }
                 .padding(10)
             }
-            if let text = commands.pendingKeys.map({ $0 + "-" }) ?? commands.message {
+            if let request = commands.prompt {
+                Divider()
+                HStack(spacing: 6) {
+                    Text(request.prompt.message).font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary)
+                    TextField("", text: $answer)
+                        .textFieldStyle(.plain)
+                        .font(.system(.callout, design: .monospaced))
+                        .focused($answerFocused)
+                        .onSubmit { commands.answer(answer) }
+                        .onExitCommand { commands.answer(nil) }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .onAppear {
+                    answer = request.prompt.initial
+                    answerFocused = true
+                }
+                .id(request.id)
+            } else if let text = commands.pendingKeys.map({ $0 + "-" }) ?? commands.message {
                 Divider()
                 Text(text)
                     .font(.system(.callout, design: .monospaced))

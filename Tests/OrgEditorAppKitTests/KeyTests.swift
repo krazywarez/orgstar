@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 struct KeyTests {
-    static let codes: [Character: UInt16] = ["a": 0, "s": 1, "f": 3, "g": 5, "z": 6, "x": 7, "c": 8, "w": 13, "t": 17]
+    static let codes: [Character: UInt16] = ["a": 0, "s": 1, "f": 3, "g": 5, "z": 6, "x": 7, "c": 8, "w": 13, "q": 12, "t": 17]
 
     /// Presses a key. `control` sends the control character, as macOS does.
     func press(_ h: Harness, _ key: Character, control: Bool = false, option: UInt = 0, typed: String? = nil) {
@@ -107,6 +107,23 @@ struct KeyTests {
         press(h, "c", control: true)
         press(h, "t", control: true)
         #expect(h.string == "* [#B] a\n")
+    }
+
+    @Test func promptsAskAndRunAgainWithTheAnswer() {
+        let h = Harness("* a\n")
+        var asked: [Prompt] = []
+        var reply: ((String?) -> Void)?
+        h.editor.onPrompt = { prompt, answer in
+            asked.append(prompt)
+            reply = answer
+        }
+        h.caret(at: 1)
+        press(h, "c", control: true)
+        press(h, "q", control: true)
+        #expect(asked.map(\.key) == ["tags"])
+        reply?("x")
+        #expect(h.string.hasPrefix("* a ") && h.string.hasSuffix(":x:\n"))
+        h.checkInSync()
     }
 
     @Test func everyPresetCommandExists() {

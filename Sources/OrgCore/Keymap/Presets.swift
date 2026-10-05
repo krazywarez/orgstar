@@ -163,6 +163,49 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "M-<right>"
         command = "org.heading.demote"
         when = "heading"
+        [[bind]]
+        keys = "M-S-<left>"
+        command = "org.subtree.promote"
+        when = "heading"
+        [[bind]]
+        keys = "M-S-<right>"
+        command = "org.subtree.demote"
+        when = "heading"
+        [[bind]]
+        keys = "M-<up>"
+        command = "org.subtree.up"
+        when = "heading"
+        [[bind]]
+        keys = "M-<down>"
+        command = "org.subtree.down"
+        when = "heading"
+        [[bind]]
+        keys = "M-RET"
+        command = "org.heading.insert"
+        [[bind]]
+        keys = "C-RET"
+        command = "org.heading.insert-after-subtree"
+        [[bind]]
+        keys = "M-S-RET"
+        command = "org.heading.insert-todo"
+        [[bind]]
+        keys = "C-c C-n"
+        command = "org.heading.next"
+        [[bind]]
+        keys = "C-c C-p"
+        command = "org.heading.previous"
+        [[bind]]
+        keys = "C-c C-f"
+        command = "org.heading.forward-same-level"
+        [[bind]]
+        keys = "C-c C-b"
+        command = "org.heading.backward-same-level"
+        [[bind]]
+        keys = "C-c C-u"
+        command = "org.heading.up"
+        [[bind]]
+        keys = "C-c C-q"
+        command = "org.tags.set"
 
         """
 
@@ -184,6 +227,36 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-<right>"
         command = "org.heading.demote"
+        [[bind]]
+        keys = "C-M-s-<left>"
+        command = "org.subtree.promote"
+        [[bind]]
+        keys = "C-M-s-<right>"
+        command = "org.subtree.demote"
+        [[bind]]
+        keys = "C-M-s-<up>"
+        command = "org.subtree.up"
+        [[bind]]
+        keys = "C-M-s-<down>"
+        command = "org.subtree.down"
+        [[bind]]
+        keys = "s-RET"
+        command = "org.heading.insert"
+        [[bind]]
+        keys = "C-s-RET"
+        command = "org.heading.insert-after-subtree"
+        [[bind]]
+        keys = "s-S-RET"
+        command = "org.heading.insert-todo"
+        [[bind]]
+        keys = "M-s-<down>"
+        command = "org.heading.next"
+        [[bind]]
+        keys = "M-s-<up>"
+        command = "org.heading.previous"
+        [[bind]]
+        keys = "C-s-q"
+        command = "org.tags.set"
 
         """
 }

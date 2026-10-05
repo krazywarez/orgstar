@@ -26,6 +26,7 @@ enum EmacsOracle {
     ;;; -*- lexical-binding: t -*-
     (require 'org)
     (require 'json)
+    (require 'cl-lib)
     (setq org-todo-keywords '((sequence "TODO" "DONE"))
           org-log-done nil
           org-log-repeat nil
@@ -119,8 +120,8 @@ enum EmacsOracle {
 }
 
 /// Runs a command the way an editor would: build a context, run, apply the edits.
-func runCommand(_ command: any OrgCommand, _ text: String, caret: Int) -> (text: String, caret: Int, failure: String?) {
-    let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+func runCommand(_ command: any OrgCommand, _ text: String, caret: Int, answers: [String: String] = [:]) -> (text: String, caret: Int, failure: String?) {
+    let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], answers: answers)
     switch command.run(in: context) {
     case .commit(let result):
         var new = text

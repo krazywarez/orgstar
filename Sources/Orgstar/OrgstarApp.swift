@@ -18,9 +18,23 @@ final class AppCommands {
     /// The pending key prefix, and what can follow it.
     var pendingKeys: String?
     var keyHints: [KeyHint] = []
+    /// A question a command asked, answered in the echo area.
+    private(set) var prompt: PromptRequest?
     /// The last message from a command or the keymap, cleared after a few seconds.
     private(set) var message: String?
     private var messageID = 0
+
+    func ask(_ prompt: Prompt, reply: @escaping (String?) -> Void) {
+        self.prompt = PromptRequest(prompt: prompt, reply: reply)
+    }
+
+    /// Ends the prompt with an answer, or nil to cancel, and gives the editor the keys back.
+    func answer(_ text: String?) {
+        guard let request = prompt else { return }
+        prompt = nil
+        if let textView = editor?.textView { textView.window?.makeFirstResponder(textView) }
+        request.reply(text)
+    }
 
     func show(_ text: String) {
         messageID += 1
@@ -31,6 +45,12 @@ final class AppCommands {
             if messageID == id { message = nil }
         }
     }
+}
+
+struct PromptRequest: Identifiable {
+    let id = UUID()
+    let prompt: Prompt
+    let reply: (String?) -> Void
 }
 
 @MainActor

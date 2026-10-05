@@ -38,10 +38,13 @@ public struct Prompt: Sendable, Equatable {
     /// The key the answer comes back under in `EditContext.answers`.
     public let key: String
     public let message: String
+    /// Text the answer field starts with.
+    public let initial: String
 
-    public init(key: String, message: String) {
+    public init(key: String, message: String, initial: String = "") {
         self.key = key
         self.message = message
+        self.initial = initial
     }
 }
 
@@ -93,6 +96,7 @@ public enum Commands {
         InsertHeading(), InsertHeadingAfterSubtree(), InsertTodoHeading(),
         MoveSubtreeUp(), MoveSubtreeDown(), PromoteSubtree(), DemoteSubtree(),
         NextHeading(), PreviousHeading(), ForwardSameLevel(), BackwardSameLevel(), UpHeading(),
+        SetTags(),
     ]
 
     public static func command(_ id: String) -> (any OrgCommand)? {

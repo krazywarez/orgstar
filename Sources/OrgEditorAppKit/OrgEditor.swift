@@ -175,6 +175,8 @@ public final class OrgEditor: NSObject {
     public var onKeysPending: ((_ keys: String?, _ next: [(key: String, title: String)]) -> Void)?
     /// Called with `app.*` commands, which the app carries out.
     public var onAppCommand: ((String) -> Void)?
+    /// Called when a command asks a question; reply with the answer, or nil to cancel.
+    public var onPrompt: ((Prompt, _ reply: @escaping (String?) -> Void) -> Void)?
 
     public var keymap: Keymap {
         get { dispatcher.keymap }
@@ -193,7 +195,8 @@ public final class OrgEditor: NSObject {
         let selected = textView.selectedRange()
         return EditContext(
             revision: document.revision, text: document.text, tree: document.tree,
-            selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers
+            selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers,
+            hidden: hidden.all
         )
     }
 
@@ -312,8 +315,15 @@ public final class OrgEditor: NSObject {
             for case .message(let text) in result.effects { onMessage?(text) }
         case .failed(let message):
             onMessage?(message)
-        case .prompt:
-            break
+        case .prompt(let prompt):
+            onPrompt?(prompt) { [weak self] answer in
+                guard let self else { return }
+                guard let answer else {
+                    self.onMessage?("Quit")
+                    return
+                }
+                self.perform(command, now: now, answers: answers.merging([prompt.key: answer]) { $1 })
+            }
         }
         return step
     }

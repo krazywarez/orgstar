@@ -40,6 +40,7 @@ struct EditorView: NSViewRepresentable {
                     commands?.keyHints = next.map { KeyHint(key: $0.key, title: $0.title) }
                 }
                 editor.onAppCommand = onAppCommand
+                editor.onPrompt = { [weak commands] prompt, reply in commands?.ask(prompt, reply: reply) }
                 commands.editor = editor
                 let scroll = editor.makeScrollView()
                 scroll.frame = container.bounds
