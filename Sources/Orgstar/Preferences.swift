@@ -1,4 +1,5 @@
 import Foundation
+import OrgApp
 import OrgCore
 
 /// Org preferences, stored in user defaults by the Settings window.
@@ -6,7 +7,10 @@ enum Preferences {
     static let defaultTodoKeywords = "TODO PROJ LOOP STRT WAIT HOLD IDEA | DONE KILL"
 
     /// TODO keywords for files without `#+TODO`, read at launch.
+    @MainActor
     static var orgSettings: OrgSettings {
+        // config.toml applies before anything reads settings.
+        ConfigSync.shared.start()
         let line = UserDefaults.standard.string(forKey: "todoKeywords") ?? defaultTodoKeywords
         return OrgSettings.default.withTodoKeywords(line) ?? .default
     }

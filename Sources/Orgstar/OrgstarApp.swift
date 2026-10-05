@@ -245,8 +245,14 @@ struct OrgstarApp: App {
                 OrgMenuItems(commands: commands)
             }
         }
+        .commands {
+            CommandGroup(after: .appSettings) {
+                Button("Edit Config File") { commands.jump(path: UserConfig.configFile.path, offset: 0) }
+                    .keyboardShortcut(",", modifiers: [.command, .option])
+            }
+        }
         Settings {
-            SettingsView()
+            SettingsView(commands: commands)
         }
     }
 }
@@ -315,6 +321,8 @@ struct AgendaMenuItem: View {
 }
 
 struct SettingsView: View {
+    let commands: AppCommands
+    @Environment(\.openWindow) private var openWindow
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
     @AppStorage("optionAsMeta") private var optionAsMeta = OptionAsMeta.left.rawValue
@@ -344,8 +352,26 @@ struct SettingsView: View {
         .frame(width: 600)
     }
 
+    private func editConfig() {
+        ConfigSync.shared.start()
+        openWindow(id: "main")
+        commands.jump(path: UserConfig.configFile.path, offset: 0)
+    }
+
     private var general: some View {
         Form {
+            Section {
+                LabeledContent("config.toml") {
+                    HStack {
+                        Button("Edit in Orgstar") { editConfig() }
+                        Button("Open with Default App") { NSWorkspace.shared.open(UserConfig.configFile) }
+                        Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([UserConfig.configFile]) }
+                    }
+                }
+            } footer: {
+                Text("Every setting here is also in \(UserConfig.configFile.path), which you can edit, share or keep with your dotfiles. Changes in either place show up in the other.")
+                    .settingsFooter()
+            }
             Section {
                 Picker("Save files", selection: $saveMode) {
                     Text("Automatically, when typing stops").tag(SaveMode.automatic)

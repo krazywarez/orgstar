@@ -197,6 +197,14 @@ struct ContentView: View {
         .onChange(of: commands.runRequest?.serial) {
             if let id = commands.runRequest?.id { perform(id) }
         }
+        .onChange(of: ConfigSync.shared.problems, initial: true) { _, problems in
+            if let first = problems.first {
+                commands.show(first + (problems.count > 1 ? " (and \(problems.count - 1) more)" : ""))
+            }
+        }
+        .onChange(of: ConfigSync.shared.changedFile?.serial) {
+            if ConfigSync.shared.changedFile?.name == "keymap.toml" { loadKeymap() }
+        }
         .onChange(of: commands.jumpRequest?.id) {
             guard let request = commands.jumpRequest else { return }
             if request.path != session.path {
@@ -386,6 +394,7 @@ struct ContentView: View {
         case "app.toggle-outline": toggleOutline()
         case "app.toggle-markup": showMarkup.toggle()
         case "app.toggle-line-numbers": showLineNumbers.toggle()
+        case "app.edit-config": commands.jump(path: UserConfig.configFile.path, offset: 0)
         case "app.quick-open": commands.showingQuickOpen = true
         case "app.palette": commands.showingPalette = true
         case "app.search": commands.focusSearch = true

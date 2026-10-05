@@ -17,7 +17,7 @@ import OrgDocument
 /// ```
 @MainActor
 public enum CaptureTemplates {
-    public static var userFile: URL { WorkspaceModel.defaultDirectory.appendingPathComponent("capture.toml") }
+    public static var userFile: URL { UserConfig.file("capture.toml") }
 
     /// The templates in your Doom configuration.
     public static let defaults = [

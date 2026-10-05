@@ -36,7 +36,7 @@ public struct AgendaViewDefinition: Hashable, Sendable, Identifiable {
 /// (`WAIT|HOLD`).
 @MainActor
 public enum AgendaViewLoader {
-    public static var userFile: URL { WorkspaceModel.defaultDirectory.appendingPathComponent("views.toml") }
+    public static var userFile: URL { UserConfig.file("views.toml") }
 
     public static let builtIn = [
         AgendaViewDefinition(name: "Agenda", mode: .agenda(span: nil, startOffset: nil)),

@@ -4,7 +4,7 @@ import OrgCore
 @MainActor
 public enum KeymapLoader {
     /// `<data dir>/keymap.toml`.
-    public static var userFile: URL { WorkspaceModel.defaultDirectory.appendingPathComponent("keymap.toml") }
+    public static var userFile: URL { UserConfig.file("keymap.toml") }
 
     /// The preset with the user's file on top, and the problems found in the file. A missing
     /// file adds nothing; a file that isn't valid TOML adds nothing and is reported.

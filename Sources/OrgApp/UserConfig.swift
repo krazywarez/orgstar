@@ -1,0 +1,242 @@
+import Foundation
+import OrgCore
+
+/// The configuration folder (`$XDG_CONFIG_HOME/orgstar`, else `~/.config/orgstar`) and
+/// `config.toml` in it: every setting of the Settings window as text, to edit, keep in a
+/// dotfiles repository and share. The file is the source of truth: Settings writes its changes
+/// into it, keeping comments and order, and edits to it apply while the app runs.
+public enum UserConfig {
+    public static var directory: URL {
+        let environment = ProcessInfo.processInfo.environment
+        if let override = environment["ORGSTAR_CONFIG_DIR"] { return URL(fileURLWithPath: override) }
+        // Development runs keep everything in their data folder.
+        if let data = environment["ORGSTAR_DATA_DIR"] { return URL(fileURLWithPath: data) }
+        if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
+            return URL(fileURLWithPath: xdg).appendingPathComponent("orgstar")
+        }
+        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/orgstar")
+    }
+
+    /// A file of the configuration folder; one that exists only where earlier versions kept
+    /// it (Application Support) is still read from there.
+    public static func file(_ name: String) -> URL {
+        let url = directory.appendingPathComponent(name)
+        let legacy = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Orgstar").appendingPathComponent(name)
+        let manager = FileManager.default
+        if !manager.fileExists(atPath: url.path), manager.fileExists(atPath: legacy.path) { return legacy }
+        return url
+    }
+
+    public static var configFile: URL { directory.appendingPathComponent("config.toml") }
+
+    /// One setting: where it sits in the file, its user-defaults key, and how values convert.
+    public struct Setting: Sendable {
+        public enum Kind: Sendable {
+            case bool, integer, string
+            /// A string in the file for each stored value.
+            case choice([(name: String, stored: String)])
+            case integerChoice([(name: String, stored: Int)])
+        }
+
+        public let section: String
+        public let key: String
+        public let defaultsKey: String
+        public let kind: Kind
+        public let fallback: TOML.Value
+        public let comment: String
+    }
+
+    public static let settings: [Setting] = [
+        Setting(section: "general", key: "save", defaultsKey: "saveMode", kind: .choice([("automatic", "automatic"), ("explicit", "explicit")]),
+                fallback: .string("automatic"), comment: "automatic (1 s after typing stops) or explicit (only with ⌘S)"),
+        Setting(section: "general", key: "keymap", defaultsKey: "keymap", kind: .choice([("emacs", "emacs"), ("mac", "mac"), ("doom", "doom")]),
+                fallback: .string("emacs"), comment: "emacs, mac or doom; your own bindings go in keymap.toml"),
+        Setting(section: "general", key: "option-as-meta", defaultsKey: "optionAsMeta",
+                kind: .integerChoice([("left", 1), ("right", 2), ("both", 3), ("none", 0)]), fallback: .string("left"), comment: "left, right, both or none"),
+        Setting(section: "editor", key: "tags-column", defaultsKey: "tagsColumn", kind: .integer, fallback: .integer(-77),
+                comment: "org-tags-column: negative aligns tags to end there, 0 puts one space before them"),
+        Setting(section: "editor", key: "insert-heading-respect-content", defaultsKey: "headingAfterSubtree", kind: .bool, fallback: .bool(true),
+                comment: "M-RET adds the new heading after the subtree"),
+        Setting(section: "editor", key: "meta-return-may-split-line", defaultsKey: "splitLine", kind: .bool, fallback: .bool(false),
+                comment: "M-RET splits the line at the caret"),
+        Setting(section: "editor", key: "list-allow-alphabetical", defaultsKey: "alphabeticalLists", kind: .bool, fallback: .bool(true),
+                comment: "lists can use a. b. c."),
+        Setting(section: "editor", key: "fill-column", defaultsKey: "fillColumn", kind: .integer, fallback: .integer(80), comment: "M-q fills to this column"),
+        Setting(section: "editor", key: "hide-emphasis-markers", defaultsKey: "hiddenMarkers", kind: .bool, fallback: .bool(true),
+                comment: "org-hide-emphasis-markers: hide *bold* and =code= markers when markup is hidden"),
+        Setting(section: "editor", key: "pretty-entities", defaultsKey: "prettyEntities", kind: .bool, fallback: .bool(true),
+                comment: "org-pretty-entities: \\alpha shows as α and x_{1} is lowered when markup is hidden"),
+        Setting(section: "editor", key: "todo-keywords", defaultsKey: "todoKeywords", kind: .string, fallback: .string("TODO PROJ LOOP STRT WAIT HOLD IDEA | DONE KILL"),
+                comment: "for files without #+TODO, in #+TODO syntax; read at launch"),
+        Setting(section: "editor", key: "show-markup", defaultsKey: "showMarkup", kind: .bool, fallback: .bool(false),
+                comment: "show link brackets and emphasis markers (View ▸ Show Markup)"),
+        Setting(section: "editor", key: "line-numbers", defaultsKey: "showLineNumbers", kind: .bool, fallback: .bool(true),
+                comment: "View ▸ Show Line Numbers"),
+        Setting(section: "agenda", key: "span", defaultsKey: "agendaSpan", kind: .integer, fallback: .integer(10), comment: "days shown"),
+        Setting(section: "agenda", key: "start-offset", defaultsKey: "agendaStartOffset", kind: .integer, fallback: .integer(-3),
+                comment: "first day, relative to today"),
+        Setting(section: "agenda", key: "include-subfolders", defaultsKey: "agendaSubfolders", kind: .bool, fallback: .bool(false),
+                comment: "read org files in subfolders too"),
+        Setting(section: "agenda", key: "reminders", defaultsKey: "reminders", kind: .bool, fallback: .bool(true),
+                comment: "notify before timed entries"),
+        Setting(section: "agenda", key: "reminder-lead", defaultsKey: "reminderLead", kind: .integer, fallback: .integer(12),
+                comment: "minutes before; APPT_WARNTIME overrides"),
+        Setting(section: "capture", key: "global-hotkey", defaultsKey: "globalCapture", kind: .bool, fallback: .bool(true),
+                comment: "⌃⌥Space opens Capture from any app; templates go in capture.toml"),
+    ]
+
+    // MARK: - Values
+
+    /// The file value for what `defaults` holds, or the fallback.
+    public static func value(_ setting: Setting, in defaults: UserDefaults) -> TOML.Value {
+        guard defaults.object(forKey: setting.defaultsKey) != nil else { return setting.fallback }
+        switch setting.kind {
+        case .bool: return .bool(defaults.bool(forKey: setting.defaultsKey))
+        case .integer: return .integer(defaults.integer(forKey: setting.defaultsKey))
+        case .string: return .string(defaults.string(forKey: setting.defaultsKey) ?? "")
+        case .choice(let choices):
+            let stored = defaults.string(forKey: setting.defaultsKey)
+            return choices.first { $0.stored == stored }.map { .string($0.name) } ?? setting.fallback
+        case .integerChoice(let choices):
+            let stored = defaults.integer(forKey: setting.defaultsKey)
+            return choices.first { $0.stored == stored }.map { .string($0.name) } ?? setting.fallback
+        }
+    }
+
+    /// Stores a file value; a value of the wrong kind is a problem.
+    static func store(_ value: TOML.Value, _ setting: Setting, in defaults: UserDefaults) -> String? {
+        let key = setting.defaultsKey
+        switch (setting.kind, value) {
+        case (.bool, .bool(let b)): defaults.set(b, forKey: key)
+        case (.integer, .integer(let i)): defaults.set(i, forKey: key)
+        case (.string, .string(let s)): defaults.set(s, forKey: key)
+        case (.choice(let choices), .string(let s)):
+            guard let choice = choices.first(where: { $0.name == s }) else {
+                return "\(setting.key) must be one of \(choices.map(\.name).joined(separator: ", "))"
+            }
+            defaults.set(choice.stored, forKey: key)
+        case (.integerChoice(let choices), .string(let s)):
+            guard let choice = choices.first(where: { $0.name == s }) else {
+                return "\(setting.key) must be one of \(choices.map(\.name).joined(separator: ", "))"
+            }
+            defaults.set(choice.stored, forKey: key)
+        default:
+            return "\(setting.section).\(setting.key) has the wrong kind of value"
+        }
+        return nil
+    }
+
+    /// Applies a file to `defaults`; settings it leaves out go back to their defaults.
+    /// Returns problems.
+    @discardableResult
+    public static func apply(_ text: String, to defaults: UserDefaults) -> [String] {
+        let tables: [TOML.Table]
+        do { tables = try TOML.parse(text) } catch { return ["config.toml: \(error)"] }
+        var problems: [String] = []
+        let present = Set(tables.flatMap { table in table.values.keys.map { table.name + "." + $0 } })
+        for setting in settings where !present.contains(setting.section + "." + setting.key) {
+            if defaults.object(forKey: setting.defaultsKey) != nil { defaults.removeObject(forKey: setting.defaultsKey) }
+        }
+        for table in tables {
+            for (key, value) in table.values.sorted(by: { $0.key < $1.key }) {
+                guard let setting = settings.first(where: { $0.section == table.name && $0.key == key }) else {
+                    problems.append("config.toml line \(table.line): unknown setting \(table.name.isEmpty ? "" : table.name + ".")\(key)")
+                    continue
+                }
+                if let current = currentValue(setting, in: defaults), current == value { continue }
+                if let problem = store(value, setting, in: defaults) { problems.append("config.toml: \(problem)") }
+            }
+        }
+        return problems
+    }
+
+    private static func currentValue(_ setting: Setting, in defaults: UserDefaults) -> TOML.Value? {
+        defaults.object(forKey: setting.defaultsKey) == nil ? nil : value(setting, in: defaults)
+    }
+
+    /// The values a file sets, by `section.key`.
+    static func values(in text: String) -> [String: TOML.Value] {
+        guard let tables = try? TOML.parse(text) else { return [:] }
+        var result: [String: TOML.Value] = [:]
+        for table in tables { for (key, value) in table.values { result[table.name + "." + key] = value } }
+        return result
+    }
+
+    // MARK: - Text
+
+    static func format(_ value: TOML.Value) -> String {
+        switch value {
+        case .bool(let b): b ? "true" : "false"
+        case .integer(let i): String(i)
+        case .string(let s): "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        }
+    }
+
+    /// A commented file with every setting at its current value.
+    public static func template(from defaults: UserDefaults) -> String {
+        var out = """
+            # Orgstar settings. The Settings window writes its changes here, and edits made here
+            # apply while Orgstar runs. Keys go in keymap.toml, capture templates in capture.toml
+            # and saved agenda views in views.toml, all in this folder.
+
+            """
+        var section = ""
+        for setting in settings {
+            if setting.section != section {
+                section = setting.section
+                out += "\n[\(section)]\n"
+            }
+            out += "\(setting.key) = \(format(value(setting, in: defaults)))  # \(setting.comment)\n"
+        }
+        return out
+    }
+
+    /// `text` with `section.key` set to `value`: the line's value is replaced (its comment
+    /// stays), or a line is added at the end of the section, or the section at the end.
+    public static func setting(_ text: String, section: String, key: String, to value: TOML.Value) -> String {
+        var lines = text.components(separatedBy: "\n")
+        var current = ""
+        var lastInSection: Int?
+        for (index, line) in lines.enumerated() {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("[") && !trimmed.hasPrefix("[[") {
+                current = String(trimmed.dropFirst().prefix { $0 != "]" }).trimmingCharacters(in: .whitespaces)
+                if current == section { lastInSection = index }
+                continue
+            }
+            guard current == section else { continue }
+            if !trimmed.isEmpty { lastInSection = index }
+            guard let equals = line.firstIndex(of: "="),
+                  line[..<equals].trimmingCharacters(in: .whitespaces) == key else { continue }
+            let comment = commentStart(line, after: equals).map { "  " + line[$0...] } ?? ""
+            lines[index] = line[..<equals] + "= " + format(value) + comment
+            return lines.joined(separator: "\n")
+        }
+        if let lastInSection {
+            lines.insert("\(key) = \(format(value))", at: lastInSection + 1)
+        } else {
+            if lines.last == "" { lines.removeLast() }
+            lines += ["", "[\(section)]", "\(key) = \(format(value))", ""]
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// Where a `#` comment starts after the value, outside quotes.
+    private static func commentStart(_ line: String, after equals: String.Index) -> String.Index? {
+        var quote: Character?
+        var index = line.index(after: equals)
+        while index < line.endIndex {
+            let c = line[index]
+            if let q = quote {
+                if c == "\\" && q == "\"" { index = line.index(after: index) } else if c == q { quote = nil }
+            } else if c == "\"" || c == "'" {
+                quote = c
+            } else if c == "#" {
+                return index
+            }
+            if index < line.endIndex { index = line.index(after: index) }
+        }
+        return nil
+    }
+}
