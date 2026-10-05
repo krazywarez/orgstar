@@ -22,9 +22,20 @@ public struct ViewState: Sendable, Equatable {
 
     /// Drops folds that no longer sit at the start of a heading.
     public func pruned(to tree: OrgTree) -> ViewState {
-        let headings = Set(tree.root.descendants().filter { $0.kind == .heading }.map(\.range.lowerBound))
-        return ViewState(selection: selection, folds: folds.intersection(headings))
+        guard !folds.isEmpty else { return self }
+        return ViewState(selection: selection, folds: folds.filter { isHeadingStart($0, tree.root) })
     }
+}
+
+/// Descends only through the sections containing `offset`.
+func isHeadingStart(_ offset: Int, _ root: SyntaxNode) -> Bool {
+    var node = root
+    while let child = node.children.first(where: { $0.range.contains(offset) }) {
+        if child.kind == .heading { return child.range.lowerBound == offset }
+        guard child.kind == .section || child.kind == .zerothSection else { return false }
+        node = child
+    }
+    return false
 }
 
 /// An offset before an edit stays put; one at the start of a replaced range stays at its start;
