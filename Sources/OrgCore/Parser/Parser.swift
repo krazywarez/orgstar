@@ -390,8 +390,10 @@ struct Parser {
         builder.token(.stars, stars)
         rest = whitespace(rest.dropFirst(stars.count))
 
+        // As org: a keyword counts only before a space or the end of the line, not a tab.
         let word = rest.prefix { $0 != " " && $0 != "\t" }
-        if !word.isEmpty, settings.todoKeywordNames.contains(String(word)) {
+        let afterWord = rest.dropFirst(word.count).first
+        if !word.isEmpty, afterWord == nil || afterWord == " ", settings.todoKeywordNames.contains(String(word)) {
             builder.token(.todoKeyword, word)
             rest = whitespace(rest.dropFirst(word.count))
         }

@@ -43,6 +43,12 @@ struct ParserSectionTests {
         #expect(todo == ["NEXT"])
     }
 
+    @Test func todoKeywordNeedsASpaceAfterIt() {
+        #expect(tokens(of: .heading, in: "* TODO a\n").contains { $0.kind == .todoKeyword })
+        #expect(tokens(of: .heading, in: "* TODO\n").contains { $0.kind == .todoKeyword })
+        #expect(!tokens(of: .heading, in: "* TODO\ta\n").contains { $0.kind == .todoKeyword })
+    }
+
     @Test func priorityNeedsValidValueAndSpace() {
         #expect(tokens(of: .heading, in: "* [#B] x\n").contains { $0.kind == .priority })
         #expect(tokens(of: .heading, in: "* [#10] x\n").contains { $0.kind == .priority })

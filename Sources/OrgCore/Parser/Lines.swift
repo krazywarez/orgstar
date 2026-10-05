@@ -73,10 +73,11 @@ func classifyLine(_ line: Substring) -> ClassifiedLine {
 private func lineClass(_ rest: Substring, columnZero: Bool) -> LineClass {
     let trimmed = rest.trimmingTrailingWhitespace
 
+    // As org's `org-outline-regexp`: stars and then a space. A lone `*`, or stars before a tab,
+    // is not a heading.
     if columnZero, rest.first == "*" {
         let stars = rest.prefix { $0 == "*" }
-        let after = rest.dropFirst(stars.count)
-        if after.isEmpty || after.first == " " || after.first == "\t" {
+        if rest.dropFirst(stars.count).first == " " {
             return .heading(level: stars.count)
         }
     }
