@@ -1,6 +1,7 @@
 import Foundation
 import OrgCore
 import OrgPresentation
+import OrgWorkspace
 
 /// The configuration folder (`$XDG_CONFIG_HOME/orgstar`, else `~/.config/orgstar`) and
 /// `config.toml` in it: every setting of the Settings window as text, to edit, keep in a
@@ -100,6 +101,11 @@ public enum UserConfig {
                 comment: "left, right, both or none", legacy: "general.option-as-meta"),
         Setting(section: "orgstar", key: "show-markup", defaultsKey: "showMarkup", kind: .bool, fallback: .bool(false),
                 comment: "show link brackets and emphasis markers (View ▸ Show Markup)", legacy: "editor.show-markup"),
+        Setting(section: "orgstar", key: "show-hidden-files", defaultsKey: "showHiddenFiles", kind: .bool, fallback: .bool(true),
+                comment: "list dotfiles and dot folders in your folders", legacy: ""),
+        Setting(section: "orgstar", key: "ignored-folders", defaultsKey: "ignoredFolders", kind: .string,
+                fallback: .string(ScanRules.defaultIgnoredFolders.sorted().joined(separator: " ")),
+                comment: "folder names never listed or searched, separated by spaces", legacy: ""),
         Setting(section: "orgstar", key: "agenda-include-subfolders", defaultsKey: "agendaSubfolders", kind: .bool, fallback: .bool(false),
                 comment: "the agenda reads org files in subfolders too", legacy: "agenda.include-subfolders"),
         Setting(section: "orgstar", key: "reminders", defaultsKey: "reminders", kind: .bool, fallback: .bool(true),

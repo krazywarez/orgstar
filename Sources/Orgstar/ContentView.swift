@@ -3,6 +3,7 @@ import OrgApp
 import OrgCore
 import OrgEditorAppKit
 import OrgPresentation
+import OrgWorkspace
 import OrgIndex
 import SwiftUI
 import UniformTypeIdentifiers
@@ -47,6 +48,8 @@ struct ContentView: View {
     @AppStorage("outlineWidth") private var outlineWidth = 220.0
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
+    @AppStorage("showHiddenFiles") private var showHiddenFiles = true
+    @AppStorage("ignoredFolders") private var ignoredFolders = ScanRules.defaultIgnoredFolders.sorted().joined(separator: " ")
     @AppStorage("themeFont") private var themeFont = ""
     @AppStorage("themeFontSize") private var themeFontSize = 13
     @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
@@ -163,6 +166,9 @@ struct ContentView: View {
         .searchFocused($searchFocused)
         .toolbar { toolbarItems }
         .onChange(of: session.path) { plainOutlineShown = false }
+        .onChange(of: ScanRules(hiddenFiles: showHiddenFiles, ignoredFolders: Set(ignoredFolders.split(separator: " ").map(String.init))), initial: true) { _, rules in
+            workspace.scanRules = rules
+        }
         .onChange(of: selectedFile) { old, path in
             guard let path else { return }
             if !DocumentSession.isOrgPath(path), !FileTypes.isText(path) {

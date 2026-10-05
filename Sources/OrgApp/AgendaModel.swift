@@ -35,7 +35,8 @@ public final class AgendaModel {
     /// Emacs lists a directory in `org-agenda-files`.
     public var files: [String] {
         workspace.files
-            .filter { $0.kind == .org && (includeSubfolders || !$0.relativePath.contains("/")) }
+            // Dotfiles stay out, as `org-agenda-file-regexp` leaves them out.
+            .filter { $0.kind == .org && !$0.name.hasPrefix(".") && (includeSubfolders || !$0.relativePath.contains("/")) }
             .map(\.path)
             .sorted()
     }

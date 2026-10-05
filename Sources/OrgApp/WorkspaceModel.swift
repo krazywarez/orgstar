@@ -104,11 +104,19 @@ public final class WorkspaceModel {
 
     // MARK: - Indexing
 
+    /// Which files the folders show; a change rescans them.
+    public var scanRules = ScanRules() {
+        didSet {
+            guard scanRules != oldValue else { return }
+            Task { await refresh() }
+        }
+    }
+
     /// Reconciles every root off the main thread, then reloads the file list.
     public func refresh() async {
         isIndexing = true
         defer { isIndexing = false }
-        let reconciler = Reconciler(index: index, settings: settings)
+        let reconciler = Reconciler(index: index, settings: settings, rules: scanRules)
         for url in resolvedRoots.values {
             do {
                 _ = try await Task.detached { try reconciler.reconcile(root: url) }.value
@@ -129,7 +137,7 @@ public final class WorkspaceModel {
 
     /// Reconciles the paths a batch of file events named, or whole roots when events were lost.
     public func filesChanged(_ paths: [URL], rescan roots: [URL]) async {
-        let reconciler = Reconciler(index: index, settings: settings)
+        let reconciler = Reconciler(index: index, settings: settings, rules: scanRules)
         for rootURL in roots {
             _ = try? await Task.detached { try reconciler.reconcile(root: rootURL) }.value
         }

@@ -346,6 +346,7 @@ struct SettingsView: View {
     @AppStorage("reminderLead") private var reminderLead = 12
     @AppStorage("globalCapture") private var globalCapture = true
     @AppStorage("settingsTab") private var tab = "general"
+    @AppStorage("showHiddenFiles") private var showHiddenFiles = true
     @AppStorage("themeFont") private var themeFont = ""
     @AppStorage("themeFontSize") private var themeFontSize = 13
     @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
@@ -401,6 +402,7 @@ struct SettingsView: View {
                 Picker("Keys", selection: $preset) {
                     ForEach(KeymapPreset.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
+                Toggle("Show hidden files and folders", isOn: $showHiddenFiles)
                 Picker("Option as Meta", selection: $optionAsMeta) {
                     Text("Left Option").tag(OptionAsMeta.left.rawValue)
                     Text("Right Option").tag(OptionAsMeta.right.rawValue)

@@ -16,15 +16,17 @@ public struct ReconcileReport: Sendable, Equatable {
 public struct Reconciler: Sendable {
     public let index: IndexStore
     public let settings: IndexSettings
+    public let rules: ScanRules
 
-    public init(index: IndexStore, settings: IndexSettings) {
+    public init(index: IndexStore, settings: IndexSettings, rules: ScanRules = ScanRules()) {
         self.index = index
         self.settings = settings
+        self.rules = rules
     }
 
     /// Reconciles the whole root.
     public func reconcile(root: URL) throws -> ReconcileReport {
-        let discovery = try WorkspaceScanner.scan(root)
+        let discovery = try WorkspaceScanner.scan(root, rules: rules)
         for placeholder in discovery.placeholders {
             try? FileManager.default.startDownloadingUbiquitousItem(at: placeholder)
         }
@@ -40,9 +42,9 @@ public struct Reconciler: Sendable {
         var found: [DiscoveredFile] = []
         let rootComponents = root.standardizedFileURL.pathComponents.count
         for url in paths.map(\.standardizedFileURL) {
-            // Files in hidden folders (`.git`) aren't part of the workspace, as in `scan`.
-            if url.pathComponents.dropFirst(rootComponents).dropLast().contains(where: { $0.hasPrefix(".") }) { continue }
-            guard case .file(let kind) = WorkspaceScanner.classify(url.lastPathComponent),
+            // Files in ignored folders (`.git`) aren't part of the workspace, as in `scan`.
+            if url.pathComponents.dropFirst(rootComponents).dropLast().contains(where: rules.skipsFolder) { continue }
+            guard case .file(let kind) = WorkspaceScanner.classify(url.lastPathComponent, rules: rules),
                   let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey]),
                   values.isDirectory != true else { continue }
             found.append(DiscoveredFile(

@@ -41,17 +41,43 @@ public enum FileClassification: Sendable, Equatable {
     case ignored
 }
 
+/// Which files and folders a scan takes in.
+public struct ScanRules: Sendable, Equatable {
+    /// Dotfiles and dot folders, other than ignored folders.
+    public var hiddenFiles: Bool
+    /// Folder names never looked into: version control, caches, build output.
+    public var ignoredFolders: Set<String>
+
+    public static let defaultIgnoredFolders: Set<String> = [
+        ".git", ".hg", ".svn", ".jj", ".bzr", ".stfolder", ".stversions", ".Trash", ".Spotlight-V100", ".fseventsd",
+        ".build", ".venv", ".cache", ".tox", ".mypy_cache", ".pytest_cache", ".gradle", ".next", ".terraform", "node_modules",
+    ]
+
+    public init(hiddenFiles: Bool = true, ignoredFolders: Set<String> = defaultIgnoredFolders) {
+        self.hiddenFiles = hiddenFiles
+        self.ignoredFolders = ignoredFolders
+    }
+
+    public func skipsFolder(_ name: String) -> Bool {
+        ignoredFolders.contains(name) || (!hiddenFiles && name.hasPrefix("."))
+    }
+}
+
 public enum WorkspaceScanner {
     /// What a file name means to the workspace. Syncthing temp files, our own temp and backup
-    /// files, Emacs backups and auto-saves, and other hidden files are ignored; files that
-    /// aren't org files are `.other`.
-    public static func classify(_ name: String) -> FileClassification {
+    /// files, Emacs backups, auto-saves and lock files, and Finder's files are ignored, and
+    /// other dotfiles unless `rules` takes them in; files that aren't org files are `.other`.
+    public static func classify(_ name: String, rules: ScanRules = ScanRules()) -> FileClassification {
         if name.hasPrefix(".") {
             if name.hasSuffix(".icloud") {
                 let inner = String(name.dropFirst().dropLast(".icloud".count))
-                if case .file = classify(inner) { return .placeholder(inner) }
+                if case .file = classify(inner, rules: rules) { return .placeholder(inner) }
+                return .ignored
             }
-            return .ignored
+            if !rules.hiddenFiles || name.hasPrefix(".#") || name.hasPrefix(".syncthing.") || name.contains(".orgstar-")
+                || name == ".DS_Store" || name == ".localized" {
+                return .ignored
+            }
         }
         if name.hasSuffix("~") || name.hasPrefix("#") { return .ignored }
         let conflict = name.contains(".sync-conflict-")
@@ -60,8 +86,8 @@ public enum WorkspaceScanner {
         return .file(.other)
     }
 
-    /// Every file under `root`, skipping hidden folders (`.git`, `.stfolder`, `.stversions`).
-    public static func scan(_ root: URL) throws -> Discovery {
+    /// Every file under `root`, skipping the folders `rules` ignores.
+    public static func scan(_ root: URL, rules: ScanRules = ScanRules()) throws -> Discovery {
         let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
         guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys) else {
             return Discovery()
@@ -71,10 +97,10 @@ public enum WorkspaceScanner {
             let values = try url.resourceValues(forKeys: Set(keys))
             let name = url.lastPathComponent
             if values.isDirectory == true {
-                if name.hasPrefix(".") { enumerator.skipDescendants() }
+                if rules.skipsFolder(name) { enumerator.skipDescendants() }
                 continue
             }
-            switch classify(name) {
+            switch classify(name, rules: rules) {
             case .file(let kind):
                 discovery.files.append(DiscoveredFile(
                     url: url.standardizedFileURL,
@@ -103,7 +129,8 @@ public struct AgendaScope: Sendable, Equatable {
     }
 
     public func contains(relativePath: String, kind: FileKind) -> Bool {
-        guard kind == .org else { return false }
+        // `org-agenda-file-regexp` leaves out dotfiles.
+        guard kind == .org, !(relativePath as NSString).lastPathComponent.hasPrefix(".") else { return false }
         guard !globs.isEmpty else { return true }
         // Without FNM_PATHNAME, `*` also matches `/`, so `work/*` covers nested folders.
         return globs.contains { fnmatch($0, relativePath, 0) == 0 }
