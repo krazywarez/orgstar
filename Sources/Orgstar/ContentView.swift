@@ -140,6 +140,14 @@ struct ContentView: View {
         case "app.reload-keymap":
             loadKeymap()
             commands.show("Keymap reloaded")
+        case "app.refile":
+            let targets = workspace.refileTargets(openPath: session.path, document: session.document)
+            commands.ask(Prompt(key: "refile", message: "Refile to:", choices: targets.map(\.label))) { answer in
+                guard let answer, let target = targets.first(where: { $0.label == answer }) else { return }
+                if let message = session.refile(to: target) { commands.show(message) }
+            }
+        case "app.archive":
+            if let message = session.archive() { commands.show(message) }
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }

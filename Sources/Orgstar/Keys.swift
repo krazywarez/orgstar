@@ -31,6 +31,23 @@ struct EchoArea: View {
                 .padding(10)
             }
             if let request = commands.prompt {
+                if !request.prompt.choices.isEmpty {
+                    Divider()
+                    let matches = filteredChoices(request.prompt.choices)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(matches.prefix(12), id: \.self) { choice in
+                                Button(choice) { commands.answer(choice) }
+                                    .buttonStyle(.plain)
+                                    .font(.system(.callout, design: .monospaced))
+                                    .foregroundStyle(choice == matches.first ? .primary : .secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                    }
+                    .frame(maxHeight: 200)
+                }
                 Divider()
                 HStack(spacing: 6) {
                     Text(request.prompt.message).font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary)
@@ -38,7 +55,13 @@ struct EchoArea: View {
                         .textFieldStyle(.plain)
                         .font(.system(.callout, design: .monospaced))
                         .focused($answerFocused)
-                        .onSubmit { commands.answer(answer) }
+                        .onSubmit {
+                            if request.prompt.choices.isEmpty {
+                                commands.answer(answer)
+                            } else if let first = filteredChoices(request.prompt.choices).first {
+                                commands.answer(first)
+                            }
+                        }
                         .onExitCommand { commands.answer(nil) }
                 }
                 .padding(.horizontal, 10)
@@ -65,6 +88,16 @@ struct EchoArea: View {
             try? await Task.sleep(for: .milliseconds(600))
             if !Task.isCancelled { showingHints = true }
         }
+    }
+}
+
+extension EchoArea {
+    /// Choices matching what's typed, best first.
+    func filteredChoices(_ choices: [String]) -> [String] {
+        guard !answer.isEmpty else { return choices }
+        return choices.compactMap { choice in FuzzyMatch.score(answer, choice).map { (choice, $0) } }
+            .sorted { $0.1 > $1.1 }
+            .map(\.0)
     }
 }
 

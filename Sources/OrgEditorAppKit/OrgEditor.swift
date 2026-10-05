@@ -585,6 +585,11 @@ public final class OrgEditor: NSObject {
 }
 
 extension OrgEditor: DocumentBuffer {
+    public var selection: [Range<Int>] {
+        let selected = textView.selectedRange()
+        return [selected.location..<NSMaxRange(selected)]
+    }
+
     /// Runs `change`; if it changed the text, reloads the view with folds and the selection
     /// mapped through the change. Text-view undo refers to the old text, so it is cleared.
     public func update<T>(_ change: (inout DocumentState) throws -> T) rethrows -> T {

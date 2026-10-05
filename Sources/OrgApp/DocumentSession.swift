@@ -5,6 +5,36 @@ import OrgDocument
 import OrgIndex
 import OrgPresentation
 
+/// A heading, or a whole file, a subtree can be refiled to.
+public struct RefileTarget: Sendable, Hashable {
+    /// `file.org/Parent/Heading`, as the prompt lists it.
+    public let label: String
+    public let path: String
+    /// Start of the heading when the file had `contentHash`; nil refiles to the end of the file.
+    public let start: Int?
+    public let title: String
+    public let level: Int
+    public let contentHash: String
+
+    public init(label: String, path: String, start: Int?, title: String, level: Int, contentHash: String) {
+        self.label = label
+        self.path = path
+        self.start = start
+        self.title = title
+        self.level = level
+        self.contentHash = contentHash
+    }
+
+    /// The heading's start in `state`: its indexed offset if the file hasn't changed, else the
+    /// first heading with the same title and level. Nil for the end of the file.
+    func locate(in state: DocumentState) -> Int?? {
+        guard let start else { return .some(nil) }
+        if FileRecord.hash(state.mergeBase) == contentHash { return .some(start) }
+        let entry = Presentation.outline(state.tree).first { $0.title == title && $0.level == level }
+        return entry.map { .some($0.start) }
+    }
+}
+
 public enum SaveMode: String, Sendable, CaseIterable {
     /// Save shortly after typing stops.
     case automatic
@@ -159,6 +189,75 @@ public final class DocumentSession {
             lastError = "Can't read \(name): \(error.localizedDescription)"
         }
         refresh()
+    }
+
+    // MARK: - Moving subtrees
+
+    /// The current context of the buffer, as commands see it.
+    private func editContext(now: Date) -> EditContext? {
+        guard let buffer else { return nil }
+        let document = buffer.document
+        return EditContext(revision: document.revision, text: document.text, tree: document.tree, selection: buffer.selection, now: now)
+    }
+
+    /// Moves the subtree at the caret under `target`. For another file, that file is written
+    /// first, through the save path; the subtree leaves this buffer only once it has. Returns a
+    /// message for the echo area.
+    @discardableResult
+    public func refile(to target: RefileTarget, now: Date = Date()) -> String? {
+        guard let buffer, let path, let context = editContext(now: now) else { return nil }
+        if target.path == path {
+            let step = buffer.perform(RefileWithinFile(), now: now, answers: ["refile": target.start.map(String.init) ?? ""])
+            if case .failed(let message) = step { return message }
+            bufferChanged()
+            return "Refiled to \(target.label)"
+        }
+        let url = URL(fileURLWithPath: target.path)
+        do {
+            guard let bytes = try fileSystem.read(url) else { return "\((target.path as NSString).lastPathComponent) no longer exists." }
+            var state = DocumentState(bytes: bytes)
+            guard state.isEditable else { return "\((target.path as NSString).lastPathComponent) isn't UTF-8, so it can't be changed." }
+            guard let start = target.locate(in: state) else { return "Can't find \(target.label) any more." }
+            guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
+            try state.apply([result.target], baseRevision: state.revision)
+            if case .conflict = try saver.save(&state, to: url) { return "\((target.path as NSString).lastPathComponent) changed on disk; nothing was refiled." }
+            if case .failed(let message) = buffer.perform(PrecomputedEdit(result.source), now: now, answers: [:]) { return message }
+            bufferChanged()
+            return "Refiled to \(target.label)"
+        } catch {
+            return "Can't refile: \(error.localizedDescription)"
+        }
+    }
+
+    /// Archives the subtree at the caret where `org-archive-subtree` would. Returns a message.
+    @discardableResult
+    public func archive(now: Date = Date()) -> String? {
+        guard let buffer, let path, let context = editContext(now: now) else { return nil }
+        let destination: Archive.Destination
+        switch Archive.destination(context, sourcePath: path) {
+        case .success(let value): destination = value
+        case .failure(.message(let message)): return message
+        }
+        do {
+            let url = URL(fileURLWithPath: destination.path)
+            let existing = destination.isSameFile ? nil : try fileSystem.read(url)
+            var state = DocumentState(bytes: existing ?? [])
+            if !destination.isSameFile, !state.isEditable { return "\(url.lastPathComponent) isn't UTF-8, so it can't be changed." }
+            let edits: Archive.Edits
+            switch Archive.run(context, sourcePath: path, destination: destination, archiveText: existing.map { _ in state.text }) {
+            case .success(let value): edits = value
+            case .failure(.message(let message)): return message
+            }
+            if let archiveEdit = edits.archive {
+                try state.apply([archiveEdit], baseRevision: state.revision)
+                if case .conflict = try saver.save(&state, to: url) { return "\(url.lastPathComponent) changed on disk; nothing was archived." }
+            }
+            if case .failed(let message) = buffer.perform(PrecomputedEdit(edits.source), now: now, answers: [:]) { return message }
+            bufferChanged()
+            return destination.isSameFile ? "Archived under \(destination.heading ?? "the end of the file")" : "Archived to \(url.lastPathComponent)"
+        } catch {
+            return "Can't archive: \(error.localizedDescription)"
+        }
     }
 
     // MARK: - Locations

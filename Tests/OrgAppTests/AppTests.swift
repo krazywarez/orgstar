@@ -226,3 +226,50 @@ struct KeymapLoaderTests {
         #expect(KeymapLoader.load(.mac, userFile: broken).problems == ["line 1: unclosed string"])
     }
 }
+
+@MainActor
+struct MoveSubtreeTests {
+    @Test func refileWithinAndAcrossFiles() async throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* one\nbody\n* two\n")
+        let other = try notes.write("b.org", "* inbox\n")
+        let workspace = try WorkspaceModel(directory: nil)
+        try await workspace.addRoot(notes.url)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.saveMode = .explicit
+        session.open(file.path)
+        let targets = workspace.refileTargets(openPath: session.path, document: session.document)
+        #expect(targets.map(\.label) == ["a.org", "a.org/one", "a.org/two", "b.org", "b.org/inbox"])
+
+        #expect(session.refile(to: targets[2]) == "Refiled to a.org/two")
+        #expect(session.document?.text == "* two\n** one\nbody\n")
+
+        let inbox = try #require(workspace.refileTargets(openPath: session.path, document: session.document).first { $0.label == "b.org/inbox" })
+        StateBufferCaret.set(session, 6)
+        #expect(session.refile(to: inbox) == "Refiled to b.org/inbox")
+        #expect(try String(contentsOf: other, encoding: .utf8) == "* inbox\n** one\nbody\n")
+        #expect(session.document?.text == "* two\n")
+    }
+
+    @Test func archiveToTheArchiveFile() throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* done\n* keep\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.saveMode = .explicit
+        session.open(file.path)
+        #expect(session.archive(now: Date(timeIntervalSince1970: 0)) == "Archived to a.org_archive")
+        #expect(session.document?.text == "* keep\n")
+        let archived = try String(contentsOf: notes.url.appendingPathComponent("a.org_archive"), encoding: .utf8)
+        #expect(archived.contains("* done\n:PROPERTIES:\n:ARCHIVE_TIME:"))
+    }
+}
+
+/// Moves the caret of a session's `StateBuffer`, as clicking in the editor would.
+@MainActor
+enum StateBufferCaret {
+    static func set(_ session: DocumentSession, _ offset: Int) {
+        let buffer = StateBuffer(session.document!)
+        buffer.selection = [offset..<offset]
+        session.attach(buffer)
+    }
+}
