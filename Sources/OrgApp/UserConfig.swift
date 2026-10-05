@@ -201,7 +201,9 @@ public enum UserConfig {
         switch value {
         case .bool(let b): b ? "true" : "false"
         case .integer(let i): String(i)
-        case .string(let s): "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        case .string(let s):
+            "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+                .replacingOccurrences(of: "\n", with: "\\n").replacingOccurrences(of: "\t", with: "\\t") + "\""
         }
     }
 

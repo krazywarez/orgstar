@@ -5,6 +5,8 @@ import AppKit
 /// - `ORGSTAR_OPEN`: a file to select at launch.
 /// - `ORGSTAR_ROOT`: a folder to add at launch.
 /// - `ORGSTAR_WINDOW`: a window to open at launch (`agenda`, `settings`); the snapshot renders it.
+/// - `ORGSTAR_COMMAND`: a command to run at launch (`app.import-emacs`); a sheet it opens is
+///   what the snapshot renders.
 /// - `ORGSTAR_SNAPSHOT`: after `ORGSTAR_SNAPSHOT_DELAY` seconds (default 3), render the main
 ///   window to this PNG path and quit. Rendering from inside the app needs no screen-recording
 ///   permission.
@@ -12,6 +14,7 @@ enum DevelopmentHooks {
     static var fileToOpen: String? { ProcessInfo.processInfo.environment["ORGSTAR_OPEN"] }
     static var rootToAdd: String? { ProcessInfo.processInfo.environment["ORGSTAR_ROOT"] }
     static var windowToOpen: String? { ProcessInfo.processInfo.environment["ORGSTAR_WINDOW"] }
+    static var commandToRun: String? { ProcessInfo.processInfo.environment["ORGSTAR_COMMAND"] }
 
     @MainActor
     static func scheduleSnapshot() {
@@ -20,12 +23,14 @@ enum DevelopmentHooks {
         let delay = Double(environment["ORGSTAR_SNAPSHOT_DELAY"] ?? "") ?? 3
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             let visible = NSApp.windows.filter(\.isVisible)
-            let window = windowToOpen.flatMap { id in visible.first { $0.identifier?.rawValue.lowercased().contains(id) == true } } ?? visible.first
+            let chosen = windowToOpen.flatMap { id in visible.first { $0.identifier?.rawValue.lowercased().contains(id) == true } } ?? visible.first
+            let window = chosen?.attachedSheet ?? chosen
             if let view = window?.contentView?.superview,
                let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
                 view.cacheDisplay(in: view.bounds, to: bitmap)
                 try? bitmap.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
             }
+            if let chosen, let sheet = chosen.attachedSheet { chosen.endSheet(sheet) }
             NSApp.terminate(nil)
         }
     }

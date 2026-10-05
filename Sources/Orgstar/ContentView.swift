@@ -47,6 +47,7 @@ struct ContentView: View {
     @AppStorage("showLineNumbers") private var showLineNumbers = true
     /// The outline for a file that isn't org, off until asked for.
     @State private var plainOutlineShown = false
+    @State private var showingImport = false
     @State private var query = ""
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
@@ -162,6 +163,7 @@ struct ContentView: View {
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
         .onChange(of: options, initial: true) { _, options in session.options = options }
         .onChange(of: preset, initial: true) { loadKeymap() }
+        .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
         .sheet(isPresented: $commands.showingPalette) {
             PaletteView(commands: commands) { id in
                 commands.showingPalette = false
@@ -256,6 +258,7 @@ struct ContentView: View {
             DevelopmentHooks.scheduleSnapshot()
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
             if let root = DevelopmentHooks.rootToAdd { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
+            if let command = DevelopmentHooks.commandToRun { perform(command) }
             if let id = DevelopmentHooks.windowToOpen {
                 if id == "settings" { openSettings() } else { openWindow(id: id) }
             }
@@ -394,6 +397,7 @@ struct ContentView: View {
         case "app.toggle-outline": toggleOutline()
         case "app.toggle-markup": showMarkup.toggle()
         case "app.toggle-line-numbers": showLineNumbers.toggle()
+        case "app.import-emacs": showingImport = true
         case "app.edit-config": commands.jump(path: UserConfig.configFile.path, offset: 0)
         case "app.quick-open": commands.showingQuickOpen = true
         case "app.palette": commands.showingPalette = true

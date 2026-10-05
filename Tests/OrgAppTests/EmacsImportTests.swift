@@ -1,0 +1,136 @@
+import Foundation
+import OrgCore
+import Testing
+@testable import OrgApp
+
+struct EmacsImportTests {
+    static let config = #"""
+    (setq user-full-name "Someone")
+    (setq doom-theme 'doom-homage-black)
+    (setq display-line-numbers-type t)
+    (setq org-support-shift-select t)
+    (setq org-directory "~/notes/")
+    (setq org-roam-directory (file-name-concat org-directory "roam"))
+    (after! org
+      (setq org-hide-emphasis-markers t
+            org-pretty-entities t
+            org-agenda-files '("~/notes/" "~/work/plan.org")
+            org-tags-column -80))
+    (setq org-tags-column 4)
+    (setq fill-column (+ 70 2))
+    (setq org-capture-templates
+          '(("t" "Todo" entry (file+headline "~/notes/todo.org" "Inbox") "* TODO %?\n%a")
+            ("j" "Journal" entry (file+olp+datetree "~/notes/journal.org") "* %?")
+            ("w" "Work")
+            ("wn" "Work note" plain (file "~/work/notes.org") "%?" :prepend t)))
+    (map! :leader :desc "Report" "z t" #'tr/report
+          :localleader "x" #'org-toggle-checkbox)
+    (map! :n "g s" #'save-buffer)
+    (global-set-key (kbd "C-c a") #'org-agenda)
+    (with-eval-after-load 'org (define-key org-mode-map (kbd "C-c l") (lambda () (interactive))))
+    """#
+
+    static let doomOrg = #"""
+    (defun +org-init-appearance-h ()
+      (setq org-tags-column 0
+            org-agenda-span 10
+            org-agenda-start-day "-3d"
+            org-todo-keywords '((sequence "TODO(t)" "WAIT(w)" "|" "DONE(d)") (sequence "[ ](T)" "|" "[X](D)"))))
+    (after! org (setq org-M-RET-may-split-line nil org-list-allow-alphabetical t))
+    (map! :map org-mode-map "C-c q" #'org-set-tags-command)
+    """#
+
+    func scan() throws -> EmacsImport {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try "(doom! :editor (evil +everywhere) :lang (org +pretty))".write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        try Self.config.write(to: folder.appendingPathComponent("config.el"), atomically: true, encoding: .utf8)
+        let doom = folder.appendingPathComponent("doom-org.el")
+        try Self.doomOrg.write(to: doom, atomically: true, encoding: .utf8)
+        return EmacsImport.scan(EmacsImport.files(in: folder), doomDefaults: [doom])
+    }
+
+    func settings(_ result: EmacsImport) -> [String: TOML.Value] {
+        var out: [String: TOML.Value] = [:]
+        for item in result.items { if case .setting(let key, let value) = item.change { out[key] = value } }
+        return out
+    }
+
+    @Test func readsSettingsWithDoomDefaultsUnderneath() throws {
+        let result = try scan()
+        #expect(result.isDoom)
+        let s = settings(result)
+        #expect(s["keymap"] == .string("doom"))
+        #expect(s["display-line-numbers-type"] == .bool(true))
+        #expect(s["org-hide-emphasis-markers"] == .bool(true))
+        #expect(s["org-pretty-entities"] == .bool(true))
+        // after! org runs after the top-level setq.
+        #expect(s["org-tags-column"] == .integer(-80))
+        #expect(s["org-agenda-span"] == .integer(10))
+        #expect(s["org-agenda-start-day"] == .string("-3d"))
+        #expect(s["org-M-RET-may-split-line"] == .bool(false))
+        #expect(s["org-todo-keywords"] == .string("TODO(t) WAIT(w) | DONE(d)"))
+        #expect(s["fill-column"] == nil)
+        let folders = result.items.compactMap { if case .folder(let f) = $0.change { f } else { nil } }
+        #expect(folders == ["~/notes/", "~/work"])
+        #expect(result.unreadable.map(\.name) == ["fill-column"])
+        #expect(Set(result.unsupported.map(\.name)) == ["org-support-shift-select", "doom-theme", "org-roam-directory",
+            "capture \"j\"", "SPC z t → tr/report", "C-c l"])
+        #expect(result.skipped == 1)
+        #expect(result.doomDefaultsLeftOut == 1)
+    }
+
+    @Test func readsCaptureTemplatesAndBindings() throws {
+        let result = try scan()
+        let captures = result.items.compactMap { if case .capture(let key, let toml) = $0.change { (key, toml) } else { nil } }
+        #expect(captures.map(\.0) == ["t", "wn"])
+        #expect(captures[0].1 == "[[template]]\nkey = \"t\"\nname = \"Todo\"\ntype = \"entry\"\nfile = \"~/notes/todo.org\"\nheadline = \"Inbox\"\ntemplate = \"* TODO %?\\n%a\"\n")
+        #expect(captures[1].1.contains("prepend = true\n") && captures[1].1.contains("type = \"plain\""))
+        #expect(result.unsupported.contains { $0.name == "capture \"j\"" })
+
+        let bindings = result.items.compactMap { if case .binding(let keys, let command, let mode) = $0.change { "\(keys) \(command) \(mode ?? "-")" } else { nil } }
+        #expect(bindings == ["SPC m x org.checkbox.toggle normal", "g s app.save normal", "C-c a app.agenda normal"])
+        #expect(result.unsupported.contains { $0.name == "SPC z t → tr/report" })
+        #expect(result.unsupported.contains { $0.name == "C-c l" && $0.reason == "bound to code, not a command" })
+    }
+
+    /// The user's own Doom configuration, when there is one.
+    @Test(.enabled(if: FileManager.default.fileExists(atPath: NSHomeDirectory() + "/.config/doom/config.el")))
+    func readsTheInstalledDoomConfig() {
+        let result = EmacsImport.scan(EmacsImport.files(in: URL(fileURLWithPath: NSHomeDirectory() + "/.config/doom")))
+        #expect(result.problems.isEmpty, "\(result.problems)")
+        let s = settings(result)
+        #expect(s["keymap"] == .string("doom"))
+        #expect(s["org-agenda-start-day"] == .string("-3d"))
+        #expect(s["org-tags-column"] == .integer(0))
+        let report = result.items.map { "\($0.name) | \($0.summary) | \($0.source)" }
+            + result.unsupported.map { "NO \($0.name): \($0.reason) | \($0.source)" }
+            + result.unreadable.map { "?? \($0.name): \($0.reason) | \($0.source)" }
+        print(report.joined(separator: "\n"))
+    }
+
+    @MainActor
+    @Test func appliesToDefaultsAndFiles() async throws {
+        let result = try scan()
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-out-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "[[template]]\nkey = \"t\"\nfile = \"x.org\"\ntemplate = \"* %?\"\n".write(to: folder.appendingPathComponent("capture.toml"), atomically: true, encoding: .utf8)
+        let name = "orgstar-import-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let summary = await EmacsImport.apply(result.items, defaults: defaults, workspace: nil, directory: folder)
+        #expect(defaults.string(forKey: "keymap") == "doom")
+        #expect(defaults.integer(forKey: "tagsColumn") == -80)
+        #expect(defaults.integer(forKey: "agendaStartOffset") == -3)
+        #expect(defaults.string(forKey: "todoKeywords") == "TODO(t) WAIT(w) | DONE(d)")
+        let capture = try String(contentsOf: folder.appendingPathComponent("capture.toml"), encoding: .utf8)
+        #expect(capture.components(separatedBy: "[[template]]").count == 3)
+        #expect(CaptureTemplates.load(userFile: folder.appendingPathComponent("capture.toml")).problems.isEmpty)
+        let keymap = folder.appendingPathComponent("keymap.toml")
+        #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
+        #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
+        #expect(summary.hasPrefix("Imported 10 settings, 1 capture template, 3 key bindings."), "\(summary)")
+    }
+}

@@ -252,7 +252,7 @@ struct OrgstarApp: App {
             }
         }
         Settings {
-            SettingsView(commands: commands)
+            SettingsView(commands: commands, workspace: try? workspace.get())
         }
     }
 }
@@ -322,6 +322,8 @@ struct AgendaMenuItem: View {
 
 struct SettingsView: View {
     let commands: AppCommands
+    let workspace: WorkspaceModel?
+    @State private var importing = false
     @Environment(\.openWindow) private var openWindow
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
@@ -368,6 +370,9 @@ struct SettingsView: View {
                         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([UserConfig.configFile]) }
                     }
                 }
+                LabeledContent("Emacs") {
+                    Button("Import from Emacs…") { importing = true }
+                }
             } footer: {
                 Text("Every setting here is also in \(UserConfig.configFile.path), which you can edit, share or keep with your dotfiles. Changes in either place show up in the other.")
                     .settingsFooter()
@@ -395,7 +400,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 250)
+        .frame(height: 330)
+        .sheet(isPresented: $importing) { EmacsImportView(workspace: workspace) }
     }
 
     private var editing: some View {
