@@ -39,7 +39,8 @@ struct EditorView: NSViewRepresentable {
             container.subviews.forEach { $0.removeFromSuperview() }
             coordinator.editor = nil
             if let document = session.document {
-                let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable, highlighter: Self.highlighter)
+                let mode: OrgEditor.Mode = session.isOrg ? .org : .plain(language: session.path.flatMap(FileTypes.language))
+                let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable, highlighter: Self.highlighter, mode: mode)
                 editor.onChange = { [weak session] in session?.bufferChanged() }
                 editor.onMessage = { [weak commands] in commands?.show($0) }
                 editor.onKeysPending = { [weak commands] keys, next in

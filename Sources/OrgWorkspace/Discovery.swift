@@ -43,7 +43,8 @@ public enum FileClassification: Sendable, Equatable {
 
 public enum WorkspaceScanner {
     /// What a file name means to the workspace. Syncthing temp files, our own temp and backup
-    /// files, Emacs backups and auto-saves, and other hidden files are ignored.
+    /// files, Emacs backups and auto-saves, and other hidden files are ignored; files that
+    /// aren't org files are `.other`.
     public static func classify(_ name: String) -> FileClassification {
         if name.hasPrefix(".") {
             if name.hasSuffix(".icloud") {
@@ -56,10 +57,10 @@ public enum WorkspaceScanner {
         let conflict = name.contains(".sync-conflict-")
         if name.hasSuffix(".org") { return .file(conflict ? .conflict : .org) }
         if name.hasSuffix(".org_archive") { return .file(conflict ? .conflict : .archive) }
-        return .ignored
+        return .file(.other)
     }
 
-    /// Every org file under `root`, skipping hidden folders (`.git`, `.stfolder`, `.stversions`).
+    /// Every file under `root`, skipping hidden folders (`.git`, `.stfolder`, `.stversions`).
     public static func scan(_ root: URL) throws -> Discovery {
         let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
         guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys) else {

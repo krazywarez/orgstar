@@ -19,9 +19,9 @@ final class Harness {
     }
 
     /// The editor as a window would show it first: background styling not yet run.
-    init(_ document: DocumentState, layout: Bool = true) {
+    init(_ document: DocumentState, layout: Bool = true, mode: OrgEditor.Mode = .org) {
         _ = NSApplication.shared
-        editor = OrgEditor(document: document)
+        editor = OrgEditor(document: document, mode: mode)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 600, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = editor.makeScrollView()
         window.makeFirstResponder(editor.textView)

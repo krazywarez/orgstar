@@ -13,7 +13,8 @@ struct ClassificationTests {
         (".a.org.orgstar-1234", .ignored),
         ("a.org~", .ignored),
         ("#a.org#", .ignored),
-        ("a.md", .ignored),
+        ("a.md", .file(.other)),
+        ("photo.jpg", .file(.other)),
         (".hidden.org", .ignored),
     ])
     func classify(name: String, expected: FileClassification) {
@@ -40,7 +41,8 @@ struct ScanTests {
         try folder.write("sub/.e.org.icloud", "")
         try folder.write("notes.txt", "")
         let discovery = try WorkspaceScanner.scan(folder.url)
-        #expect(discovery.files.map(\.url.lastPathComponent) == ["a.org", "b.org_archive"])
+        #expect(discovery.files.map(\.url.lastPathComponent) == ["a.org", "notes.txt", "b.org_archive"])
+        #expect(discovery.files.map(\.kind) == [.org, .other, .archive])
         #expect(discovery.placeholders.map(\.lastPathComponent) == ["e.org"])
     }
 }

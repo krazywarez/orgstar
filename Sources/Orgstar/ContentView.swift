@@ -4,6 +4,7 @@ import OrgCore
 import OrgEditorAppKit
 import OrgIndex
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     let workspace: WorkspaceModel
@@ -39,6 +40,8 @@ struct ContentView: View {
         )
     }
     @State private var selectedFile: String?
+    /// A file that isn't text, shown as a preview instead of the open document.
+    @State private var previewPath: String?
     @State private var query = ""
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
@@ -62,7 +65,9 @@ struct ContentView: View {
             }
             .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 360)
         } detail: {
-            if session.path != nil {
+            if let previewPath {
+                FilePreview(path: previewPath)
+            } else if session.path != nil {
                 EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         VStack(spacing: 0) {
@@ -78,7 +83,7 @@ struct ContentView: View {
                 )
             }
         }
-        .navigationTitle(session.path.map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
+        .navigationTitle((previewPath ?? session.path).map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
         .navigationSubtitle(session.isReadOnly ? "Read-only: not UTF-8" : "")
         .searchable(text: $query, placement: .toolbar, prompt: "Search notes")
         .searchFocused($searchFocused)
@@ -102,7 +107,13 @@ struct ContentView: View {
             }
         }
         .onChange(of: selectedFile) { old, path in
-            guard let path, path != session.path else { return }
+            guard let path else { return }
+            if !DocumentSession.isOrgPath(path), !FileTypes.isText(path) {
+                previewPath = path
+                return
+            }
+            previewPath = nil
+            guard path != session.path else { return }
             if UnsavedChanges.resolve(session) {
                 session.open(path)
             } else {
@@ -322,6 +333,11 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
+        let orgOnly = ["app.refile", "app.archive", "app.clock.in"].contains(id) || id.hasPrefix("app.export.")
+        if orgOnly, !session.isOrg {
+            commands.show("Not an org file")
+            return
+        }
         switch id {
         case "app.save":
             if !session.save(), session.conflict != nil { commands.showingConflict = true }
@@ -456,6 +472,14 @@ struct Sidebar: View {
         case .org: return "doc.text"
         case .archive: return "archivebox"
         case .conflict: return "exclamationmark.triangle"
+        case .other:
+            guard let type = UTType(filenameExtension: (file.path as NSString).pathExtension) else { return "doc" }
+            if type.conforms(to: .image) { return "photo" }
+            if type.conforms(to: .pdf) { return "doc.richtext" }
+            if type.conforms(to: .audiovisualContent) { return "play.rectangle" }
+            if type.conforms(to: .sourceCode) || type.conforms(to: .script) { return "chevron.left.forwardslash.chevron.right" }
+            if type.conforms(to: .text) { return "doc.plaintext" }
+            return "doc"
         }
     }
 }
@@ -475,7 +499,9 @@ struct OutlineColumn: View {
             .buttonStyle(.plain)
         }
         .overlay {
-            if session.path != nil, session.outline.isEmpty {
+            if session.path != nil, !session.isOrg {
+                ContentUnavailableView("No outline", systemImage: "doc.plaintext", description: Text("Only org files have an outline."))
+            } else if session.path != nil, session.outline.isEmpty {
                 ContentUnavailableView("No headings", systemImage: "list.bullet.indent")
             }
         }

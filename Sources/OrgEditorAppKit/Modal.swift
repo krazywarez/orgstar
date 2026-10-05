@@ -92,7 +92,8 @@ extension OrgEditor {
     }
 
     private func commandApplies(_ id: String, in context: EditContext) -> Bool {
-        switch EditorCommands.command(id)?.action {
+        if !isOrg, id.hasPrefix("org.") { return false }
+        return switch EditorCommands.command(id)?.action {
         case .text(let command): command.applies(in: context)
         default: true
         }

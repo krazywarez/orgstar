@@ -87,6 +87,13 @@ public final class DocumentSession {
     }
 
     private var url: URL? { path.map { URL(fileURLWithPath: $0) } }
+    /// Whether the open file is an org file (`.org`, `.org_archive`), not plain text.
+    public var isOrg: Bool { path.map(Self.isOrgPath) ?? false }
+
+    public static func isOrgPath(_ path: String) -> Bool {
+        path.hasSuffix(".org") || path.hasSuffix(".org_archive")
+    }
+
     /// The caret in the open file.
     public var caret: Int { buffer?.selection.first?.lowerBound ?? 0 }
     private var name: String { path.map { ($0 as NSString).lastPathComponent } ?? "" }
@@ -121,7 +128,7 @@ public final class DocumentSession {
         outlineUpdate = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled, let self, let document = self.document else { return }
-            self.outline = Presentation.outline(document.tree)
+            self.outline = self.isOrg ? Presentation.outline(document.tree) : []
             self.editVersion += 1
         }
         scheduleAutosave()
@@ -134,7 +141,7 @@ public final class DocumentSession {
         if isDirty != state.isDirty { isDirty = state.isDirty }
         if isReadOnly == state.isEditable { isReadOnly = !state.isEditable }
         if updateOutline {
-            outline = Presentation.outline(state.tree)
+            outline = isOrg ? Presentation.outline(state.tree) : []
             editVersion += 1
         }
     }

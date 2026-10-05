@@ -7,6 +7,8 @@ public enum FileKind: String, Sendable {
     case archive
     /// A Syncthing conflict copy: listed, never indexed for search, agenda or IDs.
     case conflict
+    /// Any other file: listed and openable, never read by the index.
+    case other
 }
 
 /// Everything that decides what an index row means. Bump `version` when a semantic setting
@@ -122,6 +124,20 @@ public struct FileRecord: Sendable, Equatable {
         let source = SourceText(bytes: bytes)
         headings = kind == .conflict ? [] : Self.headings(source.text, settings: settings)
     }
+
+    /// A file the index lists without reading: `hash` stands for its size and mtime.
+    public init(path: String, root: String, unreadSize size: Int, mtime: Double, settings: IndexSettings) {
+        self.path = path
+        self.root = root
+        self.kind = .other
+        self.size = size
+        self.mtime = mtime
+        self.hash = Self.unreadHash(size: size, mtime: mtime)
+        self.settingsVersion = settings.version
+        headings = []
+    }
+
+    public static func unreadHash(size: Int, mtime: Double) -> String { "unread:\(size):\(mtime)" }
 
     static func headings(_ text: String, settings: IndexSettings) -> [HeadingRecord] {
         let model = DocumentModel(tree: OrgParser.parse(text, defaults: settings.org), settings: settings.semantic)

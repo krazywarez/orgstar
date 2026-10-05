@@ -38,7 +38,10 @@ public struct Reconciler: Sendable {
         let wanted = Set(paths.map(\.standardizedFileURL.path))
         let known = try index.fileStates(root: root.path).filter { wanted.contains($0.key) }
         var found: [DiscoveredFile] = []
+        let rootComponents = root.standardizedFileURL.pathComponents.count
         for url in paths.map(\.standardizedFileURL) {
+            // Files in hidden folders (`.git`) aren't part of the workspace, as in `scan`.
+            if url.pathComponents.dropFirst(rootComponents).dropLast().contains(where: { $0.hasPrefix(".") }) { continue }
             guard case .file(let kind) = WorkspaceScanner.classify(url.lastPathComponent),
                   let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey]),
                   values.isDirectory != true else { continue }
@@ -60,6 +63,15 @@ public struct Reconciler: Sendable {
             if let state = known[path], state.size == file.size, state.mtime == file.mtime,
                state.settingsVersion == settings.version, state.kind == file.kind {
                 report.unchanged += 1
+                continue
+            }
+            if file.kind == .other {
+                let record = FileRecord(path: path, root: root.path, unreadSize: file.size, mtime: file.mtime, settings: settings)
+                if let state = known[path], state.hash == record.hash, state.settingsVersion == settings.version, state.kind == .other {
+                    report.unchanged += 1
+                } else {
+                    candidates.append((file, [], record.hash))
+                }
                 continue
             }
             guard let data = try? Data(contentsOf: file.url) else { continue }
@@ -85,6 +97,9 @@ public struct Reconciler: Sendable {
                 missing[oldPath] = nil
                 change.moves.append((oldPath, path, candidate.file.mtime))
                 report.moved.append(path)
+            } else if candidate.file.kind == .other {
+                change.records.append(FileRecord(path: path, root: root.path, unreadSize: candidate.file.size, mtime: candidate.file.mtime, settings: settings))
+                report.indexed.append(path)
             } else {
                 change.records.append(FileRecord(
                     path: path, root: root.path, kind: candidate.file.kind,

@@ -75,12 +75,24 @@ public final class OrgEditor: NSObject {
     /// Highlights code in src blocks; nil leaves code plain.
     public let highlighter: (any CodeHighlighter)?
 
+    /// What the file is: org, or plain text, highlighted as code when the language is known.
+    public enum Mode: Equatable, Sendable {
+        case org
+        case plain(language: String?)
+    }
+
+    public let mode: Mode
+    public var isOrg: Bool { mode == .org }
+    /// Highlights of the whole file in plain mode, and the revision they were made for.
+    private var codeRuns: (revision: Int, runs: [(range: Range<Int>, category: SyntaxCategory)])?
+
     public init(
         document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800), editable: Bool = true,
-        highlighter: (any CodeHighlighter)? = nil
+        highlighter: (any CodeHighlighter)? = nil, mode: Mode = .org
     ) {
         self.document = document
         self.highlighter = highlighter
+        self.mode = mode
         let orgTextView = OrgTextView(usingTextLayoutManager: true)
         textView = orgTextView
         dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
@@ -110,7 +122,7 @@ public final class OrgEditor: NSObject {
         textContentStorage.delegate = self
 
         load(document.text)
-        if let startup = Presentation.startupFoldState(document.tree) { setFolds(startup) }
+        if isOrg, let startup = Presentation.startupFoldState(document.tree) { setFolds(startup) }
     }
 
     /// Replaces the storage's text. Setting the attributed string directly is about 100x
@@ -270,7 +282,8 @@ public final class OrgEditor: NSObject {
     }
 
     private func applies(_ id: String, in context: EditContext) -> Bool {
-        switch EditorCommands.command(id)?.action {
+        if !isOrg, id.hasPrefix("org.") { return false }
+        return switch EditorCommands.command(id)?.action {
         case .text(let command): command.applies(in: context)
         case .view: id != "org.cycle" || Presentation.heading(containing: context.caret, in: context.tree) != nil
         case .edit, .mark, .app: true
@@ -282,6 +295,10 @@ public final class OrgEditor: NSObject {
     public func run(_ id: String) {
         guard let command = EditorCommands.command(id) else {
             onMessage?("Unknown command \(id)")
+            return
+        }
+        if !isOrg, id.hasPrefix("org.") {
+            onMessage?("Not an org file")
             return
         }
         var keepMark = false
@@ -450,6 +467,13 @@ public final class OrgEditor: NSObject {
         guard !range.isEmpty else { return }
         let whole = NSRange(range)
         storage.setAttributes(theme.base, range: whole)
+        guard isOrg else {
+            for run in plainRuns() where run.range.overlaps(range) {
+                guard let clipped = clip(run.range, to: range) else { continue }
+                theme.apply(.syntax(run.category), to: storage, range: clipped)
+            }
+            return
+        }
         let text = storage.string as NSString
         for run in Presentation.indents(document.tree, in: range) {
             guard let clipped = clip(run.range, to: range) else { continue }
@@ -472,6 +496,15 @@ public final class OrgEditor: NSObject {
             guard let clipped = clip(run.range, to: range) else { continue }
             theme.apply(run.role, to: storage, range: clipped)
         }
+    }
+
+    /// Code highlights for the whole file in plain mode.
+    private func plainRuns() -> [(range: Range<Int>, category: SyntaxCategory)] {
+        guard case .plain(let language?) = mode, let highlighter else { return [] }
+        if let codeRuns, codeRuns.revision == document.revision { return codeRuns.runs }
+        let runs = highlighter.highlights(language: language, code: document.text)
+        codeRuns = (document.revision, runs)
+        return runs
     }
 
     private func paragraphStyle(_ firstLine: Int, _ wrapped: Int) -> NSParagraphStyle {

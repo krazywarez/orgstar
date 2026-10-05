@@ -50,6 +50,23 @@ struct ReconcileTests {
         #expect(try Reconciler(index: index, settings: IndexSettings(version: 2)).reconcile(root: folder.url).indexed.count == 1)
     }
 
+    @Test func otherFilesAreListedUnreadAndHiddenFoldersSkipped() throws {
+        let folder = try Folder()
+        let index = try IndexStore()
+        let reconciler = Reconciler(index: index, settings: IndexSettings())
+        let notes = try folder.write("notes.md", "* Alpha\n")
+        try folder.write(".git/HEAD", "ref: refs/heads/main\n")
+        _ = try reconciler.reconcile(root: folder.url)
+        #expect(try index.files().map(\.kind) == [.other])
+        #expect(try index.search("alpha").isEmpty)
+        #expect(try reconciler.reconcile(root: folder.url).unchanged == 1)
+
+        let head = folder.url.appendingPathComponent(".git/HEAD")
+        let report = try reconciler.reconcile(root: folder.url, paths: [head, notes])
+        #expect(report.indexed.isEmpty && report.unchanged == 1)
+        #expect(try index.files().map(\.path) == [notes.path])
+    }
+
     @Test func conflictCopiesAreListedButNotSearchable() throws {
         let folder = try Folder()
         let index = try IndexStore()
