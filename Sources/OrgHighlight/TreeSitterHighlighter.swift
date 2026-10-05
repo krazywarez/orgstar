@@ -17,6 +17,7 @@ import TreeSitterR
 import TreeSitterRuby
 import TreeSitterRust
 import TreeSitterScheme
+import TreeSitterTOML
 import TreeSitterYAML
 
 /// Src block highlighting with tree-sitter grammars and their own highlight queries.
@@ -51,6 +52,7 @@ public final class TreeSitterHighlighter: CodeHighlighter, @unchecked Sendable {
         case "ruby": "ruby"
         case "json": "json"
         case "yaml", "yml": "yaml"
+        case "toml", "conf-toml": "toml"
         case "lua": "lua"
         default: nil
         }
@@ -74,6 +76,7 @@ public final class TreeSitterHighlighter: CodeHighlighter, @unchecked Sendable {
         case "ruby": tree_sitter_ruby()
         case "rust": tree_sitter_rust()
         case "scheme": tree_sitter_scheme()
+        case "toml": tree_sitter_toml()
         case "yaml": tree_sitter_yaml()
         default: nil
         }

@@ -33,6 +33,7 @@ let package = Package(
         .package(url: "https://github.com/tree-sitter/tree-sitter-ruby", exact: "0.23.1"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-rust", exact: "0.24.2"),
         .package(url: "https://github.com/6cdh/tree-sitter-scheme", exact: "0.24.7-1"),
+        .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-toml", exact: "0.7.0"),
         .package(url: "https://github.com/tree-sitter-grammars/tree-sitter-yaml", exact: "0.7.2")
     ],
     targets: [
@@ -67,6 +68,7 @@ let package = Package(
                 .product(name: "TreeSitterRuby", package: "tree-sitter-ruby"),
                 .product(name: "TreeSitterRust", package: "tree-sitter-rust"),
                 .product(name: "TreeSitterScheme", package: "tree-sitter-scheme"),
+                .product(name: "TreeSitterTOML", package: "tree-sitter-toml"),
                 .product(name: "TreeSitterYAML", package: "tree-sitter-yaml")
             ]
         ),

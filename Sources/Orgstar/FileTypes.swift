@@ -44,6 +44,7 @@ enum FileTypes {
         case "rb": return "ruby"
         case "json": return "json"
         case "yaml", "yml": return "yaml"
+        case "toml": return "toml"
         case "lua": return "lua"
         default:
             return ["zshrc", ".zshrc", "bashrc", ".bashrc", ".profile"].contains(url.lastPathComponent) ? "sh" : nil

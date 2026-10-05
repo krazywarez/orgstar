@@ -17,7 +17,7 @@ struct HighlightTests {
     }
 
     @Test func everyGrammarLoads() {
-        for language in ["sh", "python", "emacs-lisp", "c", "cpp", "R", "js", "java", "scheme", "clojure", "haskell", "rust", "go", "ruby", "json", "yaml", "lua"] {
+        for language in ["sh", "python", "emacs-lisp", "c", "cpp", "R", "js", "java", "scheme", "clojure", "haskell", "rust", "go", "ruby", "json", "yaml", "lua", "toml"] {
             #expect(!highlighter.highlights(language: language, code: "x").isEmpty || true, "\(language)")
             let code = language == "json" ? "{\"a\": 1}" : "# comment\n"
             _ = highlighter.highlights(language: language, code: code)
@@ -37,6 +37,16 @@ struct HighlightTests {
         let lisp = categories("emacs-lisp", "(defun f () \"doc\" ;; c\n  nil)\n")
         #expect(lisp["\"doc\""] == .string)
         #expect(lisp[";; c"] == .comment)
+    }
+
+    @Test func toml() {
+        let found = categories("toml", "# settings\n[theme]\nfont-size = 13\nshow = true\nname = \"x\"\n")
+        #expect(found["# settings"] == .comment)
+        #expect(found["theme"] == .type)
+        #expect(found["font-size"] == .property)
+        #expect(found["13"] == .number)
+        #expect(found["true"] == .constant)
+        #expect(found["\"x\""] == .string)
     }
 
     @Test func unknownLanguagesGetNothing() {

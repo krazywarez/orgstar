@@ -1,5 +1,5 @@
 {
-  "originHash" : "03b8c85ddc87e40eb8da5020efd09eeaa81aa04770e7ba4cb19fce3b7e5bcf77",
+  "originHash" : "99f611db4aa216eecc3254d58a7ad6ee060533c7f899b1a0d0f72c21a75f90a9",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -152,6 +152,15 @@
       "state" : {
         "revision" : "933883742f909cf79bd8aa6fde05ef51d79c9263",
         "version" : "0.24.7-1"
+      }
+    },
+    {
+      "identity" : "tree-sitter-toml",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tree-sitter-grammars/tree-sitter-toml",
+      "state" : {
+        "revision" : "64b56832c2cffe41758f28e05c756a3a98d16f41",
+        "version" : "0.7.0"
       }
     },
     {
