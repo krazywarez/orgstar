@@ -37,6 +37,8 @@ public struct AgendaItem: Sendable, Equatable {
     public let urgency: Int
     /// `APPT_WARNTIME`: minutes of warning before the entry's time.
     public let warntime: Int?
+    /// The habit whose consistency graph goes on the line (scheduled habits).
+    public let habit: Habit?
     /// The line as org prints it, with one space before the tags.
     public let line: String
 }
@@ -144,11 +146,15 @@ public enum Agenda {
                 continue
             }
             if heading.isDone, schedule != current { continue }
-            let time: Dotime? = current != schedule && current != repeat_ ? nil : (timeIn(s).map { .string($0) } ?? .headline)
-            let extra = isToday && past ? String(format: "Sched.%2dx: ", diff) : "Scheduled: "
+            // org-habit: habits only on today's agenda, and not when done.
+            if heading.isHabit, heading.isDone || !isToday { continue }
+            let time: Dotime? = !heading.isHabit && current != schedule && current != repeat_ ? nil : (timeIn(s).map { .string($0) } ?? .headline)
+            let extra = heading.isHabit ? "" : isToday && past ? String(format: "Sched.%2dx: ", diff) : "Scheduled: "
+            let habit = heading.isHabit ? heading.habit : nil
             items.append(format(
                 source, heading, kind: past ? .pastScheduled : .scheduled, marker: offset, extra: extra,
-                dotime: time, removing: nil, trailing: options.gridTrailing, urgency: { 99 + diff + $0 }
+                dotime: time, removing: nil, trailing: options.gridTrailing, habit: habit,
+                urgency: { habit?.urgency(today: today) ?? 99 + diff + $0 }
             ))
         }
         return items
@@ -204,7 +210,8 @@ public enum Agenda {
             let heading = source.headings[stamp.heading]
             items.append(format(
                 source, heading, kind: .timestamp, marker: stamp.offset, extra: "",
-                dotime: .string(timestamp), removing: stampActive, trailing: options.gridTrailing, urgency: { $0 }
+                dotime: .string(timestamp), removing: stampActive, trailing: options.gridTrailing,
+                urgency: { heading.isHabit ? heading.habit?.urgency(today: today) ?? $0 : $0 }
             ))
         }
         return items
@@ -240,7 +247,7 @@ public enum Agenda {
     static func format(
         _ source: AgendaSource, _ heading: AgendaSource.Heading, kind: AgendaItem.Kind, marker: Int,
         extra: String, dotime: Dotime?, removing: NSRegularExpression?, trailing: String, hasTime: Bool = true,
-        urgency: (Int) -> Int
+        habit: Habit? = nil, urgency: (Int) -> Int
     ) -> AgendaItem {
         var txt = heading.head.trimmingCharacters(in: .whitespaces)
         // `org-agenda-fix-displayed-tags`: the heading's tags are replaced by the full list.
@@ -279,7 +286,7 @@ public enum Agenda {
             kind: kind, path: source.path, headingOffset: heading.start, headingLine: heading.line, markerOffset: marker, category: category,
             timeOfDay: timed.timeOfDay, time: timed.time, extra: extra, text: txt, tags: tags.map(\.name),
             todo: heading.todo, isDone: heading.isDone, urgency: urgency(priority),
-            warntime: heading.properties["APPT_WARNTIME"].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) },
+            warntime: heading.properties["APPT_WARNTIME"].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }, habit: habit,
             line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString)
         )
     }
@@ -394,7 +401,7 @@ public enum Agenda {
             let timed = timeFields(&txt, tagString: "", dotime: .string(dotime), trailing: options.gridTrailing)
             return AgendaItem(
                 kind: kind, path: nil, headingOffset: nil, headingLine: nil, markerOffset: nil, category: "", timeOfDay: timed.timeOfDay,
-                time: timed.time, extra: "", text: txt, tags: [], todo: nil, isDone: false, urgency: 0, warntime: nil,
+                time: timed.time, extra: "", text: txt, tags: [], todo: nil, isDone: false, urgency: 0, warntime: nil, habit: nil,
                 line: "  " + pad("", 12) + pad(timed.time, 12) + txt
             )
         }
@@ -410,6 +417,7 @@ public enum Agenda {
     /// `org-entries-lessp` with `(habit-down time-up urgency-down category-keep)`, stably.
     static func sort(_ items: [AgendaItem]) -> [AgendaItem] {
         items.enumerated().sorted { a, b in
+            if (a.element.habit == nil) != (b.element.habit == nil) { return a.element.habit == nil }
             let ta = a.element.timeOfDay ?? 9901
             let tb = b.element.timeOfDay ?? 9901
             if ta != tb { return ta < tb }

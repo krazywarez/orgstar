@@ -79,7 +79,7 @@ struct AgendaView: View {
             if isAgenda {
                 ForEach(agenda.days, id: \.day) { day in
                     Section {
-                        rows(day.items, prefix: "\(day.day)")
+                        rows(day.items, prefix: "\(day.day)", day: day.day)
                     } header: {
                         Text(day.header)
                             .font(.headline)
@@ -172,9 +172,9 @@ struct AgendaView: View {
     }
 
     @ViewBuilder
-    private func rows(_ items: [AgendaItem], prefix: String) -> some View {
+    private func rows(_ items: [AgendaItem], prefix: String, day: Int? = nil) -> some View {
         ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-            AgendaRow(item: item)
+            AgendaRow(item: item, day: day)
                 .tag("\(prefix):\(index)")
                 .selectionDisabled(item.path == nil)
         }
@@ -316,6 +316,8 @@ struct AgendaView: View {
 
 struct AgendaRow: View {
     let item: AgendaItem
+    /// The agenda day the row is on, for habit graphs.
+    var day: Int?
 
     var body: some View {
         switch item.kind {
@@ -356,6 +358,9 @@ struct AgendaRow: View {
                 title
                     .lineLimit(1)
                 Spacer(minLength: 8)
+                if let habit = item.habit, let day {
+                    HabitGraph(cells: habit.graph(today: day))
+                }
                 if !item.tags.isEmpty {
                     Text(":" + item.tags.joined(separator: ":") + ":")
                         .font(.caption)
@@ -384,5 +389,42 @@ struct AgendaRow: View {
         guard let todo = item.todo, text.hasPrefix(todo + " ") else { return Text(text) }
         let rest = String(text.dropFirst(todo.count))
         return Text(todo).foregroundColor(item.isDone ? .green : .red).bold() + Text(rest).foregroundColor(item.isDone ? .secondary : .primary)
+    }
+}
+
+/// org-habit's consistency graph: a cell per day, `*` where the habit was done, `!` today.
+struct HabitGraph: View {
+    let cells: [Habit.Cell]
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(cells, id: \.day) { cell in
+                Text(String(cell.glyph))
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .frame(width: 8, height: 14)
+                    .background(Self.color(cell.face))
+                    .help(Self.label(cell))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Done \(cells.filter { $0.glyph == "*" }.count) of the last \(Habit.precedingDays) days")
+    }
+
+    static func color(_ face: Habit.Face) -> Color {
+        switch face {
+        case .clear: .blue.opacity(0.6)
+        case .clearFuture: .blue.opacity(0.3)
+        case .ready: .green.opacity(0.7)
+        case .readyFuture: .green.opacity(0.35)
+        case .alert: .yellow.opacity(0.8)
+        case .alertFuture: .yellow.opacity(0.4)
+        case .overdue: .red.opacity(0.7)
+        case .overdueFuture: .red.opacity(0.35)
+        }
+    }
+
+    static func label(_ cell: Habit.Cell) -> String {
+        let date = Days.date(cell.day)
+        return String(format: "%04d-%02d-%02d", date.year, date.month, date.day) + (cell.glyph == "*" ? " DONE" : "")
     }
 }

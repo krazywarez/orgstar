@@ -29,6 +29,7 @@ enum AgendaOracle {
         ;;; -*- lexical-binding: t -*-
         (require 'org)
         (require 'org-agenda)
+        (require 'org-habit)
         (require 'json)
         (setq org-todo-keywords '((sequence \#(words)))
               org-agenda-files '(\#(fileList)))
@@ -115,7 +116,7 @@ enum AgendaOracle {
         #expect(ours.count == emacs.count)
         for (o, e) in zip(ours, emacs) {
             #expect(o.header == e.header)
-            #expect(describe(o.items) == describe(e.items), "\(e.header) today \(Days.date(today))")
+            #expect(describe(o.items, today: today) == describe(e.items), "\(e.header) today \(Days.date(today))")
         }
     }
 
@@ -125,13 +126,14 @@ enum AgendaOracle {
         }
     }
 
-    static func describe(_ items: [AgendaItem]) -> [String] {
+    static func describe(_ items: [AgendaItem], today: Int = 0) -> [String] {
         items.map { item in
+            let line = item.habit.map { Habit.insertGraph($0.graph(today: today), into: item.line) } ?? item.line
             let type: String = switch item.kind {
             case .timeGrid, .currentTime: "-"
             default: item.kind.rawValue
             }
-            return "\(normalize(item.line)) | \(type) \(item.category) \(item.timeOfDay.map(String.init) ?? "-") [\(item.extra)] \(item.urgency) \(item.path ?? "-")@\(item.headingOffset.map(String.init) ?? "-")"
+            return "\(normalize(line)) | \(type) \(item.category) \(item.timeOfDay.map(String.init) ?? "-") [\(item.extra)] \(item.urgency) \(item.path ?? "-")@\(item.headingOffset.map(String.init) ?? "-")"
         }
     }
 

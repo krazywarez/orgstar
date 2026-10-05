@@ -35,6 +35,10 @@ public struct AgendaSource: Sendable {
         /// The planning timestamp without brackets, and the position of its `<`.
         let scheduled: (raw: String, offset: Int)?
         let deadline: (raw: String, offset: Int)?
+        /// `STYLE: habit`.
+        let isHabit: Bool
+        /// `org-habit-parse-todo`, nil where it signals an error.
+        let habit: Habit?
     }
 
     struct Stamp: Sendable {
@@ -176,13 +180,20 @@ public struct AgendaSource: Sendable {
                 }
             }
             let ownStamps = sectionStamps(index)
+            let isHabit = properties["STYLE"]?.trimmingCharacters(in: .whitespaces) == "habit"
+            var habit: Habit?
+            if isHabit, let scheduled {
+                let end = index + 1 < model.headings.count ? model.headings[index + 1].headingRange.lowerBound : ns.length
+                let entry = ns.substring(with: NSRange(location: info.headingRange.lowerBound, length: end - info.headingRange.lowerBound))
+                habit = Habit.parse(entry: entry, scheduled: scheduled.0, doneKeywords: settings.todoSequences.flatMap { $0.done.map(\.name) })
+            }
             headings.append(Heading(
                 start: info.headingRange.lowerBound, level: info.level, skipped: skipped[index],
                 title: info.title.trimmingCharacters(in: .whitespaces), priority: info.priority, localTags: info.localTags,
                 properties: properties, planning: planningValues,
                 firstActive: ownStamps.first { $0.hasPrefix("<") }, firstInactive: ownStamps.first { $0.hasPrefix("[") },
                 line: line.trimmingCharacters(in: .newlines), head: head, todo: info.todo, isDone: info.isDone,
-                tags: tags, category: category, scheduled: scheduled, deadline: deadline
+                tags: tags, category: category, scheduled: scheduled, deadline: deadline, isHabit: isHabit, habit: habit
             ))
         }
         self.headings = headings
