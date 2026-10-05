@@ -230,6 +230,29 @@ struct EditingTests {
 }
 
 @MainActor
+struct BufferTests {
+    @Test func updateMapsCaretAndFoldsAndClearsUndo() {
+        let h = Harness(outline)
+        var changes = 0
+        h.editor.onChange = { changes += 1 }
+        h.caret(at: 1)
+        h.textView.insertText("x", replacementRange: NSRange(location: 4, length: 0))
+        #expect(changes == 1)
+        RunLoop.current.run(until: Date())
+        #expect(h.textView.undoManager?.canUndo == true)
+        h.editor.setFolds(FoldState(folds: [h.offset(of: "** b")]))
+        h.caret(at: h.offset(of: "* c") + 2)
+        h.editor.update { $0 = DocumentState(bytes: Array(("new\n" + outline).utf8)) }
+        #expect(changes == 2)
+        #expect(h.string == "new\n" + outline)
+        #expect(h.caret == h.offset(of: "* c") + 2)
+        #expect(h.editor.foldState.folds == [h.offset(of: "** b")])
+        #expect(h.textView.undoManager?.canUndo != true)
+        h.checkInSync()
+    }
+}
+
+@MainActor
 struct RestyleTests {
     func indent(_ h: Harness, at line: String) -> CGFloat? {
         let style = h.textView.textStorage?.attribute(.paragraphStyle, at: h.offset(of: line), effectiveRange: nil) as? NSParagraphStyle

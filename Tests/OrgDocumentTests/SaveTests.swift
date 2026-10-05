@@ -103,6 +103,16 @@ struct SaveTests {
         #expect(doc.text == "A\nb\nc\n")
     }
 
+    @Test func overwriteKeepsTheReplacedVersion() throws {
+        let files = FaultyFileSystem("Z\nb\nc\n")
+        let recovery = MemoryRecovery()
+        var doc = try editedState()
+        try Saver(fileSystem: files, recovery: recovery).overwrite(&doc, to: url)
+        #expect(files.text == "A\nb\nc\n")
+        #expect(!doc.isDirty)
+        #expect(recovery.contains("Z\nb\nc\n"))
+    }
+
     @Test func changedBetweenReadAndCheckRetries() throws {
         let files = FaultyFileSystem("a\nb\nc\n")
         files.beforeRead[2] = Array("a\nb\nC\n".utf8)

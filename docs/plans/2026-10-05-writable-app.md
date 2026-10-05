@@ -28,7 +28,7 @@
 | File | Responsibility |
 | --- | --- |
 | `Sources/OrgDocument/Buffer.swift` | `DocumentBuffer`, `StateBuffer` |
-| `Sources/OrgDocument/DocumentState.swift` | `rebase(onto:)` |
+| `Sources/OrgDocument/Saving.swift` | `Saver.overwrite(_:to:)` |
 | `Sources/OrgEditorAppKit/OrgEditor.swift` | `DocumentBuffer` conformance: `update(_:)` maps folds and caret and clears text-view undo when the text is replaced; `onChange` |
 | `Sources/OrgApp/DocumentSession.swift` | Buffer, dirty flag, save, autosave, conflict choices, `SaveMode` |
 | `Sources/OrgApp/WorkspaceModel.swift` | `overlay(path:document:)` |
@@ -38,7 +38,7 @@
 
 ### Task 1: Buffers
 
-**Files:** `Sources/OrgDocument/Buffer.swift`, `Sources/OrgDocument/DocumentState.swift`, `Sources/OrgEditorAppKit/OrgEditor.swift`, `Tests/OrgDocumentTests/DocumentStateTests.swift`, `Tests/OrgEditorAppKitTests/EditorTests.swift`
+**Files:** `Sources/OrgDocument/Buffer.swift`, `Sources/OrgDocument/Saving.swift`, `Sources/OrgEditorAppKit/OrgEditor.swift`, `Tests/OrgDocumentTests/DocumentStateTests.swift`, `Tests/OrgEditorAppKitTests/EditorTests.swift`
 
 **Produces:**
 
@@ -53,9 +53,9 @@ public protocol DocumentBuffer: AnyObject {
 @MainActor
 public final class StateBuffer: DocumentBuffer { public init(_ document: DocumentState) }
 
-extension DocumentState {
-    /// Makes `bytes` the merge base and keeps the text, so the next save replaces them.
-    public mutating func rebase(onto bytes: [UInt8])
+extension Saver {
+    /// Writes the buffer over whatever is on disk; the replaced version goes to recovery.
+    public func overwrite(_ state: inout DocumentState, to url: URL) throws
 }
 
 extension OrgEditor: DocumentBuffer   // plus `public var onChange: (() -> Void)?`
@@ -63,7 +63,7 @@ extension OrgEditor: DocumentBuffer   // plus `public var onChange: (() -> Void)
 
 `OrgEditor.update` records the text and selection, runs the change, and if the text changed: computes `lineEdits(from:to:)`, reloads the storage, maps folds and the selection through the edits, and removes the text view's undo actions (they refer to the old text). `save(using:to:)` and `diskChanged(to:)` become `update` calls; `diskChanged` returns the `ExternalChange`.
 
-- [ ] Tests: `rebase` keeps text and makes the buffer dirty against new bytes; editor `update` replacing text keeps the caret on the same line content, keeps folds, and leaves nothing to undo; typing calls `onChange`.
+- [ ] Tests: `overwrite` writes ours and keeps the replaced version; editor `update` replacing text keeps the caret on the same line content, keeps folds, and leaves nothing to undo; typing calls `onChange`.
 - [ ] Implement; `swift test` green.
 - [ ] Commit "Add document buffers".
 

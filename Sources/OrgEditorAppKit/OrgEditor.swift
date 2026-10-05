@@ -153,20 +153,14 @@ public final class OrgEditor: NSObject {
 
     // MARK: - Saving
 
-    /// Saves through `saver`. When a merge changes the buffer, the text view is reloaded and
-    /// folds are mapped through the change.
+    /// Saves through `saver`. A merge that changes the buffer reloads the text view.
     @discardableResult
     public func save(using saver: Saver, to url: URL) throws -> SaveOutcome {
-        let before = document.text
-        let outcome = try saver.save(&document, to: url)
-        if document.text != before {
-            let edits = lineEdits(from: before, to: document.text)
-            load(document.text)
-            let mapped = view.mapped(through: edits)
-            setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds))
-        }
-        return outcome
+        try update { try saver.save(&$0, to: url) }
     }
+
+    /// Called after every change to the document, typed or not.
+    public var onChange: (() -> Void)?
 
     // MARK: - Commands
 
@@ -219,15 +213,9 @@ public final class OrgEditor: NSObject {
 
     /// The file on disk now holds `bytes`: reload or merge, keeping folds where the text kept
     /// its headings.
-    public func diskChanged(to bytes: [UInt8]) {
-        let edits: [TextEdit]
-        switch document.diskChanged(to: bytes) {
-        case .reloaded(let changes), .merged(let changes): edits = changes
-        case .unchanged, .conflict: return
-        }
-        let mapped = view.mapped(through: edits)
-        load(document.text)
-        setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds))
+    @discardableResult
+    public func diskChanged(to bytes: [UInt8]) -> DocumentState.ExternalChange {
+        update { $0.diskChanged(to: bytes) }
     }
 
     // MARK: - Folding
@@ -417,6 +405,7 @@ public final class OrgEditor: NSObject {
             textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
         }
         onEditTiming?(clock.now - start)
+        onChange?()
     }
 
     /// Columns a wrapped continuation of `line` should start past the line's own start.
@@ -472,6 +461,31 @@ public final class OrgEditor: NSObject {
         defer { previousSelection = selection.location }
         guard selection.length == 0, let range = hidden.containing(selection.location) else { return }
         setCaret(selection.location >= previousSelection ? range.upperBound : range.lowerBound - 1)
+    }
+}
+
+extension OrgEditor: DocumentBuffer {
+    /// Runs `change`; if it changed the text, reloads the view with folds and the selection
+    /// mapped through the change. Text-view undo refers to the old text, so it is cleared.
+    public func update<T>(_ change: (inout DocumentState) throws -> T) rethrows -> T {
+        let before = document.text
+        let selected = textView.selectedRange()
+        let result = try change(&document)
+        if document.text != before {
+            let edits = lineEdits(from: before, to: document.text)
+            var state = view
+            state.selection = [selected.location..<NSMaxRange(selected)]
+            let mapped = state.mapped(through: edits)
+            load(document.text)
+            setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds))
+            let selection = mapped.selection[0]
+            setCaret(selection.lowerBound)
+            if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
+            textView.undoManager?.removeAllActions(withTarget: textView.textStorage!)
+            textView.undoManager?.removeAllActions(withTarget: textView)
+        }
+        onChange?()
+        return result
     }
 }
 

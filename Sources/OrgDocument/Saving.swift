@@ -78,4 +78,14 @@ public struct Saver: Sendable {
         }
         throw SaveError.fileKeepsChanging
     }
+
+    /// Writes the buffer over whatever is on disk, for keeping our version over a conflicting
+    /// one. The replaced version goes to recovery unless it is the merge base.
+    public func overwrite(_ state: inout DocumentState, to url: URL) throws {
+        let bytes = try state.encodedText()
+        if let replaced = try fileSystem.replace(url, with: bytes), replaced != state.mergeBase {
+            try recovery.keep(replaced, for: url, label: "external")
+        }
+        state.didWrite(bytes)
+    }
 }
