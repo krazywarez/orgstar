@@ -154,6 +154,7 @@ struct SettingsView: View {
     @AppStorage("headingAfterSubtree") private var headingAfterSubtree = true
     @AppStorage("splitLine") private var splitLine = false
     @AppStorage("alphabeticalLists") private var alphabeticalLists = true
+    @AppStorage("fillColumn") private var fillColumn = 80
     @AppStorage("todoKeywords") private var todoKeywords = Preferences.defaultTodoKeywords
 
     var body: some View {
@@ -184,6 +185,7 @@ struct SettingsView: View {
             Toggle("M-RET adds the new heading after the subtree", isOn: $headingAfterSubtree)
             Toggle("M-RET splits the line at the caret", isOn: $splitLine)
             Toggle("Lists can use letters (a. b. c.)", isOn: $alphabeticalLists)
+            Stepper("M-q fills to column \(fillColumn)", value: $fillColumn, in: 40...200)
             TextField("Default TODO keywords:", text: $todoKeywords)
             Text("For files without #+TODO, in #+TODO syntax. Takes effect when Orgstar restarts.")
                 .font(.caption)
