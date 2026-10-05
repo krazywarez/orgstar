@@ -7,7 +7,8 @@ let package = Package(
     products: [
         .library(name: "OrgCore", targets: ["OrgCore"]),
         .library(name: "OrgDocument", targets: ["OrgDocument"]),
-        .library(name: "OrgIndex", targets: ["OrgIndex"])
+        .library(name: "OrgIndex", targets: ["OrgIndex"]),
+        .library(name: "OrgWorkspace", targets: ["OrgWorkspace"])
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1")
@@ -16,8 +17,10 @@ let package = Package(
         .target(name: "OrgCore"),
         .target(name: "OrgDocument", dependencies: ["OrgCore"]),
         .target(name: "OrgIndex", dependencies: ["OrgCore", .product(name: "GRDB", package: "GRDB.swift")]),
+        .target(name: "OrgWorkspace", dependencies: ["OrgIndex"]),
         .testTarget(name: "OrgCoreTests", dependencies: ["OrgCore"]),
         .testTarget(name: "OrgDocumentTests", dependencies: ["OrgDocument"]),
-        .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"])
+        .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"]),
+        .testTarget(name: "OrgWorkspaceTests", dependencies: ["OrgWorkspace"])
     ]
 )
