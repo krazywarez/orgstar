@@ -234,7 +234,7 @@ public enum Archive {
         formatter.timeZone = context.calendar.timeZone
         formatter.dateFormat = "yyyy-MM-dd EEE HH:mm"
         let time = formatter.string(from: context.now)
-        let archive = destination.isSameFile ? nil : EmacsBuffer(archiveText ?? "", point: 0, settings: context.tree.settings)
+        let archive = destination.isSameFile ? nil : EmacsBuffer(archiveText ?? "", point: 0, settings: context.tree.settings, options: context.options)
         var archiveEdit: TextEdit?
         let step = commitBuffer(context) { source in
             let target = archive ?? source

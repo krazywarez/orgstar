@@ -28,10 +28,13 @@ final class EmacsBuffer {
     /// Groups of the last successful match, as Emacs's match data.
     var lastMatch: [Range<Int>?] = []
 
-    init(_ text: String, point: Int, settings: OrgSettings = .default) {
+    let options: EditingOptions
+
+    init(_ text: String, point: Int, settings: OrgSettings = .default, options: EditingOptions = .org) {
         self.text = NSMutableString(string: text)
         self.point = point
         self.settings = settings
+        self.options = options
         unchangedPrefix = self.text.length
         unchangedSuffix = self.text.length
     }
@@ -407,14 +410,14 @@ final class EmacsBuffer {
         let end = lineEnd(offset)
         let line = substring(start, end)
         var plain = LineBuffer(line, caret: nil)
-        OrgCore.alignTags(&plain)
+        OrgCore.alignTags(&plain, tagsColumn: options.tagsColumn)
         guard plain.string != line else { return }
         func map(_ position: Int) -> Int {
             guard position >= start, position <= end else {
                 return position > end ? position + (plain.string as NSString).length - (line as NSString).length : position
             }
             var buffer = LineBuffer(line, caret: position - start)
-            OrgCore.alignTags(&buffer)
+            OrgCore.alignTags(&buffer, tagsColumn: options.tagsColumn)
             return start + buffer.caret!
         }
         let newPoint = map(point)
@@ -430,7 +433,7 @@ final class EmacsBuffer {
 /// Runs a buffer-editing body against a context and turns the result into one minimal edit
 /// and the new caret. A user error becomes `.failed`.
 func commitBuffer(_ context: EditContext, _ body: (EmacsBuffer) throws -> Void) -> CommandStep {
-    let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings)
+    let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
     do {
         try body(buffer)
     } catch let error as EmacsBuffer.UserError {

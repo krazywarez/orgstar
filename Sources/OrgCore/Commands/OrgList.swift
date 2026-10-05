@@ -247,8 +247,13 @@ extension EmacsBuffer {
 
     // MARK: - Context
 
-    static let itemPattern = "([ \\t]*([-+]|(([0-9]+)[.)]))|[ \\t]+\\*)([ \\t]+|$)"
-    static let itemBeginningPattern = "^" + itemPattern
+    /// `org-item-re`.
+    var itemPattern: String {
+        let alpha = options.listAllowAlphabetical ? "|[A-Za-z]" : ""
+        return "([ \\t]*([-+]|(([0-9]+\(alpha))[.)]))|[ \\t]+\\*)([ \\t]+|$)"
+    }
+
+    var itemBeginningPattern: String { "^" + itemPattern }
     static let fullItemPattern = "^[ \\t]*((?:[-+*]|(?:[0-9]+|[A-Za-z])[.)])(?:[ \\t]+|$))(?:\\[@(?:start:)?([0-9]+|[A-Za-z])\\][ \\t]*)?(?:(\\[[ X-]\\])(?:[ \\t]+|$))?(?:(.*)[ \\t]+::(?:[ \\t]+|$))?"
     static let listEndPattern = "^[ \\t]*\\n[ \\t]*\\n"
     static let drawerPattern = "^[ \\t]*:([-_\\w]+):[ \\t]*$"
@@ -307,7 +312,7 @@ extension EmacsBuffer {
             let context = listContext()
             var reference = looking("^[ \\t]*$") != nil ? 10000 : currentTextIndentation
             if context.kind == .invalid { return nil }
-            if looking(Self.itemPattern) != nil { return point }
+            if looking(itemPattern) != nil { return point }
             // Inside `org-list-end-re`: start above it.
             let windowStart = saveExcursion { forwardLine(-2); return point }
             let windowEnd = saveExcursion { forwardLine(2); return lineEnd(point) }
@@ -322,7 +327,7 @@ extension EmacsBuffer {
             }
             while true {
                 let ind = currentTextIndentation
-                if looking(Self.itemPattern) != nil, ind < reference { return point }
+                if looking(itemPattern) != nil, ind < reference { return point }
                 if point <= context.up { return nil }
                 if looking(Self.listEndPattern) != nil { return nil }
                 if looking("^[ \\t]*#\\+end_") != nil, searchBackward("^[ \\t]*#\\+begin_", bound: context.up) != nil {
@@ -350,7 +355,7 @@ extension EmacsBuffer {
             beginningOfLine()
             switch listContext().kind {
             case .invalid, .block("comment"), .block("verse"): return false
-            default: return looking(Self.itemPattern) != nil
+            default: return looking(itemPattern) != nil
             }
         }
     }
@@ -385,7 +390,7 @@ extension EmacsBuffer {
                 while true {
                     let ind = currentTextIndentation
                     if point <= context.up {
-                        if looking(Self.itemPattern) == nil {
+                        if looking(itemPattern) == nil {
                             trimToBegin()
                         } else {
                             beginCell = (point, ind)
@@ -397,7 +402,7 @@ extension EmacsBuffer {
                         trimToBegin()
                         return
                     }
-                    if looking(Self.itemPattern) != nil {
+                    if looking(itemPattern) != nil {
                         items.insert(assocAtPoint(ind), at: 0)
                         ends.insert((ind, point), at: 0)
                         if ind < textMinInd { beginCell = (point, ind) }
@@ -429,7 +434,7 @@ extension EmacsBuffer {
                     ends2.append((0, point))
                     break
                 }
-                if looking(Self.itemPattern) != nil {
+                if looking(itemPattern) != nil {
                     items2.append(assocAtPoint(ind))
                     ends2.append((ind, point))
                     forwardLine(1)
@@ -747,33 +752,61 @@ extension EmacsBuffer {
 
     /// `org-list-struct-fix-bul` (alphabetical bullets off).
     func fixBullets(_ structure: inout ListStruct, _ prevs: [Int: Int]) {
+        func find(_ pattern: String, _ string: String) -> Range<String.Index>? {
+            guard let range = string.range(of: pattern, options: .regularExpression) else { return nil }
+            stringMatched(string, range)
+            return range
+        }
         for pos in structure.map(\.pos) {
             let previous = prevs[pos]
             let counter = structure.item(pos)!.counter
             let bullet = structure.bullet(pos)
+            let previousBullet = previous.map { structure.bullet($0) }
+            let alphap = previous == nil && useAlphabeticalBullets(pos, structure, prevs)
             let new: String
-            if let previous, let counter, counter.range(of: "[a-zA-Z]", options: .regularExpression) != nil,
-               structure.bullet(previous).range(of: "[a-zA-Z]", options: .regularExpression) != nil {
-                let previousBullet = structure.bullet(previous)
-                let real = previousBullet.range(of: "[a-z]", options: .regularExpression) != nil ? counter.lowercased() : counter.uppercased()
-                let range = previousBullet.range(of: "[a-zA-Z]", options: .regularExpression)!
-                new = previousBullet.replacingCharacters(in: range, with: real)
-            } else if let previous, let counter, let counterRange = counter.range(of: "[0-9]+", options: .regularExpression),
-                      let range = structure.bullet(previous).range(of: "[0-9]+", options: .regularExpression) {
-                new = structure.bullet(previous).replacingCharacters(in: range, with: counter[counterRange])
-            } else if let previous {
-                new = incrementBullet(structure.bullet(previous))
-            } else if let counter, let counterRange = counter.range(of: "[0-9]+", options: .regularExpression),
-                      let range = bullet.range(of: "[0-9]+", options: .regularExpression) {
+            if previous != nil, let counter, let previousBullet, find("[a-zA-Z]", counter) != nil, find("[a-zA-Z]", previousBullet) != nil {
+                let lower = find("[a-z]", previousBullet)
+                let range = lower ?? find("[A-Z]", previousBullet)!
+                new = previousBullet.replacingCharacters(in: range, with: lower != nil ? counter.lowercased() : counter.uppercased())
+            } else if previous != nil, let counter, let previousBullet, let counterRange = find("[0-9]+", counter),
+                      let range = find("[0-9]+", previousBullet) {
+                new = previousBullet.replacingCharacters(in: range, with: counter[counterRange])
+            } else if let previousBullet {
+                new = incrementBullet(previousBullet)
+            } else if let counter, useAlphabeticalBullets(pos, structure, prevs), find("[A-Za-z]", counter) != nil, find("[A-Za-z]", bullet) != nil {
+                let lower = find("[a-z]", bullet)
+                let range = lower ?? find("[A-Z]", bullet)!
+                new = bullet.replacingCharacters(in: range, with: lower != nil ? counter.lowercased() : counter.uppercased())
+            } else if let counter, let counterRange = find("[0-9]+", counter), let range = find("[0-9]+", bullet) {
                 new = bullet.replacingCharacters(in: range, with: counter[counterRange])
-            } else if let range = bullet.range(of: "([0-9]+|[A-Za-z])", options: .regularExpression) {
-                stringMatched(bullet, range)
+            } else if alphap, let range = find("[A-Z]", bullet) {
+                new = bullet.replacingCharacters(in: range, with: "A")
+            } else if alphap, let range = find("[a-z]", bullet) {
+                new = bullet.replacingCharacters(in: range, with: "a")
+            } else if let range = find("([0-9]+|[A-Za-z])", bullet) {
                 new = bullet.replacingCharacters(in: range, with: "1")
             } else {
                 new = bullet
             }
             structure.set(pos) { $0.bullet = bulletString(new) }
         }
+    }
+
+    /// `org-list-use-alpha-bul-p`: the list starting at `first` fits in the alphabet.
+    func useAlphabeticalBullets(_ first: Int, _ structure: ListStruct, _ prevs: [Int: Int]) -> Bool {
+        guard options.listAllowAlphabetical else { return false }
+        var item: Int? = first
+        var ascii = 64
+        while let current = item {
+            if let counter = structure.item(current)?.counter, let letter = counter.first, letter.isASCII, letter.isLetter {
+                ascii = Int(letter.uppercased().unicodeScalars.first!.value)
+            } else {
+                ascii += 1
+            }
+            if ascii > 90 { return false }
+            item = structure.nextItem(current, prevs)
+        }
+        return true
     }
 
     /// `org-list-struct-fix-ind`.
@@ -851,7 +884,7 @@ extension EmacsBuffer {
             point = end
             skipBackward(Self.whitespace)
             beginningOfLine()
-            while point > begin || (point == begin && looking(Self.itemPattern) == nil) {
+            while point > begin || (point == begin && looking(itemPattern) == nil) {
                 if looking("^[ \\t]*\\S", setsMatch: false) != nil {
                     indentLineTo(max(currentTextIndentation + delta, ind.map { $0 + 1 } ?? -1))
                 }

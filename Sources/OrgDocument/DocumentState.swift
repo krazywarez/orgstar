@@ -101,11 +101,11 @@ public struct DocumentState: Sendable {
     /// Runs `command` at `selection` and applies its edits as one undo step.
     public mutating func run(
         _ command: any OrgCommand, selection: [Range<Int>], now: Date = Date(),
-        calendar: Calendar = .current, answers: [String: String] = [:]
+        calendar: Calendar = .current, answers: [String: String] = [:], options: EditingOptions = .org
     ) throws -> CommandStep {
         let context = EditContext(
             revision: revision, text: text, tree: tree, selection: selection,
-            now: now, calendar: calendar, answers: answers
+            now: now, calendar: calendar, answers: answers, options: options
         )
         let step = command.run(in: context)
         if case .commit(let result) = step, !result.edits.isEmpty {

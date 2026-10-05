@@ -72,6 +72,11 @@ struct StructureOracleTests {
         try compareWithEmacs(Self.variants.map { ($0, EmacsOracle.positions($0)) }, Self.commands)
     }
 
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func structureCommandsMatchEmacsWithDoomOptions() throws {
+        try compareWithEmacs(Self.variants.map { ($0, EmacsOracle.positions($0)) }, Self.commands, options: doomOptions)
+    }
+
     /// Real files: `ORGSTAR_ORACLE_CORPUS=<folder>` runs every structure command in files up to
     /// 20 KB, with the caret at the start and end of up to eight heading lines per file and on
     /// a body line, for up to 60 files.

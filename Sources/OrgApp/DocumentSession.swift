@@ -63,6 +63,10 @@ public final class DocumentSession {
     public var lastError: String?
     public var saveMode: SaveMode = .automatic
     public var autosaveDelay: Duration = .seconds(1)
+    /// Org options for commands the session runs (refile, archive).
+    public var options: EditingOptions = .org
+    /// TODO keywords and priorities for files without their own settings.
+    public var defaults: OrgSettings = .default
 
     private let fileSystem: FileSystem
     private let recovery: RecoveryStore
@@ -90,7 +94,7 @@ public final class DocumentSession {
             }
             autosave?.cancel()
             self.path = path
-            buffer = StateBuffer(DocumentState(bytes: bytes))
+            buffer = StateBuffer(DocumentState(bytes: bytes, defaults: defaults))
             conflict = nil
             revealRequest = nil
             refresh()
@@ -197,7 +201,7 @@ public final class DocumentSession {
     private func editContext(now: Date) -> EditContext? {
         guard let buffer else { return nil }
         let document = buffer.document
-        return EditContext(revision: document.revision, text: document.text, tree: document.tree, selection: buffer.selection, now: now)
+        return EditContext(revision: document.revision, text: document.text, tree: document.tree, selection: buffer.selection, now: now, options: options)
     }
 
     /// Moves the subtree at the caret under `target`. For another file, that file is written
@@ -215,7 +219,7 @@ public final class DocumentSession {
         let url = URL(fileURLWithPath: target.path)
         do {
             guard let bytes = try fileSystem.read(url) else { return "\((target.path as NSString).lastPathComponent) no longer exists." }
-            var state = DocumentState(bytes: bytes)
+            var state = DocumentState(bytes: bytes, defaults: defaults)
             guard state.isEditable else { return "\((target.path as NSString).lastPathComponent) isn't UTF-8, so it can't be changed." }
             guard let start = target.locate(in: state) else { return "Can't find \(target.label) any more." }
             guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
@@ -241,7 +245,7 @@ public final class DocumentSession {
         do {
             let url = URL(fileURLWithPath: destination.path)
             let existing = destination.isSameFile ? nil : try fileSystem.read(url)
-            var state = DocumentState(bytes: existing ?? [])
+            var state = DocumentState(bytes: existing ?? [], defaults: defaults)
             if !destination.isSameFile, !state.isEditable { return "\(url.lastPathComponent) isn't UTF-8, so it can't be changed." }
             let edits: Archive.Edits
             switch Archive.run(context, sourcePath: path, destination: destination, archiveText: existing.map { _ in state.text }) {

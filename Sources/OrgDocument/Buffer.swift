@@ -19,6 +19,7 @@ public protocol DocumentBuffer: AnyObject {
 public final class StateBuffer: DocumentBuffer {
     public private(set) var document: DocumentState
     public var selection: [Range<Int>] = [0..<0]
+    public var options: EditingOptions = .org
 
     public init(_ document: DocumentState) {
         self.document = document
@@ -26,7 +27,7 @@ public final class StateBuffer: DocumentBuffer {
 
     public func perform(_ command: any OrgCommand, now: Date, answers: [String: String]) -> CommandStep {
         do {
-            let step = try document.run(command, selection: selection, now: now, answers: answers)
+            let step = try document.run(command, selection: selection, now: now, answers: answers, options: options)
             if case .commit(let result) = step, let new = result.selection { selection = new }
             return step
         } catch {

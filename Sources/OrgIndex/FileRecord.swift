@@ -16,6 +16,17 @@ public struct IndexSettings: Sendable, Equatable {
     public var org: OrgSettings
     public var semantic: SemanticSettings
 
+    /// Settings whose version follows the TODO keywords, so changing them reindexes.
+    public static func with(todoKeywords org: OrgSettings) -> IndexSettings {
+        let names = org.todoSequences.map { ($0.active.map(\.name) + ["|"] + $0.done.map(\.name)).joined(separator: " ") }.joined(separator: ";")
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in names.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return IndexSettings(version: 1 + Int(hash % 1_000_000), org: org)
+    }
+
     public init(version: Int = 1, org: OrgSettings = .default, semantic: SemanticSettings = .default) {
         self.version = version
         self.org = org

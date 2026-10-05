@@ -247,7 +247,7 @@ public struct TodoCycle: OrgCommand {
                 }
             }
             buffer.replaceBeforeMarkers(regionStart..<regionEnd, with: next.map { " \($0) " } ?? " ")
-            alignTags(&buffer)
+            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
         }
     }
 }
@@ -295,7 +295,7 @@ struct PriorityChange {
                     buffer.insert(cookie + " ", at: line.titleStart - line.start)
                 }
             }
-            alignTags(&buffer)
+            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
         }
     }
 
@@ -341,7 +341,7 @@ public struct PromoteHeading: OrgCommand {
         guard line.level > 1 else { return .failed("Cannot promote to level 0") }
         return line.commit(context) { buffer in
             buffer.replace(0..<(line.level + 1), with: String(repeating: "*", count: line.level - 1) + " ")
-            alignTags(&buffer)
+            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
             fixPositionAfterPromote(&buffer, settings: context.tree.settings)
         }
     }
@@ -358,7 +358,7 @@ public struct DemoteHeading: OrgCommand {
         let line = HeadingLine(heading)
         return line.commit(context) { buffer in
             buffer.replace(0..<(line.level + 1), with: String(repeating: "*", count: line.level + 1) + " ")
-            alignTags(&buffer)
+            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
             fixPositionAfterPromote(&buffer, settings: context.tree.settings)
         }
     }

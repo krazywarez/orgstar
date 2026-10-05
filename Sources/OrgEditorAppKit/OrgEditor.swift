@@ -187,6 +187,8 @@ public final class OrgEditor: NSObject {
     }
 
     public var optionAsMeta: OptionAsMeta = [.left]
+    /// Org options commands follow.
+    public var options: EditingOptions = .org
     private var dispatcher: KeyDispatcher
     /// A region is active: movement extends the selection, as after C-SPC in Emacs.
     private(set) var markActive = false
@@ -196,7 +198,7 @@ public final class OrgEditor: NSObject {
         return EditContext(
             revision: document.revision, text: document.text, tree: document.tree,
             selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers,
-            hidden: hidden.all
+            hidden: hidden.all, options: options
         )
     }
 

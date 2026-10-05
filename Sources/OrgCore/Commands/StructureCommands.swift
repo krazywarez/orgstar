@@ -74,7 +74,8 @@ extension EmacsBuffer {
                 saveExcursion { insert(stars + " \n") }
                 if !(blank && previousLineEmpty) { emptyLinesBeforeCurrent(blank ? 1 : 0) }
                 endOfLine()
-            } else if let match = saveExcursion({ () -> [Range<Int>?]? in beginningOfLine(); return lookingAt(complexHeadingPattern) }),
+            } else if options.metaReturnMaySplitLine,
+                      let match = saveExcursion({ () -> [Range<Int>?]? in beginningOfLine(); return lookingAt(complexHeadingPattern) }),
                       let title = match[4], title.lowerBound <= point, point <= title.upperBound {
                 let split = substring(point, title.upperBound)
                 deleteRegion(point, title.upperBound)
@@ -99,6 +100,7 @@ extension EmacsBuffer {
             if !(blank && previousLineEmpty) { emptyLinesBeforeCurrent(blank ? 1 : 0) }
             addBlankAfter(blank)
         } else {
+            if !options.metaReturnMaySplitLine { endOfLine() }
             insert("\n" + stars + " ")
             if !(blank && previousLineEmpty) { emptyLinesBeforeCurrent(blank ? 1 : 0) }
             addBlankAfter(blank)
@@ -264,7 +266,7 @@ public struct InsertHeading: OrgCommand {
     public var title: String { "Insert Heading" }
     public func applies(in context: EditContext) -> Bool { true }
     public func run(in context: EditContext) -> CommandStep {
-        headingCommand(context) { try $0.insertHeading(respectContent: false, hidden: context.hidden) }
+        headingCommand(context) { try $0.insertHeading(respectContent: context.options.insertHeadingRespectContent, hidden: context.hidden) }
     }
 }
 
@@ -287,7 +289,7 @@ public struct InsertTodoHeading: OrgCommand {
     public func applies(in context: EditContext) -> Bool { true }
     public func run(in context: EditContext) -> CommandStep {
         headingCommand(context) { buffer in
-            try buffer.insertHeading(respectContent: false, hidden: context.hidden)
+            try buffer.insertHeading(respectContent: context.options.insertHeadingRespectContent, hidden: context.hidden)
             let previous = buffer.saveExcursion { () -> String? in
                 try? buffer.forwardHeadingSameLevel(-1)
                 guard let match = buffer.lookingAt(buffer.todoLinePattern), let keyword = match[2] else { return nil }

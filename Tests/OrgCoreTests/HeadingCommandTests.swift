@@ -66,6 +66,11 @@ struct HeadingOracleTests {
         try compareWithEmacs(Self.variants.map { ($0, EmacsOracle.positions($0)) }, Self.commands)
     }
 
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func headingCommandsMatchEmacsWithDoomOptions() throws {
+        try compareWithEmacs(Self.variants.map { ($0, EmacsOracle.positions($0)) }, Self.commands, options: doomOptions)
+    }
+
     /// Real headings: `ORGSTAR_ORACLE_CORPUS=<folder>` runs every command on up to 400 heading
     /// lines from the folder's files, with the caret at the line start, the title start and
     /// the line end.
@@ -94,7 +99,7 @@ struct HeadingOracleTests {
 
 /// Runs every command at every caret of every input here and in Emacs, and records each
 /// difference in text, caret or failure.
-func compareWithEmacs(_ inputs: [(text: String, carets: [Int])], _ commands: [(command: any OrgCommand, form: String, headingLineOnly: Bool)]) throws {
+func compareWithEmacs(_ inputs: [(text: String, carets: [Int])], _ commands: [(command: any OrgCommand, form: String, headingLineOnly: Bool)], options: EditingOptions = .org) throws {
     try #require(EmacsOracle.isAvailable, "Emacs is required for the oracle tests; set ORGSTAR_SKIP_ORACLE to skip")
     var cases: [EmacsOracle.Case] = []
     var ours: [(label: String, text: String, caret: Int, failed: Bool)] = []
@@ -102,8 +107,8 @@ func compareWithEmacs(_ inputs: [(text: String, carets: [Int])], _ commands: [(c
         for offset in carets {
             let onHeadingLine = headingOnLine(at: offset, in: OrgParser.parse(text)) != nil
             for (command, form, headingLineOnly) in commands where onHeadingLine || !headingLineOnly {
-                cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(offset, in: text), form: form))
-                let result = runCommand(command, text, caret: offset)
+                cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(offset, in: text), form: withOptions(options, form)))
+                let result = runCommand(command, text, caret: offset, options: options)
                 ours.append(("\(command.id) at \(offset) in \(text.debugDescription)", result.text, result.caret, result.failure != nil))
             }
         }

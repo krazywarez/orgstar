@@ -1,5 +1,28 @@
 import Foundation
 
+/// Org options that change what commands write, as the user's Emacs has them.
+public struct EditingOptions: Sendable, Equatable, Codable {
+    /// `org-tags-column`: negative aligns tags to end at that column, 0 puts them one space
+    /// after the title.
+    public var tagsColumn: Int
+    /// `org-insert-heading-respect-content`: M-RET adds the heading after the subtree.
+    public var insertHeadingRespectContent: Bool
+    /// `org-M-RET-may-split-line`: M-RET in the middle of a line splits it.
+    public var metaReturnMaySplitLine: Bool
+    /// `org-list-allow-alphabetical`: `a.` and `A)` are list bullets.
+    public var listAllowAlphabetical: Bool
+
+    public init(tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true, listAllowAlphabetical: Bool = false) {
+        self.tagsColumn = tagsColumn
+        self.insertHeadingRespectContent = insertHeadingRespectContent
+        self.metaReturnMaySplitLine = metaReturnMaySplitLine
+        self.listAllowAlphabetical = listAllowAlphabetical
+    }
+
+    /// Org's own defaults.
+    public static let org = EditingOptions()
+}
+
 /// Everything a command may read. Commands never read the clock or the file system, so the
 /// same context always gives the same result.
 public struct EditContext: Sendable {
@@ -16,10 +39,12 @@ public struct EditContext: Sendable {
     public let answers: [String: String]
     /// Ranges the view hides (folded text); motion commands skip headings inside them.
     public let hidden: [Range<Int>]
+    public let options: EditingOptions
 
     public init(
         revision: Int, text: String, tree: OrgTree, selection: [Range<Int>],
-        now: Date = Date(), calendar: Calendar = .current, answers: [String: String] = [:], hidden: [Range<Int>] = []
+        now: Date = Date(), calendar: Calendar = .current, answers: [String: String] = [:], hidden: [Range<Int>] = [],
+        options: EditingOptions = .org
     ) {
         self.revision = revision
         self.text = text
@@ -29,6 +54,7 @@ public struct EditContext: Sendable {
         self.calendar = calendar
         self.answers = answers
         self.hidden = hidden
+        self.options = options
     }
 
     public var caret: Int { selection.first?.lowerBound ?? 0 }

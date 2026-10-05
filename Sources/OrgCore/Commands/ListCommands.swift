@@ -11,7 +11,7 @@ extension EmacsBuffer {
         var structure = saveExcursion { point = start; return listStruct() }
         let prevs = structure.prevs
         let description = structure.listType(start, prevs) == .descriptive ? " :: " : nil
-        structure = insertItem(at: pos, structure, prevs, checkbox: checkbox, afterBullet: description)
+        structure = insertItem(at: pos, structure, prevs, checkbox: checkbox, afterBullet: description, splitLine: options.metaReturnMaySplitLine)
         writeStruct(&structure, structure.parents)
         if checkbox { updateCheckboxCount() }
         forwardLine(0)
@@ -91,17 +91,17 @@ extension EmacsBuffer {
             let upper = marker(lineEnd(point))
             defer { release(upper) }
             point = lower
-            let current = looking(Self.itemPattern).flatMap { match -> String? in
+            let current = looking(itemPattern).flatMap { match -> String? in
                 let box = saveExcursion { () -> [Range<Int>?]? in
                     point = match[0]!.upperBound
-                    if let counter = looking("(?:\\[@(?:start:)?[0-9]+\\][ \\t]*)") { point = counter[0]!.upperBound }
+                    if let counter = looking(options.listAllowAlphabetical ? "(?:\\[@(?:start:)?([0-9]+|[A-Za-z])\\][ \\t]*)" : "(?:\\[@(?:start:)?[0-9]+\\][ \\t]*)") { point = counter[0]!.upperBound }
                     return looking("(\\[[- X]\\])[ \\t]+")
                 }
                 return box.map { substring($0[1]!.lowerBound, $0[1]!.upperBound) }
             }
             let reference = current == "[X]" ? "[ ]" : "[X]"
             point = lower
-            while point < upper.position, searchForward(Self.itemBeginningPattern, bound: upper.position, move: true) != nil {
+            while point < upper.position, searchForward(itemBeginningPattern, bound: upper.position, move: true) != nil {
                 var structure = listStruct()
                 let old = structure
                 let parents = structure.parents
@@ -302,7 +302,7 @@ public struct InsertCheckboxItem: OrgCommand {
 
 /// An item command that needs point on an item's first line.
 private func atItemLine(_ context: EditContext) -> Bool {
-    EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).atItem
+    EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options).atItem
 }
 
 /// M-right on an item: `org-indent-item`.

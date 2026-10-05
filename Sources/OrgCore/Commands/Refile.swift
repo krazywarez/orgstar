@@ -126,7 +126,7 @@ public enum Refile {
     }
 
     public static func toOtherFile(source context: EditContext, target text: String, under heading: Int?) -> Result? {
-        let target = EmacsBuffer(text, point: 0)
+        let target = EmacsBuffer(text, point: 0, settings: context.tree.settings, options: context.options)
         var tree = ""
         let step = commitBuffer(context) { buffer in
             tree = try buffer.copySubtree()

@@ -48,6 +48,12 @@ struct ListOracleTests {
         try compareWithEmacs(Self.variants.map { ($0, EmacsOracle.positions($0)) }, Self.commands)
     }
 
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func listCommandsMatchEmacsWithDoomOptions() throws {
+        let alphabetical = ["a. x\nb. y\n", "A) one\n   - sub\nB) two\n", "- [@c] x\n- y\n", "1. a\n2. b\n"]
+        try compareWithEmacs((Self.variants + alphabetical).map { ($0, EmacsOracle.positions($0)) }, Self.commands, options: doomOptions)
+    }
+
     /// Real lists: `ORGSTAR_ORACLE_CORPUS=<folder>` runs every list command in files up to
     /// 20 KB with the caret at the start, bullet end and end of up to six item lines per file.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_ORACLE_CORPUS"] != nil))
