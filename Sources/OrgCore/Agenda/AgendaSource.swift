@@ -8,6 +8,21 @@ public struct AgendaSource: Sendable {
     struct Heading: Sendable {
         /// Start of the heading line.
         let start: Int
+        let level: Int
+        /// In an archived or commented tree, which the agenda skips.
+        let skipped: Bool
+        /// The title without keyword, priority and tags (`ITEM`).
+        let title: String
+        /// The priority cookie's value.
+        let priority: String?
+        let localTags: [String]
+        /// Upper-cased keys of the entry's own drawer.
+        let properties: [String: String]
+        /// Planning timestamps with brackets, for property matches.
+        let planning: [String: String]
+        /// The first active and inactive timestamps in the entry (`TIMESTAMP`, `TIMESTAMP_IA`).
+        let firstActive: String?
+        let firstInactive: String?
         /// The line after the stars.
         let head: String
         let todo: String?
@@ -50,6 +65,21 @@ public struct AgendaSource: Sendable {
         let settings = tree.settings
         keywords = settings.todoSequences.flatMap { $0.active.map(\.name) + $0.done.map(\.name) }
         priorities = settings.priorities
+
+        var stampsByHeading: [Int: [String]] = [:]
+        var headingIndex = -1
+        func collect(_ node: SyntaxNode) {
+            for child in node.children {
+                if child.kind == .heading { headingIndex += 1 }
+                if child.kind == .timestamp, headingIndex >= 0 {
+                    stampsByHeading[headingIndex, default: []].append(child.text)
+                } else if child.kind != .block, child.kind != .planning {
+                    collect(child)
+                }
+            }
+        }
+        collect(tree.root)
+        func sectionStamps(_ index: Int) -> [String] { stampsByHeading[index] ?? [] }
 
         var keywordCategory: String?
         var srcBodies: [Range<Int>] = []
@@ -118,6 +148,7 @@ public struct AgendaSource: Sendable {
 
             var scheduled: (String, Int)?
             var deadline: (String, Int)?
+            var planningValues: [String: String] = [:]
             let afterHeading = info.headingRange.upperBound
             if let planning = planningLines.first(where: { $0.lowerBound == afterHeading }) {
                 let planningText = ns.substring(with: NSRange(location: planning.lowerBound, length: planning.count))
@@ -127,9 +158,28 @@ public struct AgendaSource: Sendable {
                     let value = (pns.substring(with: m.range(at: 2)), planning.lowerBound + m.range(at: 2).location - 1)
                     if pns.substring(with: m.range(at: 1)) == "SCHEDULED" { scheduled = scheduled ?? value } else { deadline = deadline ?? value }
                 }
+                let any = try! NSRegularExpression(pattern: "\\b(SCHEDULED|DEADLINE|CLOSED): *([\\[<]\(Self.tsInternal)[\\]>])")
+                for m in any.matches(in: planningText, range: NSRange(location: 0, length: pns.length)) {
+                    let key = pns.substring(with: m.range(at: 1))
+                    if planningValues[key] == nil { planningValues[key] = pns.substring(with: m.range(at: 2)) }
+                }
             }
+            var properties: [String: String] = [:]
+            for property in info.properties {
+                let key = property.key.uppercased()
+                if property.additive, let value = properties[key] {
+                    properties[key] = value + " " + property.value
+                } else {
+                    properties[key] = property.value
+                }
+            }
+            let ownStamps = sectionStamps(index)
             headings.append(Heading(
-                start: info.headingRange.lowerBound, head: head, todo: info.todo, isDone: info.isDone,
+                start: info.headingRange.lowerBound, level: info.level, skipped: skipped[index],
+                title: info.title.trimmingCharacters(in: .whitespaces), priority: info.priority, localTags: info.localTags,
+                properties: properties, planning: planningValues,
+                firstActive: ownStamps.first { $0.hasPrefix("<") }, firstInactive: ownStamps.first { $0.hasPrefix("[") },
+                head: head, todo: info.todo, isDone: info.isDone,
                 tags: tags, category: category, scheduled: scheduled, deadline: deadline
             ))
         }

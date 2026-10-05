@@ -22,7 +22,7 @@ enum AgendaOracle {
 
     static let keywords = "TODO PROJ LOOP STRT WAIT HOLD IDEA | DONE KILL"
 
-    static func script(files: [String], start: String, span: Int, seconds: Int) -> String {
+    static func script(files: [String], form: String, seconds: Int) -> String {
         let fileList = files.map { "\"\($0)\"" }.joined(separator: " ")
         let words = keywords.split(separator: " ").map { "\"\($0)\"" }.joined(separator: " ")
         return #"""
@@ -44,7 +44,7 @@ enum AgendaOracle {
                  ((get-text-property p 'org-agenda-date-header)
                   (when header (push `((header . ,header) (items . ,(vconcat (nreverse items)))) days))
                   (setq header line items nil))
-                 (header
+                 ((or header hd)
                   (push `((line . ,line)
                           (type . ,(get-text-property p 'type))
                           (category . ,(get-text-property p 'org-category))
@@ -55,11 +55,11 @@ enum AgendaOracle {
                           (pos . ,(and hd (marker-position hd))))
                         items))))
               (forward-line 1))
-            (when header (push `((header . ,header) (items . ,(vconcat (nreverse items)))) days))
+            (when (or header items) (push `((header . ,(or header "")) (items . ,(vconcat (nreverse items)))) days))
             (vconcat (nreverse days))))
         \#(frozenClock(seconds, """
           (progn
-            (org-agenda-list nil "\(start)" \(span))
+            \(form)
             (let ((result (with-current-buffer org-agenda-buffer-name (orgstar-dump))))
               (let ((coding-system-for-write 'utf-8-unix))
                 (with-temp-file (getenv "ORACLE_OUTPUT")
@@ -68,7 +68,7 @@ enum AgendaOracle {
         """#
     }
 
-    static func run(files: [(name: String, text: String)], start: Int, span: Int, today: Int, hour: Int, minute: Int) throws -> [Day] {
+    static func run(files: [(name: String, text: String)], form: String, today: Int, hour: Int, minute: Int) throws -> [Day] {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-agenda-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -78,11 +78,10 @@ enum AgendaOracle {
             try file.text.write(to: url, atomically: true, encoding: .utf8)
             paths.append(url.resolvingSymlinksInPath().path)
         }
-        let date = Days.date(start)
         let seconds = (today - 719163) * 86400 + hour * 3600 + minute * 60
         let scriptURL = folder.appendingPathComponent("agenda.el")
         let output = folder.appendingPathComponent("output.json")
-        try script(files: paths, start: String(format: "%04d-%02d-%02d", date.year, date.month, date.day), span: span, seconds: seconds)
+        try script(files: paths, form: form, seconds: seconds)
             .write(to: scriptURL, atomically: true, encoding: .utf8)
         let log = try EmacsOracle.run(["-Q", "--batch", "-l", scriptURL.path], environment: ["ORACLE_OUTPUT": output.path, "TZ": "UTC"])
         guard let data = try? Data(contentsOf: output) else { throw OracleError(log: log) }
@@ -108,25 +107,40 @@ enum AgendaOracle {
     }
 
     static func compare(files: [(name: String, text: String)], start: Int, span: Int, today: Int, hour: Int = 9, minute: Int = 30) throws {
-        let emacs = try run(files: files, start: start, span: span, today: today, hour: hour, minute: minute)
+        let date = Days.date(start)
+        let emacs = try run(files: files, form: "(org-agenda-list nil \"\(String(format: "%04d-%02d-%02d", date.year, date.month, date.day))\" \(span))", today: today, hour: hour, minute: minute)
         let defaults = OrgSettings.default.withTodoKeywords(keywords)!
         let sources = files.map { AgendaSource(path: $0.name, text: $0.text, defaults: defaults) }
         let ours = Agenda.list(sources, start: start, days: span, today: today, now: (hour, minute), options: .terminal)
         #expect(ours.count == emacs.count)
         for (o, e) in zip(ours, emacs) {
             #expect(o.header == e.header)
-            let theirs = e.items.map { item in
-                "\(normalize(item.line)) | \(item.type ?? "-") \(item.category ?? "") \(item.tod.map(String.init) ?? "-") [\(item.extra ?? "")] \(item.urgency ?? 0) \(item.file ?? "-")@\(item.pos.map(String.init) ?? "-")"
-            }
-            let mine = o.items.map { item in
-                let type: String = switch item.kind {
-                case .timeGrid, .currentTime: "-"
-                default: item.kind.rawValue
-                }
-                return "\(normalize(item.line)) | \(type) \(item.category) \(item.timeOfDay.map(String.init) ?? "-") [\(item.extra)] \(item.urgency) \(item.path ?? "-")@\(item.headingOffset.map(String.init) ?? "-")"
-            }
-            #expect(mine == theirs, "\(e.header) today \(Days.date(today))")
+            #expect(describe(o.items) == describe(e.items), "\(e.header) today \(Days.date(today))")
         }
+    }
+
+    static func describe(_ items: [Line]) -> [String] {
+        items.map { item in
+            "\(normalize(item.line)) | \(item.type ?? "-") \(item.category ?? "") \(item.tod.map(String.init) ?? "-") [\(item.extra ?? "")] \(item.urgency ?? 0) \(item.file ?? "-")@\(item.pos.map(String.init) ?? "-")"
+        }
+    }
+
+    static func describe(_ items: [AgendaItem]) -> [String] {
+        items.map { item in
+            let type: String = switch item.kind {
+            case .timeGrid, .currentTime: "-"
+            default: item.kind.rawValue
+            }
+            return "\(normalize(item.line)) | \(type) \(item.category) \(item.timeOfDay.map(String.init) ?? "-") [\(item.extra)] \(item.urgency) \(item.path ?? "-")@\(item.headingOffset.map(String.init) ?? "-")"
+        }
+    }
+
+    /// A TODO list or tags view: `form` runs it in Emacs, `ours` builds ours from the sources.
+    static func compareList(files: [(name: String, text: String)], form: String, today: Int, _ ours: ([AgendaSource]) -> [AgendaItem]) throws {
+        let emacs = try run(files: files, form: form, today: today, hour: 9, minute: 30)
+        let defaults = OrgSettings.default.withTodoKeywords(keywords)!
+        let mine = ours(files.map { AgendaSource(path: $0.name, text: $0.text, defaults: defaults) })
+        #expect(describe(mine) == describe(emacs.first?.items ?? []), "\(form)")
     }
 }
 
@@ -181,8 +195,12 @@ struct AgendaTests {
     * TODO Delayed
     SCHEDULED: <2026-10-02 Fri -2d>
     * Archived :ARCHIVE:
+    SCHEDULED: <2026-10-05 Mon>
     <2026-10-05 Mon>
+    ** TODO Under archived
+    DEADLINE: <2026-10-05 Mon>
     * COMMENT Commented
+    DEADLINE: <2026-10-05 Mon>
     <2026-10-05 Mon>
     * Blocks
     #+begin_src sh
@@ -214,6 +232,67 @@ struct AgendaTests {
     <2026-10-05 Mon 13:00> and <2026-10-06 Tue>
     """
 
+    static let third = """
+    #+FILETAGS: :proj:
+    * TODO Alpha :work:urgent:
+    :PROPERTIES:
+    :EFFORT: 2:00
+    :SIZE: 3
+    :OWNER: alice
+    :DUE: <2026-10-10 Sat>
+    :END:
+    ** NEXT Beta :boss:
+    :PROPERTIES:
+    :SIZE: 10
+    :END:
+    *** Gamma :work:
+    * DONE Delta :home:
+    CLOSED: [2026-10-01 Thu 10:00] SCHEDULED: <2026-09-30 Wed>
+    * WAIT [#A] Epsilon 10:30
+    :PROPERTIES:
+    :OWNER: Bob
+    :END:
+    <2026-10-03 Sat> [2026-10-02 Fri]
+    * HOLD Zeta :x@y:
+    * Eta with category
+    :PROPERTIES:
+    :CATEGORY: cat
+    :END:
+    ** KILL Theta
+    * IDEA [#C] Iota
+    * Archived :ARCHIVE:work:
+    ** TODO Kappa :work:
+    """
+
+    static let matches = [
+        "work", "+work-urgent", "work|home", "proj", "{^w}", "-work", "LEVEL>1", "LEVEL=2+boss", "SIZE>5", "SIZE<5",
+        "OWNER=\"alice\"", "OWNER={^b}", "OWNER<>\"alice\"", "OWNER<\"b\"", "TODO=\"WAIT\"", "PRIORITY=\"A\"",
+        "CATEGORY=\"cat\"", "DUE<\"<2026-10-15>\"", "DUE>\"<today>\"", "SCHEDULED<\"<today>\"", "TIMESTAMP=\"<2026-10-03 Sat>\"",
+        "ITEM={lph}", "work/TODO", "/!", "+work/!TODO|WAIT", "EFFORT>\"1:00\"", "ALLTAGS={proj}", "TAGS=\":work:urgent:\"",
+        "x@y", "/-TODO", "/!{^[HW]}", "work&urgent", "SIZE>=3+SIZE<=3", "LEVEL<>1",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func listsMatchEmacs() throws {
+        let files = [("a.org", Self.synthetic), ("b.org", Self.second), ("c.org", Self.third)]
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let now = Date(timeIntervalSince1970: Double((today - 719163) * 86400 + 9 * 3600 + 30 * 60))
+        func lisp(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
+        try AgendaOracle.compareList(files: files, form: "(org-todo-list nil)", today: today) { Agenda.todoList($0) }
+        for keywords in ["WAIT|HOLD", "DONE", "KILL|TODO"] {
+            try AgendaOracle.compareList(files: files, form: "(org-todo-list \(lisp(keywords)))", today: today) { Agenda.todoList($0, keywords: keywords) }
+        }
+        for match in Self.matches {
+            for todoOnly in [false, true] {
+                try AgendaOracle.compareList(files: files, form: "(org-tags-view \(todoOnly ? "t" : "nil") \(lisp(match)))", today: today) {
+                    Agenda.tagsMatch($0, match: match, todoOnly: todoOnly, now: now, calendar: utc)
+                }
+            }
+        }
+    }
+
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func matchesEmacs() throws {
         let files = [("a.org", Self.synthetic), ("b.org", Self.second)]
@@ -236,6 +315,12 @@ struct AgendaTests {
             .compactMap { url in (try? String(contentsOf: url, encoding: .utf8)).map { (url.lastPathComponent, $0) } }
         for today in [Days.absolute(Date(), calendar: .current), Days.absolute(year: 2025, month: 3, day: 14)] {
             try AgendaOracle.compare(files: files, start: today - 3, span: 10, today: today)
+        }
+        let today = Days.absolute(Date(), calendar: .current)
+        try AgendaOracle.compareList(files: files, form: "(org-todo-list nil)", today: today) { Agenda.todoList($0) }
+        for match in ["finance|home", "LEVEL=2", "/!", "PRIORITY=\"A\""] {
+            let lisp = "\"" + match.replacingOccurrences(of: "\"", with: "\\\"") + "\""
+            try AgendaOracle.compareList(files: files, form: "(org-tags-view nil \(lisp))", today: today) { Agenda.tagsMatch($0, match: match) }
         }
     }
 }

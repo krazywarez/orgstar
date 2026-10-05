@@ -10,6 +10,8 @@ public struct AgendaItem: Sendable, Equatable {
         case block
         case timeGrid
         case currentTime
+        case todo
+        case tagsMatch = "tagsmatch"
     }
 
     public let kind: Kind
@@ -93,7 +95,7 @@ public enum Agenda {
         let isToday = current == today
         var items: [AgendaItem] = []
         for heading in source.headings {
-            guard let (s, offset) = heading.deadline, let deadline = Days.absolute(of: s) else { continue }
+            guard !heading.skipped, let (s, offset) = heading.deadline, let deadline = Days.absolute(of: s) else { continue }
             let repeat_ = current <= today ? deadline : (Days.closest(s, to: current, prefer: .future) ?? deadline)
             let diff = deadline - current
             let warningDays = Days.warningDays(s, delay: false, defaultDays: options.deadlineWarningDays)
@@ -128,7 +130,7 @@ public enum Agenda {
         let isToday = current == today
         var items: [AgendaItem] = []
         for heading in source.headings {
-            guard let (s, offset) = heading.scheduled, let schedule = Days.absolute(of: s) else { continue }
+            guard !heading.skipped, let (s, offset) = heading.scheduled, let schedule = Days.absolute(of: s) else { continue }
             let repeat_ = current <= today ? schedule : (Days.closest(s, to: current, prefer: .future) ?? schedule)
             let diff = current - schedule
             let past = schedule < today
@@ -233,7 +235,8 @@ public enum Agenda {
     /// `org-agenda-highlight-todo`.
     static func format(
         _ source: AgendaSource, _ heading: AgendaSource.Heading, kind: AgendaItem.Kind, marker: Int,
-        extra: String, dotime: Dotime?, removing: NSRegularExpression?, trailing: String, urgency: (Int) -> Int
+        extra: String, dotime: Dotime?, removing: NSRegularExpression?, trailing: String, hasTime: Bool = true,
+        urgency: (Int) -> Int
     ) -> AgendaItem {
         var txt = heading.head.trimmingCharacters(in: .whitespaces)
         // `org-agenda-fix-displayed-tags`: the heading's tags are replaced by the full list.
@@ -256,14 +259,16 @@ public enum Agenda {
             tagString = ":" + parts.joined(separator: ":") + (haveInherited ? "::" : ":")
         }
 
-        let timed = timeFields(&txt, tagString: tagString, dotime: dotime, trailing: trailing)
+        let timed = timeFields(&txt, tagString: tagString, dotime: dotime, trailing: trailing, removeTimes: hasTime)
         if let removing {
             while let m = removing.firstMatch(in: txt, range: NSRange(location: 0, length: (txt as NSString).length)) {
                 txt = (txt as NSString).replacingCharacters(in: m.range, with: "")
             }
         }
         let category = heading.category
-        let prefix = "  " + pad(category.isEmpty ? "" : category + ":", 12) + (timed.time.isEmpty ? "" : pad(timed.time, 12)) + (extra.isEmpty ? "" : extra + " ")
+        // ` %i %-12:c%?-12t% s` in the agenda, ` %i %-12:c` in TODO and tags lists.
+        let prefix = "  " + pad(category.isEmpty ? "" : category + ":", 12)
+            + (hasTime ? (timed.time.isEmpty ? "" : pad(timed.time, 12)) + (extra.isEmpty ? "" : extra + " ") : "")
         txt = highlightTodo(txt, keywords: source.keywords)
         let priority = Self.priority(prefix + txt, source.priorities)
         return AgendaItem(
@@ -276,7 +281,7 @@ public enum Agenda {
 
     /// The time-of-day part of `org-agenda-format-item`: finds the time, removes it from the
     /// text, and formats the `%t` field.
-    static func timeFields(_ txt: inout String, tagString: String, dotime: Dotime?, trailing: String) -> (timeOfDay: Int?, time: String) {
+    static func timeFields(_ txt: inout String, tagString: String, dotime: Dotime?, trailing: String, removeTimes: Bool = true) -> (timeOfDay: Int?, time: String) {
         guard let dotime else { return (nil, "") }
         let full = tagString.isEmpty ? txt : txt + " " + tagString
         let withoutStamps = stampAny.stringByReplacingMatches(in: full, range: NSRange(location: 0, length: (full as NSString).length), withTemplate: "")
@@ -294,11 +299,11 @@ public enum Agenda {
             start = ns.substring(with: m.range(at: 2))
             let endGroup = m.range(at: 3).location != NSNotFound ? 4 : 6
             if m.range(at: endGroup).location != NSNotFound { end = ns.substring(with: m.range(at: endGroup)) }
-            removeTime(ns.substring(with: m.range), from: &txt)
+            if removeTimes { removeTime(ns.substring(with: m.range), from: &txt) }
         } else if let m = plainTime.firstMatch(in: containing, range: all) {
             start = ns.substring(with: m.range(at: 1))
             if m.range(at: 8).location != NSNotFound { end = ns.substring(with: m.range(at: 8)) }
-            removeTime(ns.substring(with: m.range), from: &txt)
+            if removeTimes { removeTime(ns.substring(with: m.range), from: &txt) }
         }
         let startText = start.flatMap(formattedTime).map { String(repeating: " ", count: max(0, 5 - $0.count)) + $0 }
         let endText = end.flatMap(formattedTime)
