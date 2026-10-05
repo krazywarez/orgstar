@@ -324,3 +324,55 @@ struct AgendaTests {
         }
     }
 }
+
+struct ReminderTests {
+    static var utc: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    static func date(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
+        utc.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute))!
+    }
+
+    @Test func timedEntriesWithTheirWarnings() {
+        let text = """
+        * TODO Call
+        SCHEDULED: <2026-10-05 Mon 14:00>
+        * Meeting
+        :PROPERTIES:
+        :APPT_WARNTIME: 30
+        :END:
+        <2026-10-06 Tue 10:00-11:00>
+        * DONE Finished
+        SCHEDULED: <2026-10-05 Mon 15:00>
+        * Untimed
+        SCHEDULED: <2026-10-05 Mon>
+        * Earlier
+        <2026-10-05 Mon 08:00>
+        * Soon
+        <2026-10-05 Mon 09:35>
+        * TODO Report due
+        DEADLINE: <2026-10-07 Wed 17:00>
+        """
+        let source = AgendaSource(path: "/n/a.org", text: text)
+        let now = Self.date(5, 9, 30)
+        let reminders = Reminders.upcoming([source], now: now, calendar: Self.utc)
+        #expect(reminders.map(\.title) == ["Soon", "TODO Call", "Meeting", "TODO Report due"])
+        #expect(reminders[0].fireDate == now.addingTimeInterval(1))
+        #expect(reminders[1].fireDate == Self.date(5, 13, 48))
+        #expect(reminders[1].body == "14:00 · Scheduled: · a")
+        #expect(reminders[2].fireDate == Self.date(6, 9, 30))
+        #expect(reminders[3].eventDate == Self.date(7, 17, 0))
+        #expect(Reminders.upcoming([source], now: now, calendar: Self.utc, limit: 2).count == 2)
+        #expect(Reminders.upcoming([source], now: now, calendar: Self.utc, days: 1).map(\.title) == ["Soon", "TODO Call"])
+    }
+
+    @Test func repeatsFillTheWeek() {
+        let source = AgendaSource(path: "/n/a.org", text: "* Standup\n<2026-10-01 Thu 09:00 +1d>\n")
+        let reminders = Reminders.upcoming([source], now: Self.date(5, 9, 30), calendar: Self.utc)
+        #expect(reminders.count == 6)
+        #expect(Set(reminders.map(\.id)).count == 6)
+    }
+}

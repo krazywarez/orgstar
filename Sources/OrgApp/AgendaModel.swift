@@ -54,6 +54,37 @@ public final class AgendaModel {
             startOffset = viewStart ?? startOffset
         }
         let first = start ?? today + startOffset
+        let options = self.options
+        let mode = self.mode
+        let all = await sources(open: open)
+        let result = await Task.detached {
+            var days: [AgendaDay] = []
+            var list: [AgendaItem] = []
+            switch mode {
+            case .agenda:
+                days = Agenda.list(all, start: first, days: span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: options)
+            case .todo(let keywords):
+                list = Agenda.todoList(all, keywords: keywords)
+            case .match(let match, let todoOnly):
+                list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar)
+            }
+            return (days, list)
+        }.value
+        guard id == generation else { return }
+        days = result.0
+        list = result.1
+        isComputing = false
+    }
+
+    /// Reminders for the timed entries of the next `days` days.
+    public func reminders(open: (path: String, text: String)?, now: Date = Date(), calendar: Calendar = .current, days: Int = 7, lead: Int = 12) async -> [Reminder] {
+        let all = await sources(open: open)
+        return await Task.detached { Reminders.upcoming(all, now: now, calendar: calendar, days: days, lead: lead) }.value
+    }
+
+    /// The agenda files' sources: the open file's from its text, the others from the cache
+    /// while their modification date and size are unchanged.
+    private func sources(open: (path: String, text: String)?) async -> [AgendaSource] {
         let defaults = workspace.settings.org
         var reads: [(path: String, cached: AgendaSource?, mtime: Date, size: Int, text: String?)] = []
         for path in files {
@@ -67,9 +98,7 @@ public final class AgendaModel {
             let cached = cache[path].flatMap { $0.mtime == mtime && $0.size == size ? $0.source : nil }
             reads.append((path, cached, mtime, size, nil))
         }
-        let options = self.options
-        let mode = self.mode
-        let result = await Task.detached {
+        let loaded = await Task.detached {
             var sources: [(path: String, mtime: Date, size: Int, source: AgendaSource, fromDisk: Bool)] = []
             for read in reads {
                 if let cached = read.cached {
@@ -81,26 +110,12 @@ public final class AgendaModel {
                     sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults), true))
                 }
             }
-            let all = sources.map(\.source)
-            var days: [AgendaDay] = []
-            var list: [AgendaItem] = []
-            switch mode {
-            case .agenda:
-                days = Agenda.list(all, start: first, days: span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: options)
-            case .todo(let keywords):
-                list = Agenda.todoList(all, keywords: keywords)
-            case .match(let match, let todoOnly):
-                list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar)
-            }
-            return (sources, days, list)
+            return sources
         }.value
-        guard id == generation else { return }
-        for source in result.0 where source.fromDisk {
+        for source in loaded where source.fromDisk {
             cache[source.path] = (source.mtime, source.size, source.source)
         }
-        days = result.1
-        list = result.2
-        isComputing = false
+        return loaded.map(\.source)
     }
 
     public func showToday() { start = nil }

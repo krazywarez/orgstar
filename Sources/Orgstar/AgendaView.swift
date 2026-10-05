@@ -10,6 +10,7 @@ struct AgendaView: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     let commands: AppCommands
+    let scheduler: ReminderScheduler?
     @State private var agenda: AgendaModel
     @State private var views = AgendaViewLoader.builtIn
     @State private var viewName = AgendaViewLoader.builtIn[0].name
@@ -28,10 +29,11 @@ struct AgendaView: View {
     static let match = "Match…"
     static let todoMatch = "TODO Match…"
 
-    init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands) {
+    init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands, scheduler: ReminderScheduler?) {
         self.workspace = workspace
         self.session = session
         self.commands = commands
+        self.scheduler = scheduler
         _agenda = State(initialValue: AgendaModel(workspace: workspace))
     }
 
@@ -98,7 +100,7 @@ struct AgendaView: View {
         }
         .onKeyPress(phases: .down) { press in handle(press) }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if let message {
+            if let message = message ?? reminderStatus {
                 Text(message)
                     .font(.callout)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -176,6 +178,16 @@ struct AgendaView: View {
                 .tag("\(prefix):\(index)")
                 .selectionDisabled(item.path == nil)
         }
+    }
+
+    @AppStorage("reminders") private var remindersEnabled = true
+
+    /// How far ahead notifications are set, as the design asks the agenda to show.
+    private var reminderStatus: String? {
+        guard let scheduler, remindersEnabled else { return nil }
+        if !scheduler.isAuthorized { return "Notifications are off for Orgstar in System Settings." }
+        guard let through = scheduler.scheduledThrough else { return nil }
+        return "Reminders are set through " + through.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()) + "."
     }
 
     private var listTitle: String {

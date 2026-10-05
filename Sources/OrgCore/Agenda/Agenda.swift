@@ -35,6 +35,8 @@ public struct AgendaItem: Sendable, Equatable {
     public let todo: String?
     public let isDone: Bool
     public let urgency: Int
+    /// `APPT_WARNTIME`: minutes of warning before the entry's time.
+    public let warntime: Int?
     /// The line as org prints it, with one space before the tags.
     public let line: String
 }
@@ -277,6 +279,7 @@ public enum Agenda {
             kind: kind, path: source.path, headingOffset: heading.start, headingLine: heading.line, markerOffset: marker, category: category,
             timeOfDay: timed.timeOfDay, time: timed.time, extra: extra, text: txt, tags: tags.map(\.name),
             todo: heading.todo, isDone: heading.isDone, urgency: urgency(priority),
+            warntime: heading.properties["APPT_WARNTIME"].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) },
             line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString)
         )
     }
@@ -391,7 +394,7 @@ public enum Agenda {
             let timed = timeFields(&txt, tagString: "", dotime: .string(dotime), trailing: options.gridTrailing)
             return AgendaItem(
                 kind: kind, path: nil, headingOffset: nil, headingLine: nil, markerOffset: nil, category: "", timeOfDay: timed.timeOfDay,
-                time: timed.time, extra: "", text: txt, tags: [], todo: nil, isDone: false, urgency: 0,
+                time: timed.time, extra: "", text: txt, tags: [], todo: nil, isDone: false, urgency: 0, warntime: nil,
                 line: "  " + pad("", 12) + pad(timed.time, 12) + txt
             )
         }

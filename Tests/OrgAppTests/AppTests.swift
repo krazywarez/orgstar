@@ -373,3 +373,50 @@ struct AgendaCommandTests {
         #expect(try String(contentsOf: b, encoding: .utf8) == "* DONE Three\n")
     }
 }
+
+final class FakeReminderCenter: ReminderCenter, @unchecked Sendable {
+    private let lock = NSLock()
+    private var pending: [String] = ["someone.else"]
+    var authorized = true
+    private(set) var added: [String] = []
+
+    func authorize() async -> Bool { authorized }
+    func pendingIDs() async -> [String] { lock.withLock { pending } }
+    func add(_ reminder: Reminder) async throws {
+        lock.withLock {
+            pending.append(reminder.id)
+            added.append(reminder.id)
+        }
+    }
+    func remove(_ ids: [String]) { lock.withLock { pending.removeAll { ids.contains($0) } } }
+    var ids: [String] { lock.withLock { pending } }
+}
+
+@MainActor
+struct ReminderSchedulerTests {
+    func reminder(_ id: String, _ minutes: Double) -> Reminder {
+        let date = Date(timeIntervalSince1970: 1_000_000 + minutes * 60)
+        return Reminder(id: "orgstar.\(id)", fireDate: date, eventDate: date.addingTimeInterval(720), title: id, body: "", path: "/a.org", offset: 0)
+    }
+
+    @Test func reconciles() async {
+        let center = FakeReminderCenter()
+        let scheduler = ReminderScheduler(center: center)
+        await scheduler.reconcile([reminder("a", 1), reminder("b", 2)])
+        #expect(center.ids == ["someone.else", "orgstar.a", "orgstar.b"])
+        #expect(scheduler.scheduledThrough == reminder("b", 2).eventDate)
+
+        await scheduler.reconcile([reminder("b", 2), reminder("c", 3)])
+        #expect(center.ids == ["someone.else", "orgstar.b", "orgstar.c"])
+        #expect(center.added == ["orgstar.a", "orgstar.b", "orgstar.c"])
+
+        await scheduler.clear()
+        #expect(center.ids == ["someone.else"])
+        #expect(scheduler.scheduledThrough == nil)
+
+        center.authorized = false
+        await scheduler.reconcile([reminder("d", 4)])
+        #expect(!scheduler.isAuthorized)
+        #expect(center.ids == ["someone.else"])
+    }
+}

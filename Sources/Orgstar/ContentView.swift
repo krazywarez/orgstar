@@ -8,6 +8,12 @@ struct ContentView: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     @Bindable var commands: AppCommands
+    let scheduler: ReminderScheduler?
+    @AppStorage("reminders") private var remindersEnabled = true
+    @AppStorage("reminderLead") private var reminderLead = 12
+    @AppStorage("agendaSubfolders") private var agendaSubfolders = false
+    @State private var reminderAgenda: AgendaModel?
+    @State private var hour = 0
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
     @AppStorage("optionAsMeta") private var optionAsMeta = OptionAsMeta.left.rawValue
@@ -137,6 +143,18 @@ struct ContentView: View {
         } message: {
             Text(workspace.lastError ?? session.lastError ?? "")
         }
+        .task(id: ReminderKey(
+            enabled: remindersEnabled, lead: reminderLead, subfolders: agendaSubfolders, files: workspace.files.count,
+            changed: workspace.changedFile?.version, edits: session.editVersion, hour: hour
+        )) {
+            await updateReminders()
+        }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3600))
+                hour += 1
+            }
+        }
         .task {
             DevelopmentHooks.scheduleSnapshot()
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
@@ -145,6 +163,34 @@ struct ContentView: View {
             await workspace.refresh()
             workspace.startWatching()
         }
+    }
+
+    private struct ReminderKey: Hashable {
+        var enabled: Bool
+        var lead: Int
+        var subfolders: Bool
+        var files: Int
+        var changed: Int?
+        var edits: Int
+        var hour: Int
+    }
+
+    /// Sets the notifications for the next week's timed entries, once edits pause.
+    private func updateReminders() async {
+        guard let scheduler else { return }
+        guard remindersEnabled else {
+            await scheduler.clear()
+            return
+        }
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled, !workspace.files.isEmpty else { return }
+        let agenda = reminderAgenda ?? AgendaModel(workspace: workspace)
+        reminderAgenda = agenda
+        agenda.includeSubfolders = agendaSubfolders
+        let open = session.path.flatMap { path in session.document.map { (path, $0.text) } }
+        let reminders = await agenda.reminders(open: open, lead: reminderLead)
+        guard !Task.isCancelled else { return }
+        await scheduler.reconcile(reminders)
     }
 
     private func loadKeymap() {

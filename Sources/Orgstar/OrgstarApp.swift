@@ -3,6 +3,7 @@ import OrgApp
 import OrgCore
 import OrgEditorAppKit
 import SwiftUI
+import UserNotifications
 
 /// Window-level requests the menu bar makes.
 @MainActor
@@ -62,8 +63,30 @@ struct PromptRequest: Identifiable {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     var session: DocumentSession?
+    var commands: AppCommands?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if SystemReminderCenter.isAvailable { UNUserNotificationCenter.current().delegate = self }
+    }
+
+    /// Reminders show while Orgstar is in front too.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter, willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .sound, .list]
+    }
+
+    /// Clicking a reminder shows its entry.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let info = response.notification.request.content.userInfo
+        guard let path = info["path"] as? String, let offset = info["offset"] as? Int else { return }
+        await MainActor.run {
+            NSApp.activate()
+            commands?.jump(path: path, offset: offset)
+        }
+    }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
@@ -102,6 +125,7 @@ struct OrgstarApp: App {
         try WorkspaceModel(directory: WorkspaceModel.defaultDirectory, settings: .with(todoKeywords: Preferences.orgSettings))
     }
     @State private var commands = AppCommands()
+    @State private var scheduler = SystemReminderCenter.isAvailable ? ReminderScheduler(center: SystemReminderCenter()) : nil
     @State private var session: DocumentSession = {
         let session = DocumentSession()
         session.defaults = Preferences.orgSettings
@@ -112,8 +136,11 @@ struct OrgstarApp: App {
         Window("Orgstar", id: "main") {
             switch workspace {
             case .success(let model):
-                ContentView(workspace: model, session: session, commands: commands)
-                    .onAppear { delegate.session = session }
+                ContentView(workspace: model, session: session, commands: commands, scheduler: scheduler)
+                    .onAppear {
+                        delegate.session = session
+                        delegate.commands = commands
+                    }
             case .failure(let error):
                 ContentUnavailableView("Can't open the index", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
             }
@@ -121,7 +148,7 @@ struct OrgstarApp: App {
         .defaultSize(width: 1280, height: 860)
         Window("Agenda", id: "agenda") {
             if case .success(let model) = workspace {
-                AgendaView(workspace: model, session: session, commands: commands)
+                AgendaView(workspace: model, session: session, commands: commands, scheduler: scheduler)
             }
         }
         .defaultSize(width: 760, height: 720)
@@ -188,6 +215,8 @@ struct SettingsView: View {
     @AppStorage("agendaSpan") private var agendaSpan = 10
     @AppStorage("agendaStartOffset") private var agendaStartOffset = -3
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
+    @AppStorage("reminders") private var reminders = true
+    @AppStorage("reminderLead") private var reminderLead = 12
 
     var body: some View {
         Form {
@@ -231,6 +260,9 @@ struct SettingsView: View {
             Stepper("Agenda shows \(agendaSpan) days", value: $agendaSpan, in: 1...31)
             Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
             Toggle("Agenda includes files in subfolders", isOn: $agendaSubfolders)
+            Toggle("Notify before timed agenda entries", isOn: $reminders)
+            Stepper("\(reminderLead) minutes before (APPT_WARNTIME overrides)", value: $reminderLead, in: 0...120)
+                .disabled(!reminders)
         }
         .padding(20)
         .frame(width: 480)
