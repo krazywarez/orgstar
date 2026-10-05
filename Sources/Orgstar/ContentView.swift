@@ -739,7 +739,7 @@ struct BufferTabs: View {
             }
         }
         .frame(height: 28)
-        .background { if let bg = theme.color("modeline-background") { bg } else { Rectangle().fill(.bar) } }
+        .background { Rectangle().fill(theme.color("modeline-background").map(AnyShapeStyle.init) ?? AnyShapeStyle(.bar)) }
         .overlay(alignment: .bottom) { Divider() }
     }
 
@@ -766,7 +766,8 @@ struct BufferTabs: View {
         .font(.callout)
         .padding(.horizontal, 12)
         .frame(maxHeight: .infinity)
-        .background(current ? theme.color("background") ?? Color(nsColor: .textBackgroundColor) : .clear)
+        // A shape, not a color: a color background runs up under the toolbar.
+        .background { Rectangle().fill(current ? theme.color("background") ?? Color(nsColor: .textBackgroundColor) : .clear) }
         .overlay(alignment: .trailing) { Divider() }
         .contentShape(Rectangle())
         .onTapGesture { session.open(path) }
