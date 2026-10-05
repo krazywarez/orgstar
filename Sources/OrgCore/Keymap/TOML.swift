@@ -18,6 +18,11 @@ public enum TOML {
             if case .bool(let value) = self { return value }
             return nil
         }
+
+        public var integer: Int? {
+            if case .integer(let value) = self { return value }
+            return nil
+        }
     }
 
     public struct Table: Sendable, Equatable {

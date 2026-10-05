@@ -271,6 +271,51 @@ public final class DocumentSession {
         }
     }
 
+    // MARK: - Commands from other views
+
+    /// Runs `command` with the caret at `offset` in the file at `path`, as the agenda does:
+    /// through the buffer when the file is open, leaving its caret alone; otherwise on the
+    /// file, written back at once through the save path. `expect` is the heading line the
+    /// caller saw at a position; if the text there changed, nothing runs.
+    public func perform(
+        _ command: any OrgCommand, path: String, at offset: Int, expect: (start: Int, line: String)?,
+        answers: [String: String] = [:], now: Date = Date()
+    ) -> CommandStep {
+        let stale = CommandStep.failed("The entry changed; the agenda has been refreshed.")
+        func matches(_ text: String) -> Bool {
+            guard let expect else { return true }
+            let ns = text as NSString
+            guard expect.start + (expect.line as NSString).length <= ns.length else { return false }
+            return ns.substring(with: NSRange(location: expect.start, length: (expect.line as NSString).length)) == expect.line
+        }
+        if path == self.path, let buffer {
+            guard matches(buffer.document.text) else { return stale }
+            do {
+                let options = self.options
+                let step = try buffer.update { try $0.run(command, selection: [offset..<offset], now: now, answers: answers, options: options) }
+                if case .commit = step { bufferChanged() }
+                return step
+            } catch {
+                return .failed("\(error)")
+            }
+        }
+        let url = URL(fileURLWithPath: path)
+        let name = url.lastPathComponent
+        do {
+            guard let bytes = try fileSystem.read(url) else { return .failed("\(name) no longer exists.") }
+            var state = DocumentState(bytes: bytes, defaults: defaults)
+            guard state.isEditable else { return .failed("\(name) isn't UTF-8, so it can't be changed.") }
+            guard matches(state.text) else { return stale }
+            let step = try state.run(command, selection: [offset..<offset], now: now, answers: answers, options: options)
+            if case .commit = step, state.isDirty, case .conflict = try saver.save(&state, to: url) {
+                return .failed("\(name) changed on disk; nothing was changed.")
+            }
+            return step
+        } catch {
+            return .failed("Can't change \(name): \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Locations
 
     /// Opens the file of `location` if needed and asks the editor to show the heading. Offsets

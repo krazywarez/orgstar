@@ -306,3 +306,70 @@ struct AgendaModelTests {
         #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 12))
     }
 }
+
+@MainActor
+struct AgendaCommandTests {
+    @Test func loadsViews() throws {
+        let folder = try Folder()
+        let file = try folder.write("views.toml", """
+        [[view]]
+        name = "Work"
+        type = "match"
+        match = "+work"
+        [[view]]
+        name = "Week"
+        span = 7
+        start = -1
+        [[view]]
+        name = "Waiting"
+        type = "todo"
+        keywords = "WAIT|HOLD"
+        [[view]]
+        name = "Broken"
+        type = "match"
+        """)
+        let loaded = AgendaViewLoader.load(userFile: file)
+        #expect(loaded.views.map(\.name) == ["Agenda", "TODO List", "Work", "Week", "Waiting"])
+        #expect(loaded.views[2].mode == .match("+work", todoOnly: false))
+        #expect(loaded.views[3].mode == .agenda(span: 7, startOffset: -1))
+        #expect(loaded.views[4].mode == .todo(keywords: "WAIT|HOLD"))
+        #expect(loaded.problems == ["views.toml line 13: Broken needs a match"])
+    }
+
+    @Test func todoListMode() async throws {
+        let notes = try Folder()
+        try notes.write("a.org", "* TODO One :work:\n* DONE Two\n* TODO Three\n")
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.mode = .todo(keywords: nil)
+        await agenda.refresh(open: nil)
+        #expect(agenda.list.map(\.text) == ["TODO One", "TODO Three"])
+        agenda.mode = .match("work", todoOnly: false)
+        await agenda.refresh(open: nil)
+        #expect(agenda.list.map(\.text) == ["TODO One"])
+    }
+
+    @Test func runsCommandsOnClosedAndOpenFiles() throws {
+        let notes = try Folder()
+        let a = try notes.write("a.org", "* TODO One\n* TODO Two\n")
+        let b = try notes.write("b.org", "* TODO Three\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(a.path)
+
+        // A closed file is changed on disk.
+        let closed = session.perform(TodoCycle(), path: b.path, at: 0, expect: (0, "* TODO Three"))
+        guard case .commit = closed else { Issue.record("\(closed)"); return }
+        #expect(try String(contentsOf: b, encoding: .utf8) == "* DONE Three\n")
+
+        // The open file changes in its buffer.
+        let open = session.perform(TodoCycle(), path: a.path, at: 11, expect: (11, "* TODO Two"))
+        guard case .commit = open else { Issue.record("\(open)"); return }
+        #expect(session.document?.text == "* TODO One\n* DONE Two\n")
+
+        // A heading that moved is refused.
+        let stale = session.perform(TodoCycle(), path: b.path, at: 0, expect: (0, "* TODO Three"))
+        guard case .failed = stale else { Issue.record("\(stale)"); return }
+        #expect(try String(contentsOf: b, encoding: .utf8) == "* DONE Three\n")
+    }
+}

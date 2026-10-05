@@ -10,6 +10,9 @@ import OrgIndex
 @Observable
 public final class AgendaModel {
     public private(set) var days: [AgendaDay] = []
+    /// The entries of a TODO list or match view.
+    public private(set) var list: [AgendaItem] = []
+    public var mode: AgendaMode = .agenda(span: nil, startOffset: nil)
     /// The first day shown, as `Days` numbers it; nil follows today.
     public var start: Int?
     public var span = 10
@@ -44,6 +47,12 @@ public final class AgendaModel {
         isComputing = true
         let today = Days.absolute(now, calendar: calendar)
         let clock = calendar.dateComponents([.hour, .minute], from: now)
+        var span = self.span
+        var startOffset = self.startOffset
+        if case .agenda(let viewSpan, let viewStart) = mode {
+            span = viewSpan ?? span
+            startOffset = viewStart ?? startOffset
+        }
         let first = start ?? today + startOffset
         let defaults = workspace.settings.org
         var reads: [(path: String, cached: AgendaSource?, mtime: Date, size: Int, text: String?)] = []
@@ -58,8 +67,8 @@ public final class AgendaModel {
             let cached = cache[path].flatMap { $0.mtime == mtime && $0.size == size ? $0.source : nil }
             reads.append((path, cached, mtime, size, nil))
         }
-        let span = self.span
         let options = self.options
+        let mode = self.mode
         let result = await Task.detached {
             var sources: [(path: String, mtime: Date, size: Int, source: AgendaSource, fromDisk: Bool)] = []
             for read in reads {
@@ -72,14 +81,25 @@ public final class AgendaModel {
                     sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults), true))
                 }
             }
-            let days = Agenda.list(sources.map(\.source), start: first, days: span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: options)
-            return (sources, days)
+            let all = sources.map(\.source)
+            var days: [AgendaDay] = []
+            var list: [AgendaItem] = []
+            switch mode {
+            case .agenda:
+                days = Agenda.list(all, start: first, days: span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: options)
+            case .todo(let keywords):
+                list = Agenda.todoList(all, keywords: keywords)
+            case .match(let match, let todoOnly):
+                list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar)
+            }
+            return (sources, days, list)
         }.value
         guard id == generation else { return }
         for source in result.0 where source.fromDisk {
             cache[source.path] = (source.mtime, source.size, source.source)
         }
         days = result.1
+        list = result.2
         isComputing = false
     }
 
@@ -87,6 +107,12 @@ public final class AgendaModel {
 
     /// Moves the view by a whole span, forward or back.
     public func shift(forward: Bool, now: Date = Date(), calendar: Calendar = .current) {
+        var span = self.span
+        var startOffset = self.startOffset
+        if case .agenda(let viewSpan, let viewStart) = mode {
+            span = viewSpan ?? span
+            startOffset = viewStart ?? startOffset
+        }
         let current = start ?? Days.absolute(now, calendar: calendar) + startOffset
         start = current + (forward ? span : -span)
     }

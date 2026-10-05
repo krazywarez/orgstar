@@ -18,6 +18,8 @@ public struct AgendaItem: Sendable, Equatable {
     public let path: String?
     /// Start of the entry's heading line.
     public let headingOffset: Int?
+    /// The heading line as it was read, from its stars, to check the offsets still hold.
+    public let headingLine: String?
     /// Where org's marker points: the timestamp, or the end of a range.
     public let markerOffset: Int?
     public let category: String
@@ -272,7 +274,7 @@ public enum Agenda {
         txt = highlightTodo(txt, keywords: source.keywords)
         let priority = Self.priority(prefix + txt, source.priorities)
         return AgendaItem(
-            kind: kind, path: source.path, headingOffset: heading.start, markerOffset: marker, category: category,
+            kind: kind, path: source.path, headingOffset: heading.start, headingLine: heading.line, markerOffset: marker, category: category,
             timeOfDay: timed.timeOfDay, time: timed.time, extra: extra, text: txt, tags: tags.map(\.name),
             todo: heading.todo, isDone: heading.isDone, urgency: urgency(priority),
             line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString)
@@ -388,7 +390,7 @@ public enum Agenda {
             var txt = text
             let timed = timeFields(&txt, tagString: "", dotime: .string(dotime), trailing: options.gridTrailing)
             return AgendaItem(
-                kind: kind, path: nil, headingOffset: nil, markerOffset: nil, category: "", timeOfDay: timed.timeOfDay,
+                kind: kind, path: nil, headingOffset: nil, headingLine: nil, markerOffset: nil, category: "", timeOfDay: timed.timeOfDay,
                 time: timed.time, extra: "", text: txt, tags: [], todo: nil, isDone: false, urgency: 0,
                 line: "  " + pad("", 12) + pad(timed.time, 12) + txt
             )

@@ -23,6 +23,8 @@ public struct AgendaSource: Sendable {
         /// The first active and inactive timestamps in the entry (`TIMESTAMP`, `TIMESTAMP_IA`).
         let firstActive: String?
         let firstInactive: String?
+        /// The heading line without its newline.
+        let line: String
         /// The line after the stars.
         let head: String
         let todo: String?
@@ -179,7 +181,7 @@ public struct AgendaSource: Sendable {
                 title: info.title.trimmingCharacters(in: .whitespaces), priority: info.priority, localTags: info.localTags,
                 properties: properties, planning: planningValues,
                 firstActive: ownStamps.first { $0.hasPrefix("<") }, firstInactive: ownStamps.first { $0.hasPrefix("[") },
-                head: head, todo: info.todo, isDone: info.isDone,
+                line: line.trimmingCharacters(in: .newlines), head: head, todo: info.todo, isDone: info.isDone,
                 tags: tags, category: category, scheduled: scheduled, deadline: deadline
             ))
         }

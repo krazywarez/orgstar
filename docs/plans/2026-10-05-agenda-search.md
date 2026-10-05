@@ -19,7 +19,7 @@
 ## Defaults chosen (user may change)
 
 - Views: Agenda (`a`), TODO list (`t`), Match (`m`) and TODO match (`M`) are built in; `views.toml` adds named views.
-- Agenda keys follow Emacs: `t` TODO cycle, `+`/`-` priority, `,` priority prompt, `:` tags, `C-c C-s`/`C-c C-d` (⌘S-free: `s`/`d` too), `S-→`/`S-←` date shift.
+- Agenda keys follow Emacs: `t` TODO cycle, `+`/`-` priority, `,` priority prompt, `:` tags, `C-c C-s`/`C-c C-d`, `C-c C-q`, `S-→`/`S-←` date shift.
 
 ---
 
@@ -31,11 +31,11 @@
 
 ### Task 2: Views in the app
 
-- [ ] `AgendaModel.mode` (agenda, TODO list, match); view picker and match field in the agenda window; `views.toml` loader with errors in the echo area.
-- [ ] Commit "Agenda views".
+- [x] `AgendaModel.mode` (agenda, TODO list, match); view picker and match field in the agenda window; `views.toml` loader with errors in the echo area.
+- [x] Commit "Agenda views".
 
 ### Task 3: Agenda commands
 
-- [ ] `AgendaEditor`: run a command at a file offset, through the session or through `Saver`.
-- [ ] Keys in the agenda window; prompts for dates, tags and priority; the agenda refreshes after each.
-- [ ] Commit "Agenda commands".
+- [x] `DocumentSession.perform(_:path:at:expect:)`: run a command at a file offset, through the buffer or through `Saver`.
+- [x] Keys in the agenda window; prompts for dates, tags and priority; the agenda refreshes after each.
+- [x] Commit "Agenda commands".

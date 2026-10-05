@@ -2,19 +2,31 @@ import OrgApp
 import OrgCore
 import SwiftUI
 
-/// The agenda window: `org-agenda-list` over the agenda files. Return or a double click jumps
-/// to the entry in the main window; f/b move a span, `.` returns to today, g refreshes.
+/// The agenda window: the day/week agenda, the TODO list, tag matches and saved views.
+/// Return or a double click jumps to the entry in the main window. Keys as in Emacs's agenda:
+/// f/b/. move the span, g refreshes, t cycles the TODO state, +/- change the priority, : or
+/// C-c C-q sets tags, C-c C-s / C-c C-d schedule and set a deadline, S-→/S-← move the date.
 struct AgendaView: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     let commands: AppCommands
     @State private var agenda: AgendaModel
+    @State private var views = AgendaViewLoader.builtIn
+    @State private var viewName = AgendaViewLoader.builtIn[0].name
+    @State private var matchText = ""
     @State private var selection: String?
     @State private var tick = 0
+    @State private var message: String?
+    @State private var prompt: PendingPrompt?
+    @State private var promptText = ""
+    @State private var prefix = false
     @AppStorage("agendaSpan") private var span = 10
     @AppStorage("agendaStartOffset") private var startOffset = -3
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
     @Environment(\.openWindow) private var openWindow
+
+    static let match = "Match…"
+    static let todoMatch = "TODO Match…"
 
     init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands) {
         self.workspace = workspace
@@ -23,7 +35,17 @@ struct AgendaView: View {
         _agenda = State(initialValue: AgendaModel(workspace: workspace))
     }
 
+    struct PendingPrompt: Identifiable {
+        let id = UUID()
+        let prompt: Prompt
+        let command: any OrgCommand
+        let atMarker: Bool
+        let answers: [String: String]
+        let itemID: String
+    }
+
     private struct RefreshKey: Hashable {
+        var mode: AgendaMode
         var start: Int?
         var span: Int
         var startOffset: Int
@@ -37,25 +59,36 @@ struct AgendaView: View {
 
     private var refreshKey: RefreshKey {
         RefreshKey(
-            start: agenda.start, span: span, startOffset: startOffset, includeSubfolders: includeSubfolders,
+            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, includeSubfolders: includeSubfolders,
             files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
             path: session.path, tick: tick
         )
     }
 
+    private var isAgenda: Bool {
+        if case .agenda = agenda.mode { return true }
+        return false
+    }
+
+    private var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
+
     var body: some View {
         List(selection: $selection) {
-            ForEach(agenda.days, id: \.day) { day in
-                Section {
-                    ForEach(Array(day.items.enumerated()), id: \.offset) { index, item in
-                        AgendaRow(item: item)
-                            .tag(Self.id(day, index))
-                            .selectionDisabled(item.path == nil)
+            if isAgenda {
+                ForEach(agenda.days, id: \.day) { day in
+                    Section {
+                        rows(day.items, prefix: "\(day.day)")
+                    } header: {
+                        Text(day.header)
+                            .font(.headline)
+                            .foregroundStyle(day.isToday ? Color.accentColor : .primary)
                     }
+                }
+            } else {
+                Section {
+                    rows(agenda.list, prefix: "list")
                 } header: {
-                    Text(day.header)
-                        .font(.headline)
-                        .foregroundStyle(day.isToday ? Color.accentColor : .primary)
+                    Text(listTitle).font(.headline)
                 }
             }
         }
@@ -63,29 +96,44 @@ struct AgendaView: View {
         } primaryAction: { ids in
             if let id = ids.first { jump(id) }
         }
-        .onKeyPress(.return) {
-            guard let selection else { return .ignored }
-            jump(selection)
-            return .handled
-        }
-        .onKeyPress(characters: CharacterSet(charactersIn: "fb.gr")) { press in
-            switch press.characters {
-            case "f": agenda.shift(forward: true)
-            case "b": agenda.shift(forward: false)
-            case ".": agenda.showToday()
-            default: tick += 1
+        .onKeyPress(phases: .down) { press in handle(press) }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let message {
+                Text(message)
+                    .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.bar)
             }
-            return .handled
         }
         .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                Menu {
+                    ForEach(views) { view in Button(view.name) { viewName = view.name } }
+                    Divider()
+                    Button(Self.match) { viewName = Self.match }
+                    Button(Self.todoMatch) { viewName = Self.todoMatch }
+                } label: {
+                    Label(viewName, systemImage: "calendar").labelStyle(.titleAndIcon)
+                }
+                .help("What the agenda shows")
+                if isMatch {
+                    TextField("+work-boss|LEVEL>2/!TODO", text: $matchText)
+                        .frame(minWidth: 220)
+                        .onSubmit { applyView() }
+                }
+            }
             ToolbarItemGroup {
                 if agenda.isComputing { ProgressView().controlSize(.small) }
-                Button("Earlier", systemImage: "chevron.left") { agenda.shift(forward: false) }
-                    .help("Previous \(span) days (b)")
-                Button("Today") { agenda.showToday() }
-                    .help("Back to today (.)")
-                Button("Later", systemImage: "chevron.right") { agenda.shift(forward: true) }
-                    .help("Next \(span) days (f)")
+                if isAgenda {
+                    Button("Earlier", systemImage: "chevron.left") { agenda.shift(forward: false) }
+                        .help("Previous days (b)")
+                    Button("Today") { agenda.showToday() }
+                        .help("Back to today (.)")
+                    Button("Later", systemImage: "chevron.right") { agenda.shift(forward: true) }
+                        .help("Next days (f)")
+                }
             }
         }
         .overlay {
@@ -93,7 +141,17 @@ struct AgendaView: View {
                 ContentUnavailableView("No agenda files", systemImage: "calendar", description: Text("The agenda reads the org files at the top of each folder you add."))
             }
         }
-        .navigationTitle("Agenda")
+        .alert(prompt?.prompt.message ?? "", isPresented: Binding(get: { prompt != nil }, set: { if !$0 { prompt = nil } })) {
+            TextField("", text: $promptText)
+            Button("OK") { answerPrompt() }
+            Button("Cancel", role: .cancel) { prompt = nil }
+        } message: {
+            if let choices = prompt?.prompt.choices, !choices.isEmpty {
+                Text(choices.prefix(12).joined(separator: "  "))
+            }
+        }
+        .navigationTitle(viewName.replacingOccurrences(of: "…", with: ""))
+        .onChange(of: viewName) { applyView() }
         .task(id: refreshKey) {
             agenda.span = span
             agenda.startOffset = startOffset
@@ -102,6 +160,7 @@ struct AgendaView: View {
             await agenda.refresh(open: open)
         }
         .task {
+            loadViews()
             // The time grid's "now" line and the day itself move on.
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(60))
@@ -110,15 +169,134 @@ struct AgendaView: View {
         }
     }
 
-    private static func id(_ day: AgendaDay, _ index: Int) -> String { "\(day.day):\(index)" }
+    @ViewBuilder
+    private func rows(_ items: [AgendaItem], prefix: String) -> some View {
+        ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+            AgendaRow(item: item)
+                .tag("\(prefix):\(index)")
+                .selectionDisabled(item.path == nil)
+        }
+    }
+
+    private var listTitle: String {
+        switch agenda.mode {
+        case .todo(let keywords): "TODO items: \(keywords ?? "all")"
+        case .match(let match, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " matching \(match)"
+        case .agenda: ""
+        }
+    }
+
+    private func loadViews() {
+        let loaded = AgendaViewLoader.load()
+        views = loaded.views
+        message = loaded.problems.first
+    }
+
+    private func applyView() {
+        selection = nil
+        agenda.start = nil
+        switch viewName {
+        case Self.match, Self.todoMatch:
+            let match = matchText.trimmingCharacters(in: .whitespaces)
+            guard !match.isEmpty else { return }
+            agenda.mode = .match(match, todoOnly: viewName == Self.todoMatch)
+        default:
+            if let view = views.first(where: { $0.name == viewName }) { agenda.mode = view.mode }
+        }
+    }
+
+    // MARK: - Items
+
+    private func item(_ id: String) -> AgendaItem? {
+        let parts = id.split(separator: ":")
+        guard parts.count == 2, let index = Int(parts[1]) else { return nil }
+        let items = parts[0] == "list" ? agenda.list : agenda.days.first { "\($0.day)" == parts[0] }?.items ?? []
+        return index < items.count ? items[index] : nil
+    }
 
     private func jump(_ id: String) {
-        let parts = id.split(separator: ":").compactMap { Int($0) }
-        guard parts.count == 2, let day = agenda.days.first(where: { $0.day == parts[0] }), parts[1] < day.items.count else { return }
-        let item = day.items[parts[1]]
-        guard let path = item.path, let offset = item.markerOffset ?? item.headingOffset else { return }
+        guard let item = item(id), let path = item.path, let offset = item.markerOffset ?? item.headingOffset else { return }
         commands.jump(path: path, offset: offset)
         openWindow(id: "main")
+    }
+
+    // MARK: - Commands
+
+    private func handle(_ press: KeyPress) -> KeyPress.Result {
+        let control = press.modifiers.contains(.control)
+        if prefix {
+            prefix = false
+            switch (control, press.characters) {
+            case (true, "\u{13}"), (true, "s"): run(SetPlanning(deadline: false))
+            case (true, "\u{04}"), (true, "d"): run(SetPlanning(deadline: true))
+            case (true, "\u{11}"), (true, "q"): run(SetTags())
+            case (true, "\u{14}"), (true, "t"): run(TodoCycle())
+            default: message = "C-c \(press.characters) is undefined"
+            }
+            return .handled
+        }
+        if control, press.characters == "c" || press.characters == "\u{03}" {
+            prefix = true
+            message = "C-c-"
+            return .handled
+        }
+        if press.key == .return, let selection {
+            jump(selection)
+            return .handled
+        }
+        if press.modifiers == .shift, press.key == .rightArrow || press.key == .leftArrow {
+            run(ShiftTimestampDay(later: press.key == .rightArrow), atMarker: true)
+            return .handled
+        }
+        guard press.modifiers.subtracting(.shift).isEmpty else { return .ignored }
+        switch press.characters {
+        case "f" where isAgenda: agenda.shift(forward: true)
+        case "b" where isAgenda: agenda.shift(forward: false)
+        case "." where isAgenda: agenda.showToday()
+        case "g", "r":
+            loadViews()
+            tick += 1
+        case "t": run(TodoCycle())
+        case "+": run(PriorityUp())
+        case "-": run(PriorityDown())
+        case ":": run(SetTags())
+        default: return .ignored
+        }
+        return .handled
+    }
+
+    /// Runs `command` on the selected entry, at its heading or, with `atMarker`, at the
+    /// timestamp the entry is listed for.
+    private func run(_ command: any OrgCommand, atMarker: Bool = false, answers: [String: String] = [:], itemID: String? = nil) {
+        guard let id = itemID ?? selection, let item = item(id), let path = item.path, let start = item.headingOffset else {
+            message = "No entry selected"
+            return
+        }
+        if atMarker, ![.deadline, .upcomingDeadline, .scheduled, .pastScheduled, .timestamp].contains(item.kind) {
+            message = "Only dated entries can move"
+            return
+        }
+        let offset = atMarker ? (item.markerOffset ?? start) : start
+        let step = session.perform(command, path: path, at: offset, expect: item.headingLine.map { (start, $0) }, answers: answers)
+        switch step {
+        case .prompt(let request):
+            promptText = request.initial
+            prompt = PendingPrompt(prompt: request, command: command, atMarker: atMarker, answers: answers, itemID: id)
+        case .failed(let text):
+            message = text
+            tick += 1
+        case .commit:
+            message = nil
+            tick += 1
+        }
+    }
+
+    private func answerPrompt() {
+        guard let pending = prompt else { return }
+        prompt = nil
+        var answers = pending.answers
+        answers[pending.prompt.key] = promptText
+        run(pending.command, atMarker: pending.atMarker, answers: answers, itemID: pending.itemID)
     }
 }
 
@@ -129,7 +307,7 @@ struct AgendaRow: View {
         switch item.kind {
         case .timeGrid:
             HStack(spacing: 8) {
-                Text(item.time.trimmingCharacters(in: CharacterSet(charactersIn: " ┄.")))
+                Text(Self.trim(item.time))
                     .monospacedDigit()
                     .frame(width: 140, alignment: .trailing)
                 VStack { Divider() }
@@ -138,7 +316,7 @@ struct AgendaRow: View {
             .foregroundStyle(.tertiary)
         case .currentTime:
             HStack(spacing: 8) {
-                Text("now " + item.time.trimmingCharacters(in: CharacterSet(charactersIn: " ┄.")))
+                Text("now " + Self.trim(item.time))
                     .monospacedDigit()
                     .frame(width: 140, alignment: .trailing)
                 Rectangle().fill(Color.accentColor).frame(height: 1)
@@ -151,9 +329,11 @@ struct AgendaRow: View {
                     .lineLimit(1)
                     .foregroundStyle(.secondary)
                     .frame(width: 80, alignment: .leading)
-                Text(item.time.trimmingCharacters(in: CharacterSet(charactersIn: " ┄.")))
-                    .monospacedDigit()
-                    .frame(width: 80, alignment: .leading)
+                if item.kind != .todo, item.kind != .tagsMatch {
+                    Text(Self.trim(item.time))
+                        .monospacedDigit()
+                        .frame(width: 80, alignment: .leading)
+                }
                 if !item.extra.isEmpty {
                     Text(item.extra.trimmingCharacters(in: .whitespaces))
                         .monospacedDigit()
@@ -171,6 +351,10 @@ struct AgendaRow: View {
         }
     }
 
+    static func trim(_ time: String) -> String {
+        time.trimmingCharacters(in: CharacterSet(charactersIn: " ┄."))
+    }
+
     private var leaderColor: Color {
         switch item.kind {
         case .deadline: .red
@@ -182,8 +366,8 @@ struct AgendaRow: View {
 
     /// The TODO keyword colored as in the editor.
     private var title: Text {
-        guard let todo = item.todo, item.text.hasPrefix(todo + " ") else { return Text(item.text.trimmingCharacters(in: .whitespaces)) }
         let text = item.text.trimmingCharacters(in: .whitespaces)
+        guard let todo = item.todo, text.hasPrefix(todo + " ") else { return Text(text) }
         let rest = String(text.dropFirst(todo.count))
         return Text(todo).foregroundColor(item.isDone ? .green : .red).bold() + Text(rest).foregroundColor(item.isDone ? .secondary : .primary)
     }
