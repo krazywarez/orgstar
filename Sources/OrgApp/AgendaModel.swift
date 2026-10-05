@@ -82,6 +82,12 @@ public final class AgendaModel {
         return await Task.detached { Reminders.upcoming(all, now: now, calendar: calendar, days: days, lead: lead) }.value
     }
 
+    /// Entries for the table and kanban views, and the keywords their files use.
+    public func board(open: (path: String, text: String)?, match: String) async -> (entries: [BoardEntry], keywords: [String]) {
+        let all = await sources(open: open)
+        return await Task.detached { (Board.entries(all, match: match), Board.keywords(all)) }.value
+    }
+
     /// The agenda files' sources: the open file's from its text, the others from the cache
     /// while their modification date and size are unchanged.
     private func sources(open: (path: String, text: String)?) async -> [AgendaSource] {

@@ -343,6 +343,8 @@ struct ContentView: View {
             if let location = clock.location(session) { commands.jump(path: location.path, offset: location.offset) } else { commands.show("No active clock") }
         case "app.clock.report":
             openWindow(id: "clock-report")
+        case "app.board":
+            openWindow(id: "board")
         case "app.capture":
             NSApp.activate()
             openWindow(id: "capture")

@@ -162,6 +162,12 @@ struct OrgstarApp: App {
             }
         }
         .defaultSize(width: 760, height: 720)
+        Window("Board", id: "board") {
+            if case .success(let model) = workspace {
+                BoardView(workspace: model, session: session, commands: commands)
+            }
+        }
+        .defaultSize(width: 1100, height: 700)
         Window("Clock Report", id: "clock-report") {
             if case .success(let model) = workspace {
                 ClockReportView(workspace: model)
@@ -232,6 +238,8 @@ struct AgendaMenuItem: View {
     var body: some View {
         Button("Agenda") { openWindow(id: "agenda") }
             .keyboardShortcut("a", modifiers: [.command, .shift])
+        Button("Board") { openWindow(id: "board") }
+            .keyboardShortcut("b", modifiers: [.command, .shift])
     }
 }
 

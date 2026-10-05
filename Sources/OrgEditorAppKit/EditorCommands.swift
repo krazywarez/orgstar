@@ -44,6 +44,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.archive", title: "Archive Subtree", action: .app),
         EditorCommand(id: "app.agenda", title: "Agenda", action: .app),
         EditorCommand(id: "app.capture", title: "Capture…", action: .app),
+        EditorCommand(id: "app.board", title: "Board", action: .app),
         EditorCommand(id: "app.clock.in", title: "Clock In", action: .app),
         EditorCommand(id: "app.clock.out", title: "Clock Out", action: .app),
         EditorCommand(id: "app.clock.cancel", title: "Cancel Clock", action: .app),
