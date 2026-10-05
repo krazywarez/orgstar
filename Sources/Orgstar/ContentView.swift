@@ -44,6 +44,7 @@ struct ContentView: View {
     /// A file that isn't text, shown as a preview instead of the open document.
     @State private var previewPath: String?
     @AppStorage("outlineShown") private var orgOutlineShown = true
+    @AppStorage("outlineWidth") private var outlineWidth = 220.0
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
     @AppStorage("themeFont") private var themeFont = ""
@@ -136,7 +137,7 @@ struct ContentView: View {
             Sidebar(workspace: workspace, session: session, selection: $selectedFile) { commands.showingFolderPicker = true }
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260)
         } detail: {
-            HSplitView {
+            HStack(spacing: 0) {
                 if outlineShown {
                     Group {
                         if query.isEmpty {
@@ -149,10 +150,11 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .frame(minWidth: 160, idealWidth: 220, maxWidth: 360)
+                    .frame(width: CGFloat(outlineWidth))
+                    PaneDivider(width: $outlineWidth, range: 160...400)
                 }
                 detail
-                    .frame(minWidth: 300, maxWidth: .infinity)
+                    .frame(maxWidth: .infinity)
             }
         }
         .navigationTitle((previewPath ?? session.path).map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
@@ -640,5 +642,29 @@ struct QuickOpenView: View {
         }
         .frame(width: 520, height: 360)
         .onExitCommand { dismiss() }
+    }
+}
+
+/// A divider that resizes the pane before it by dragging. An `HSplitView` inside the window's
+/// split view loops on its size constraints in short windows, so this sets a width instead.
+struct PaneDivider: View {
+    @Binding var width: Double
+    let range: ClosedRange<Double>
+    @State private var start: Double?
+
+    var body: some View {
+        Rectangle()
+            .fill(Color(nsColor: .separatorColor))
+            .frame(width: 1)
+            .frame(maxHeight: .infinity)
+            .overlay(Color.clear.frame(width: 7).contentShape(Rectangle()).onHover { inside in
+                if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+            }
+            .gesture(DragGesture(minimumDistance: 1).onChanged { drag in
+                let base = start ?? width
+                start = base
+                width = min(max(base + drag.translation.width, range.lowerBound), range.upperBound)
+            }.onEnded { _ in start = nil }))
+            .accessibilityHidden(true)
     }
 }
