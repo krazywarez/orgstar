@@ -1,13 +1,17 @@
 /// The keymaps the app ships. The user's `keymap.toml` is layered on top of the chosen one.
 public enum KeymapPreset: String, Sendable, CaseIterable {
-    case emacs, mac
+    case emacs, mac, doom
 
     public var title: String {
         switch self {
         case .emacs: "Emacs"
         case .mac: "Mac"
+        case .doom: "Doom (Vim keys)"
         }
     }
+
+    /// Whether the preset edits modally.
+    public var isModal: Bool { self == .doom }
 
     public var keymap: Keymap {
         var problems: [String] = []
@@ -20,8 +24,300 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         switch self {
         case .emacs: Self.common + Self.emacsBindings
         case .mac: Self.common + Self.macBindings
+        case .doom: Self.doomToml
         }
     }
+
+    /// Doom: the Emacs preset's org bindings in every evil state (as org-mode-map's are), with
+    /// evil-org's `M-h/j/k/l` forms, then Doom's leader, localleader and evil-org keys.
+    static var doomToml: String {
+        var problems: [String] = []
+        let emacs = try! Keymap(toml: common + emacsBindings, problems: &problems)
+        let translations: [String: String] = ["<left>": "h", "<right>": "l", "<up>": "k", "<down>": "j"]
+        var out = ""
+        func bind(_ keys: String, _ command: String, when: String?, mode: String) {
+            out += "[[bind]]\nkeys = \"\(keys.replacingOccurrences(of: "\\", with: "\\\\"))\"\ncommand = \"\(command)\"\n"
+            if let when { out += "when = \"\(when)\"\n" }
+            out += "mode = \"\(mode)\"\n"
+        }
+        for binding in emacs.bindings {
+            let first = binding.keys[0]
+            let keys = KeySequence.format(binding.keys)
+            let orgKey = first.key == "c" && first.modifiers == [.control] || first.key == "x" && first.modifiers == [.control]
+                || (first.modifiers.contains(.meta) && ["<left>", "<right>", "<up>", "<down>", "RET"].contains(first.key))
+                || (first.modifiers.contains(.shift) && ["<left>", "<right>", "<up>", "<down>"].contains(first.key))
+                || (first.modifiers == [.control] && first.key == "RET")
+                || keys == "M-x"
+            guard orgKey else { continue }
+            for mode in ["normal", "insert", "visual"] { bind(keys, binding.command, when: binding.when, mode: mode) }
+            // evil-org: M-h/j/k/l and M-H/J/K/L in normal, visual and insert.
+            if binding.keys.count == 1, first.modifiers.contains(.meta), let letter = translations[first.key] {
+                let shifted = first.modifiers.contains(.shift)
+                let key = "M-" + (shifted ? letter.uppercased() : letter)
+                for mode in ["normal", "insert", "visual"] { bind(key, binding.command, when: binding.when, mode: mode) }
+            }
+            // Doom: C-S-h/j/k/l are org-shift* in normal and insert.
+            if binding.keys.count == 1, first.modifiers == [.shift], let letter = translations[first.key] {
+                for mode in ["normal", "insert"] { bind("C-" + letter.uppercased(), binding.command, when: binding.when, mode: mode) }
+            }
+            // evil-org insert state: C-t demotes, C-d promotes.
+            if binding.keys.count == 1, first.modifiers == [.meta], first.key == "<right>" || first.key == "<left>" {
+                bind(first.key == "<right>" ? "C-t" : "C-d", binding.command, when: binding.when, mode: "insert")
+            }
+        }
+        return out + doomBindings
+    }
+
+    static let doomBindings = """
+        # Leader
+        [[bind]]
+        keys = "SPC SPC"
+        command = "app.quick-open"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC ."
+        command = "app.quick-open"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC f f"
+        command = "app.quick-open"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b b"
+        command = "app.quick-open"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC f s"
+        command = "app.save"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC s s"
+        command = "edit.find"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC /"
+        command = "app.search"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC s p"
+        command = "app.search"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC :"
+        command = "app.palette"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC o a"
+        command = "app.agenda"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC X"
+        command = "app.capture"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC z t"
+        command = "app.clock.report"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC h r r"
+        command = "app.reload-keymap"
+        mode = "normal"
+
+        # Localleader (SPC m)
+        [[bind]]
+        keys = "SPC m t"
+        command = "org.todo.cycle"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m q"
+        command = "org.tags.set"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m x"
+        command = "org.checkbox.toggle"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m A"
+        command = "app.archive"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m e h h"
+        command = "app.export.html"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m e h o"
+        command = "app.export.html-open"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m e m m"
+        command = "app.export.markdown"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m e l p"
+        command = "app.export.pdf"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m d d"
+        command = "org.deadline"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m d s"
+        command = "org.schedule"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m d t"
+        command = "org.timestamp.active"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m d T"
+        command = "org.timestamp.inactive"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m r r"
+        command = "app.refile"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m s r"
+        command = "app.refile"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m s A"
+        command = "app.archive"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m s h"
+        command = "org.subtree.promote"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m s l"
+        command = "org.subtree.demote"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m s j"
+        command = "org.subtree.down"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m s k"
+        command = "org.subtree.up"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c i"
+        command = "app.clock.in"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c o"
+        command = "app.clock.out"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c c"
+        command = "app.clock.cancel"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c g"
+        command = "app.clock.goto"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c R"
+        command = "app.clock.report"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m p u"
+        command = "org.priority.up"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m p d"
+        command = "org.priority.down"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b -"
+        command = "org.table.insert-hline"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b a"
+        command = "org.table.align"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b r"
+        command = "org.table.recalc-all"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b d c"
+        command = "org.table.delete-column"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b d r"
+        command = "org.table.kill-row"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b i c"
+        command = "org.table.insert-column"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b i r"
+        command = "org.table.insert-row"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m b i h"
+        command = "org.table.insert-hline"
+        mode = "normal"
+
+        # evil-org and Doom's org keys
+        [[bind]]
+        keys = "TAB"
+        command = "org.cycle"
+        mode = "normal"
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.cycle-global"
+        mode = "normal"
+        [[bind]]
+        keys = "RET"
+        command = "org.dwim"
+        mode = "normal"
+        [[bind]]
+        keys = "z a"
+        command = "org.cycle"
+        mode = "normal"
+        [[bind]]
+        keys = "z c"
+        command = "org.cycle"
+        mode = "normal"
+        [[bind]]
+        keys = "z o"
+        command = "org.cycle"
+        mode = "normal"
+        [[bind]]
+        keys = "z A"
+        command = "org.cycle-global"
+        mode = "normal"
+        [[bind]]
+        keys = "g h"
+        command = "org.heading.up"
+        mode = "normal"
+        [[bind]]
+        keys = "g j"
+        command = "org.heading.forward-same-level"
+        mode = "normal"
+        [[bind]]
+        keys = "g k"
+        command = "org.heading.backward-same-level"
+        mode = "normal"
+        [[bind]]
+        keys = "] h"
+        command = "org.heading.forward-same-level"
+        mode = "normal"
+        [[bind]]
+        keys = "[ h"
+        command = "org.heading.backward-same-level"
+        mode = "normal"
+        [[bind]]
+        keys = "RET"
+        command = "org.table.next-row"
+        when = "table"
+        mode = "insert"
+
+        """
+
 
     static let common = """
         [[bind]]

@@ -14,6 +14,7 @@ struct EditorView: NSViewRepresentable {
     let session: DocumentSession
     let commands: AppCommands
     let keymap: Keymap
+    let modal: Bool
     let optionAsMeta: OptionAsMeta
     let options: EditingOptions
     let onAppCommand: (String) -> Void
@@ -60,6 +61,7 @@ struct EditorView: NSViewRepresentable {
         }
         if let editor = coordinator.editor {
             if editor.keymap != keymap { editor.keymap = keymap }
+            editor.modal = modal
             editor.optionAsMeta = optionAsMeta
             editor.options = options
         }

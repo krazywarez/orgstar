@@ -86,7 +86,10 @@ public final class OrgEditor: NSObject {
         dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
         super.init()
         orgTextView.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
-        orgTextView.onMouseDown = { [weak self] in self?.markActive = false }
+        orgTextView.onMouseDown = { [weak self] in
+            self?.markActive = false
+            self?.modalMouseDown()
+        }
         textView.usesFindBar = true
         textView.frame = frame
         textView.isRichText = false
@@ -198,7 +201,22 @@ public final class OrgEditor: NSObject {
     public var optionAsMeta: OptionAsMeta = [.left]
     /// Org options commands follow.
     public var options: EditingOptions = .org
-    private var dispatcher: KeyDispatcher
+    var dispatcher: KeyDispatcher
+    /// Evil-style editing, for modal keymaps such as Doom's.
+    public var modal = false {
+        didSet {
+            guard modal != oldValue else { return }
+            vim = Vim()
+            dispatcher.mode = modal ? vim.mode.keymapMode : nil
+            dispatcher.reset()
+            updateCursor()
+        }
+    }
+    var vim = Vim()
+    /// The text and caret when insert state began, to know what was typed for `.`.
+    var insertSnapshot: (text: String, caret: Int)?
+    /// The evil cursor in visual states, where the selection's start isn't it.
+    var visualCaret: Int?
     /// A region is active: movement extends the selection, as after C-SPC in Emacs.
     private(set) var markActive = false
 
@@ -213,7 +231,8 @@ public final class OrgEditor: NSObject {
 
     /// Offers a key press to the keymap. False lets the text system have it.
     func handleKey(_ event: NSEvent) -> Bool {
-        guard let chord = KeyEvents.chord(for: event, optionAsMeta: optionAsMeta) else { return false }
+        guard let chord = KeyEvents.chord(for: event, optionAsMeta: optionAsMeta) else { return modal && vim.mode != .insert }
+        if modal { return handleModal(chord) }
         switch dispatcher.feed(chord) {
         case .pending(let keys):
             let next = keymap.continuations(of: keys).map { item in
@@ -306,19 +325,7 @@ public final class OrgEditor: NSObject {
                 onMessage?("This file is read-only.")
                 return .failed("read-only")
             }
-            if !result.edits.isEmpty, let storage = textView.textStorage {
-                // Each command is its own undo step, not merged with typing around it.
-                textView.breakUndoCoalescing()
-                textView.undoManager?.beginUndoGrouping()
-                for edit in result.edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
-                    let range = NSRange(edit.range)
-                    guard textView.shouldChangeText(in: range, replacementString: edit.replacement) else { continue }
-                    storage.replaceCharacters(in: range, with: edit.replacement)
-                    textView.didChangeText()
-                }
-                textView.undoManager?.endUndoGrouping()
-                textView.breakUndoCoalescing()
-            }
+            applyEdits(result.edits)
             if let selection = result.selection?.first {
                 setCaret(selection.lowerBound)
                 if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
@@ -402,7 +409,22 @@ public final class OrgEditor: NSObject {
         textView.scrollRangeToVisible(NSRange(location: target, length: 0))
     }
 
-    private func setCaret(_ offset: Int) {
+    /// Applies edits through the text view as one undo step, not merged with typing around it.
+    func applyEdits(_ edits: [TextEdit]) {
+        guard !edits.isEmpty, let storage = textView.textStorage else { return }
+        textView.breakUndoCoalescing()
+        textView.undoManager?.beginUndoGrouping()
+        for edit in edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
+            let range = NSRange(edit.range)
+            guard textView.shouldChangeText(in: range, replacementString: edit.replacement) else { continue }
+            storage.replaceCharacters(in: range, with: edit.replacement)
+            textView.didChangeText()
+        }
+        textView.undoManager?.endUndoGrouping()
+        textView.breakUndoCoalescing()
+    }
+
+    func setCaret(_ offset: Int) {
         let clamped = max(0, min(offset, utf16Length))
         previousSelection = clamped
         textView.setSelectedRange(NSRange(location: clamped, length: 0))

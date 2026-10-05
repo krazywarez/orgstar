@@ -173,7 +173,7 @@ public enum Commands {
         MoveItemUp(), MoveItemDown(), ToggleCheckbox(),
         InsertTimestamp(), InsertTimestamp(inactive: true), SetPlanning(deadline: false), SetPlanning(deadline: true),
         RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
-        TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(),
+        TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
     ]
 

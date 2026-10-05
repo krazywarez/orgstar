@@ -62,7 +62,7 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 360)
         } detail: {
             if session.path != nil {
-                EditorView(session: session, commands: commands, keymap: keymap, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
+                EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
                     .safeAreaInset(edge: .bottom, spacing: 0) { EchoArea(commands: commands) }
             } else {
                 ContentUnavailableView(

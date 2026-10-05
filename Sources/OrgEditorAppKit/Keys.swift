@@ -15,6 +15,36 @@ final class OrgTextView: NSTextView {
     /// Returns true when the key was handled.
     var keyHandler: ((NSEvent) -> Bool)?
     var onMouseDown: (() -> Void)?
+    /// Draw the caret as a block over the next character, for normal and visual states.
+    var blockCursor = false {
+        didSet {
+            guard blockCursor != oldValue else { return }
+            needsDisplay = true
+        }
+    }
+
+    override func drawInsertionPoint(in rect: NSRect, color: NSColor, turnedOn flag: Bool) {
+        guard blockCursor else { return super.drawInsertionPoint(in: rect, color: color, turnedOn: flag) }
+        var block = rect
+        block.size.width = max(rect.width, blockWidth)
+        if flag {
+            color.withAlphaComponent(0.45).setFill()
+            block.fill(using: .sourceOver)
+        } else {
+            setNeedsDisplay(block, avoidAdditionalLayout: true)
+        }
+    }
+
+    override func setNeedsDisplay(_ rect: NSRect, avoidAdditionalLayout flag: Bool) {
+        var widened = rect
+        if blockCursor { widened.size.width += blockWidth }
+        super.setNeedsDisplay(widened, avoidAdditionalLayout: flag)
+    }
+
+    private var blockWidth: CGFloat {
+        let font = self.font ?? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        return ("x" as NSString).size(withAttributes: [.font: font]).width
+    }
 
     override func keyDown(with event: NSEvent) {
         if !hasMarkedText(), keyHandler?(event) == true { return }
