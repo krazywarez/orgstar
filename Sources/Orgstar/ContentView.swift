@@ -64,7 +64,12 @@ struct ContentView: View {
         } detail: {
             if session.path != nil {
                 EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
-                    .safeAreaInset(edge: .bottom, spacing: 0) { EchoArea(commands: commands) }
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        VStack(spacing: 0) {
+                            ModeLine(session: session, commands: commands)
+                            EchoArea(commands: commands)
+                        }
+                    }
             } else {
                 ContentUnavailableView(
                     workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file",

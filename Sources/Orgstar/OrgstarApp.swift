@@ -23,6 +23,8 @@ final class AppCommands {
     var pendingKeys: String?
     /// The editor's evil state in the Doom preset.
     var editorState: String?
+    /// The editor's selection, for the modeline.
+    var selection = NSRange(location: 0, length: 0)
     var keyHints: [KeyHint] = []
     /// A question a command asked, answered in the echo area.
     private(set) var prompt: PromptRequest?

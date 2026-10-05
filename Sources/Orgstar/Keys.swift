@@ -71,15 +71,11 @@ struct EchoArea: View {
                     answerFocused = true
                 }
                 .id(request.id)
-            } else if commands.editorState != nil || commands.pendingKeys != nil || commands.message != nil {
-                Divider()
-                HStack(spacing: 8) {
-                    if let state = commands.editorState { StateTag(state: state) }
-                    Text(commands.pendingKeys.map { $0 + "-" } ?? commands.message ?? "")
-                        .font(.system(.callout, design: .monospaced))
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 10)
+            } else if let text = commands.pendingKeys.map({ $0 + "-" }) ?? commands.message {
+                Text(text)
+                    .font(.system(.callout, design: .monospaced))
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

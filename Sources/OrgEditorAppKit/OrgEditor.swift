@@ -184,6 +184,8 @@ public final class OrgEditor: NSObject {
     /// Called with the pending prefix and what can follow it, and with nil when it ends.
     /// The evil state when editing modally (`normal`, `insert`, `visual`, `visual-line`), nil otherwise.
     public var onModeChange: ((String?) -> Void)?
+    /// The selection moved.
+    public var onSelectionChange: ((NSRange) -> Void)?
     var reportedMode: String?
     public var onKeysPending: ((_ keys: String?, _ next: [(key: String, title: String)]) -> Void)?
     /// Called with `app.*` commands, which the app carries out.
@@ -617,6 +619,7 @@ public final class OrgEditor: NSObject {
     fileprivate func selectionChanged() {
         let selection = textView.selectedRange()
         defer { previousSelection = selection.location }
+        onSelectionChange?(selection)
         guard selection.length == 0, let range = hidden.containing(selection.location) else { return }
         setCaret(selection.location >= previousSelection ? range.upperBound : range.lowerBound - 1)
     }
