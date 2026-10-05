@@ -40,7 +40,7 @@ extension OrgParser {
         _ old: OrgTree, oldText: String, edit: TextEdit, defaults: OrgSettings = .default
     ) -> (tree: OrgTree, strategy: ReparseStrategy) {
         let newText = edit.apply(to: oldText)
-        let context = EditContext(oldText: oldText, newText: newText, edit: edit)
+        let context = ReparseContext(oldText: oldText, newText: newText, edit: edit)
         if context.touchesSettings() { return (parse(newText, defaults: defaults), .full) }
         if let tree = context.reparseElement(old) { return (tree, .element) }
         if let tree = context.reparseRegion(old) { return (tree, .region) }
@@ -49,7 +49,7 @@ extension OrgParser {
     }
 }
 
-private struct EditContext {
+private struct ReparseContext {
     let oldText: String
     let newText: String
     let edit: TextEdit

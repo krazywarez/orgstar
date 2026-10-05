@@ -1,0 +1,125 @@
+import Foundation
+import Testing
+@testable import OrgCore
+
+struct HeadingCommandTests {
+    @Test func todoCycle() {
+        let cycle = TodoCycle()
+        #expect(runCommand(cycle, "* a\n", caret: 2).text == "* TODO a\n")
+        #expect(runCommand(cycle, "* TODO a\n", caret: 2).text == "* DONE a\n")
+        #expect(runCommand(cycle, "* DONE a\n", caret: 2).text == "* a\n")
+        #expect(runCommand(cycle, "* TODO\n", caret: 2).text == "* DONE \n")
+        #expect(runCommand(cycle, "#+TODO: A B | C\n* B x\n", caret: 18).text == "#+TODO: A B | C\n* C x\n")
+        #expect(runCommand(cycle, "text\n", caret: 1).failure != nil)
+    }
+
+    @Test func caretMovesToTheTitleWhenBeforeIt() {
+        #expect(runCommand(TodoCycle(), "* a\n", caret: 2).caret == 7)
+        #expect(runCommand(TodoCycle(), "* TODO abc\nbody\n", caret: 13).caret == 13)
+    }
+
+    @Test func priorities() {
+        #expect(runCommand(PriorityUp(), "* a\n", caret: 2).text == "* [#B] a\n")
+        #expect(runCommand(PriorityUp(), "* [#A] a\n", caret: 2).text == "* a\n")
+        #expect(runCommand(PriorityDown(), "* TODO a\n", caret: 2).text == "* TODO [#B] a\n")
+        #expect(runCommand(PriorityDown(), "* [#C] a\n", caret: 2).text == "* a\n")
+    }
+
+    @Test func promoteAndDemote() {
+        #expect(runCommand(DemoteHeading(), "* a\nbody\n", caret: 2).text == "** a\nbody\n")
+        #expect(runCommand(PromoteHeading(), "** a\n", caret: 3).text == "* a\n")
+        #expect(runCommand(PromoteHeading(), "* a\n", caret: 0).failure != nil)
+        #expect(runCommand(DemoteHeading(), "* a\nbody\n", caret: 6).failure != nil)
+    }
+
+    @Test func tagsAlignToColumn77() {
+        let result = runCommand(PriorityUp(), "* TODO a :t:\n", caret: 2).text
+        #expect(result == "* TODO [#B] a" + String(repeating: " ", count: 77 - 13 - 3) + ":t:\n")
+    }
+}
+
+/// Every heading variant, every caret position, every heading command, against Emacs.
+/// Fails when Emacs is missing unless `ORGSTAR_SKIP_ORACLE` is set.
+struct HeadingOracleTests {
+    static let variants = [
+        "* a\nbody\n", "* TODO a\n", "* DONE a\n", "** [#B] two words :tag:\n", "* TODO [#A] x :a:b:\nbody\n",
+        "* \n", "* TODO\n", "*** title with 日本 :t:\n", "* a😀 b\n", "* a  :t:\n", "text\n* a\n", "*  a\n",
+        "* TODO  a\n", "* a\r\n",
+        "#+TODO: NEXT WAIT | DONE CANCELED\n* WAIT a :t:\n",
+        "* " + String(repeating: "long ", count: 16) + "title :t:\n",
+        "* TODO\ttab\n",
+    ]
+
+    /// Commands, their Emacs forms, and whether they only act on heading lines.
+    static let commands: [(command: any OrgCommand, form: String, headingLineOnly: Bool)] = [
+        (TodoCycle(), "(org-todo)", false),
+        (PriorityUp(), "(org-priority-up)", true),
+        (PriorityDown(), "(org-priority-down)", true),
+        (PromoteHeading(), "(org-do-promote)", true),
+        (DemoteHeading(), "(org-do-demote)", true),
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func headingCommandsMatchEmacs() throws {
+        try compare(Self.variants.map { ($0, EmacsOracle.positions($0)) })
+    }
+
+    /// Real headings: `ORGSTAR_ORACLE_CORPUS=<folder>` runs every command on up to 400 heading
+    /// lines from the folder's files, with the caret at the line start, the title start and
+    /// the line end.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_ORACLE_CORPUS"] != nil))
+    func headingCommandsMatchEmacsOnACorpus() throws {
+        let root = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ORGSTAR_ORACLE_CORPUS"]!)
+        var samples: [(String, [Int])] = []
+        let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)!
+            .compactMap { $0 as? URL }.filter { $0.pathExtension == "org" }.sorted { $0.path < $1.path }
+        for file in files where samples.count < 400 {
+            guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
+            var settings = ""
+            for line in text.components(separatedBy: "\n") where line.uppercased().hasPrefix("#+TODO:") || line.uppercased().hasPrefix("#+SEQ_TODO:") {
+                settings += line + "\n"
+            }
+            for line in text.components(separatedBy: "\n") where line.hasPrefix("*") && samples.count < 400 {
+                let sample = settings + line + "\n"
+                guard let heading = entryHeading(at: (sample as NSString).length - 1, in: OrgParser.parse(sample)) else { continue }
+                let parts = HeadingLine(heading)
+                samples.append((sample, [parts.start, parts.titleStart, parts.contentEnd]))
+            }
+        }
+        try compare(samples)
+    }
+
+    func compare(_ inputs: [(text: String, carets: [Int])]) throws {
+        try #require(EmacsOracle.isAvailable, "Emacs is required for the oracle tests; set ORGSTAR_SKIP_ORACLE to skip")
+        var cases: [EmacsOracle.Case] = []
+        var ours: [(label: String, text: String, caret: Int, failed: Bool)] = []
+        for (text, carets) in inputs {
+            for offset in carets {
+                let onHeadingLine = headingOnLine(at: offset, in: OrgParser.parse(text)) != nil
+                for (command, form, headingLineOnly) in Self.commands where onHeadingLine || !headingLineOnly {
+                    cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(offset, in: text), form: form))
+                    let result = runCommand(command, text, caret: offset)
+                    ours.append(("\(command.id) at \(offset) in \(text.debugDescription)", result.text, result.caret, result.failure != nil))
+                }
+            }
+        }
+        let theirs = try EmacsOracle.run(cases)
+        var mismatches = 0
+        for (mine, emacs) in zip(ours, theirs) {
+            let emacsFailed = !emacs.error.isEmpty
+            let emacsCaret = EmacsOracle.offset(emacs.point, in: emacs.text)
+            let same = mine.failed == emacsFailed && (emacsFailed || (mine.text == emacs.text && mine.caret == emacsCaret))
+            if !same {
+                mismatches += 1
+                if mismatches <= 15 {
+                    Issue.record("""
+                        \(mine.label)
+                          ours:  \(mine.failed ? "failed" : "\(mine.text.debugDescription) @\(mine.caret)")
+                          emacs: \(emacsFailed ? "failed: \(emacs.error)" : "\(emacs.text.debugDescription) @\(emacsCaret)")
+                        """)
+                }
+            }
+        }
+        #expect(mismatches == 0, "\(mismatches) of \(ours.count) cases differ from Emacs")
+    }
+}
