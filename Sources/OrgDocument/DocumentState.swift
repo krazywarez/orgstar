@@ -1,3 +1,4 @@
+import Foundation
 import OrgCore
 
 /// One open file: its text, tree, revision, undo history, and the bytes last read from or
@@ -93,6 +94,24 @@ public struct DocumentState: Sendable {
         }
         revision += 1
         return inverse
+    }
+
+    // MARK: - Commands
+
+    /// Runs `command` at `selection` and applies its edits as one undo step.
+    public mutating func run(
+        _ command: any OrgCommand, selection: [Range<Int>], now: Date = Date(),
+        calendar: Calendar = .current, answers: [String: String] = [:]
+    ) throws -> CommandStep {
+        let context = EditContext(
+            revision: revision, text: text, tree: tree, selection: selection,
+            now: now, calendar: calendar, answers: answers
+        )
+        let step = command.run(in: context)
+        if case .commit(let result) = step, !result.edits.isEmpty {
+            try apply(result.edits, baseRevision: result.baseRevision)
+        }
+        return step
     }
 
     // MARK: - Disk

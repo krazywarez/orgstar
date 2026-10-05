@@ -115,3 +115,25 @@ struct ViewStateTests {
         #expect(ViewState(folds: [0, 4, 9]).pruned(to: tree).folds == [0, 9])
     }
 }
+
+struct CommandRunTests {
+    @Test func runAppliesEditsAsOneStep() throws {
+        var doc = state("* a\n")
+        let step = try doc.run(TodoCycle(), selection: [2..<2])
+        guard case .commit(let result) = step else {
+            Issue.record("expected a commit")
+            return
+        }
+        #expect(doc.text == "* TODO a\n")
+        #expect(result.selection == [7..<7])
+        #expect(doc.tree.green == OrgParser.parse(doc.text).green)
+        _ = doc.undo()
+        #expect(doc.text == "* a\n")
+    }
+
+    @Test func failuresChangeNothing() throws {
+        var doc = state("text\n")
+        #expect(try doc.run(TodoCycle(), selection: [0..<0]) == .failed("Before first headline"))
+        #expect(doc.revision == 0)
+    }
+}

@@ -168,6 +168,53 @@ public final class OrgEditor: NSObject {
         return outcome
     }
 
+    // MARK: - Commands
+
+    /// Called with messages commands report, such as why one couldn't run here.
+    public var onMessage: ((String) -> Void)?
+
+    /// Runs `command` at the selection. Edits go through the text view, as typing does, so
+    /// they form one undo step and reach the document through the same path.
+    @discardableResult
+    public func perform(_ command: any OrgCommand, now: Date = Date(), answers: [String: String] = [:]) -> CommandStep {
+        let selected = textView.selectedRange()
+        let context = EditContext(
+            revision: document.revision, text: document.text, tree: document.tree,
+            selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers
+        )
+        let step = command.run(in: context)
+        switch step {
+        case .commit(let result):
+            guard textView.isEditable || result.edits.isEmpty else {
+                onMessage?("This file is read-only.")
+                return .failed("read-only")
+            }
+            if !result.edits.isEmpty, let storage = textView.textStorage {
+                // Each command is its own undo step, not merged with typing around it.
+                textView.breakUndoCoalescing()
+                textView.undoManager?.beginUndoGrouping()
+                for edit in result.edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
+                    let range = NSRange(edit.range)
+                    guard textView.shouldChangeText(in: range, replacementString: edit.replacement) else { continue }
+                    storage.replaceCharacters(in: range, with: edit.replacement)
+                    textView.didChangeText()
+                }
+                textView.undoManager?.endUndoGrouping()
+                textView.breakUndoCoalescing()
+            }
+            if let selection = result.selection?.first {
+                setCaret(selection.lowerBound)
+                if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
+            }
+            for case .message(let text) in result.effects { onMessage?(text) }
+        case .failed(let message):
+            onMessage?(message)
+        case .prompt:
+            break
+        }
+        return step
+    }
+
     // MARK: - Disk
 
     /// The file on disk now holds `bytes`: reload or merge, keeping folds where the text kept

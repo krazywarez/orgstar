@@ -320,3 +320,36 @@ struct HangingIndentTests {
         #expect(OrgEditor.hangingColumns(line) == expected)
     }
 }
+
+@MainActor
+struct CommandTests {
+    @Test func performEditsThroughTheTextView() {
+        let h = Harness("* a :t:\nbody\n")
+        var messages: [String] = []
+        h.editor.onMessage = { messages.append($0) }
+        h.caret(at: 2)
+        h.editor.perform(PriorityUp())
+        #expect(h.string.hasPrefix("* [#B] a "))
+        #expect(h.caret == 2)
+        h.checkInSync()
+        // Undo groups by event: let the run loop close the first command's group, as a key
+        // press would.
+        RunLoop.current.run(until: Date())
+        h.editor.perform(TodoCycle())
+        #expect(h.string.hasPrefix("* TODO [#B] a "))
+        RunLoop.current.run(until: Date())
+        h.textView.undoManager?.undo()
+        #expect(h.string.hasPrefix("* [#B] a "))
+        h.checkInSync()
+        h.caret(at: h.offset(of: "body"))
+        h.editor.perform(PromoteHeading())
+        #expect(messages == ["Not on a heading"])
+    }
+
+    @Test func readOnlyEditorsRefuseEdits() {
+        let editor = OrgEditor(document: DocumentState(bytes: Array("* a\n".utf8)), editable: false)
+        editor.textView.setSelectedRange(NSRange(location: 2, length: 0))
+        #expect(editor.perform(TodoCycle()) == .failed("read-only"))
+        #expect(editor.document.text == "* a\n")
+    }
+}
