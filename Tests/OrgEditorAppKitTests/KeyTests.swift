@@ -134,3 +134,22 @@ struct KeyTests {
         }
     }
 }
+
+@MainActor
+struct ListKeyTests {
+    @Test func metaReturnInsertsAnItemInAListAndAHeadingElsewhere() {
+        let h = Harness("* a\n- x\n")
+        let event = { (flags: NSEvent.ModifierFlags) in
+            NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: h.window.windowNumber,
+                             context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36)!
+        }
+        let meta = NSEvent.ModifierFlags(rawValue: NSEvent.ModifierFlags.option.rawValue | KeyEvents.leftOption)
+        h.caret(at: 7)
+        h.textView.keyDown(with: event(meta))
+        #expect(h.string == "* a\n- x\n- \n")
+        h.caret(at: 3)
+        h.textView.keyDown(with: event(meta))
+        #expect(h.string.hasPrefix("* a\n* \n"))
+        h.checkInSync()
+    }
+}
