@@ -517,3 +517,33 @@ struct CaptureAppTests {
         #expect(session.document?.text == "* Inbox\n** TODO Old\n** TODO New\n** TODO Third\n* Later\n")
     }
 }
+
+@MainActor
+struct ClockModelTests {
+    @Test func clocksInAndOutAcrossFiles() throws {
+        let notes = try Folder()
+        let work = try notes.write("work.org", "* Task\nBody\n")
+        let other = try notes.write("other.org", "* Other\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(work.path)
+        session.reveal(2)
+        let stateFile = notes.url.appendingPathComponent("clock.json")
+        let clock = ClockModel(file: stateFile)
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let start = Date(timeIntervalSince1970: 1_789_000_000)
+        _ = clock.clockIn(session, now: start)
+        #expect(clock.running?.heading == "Task")
+        #expect(ClockModel(file: stateFile).running == clock.running)
+
+        // Out from another file: the clocked file is closed now (saved first, as leaving a
+        // file does in the app).
+        #expect(session.save())
+        session.open(other.path)
+        let message = clock.clockOut(session, now: start.addingTimeInterval(95 * 60))
+        #expect(message == "Clock stopped after 1:35")
+        #expect(clock.running == nil)
+        let text = try String(contentsOf: work, encoding: .utf8)
+        #expect(text.hasPrefix("* Task\n:LOGBOOK:\nCLOCK: [") && text.contains("=>  1:35\n:END:\nBody\n"), "\(text)")
+    }
+}

@@ -157,6 +157,18 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c c"
         command = "app.capture"
         [[bind]]
+        keys = "C-c C-x C-i"
+        command = "app.clock.in"
+        [[bind]]
+        keys = "C-c C-x C-o"
+        command = "app.clock.out"
+        [[bind]]
+        keys = "C-c C-x C-q"
+        command = "app.clock.cancel"
+        [[bind]]
+        keys = "C-c C-x C-j"
+        command = "app.clock.goto"
+        [[bind]]
         keys = "C-c C-e h h"
         command = "app.export.html"
         [[bind]]

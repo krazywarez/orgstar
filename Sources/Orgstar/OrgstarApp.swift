@@ -134,6 +134,7 @@ struct OrgstarApp: App {
         try WorkspaceModel(directory: WorkspaceModel.defaultDirectory, settings: .with(todoKeywords: Preferences.orgSettings))
     }
     @State private var commands = AppCommands()
+    @State private var clock = ClockModel()
     @State private var scheduler = SystemReminderCenter.isAvailable ? ReminderScheduler(center: SystemReminderCenter()) : nil
     @State private var session: DocumentSession = {
         let session = DocumentSession()
@@ -145,7 +146,7 @@ struct OrgstarApp: App {
         Window("Orgstar", id: "main") {
             switch workspace {
             case .success(let model):
-                ContentView(workspace: model, session: session, commands: commands, scheduler: scheduler)
+                ContentView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)
                     .onAppear {
                         delegate.session = session
                         delegate.commands = commands
@@ -161,6 +162,12 @@ struct OrgstarApp: App {
             }
         }
         .defaultSize(width: 760, height: 720)
+        Window("Clock Report", id: "clock-report") {
+            if case .success(let model) = workspace {
+                ClockReportView(workspace: model)
+            }
+        }
+        .defaultSize(width: 860, height: 560)
         Window("Capture", id: "capture") {
             if case .success(let model) = workspace {
                 CaptureView(workspace: model, session: session, commands: commands)

@@ -10,12 +10,14 @@ struct ContentView: View {
     let session: DocumentSession
     @Bindable var commands: AppCommands
     let scheduler: ReminderScheduler?
+    let clock: ClockModel
     @AppStorage("reminders") private var remindersEnabled = true
     @AppStorage("reminderLead") private var reminderLead = 12
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @State private var reminderAgenda: AgendaModel?
     @State private var trust = TrustStore()
     @State private var hotKey: GlobalHotKey?
+    @State private var statusItem: ClockStatusItem?
     @AppStorage("globalCapture") private var globalCapture = true
     @State private var hour = 0
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
@@ -76,6 +78,18 @@ struct ContentView: View {
         .searchFocused($searchFocused)
         .toolbar {
             if workspace.isIndexing { ProgressView().controlSize(.small) }
+            if let running = clock.running {
+                Menu {
+                    Button("Clock Out") { perform("app.clock.out") }
+                    Button("Cancel Clock") { perform("app.clock.cancel") }
+                    Button("Go to Clocked Entry") { perform("app.clock.goto") }
+                } label: {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        Text("⏱ \(running.heading) \(clockElapsed(running, now: context.date))").lineLimit(1)
+                    }
+                }
+                .help("Clocked in since \(running.startedAt.formatted(date: .omitted, time: .shortened))")
+            }
             if session.conflict != nil {
                 Button("Conflict", systemImage: "exclamationmark.triangle") { commands.showingConflict = true }
                     .help("The file changed on disk, and the changes conflict with yours")
@@ -116,6 +130,10 @@ struct ContentView: View {
 
     var body: some View {
         main
+        .onChange(of: clock.running, initial: true) { _, running in
+            if statusItem == nil { statusItem = ClockStatusItem { commands.run($0) } }
+            statusItem?.update(running)
+        }
         .onChange(of: globalCapture, initial: true) { _, enabled in
             hotKey?.unregister()
             hotKey = enabled ? GlobalHotKey { perform("app.capture") } : nil
@@ -315,6 +333,16 @@ struct ContentView: View {
             if let message = session.archive() { commands.show(message) }
         case "app.agenda":
             openWindow(id: "agenda")
+        case "app.clock.in":
+            commands.show(clock.clockIn(session))
+        case "app.clock.out":
+            commands.show(clock.clockOut(session))
+        case "app.clock.cancel":
+            commands.show(clock.clockOut(session, cancel: true))
+        case "app.clock.goto":
+            if let location = clock.location(session) { commands.jump(path: location.path, offset: location.offset) } else { commands.show("No active clock") }
+        case "app.clock.report":
+            openWindow(id: "clock-report")
         case "app.capture":
             NSApp.activate()
             openWindow(id: "capture")
