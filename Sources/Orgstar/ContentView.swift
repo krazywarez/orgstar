@@ -46,7 +46,7 @@ struct ContentView: View {
 
     private var main: some View {
         NavigationSplitView {
-            Sidebar(workspace: workspace, selection: $selectedFile)
+            Sidebar(workspace: workspace, selection: $selectedFile) { commands.showingFolderPicker = true }
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260)
         } content: {
             Group {
@@ -372,23 +372,82 @@ struct ContentView: View {
 struct Sidebar: View {
     let workspace: WorkspaceModel
     @Binding var selection: String?
+    var addFolder: () -> Void = {}
+    /// Folders shown collapsed, by path, one per line.
+    @AppStorage("collapsedFolders") private var collapsedText = ""
+    @State private var removing: String?
+
+    private var collapsed: Set<String> { Set(collapsedText.split(separator: "\n").map(String.init)) }
+
+    private func expanded(_ root: String) -> Binding<Bool> {
+        Binding {
+            !collapsed.contains(root)
+        } set: { isExpanded in
+            var set = collapsed
+            if isExpanded { set.remove(root) } else { set.insert(root) }
+            collapsedText = set.sorted().joined(separator: "\n")
+        }
+    }
 
     var body: some View {
         List(selection: $selection) {
             ForEach(workspace.rootPaths, id: \.self) { root in
-                Section((root as NSString).lastPathComponent) {
+                Section(isExpanded: expanded(root)) {
                     OutlineGroup(workspace.tree(forRoot: root).children ?? [], children: \.children) { node in
                         Label(node.name, systemImage: icon(node))
                             .foregroundStyle(node.file?.kind == .conflict ? .orange : .primary)
                             .tag(node.file?.path)
                     }
-                }
-                .contextMenu {
-                    Button("Remove Folder") { try? workspace.removeRoot(path: root) }
+                } header: {
+                    Text((root as NSString).lastPathComponent)
+                        .help(root)
+                        .contextMenu { folderMenu(root) }
                 }
             }
         }
         .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack(spacing: 4) {
+                Button("Add Folder…", systemImage: "plus", action: addFolder)
+                    .help("Add a folder (⇧⌘O)")
+                Menu {
+                    ForEach(workspace.rootPaths, id: \.self) { root in
+                        Button((root as NSString).lastPathComponent) { removing = root }
+                    }
+                } label: {
+                    Label("Remove Folder", systemImage: "minus")
+                }
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .disabled(workspace.rootPaths.isEmpty)
+                .help("Remove a folder from the sidebar")
+                Spacer()
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .menuStyle(.borderlessButton)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .confirmationDialog(
+            "Remove “\(removing.map { ($0 as NSString).lastPathComponent } ?? "")” from the sidebar?",
+            isPresented: Binding { removing != nil } set: { if !$0 { removing = nil } }
+        ) {
+            Button("Remove") {
+                if let root = removing { try? workspace.removeRoot(path: root) }
+                removing = nil
+            }
+        } message: {
+            Text("The folder and its files stay on disk.")
+        }
+    }
+
+    @ViewBuilder
+    private func folderMenu(_ root: String) -> some View {
+        Button(collapsed.contains(root) ? "Expand" : "Collapse") { expanded(root).wrappedValue.toggle() }
+        Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: root)]) }
+        Divider()
+        Button("Remove from Sidebar…") { removing = root }
     }
 
     private func icon(_ node: FileTreeNode) -> String {
