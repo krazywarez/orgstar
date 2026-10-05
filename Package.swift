@@ -11,7 +11,8 @@ let package = Package(
         .library(name: "OrgWorkspace", targets: ["OrgWorkspace"]),
         .library(name: "OrgPresentation", targets: ["OrgPresentation"]),
         .library(name: "OrgEditorAppKit", targets: ["OrgEditorAppKit"]),
-        .executable(name: "OrgstarSpike", targets: ["OrgstarSpike"])
+        .executable(name: "OrgstarSpike", targets: ["OrgstarSpike"]),
+        .library(name: "OrgApp", targets: ["OrgApp"])
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1")
@@ -24,11 +25,13 @@ let package = Package(
         .target(name: "OrgPresentation", dependencies: ["OrgCore"]),
         .target(name: "OrgEditorAppKit", dependencies: ["OrgDocument", "OrgPresentation"]),
         .executableTarget(name: "OrgstarSpike", dependencies: ["OrgEditorAppKit"]),
+        .target(name: "OrgApp", dependencies: ["OrgWorkspace", "OrgDocument", "OrgPresentation"]),
         .testTarget(name: "OrgCoreTests", dependencies: ["OrgCore"]),
         .testTarget(name: "OrgDocumentTests", dependencies: ["OrgDocument"]),
         .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"]),
         .testTarget(name: "OrgWorkspaceTests", dependencies: ["OrgWorkspace"]),
         .testTarget(name: "OrgPresentationTests", dependencies: ["OrgPresentation"]),
-        .testTarget(name: "OrgEditorAppKitTests", dependencies: ["OrgEditorAppKit"])
+        .testTarget(name: "OrgEditorAppKitTests", dependencies: ["OrgEditorAppKit"]),
+        .testTarget(name: "OrgAppTests", dependencies: ["OrgApp"])
     ]
 )

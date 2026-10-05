@@ -12,12 +12,20 @@ public struct FileState: Sendable, Equatable {
 
 /// A heading as found by a query. `contentHash` is the hash of the text the offsets refer to,
 /// so a caller can tell whether they still apply to an open buffer.
-public struct HeadingLocation: Sendable, Equatable {
+public struct HeadingLocation: Sendable, Hashable {
     public let path: String
     public let ordinal: Int
     public let title: String
     public let start: Int
     public let contentHash: String
+
+    public init(path: String, ordinal: Int, title: String, start: Int, contentHash: String) {
+        self.path = path
+        self.ordinal = ordinal
+        self.title = title
+        self.start = start
+        self.contentHash = contentHash
+    }
 }
 
 /// One reconciliation's worth of changes, applied in a single transaction.
