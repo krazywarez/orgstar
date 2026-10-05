@@ -34,6 +34,12 @@ public final class ConfigSync {
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         if FileManager.default.fileExists(atPath: url.path) {
             reload()
+            // A file from before settings took Emacs's names is written again with them.
+            if let text, UserConfig.usesLegacyNames(text) {
+                let template = UserConfig.template(from: defaults)
+                try? template.write(to: url, atomically: true, encoding: .utf8)
+                self.text = template
+            }
         } else {
             let template = UserConfig.template(from: defaults)
             try? template.write(to: url, atomically: true, encoding: .utf8)
@@ -77,7 +83,7 @@ public final class ConfigSync {
         let original = current
         for setting in UserConfig.settings where defaults.object(forKey: setting.defaultsKey) != nil {
             let value = UserConfig.value(setting, in: defaults)
-            if values[setting.section + "." + setting.key] != value {
+            if values[setting.path] != value {
                 current = UserConfig.setting(current, section: setting.section, key: setting.key, to: value)
             }
         }

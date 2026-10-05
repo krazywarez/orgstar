@@ -31,12 +31,16 @@ public enum UserConfig {
     public static var configFile: URL { directory.appendingPathComponent("config.toml") }
 
     /// One setting: where it sits in the file, its user-defaults key, and how values convert.
+    /// Settings Emacs has a variable for sit at the top of the file under that variable's
+    /// name; the rest go in `[orgstar]`.
     public struct Setting: Sendable {
         public enum Kind: Sendable {
             case bool, integer, string
             /// A string in the file for each stored value.
             case choice([(name: String, stored: String)])
             case integerChoice([(name: String, stored: Int)])
+            /// `org-agenda-start-day`: `"-3d"` in the file, -3 stored.
+            case dayOffset
         }
 
         public let section: String
@@ -45,46 +49,59 @@ public enum UserConfig {
         public let kind: Kind
         public let fallback: TOML.Value
         public let comment: String
+        /// Where earlier versions of the file kept it, `section.key`.
+        public let legacy: String
+
+        public var path: String { section.isEmpty ? key : section + "." + key }
     }
 
     public static let settings: [Setting] = [
-        Setting(section: "general", key: "save", defaultsKey: "saveMode", kind: .choice([("automatic", "automatic"), ("explicit", "explicit")]),
-                fallback: .string("automatic"), comment: "automatic (1 s after typing stops) or explicit (only with ⌘S)"),
-        Setting(section: "general", key: "keymap", defaultsKey: "keymap", kind: .choice([("emacs", "emacs"), ("mac", "mac"), ("doom", "doom")]),
-                fallback: .string("emacs"), comment: "emacs, mac or doom; your own bindings go in keymap.toml"),
-        Setting(section: "general", key: "option-as-meta", defaultsKey: "optionAsMeta",
-                kind: .integerChoice([("left", 1), ("right", 2), ("both", 3), ("none", 0)]), fallback: .string("left"), comment: "left, right, both or none"),
-        Setting(section: "editor", key: "tags-column", defaultsKey: "tagsColumn", kind: .integer, fallback: .integer(-77),
-                comment: "org-tags-column: negative aligns tags to end there, 0 puts one space before them"),
-        Setting(section: "editor", key: "insert-heading-respect-content", defaultsKey: "headingAfterSubtree", kind: .bool, fallback: .bool(true),
-                comment: "M-RET adds the new heading after the subtree"),
-        Setting(section: "editor", key: "meta-return-may-split-line", defaultsKey: "splitLine", kind: .bool, fallback: .bool(false),
-                comment: "M-RET splits the line at the caret"),
-        Setting(section: "editor", key: "list-allow-alphabetical", defaultsKey: "alphabeticalLists", kind: .bool, fallback: .bool(true),
-                comment: "lists can use a. b. c."),
-        Setting(section: "editor", key: "fill-column", defaultsKey: "fillColumn", kind: .integer, fallback: .integer(80), comment: "M-q fills to this column"),
-        Setting(section: "editor", key: "hide-emphasis-markers", defaultsKey: "hiddenMarkers", kind: .bool, fallback: .bool(true),
-                comment: "org-hide-emphasis-markers: hide *bold* and =code= markers when markup is hidden"),
-        Setting(section: "editor", key: "pretty-entities", defaultsKey: "prettyEntities", kind: .bool, fallback: .bool(true),
-                comment: "org-pretty-entities: \\alpha shows as α and x_{1} is lowered when markup is hidden"),
-        Setting(section: "editor", key: "todo-keywords", defaultsKey: "todoKeywords", kind: .string, fallback: .string("TODO PROJ LOOP STRT WAIT HOLD IDEA | DONE KILL"),
-                comment: "for files without #+TODO, in #+TODO syntax; read at launch"),
-        Setting(section: "editor", key: "show-markup", defaultsKey: "showMarkup", kind: .bool, fallback: .bool(false),
-                comment: "show link brackets and emphasis markers (View ▸ Show Markup)"),
-        Setting(section: "editor", key: "line-numbers", defaultsKey: "showLineNumbers", kind: .bool, fallback: .bool(true),
-                comment: "View ▸ Show Line Numbers"),
-        Setting(section: "agenda", key: "span", defaultsKey: "agendaSpan", kind: .integer, fallback: .integer(10), comment: "days shown"),
-        Setting(section: "agenda", key: "start-offset", defaultsKey: "agendaStartOffset", kind: .integer, fallback: .integer(-3),
-                comment: "first day, relative to today"),
-        Setting(section: "agenda", key: "include-subfolders", defaultsKey: "agendaSubfolders", kind: .bool, fallback: .bool(false),
-                comment: "read org files in subfolders too"),
-        Setting(section: "agenda", key: "reminders", defaultsKey: "reminders", kind: .bool, fallback: .bool(true),
-                comment: "notify before timed entries"),
-        Setting(section: "agenda", key: "reminder-lead", defaultsKey: "reminderLead", kind: .integer, fallback: .integer(12),
-                comment: "minutes before; APPT_WARNTIME overrides"),
-        Setting(section: "capture", key: "global-hotkey", defaultsKey: "globalCapture", kind: .bool, fallback: .bool(true),
-                comment: "⌃⌥Space opens Capture from any app; templates go in capture.toml"),
+        Setting(section: "", key: "fill-column", defaultsKey: "fillColumn", kind: .integer, fallback: .integer(80),
+                comment: "M-q fills to this column", legacy: "editor.fill-column"),
+        Setting(section: "", key: "org-tags-column", defaultsKey: "tagsColumn", kind: .integer, fallback: .integer(-77),
+                comment: "negative: tags end at that column; 0: one space before them", legacy: "editor.tags-column"),
+        Setting(section: "", key: "org-insert-heading-respect-content", defaultsKey: "headingAfterSubtree", kind: .bool, fallback: .bool(true),
+                comment: "M-RET adds the new heading after the subtree", legacy: "editor.insert-heading-respect-content"),
+        Setting(section: "", key: "org-M-RET-may-split-line", defaultsKey: "splitLine", kind: .bool, fallback: .bool(false),
+                comment: "M-RET splits the line at the caret", legacy: "editor.meta-return-may-split-line"),
+        Setting(section: "", key: "org-list-allow-alphabetical", defaultsKey: "alphabeticalLists", kind: .bool, fallback: .bool(true),
+                comment: "lists can use a. b. c.", legacy: "editor.list-allow-alphabetical"),
+        Setting(section: "", key: "org-hide-emphasis-markers", defaultsKey: "hiddenMarkers", kind: .bool, fallback: .bool(true),
+                comment: "hide *bold* and =code= markers when markup is hidden", legacy: "editor.hide-emphasis-markers"),
+        Setting(section: "", key: "org-pretty-entities", defaultsKey: "prettyEntities", kind: .bool, fallback: .bool(true),
+                comment: "\\alpha shows as α and x_{1} is lowered when markup is hidden", legacy: "editor.pretty-entities"),
+        Setting(section: "", key: "org-todo-keywords", defaultsKey: "todoKeywords", kind: .string, fallback: .string("TODO PROJ LOOP STRT WAIT HOLD IDEA | DONE KILL"),
+                comment: "one sequence, in #+TODO syntax, for files without #+TODO; read at launch", legacy: "editor.todo-keywords"),
+        Setting(section: "", key: "display-line-numbers-type", defaultsKey: "showLineNumbers", kind: .bool, fallback: .bool(true),
+                comment: "line numbers (View ▸ Show Line Numbers)", legacy: "editor.line-numbers"),
+        Setting(section: "", key: "org-agenda-span", defaultsKey: "agendaSpan", kind: .integer, fallback: .integer(10),
+                comment: "days the agenda shows", legacy: "agenda.span"),
+        Setting(section: "", key: "org-agenda-start-day", defaultsKey: "agendaStartOffset", kind: .dayOffset, fallback: .string("-3d"),
+                comment: "the agenda's first day: \"-3d\", \"+0d\"", legacy: "agenda.start-offset"),
+        Setting(section: "", key: "appt-message-warning-time", defaultsKey: "reminderLead", kind: .integer, fallback: .integer(12),
+                comment: "minutes of warning before timed entries; APPT_WARNTIME overrides", legacy: "agenda.reminder-lead"),
+        Setting(section: "orgstar", key: "save", defaultsKey: "saveMode", kind: .choice([("automatic", "automatic"), ("explicit", "explicit")]),
+                fallback: .string("automatic"), comment: "automatic (1 s after typing stops) or explicit (only with ⌘S)", legacy: "general.save"),
+        Setting(section: "orgstar", key: "keymap", defaultsKey: "keymap", kind: .choice([("emacs", "emacs"), ("mac", "mac"), ("doom", "doom")]),
+                fallback: .string("emacs"), comment: "emacs, mac or doom; your own bindings go in keymap.toml", legacy: "general.keymap"),
+        Setting(section: "orgstar", key: "option-as-meta", defaultsKey: "optionAsMeta",
+                kind: .integerChoice([("left", 1), ("right", 2), ("both", 3), ("none", 0)]), fallback: .string("left"),
+                comment: "left, right, both or none", legacy: "general.option-as-meta"),
+        Setting(section: "orgstar", key: "show-markup", defaultsKey: "showMarkup", kind: .bool, fallback: .bool(false),
+                comment: "show link brackets and emphasis markers (View ▸ Show Markup)", legacy: "editor.show-markup"),
+        Setting(section: "orgstar", key: "agenda-include-subfolders", defaultsKey: "agendaSubfolders", kind: .bool, fallback: .bool(false),
+                comment: "the agenda reads org files in subfolders too", legacy: "agenda.include-subfolders"),
+        Setting(section: "orgstar", key: "reminders", defaultsKey: "reminders", kind: .bool, fallback: .bool(true),
+                comment: "notify before timed entries", legacy: "agenda.reminders"),
+        Setting(section: "orgstar", key: "global-capture-hotkey", defaultsKey: "globalCapture", kind: .bool, fallback: .bool(true),
+                comment: "⌃⌥Space opens Capture from any app; templates go in capture.toml", legacy: "capture.global-hotkey"),
     ]
+
+    /// `"-3d"` as -3; nil for anything else.
+    static func dayOffset(_ s: String) -> Int? {
+        guard s.hasSuffix("d"), let n = Int(s.dropLast().replacingOccurrences(of: "+", with: "")) else { return nil }
+        return n
+    }
 
     // MARK: - Values
 
@@ -101,6 +118,9 @@ public enum UserConfig {
         case .integerChoice(let choices):
             let stored = defaults.integer(forKey: setting.defaultsKey)
             return choices.first { $0.stored == stored }.map { .string($0.name) } ?? setting.fallback
+        case .dayOffset:
+            let days = defaults.integer(forKey: setting.defaultsKey)
+            return .string((days < 0 ? "" : "+") + "\(days)d")
         }
     }
 
@@ -121,8 +141,11 @@ public enum UserConfig {
                 return "\(setting.key) must be one of \(choices.map(\.name).joined(separator: ", "))"
             }
             defaults.set(choice.stored, forKey: key)
+        case (.dayOffset, .string(let s)):
+            guard let days = dayOffset(s) else { return "\(setting.key) must look like \"-3d\" or \"+0d\"" }
+            defaults.set(days, forKey: key)
         default:
-            return "\(setting.section).\(setting.key) has the wrong kind of value"
+            return "\(setting.path) has the wrong kind of value"
         }
         return nil
     }
@@ -134,14 +157,15 @@ public enum UserConfig {
         let tables: [TOML.Table]
         do { tables = try TOML.parse(text) } catch { return ["config.toml: \(error)"] }
         var problems: [String] = []
-        let present = Set(tables.flatMap { table in table.values.keys.map { table.name + "." + $0 } })
-        for setting in settings where !present.contains(setting.section + "." + setting.key) {
+        let present = Set(tables.flatMap { table in table.values.keys.map { path(table.name, $0) } })
+        for setting in settings where !present.contains(setting.path) && !present.contains(setting.legacy) {
             if defaults.object(forKey: setting.defaultsKey) != nil { defaults.removeObject(forKey: setting.defaultsKey) }
         }
         for table in tables {
             for (key, value) in table.values.sorted(by: { $0.key < $1.key }) {
-                guard let setting = settings.first(where: { $0.section == table.name && $0.key == key }) else {
-                    problems.append("config.toml line \(table.line): unknown setting \(table.name.isEmpty ? "" : table.name + ".")\(key)")
+                let name = path(table.name, key)
+                guard let setting = settings.first(where: { $0.path == name || $0.legacy == name }) else {
+                    problems.append("config.toml: unknown setting \(name)")
                     continue
                 }
                 if let current = currentValue(setting, in: defaults), current == value { continue }
@@ -149,6 +173,14 @@ public enum UserConfig {
             }
         }
         return problems
+    }
+
+    static func path(_ section: String, _ key: String) -> String { section.isEmpty ? key : section + "." + key }
+
+    /// Whether the file uses names from before settings took Emacs's names.
+    public static func usesLegacyNames(_ text: String) -> Bool {
+        let names = Set(settings.map(\.legacy))
+        return values(in: text).keys.contains { names.contains($0) }
     }
 
     private static func currentValue(_ setting: Setting, in defaults: UserDefaults) -> TOML.Value? {
@@ -159,7 +191,7 @@ public enum UserConfig {
     static func values(in text: String) -> [String: TOML.Value] {
         guard let tables = try? TOML.parse(text) else { return [:] }
         var result: [String: TOML.Value] = [:]
-        for table in tables { for (key, value) in table.values { result[table.name + "." + key] = value } }
+        for table in tables { for (key, value) in table.values { result[path(table.name, key)] = value } }
         return result
     }
 
@@ -179,6 +211,8 @@ public enum UserConfig {
             # Orgstar settings. The Settings window writes its changes here, and edits made here
             # apply while Orgstar runs. Keys go in keymap.toml, capture templates in capture.toml
             # and saved agenda views in views.toml, all in this folder.
+
+            # Emacs variables, by their Emacs names.
 
             """
         var section = ""
@@ -215,6 +249,9 @@ public enum UserConfig {
         }
         if let lastInSection {
             lines.insert("\(key) = \(format(value))", at: lastInSection + 1)
+        } else if section.isEmpty {
+            let firstHeader = lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("[") } ?? lines.count
+            lines.insert(contentsOf: ["\(key) = \(format(value))", ""], at: firstHeader)
         } else {
             if lines.last == "" { lines.removeLast() }
             lines += ["", "[\(section)]", "\(key) = \(format(value))", ""]
