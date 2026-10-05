@@ -95,6 +95,25 @@ public struct Keymap: Sendable, Equatable {
         return seen.map { (key: $0.key, command: $0.value) }.sorted { $0.key.description < $1.key.description }
     }
 
+    /// Live key sequences that run `command`, formatted, at most `limit`: what menus and the
+    /// palette show. Earlier `modes` first, then bindings that hold everywhere before those
+    /// with a `when`, then shorter ones.
+    public func keyLabels(for command: String, modes: [String?] = [nil], limit: Int = 2) -> [String] {
+        var found: [(keys: [KeyChord], rank: [Int])] = []
+        for (order, mode) in modes.enumerated() {
+            for binding in bindings.reversed() where binding.mode == mode && binding.command == command
+                && candidates(for: binding.keys, mode: mode).contains(binding) {
+                found.append((binding.keys, [order, binding.when == nil ? 0 : 1, binding.keys.count, found.count]))
+            }
+        }
+        var seen: Set<String> = []
+        return found.sorted { $0.rank.lexicographicallyPrecedes($1.rank) }
+            .map { KeySequence.format($0.keys) }
+            .filter { seen.insert($0).inserted }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     /// The first live binding of `command`, for showing its keys.
     public func keys(for command: String, mode: String? = nil) -> [KeyChord]? {
         bindings.reversed().first { $0.mode == mode && $0.command == command && candidates(for: $0.keys, mode: mode).contains($0) }?.keys

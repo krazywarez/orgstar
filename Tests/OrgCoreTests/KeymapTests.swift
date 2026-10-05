@@ -87,6 +87,16 @@ struct KeymapTests {
         #expect(keymap.keys(for: "org.todo.cycle").map(KeySequence.format) == "S-<right>")
     }
 
+    @Test func keyLabelsForMenus() {
+        let emacs = KeymapPreset.emacs.keymap
+        #expect(emacs.keyLabels(for: "org.todo.cycle") == ["C-c C-t", "S-<right>"])
+        #expect(emacs.keyLabels(for: "org.schedule") == ["C-c C-s"])
+        let doom = KeymapPreset.doom.keymap
+        let labels = doom.keyLabels(for: "org.todo.cycle", modes: ["normal", "insert"])
+        #expect(labels == ["C-c C-t", "SPC m t"])
+        #expect(doom.keyLabels(for: "app.quit", modes: ["normal", "insert"]) == ["SPC q q"])
+    }
+
     @Test func dispatchesPrefixes() {
         var dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
         let c = KeyChord("c", .control), t = KeyChord("t", .control), z = KeyChord("z", .control)

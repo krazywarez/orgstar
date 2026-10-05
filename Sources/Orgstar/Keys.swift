@@ -132,7 +132,7 @@ extension EchoArea {
 
 /// M-x and ⇧⌘P: every command by title, with its keys.
 struct PaletteView: View {
-    let keymap: Keymap
+    let commands: AppCommands
     let run: (String) -> Void
     @State private var query = ""
     @Environment(\.dismiss) private var dismiss
@@ -161,8 +161,8 @@ struct PaletteView: View {
                     HStack {
                         Text(command.title)
                         Spacer()
-                        if let keys = keymap.keys(for: command.id) {
-                            Text(KeySequence.format(keys)).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
+                        if let keys = commands.keyLabel(for: command.id) {
+                            Text(keys).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
                         }
                     }
                 }

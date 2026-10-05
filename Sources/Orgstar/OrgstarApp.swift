@@ -23,6 +23,16 @@ final class AppCommands {
     var pendingKeys: String?
     /// The editor's evil state in the Doom preset.
     var editorState: String?
+    /// The keymap in use, for showing keys in menus and the palette.
+    var keymap = KeymapPreset.emacs.keymap
+    var modal = false
+
+    /// The keys that run `command`, as menus and the palette show them.
+    func keyLabel(for command: String) -> String? {
+        let labels = keymap.keyLabels(for: command, modes: modal ? ["normal", "insert"] : [nil])
+        return labels.isEmpty ? nil : labels.joined(separator: ", ")
+    }
+
     /// The editor's selection, for the modeline.
     var selection = NSRange(location: 0, length: 0)
     var keyHints: [KeyHint] = []
@@ -223,14 +233,28 @@ struct OrgstarApp: App {
         }
         .commands {
             CommandMenu("Org") {
-                ForEach(EditorCommands.all.filter { $0.id.hasPrefix("org.") }, id: \.id) { command in
-                    Button(command.title) { commands.editor?.run(command.id) }
-                        .disabled(commands.editor == nil)
-                }
+                OrgMenuItems(commands: commands)
             }
         }
         Settings {
             SettingsView()
+        }
+    }
+}
+
+/// The Org menu: every org command, with the keys that run it in the current keymap.
+struct OrgMenuItems: View {
+    let commands: AppCommands
+
+    var body: some View {
+        ForEach(EditorCommands.all.filter { $0.id.hasPrefix("org.") }, id: \.id) { command in
+            Button {
+                commands.editor?.run(command.id)
+            } label: {
+                Text(command.title)
+                if let keys = commands.keyLabel(for: command.id) { Text(keys) }
+            }
+            .disabled(commands.editor == nil)
         }
     }
 }

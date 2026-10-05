@@ -124,7 +124,7 @@ struct ContentView: View {
         .onChange(of: options, initial: true) { _, options in session.options = options }
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $commands.showingPalette) {
-            PaletteView(keymap: keymap) { id in
+            PaletteView(commands: commands) { id in
                 commands.showingPalette = false
                 // After the sheet closes, so app commands can present their own.
                 DispatchQueue.main.async { perform(id) }
@@ -325,6 +325,8 @@ struct ContentView: View {
     private func loadKeymap() {
         let loaded = KeymapLoader.load(preset)
         keymap = loaded.keymap
+        commands.keymap = loaded.keymap
+        commands.modal = preset.isModal
         if let first = loaded.problems.first {
             let more = loaded.problems.count > 1 ? " (and \(loaded.problems.count - 1) more)" : ""
             commands.show("keymap.toml: \(first)\(more)")
