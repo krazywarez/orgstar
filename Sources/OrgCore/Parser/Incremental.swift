@@ -22,6 +22,8 @@ public struct TextEdit: Sendable, Equatable {
 enum ReparseStrategy: Equatable {
     /// One element reparsed in place; everything else reused.
     case element
+    /// A run of elements in one section's body reparsed; everything else reused.
+    case region
     /// A run of top-level sections reparsed; the sections before and after reused.
     case sections
     case full
@@ -41,6 +43,7 @@ extension OrgParser {
         let context = EditContext(oldText: oldText, newText: newText, edit: edit)
         if context.touchesSettings() { return (parse(newText, defaults: defaults), .full) }
         if let tree = context.reparseElement(old) { return (tree, .element) }
+        if let tree = context.reparseRegion(old) { return (tree, .region) }
         if let tree = context.reparseSections(old) { return (tree, .sections) }
         return (parse(newText, defaults: defaults), .full)
     }
@@ -113,10 +116,7 @@ private struct EditContext {
     func leaf(in root: SyntaxNode) -> SyntaxNode? {
         let range = edit.range
         var current = root
-        while let child = current.children.first(where: {
-            $0.range.lowerBound <= range.lowerBound && range.lowerBound < $0.range.upperBound
-                && range.upperBound <= $0.range.upperBound
-        }) {
+        while let child = current.child(containing: range.lowerBound), range.upperBound <= child.range.upperBound {
             if Self.leafKinds.contains(child.kind) { return child }
             current = child
         }
@@ -138,6 +138,151 @@ private struct EditContext {
             node = parent
         }
         return replacement
+    }
+
+    // MARK: - Body region
+
+    /// Reparses a window of the innermost section's own body (the elements between its heading
+    /// lines and its first child section) and splices it into the old section.
+    ///
+    /// The window starts one element before the element holding the line before the edit. It ends at the first
+    /// later element boundary that the reparse reproduces at the same shifted offset. The
+    /// window is parsed one element past that boundary, so every decision about where an element
+    /// ends was made with the following line in view; from a reproduced boundary on, elements
+    /// parse the same as before. Edits that touch heading lines, the first line after a heading
+    /// (where planning lines and property drawers are only recognized), or that add an end
+    /// delimiter (which could pair with a begin line before the window) are left to the
+    /// section strategy.
+    func reparseRegion(_ old: OrgTree) -> OrgTree? {
+        let start = lineStart(oldText, edit.range.lowerBound)
+        let oldLines = classes(slice(oldText, start, lineEnd(oldText, edit.range.upperBound)))
+        let newLines = classes(slice(newText, start, lineEnd(newText, edit.range.lowerBound + edit.replacement.utf16.count)))
+        for line in oldLines + newLines {
+            if case .heading = line.cls { return nil }
+        }
+        for line in newLines {
+            switch line.cls {
+            case .blockEnd, .dynamicEnd, .drawerEnd: return nil
+            default: break
+            }
+        }
+
+        // The innermost section or zeroth section holding the edited lines.
+        let damaged = start..<max(lineEnd(oldText, edit.range.upperBound), start + 1)
+        var container = old.root
+        while let child = container.child(containing: damaged.lowerBound),
+              child.kind == .section || child.kind == .zerothSection,
+              damaged.upperBound <= child.range.upperBound {
+            container = child
+        }
+        guard container.kind == .section || container.kind == .zerothSection else { return nil }
+
+        // Body children with their offsets.
+        var body: [(element: GreenElement, offset: Int)] = []
+        var bodyStart = container.range.lowerBound
+        var bodyEnd = container.range.upperBound
+        var offset = container.range.lowerBound
+        var prefixCount = 0
+        for (index, element) in container.green.children.enumerated() {
+            defer { offset += element.length }
+            if case .node(let node) = element {
+                if [.heading, .planning, .propertyDrawer].contains(node.kind), body.isEmpty {
+                    prefixCount = index + 1
+                    bodyStart = offset + node.length
+                    continue
+                }
+                if node.kind == .section {
+                    bodyEnd = offset
+                    break
+                }
+            }
+            body.append((element, offset))
+        }
+        // The first body line of a heading section can become a planning line or drawer.
+        let firstEditable = container.kind == .section ? lineEnd(oldText, bodyStart) : bodyStart
+        guard start >= firstEditable, edit.range.upperBound <= bodyEnd, !body.isEmpty else { return nil }
+
+        // Window start: the body element holding the line before the edit, and one more before
+        // it, which could absorb the window's first line if that line changes meaning (a drawer
+        // that loses its end turns into paragraph text).
+        let anchor = max(bodyStart, start - 1)
+        guard var first = body.lastIndex(where: { $0.offset <= anchor }) else { return nil }
+        while first > 0, case .token = body[first].element { first -= 1 }
+        if first > 0 {
+            first -= 1
+            while first > 0, case .token = body[first].element { first -= 1 }
+        }
+        let windowStart = body[first].offset
+
+        var next = body.firstIndex { $0.offset > edit.range.upperBound } ?? body.count
+        var attempts = 0
+        while attempts < 8 {
+            attempts += 1
+            // Parse through one node past the candidate boundary.
+            var verifyEnd = next
+            while verifyEnd < body.count, case .token = body[verifyEnd].element { verifyEnd += 1 }
+            let boundary = next < body.count ? body[next].offset : bodyEnd
+            let oldWindowEnd = verifyEnd < body.count ? body[verifyEnd].offset + body[verifyEnd].element.length : bodyEnd
+            let rows = reusableRows(body[first..<min(verifyEnd + 1, body.count)].map(\.element))
+            guard let window = parseBody(slice(newText, windowStart, oldWindowEnd + delta), settings: old.settings, rows: rows) else { return nil }
+            if window.unmatchedBegin, oldWindowEnd < bodyEnd {
+                next = body.count
+                continue
+            }
+            // The reparsed elements up to the boundary, if the reparse has one there.
+            let target = boundary + delta - windowStart
+            var reparsed: [GreenElement] = []
+            var at = 0
+            for element in window.elements where at < target {
+                reparsed.append(element)
+                at += element.length
+            }
+            guard at == target else {
+                next += 1
+                if next > body.count { return nil }
+                continue
+            }
+            let before = container.green.children[..<(prefixCount + first)]
+            let after = next < body.count ? Array(body[next...].map(\.element)) : []
+            let tail = container.green.children[(prefixCount + body.count)...]
+            let green = GreenNode(kind: container.kind, children: Array(before) + reparsed + after + Array(tail))
+            // A full parse has no zeroth section for empty text.
+            if green.children.isEmpty { return nil }
+            return OrgTree(green: replacing(container, with: green), settings: old.settings)
+        }
+        return nil
+    }
+
+    /// Rows of the tables among `elements`, keyed by their text.
+    func reusableRows(_ elements: [GreenElement]) -> [Substring: GreenNode] {
+        var rows: [Substring: GreenNode] = [:]
+        for case .node(let table) in elements where table.kind == .table {
+            for case .node(let row) in table.children where row.kind == .tableRow {
+                rows[Substring(row.text)] = row
+            }
+        }
+        return rows
+    }
+
+    /// Body elements parsed from `text`, or nil if the text holds a heading.
+    func parseBody(_ text: Substring, settings: OrgSettings, rows: [Substring: GreenNode] = [:]) -> (elements: [GreenElement], unmatchedBegin: Bool)? {
+        var parser = Parser(text: String(text), settings: settings)
+        parser.reusableRows = rows
+        let count = parser.lines.count
+        parser.builder.start(.zerothSection)
+        parser.parseContent(limit: count)
+        guard parser.i == count else { return nil }
+        parser.builder.finish()
+        var unmatched = false
+        for (index, line) in parser.info.enumerated() {
+            switch line.cls {
+            case .blockBegin, .dynamicBegin, .drawerBegin:
+                if parser.blockEnds[index] == nil { unmatched = true }
+            default:
+                break
+            }
+        }
+        return (parser.builder.build().children, unmatched)
     }
 
     // MARK: - Sections

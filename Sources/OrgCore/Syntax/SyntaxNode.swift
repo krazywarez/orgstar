@@ -38,6 +38,46 @@ public final class SyntaxNode: Sendable {
         return result
     }
 
+    /// Child nodes overlapping `range`. Only those are created, so a section with thousands of
+    /// children costs little when the range is small.
+    public func children(overlapping range: Range<Int>) -> [SyntaxNode] {
+        var result: [SyntaxNode] = []
+        var at = offset
+        for child in green.children {
+            let childRange = at..<(at + child.length)
+            if childRange.lowerBound >= range.upperBound, !range.isEmpty { break }
+            if case .node(let node) = child, childRange.overlaps(range) {
+                result.append(SyntaxNode(green: node, offset: at, parent: self))
+            }
+            at = childRange.upperBound
+        }
+        return result
+    }
+
+    /// The child node whose range contains `position`.
+    public func child(containing position: Int) -> SyntaxNode? {
+        var at = offset
+        for child in green.children {
+            let end = at + child.length
+            if position < end {
+                if case .node(let node) = child, position >= at { return SyntaxNode(green: node, offset: at, parent: self) }
+                return nil
+            }
+            at = end
+        }
+        return nil
+    }
+
+    /// The first child node of `kind`.
+    public func firstChild(_ kind: SyntaxKind) -> SyntaxNode? {
+        var at = offset
+        for child in green.children {
+            if case .node(let node) = child, node.kind == kind { return SyntaxNode(green: node, offset: at, parent: self) }
+            at += child.length
+        }
+        return nil
+    }
+
     /// This node and every node below it, in document order.
     public func descendants() -> [SyntaxNode] {
         [self] + children.flatMap { $0.descendants() }

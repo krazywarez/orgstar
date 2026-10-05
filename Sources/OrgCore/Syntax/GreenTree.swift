@@ -70,6 +70,11 @@ struct GreenBuilder {
         stack[stack.count - 1].children.append(.token(GreenToken(kind: kind, text: String(text))))
     }
 
+    /// Appends an already-built node, for reuse across versions.
+    mutating func node(_ green: GreenNode) {
+        stack[stack.count - 1].children.append(.node(green))
+    }
+
     mutating func finish() {
         let (kind, children) = stack.removeLast()
         let node = GreenNode(kind: kind, children: children)

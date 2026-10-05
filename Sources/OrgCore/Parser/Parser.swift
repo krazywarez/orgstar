@@ -14,6 +14,9 @@ struct Parser {
     let settings: OrgSettings
     var builder = GreenBuilder()
     var i = 0
+    /// Table rows from a previous version, by their line text. A row parses from its own line
+    /// alone, so a row with the same text can be reused instead of scanned again.
+    var reusableRows: [Substring: GreenNode] = [:]
 
     init(text: String, defaults: OrgSettings) {
         let lines = splitRawLines(text)
@@ -230,6 +233,14 @@ struct Parser {
     /// A rule row (`|---+---|`) is one text token. Other rows alternate `|` markers and cells;
     /// every pair of pipes gets a cell, even an empty one, so columns line up.
     mutating func tableRow() {
+        if !reusableRows.isEmpty {
+            let content = lines[i].content
+            if let row = reusableRows[content.base[content.startIndex..<lines[i].ending.endIndex]] {
+                builder.node(row)
+                i += 1
+                return
+            }
+        }
         builder.start(.tableRow)
         let rest = whitespace(lines[i].content)
         if rest.hasPrefix("|-") {

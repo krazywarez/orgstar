@@ -49,8 +49,23 @@ struct IncrementalTests {
         #expect(checkReparse("* a\nx\ny\n* b\n", 6..<6, "* c\n") == .sections)
     }
 
-    @Test func joiningParagraphsReparsesSections() {
-        #expect(checkReparse("a\n\nb\n", 1..<2, "") == .sections)
+    @Test func joiningParagraphsReparsesARegion() {
+        #expect(checkReparse("a\n\nb\n", 1..<2, "") == .region)
+        #expect(checkReparse("* h\nfirst\nsecond\n\nthird\n** child\n", 15..<15, "\n\n") == .region)
+    }
+
+    @Test func regionGrowsUntilABoundaryHolds() {
+        // Splitting a paragraph next to a table and a list.
+        #expect(checkReparse("* h\nx\ntext\nmore\n| a |\n- i\n", 9..<9, "\n") == .region)
+        // A new begin line without its end runs to the end of the body.
+        #expect(checkReparse("* h\nx\none\ntwo\n#+end_src\nthree\n", 6..<6, "\n#+begin_src") == .region)
+    }
+
+    @Test func regionDefersToSectionsNearHeadings() {
+        // The first body line could become a planning line.
+        #expect(checkReparse("* h\nbody\n", 4..<4, "\n") != .region)
+        // An added end delimiter could close a block that starts before the window.
+        #expect(checkReparse("x\n#+begin_src\na\n\nb\n", 16..<16, "#+end_src\n") != .region)
     }
 
     @Test func runGrowsUntilAHeadingEndsIt() {
