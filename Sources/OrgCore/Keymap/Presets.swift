@@ -481,6 +481,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-r"
         command = "edit.find"
+        [[bind]]
+        keys = "M-%"
+        command = "edit.replace"
 
         # Files and commands
         [[bind]]

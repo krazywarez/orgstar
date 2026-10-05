@@ -1,4 +1,5 @@
 #if os(macOS)
+import AppKit
 import OrgCore
 
 /// Every command a key, menu or the palette can run, by id.
@@ -13,6 +14,8 @@ public struct EditorCommand: Sendable {
         case edit(selector: String, extending: String? = nil)
         /// Mark handling in the editor.
         case mark
+        /// The find bar.
+        case find(NSTextFinder.Action)
         /// Handled by the app (save, quick open, palette).
         case app
     }
@@ -83,7 +86,11 @@ public enum EditorCommands {
         edit("copy-region", "Copy Region", "copy:"),
         edit("undo", "Undo", "undo:"),
         edit("transpose-chars", "Transpose Characters", "transpose:"),
-        edit("find", "Find", "performTextFinderAction:"),
+        EditorCommand(id: "edit.find", title: "Find", action: .find(.showFindInterface)),
+        EditorCommand(id: "edit.replace", title: "Find and Replace", action: .find(.showReplaceInterface)),
+        EditorCommand(id: "edit.find-next", title: "Find Next", action: .find(.nextMatch)),
+        EditorCommand(id: "edit.find-previous", title: "Find Previous", action: .find(.previousMatch)),
+        EditorCommand(id: "edit.use-selection-for-find", title: "Use Selection for Find", action: .find(.setSearchString)),
         EditorCommand(id: "edit.set-mark", title: "Set Mark", action: .mark),
         EditorCommand(id: "edit.keyboard-quit", title: "Quit", action: .mark),
     ]

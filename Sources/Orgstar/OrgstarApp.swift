@@ -223,6 +223,10 @@ struct OrgstarApp: App {
                 Button("Show or Hide Outline") { commands.run("app.toggle-outline") }
                     .keyboardShortcut("o", modifiers: [.command, .option])
             }
+            CommandGroup(after: .pasteboard) {
+                Divider()
+                FindMenu(commands: commands)
+            }
             CommandGroup(after: .textEditing) {
                 Button("Search Notes") { commands.focusSearch = true }
                     .keyboardShortcut("f", modifiers: [.command, .shift])
@@ -260,6 +264,27 @@ struct OrgMenuItems: View {
             }
             .disabled(commands.editor == nil)
         }
+    }
+}
+
+/// Edit ▸ Find: the editor's find bar.
+struct FindMenu: View {
+    let commands: AppCommands
+
+    var body: some View {
+        Menu("Find") {
+            item("Find…", "edit.find", "f")
+            item("Find and Replace…", "edit.replace", "f", [.command, .option])
+            item("Find Next", "edit.find-next", "g")
+            item("Find Previous", "edit.find-previous", "g", [.command, .shift])
+            item("Use Selection for Find", "edit.use-selection-for-find", "e")
+        }
+    }
+
+    private func item(_ title: String, _ id: String, _ key: KeyEquivalent, _ modifiers: EventModifiers = .command) -> some View {
+        Button(title) { commands.editor?.run(id) }
+            .keyboardShortcut(key, modifiers: modifiers)
+            .disabled(commands.editor == nil)
     }
 }
 

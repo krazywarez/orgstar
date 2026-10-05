@@ -286,7 +286,7 @@ public final class OrgEditor: NSObject {
         return switch EditorCommands.command(id)?.action {
         case .text(let command): command.applies(in: context)
         case .view: id != "org.cycle" || Presentation.heading(containing: context.caret, in: context.tree) != nil
-        case .edit, .mark, .app: true
+        case .edit, .mark, .app, .find: true
         case nil: true
         }
     }
@@ -311,13 +311,13 @@ public final class OrgEditor: NSObject {
             if markActive, let extending {
                 keepMark = true
                 textView.doCommand(by: NSSelectorFromString(extending))
-            } else if selector == "performTextFinderAction:" {
-                let item = NSMenuItem()
-                item.tag = NSTextFinder.Action.showFindInterface.rawValue
-                textView.performTextFinderAction(item)
             } else {
                 textView.doCommand(by: NSSelectorFromString(selector))
             }
+        case .find(let action):
+            let item = NSMenuItem()
+            item.tag = action.rawValue
+            textView.performTextFinderAction(item)
         case .mark:
             if id == "edit.set-mark" {
                 let caret = textView.selectedRange().location
@@ -421,14 +421,20 @@ public final class OrgEditor: NSObject {
     /// Unfolds whatever hides `offset`, puts the caret there and scrolls to it.
     public func reveal(_ offset: Int) {
         let target = max(0, min(offset, utf16Length))
+        unfold(around: target)
+        setCaret(target)
+        textView.scrollRangeToVisible(NSRange(location: target, length: 0))
+    }
+
+    /// Unfolds the headings whose folds hide `offset`, leaving the selection alone.
+    func unfold(around offset: Int) {
         var state = foldState
-        for entry in Presentation.outline(document.tree) where entry.start < target && target < entry.end {
+        for entry in Presentation.outline(document.tree) where entry.start < offset && offset < entry.end {
             state.folds.remove(entry.start)
             state.bodyFolds.remove(entry.start)
         }
+        guard state != foldState else { return }
         setFolds(state)
-        setCaret(target)
-        textView.scrollRangeToVisible(NSRange(location: target, length: 0))
     }
 
     /// Applies edits through the text view as one undo step, not merged with typing around it.
@@ -653,7 +659,15 @@ public final class OrgEditor: NSObject {
         let selection = textView.selectedRange()
         defer { previousSelection = selection.location }
         onSelectionChange?(selection)
-        guard selection.length == 0, let range = hidden.containing(selection.location) else { return }
+        // A selection reaching into folded text, as a find match does, unfolds it.
+        if selection.length > 0 {
+            if hidden.containing(selection.location) != nil || hidden.containing(NSMaxRange(selection) - 1) != nil {
+                unfold(around: selection.location)
+                unfold(around: NSMaxRange(selection) - 1)
+            }
+            return
+        }
+        guard let range = hidden.containing(selection.location) else { return }
         setCaret(selection.location >= previousSelection ? range.upperBound : range.lowerBound - 1)
     }
 }
