@@ -1,0 +1,111 @@
+<h2>
+"Nesting"
+</h2>
+<ul>
+<li>
+"outer item"
+<ul>
+<li>
+"inner item"
+<ul>
+<li>
+"deepest item"
+</li>
+</ul>
+</li>
+<li>
+"second inner"
+</li>
+</ul>
+</li>
+<li>
+"second outer"
+</li>
+</ul>
+<h2>
+"Ordered"
+</h2>
+<ol>
+<li>
+"first"
+</li>
+<li>
+"second"
+<ol>
+<li>
+"second point one"
+</li>
+<li>
+"second point two"
+</li>
+</ol>
+</li>
+<li>
+"third"
+</li>
+</ol>
+<h2>
+"Checkboxes"
+</h2>
+<ul>
+<li>
+<code>
+"[ ]"
+</code>
+"not done"
+</li>
+<li>
+<code>
+"[X]"
+</code>
+"done"
+</li>
+<li>
+<code>
+"[-]"
+</code>
+"partially done"
+</li>
+</ul>
+<h2>
+"Description"
+</h2>
+<dl>
+<dt>
+"term one"
+</dt>
+<dd>
+"the first definition"
+</dd>
+<dt>
+"term two"
+</dt>
+<dd>
+"the second definition, which is soft-wrapped across two lines"
+</dd>
+<dt>
+<em>
+"marked up"
+</em>
+"term"
+</dt>
+<dd>
+"definitions hold inline markup"
+</dd>
+</dl>
+<h2>
+"Multi-paragraph items"
+</h2>
+<ul>
+<li>
+<p>
+"an item whose body has two paragraphs"
+</p>
+<p>
+"the second paragraph, indented under the bullet"
+</p>
+</li>
+<li>
+"a plain sibling"
+</li>
+</ul>

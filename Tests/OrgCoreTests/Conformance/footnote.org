@@ -1,0 +1,8 @@
+#+TITLE: Footnote Sample
+
+Text with a reference.[fn:1] And a second one.[fn:2]
+
+An inline footnote.[fn:3:defined right here]
+
+[fn:1] The first definition.
+[fn:2] The second definition, with /emphasis/.

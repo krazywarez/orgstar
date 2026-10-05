@@ -1,0 +1,46 @@
+#+TITLE: Blocks inside list items
+
+* Source blocks
+
+1. Fork the repository
+2. Create a new branch:
+   #+begin_src bash
+   git checkout -b my-feature
+   #+end_src
+3. Open a pull request
+
+* Other blocks
+
+- an item with an example block
+
+  #+begin_example
+  plain example text
+  #+end_example
+
+- an item with a quote
+
+  #+begin_quote
+  quoted line
+  #+end_quote
+
+* Blocks alongside other content
+
+- an item with a sublist and a block
+  - inner item
+  #+begin_src sh
+  echo hi
+  #+end_src
+
+- an item with two paragraphs and a block
+
+  the second paragraph
+
+  #+begin_src sh
+  echo again
+  #+end_src
+
+- an item with a table
+
+  | a | b |
+  |---+---|
+  | 1 | 2 |

@@ -459,3 +459,17 @@ struct BabelSessionTests {
         #expect(session.document?.text == "#+begin_src sh\necho answer\necho \"$((6 * 7))\"\n#+end_src\n\n#+RESULTS:\n| answer |\n|     42 |\n")
     }
 }
+
+struct EmacsExportTests {
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func exportsBesideTheFile() async throws {
+        let notes = try Folder()
+        let file = try notes.write("doc.org", "#+TITLE: On disk\n")
+        // The buffer's text is exported, not the file's.
+        let written = try await EmacsRunner.export(text: "#+TITLE: In the buffer\n\n* Heading\nBody.\n", path: file.path, function: "org-ascii-export-to-ascii")
+        #expect(URL(fileURLWithPath: written).lastPathComponent == "doc.txt")
+        let text = try String(contentsOfFile: written, encoding: .utf8)
+        #expect(text.uppercased().contains("IN THE BUFFER") && text.contains("Body."), "\(text)")
+        #expect(try String(contentsOf: file, encoding: .utf8) == "#+TITLE: On disk\n")
+    }
+}

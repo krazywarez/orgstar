@@ -1,0 +1,21 @@
+#+TITLE: Core Constructs
+
+Intro paragraph with a bare URL https://example.com and some ~inline code~.
+
+* Ordered and checked
+
+1. first item
+2. second item with /emphasis/
+
+- [ ] todo item
+- [X] done item
+
+* Links and code
+
+An external [[https://example.org][site]] and a bare [[https://bare.example]].
+
+#+BEGIN_SRC rust
+fn main() {
+    println!("hello");
+}
+#+END_SRC

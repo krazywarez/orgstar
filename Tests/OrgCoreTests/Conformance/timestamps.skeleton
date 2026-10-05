@@ -1,0 +1,62 @@
+<h2>
+"Single"
+</h2>
+<p>
+"An active date"
+<time>
+"2024-01-15"
+</time>
+"and an inactive one"
+<time>
+"2024-01-15"
+</time>
+"."
+</p>
+<p>
+"With a time:"
+<time>
+"2024-01-15 10:30"
+</time>
+"."
+</p>
+<h2>
+"Ranges"
+</h2>
+<p>
+"A same-day time range"
+<time>
+"2024-01-15 10:00"
+</time>
+"–"
+<time>
+"11:45"
+</time>
+"."
+</p>
+<p>
+"A multi-day range"
+<time>
+"2024-01-15"
+</time>
+"–"
+<time>
+"2024-01-20"
+</time>
+"."
+</p>
+<h2>
+"Ignored decorations"
+</h2>
+<p>
+"A repeater is dropped:"
+<time>
+"2024-01-15"
+</time>
+"."
+</p>
+<h2>
+"Not timestamps"
+</h2>
+<p>
+"Comparisons like 3 < 4 and [not a stamp] stay literal text."
+</p>

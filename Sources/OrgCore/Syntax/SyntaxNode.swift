@@ -78,6 +78,25 @@ public final class SyntaxNode: Sendable {
         return nil
     }
 
+    public enum Element {
+        case node(SyntaxNode)
+        case token(SyntaxToken)
+    }
+
+    /// Child nodes and tokens in document order.
+    public var elements: [Element] {
+        var result: [Element] = []
+        var at = offset
+        for child in green.children {
+            switch child {
+            case .node(let node): result.append(.node(SyntaxNode(green: node, offset: at, parent: self)))
+            case .token(let token): result.append(.token(SyntaxToken(kind: token.kind, text: token.text, range: at..<(at + child.length))))
+            }
+            at += child.length
+        }
+        return result
+    }
+
     /// This node and every node below it, in document order.
     public func descendants() -> [SyntaxNode] {
         [self] + children.flatMap { $0.descendants() }

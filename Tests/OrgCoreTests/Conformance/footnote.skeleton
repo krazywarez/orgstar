@@ -1,0 +1,53 @@
+<p>
+"Text with a reference."
+<sup>
+<a href="#fn-1">
+"1"
+</a>
+</sup>
+"And a second one."
+<sup>
+<a href="#fn-2">
+"2"
+</a>
+</sup>
+</p>
+<p>
+"An inline footnote."
+<sup>
+<a href="#fn-3">
+"3"
+</a>
+</sup>
+</p>
+<section>
+<hr>
+<ol>
+<li>
+<p>
+"The first definition."
+</p>
+<a href="#fnr-1">
+"↩"
+</a>
+</li>
+<li>
+<p>
+"The second definition, with"
+<em>
+"emphasis"
+</em>
+"."
+</p>
+<a href="#fnr-2">
+"↩"
+</a>
+</li>
+<li>
+"defined right here"
+<a href="#fnr-3">
+"↩"
+</a>
+</li>
+</ol>
+</section>

@@ -1,0 +1,10 @@
+#+TITLE: Table Formula
+
+The cells deliberately contradict the formula: org's HTML exporter does not
+recalculate on export, so both exporters must emit the values as written.
+
+| N | N^2 |
+|---+-----|
+| 2 | 999 |
+| 3 | 888 |
+#+TBLFM: $2=$1^2

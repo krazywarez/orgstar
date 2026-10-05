@@ -1,0 +1,20 @@
+#+TITLE: Minimal Fixture
+#+DATE: 2026-08-08
+#+AUTHOR: Owner
+
+A single paragraph of preamble text before any heading.
+
+* First Heading
+  :PROPERTIES:
+  :CUSTOM_ID: first
+  :END:
+
+Some body text with *bold*, /italic/, and =verbatim=.
+
+** A Subheading                                                     :tag1:tag2:
+
+- an unordered item
+- another with a checkbox [ ]
+
+* Second Heading
+  See [[#first][the first heading]].

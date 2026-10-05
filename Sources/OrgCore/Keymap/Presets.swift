@@ -153,6 +153,27 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c a"
         command = "app.agenda"
+        [[bind]]
+        keys = "C-c C-e h h"
+        command = "app.export.html"
+        [[bind]]
+        keys = "C-c C-e h o"
+        command = "app.export.html-open"
+        [[bind]]
+        keys = "C-c C-e m m"
+        command = "app.export.markdown"
+        [[bind]]
+        keys = "C-c C-e l p"
+        command = "app.export.pdf"
+        [[bind]]
+        keys = "C-c C-e l l"
+        command = "app.export.latex"
+        [[bind]]
+        keys = "C-c C-e o o"
+        command = "app.export.odt"
+        [[bind]]
+        keys = "C-c C-e t u"
+        command = "app.export.text"
 
         # Org
         [[bind]]

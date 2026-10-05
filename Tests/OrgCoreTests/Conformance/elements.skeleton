@@ -1,0 +1,82 @@
+<h2>
+"Code and tables"
+</h2>
+<pre>
+<code>
+"fn main() { println!(\"hello\"); }"
+</code>
+</pre>
+<table>
+<thead>
+<tr>
+<th>
+"Name"
+</th>
+<th>
+"Score"
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+"alpha"
+</td>
+<td>
+"10"
+</td>
+</tr>
+<tr>
+<td>
+"beta"
+</td>
+<td>
+"20"
+</td>
+</tr>
+</tbody>
+</table>
+<h2>
+"Links and footnotes"
+</h2>
+<p>
+"An external link:"
+<a href="https://example.com">
+"Example"
+</a>
+"and an id link"
+<a href="#abc-123">
+"abc-123"
+</a>
+"."
+</p>
+<p>
+"Text with a footnote reference."
+<sup>
+<a href="#fn-1">
+"1"
+</a>
+</sup>
+</p>
+<h2>
+"Blocks"
+</h2>
+<blockquote>
+<p>
+"A quoted paragraph."
+</p>
+</blockquote>
+<hr>
+<section>
+<hr>
+<ol>
+<li>
+<p>
+"The footnote definition."
+</p>
+<a href="#fnr-1">
+"↩"
+</a>
+</li>
+</ol>
+</section>

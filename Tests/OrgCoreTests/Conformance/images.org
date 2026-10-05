@@ -1,0 +1,25 @@
+#+TITLE: Images
+
+* Bare image
+
+[[file:diagram.png]]
+
+* Captioned figure
+
+#+CAPTION: The pipeline, end to end
+#+ATTR_HTML: :width 640 :class diagram
+[[file:pipeline.svg]]
+
+* Caption with markup
+
+#+CAPTION: A /stylised/ chart
+[[file:chart.png]]
+
+* Quoted attribute values
+
+#+ATTR_HTML: :alt "a cat, sitting" :loading lazy
+[[file:cat.jpg]]
+
+* Image with a description is a link
+
+[[file:diagram.png][the diagram]]

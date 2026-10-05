@@ -1,0 +1,42 @@
+<p>
+"A single paragraph of preamble text before any heading."
+</p>
+<h2>
+"First Heading"
+</h2>
+<p>
+"Some body text with"
+<strong>
+"bold"
+</strong>
+","
+<em>
+"italic"
+</em>
+", and"
+<code>
+"verbatim"
+</code>
+"."
+</p>
+<h3>
+"A Subheading tag1 tag2"
+</h3>
+<ul>
+<li>
+"an unordered item"
+</li>
+<li>
+"another with a checkbox [ ]"
+</li>
+</ul>
+<h2>
+"Second Heading"
+</h2>
+<p>
+"See"
+<a href="#first">
+"the first heading"
+</a>
+"."
+</p>

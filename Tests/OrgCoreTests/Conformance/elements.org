@@ -1,0 +1,31 @@
+#+TITLE: Element Sampler
+#+FILETAGS: :sample:
+
+* Code and tables
+
+#+BEGIN_SRC rust
+fn main() {
+    println!("hello");
+}
+#+END_SRC
+
+| Name  | Score |
+|-------+-------|
+| alpha |    10 |
+| beta  |    20 |
+
+* Links and footnotes
+
+An external link: [[https://example.com][Example]] and an id link [[id:abc-123]].
+
+Text with a footnote reference.[fn:1]
+
+[fn:1] The footnote definition.
+
+* Blocks
+
+#+BEGIN_QUOTE
+A quoted paragraph.
+#+END_QUOTE
+
+-----

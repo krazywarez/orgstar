@@ -1,0 +1,20 @@
+#+TITLE: Heading Metadata
+
+* TODO [#A] Write the parser                                        :work:rust:
+:PROPERTIES:
+:CUSTOM_ID: write-parser
+:OWNER: nobody
+:END:
+A heading carrying a keyword, a priority, tags and a property drawer.
+
+** DONE Nested and finished
+Sub-headings nest by star count.
+
+** [#C] Priority without a keyword
+A priority cookie can stand alone.
+
+* TODOs are not a keyword
+The word boundary matters: this heading has no TODO keyword.
+
+* DONE
+A keyword with no title at all.

@@ -1,0 +1,38 @@
+#+TITLE: Lists
+
+* Nesting
+
+- outer item
+  - inner item
+    - deepest item
+  - second inner
+- second outer
+
+* Ordered
+
+1. first
+2. second
+   1. second point one
+   2. second point two
+3. third
+
+* Checkboxes
+
+- [ ] not done
+- [X] done
+- [-] partially done
+
+* Description
+
+- term one :: the first definition
+- term two :: the second definition, which is
+  soft-wrapped across two lines
+- /marked up/ term :: definitions hold inline markup
+
+* Multi-paragraph items
+
+- an item whose body has two paragraphs
+
+  the second paragraph, indented under the bullet
+
+- a plain sibling

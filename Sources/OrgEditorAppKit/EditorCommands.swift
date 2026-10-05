@@ -43,6 +43,13 @@ public enum EditorCommands {
         EditorCommand(id: "app.refile", title: "Refile…", action: .app),
         EditorCommand(id: "app.archive", title: "Archive Subtree", action: .app),
         EditorCommand(id: "app.agenda", title: "Agenda", action: .app),
+        EditorCommand(id: "app.export.html", title: "Export to HTML", action: .app),
+        EditorCommand(id: "app.export.html-open", title: "Export to HTML and Open", action: .app),
+        EditorCommand(id: "app.export.markdown", title: "Export to Markdown", action: .app),
+        EditorCommand(id: "app.export.pdf", title: "Export to PDF with Emacs", action: .app),
+        EditorCommand(id: "app.export.odt", title: "Export to ODT with Emacs", action: .app),
+        EditorCommand(id: "app.export.latex", title: "Export to LaTeX with Emacs", action: .app),
+        EditorCommand(id: "app.export.text", title: "Export to Plain Text with Emacs", action: .app),
 
         movement("forward-char", "Forward Character", "moveForward:"),
         movement("backward-char", "Backward Character", "moveBackward:"),

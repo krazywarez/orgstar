@@ -1,0 +1,6 @@
+#+TITLE: Table Sample
+
+| Name  | Score |
+|-------+-------|
+| alpha |    10 |
+| beta  |    20 |

@@ -1,0 +1,66 @@
+#+TITLE: Blocks
+
+* Quote
+
+#+BEGIN_QUOTE
+A quoted paragraph with /markup/.
+
+And a second paragraph.
+#+END_QUOTE
+
+* Center
+
+#+BEGIN_CENTER
+Centred text.
+#+END_CENTER
+
+* Example
+
+#+BEGIN_EXAMPLE
+Verbatim *not bold* text.
+  Indentation preserved.
+#+END_EXAMPLE
+
+* Export
+
+#+BEGIN_EXPORT html
+<aside class="raw">Raw HTML passes through.</aside>
+#+END_EXPORT
+
+#+BEGIN_EXPORT latex
+\emph{A non-HTML backend is dropped.}
+#+END_EXPORT
+
+* Source
+
+#+BEGIN_SRC python
+def greet(name):
+    return f"hello {name}"
+#+END_SRC
+
+#+BEGIN_SRC
+plain block, no language
+#+END_SRC
+
+* Nested
+
+#+BEGIN_QUOTE
+A quote containing a source block:
+
+#+BEGIN_SRC sh
+echo hi
+#+END_SRC
+#+END_QUOTE
+
+* Verse
+
+#+BEGIN_VERSE
+Line breaks are the point
+  and indentation survives.
+#+END_VERSE
+
+* A named special block
+
+#+BEGIN_NOTE
+Contents are *org*, not literal text.
+#+END_NOTE

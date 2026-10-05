@@ -1,3 +1,4 @@
+import AppKit
 import OrgApp
 import OrgCore
 import OrgEditorAppKit
@@ -38,7 +39,7 @@ struct ContentView: View {
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
 
-    var body: some View {
+    private var main: some View {
         NavigationSplitView {
             Sidebar(workspace: workspace, selection: $selectedFile)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260)
@@ -109,6 +110,13 @@ struct ContentView: View {
         .onChange(of: workspace.changedFile?.version) {
             if let path = workspace.changedFile?.path { session.fileChanged(path) }
         }
+    }
+
+    var body: some View {
+        main
+        .onChange(of: commands.runRequest?.serial) {
+            if let id = commands.runRequest?.id { perform(id) }
+        }
         .onChange(of: commands.jumpRequest?.id) {
             guard let request = commands.jumpRequest else { return }
             if request.path != session.path {
@@ -163,6 +171,43 @@ struct ContentView: View {
             if let id = DevelopmentHooks.windowToOpen { openWindow(id: id) }
             await workspace.refresh()
             workspace.startWatching()
+        }
+    }
+
+    /// Writes the export beside the file, as Emacs's export dispatcher does.
+    private func export(_ format: String) {
+        guard let path = session.path, let text = session.document?.text else {
+            commands.show("No file is open")
+            return
+        }
+        let url = URL(fileURLWithPath: path)
+        let base = url.deletingPathExtension()
+        let defaults = Preferences.orgSettings
+        switch format {
+        case "html", "html-open", "markdown":
+            let target = base.appendingPathExtension(format == "markdown" ? "md" : "html")
+            let content = format == "markdown"
+                ? MarkdownExport.document(text, settings: defaults)
+                : HTMLExport.page(text, fallbackTitle: base.lastPathComponent, settings: defaults)
+            do {
+                try content.write(to: target, atomically: true, encoding: .utf8)
+                commands.show("Exported to \(target.lastPathComponent)")
+                if format == "html-open" { NSWorkspace.shared.open(target) }
+            } catch {
+                commands.show("Can't write \(target.lastPathComponent): \(error.localizedDescription)")
+            }
+        default:
+            let functions = ["pdf": "org-latex-export-to-pdf", "odt": "org-odt-export-to-odt", "latex": "org-latex-export-to-latex", "text": "org-ascii-export-to-ascii"]
+            guard let function = functions[format] else { return }
+            commands.show("Exporting with Emacs…")
+            Task {
+                do {
+                    let written = try await EmacsRunner.export(text: text, path: path, function: function)
+                    commands.show("Exported to \((written as NSString).lastPathComponent)")
+                } catch {
+                    commands.show("\(error)")
+                }
+            }
         }
     }
 
@@ -264,6 +309,8 @@ struct ContentView: View {
             if let message = session.archive() { commands.show(message) }
         case "app.agenda":
             openWindow(id: "agenda")
+        case let id where id.hasPrefix("app.export."):
+            export(String(id.dropFirst("app.export.".count)))
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }

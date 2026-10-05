@@ -40,6 +40,15 @@ final class AppCommands {
         request.reply(text)
     }
 
+    /// An app command from a menu, run by the main window.
+    private(set) var runRequest: (id: String, serial: Int)?
+    private var runSerial = 0
+
+    func run(_ id: String) {
+        runSerial += 1
+        runRequest = (id, runSerial)
+    }
+
     func jump(path: String, offset: Int) {
         jumpID += 1
         jumpRequest = (path, offset, jumpID)
@@ -160,6 +169,14 @@ struct OrgstarApp: App {
                     .keyboardShortcut("p")
                 Button("Command Palette…") { commands.showingPalette = true }
                     .keyboardShortcut("p", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .saveItem) {
+                Menu("Export") {
+                    ForEach(EditorCommands.all.filter { $0.id.hasPrefix("app.export.") }, id: \.id) { command in
+                        Button(command.title) { commands.run(command.id) }
+                    }
+                }
+                .disabled(session.path == nil)
             }
             CommandGroup(replacing: .saveItem) {
                 Button("Save") {

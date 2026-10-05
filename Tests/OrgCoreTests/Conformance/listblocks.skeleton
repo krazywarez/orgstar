@@ -1,0 +1,94 @@
+<h2>
+"Source blocks"
+</h2>
+<ol>
+<li>
+"Fork the repository"
+</li>
+<li>
+"Create a new branch:"
+<pre>
+<code>
+"git checkout -b my-feature"
+</code>
+</pre>
+</li>
+<li>
+"Open a pull request"
+</li>
+</ol>
+<h2>
+"Other blocks"
+</h2>
+<ul>
+<li>
+"an item with an example block"
+<pre>
+"plain example text"
+</pre>
+</li>
+<li>
+"an item with a quote"
+<blockquote>
+<p>
+"quoted line"
+</p>
+</blockquote>
+</li>
+</ul>
+<h2>
+"Blocks alongside other content"
+</h2>
+<ul>
+<li>
+"an item with a sublist and a block"
+<ul>
+<li>
+"inner item"
+</li>
+</ul>
+<pre>
+<code>
+"echo hi"
+</code>
+</pre>
+</li>
+<li>
+<p>
+"an item with two paragraphs and a block"
+</p>
+<p>
+"the second paragraph"
+</p>
+<pre>
+<code>
+"echo again"
+</code>
+</pre>
+</li>
+<li>
+"an item with a table"
+<table>
+<thead>
+<tr>
+<th>
+"a"
+</th>
+<th>
+"b"
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+"1"
+</td>
+<td>
+"2"
+</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>

@@ -1,0 +1,42 @@
+<h2>
+"Bare image"
+</h2>
+<p>
+<img src="diagram.png">
+</p>
+<h2>
+"Captioned figure"
+</h2>
+<figure>
+<img src="pipeline.svg">
+<figcaption>
+"Figure 1: The pipeline, end to end"
+</figcaption>
+</figure>
+<h2>
+"Caption with markup"
+</h2>
+<figure>
+<img src="chart.png">
+<figcaption>
+"Figure 2: A"
+<em>
+"stylised"
+</em>
+"chart"
+</figcaption>
+</figure>
+<h2>
+"Quoted attribute values"
+</h2>
+<figure>
+<img src="cat.jpg">
+</figure>
+<h2>
+"Image with a description is a link"
+</h2>
+<p>
+<a href="diagram.png">
+"the diagram"
+</a>
+</p>

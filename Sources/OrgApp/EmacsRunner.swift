@@ -79,4 +79,55 @@ public enum EmacsRunner {
         }
         return String(decoding: data, as: UTF8.self)
     }
+
+    /// Exports `text`, the buffer of the file at `path`, with an ox function such as
+    /// `org-latex-export-to-pdf`. The file is written beside `path`, as Emacs does; source
+    /// blocks are not run. Returns the path Emacs wrote.
+    public static func export(text: String, path: String, function: String, timeout: Duration = .seconds(120)) async throws -> String {
+        guard let emacs = executable() else { throw Failure(description: "Emacs isn't installed, so this format can't be exported.") }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-export-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let snapshot = folder.appendingPathComponent("snapshot.org")
+        let output = folder.appendingPathComponent("output")
+        let script = folder.appendingPathComponent("export.el")
+        try text.write(to: snapshot, atomically: true, encoding: .utf8)
+        func lisp(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
+        try """
+        ;;; -*- lexical-binding: t -*-
+        (require 'org)
+        (require 'ox)
+        (setq enable-local-variables :safe
+              org-export-use-babel nil)
+        (with-current-buffer (find-file-noselect \(lisp(path)))
+          (let ((inhibit-read-only t)
+                (coding-system-for-read 'utf-8-unix))
+            (erase-buffer)
+            (insert-file-contents \(lisp(snapshot.path)))
+            (set-buffer-modified-p nil))
+          (let ((file (\(function))))
+            (with-temp-file \(lisp(output.path)) (insert (expand-file-name file)))))
+        """.write(to: script, atomically: true, encoding: .utf8)
+        let process = Process()
+        process.executableURL = emacs
+        process.arguments = ["-Q", "--batch", "-l", script.path]
+        process.currentDirectoryURL = URL(fileURLWithPath: path).deletingLastPathComponent()
+        let errors = Pipe()
+        process.standardError = errors
+        process.standardOutput = FileHandle.nullDevice
+        try process.run()
+        let deadline = ContinuousClock.now + timeout
+        while process.isRunning {
+            if ContinuousClock.now > deadline {
+                process.terminate()
+                throw Failure(description: "Emacs took too long to export.")
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        guard let written = try? String(contentsOf: output, encoding: .utf8) else {
+            let log = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            throw Failure(description: log.split(separator: "\n").last.map(String.init) ?? "Emacs couldn't export the file.")
+        }
+        return written
+    }
 }

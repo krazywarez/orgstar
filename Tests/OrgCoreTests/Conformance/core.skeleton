@@ -1,0 +1,58 @@
+<p>
+"Intro paragraph with a bare URL"
+<a href="https://example.com">
+"https://example.com"
+</a>
+"and some"
+<code>
+"inline code"
+</code>
+"."
+</p>
+<h2>
+"Ordered and checked"
+</h2>
+<ol>
+<li>
+"first item"
+</li>
+<li>
+"second item with"
+<em>
+"emphasis"
+</em>
+</li>
+</ol>
+<ul>
+<li>
+<code>
+"[ ]"
+</code>
+"todo item"
+</li>
+<li>
+<code>
+"[X]"
+</code>
+"done item"
+</li>
+</ul>
+<h2>
+"Links and code"
+</h2>
+<p>
+"An external"
+<a href="https://example.org">
+"site"
+</a>
+"and a bare"
+<a href="https://bare.example">
+"https://bare.example"
+</a>
+"."
+</p>
+<pre>
+<code>
+"fn main() { println!(\"hello\"); }"
+</code>
+</pre>

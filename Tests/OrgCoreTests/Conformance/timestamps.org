@@ -1,0 +1,21 @@
+#+TITLE: Timestamps
+
+* Single
+
+An active date <2024-01-15 Mon> and an inactive one [2024-01-15 Mon].
+
+With a time: <2024-01-15 Mon 10:30>.
+
+* Ranges
+
+A same-day time range <2024-01-15 Mon 10:00-11:45>.
+
+A multi-day range <2024-01-15 Mon>--<2024-01-20 Sat>.
+
+* Ignored decorations
+
+A repeater is dropped: <2024-01-15 Mon +1w>.
+
+* Not timestamps
+
+Comparisons like 3 < 4 and [not a stamp] stay literal text.
