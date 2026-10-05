@@ -111,18 +111,6 @@ struct LineBuffer {
         let delta = edit(position..<position, string)
         caret = position + delta
     }
-
-    /// Offset of display column `target` in the line, as `move-to-column`.
-    func offset(ofColumn target: Int) -> Int {
-        var column = 0
-        var offset = 0
-        for character in string {
-            if column >= target { break }
-            column = character == "\t" ? (column / 8 + 1) * 8 : column + displayWidth(of: character)
-            offset += String(character).utf16.count
-        }
-        return offset
-    }
 }
 
 extension HeadingLine {
@@ -156,25 +144,29 @@ extension HeadingLine {
 /// Commands align under `save-excursion`, where the caret is a marker: in the blanks before
 /// the tags it ends up where they start. Aligning tags directly (`preservingColumn`) keeps the
 /// caret's column instead, as org does for point.
-func alignTags(_ buffer: inout LineBuffer, tagsColumn: Int = -77, preservingColumn: Bool = false) {
+func alignTags(_ buffer: inout LineBuffer, options: EditingOptions = .org, preservingColumn: Bool = false) {
     let line = buffer.string
     guard let match = line.range(of: "[ \\t]+(:[[:alnum:]_@#%]+)+:[ \\t]*$", options: .regularExpression) else { return }
     let matched = String(line[match])
     let tags = matched.trimmingCharacters(in: .whitespaces)
     let blankStart = (String(line[..<match.lowerBound]) as NSString).length
     let tagsStart = blankStart + (matched as NSString).range(of: tags).location
-    let prefixColumn = column(of: String(line[..<match.lowerBound]))
-    let currentColumn = column(of: (line as NSString).substring(to: tagsStart))
+    // Columns as Emacs displays the line: link markup and, with the options, emphasis markers
+    // don't count.
+    let visible = VisibleLine(line, options: options)
+    let prefixColumn = visible.column(at: blankStart)
+    let currentColumn = visible.column(at: tagsStart)
+    let tagsColumn = options.tagsColumn
     let target = tagsColumn >= 0 ? tagsColumn : abs(tagsColumn) - displayWidth(tags)
     let newColumn = max(target, prefixColumn + 1)
     guard newColumn != currentColumn else { return }
     let inBlanks = buffer.caret.map { $0 > blankStart && $0 <= tagsStart } ?? false
-    let caretColumn: Int? = inBlanks && preservingColumn ? column(of: (line as NSString).substring(to: buffer.caret!)) : nil
+    let caretColumn: Int? = inBlanks && preservingColumn ? visible.column(at: buffer.caret!) : nil
     let old = buffer.caret
     buffer.text.replaceCharacters(in: NSRange(blankStart..<tagsStart), with: String(repeating: " ", count: newColumn - prefixColumn))
     let delta = (newColumn - prefixColumn) - (tagsStart - blankStart)
     if let caretColumn {
-        buffer.caret = buffer.offset(ofColumn: caretColumn)
+        buffer.caret = VisibleLine(buffer.string, options: options).offset(ofColumn: caretColumn)
     } else if inBlanks {
         buffer.caret = blankStart
     } else if let old, old > tagsStart {
@@ -182,14 +174,6 @@ func alignTags(_ buffer: inout LineBuffer, tagsColumn: Int = -77, preservingColu
     }
 }
 
-/// Display column at the end of `text`, starting from column 0.
-func column(of text: String) -> Int {
-    var column = 0
-    for character in text {
-        column = character == "\t" ? (column / 8 + 1) * 8 : column + displayWidth(of: character)
-    }
-    return column
-}
 
 // MARK: - TODO
 
@@ -256,7 +240,7 @@ public struct TodoCycle: OrgCommand {
                 }
             }
             buffer.replaceBeforeMarkers(regionStart..<regionEnd, with: next.map { " \($0) " } ?? " ")
-            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
+            alignTags(&buffer, options: context.options)
         }
     }
 }
@@ -304,7 +288,7 @@ struct PriorityChange {
                     buffer.insert(cookie + " ", at: line.titleStart - line.start)
                 }
             }
-            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
+            alignTags(&buffer, options: context.options)
         }
     }
 
@@ -350,7 +334,7 @@ public struct PromoteHeading: OrgCommand {
         guard line.level > 1 else { return .failed("Cannot promote to level 0") }
         return line.commit(context) { buffer in
             buffer.replace(0..<(line.level + 1), with: String(repeating: "*", count: line.level - 1) + " ")
-            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
+            alignTags(&buffer, options: context.options)
             fixPositionAfterPromote(&buffer, settings: context.tree.settings)
         }
     }
@@ -367,7 +351,7 @@ public struct DemoteHeading: OrgCommand {
         let line = HeadingLine(heading)
         return line.commit(context) { buffer in
             buffer.replace(0..<(line.level + 1), with: String(repeating: "*", count: line.level + 1) + " ")
-            alignTags(&buffer, tagsColumn: context.options.tagsColumn)
+            alignTags(&buffer, options: context.options)
             fixPositionAfterPromote(&buffer, settings: context.tree.settings)
         }
     }

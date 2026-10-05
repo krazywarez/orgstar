@@ -25,6 +25,7 @@ final class EmacsBuffer {
     var point: Int
     private var markers: [Marker] = []
     let settings: OrgSettings
+    private var visibleCache: [String: VisibleLine] = [:]
     /// Groups of the last successful match, as Emacs's match data.
     var lastMatch: [Range<Int>?] = []
     /// The clock and calendar commands see.
@@ -206,14 +207,38 @@ final class EmacsBuffer {
     static let blanks: Set<unichar> = [32, 9]
     static let whitespace: Set<unichar> = [32, 9, 10, 13]
 
-    var currentColumn: Int { column(of: substring(lineStart(point), point)) }
+    /// Display column of point, counting only what Emacs shows.
+    var currentColumn: Int {
+        let start = lineStart(point)
+        return visibleLine(start).column(at: point - start)
+    }
+
+    /// The display widths of the line starting at `start`, seen with three lines on either
+    /// side so that links spanning lines are whole. Cached by that text.
+    func visibleLine(_ start: Int) -> VisibleLine {
+        let (from, to) = saveExcursion { () -> (Int, Int) in
+            point = start
+            forwardLine(-3)
+            let from = point
+            point = start
+            forwardLine(3)
+            return (from, lineEnd(point))
+        }
+        let context = substring(from, to)
+        let range = (start - from)..<(lineEnd(start) - from)
+        let key = context + "\u{0}\(range.lowerBound)"
+        if let cached = visibleCache[key] { return cached }
+        let line = VisibleLine(context, line: range, options: options, settings: settings)
+        if visibleCache.count > 256 { visibleCache.removeAll() }
+        visibleCache[key] = line
+        return line
+    }
 
     /// `move-to-column`: as far as `target` on this line, or the line's end. With `force`, a
     /// tab spanning `target` becomes spaces (`indent-tabs-mode` nil) so point lands on it.
     func moveToColumn(_ target: Int, force: Bool = false) {
         let start = lineStart(point)
-        let line = LineBuffer(substring(start, lineEnd(point)), caret: nil)
-        point = start + line.offset(ofColumn: target)
+        point = start + visibleLine(start).offset(ofColumn: target)
         guard force, currentColumn > target, character(at: point - 1) == 9 else { return }
         let tabEnd = currentColumn
         point -= 1
@@ -415,14 +440,14 @@ final class EmacsBuffer {
         let end = lineEnd(offset)
         let line = substring(start, end)
         var plain = LineBuffer(line, caret: nil)
-        OrgCore.alignTags(&plain, tagsColumn: options.tagsColumn)
+        OrgCore.alignTags(&plain, options: options)
         guard plain.string != line else { return }
         func map(_ position: Int) -> Int {
             guard position >= start, position <= end else {
                 return position > end ? position + (plain.string as NSString).length - (line as NSString).length : position
             }
             var buffer = LineBuffer(line, caret: position - start)
-            OrgCore.alignTags(&buffer, tagsColumn: options.tagsColumn)
+            OrgCore.alignTags(&buffer, options: options)
             return start + buffer.caret!
         }
         let newPoint = map(point)

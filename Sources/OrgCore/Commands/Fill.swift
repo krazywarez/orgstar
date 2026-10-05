@@ -34,7 +34,11 @@ extension EmacsBuffer {
     /// The innermost element (not object) holding `offset`, as `org-element-at-point`. Greater
     /// blocks (quote, center, special) are parsed into their elements.
     func element(at offset: Int) -> Element? {
-        element(at: offset, in: string, base: 0)
+        // Elements never cross a heading, so the section around `offset` is enough to parse.
+        let lineBegin = lineStart(offset)
+        let from = headingLevel(atLine: lineBegin) != nil ? lineBegin : (previousHeadingStart(before: lineBegin) ?? 0)
+        let to = nextHeadingStart(after: lineBegin) ?? length
+        return element(at: offset, in: substring(from, to), base: from)
     }
 
     private func element(at offset: Int, in text: String, base: Int) -> Element? {

@@ -32,6 +32,18 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "S-TAB"
         command = "org.cycle-global"
+        [[bind]]
+        keys = "TAB"
+        command = "org.table.next-field"
+        when = "table"
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.table.previous-field"
+        when = "table"
+        [[bind]]
+        keys = "RET"
+        command = "org.table.next-row"
+        when = "table"
 
         """
 
@@ -270,6 +282,49 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "M-q"
         command = "org.fill-paragraph"
         [[bind]]
+        keys = "C-c C-c"
+        command = "org.table.align"
+        when = "table"
+        [[bind]]
+        keys = "M-<up>"
+        command = "org.table.row-up"
+        when = "table"
+        [[bind]]
+        keys = "M-<down>"
+        command = "org.table.row-down"
+        when = "table"
+        [[bind]]
+        keys = "M-<left>"
+        command = "org.table.column-left"
+        when = "table"
+        [[bind]]
+        keys = "M-<right>"
+        command = "org.table.column-right"
+        when = "table"
+        [[bind]]
+        keys = "M-S-<right>"
+        command = "org.table.insert-column"
+        when = "table"
+        [[bind]]
+        keys = "M-S-<left>"
+        command = "org.table.delete-column"
+        when = "table"
+        [[bind]]
+        keys = "M-S-<up>"
+        command = "org.table.kill-row"
+        when = "table"
+        [[bind]]
+        keys = "M-S-<down>"
+        command = "org.table.insert-row"
+        when = "table"
+        [[bind]]
+        keys = "C-c -"
+        command = "org.table.insert-hline"
+        when = "table"
+        [[bind]]
+        keys = "C-c |"
+        command = "org.table.create"
+        [[bind]]
         keys = "S-<up>"
         command = "org.timestamp.up"
         when = "timestamp"
@@ -392,6 +447,45 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-p"
         command = "org.fill-paragraph"
+        [[bind]]
+        keys = "C-s-<up>"
+        command = "org.table.row-up"
+        when = "table"
+        [[bind]]
+        keys = "C-s-<down>"
+        command = "org.table.row-down"
+        when = "table"
+        [[bind]]
+        keys = "C-s-<left>"
+        command = "org.table.column-left"
+        when = "table"
+        [[bind]]
+        keys = "C-s-<right>"
+        command = "org.table.column-right"
+        when = "table"
+        [[bind]]
+        keys = "C-M-s-<right>"
+        command = "org.table.insert-column"
+        when = "table"
+        [[bind]]
+        keys = "C-M-s-<left>"
+        command = "org.table.delete-column"
+        when = "table"
+        [[bind]]
+        keys = "C-M-s-<up>"
+        command = "org.table.kill-row"
+        when = "table"
+        [[bind]]
+        keys = "C-M-s-<down>"
+        command = "org.table.insert-row"
+        when = "table"
+        [[bind]]
+        keys = "C-s--"
+        command = "org.table.insert-hline"
+        when = "table"
+        [[bind]]
+        keys = "C-s-\\\\"
+        command = "org.table.create"
         [[bind]]
         keys = "C-s-<up>"
         command = "org.timestamp.up"

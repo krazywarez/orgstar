@@ -49,6 +49,8 @@ enum EmacsOracle {
           (org-mode)
           ;; `#+STARTUP' may fold the buffer; cases run with everything visible.
           (org-fold-show-all)
+          ;; Fontified, as in a displayed buffer: widths follow what is visible.
+          (font-lock-ensure)
           (goto-char (alist-get 'point c))
           ;; As an interactive call, not a repeat: some commands cycle differently on repeats.
           (setq this-command 'orgstar-oracle last-command nil)
@@ -124,11 +126,11 @@ enum EmacsOracle {
 /// The options as Emacs Lisp bindings around `form`.
 func withOptions(_ options: EditingOptions, _ form: String) -> String {
     func flag(_ value: Bool) -> String { value ? "t" : "nil" }
-    return "(let ((org-tags-column \(options.tagsColumn)) (org-insert-heading-respect-content \(flag(options.insertHeadingRespectContent))) (org-M-RET-may-split-line \(flag(options.metaReturnMaySplitLine))) (org-list-allow-alphabetical \(flag(options.listAllowAlphabetical))) (fill-column \(options.fillColumn)) (sentence-end-double-space nil)) \(form))"
+    return "(let ((org-tags-column \(options.tagsColumn)) (org-insert-heading-respect-content \(flag(options.insertHeadingRespectContent))) (org-M-RET-may-split-line \(flag(options.metaReturnMaySplitLine))) (org-list-allow-alphabetical \(flag(options.listAllowAlphabetical))) (fill-column \(options.fillColumn)) (sentence-end-double-space nil) (org-hide-emphasis-markers \(flag(options.hideEmphasisMarkers))) (org-pretty-entities \(flag(options.prettyEntities))) (org-use-sub-superscripts \(options.subSuperscriptsNeedBraces ? "'{}" : "t"))) (font-lock-flush) (font-lock-ensure) \(form))"
 }
 
 /// The options in the user's Doom Emacs.
-let doomOptions = EditingOptions(tagsColumn: 0, insertHeadingRespectContent: true, metaReturnMaySplitLine: false, listAllowAlphabetical: true, fillColumn: 80)
+let doomOptions = EditingOptions(tagsColumn: 0, insertHeadingRespectContent: true, metaReturnMaySplitLine: false, listAllowAlphabetical: true, fillColumn: 80, hideEmphasisMarkers: true, prettyEntities: true, subSuperscriptsNeedBraces: true)
 
 /// Runs a command the way an editor would: build a context, run, apply the edits.
 func runCommand(_ command: any OrgCommand, _ text: String, caret: Int, answers: [String: String] = [:], options: EditingOptions = .org) -> (text: String, caret: Int, failure: String?) {

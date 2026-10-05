@@ -15,10 +15,17 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var logRepeat: Bool
     /// `fill-column` for M-q.
     public var fillColumn: Int
+    /// `org-hide-emphasis-markers`: table alignment measures emphasis without its markers.
+    public var hideEmphasisMarkers: Bool
+    /// `org-pretty-entities`: table alignment measures `\alpha` as `α`.
+    public var prettyEntities: Bool
+    /// `org-use-sub-superscripts` `{}`: only `_{…}` and `^{…}` are sub- and superscripts.
+    public var subSuperscriptsNeedBraces: Bool
 
     public init(
         tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true,
-        listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70
+        listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70,
+        hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false
     ) {
         self.tagsColumn = tagsColumn
         self.insertHeadingRespectContent = insertHeadingRespectContent
@@ -26,6 +33,9 @@ public struct EditingOptions: Sendable, Equatable, Codable {
         self.listAllowAlphabetical = listAllowAlphabetical
         self.logRepeat = logRepeat
         self.fillColumn = fillColumn
+        self.hideEmphasisMarkers = hideEmphasisMarkers
+        self.prettyEntities = prettyEntities
+        self.subSuperscriptsNeedBraces = subSuperscriptsNeedBraces
     }
 
     /// Org's own defaults.
@@ -151,11 +161,13 @@ public enum Commands {
         InsertItem(), InsertCheckboxItem(), IndentItem(), OutdentItem(), IndentItemTree(), OutdentItemTree(),
         MoveItemUp(), MoveItemDown(), ToggleCheckbox(),
         InsertTimestamp(), InsertTimestamp(inactive: true), SetPlanning(deadline: false), SetPlanning(deadline: true),
-        RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(),
+        RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
     ]
 
+    public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }
+
     public static func command(_ id: String) -> (any OrgCommand)? {
-        all.first { $0.id == id }
+        everything.first { $0.id == id }
     }
 }
