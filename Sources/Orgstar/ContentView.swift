@@ -1,4 +1,6 @@
 import OrgApp
+import OrgCore
+import OrgEditorAppKit
 import OrgIndex
 import SwiftUI
 
@@ -7,6 +9,9 @@ struct ContentView: View {
     let session: DocumentSession
     @Bindable var commands: AppCommands
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
+    @AppStorage("keymap") private var preset = KeymapPreset.emacs
+    @AppStorage("optionAsMeta") private var optionAsMeta = OptionAsMeta.left.rawValue
+    @State private var keymap = KeymapPreset.emacs.keymap
     @State private var selectedFile: String?
     @State private var query = ""
     @FocusState private var searchFocused: Bool
@@ -30,7 +35,8 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 360)
         } detail: {
             if session.path != nil {
-                EditorView(session: session)
+                EditorView(session: session, commands: commands, keymap: keymap, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), onAppCommand: perform)
+                    .safeAreaInset(edge: .bottom, spacing: 0) { EchoArea(commands: commands) }
             } else {
                 ContentUnavailableView(
                     workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file",
@@ -59,6 +65,14 @@ struct ContentView: View {
             }
         }
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
+        .onChange(of: preset, initial: true) { loadKeymap() }
+        .sheet(isPresented: $commands.showingPalette) {
+            PaletteView(keymap: keymap) { id in
+                commands.showingPalette = false
+                // After the sheet closes, so app commands can present their own.
+                DispatchQueue.main.async { perform(id) }
+            }
+        }
         .onChange(of: session.conflict) { _, conflict in
             if conflict != nil { commands.showingConflict = true }
         }
@@ -103,6 +117,31 @@ struct ContentView: View {
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
             await workspace.refresh()
             workspace.startWatching()
+        }
+    }
+
+    private func loadKeymap() {
+        let loaded = KeymapLoader.load(preset)
+        keymap = loaded.keymap
+        if let first = loaded.problems.first {
+            let more = loaded.problems.count > 1 ? " (and \(loaded.problems.count - 1) more)" : ""
+            commands.show("keymap.toml: \(first)\(more)")
+        }
+    }
+
+    /// Runs a command from a key, the palette or the Org menu.
+    private func perform(_ id: String) {
+        switch id {
+        case "app.save":
+            if !session.save(), session.conflict != nil { commands.showingConflict = true }
+        case "app.quick-open": commands.showingQuickOpen = true
+        case "app.palette": commands.showingPalette = true
+        case "app.search": commands.focusSearch = true
+        case "app.reload-keymap":
+            loadKeymap()
+            commands.show("Keymap reloaded")
+        default:
+            if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }
     }
 

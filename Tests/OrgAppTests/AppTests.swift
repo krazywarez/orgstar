@@ -209,3 +209,20 @@ struct SessionSavingTests {
         #expect(workspace.search("unsaved", overlay: overlay).map(\.title) == ["Unsaved heading"])
     }
 }
+
+@MainActor
+struct KeymapLoaderTests {
+    @Test func layersTheUserFile() throws {
+        let folder = try Folder()
+        let missing = KeymapLoader.load(.emacs, userFile: folder.url.appendingPathComponent("none.toml"))
+        #expect(missing.keymap == KeymapPreset.emacs.keymap && missing.problems.isEmpty)
+
+        let file = try folder.write("keymap.toml", "[[bind]]\nkeys = \"C-c a\"\ncommand = \"app.palette\"\n[[bind]]\nkeys = \"Q-q\"\ncommand = \"x\"\n")
+        let loaded = KeymapLoader.load(.emacs, userFile: file)
+        #expect(loaded.keymap.candidates(for: KeySequence.parse("C-c a")!).first?.command == "app.palette")
+        #expect(loaded.problems == ["line 4: bad or missing keys"])
+
+        let broken = try folder.write("broken.toml", "keys = \"x")
+        #expect(KeymapLoader.load(.mac, userFile: broken).problems == ["line 1: unclosed string"])
+    }
+}

@@ -1,5 +1,7 @@
 import AppKit
 import OrgApp
+import OrgCore
+import OrgEditorAppKit
 import SwiftUI
 
 /// Window-level requests the menu bar makes.
@@ -10,6 +12,25 @@ final class AppCommands {
     var showingFolderPicker = false
     var focusSearch = false
     var showingConflict = false
+    var showingPalette = false
+    /// The editor showing the open file, for menus and the palette.
+    var editor: OrgEditor?
+    /// The pending key prefix, and what can follow it.
+    var pendingKeys: String?
+    var keyHints: [KeyHint] = []
+    /// The last message from a command or the keymap, cleared after a few seconds.
+    private(set) var message: String?
+    private var messageID = 0
+
+    func show(_ text: String) {
+        messageID += 1
+        let id = messageID
+        message = text
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            if messageID == id { message = nil }
+        }
+    }
 }
 
 @MainActor
@@ -70,6 +91,8 @@ struct OrgstarApp: App {
                     .keyboardShortcut("o", modifiers: [.command, .shift])
                 Button("Quick Open…") { commands.showingQuickOpen = true }
                     .keyboardShortcut("p")
+                Button("Command Palette…") { commands.showingPalette = true }
+                    .keyboardShortcut("p", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .saveItem) {
                 Button("Save") {
@@ -83,6 +106,14 @@ struct OrgstarApp: App {
                     .keyboardShortcut("f", modifiers: [.command, .shift])
             }
         }
+        .commands {
+            CommandMenu("Org") {
+                ForEach(EditorCommands.all.filter { $0.id.hasPrefix("org.") }, id: \.id) { command in
+                    Button(command.title) { commands.editor?.run(command.id) }
+                        .disabled(commands.editor == nil)
+                }
+            }
+        }
         Settings {
             SettingsView()
         }
@@ -91,6 +122,8 @@ struct OrgstarApp: App {
 
 struct SettingsView: View {
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
+    @AppStorage("keymap") private var preset = KeymapPreset.emacs
+    @AppStorage("optionAsMeta") private var optionAsMeta = OptionAsMeta.left.rawValue
 
     var body: some View {
         Form {
@@ -99,6 +132,19 @@ struct SettingsView: View {
                 Text("Only with File ▸ Save (⌘S)").tag(SaveMode.explicit)
             }
             .pickerStyle(.radioGroup)
+            Picker("Keys:", selection: $preset) {
+                ForEach(KeymapPreset.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            Picker("Option as Meta:", selection: $optionAsMeta) {
+                Text("Left Option").tag(OptionAsMeta.left.rawValue)
+                Text("Right Option").tag(OptionAsMeta.right.rawValue)
+                Text("Both").tag(OptionAsMeta([.left, .right]).rawValue)
+                Text("Neither").tag(0)
+            }
+            Text("Your own bindings go in \(KeymapLoader.userFile.path), on top of the preset.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
         .padding(20)
         .frame(width: 420)

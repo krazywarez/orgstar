@@ -1,5 +1,6 @@
 import AppKit
 import OrgApp
+import OrgCore
 import OrgEditorAppKit
 import SwiftUI
 
@@ -7,6 +8,10 @@ import SwiftUI
 /// session's buffer; reveal requests go to the existing one.
 struct EditorView: NSViewRepresentable {
     let session: DocumentSession
+    let commands: AppCommands
+    let keymap: Keymap
+    let optionAsMeta: OptionAsMeta
+    let onAppCommand: (String) -> Void
 
     final class Coordinator {
         var editor: OrgEditor?
@@ -29,6 +34,13 @@ struct EditorView: NSViewRepresentable {
             if let document = session.document {
                 let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable)
                 editor.onChange = { [weak session] in session?.bufferChanged() }
+                editor.onMessage = { [weak commands] in commands?.show($0) }
+                editor.onKeysPending = { [weak commands] keys, next in
+                    commands?.pendingKeys = keys
+                    commands?.keyHints = next.map { KeyHint(key: $0.key, title: $0.title) }
+                }
+                editor.onAppCommand = onAppCommand
+                commands.editor = editor
                 let scroll = editor.makeScrollView()
                 scroll.frame = container.bounds
                 scroll.autoresizingMask = [.width, .height]
@@ -37,6 +49,10 @@ struct EditorView: NSViewRepresentable {
                 coordinator.editor = editor
                 session.attach(editor)
             }
+        }
+        if let editor = coordinator.editor {
+            if editor.keymap != keymap { editor.keymap = keymap }
+            editor.optionAsMeta = optionAsMeta
         }
         container.window?.isDocumentEdited = session.isDirty
         if let request = session.revealRequest, request.id != coordinator.revealID {
