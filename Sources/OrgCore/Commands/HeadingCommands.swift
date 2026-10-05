@@ -220,9 +220,18 @@ public struct TodoCycle: OrgCommand {
     /// As `org-todo`: the blanks after the stars, the keyword and the blanks after it are
     /// replaced by " NEXT " (or " " for no keyword) with `insert-before-markers`, then tags
     /// are aligned.
-    /// `org-todo`, then the parent's TODO statistics.
+    /// `org-todo`, then the parent's TODO statistics, and the repeat of a repeating entry
+    /// that became done.
     public func run(in context: EditContext) -> CommandStep {
-        followUp(context, cycle(in: context)) { $0.updateParentTodoStatistics() }
+        let previous = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).todoKeyword
+        return followUp(context, cycle(in: context)) { buffer in
+            try buffer.saveExcursion {
+                buffer.updateParentTodoStatistics()
+                let settings = context.tree.settings
+                guard let new = buffer.todoKeyword, settings.isDone(new), !(previous.map(settings.isDone) ?? false) else { return }
+                if let (marker, note) = try buffer.autoRepeat(doneWord: new, previous: previous) { buffer.storeNote(marker, note) }
+            }
+        }
     }
 
     private func cycle(in context: EditContext) -> CommandStep {

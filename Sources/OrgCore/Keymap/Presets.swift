@@ -254,6 +254,34 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c $"
         command = "app.archive"
+        [[bind]]
+        keys = "C-c ."
+        command = "org.timestamp.active"
+        [[bind]]
+        keys = "C-c !"
+        command = "org.timestamp.inactive"
+        [[bind]]
+        keys = "C-c C-s"
+        command = "org.schedule"
+        [[bind]]
+        keys = "C-c C-d"
+        command = "org.deadline"
+        [[bind]]
+        keys = "S-<up>"
+        command = "org.timestamp.up"
+        when = "timestamp"
+        [[bind]]
+        keys = "S-<down>"
+        command = "org.timestamp.down"
+        when = "timestamp"
+        [[bind]]
+        keys = "S-<right>"
+        command = "org.timestamp.day-later"
+        when = "timestamp"
+        [[bind]]
+        keys = "S-<left>"
+        command = "org.timestamp.day-earlier"
+        when = "timestamp"
 
         """
 
@@ -346,6 +374,34 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-a"
         command = "app.archive"
+        [[bind]]
+        keys = "C-s-."
+        command = "org.timestamp.active"
+        [[bind]]
+        keys = "C-M-s-."
+        command = "org.timestamp.inactive"
+        [[bind]]
+        keys = "C-s-s"
+        command = "org.schedule"
+        [[bind]]
+        keys = "C-s-d"
+        command = "org.deadline"
+        [[bind]]
+        keys = "C-s-<up>"
+        command = "org.timestamp.up"
+        when = "timestamp"
+        [[bind]]
+        keys = "C-s-<down>"
+        command = "org.timestamp.down"
+        when = "timestamp"
+        [[bind]]
+        keys = "C-s-<right>"
+        command = "org.timestamp.day-later"
+        when = "timestamp"
+        [[bind]]
+        keys = "C-s-<left>"
+        command = "org.timestamp.day-earlier"
+        when = "timestamp"
 
         """
 }

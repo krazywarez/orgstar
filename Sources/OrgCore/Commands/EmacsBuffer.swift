@@ -27,6 +27,11 @@ final class EmacsBuffer {
     let settings: OrgSettings
     /// Groups of the last successful match, as Emacs's match data.
     var lastMatch: [Range<Int>?] = []
+    /// The clock and calendar commands see.
+    var now = Date()
+    var calendar = Calendar.current
+    /// `org-last-inserted-timestamp`.
+    var lastInsertedTimestamp: String?
 
     let options: EditingOptions
 
@@ -434,6 +439,8 @@ final class EmacsBuffer {
 /// and the new caret. A user error becomes `.failed`.
 func commitBuffer(_ context: EditContext, _ body: (EmacsBuffer) throws -> Void) -> CommandStep {
     let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
+    buffer.now = context.now
+    buffer.calendar = context.calendar
     do {
         try body(buffer)
     } catch let error as EmacsBuffer.UserError {

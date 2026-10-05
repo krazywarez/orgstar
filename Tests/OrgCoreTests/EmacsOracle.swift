@@ -29,7 +29,6 @@ enum EmacsOracle {
     (require 'cl-lib)
     (setq org-todo-keywords '((sequence "TODO" "DONE"))
           org-log-done nil
-          org-log-repeat nil
           org-adapt-indentation nil
           org-tags-column -77
           org-priority-highest ?A

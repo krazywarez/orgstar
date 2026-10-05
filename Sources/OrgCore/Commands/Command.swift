@@ -11,12 +11,18 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var metaReturnMaySplitLine: Bool
     /// `org-list-allow-alphabetical`: `a.` and `A)` are list bullets.
     public var listAllowAlphabetical: Bool
+    /// `org-log-repeat` `time`: completing a repeating entry records LAST_REPEAT and a state note.
+    public var logRepeat: Bool
 
-    public init(tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true, listAllowAlphabetical: Bool = false) {
+    public init(
+        tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true,
+        listAllowAlphabetical: Bool = false, logRepeat: Bool = true
+    ) {
         self.tagsColumn = tagsColumn
         self.insertHeadingRespectContent = insertHeadingRespectContent
         self.metaReturnMaySplitLine = metaReturnMaySplitLine
         self.listAllowAlphabetical = listAllowAlphabetical
+        self.logRepeat = logRepeat
     }
 
     /// Org's own defaults.
@@ -141,6 +147,9 @@ public enum Commands {
         SetTags(),
         InsertItem(), InsertCheckboxItem(), IndentItem(), OutdentItem(), IndentItemTree(), OutdentItemTree(),
         MoveItemUp(), MoveItemDown(), ToggleCheckbox(),
+        InsertTimestamp(), InsertTimestamp(inactive: true), SetPlanning(deadline: false), SetPlanning(deadline: true),
+        RemovePlanning(deadline: false), RemovePlanning(deadline: true),
+        ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
     ]
 
     public static func command(_ id: String) -> (any OrgCommand)? {
