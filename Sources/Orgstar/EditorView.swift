@@ -12,7 +12,6 @@ struct EditorView: NSViewRepresentable {
         var editor: OrgEditor?
         var path: String?
         var revealID = 0
-        var diskID = 0
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -35,15 +34,12 @@ struct EditorView: NSViewRepresentable {
                 container.addSubview(scroll)
                 container.window?.makeFirstResponder(editor.textView)
                 coordinator.editor = editor
+                session.attach(editor)
             }
         }
         if let request = session.revealRequest, request.id != coordinator.revealID {
             coordinator.revealID = request.id
             coordinator.editor?.reveal(request.offset)
-        }
-        if let disk = session.diskBytes, disk.id != coordinator.diskID {
-            coordinator.diskID = disk.id
-            coordinator.editor?.diskChanged(to: disk.bytes)
         }
     }
 }

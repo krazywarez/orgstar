@@ -1,5 +1,6 @@
 import Foundation
 import OrgCore
+import OrgDocument
 import OrgIndex
 import Testing
 @testable import OrgApp
@@ -90,7 +91,7 @@ struct DocumentSessionTests {
     @Test func openShowAndReload() throws {
         let notes = try Folder()
         let file = try notes.write("a.org", "* One\n* Two\n")
-        let session = DocumentSession()
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
         session.open(file.path)
         #expect(session.outline.map(\.title) == ["One", "Two"])
 
@@ -101,7 +102,6 @@ struct DocumentSessionTests {
         try notes.write("a.org", "intro\n* One\n* Two\n")
         session.fileChanged(file.path)
         #expect(session.outline.map(\.start) == [6, 12])
-        #expect(session.diskBytes != nil)
         session.show(location)
         #expect(session.revealRequest?.offset == 12)
     }
@@ -111,5 +111,101 @@ struct DocumentSessionTests {
         session.open("/nonexistent/a.org")
         #expect(session.lastError != nil)
         #expect(session.document == nil)
+    }
+}
+
+@MainActor
+struct SessionSavingTests {
+    let notes: Folder
+    let file: URL
+    let recovery: FileRecoveryStore
+    let session: DocumentSession
+
+    init() throws {
+        notes = try Folder()
+        file = try notes.write("a.org", "a\nb\nc\n")
+        recovery = FileRecoveryStore(directory: notes.url.appendingPathComponent(".recovery"))
+        session = DocumentSession(recovery: recovery)
+        session.saveMode = .explicit
+        session.open(file.path)
+    }
+
+    /// Types `text` at `offset`, as the editor would.
+    func type(_ text: String, at offset: Int) throws {
+        let buffer = StateBuffer(session.document!)
+        session.attach(buffer)
+        try buffer.update { try $0.apply([TextEdit(range: offset..<offset, replacement: text)], baseRevision: $0.revision) }
+        session.bufferChanged()
+    }
+
+    var disk: String { (try? String(contentsOf: file, encoding: .utf8)) ?? "" }
+
+    @Test func saveWritesAndClearsDirty() throws {
+        try type("x", at: 0)
+        #expect(session.isDirty)
+        #expect(session.save())
+        #expect(!session.isDirty)
+        #expect(disk == "xa\nb\nc\n")
+    }
+
+    @Test func automaticModeSavesAfterTheDelay() async throws {
+        session.saveMode = .automatic
+        session.autosaveDelay = .milliseconds(10)
+        try type("x", at: 0)
+        #expect(disk == "a\nb\nc\n")
+        await session.autosave?.value
+        #expect(disk == "xa\nb\nc\n")
+        #expect(!session.isDirty)
+    }
+
+    @Test func explicitModeWaitsForSave() throws {
+        try type("x", at: 0)
+        #expect(session.autosave == nil)
+    }
+
+    @Test func externalChangeMergesIntoEdits() throws {
+        try type("x", at: 0)
+        try notes.write("a.org", "a\nb\nC\n")
+        session.fileChanged(file.path)
+        #expect(session.document?.text == "xa\nb\nC\n")
+        #expect(session.conflict == nil)
+        #expect(session.save())
+        #expect(disk == "xa\nb\nC\n")
+    }
+
+    @Test func conflictKeepMine() throws {
+        try type("x", at: 0)
+        try notes.write("a.org", "z\nb\nc\n")
+        session.fileChanged(file.path)
+        #expect(session.conflict != nil)
+        #expect(!session.save())
+        #expect(disk == "z\nb\nc\n")
+        session.keepMine()
+        #expect(session.conflict == nil)
+        #expect(disk == "xa\nb\nc\n")
+        let kept = try recovery.versions(for: file).map { try String(contentsOf: $0, encoding: .utf8) }
+        #expect(kept.contains("z\nb\nc\n"))
+    }
+
+    @Test func conflictUseDiskVersion() throws {
+        try type("x", at: 0)
+        try notes.write("a.org", "z\nb\nc\n")
+        #expect(!session.save())
+        #expect(session.conflict != nil)
+        session.useDiskVersion()
+        #expect(session.conflict == nil)
+        #expect(!session.isDirty)
+        #expect(session.document?.text == "z\nb\nc\n")
+        let kept = try recovery.versions(for: file).map { try String(contentsOf: $0, encoding: .utf8) }
+        #expect(kept.contains("xa\nb\nc\n"))
+    }
+
+    @Test func searchSeesUnsavedHeadings() async throws {
+        let workspace = try WorkspaceModel(directory: nil)
+        try await workspace.addRoot(notes.url)
+        try type("* Unsaved heading\n", at: 0)
+        let overlay = workspace.overlay(path: session.path, document: session.document)
+        #expect(workspace.search("unsaved").isEmpty)
+        #expect(workspace.search("unsaved", overlay: overlay).map(\.title) == ["Unsaved heading"])
     }
 }

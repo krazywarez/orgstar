@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OrgDocument
 import OrgIndex
 import OrgWorkspace
 
@@ -22,6 +23,7 @@ public final class WorkspaceModel {
     private var resolvedRoots: [String: URL] = [:]
     @ObservationIgnored private var watcher: AnyObject?
     private var changeVersion = 0
+    @ObservationIgnored private var overlayCache: (text: String, record: FileRecord)?
 
     /// `directory` holds the index and the list of roots; nil keeps both in memory.
     public init(directory: URL?, settings: IndexSettings = IndexSettings()) throws {
@@ -190,6 +192,20 @@ public final class WorkspaceModel {
 
     public func search(_ query: String, overlay: [String: FileRecord] = [:]) -> [HeadingLocation] {
         (try? index.search(query, overlay: overlay)) ?? []
+    }
+
+    /// Index rows for an open file's unsaved text, keyed by path, for queries to use in place
+    /// of its rows on disk. Empty when the file has no unsaved edits. Cached until the text
+    /// changes.
+    public func overlay(path: String?, document: DocumentState?) -> [String: FileRecord] {
+        guard let path, let document, document.isDirty, let bytes = try? document.encodedText(),
+              let entry = files.first(where: { $0.path == path }) else { return [:] }
+        if let cached = overlayCache, cached.record.path == path, cached.text == document.text {
+            return [path: cached.record]
+        }
+        let record = FileRecord(path: path, root: entry.root, kind: entry.kind, bytes: bytes, mtime: Date().timeIntervalSince1970, settings: settings)
+        overlayCache = (document.text, record)
+        return [path: record]
     }
 
     public func quickOpen(_ query: String) -> [FileEntry] {

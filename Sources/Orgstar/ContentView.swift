@@ -27,7 +27,7 @@ struct ContentView: View {
             }
             .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 360)
         } detail: {
-            if session.document != nil {
+            if session.path != nil {
                 EditorView(session: session)
             } else {
                 ContentUnavailableView(
@@ -135,7 +135,7 @@ struct OutlineColumn: View {
             .buttonStyle(.plain)
         }
         .overlay {
-            if session.document != nil, session.outline.isEmpty {
+            if session.path != nil, session.outline.isEmpty {
                 ContentUnavailableView("No headings", systemImage: "list.bullet.indent")
             }
         }

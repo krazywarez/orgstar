@@ -34,6 +34,6 @@ let package = Package(
         .testTarget(name: "OrgWorkspaceTests", dependencies: ["OrgWorkspace"]),
         .testTarget(name: "OrgPresentationTests", dependencies: ["OrgPresentation"]),
         .testTarget(name: "OrgEditorAppKitTests", dependencies: ["OrgEditorAppKit"]),
-        .testTarget(name: "OrgAppTests", dependencies: ["OrgApp"])
+        .testTarget(name: "OrgAppTests", dependencies: ["OrgApp", "OrgDocument"])
     ]
 )
