@@ -42,54 +42,57 @@ struct ContentView: View {
     @State private var selectedFile: String?
     /// A file that isn't text, shown as a preview instead of the open document.
     @State private var previewPath: String?
+    @AppStorage("outlineShown") private var orgOutlineShown = true
+    /// The outline for a file that isn't org, off until asked for.
+    @State private var plainOutlineShown = false
     @State private var query = ""
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
-    private var main: some View {
-        NavigationSplitView {
-            Sidebar(workspace: workspace, selection: $selectedFile) { commands.showingFolderPicker = true }
-                .navigationSplitViewColumnWidth(min: 200, ideal: 260)
-        } content: {
-            Group {
-                if query.isEmpty {
-                    OutlineColumn(session: session)
-                } else {
-                    SearchResults(results: workspace.search(query, overlay: workspace.overlay(path: session.path, document: session.document))) { location in
-                        guard location.path == session.path || UnsavedChanges.resolve(session) else { return }
-                        selectedFile = location.path
-                        session.show(location)
+    /// Whether the outline pane shows: remembered for org files, hidden by default for
+    /// other files, and always shown while search results are up.
+    private var outlineShown: Bool {
+        !query.isEmpty || (previewPath == nil && (session.isOrg ? orgOutlineShown : plainOutlineShown))
+    }
+
+    private func toggleOutline() {
+        if session.isOrg { orgOutlineShown.toggle() } else { plainOutlineShown.toggle() }
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        if let previewPath {
+            FilePreview(path: previewPath)
+        } else if session.path != nil {
+            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        ModeLine(session: session, commands: commands, clock: clock, perform: perform)
+                        EchoArea(commands: commands)
                     }
                 }
-            }
-            .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 360)
-        } detail: {
-            if let previewPath {
-                FilePreview(path: previewPath)
-            } else if session.path != nil {
-                EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        VStack(spacing: 0) {
-                            ModeLine(session: session, commands: commands, clock: clock, perform: perform)
-                            EchoArea(commands: commands)
-                        }
-                    }
-            } else {
-                ContentUnavailableView(
-                    workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file",
-                    systemImage: "doc.text",
-                    description: Text(workspace.roots.isEmpty ? "File ▸ Add Folder… (⇧⌘O)" : "Or press ⌘P to open one by name.")
-                )
-            }
+        } else {
+            ContentUnavailableView(
+                workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file",
+                systemImage: "doc.text",
+                description: Text(workspace.roots.isEmpty ? "File ▸ Add Folder… (⇧⌘O)" : "Or press ⌘P to open one by name.")
+            )
         }
-        .navigationTitle((previewPath ?? session.path).map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
-        .navigationSubtitle(session.isReadOnly ? "Read-only: not UTF-8" : "")
-        .searchable(text: $query, placement: .toolbar, prompt: "Search notes")
-        .searchFocused($searchFocused)
-        .toolbar {
-            if workspace.isIndexing { ProgressView().controlSize(.small) }
-            if let running = clock.running {
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarItems: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            Button(outlineShown ? "Hide Outline" : "Show Outline", systemImage: "list.bullet.indent") { toggleOutline() }
+                .help(outlineShown ? "Hide the outline (⌥⌘O)" : "Show the outline (⌥⌘O)")
+                .disabled(!query.isEmpty || previewPath != nil || session.path == nil)
+        }
+        if workspace.isIndexing {
+            ToolbarItem { ProgressView().controlSize(.small) }
+        }
+        if let running = clock.running {
+            ToolbarItem {
                 Menu {
                     Button("Clock Out") { perform("app.clock.out") }
                     Button("Cancel Clock") { perform("app.clock.cancel") }
@@ -101,11 +104,45 @@ struct ContentView: View {
                 }
                 .help("Clocked in since \(running.startedAt.formatted(date: .omitted, time: .shortened))")
             }
-            if session.conflict != nil {
+        }
+        if session.conflict != nil {
+            ToolbarItem {
                 Button("Conflict", systemImage: "exclamationmark.triangle") { commands.showingConflict = true }
                     .help("The file changed on disk, and the changes conflict with yours")
             }
         }
+    }
+
+    private var main: some View {
+        NavigationSplitView {
+            Sidebar(workspace: workspace, selection: $selectedFile) { commands.showingFolderPicker = true }
+                .navigationSplitViewColumnWidth(min: 200, ideal: 260)
+        } detail: {
+            HSplitView {
+                if outlineShown {
+                    Group {
+                        if query.isEmpty {
+                            OutlineColumn(session: session)
+                        } else {
+                            SearchResults(results: workspace.search(query, overlay: workspace.overlay(path: session.path, document: session.document))) { location in
+                                guard location.path == session.path || UnsavedChanges.resolve(session) else { return }
+                                selectedFile = location.path
+                                session.show(location)
+                            }
+                        }
+                    }
+                    .frame(minWidth: 160, idealWidth: 220, maxWidth: 360)
+                }
+                detail
+                    .frame(minWidth: 300, maxWidth: .infinity)
+            }
+        }
+        .navigationTitle((previewPath ?? session.path).map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
+        .navigationSubtitle(session.isReadOnly ? "Read-only: not UTF-8" : "")
+        .searchable(text: $query, placement: .toolbar, prompt: "Search notes")
+        .searchFocused($searchFocused)
+        .toolbar { toolbarItems }
+        .onChange(of: session.path) { plainOutlineShown = false }
         .onChange(of: selectedFile) { old, path in
             guard let path else { return }
             if !DocumentSession.isOrgPath(path), !FileTypes.isText(path) {
@@ -344,6 +381,7 @@ struct ContentView: View {
         case "app.save":
             if !session.save(), session.conflict != nil { commands.showingConflict = true }
         case "app.quit": NSApp.terminate(nil)
+        case "app.toggle-outline": toggleOutline()
         case "app.quick-open": commands.showingQuickOpen = true
         case "app.palette": commands.showingPalette = true
         case "app.search": commands.focusSearch = true

@@ -219,6 +219,10 @@ struct OrgstarApp: App {
                 .keyboardShortcut("s")
                 .disabled(session.path == nil || session.isReadOnly)
             }
+            CommandGroup(after: .sidebar) {
+                Button("Show or Hide Outline") { commands.run("app.toggle-outline") }
+                    .keyboardShortcut("o", modifiers: [.command, .option])
+            }
             CommandGroup(after: .textEditing) {
                 Button("Search Notes") { commands.focusSearch = true }
                     .keyboardShortcut("f", modifiers: [.command, .shift])
