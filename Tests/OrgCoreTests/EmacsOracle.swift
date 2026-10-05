@@ -37,6 +37,8 @@ enum EmacsOracle {
           org-priority-default ?B)
     ;; Buffer-local when set, so set the default for the case buffers.
     (setq-default indent-tabs-mode nil)
+    ;; Archive files open in Org mode, as in usual configurations.
+    (add-to-list 'auto-mode-alist '("\\.org_archive\\'" . org-mode))
     (let* ((input (with-temp-buffer
                     (let ((coding-system-for-read 'utf-8-unix))
                       (insert-file-contents (getenv "ORACLE_INPUT")))
@@ -78,7 +80,7 @@ enum EmacsOracle {
         let output = folder.appendingPathComponent("output.json")
         try script.write(to: scriptURL, atomically: true, encoding: .utf8)
         try JSONEncoder().encode(cases).write(to: input)
-        _ = try run(["-Q", "--batch", "-l", scriptURL.path], environment: ["ORACLE_INPUT": input.path, "ORACLE_OUTPUT": output.path])
+        _ = try run(["-Q", "--batch", "-l", scriptURL.path], environment: ["ORACLE_INPUT": input.path, "ORACLE_OUTPUT": output.path, "TZ": "UTC"])
         return try JSONDecoder().decode([Result].self, from: Data(contentsOf: output))
     }
 

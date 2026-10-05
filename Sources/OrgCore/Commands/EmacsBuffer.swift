@@ -9,7 +9,12 @@ import Foundation
 final class EmacsBuffer {
     final class Marker {
         var position: Int
-        init(_ position: Int) { self.position = position }
+        /// Inserting at the marker moves it past the text, as `set-marker-insertion-type` t.
+        let advances: Bool
+        init(_ position: Int, advances: Bool = false) {
+            self.position = position
+            self.advances = advances
+        }
     }
 
     struct UserError: Error {
@@ -61,8 +66,8 @@ final class EmacsBuffer {
 
     // MARK: - Markers
 
-    func marker(_ position: Int) -> Marker {
-        let marker = Marker(position)
+    func marker(_ position: Int, advances: Bool = false) -> Marker {
+        let marker = Marker(position, advances: advances)
         markers.append(marker)
         return marker
     }
@@ -91,7 +96,7 @@ final class EmacsBuffer {
         touched(point..<point)
         text.insert(string, at: point)
         cachedString = nil
-        for marker in markers where marker.position > point { marker.position += count }
+        for marker in markers where marker.position > point || (marker.advances && marker.position == point) { marker.position += count }
         point += count
     }
 

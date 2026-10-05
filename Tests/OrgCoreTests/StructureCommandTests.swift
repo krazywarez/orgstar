@@ -49,6 +49,7 @@ struct StructureOracleTests {
         "\n* a\n\nbody\n\n* b\n",
         "* TODO [#A] title here :t:\nbody\n",
         "* a 😀 b\n** c\n",
+        "* P [0/1]\n** TODO a\n",
     ]
 
     static let commands: [(command: any OrgCommand, form: String, headingLineOnly: Bool)] = [

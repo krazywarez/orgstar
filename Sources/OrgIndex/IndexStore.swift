@@ -12,6 +12,13 @@ public struct FileState: Sendable, Equatable {
 
 /// A heading as found by a query. `contentHash` is the hash of the text the offsets refer to,
 /// so a caller can tell whether they still apply to an open buffer.
+public struct IndexedHeading: Sendable, Hashable {
+    public let location: HeadingLocation
+    public let level: Int
+    /// Titles from the top-level ancestor down to the heading itself.
+    public let outlinePath: [String]
+}
+
 public struct HeadingLocation: Sendable, Hashable {
     public let path: String
     public let ordinal: Int
@@ -260,6 +267,27 @@ public final class IndexStore: Sendable {
             }.map { location(record, $0) }
         }
         return Array((live + indexed.filter { overlay[$0.path] == nil }).prefix(limit))
+    }
+
+    /// Headings down to `maxLevel` in org files (not archives or conflict copies), with their
+    /// levels and outline paths, in file order: refile targets.
+    public func outline(maxLevel: Int) throws -> [IndexedHeading] {
+        try database.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT f.path, f.hash, h.ordinal, h.title, h.start_offset, h.level, h.outline_path
+                    FROM headings h JOIN files f ON f.id = h.file_id
+                    WHERE h.level <= ? AND f.kind = 'org' ORDER BY f.path, h.ordinal
+                    """,
+                arguments: [maxLevel]
+            ).map { row in
+                IndexedHeading(
+                    location: location(row), level: row["level"],
+                    outlinePath: (row["outline_path"] as String).split(separator: "\u{1F}", omittingEmptySubsequences: false).map(String.init)
+                )
+            }
+        }
     }
 
     /// Headings with `:ID: id`. More than one means the ID is duplicated.

@@ -220,7 +220,12 @@ public struct TodoCycle: OrgCommand {
     /// As `org-todo`: the blanks after the stars, the keyword and the blanks after it are
     /// replaced by " NEXT " (or " " for no keyword) with `insert-before-markers`, then tags
     /// are aligned.
+    /// `org-todo`, then the parent's TODO statistics.
     public func run(in context: EditContext) -> CommandStep {
+        followUp(context, cycle(in: context)) { $0.updateParentTodoStatistics() }
+    }
+
+    private func cycle(in context: EditContext) -> CommandStep {
         guard let heading = entryHeading(at: context.caret, in: context.tree) else {
             return .failed("Before first headline")
         }

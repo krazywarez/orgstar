@@ -245,6 +245,15 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c C-x C-b"
         command = "org.checkbox.toggle"
+        [[bind]]
+        keys = "C-c C-w"
+        command = "app.refile"
+        [[bind]]
+        keys = "C-c C-x C-s"
+        command = "app.archive"
+        [[bind]]
+        keys = "C-c $"
+        command = "app.archive"
 
         """
 
@@ -331,6 +340,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-c"
         command = "org.checkbox.toggle"
+        [[bind]]
+        keys = "C-s-w"
+        command = "app.refile"
+        [[bind]]
+        keys = "C-s-a"
+        command = "app.archive"
 
         """
 }

@@ -299,6 +299,7 @@ public struct InsertTodoHeading: OrgCommand {
                 buffer.point = stars[0]!.upperBound
                 buffer.insert(keyword + " ")
             }
+            buffer.updateParentTodoStatistics()
         }
     }
 }

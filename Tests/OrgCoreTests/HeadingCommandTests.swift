@@ -48,6 +48,8 @@ struct HeadingOracleTests {
         "#+TODO: NEXT WAIT | DONE CANCELED\n* WAIT a :t:\n",
         "* " + String(repeating: "long ", count: 16) + "title :t:\n",
         "* TODO\ttab\n",
+        "* P [1/2]\n** TODO a\n** DONE b\n",
+        "* P [50%] :t:\n** TODO a\n*** TODO deep\n** b\n",
     ]
 
     /// Commands, their Emacs forms, and whether they only act on heading lines.

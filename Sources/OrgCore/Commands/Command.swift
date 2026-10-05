@@ -40,11 +40,27 @@ public struct Prompt: Sendable, Equatable {
     public let message: String
     /// Text the answer field starts with.
     public let initial: String
+    /// When set, the answer is one of these.
+    public let choices: [String]
 
-    public init(key: String, message: String, initial: String = "") {
+    public init(key: String, message: String, initial: String = "", choices: [String] = []) {
         self.key = key
         self.message = message
         self.initial = initial
+        self.choices = choices
+    }
+}
+
+/// Edits computed elsewhere (refiling to another file, archiving), applied like any command's
+/// result. Fails if the document changed since they were computed.
+public struct PrecomputedEdit: OrgCommand {
+    public let result: EditResult
+    public init(_ result: EditResult) { self.result = result }
+    public var id: String { "internal.precomputed" }
+    public var title: String { "Apply Edit" }
+    public func applies(in context: EditContext) -> Bool { context.revision == result.baseRevision }
+    public func run(in context: EditContext) -> CommandStep {
+        context.revision == result.baseRevision ? .commit(result) : .failed("The file changed; try again.")
     }
 }
 
