@@ -66,7 +66,7 @@ struct ContentView: View {
                 EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         VStack(spacing: 0) {
-                            ModeLine(session: session, commands: commands)
+                            ModeLine(session: session, commands: commands, clock: clock, perform: perform)
                             EchoArea(commands: commands)
                         }
                     }

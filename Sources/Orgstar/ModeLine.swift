@@ -4,13 +4,17 @@ import OrgPresentation
 import SwiftUI
 
 /// The line under the editor: evil state, unsaved mark and the headings around the caret on
-/// the left; the selection's counts, line and column, the file's words and anything unusual
-/// about its encoding on the right.
+/// the left; the running clock, the selection's counts, line and column, the file's words,
+/// anything unusual about its encoding and the git branch on the right.
 struct ModeLine: View {
     let session: DocumentSession
     let commands: AppCommands
+    let clock: ClockModel
+    /// Runs an app command (clock out, go to the clocked entry).
+    let perform: (String) -> Void
     @State private var words: Int?
     @State private var crlf = false
+    @State private var branch: String?
 
     var body: some View {
         let text = commands.editor?.document.text ?? ""
@@ -26,6 +30,23 @@ struct ModeLine: View {
             }
             breadcrumb(at: selection.location)
             Spacer(minLength: 12)
+            if let running = clock.running {
+                Menu {
+                    Button("Clock Out") { perform("app.clock.out") }
+                    Button("Cancel Clock") { perform("app.clock.cancel") }
+                    Button("Go to Clocked Entry") { perform("app.clock.goto") }
+                } label: {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        Text("⏱ \(clockElapsed(running, now: context.date)) \(running.heading)")
+                            .font(.system(.caption, design: .monospaced))
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .foregroundStyle(.primary)
+                .help("Clocked in since \(running.startedAt.formatted(date: .omitted, time: .shortened))")
+            }
             if selection.length > 0, let region = region(text, selection) {
                 Text("\(region.lines) \(region.lines == 1 ? "line" : "lines"), \(region.words) \(region.words == 1 ? "word" : "words"), \(region.characters) chars")
                     .help("Selection (count-words-region)")
@@ -40,6 +61,11 @@ struct ModeLine: View {
             ForEach(encodingNotes, id: \.self) { note in
                 Text(note).foregroundStyle(.orange)
             }
+            if let branch {
+                Label(branch, systemImage: "arrow.triangle.branch")
+                    .labelStyle(.titleAndIcon)
+                    .help("Git branch")
+            }
         }
         .font(.system(.caption, design: .monospaced))
         .monospacedDigit()
@@ -49,6 +75,14 @@ struct ModeLine: View {
         .frame(height: 22)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
+        .task(id: session.path) {
+            // HEAD changes outside the app, so look again every few seconds.
+            while !Task.isCancelled {
+                let path = session.path
+                branch = await Task.detached(priority: .utility) { path.flatMap(GitBranch.current) }.value
+                try? await Task.sleep(for: .seconds(5))
+            }
+        }
         .task(id: WordsKey(path: session.path, version: session.editVersion)) {
             guard let text = commands.editor?.document.text ?? session.document?.text else {
                 words = nil
