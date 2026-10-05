@@ -30,7 +30,7 @@ public struct ViewState: Sendable, Equatable {
 /// Descends only through the sections containing `offset`.
 func isHeadingStart(_ offset: Int, _ root: SyntaxNode) -> Bool {
     var node = root
-    while let child = node.children.first(where: { $0.range.contains(offset) }) {
+    while let child = node.child(containing: offset) {
         if child.kind == .heading { return child.range.lowerBound == offset }
         guard child.kind == .section || child.kind == .zerothSection else { return false }
         node = child

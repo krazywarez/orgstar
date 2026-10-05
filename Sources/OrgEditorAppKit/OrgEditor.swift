@@ -55,6 +55,15 @@ public final class OrgEditor: NSObject {
     let theme = Theme()
     private var isLoading = false
     private var previousSelection = 0
+    /// Text before this offset is styled; after it, only base attributes until the background
+    /// passes reach it. Always at a line start.
+    private(set) var styledUpTo = 0
+    private var stylingScheduled = false
+
+    /// Styled before the first render: more than a screenful.
+    static let firstStyleChunk = 30_000
+    /// Styled per run-loop turn afterwards.
+    static let styleChunk = 200_000
 
     public init(document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800)) {
         self.document = document
@@ -77,10 +86,46 @@ public final class OrgEditor: NSObject {
         textLayoutManager.delegate = self
         textContentStorage.delegate = self
 
+        load(document.text)
+    }
+
+    /// Replaces the storage's text. Setting the attributed string directly is about 100x
+    /// faster than `NSTextView.string` for large files.
+    private func load(_ text: String) {
         isLoading = true
-        textView.string = document.text
+        textView.textStorage?.setAttributedString(NSAttributedString(string: text, attributes: theme.base))
         isLoading = false
-        restyleOutsideEditing(0..<utf16Length)
+        styledUpTo = 0
+        styleNextChunk(Self.firstStyleChunk)
+        scheduleStyling()
+    }
+
+    // MARK: - Initial styling
+
+    /// Styles whole lines from the watermark onward, about `size` units.
+    private func styleNextChunk(_ size: Int) {
+        let text = textView.textStorage!.string as NSString
+        guard styledUpTo < text.length else { return }
+        let target = min(text.length, styledUpTo + size)
+        let end = target == text.length ? target : NSMaxRange(text.lineRange(for: NSRange(location: target, length: 0)))
+        restyleOutsideEditing(styledUpTo..<end)
+        styledUpTo = end
+    }
+
+    private func scheduleStyling() {
+        guard !stylingScheduled, styledUpTo < utf16Length else { return }
+        stylingScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.stylingScheduled = false
+            self.styleNextChunk(Self.styleChunk)
+            self.scheduleStyling()
+        }
+    }
+
+    /// Styles everything still waiting for a background pass.
+    public func finishStyling() {
+        while styledUpTo < utf16Length { styleNextChunk(Self.styleChunk) }
     }
 
     public var textLayoutManager: NSTextLayoutManager { textView.textLayoutManager! }
@@ -107,10 +152,7 @@ public final class OrgEditor: NSObject {
         let outcome = try saver.save(&document, to: url)
         if document.text != before {
             let edits = lineEdits(from: before, to: document.text)
-            isLoading = true
-            textView.string = document.text
-            isLoading = false
-            restyleOutsideEditing(0..<utf16Length)
+            load(document.text)
             setFolds(view.mapped(through: edits).folds)
         }
         return outcome
@@ -190,23 +232,30 @@ public final class OrgEditor: NSObject {
         let lineRange = lines.location..<(lines.location + lines.length)
         let around = max(0, lineRange.lowerBound - 1)..<min(text.length, lineRange.upperBound + 1)
         var container = tree.root
-        while let child = container.children.first(where: {
-            ($0.kind == .section || $0.kind == .zerothSection)
-                && $0.range.lowerBound <= lineRange.lowerBound && lineRange.upperBound <= $0.range.upperBound
-        }) {
+        while let child = container.child(containing: lineRange.lowerBound),
+              child.kind == .section || child.kind == .zerothSection,
+              lineRange.upperBound <= child.range.upperBound {
             container = child
         }
         var lower = lineRange.lowerBound
         var upper = lineRange.upperBound
-        let children = container.children
-        for child in children where child.range.overlaps(around) {
+        // Tables and lists carry no styling of their own, so inside them only the rows or
+        // items around the edit change, however large they are.
+        func overlapping(_ nodes: [SyntaxNode]) -> [SyntaxNode] {
+            nodes.filter { $0.range.overlaps(around) }.flatMap { node -> [SyntaxNode] in
+                guard [.table, .plainList, .item].contains(node.kind) else { return [node] }
+                let inner = overlapping(node.children(overlapping: around))
+                return inner.isEmpty ? [node] : inner
+            }
+        }
+        for child in overlapping(container.children(overlapping: around)) {
             lower = min(lower, child.range.lowerBound)
             upper = max(upper, child.range.upperBound)
         }
-        let heading = children.first { $0.kind == .heading }
+        let heading = container.firstChild(.heading)
         if touchedHeadings || heading.map({ $0.range.overlaps(lineRange) }) == true {
             lower = min(lower, container.range.lowerBound)
-            upper = max(upper, children.first { $0.kind == .section }?.range.lowerBound ?? container.range.upperBound)
+            upper = max(upper, container.firstChild(.section)?.range.lowerBound ?? container.range.upperBound)
         }
         return lower..<min(upper, text.length)
     }
@@ -230,6 +279,13 @@ public final class OrgEditor: NSObject {
         } catch {
             assertionFailure("text view and document disagree: \(error)")
             return
+        }
+        // Keep the watermark on unstyled text: shift it past the edit, or pull it back to the
+        // edited line when the edit reaches into unstyled text.
+        if styledUpTo >= edit.range.upperBound {
+            styledUpTo += edit.replacement.utf16.count - edit.range.count
+        } else if styledUpTo > edit.range.lowerBound {
+            styledUpTo = (storage.string as NSString).lineRange(for: NSRange(location: edit.range.lowerBound, length: 0)).location
         }
         let oldHidden = hidden.all
         view = view.mapped(through: [edit]).pruned(to: document.tree)

@@ -10,13 +10,24 @@ final class Harness {
     let editor: OrgEditor
     let window: NSWindow
 
-    init(_ text: String) {
+    convenience init(_ text: String) {
+        self.init(DocumentState(bytes: Array(text.utf8)))
+        drainStyling()
+        layout()
+    }
+
+    /// The editor as a window would show it first: background styling not yet run.
+    init(_ document: DocumentState, layout: Bool = true) {
         _ = NSApplication.shared
-        editor = OrgEditor(document: DocumentState(bytes: Array(text.utf8)))
+        editor = OrgEditor(document: document)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 600, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = editor.makeScrollView()
         window.makeFirstResponder(editor.textView)
-        layout()
+        if layout { self.layout() }
+    }
+
+    func drainStyling() {
+        editor.finishStyling()
     }
 
     var textView: NSTextView { editor.textView }
@@ -244,5 +255,28 @@ struct RestyleFuzzTests {
             if !same { break }
         }
         h.checkInSync()
+    }
+}
+
+@MainActor
+struct InitialStylingTests {
+    @Test func stylesTheFirstScreenThenTheRest() throws {
+        let line = "* heading *bold*\nbody text\n"
+        let text = String(repeating: line, count: 4_000)
+        let h = Harness(DocumentState(bytes: Array(text.utf8)), layout: false)
+        let length = (text as NSString).length
+        #expect(h.editor.styledUpTo >= OrgEditor.firstStyleChunk && h.editor.styledUpTo < length)
+        h.textView.insertText("x", replacementRange: NSRange(location: length - 3, length: 0))
+        h.drainStyling()
+        #expect(h.editor.styledUpTo == length + 1)
+        #expect(h.textView.textStorage!.isEqual(to: Harness(h.string).textView.textStorage!))
+    }
+
+    @Test func editsBeforeTheWatermarkShiftIt() {
+        let text = String(repeating: "line of text\n", count: 5_000)
+        let h = Harness(DocumentState(bytes: Array(text.utf8)), layout: false)
+        let before = h.editor.styledUpTo
+        h.textView.insertText("abc", replacementRange: NSRange(location: 0, length: 0))
+        #expect(h.editor.styledUpTo == before + 3)
     }
 }

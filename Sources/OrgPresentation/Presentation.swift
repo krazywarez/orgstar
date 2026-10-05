@@ -77,7 +77,7 @@ public enum Presentation {
         default:
             break
         }
-        for child in node.children where child.range.overlaps(range) {
+        for child in node.children(overlapping: range) {
             visit(child, range, settings, &runs)
         }
     }
@@ -118,12 +118,11 @@ public enum Presentation {
     }
 
     private static func collectIndents(_ node: SyntaxNode, _ range: Range<Int>, _ runs: inout [IndentRun]) {
-        for section in node.children where section.kind == .section && section.range.overlaps(range) {
-            let children = section.children
-            guard let heading = children.first(where: { $0.kind == .heading }) else { continue }
+        for section in node.children(overlapping: range) where section.kind == .section {
+            guard let heading = section.firstChild(.heading) else { continue }
             let level = heading.tokens.first { $0.kind == .stars }?.text.count ?? 1
             runs.append(IndentRun(range: heading.range, firstLine: 0, wrapped: level + 1))
-            let bodyEnd = children.first { $0.kind == .section }?.range.lowerBound ?? section.range.upperBound
+            let bodyEnd = section.firstChild(.section)?.range.lowerBound ?? section.range.upperBound
             if heading.range.upperBound < bodyEnd {
                 runs.append(IndentRun(range: heading.range.upperBound..<bodyEnd, firstLine: level + 1, wrapped: level + 1))
             }
@@ -156,7 +155,7 @@ public enum Presentation {
     /// Start offset of the heading whose line contains `offset`.
     public static func heading(containing offset: Int, in tree: OrgTree) -> Int? {
         var node = tree.root
-        while let child = node.children.first(where: { $0.range.contains(offset) }) {
+        while let child = node.child(containing: offset) {
             if child.kind == .heading { return child.range.lowerBound }
             guard child.kind == .section || child.kind == .zerothSection else { return nil }
             node = child
