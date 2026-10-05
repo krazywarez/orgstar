@@ -65,12 +65,13 @@ public final class OrgEditor: NSObject {
     /// Styled per run-loop turn afterwards.
     static let styleChunk = 200_000
 
-    public init(document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800)) {
+    public init(document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800), editable: Bool = true) {
         self.document = document
         textView = NSTextView(usingTextLayoutManager: true)
         super.init()
         textView.frame = frame
         textView.isRichText = false
+        textView.isEditable = editable
         textView.allowsUndo = true
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
@@ -87,6 +88,7 @@ public final class OrgEditor: NSObject {
         textContentStorage.delegate = self
 
         load(document.text)
+        if let startup = Presentation.startupFoldState(document.tree) { setFolds(startup) }
     }
 
     /// Replaces the storage's text. Setting the attributed string directly is about 100x
@@ -153,37 +155,77 @@ public final class OrgEditor: NSObject {
         if document.text != before {
             let edits = lineEdits(from: before, to: document.text)
             load(document.text)
-            setFolds(view.mapped(through: edits).folds)
+            let mapped = view.mapped(through: edits)
+            setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds))
         }
         return outcome
     }
 
+    // MARK: - Disk
+
+    /// The file on disk now holds `bytes`: reload or merge, keeping folds where the text kept
+    /// its headings.
+    public func diskChanged(to bytes: [UInt8]) {
+        let edits: [TextEdit]
+        switch document.diskChanged(to: bytes) {
+        case .reloaded(let changes), .merged(let changes): edits = changes
+        case .unchanged, .conflict: return
+        }
+        let mapped = view.mapped(through: edits)
+        load(document.text)
+        setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds))
+    }
+
     // MARK: - Folding
 
-    public func setFolds(_ folds: Set<Int>) {
-        view.folds = folds
+    public var foldState: FoldState {
+        FoldState(folds: view.folds, bodyFolds: view.bodyFolds)
+    }
+
+    private var globalVisibility: GlobalVisibility?
+
+    public func setFolds(_ state: FoldState) {
+        view.folds = state.folds
+        view.bodyFolds = state.bodyFolds
         view = view.pruned(to: document.tree)
-        folded.set(view.folds)
-        hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds))
+        updateHidden()
         textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
         textView.needsDisplay = true
         let caret = textView.selectedRange().location
         if let range = hidden.containing(caret) { setCaret(range.lowerBound - 1) }
     }
 
-    /// Folds or unfolds the heading whose line holds the caret. Returns false off a heading.
+    private func updateHidden() {
+        folded.set(view.folds.union(view.bodyFolds))
+        hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds, bodyFolds: view.bodyFolds))
+    }
+
+    /// TAB on a heading: folded, children, subtree. Returns false off a heading.
     @discardableResult
-    public func toggleFoldAtCaret() -> Bool {
+    public func cycleAtCaret() -> Bool {
         guard let heading = Presentation.heading(containing: textView.selectedRange().location, in: document.tree) else { return false }
-        var folds = view.folds
-        if folds.contains(heading) { folds.remove(heading) } else { folds.insert(heading) }
-        setFolds(folds)
+        setFolds(Presentation.cycle(heading, in: document.tree, foldState))
         return true
     }
 
-    /// Folds every heading, or unfolds everything if anything is folded.
-    public func toggleAllFolds() {
-        setFolds(view.folds.isEmpty ? Set(Presentation.headings(document.tree)) : [])
+    /// Shift-TAB: overview, contents, show all.
+    public func cycleGlobal() {
+        let (visibility, state) = Presentation.cycleGlobal(from: globalVisibility, in: document.tree)
+        globalVisibility = visibility
+        setFolds(state)
+    }
+
+    /// Unfolds whatever hides `offset`, puts the caret there and scrolls to it.
+    public func reveal(_ offset: Int) {
+        let target = max(0, min(offset, utf16Length))
+        var state = foldState
+        for entry in Presentation.outline(document.tree) where entry.start < target && target < entry.end {
+            state.folds.remove(entry.start)
+            state.bodyFolds.remove(entry.start)
+        }
+        setFolds(state)
+        setCaret(target)
+        textView.scrollRangeToVisible(NSRange(location: target, length: 0))
     }
 
     private func setCaret(_ offset: Int) {
@@ -207,9 +249,23 @@ public final class OrgEditor: NSObject {
         guard !range.isEmpty else { return }
         let whole = NSRange(range)
         storage.setAttributes(theme.base, range: whole)
+        let text = storage.string as NSString
         for run in Presentation.indents(document.tree, in: range) {
             guard let clipped = clip(run.range, to: range) else { continue }
-            storage.addAttribute(.paragraphStyle, value: theme.paragraphStyle(firstLine: run.firstLine, wrapped: run.wrapped), range: clipped)
+            guard run.firstLine == run.wrapped else {
+                storage.addAttribute(.paragraphStyle, value: theme.paragraphStyle(firstLine: run.firstLine, wrapped: run.wrapped), range: clipped)
+                continue
+            }
+            // Body lines wrap under their own text: past leading blanks, and past a list bullet
+            // and checkbox, as adaptive-wrap does in Emacs.
+            var location = clipped.location
+            while location < NSMaxRange(clipped) {
+                let line = text.lineRange(for: NSRange(location: location, length: 0))
+                let hanging = Self.hangingColumns(text.substring(with: line))
+                let lineRange = NSIntersectionRange(line, clipped)
+                storage.addAttribute(.paragraphStyle, value: theme.paragraphStyle(firstLine: run.firstLine, wrapped: run.wrapped + hanging), range: lineRange)
+                location = NSMaxRange(line)
+            }
         }
         for run in Presentation.styles(document.tree, in: range) {
             guard let clipped = clip(run.range, to: range) else { continue }
@@ -301,6 +357,34 @@ public final class OrgEditor: NSObject {
         onEditTiming?(clock.now - start)
     }
 
+    /// Columns a wrapped continuation of `line` should start past the line's own start.
+    nonisolated static func hangingColumns(_ line: String) -> Int {
+        var columns = 0
+        var rest = Substring(line)
+        while let c = rest.first, c == " " || c == "\t" {
+            columns = c == "\t" ? (columns / 8 + 1) * 8 : columns + 1
+            rest = rest.dropFirst()
+        }
+        // A bullet (`-`, `+`, `*` when indented, `1.`, `1)`) and its space, then a checkbox.
+        var bullet = 0
+        if let first = rest.first, first == "-" || first == "+" || (first == "*" && columns > 0) {
+            bullet = 1
+        } else {
+            let digits = rest.prefix { $0.isASCII && $0.isNumber }
+            if !digits.isEmpty, let separator = rest.dropFirst(digits.count).first, separator == "." || separator == ")" {
+                bullet = digits.count + 1
+            }
+        }
+        guard bullet > 0, rest.dropFirst(bullet).first == " " else { return columns }
+        columns += bullet + 1
+        let afterBullet = rest.dropFirst(bullet + 1)
+        if afterBullet.count >= 4, afterBullet.first == "[", "X x-".contains(afterBullet.dropFirst().first!),
+           afterBullet.dropFirst(2).first == "]", afterBullet.dropFirst(3).first == " " {
+            columns += 4
+        }
+        return columns
+    }
+
     /// Whether a heading line touches `start..<end` or starts right after it, where joining
     /// lines could take it away.
     static func headingLineNear(_ start: Int, _ end: Int, in text: NSString) -> Bool {
@@ -332,9 +416,9 @@ public final class OrgEditor: NSObject {
 extension OrgEditor: NSTextViewDelegate {
     public func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
         switch selector {
-        case #selector(NSResponder.insertTab(_:)): return toggleFoldAtCaret()
+        case #selector(NSResponder.insertTab(_:)): return cycleAtCaret()
         case #selector(NSResponder.insertBacktab(_:)):
-            toggleAllFolds()
+            cycleGlobal()
             return true
         default: return false
         }

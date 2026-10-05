@@ -3,12 +3,15 @@ import OrgCore
 /// Per-window state for one document: selection and folds, in UTF-16 offsets.
 public struct ViewState: Sendable, Equatable {
     public var selection: [Range<Int>]
-    /// Start offsets of folded headings.
+    /// Start offsets of headings whose whole subtree is folded.
     public var folds: Set<Int>
+    /// Start offsets of headings whose own body is folded; their child headings stay visible.
+    public var bodyFolds: Set<Int>
 
-    public init(selection: [Range<Int>] = [0..<0], folds: Set<Int> = []) {
+    public init(selection: [Range<Int>] = [0..<0], folds: Set<Int> = [], bodyFolds: Set<Int> = []) {
         self.selection = selection
         self.folds = folds
+        self.bodyFolds = bodyFolds
     }
 
     /// Maps through non-overlapping edits given in old coordinates.
@@ -16,14 +19,19 @@ public struct ViewState: Sendable, Equatable {
         let sorted = edits.sorted { $0.range.lowerBound < $1.range.lowerBound }
         return ViewState(
             selection: selection.map { mapOffset($0.lowerBound, sorted)..<mapOffset($0.upperBound, sorted) },
-            folds: Set(folds.map { mapOffset($0, sorted) })
+            folds: Set(folds.map { mapOffset($0, sorted) }),
+            bodyFolds: Set(bodyFolds.map { mapOffset($0, sorted) })
         )
     }
 
     /// Drops folds that no longer sit at the start of a heading.
     public func pruned(to tree: OrgTree) -> ViewState {
-        guard !folds.isEmpty else { return self }
-        return ViewState(selection: selection, folds: folds.filter { isHeadingStart($0, tree.root) })
+        guard !folds.isEmpty || !bodyFolds.isEmpty else { return self }
+        return ViewState(
+            selection: selection,
+            folds: folds.filter { isHeadingStart($0, tree.root) },
+            bodyFolds: bodyFolds.filter { isHeadingStart($0, tree.root) }
+        )
     }
 }
 

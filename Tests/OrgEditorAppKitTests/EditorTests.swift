@@ -1,6 +1,7 @@
 import AppKit
 import OrgCore
 import OrgDocument
+import OrgPresentation
 import Testing
 @testable import OrgEditorAppKit
 
@@ -77,16 +78,45 @@ struct FoldingTests {
         let h = Harness(outline)
         #expect(h.visibleLines == ["* a\n", "body\n", "** b\n", "more\n", "* c\n", "text\n"])
         h.caret(at: 1)
-        #expect(h.editor.toggleFoldAtCaret())
+        #expect(h.editor.cycleAtCaret())
         #expect(h.visibleLines == ["* a\n", "* c\n", "text\n"])
-        h.editor.toggleFoldAtCaret()
+        h.editor.cycleAtCaret()
+        #expect(h.visibleLines == ["* a\n", "body\n", "** b\n", "* c\n", "text\n"])
+        h.editor.cycleAtCaret()
         #expect(h.visibleLines.count == 6)
+    }
+
+    @Test func globalCycleAndStartup() {
+        let h = Harness(outline)
+        h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        #expect(h.visibleLines == ["* a\n", "** b\n", "* c\n"])
+        h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        #expect(h.visibleLines.count == 6)
+        #expect(Harness("#+STARTUP: overview\n" + outline).visibleLines == ["#+STARTUP: overview\n", "* a\n", "* c\n"])
+    }
+
+    @Test func revealUnfoldsWhatHidesTheTarget() {
+        let h = Harness("#+STARTUP: overview\n" + outline)
+        let target = h.offset(of: "more")
+        h.editor.reveal(target)
+        #expect(h.visibleLines.contains("more\n"))
+        #expect(h.caret == target)
+    }
+
+    @Test func readOnlyAndReloadKeepFolds() {
+        let editor = OrgEditor(document: DocumentState(bytes: Array(outline.utf8)), editable: false)
+        #expect(!editor.textView.isEditable)
+        editor.setFolds(FoldState(folds: [19]))
+        editor.diskChanged(to: Array(("new line\n" + outline).utf8))
+        #expect(editor.document.text == "new line\n" + outline)
+        #expect(editor.foldState.folds == [28])
     }
 
     @Test func tabFoldsOnlyOnHeadings() {
         let h = Harness(outline)
         h.caret(at: 5)
-        #expect(!h.editor.toggleFoldAtCaret())
+        #expect(!h.editor.cycleAtCaret())
         h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
         #expect(h.visibleLines == ["* a\n", "* c\n"])
     }
@@ -94,7 +124,7 @@ struct FoldingTests {
     @Test func caretMovesOverFoldedText() {
         let h = Harness(outline)
         h.caret(at: 1)
-        h.editor.toggleFoldAtCaret()
+        h.editor.cycleAtCaret()
         h.caret(at: 0)
         h.textView.moveDown(nil)
         #expect(h.caret >= h.offset(of: "* c") && h.caret < h.offset(of: "text"))
@@ -108,7 +138,7 @@ struct FoldingTests {
     @Test func copyingAcrossAFoldIncludesHiddenText() {
         let h = Harness(outline)
         h.caret(at: 1)
-        h.editor.toggleFoldAtCaret()
+        h.editor.cycleAtCaret()
         h.textView.setSelectedRange(NSRange(location: 0, length: h.offset(of: "text")))
         let pasteboard = NSPasteboard(name: NSPasteboard.Name("orgstar-test-\(UUID().uuidString)"))
         defer { pasteboard.releaseGlobally() }
@@ -119,7 +149,7 @@ struct FoldingTests {
     @Test func foldsFollowEdits() {
         let h = Harness(outline)
         h.caret(at: h.offset(of: "* c") + 1)
-        h.editor.toggleFoldAtCaret()
+        h.editor.cycleAtCaret()
         h.caret(at: 0)
         h.textView.insertText("new ", replacementRange: NSRange(location: 2, length: 0))
         #expect(h.visibleLines == ["* new a\n", "body\n", "** b\n", "more\n", "* c\n"])
@@ -177,7 +207,7 @@ struct EditingTests {
     @Test func accessibilityReadsTheWholeText() {
         let h = Harness(outline)
         h.caret(at: 1)
-        h.editor.toggleFoldAtCaret()
+        h.editor.cycleAtCaret()
         #expect(h.textView.accessibilityValue() as? String == outline)
         h.textView.setSelectedRange(NSRange(location: 0, length: 3))
         #expect(h.textView.accessibilitySelectedText() == "* a")
@@ -278,5 +308,15 @@ struct InitialStylingTests {
         let before = h.editor.styledUpTo
         h.textView.insertText("abc", replacementRange: NSRange(location: 0, length: 0))
         #expect(h.editor.styledUpTo == before + 3)
+    }
+}
+
+struct HangingIndentTests {
+    @Test(arguments: [
+        ("plain", 0), ("  indented", 2), ("- item", 2), ("  - [X] done", 8), ("12. step", 4),
+        ("* heading-like", 0), ("  * starred item", 4), ("-not a bullet", 0), ("\t- tab", 10),
+    ])
+    func columns(line: String, expected: Int) {
+        #expect(OrgEditor.hangingColumns(line) == expected)
     }
 }

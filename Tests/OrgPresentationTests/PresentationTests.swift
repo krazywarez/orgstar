@@ -76,3 +76,47 @@ struct FoldTests {
         #expect(Presentation.headings(tree) == [0, 9, 19])
     }
 }
+
+struct CyclingTests {
+    let text = "* a\nbody\n** b\nmore\n*** c\ndeep\n* d\n"
+    var tree: OrgTree { OrgParser.parse(text) }
+
+    @Test func outline() {
+        let entries = Presentation.outline(tree)
+        #expect(entries.map(\.title) == ["a", "b", "c", "d"])
+        #expect(entries.map(\.parent) == [nil, 0, 1, nil])
+        #expect(entries.map(\.isTopLevel) == [true, false, false, true])
+    }
+
+    @Test func localCycle() {
+        var state = FoldState()
+        state = Presentation.cycle(0, in: tree, state)
+        #expect(state == FoldState(folds: [0]))
+        state = Presentation.cycle(0, in: tree, state)
+        #expect(state == FoldState(folds: [9]))
+        state = Presentation.cycle(0, in: tree, state)
+        #expect(state == FoldState())
+        #expect(Presentation.cycle(30, in: tree, FoldState(folds: [30])) == FoldState())
+    }
+
+    @Test func globalStates() {
+        #expect(Presentation.foldState(for: .overview, in: tree) == FoldState(folds: [0, 30]))
+        #expect(Presentation.foldState(for: .contents, in: tree) == FoldState(bodyFolds: [0, 9, 19, 30]))
+        #expect(Presentation.cycleGlobal(from: nil, in: tree).0 == .overview)
+        #expect(Presentation.cycleGlobal(from: .overview, in: tree).0 == .contents)
+        #expect(Presentation.cycleGlobal(from: .contents, in: tree).0 == .showAll)
+    }
+
+    @Test func bodyFoldsKeepChildHeadings() {
+        #expect(Presentation.hiddenRanges(tree, folds: [], bodyFolds: [0, 9, 19, 30]) == [4..<9, 14..<19, 25..<30])
+    }
+
+    @Test func startup() {
+        #expect(Presentation.startupFoldState(OrgParser.parse("#+STARTUP: content\n" + text)) != nil)
+        #expect(Presentation.startupFoldState(OrgParser.parse(text)) == nil)
+        let levels = OrgParser.parse("#+startup: show2levels\n" + text)
+        let state = Presentation.startupFoldState(levels)
+        #expect(state?.folds.count == 1 && state?.bodyFolds.count == 2)
+        #expect(Presentation.startupOptions(OrgParser.parse("#+begin_example\n#+STARTUP: overview\n#+end_example\n")).isEmpty)
+    }
+}

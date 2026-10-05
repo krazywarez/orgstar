@@ -130,25 +130,31 @@ public enum Presentation {
         }
     }
 
-    /// Ranges to hide for folded headings, given by their start offsets: from the end of the
-    /// heading line to the end of its section. Sorted, without nested duplicates.
-    public static func hiddenRanges(_ tree: OrgTree, folds: Set<Int>) -> [Range<Int>] {
-        guard !folds.isEmpty else { return [] }
+    /// Ranges to hide. A heading in `folds` hides everything after its line to the end of its
+    /// section; one in `bodyFolds` hides only its own body, up to its first child heading.
+    /// Sorted, without nested duplicates.
+    public static func hiddenRanges(_ tree: OrgTree, folds: Set<Int>, bodyFolds: Set<Int> = []) -> [Range<Int>] {
+        guard !folds.isEmpty || !bodyFolds.isEmpty else { return [] }
         var ranges: [Range<Int>] = []
-        collectHidden(tree.root, folds, &ranges)
+        collectHidden(tree.root, folds, bodyFolds, &ranges)
         return ranges
     }
 
-    private static func collectHidden(_ node: SyntaxNode, _ folds: Set<Int>, _ ranges: inout [Range<Int>]) {
+    private static func collectHidden(_ node: SyntaxNode, _ folds: Set<Int>, _ bodyFolds: Set<Int>, _ ranges: inout [Range<Int>]) {
         for section in node.children where section.kind == .section {
-            guard let heading = section.children.first(where: { $0.kind == .heading }) else { continue }
-            if folds.contains(heading.range.lowerBound) {
+            guard let heading = section.firstChild(.heading) else { continue }
+            let start = heading.range.lowerBound
+            if folds.contains(start) {
                 if heading.range.upperBound < section.range.upperBound {
                     ranges.append(heading.range.upperBound..<section.range.upperBound)
                 }
-            } else {
-                collectHidden(section, folds, &ranges)
+                continue
             }
+            if bodyFolds.contains(start) {
+                let bodyEnd = section.firstChild(.section)?.range.lowerBound ?? section.range.upperBound
+                if heading.range.upperBound < bodyEnd { ranges.append(heading.range.upperBound..<bodyEnd) }
+            }
+            collectHidden(section, folds, bodyFolds, &ranges)
         }
     }
 
