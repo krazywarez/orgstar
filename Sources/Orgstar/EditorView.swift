@@ -18,6 +18,7 @@ struct EditorView: NSViewRepresentable {
     let optionAsMeta: OptionAsMeta
     let options: EditingOptions
     let showMarkup: Bool
+    let showLineNumbers: Bool
     let onAppCommand: (String) -> Void
     let onExternal: (ExternalRequest) -> Void
 
@@ -69,6 +70,7 @@ struct EditorView: NSViewRepresentable {
             editor.optionAsMeta = optionAsMeta
             editor.options = options
             editor.showMarkup = showMarkup
+            editor.showLineNumbers = showLineNumbers
         }
         container.window?.isDocumentEdited = session.isDirty
         if let request = session.revealRequest, request.id != coordinator.revealID {

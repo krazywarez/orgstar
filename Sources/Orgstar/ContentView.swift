@@ -44,6 +44,7 @@ struct ContentView: View {
     @State private var previewPath: String?
     @AppStorage("outlineShown") private var orgOutlineShown = true
     @AppStorage("showMarkup") private var showMarkup = false
+    @AppStorage("showLineNumbers") private var showLineNumbers = true
     /// The outline for a file that isn't org, off until asked for.
     @State private var plainOutlineShown = false
     @State private var query = ""
@@ -66,7 +67,7 @@ struct ContentView: View {
         if let previewPath {
             FilePreview(path: previewPath)
         } else if session.path != nil {
-            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, onAppCommand: perform, onExternal: runExternal)
+            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, onAppCommand: perform, onExternal: runExternal)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
                         ModeLine(session: session, commands: commands, clock: clock, perform: perform)
@@ -384,6 +385,7 @@ struct ContentView: View {
         case "app.quit": NSApp.terminate(nil)
         case "app.toggle-outline": toggleOutline()
         case "app.toggle-markup": showMarkup.toggle()
+        case "app.toggle-line-numbers": showLineNumbers.toggle()
         case "app.quick-open": commands.showingQuickOpen = true
         case "app.palette": commands.showingPalette = true
         case "app.search": commands.focusSearch = true

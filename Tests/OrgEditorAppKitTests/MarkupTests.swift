@@ -56,3 +56,17 @@ struct MarkupTests {
         #expect(size(h, at: ns.range(of: "[[").location) < 1)
     }
 }
+
+@MainActor
+struct LineNumberTests {
+    @Test func marginFollowsTheSettingAndLineCount() {
+        let h = Harness("* a\nb\n")
+        h.editor.showLineNumbers = true
+        let narrow = h.textView.textContainerInset.width
+        #expect(narrow > 0)
+        h.textView.insertText(String(repeating: "x\n", count: 120), replacementRange: NSRange(location: 6, length: 0))
+        #expect(h.textView.textContainerInset.width > narrow)
+        h.editor.showLineNumbers = false
+        #expect(h.textView.textContainerInset.width == 0)
+    }
+}

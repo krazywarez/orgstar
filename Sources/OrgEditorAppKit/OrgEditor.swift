@@ -189,6 +189,7 @@ public final class OrgEditor: NSObject {
         let scroll = NSScrollView(frame: textView.frame)
         scroll.hasVerticalScroller = true
         scroll.documentView = textView
+        orgTextView?.showsLineNumbers = showLineNumbers
         textView.minSize = NSSize(width: 0, height: scroll.contentSize.height)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         return scroll
@@ -243,6 +244,12 @@ public final class OrgEditor: NSObject {
     public var showMarkup = true {
         didSet { if showMarkup != oldValue { restyleEverything() } }
     }
+    /// Line numbers in a ruler beside the text.
+    public var showLineNumbers = true {
+        didSet { orgTextView?.showsLineNumbers = showLineNumbers }
+    }
+    var orgTextView: OrgTextView? { textView as? OrgTextView }
+
     /// The line last revealed while markup is hidden, to hide again when the caret leaves.
     private var revealedLine: NSRange?
     var dispatcher: KeyDispatcher
@@ -419,6 +426,7 @@ public final class OrgEditor: NSObject {
         view.bodyFolds = state.bodyFolds
         view = view.pruned(to: document.tree)
         updateHidden()
+        orgTextView?.redrawLineNumbers()
         textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
         textView.needsDisplay = true
         let caret = textView.selectedRange().location
@@ -663,6 +671,10 @@ public final class OrgEditor: NSObject {
             textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
         }
         onEditTiming?(clock.now - start)
+        if edit.replacement.contains("\n") || (oldText.substring(with: NSRange(edit.range)) as String).contains("\n") {
+            orgTextView?.updateGutter()
+        }
+        orgTextView?.redrawLineNumbers()
         onChange?()
     }
 
@@ -719,6 +731,7 @@ public final class OrgEditor: NSObject {
         defer { previousSelection = selection.location }
         onSelectionChange?(selection)
         revealCaretLine()
+        orgTextView?.redrawLineNumbers()
         // A selection reaching into folded text, as a find match does, unfolds it.
         if selection.length > 0 {
             if hidden.containing(selection.location) != nil || hidden.containing(NSMaxRange(selection) - 1) != nil {

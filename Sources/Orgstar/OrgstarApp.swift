@@ -268,13 +268,16 @@ struct OrgMenuItems: View {
     }
 }
 
-/// View ▸ Show Markup: link brackets and targets, and emphasis markers.
+/// View ▸ Show Markup (link brackets and targets, emphasis markers) and Show Line Numbers.
 struct MarkupToggle: View {
     @AppStorage("showMarkup") private var showMarkup = false
+    @AppStorage("showLineNumbers") private var showLineNumbers = true
 
     var body: some View {
         Toggle("Show Markup", isOn: $showMarkup)
             .keyboardShortcut("m", modifiers: [.command, .shift])
+        Toggle("Show Line Numbers", isOn: $showLineNumbers)
+            .keyboardShortcut("l", modifiers: [.command, .shift])
     }
 }
 

@@ -15,6 +15,20 @@ final class OrgTextView: NSTextView {
     /// Returns true when the key was handled.
     var keyHandler: ((NSEvent) -> Bool)?
     var onMouseDown: (() -> Void)?
+    var showsLineNumbers = false {
+        didSet { if showsLineNumbers != oldValue { updateGutter() } }
+    }
+
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        drawLineNumbers(in: rect)
+    }
+
+    /// Redraws the line number margin, as when the caret changes line.
+    func redrawLineNumbers() {
+        guard showsLineNumbers else { return }
+        setNeedsDisplay(NSRect(x: 0, y: visibleRect.minY, width: textContainerInset.width, height: visibleRect.height))
+    }
     /// Draw the caret as a block over the next character, for normal and visual states.
     var blockCursor = false {
         didSet {
