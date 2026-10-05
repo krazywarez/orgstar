@@ -13,6 +13,9 @@ final class AppCommands {
     var focusSearch = false
     var showingConflict = false
     var showingPalette = false
+    /// A location another window asked the main window to show.
+    private(set) var jumpRequest: (path: String, offset: Int, id: Int)?
+    private var jumpID = 0
     /// The editor showing the open file, for menus and the palette.
     var editor: OrgEditor?
     /// The pending key prefix, and what can follow it.
@@ -34,6 +37,11 @@ final class AppCommands {
         prompt = nil
         if let textView = editor?.textView { textView.window?.makeFirstResponder(textView) }
         request.reply(text)
+    }
+
+    func jump(path: String, offset: Int) {
+        jumpID += 1
+        jumpRequest = (path, offset, jumpID)
     }
 
     func show(_ text: String) {
@@ -111,6 +119,12 @@ struct OrgstarApp: App {
             }
         }
         .defaultSize(width: 1280, height: 860)
+        Window("Agenda", id: "agenda") {
+            if case .success(let model) = workspace {
+                AgendaView(workspace: model, session: session, commands: commands)
+            }
+        }
+        .defaultSize(width: 760, height: 720)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Add Folder…") { commands.showingFolderPicker = true }
@@ -131,6 +145,9 @@ struct OrgstarApp: App {
                 Button("Search Notes") { commands.focusSearch = true }
                     .keyboardShortcut("f", modifiers: [.command, .shift])
             }
+            CommandGroup(before: .windowList) {
+                AgendaMenuItem()
+            }
         }
         .commands {
             CommandMenu("Org") {
@@ -146,6 +163,16 @@ struct OrgstarApp: App {
     }
 }
 
+/// Window ▸ Agenda.
+struct AgendaMenuItem: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Agenda") { openWindow(id: "agenda") }
+            .keyboardShortcut("a", modifiers: [.command, .shift])
+    }
+}
+
 struct SettingsView: View {
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
@@ -158,6 +185,9 @@ struct SettingsView: View {
     @AppStorage("hiddenMarkers") private var hiddenMarkers = true
     @AppStorage("prettyEntities") private var prettyEntities = true
     @AppStorage("todoKeywords") private var todoKeywords = Preferences.defaultTodoKeywords
+    @AppStorage("agendaSpan") private var agendaSpan = 10
+    @AppStorage("agendaStartOffset") private var agendaStartOffset = -3
+    @AppStorage("agendaSubfolders") private var agendaSubfolders = false
 
     var body: some View {
         Form {
@@ -197,6 +227,10 @@ struct SettingsView: View {
             Text("For files without #+TODO, in #+TODO syntax. Takes effect when Orgstar restarts.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Divider()
+            Stepper("Agenda shows \(agendaSpan) days", value: $agendaSpan, in: 1...31)
+            Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
+            Toggle("Agenda includes files in subfolders", isOn: $agendaSubfolders)
         }
         .padding(20)
         .frame(width: 480)

@@ -273,3 +273,36 @@ enum StateBufferCaret {
         session.attach(buffer)
     }
 }
+
+@MainActor
+struct AgendaModelTests {
+    @Test func topLevelFilesAndTheOpenBuffer() async throws {
+        let notes = try Folder()
+        try notes.write("a.org", "* TODO Pay rent\nSCHEDULED: <2026-10-05 Mon>\n")
+        try notes.write("sub/b.org", "* Hidden <2026-10-05 Mon>\n")
+        try notes.write("old.org_archive", "* Archived <2026-10-05 Mon>\n")
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let now = try #require(utc.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9)))
+
+        await agenda.refresh(open: nil, now: now, calendar: utc)
+        #expect(agenda.days.count == 10)
+        #expect(agenda.days[3].isToday)
+        #expect(agenda.days[3].items.map(\.text) == ["TODO Pay rent"])
+
+        agenda.includeSubfolders = true
+        await agenda.refresh(open: nil, now: now, calendar: utc)
+        #expect(agenda.days[3].items.map(\.text) == ["TODO Pay rent", "Hidden "])
+
+        let path = try #require(agenda.files.first { $0.hasSuffix("/a.org") })
+        await agenda.refresh(open: (path, "* DONE Pay rent\nSCHEDULED: <2026-10-05 Mon>\n"), now: now, calendar: utc)
+        #expect(agenda.days[3].items.first?.text == "DONE Pay rent")
+
+        agenda.shift(forward: true, now: now, calendar: utc)
+        await agenda.refresh(open: nil, now: now, calendar: utc)
+        #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 12))
+    }
+}

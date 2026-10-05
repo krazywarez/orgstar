@@ -150,6 +150,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "M-x"
         command = "app.palette"
+        [[bind]]
+        keys = "C-c a"
+        command = "app.agenda"
 
         # Org
         [[bind]]

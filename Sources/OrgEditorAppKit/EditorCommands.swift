@@ -42,6 +42,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.reload-keymap", title: "Reload Keymap", action: .app),
         EditorCommand(id: "app.refile", title: "Refile…", action: .app),
         EditorCommand(id: "app.archive", title: "Archive Subtree", action: .app),
+        EditorCommand(id: "app.agenda", title: "Agenda", action: .app),
 
         movement("forward-char", "Forward Character", "moveForward:"),
         movement("backward-char", "Backward Character", "moveBackward:"),

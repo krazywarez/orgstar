@@ -53,6 +53,9 @@ public final class DocumentSession {
     /// keystroke; views follow `path`, `isDirty` and `outline`.
     @ObservationIgnored public private(set) var document: DocumentState?
     public private(set) var outline: [OutlineEntry] = []
+    /// Bumped when the buffer settles after edits, and when a file opens: views that read
+    /// `document` follow this.
+    public private(set) var editVersion = 0
     public private(set) var isDirty = false
     /// The file isn't UTF-8, so it can't be edited or saved.
     public private(set) var isReadOnly = false
@@ -117,6 +120,7 @@ public final class DocumentSession {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled, let self, let document = self.document else { return }
             self.outline = Presentation.outline(document.tree)
+            self.editVersion += 1
         }
         scheduleAutosave()
     }
@@ -127,7 +131,10 @@ public final class DocumentSession {
         document = state
         if isDirty != state.isDirty { isDirty = state.isDirty }
         if isReadOnly == state.isEditable { isReadOnly = !state.isEditable }
-        if updateOutline { outline = Presentation.outline(state.tree) }
+        if updateOutline {
+            outline = Presentation.outline(state.tree)
+            editVersion += 1
+        }
     }
 
     // MARK: - Saving

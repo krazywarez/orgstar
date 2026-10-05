@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var selectedFile: String?
     @State private var query = ""
     @FocusState private var searchFocused: Bool
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         NavigationSplitView {
@@ -101,6 +102,15 @@ struct ContentView: View {
         .onChange(of: workspace.changedFile?.version) {
             if let path = workspace.changedFile?.path { session.fileChanged(path) }
         }
+        .onChange(of: commands.jumpRequest?.id) {
+            guard let request = commands.jumpRequest else { return }
+            if request.path != session.path {
+                guard UnsavedChanges.resolve(session) else { return }
+                session.open(request.path)
+                selectedFile = request.path
+            }
+            session.reveal(request.offset)
+        }
         .onChange(of: commands.focusSearch) { _, focus in
             if focus {
                 searchFocused = true
@@ -130,6 +140,8 @@ struct ContentView: View {
         .task {
             DevelopmentHooks.scheduleSnapshot()
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
+            if let root = DevelopmentHooks.rootToAdd { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
+            if let id = DevelopmentHooks.windowToOpen { openWindow(id: id) }
             await workspace.refresh()
             workspace.startWatching()
         }
@@ -163,6 +175,8 @@ struct ContentView: View {
             }
         case "app.archive":
             if let message = session.archive() { commands.show(message) }
+        case "app.agenda":
+            openWindow(id: "agenda")
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }
