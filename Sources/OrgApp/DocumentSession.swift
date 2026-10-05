@@ -343,6 +343,30 @@ public final class DocumentSession {
         }
     }
 
+    /// Runs a src block and writes its result under it, unless the block changed while it
+    /// ran. Returns a message for the echo area.
+    public func runBabel(_ job: BabelJob) async -> String {
+        guard let path, buffer != nil else { return "No file is open." }
+        let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        do {
+            let output = try await BabelRunner.run(job, fileDirectory: directory)
+            guard let current = self.buffer, self.path == path else { return "The file was closed before the block finished." }
+            let document = current.document
+            switch Babel.finish(job, output: output, text: document.text, settings: document.tree.settings) {
+            case .failure(.message(let message)):
+                return message
+            case .success(let edits):
+                guard !edits.isEmpty else { return job.finish.params.contains("silent") ? output.stdout : "Code block evaluation complete." }
+                let result = EditResult(baseRevision: document.revision, edits: edits)
+                if case .failed(let message) = current.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
+                bufferChanged()
+                return "Code block evaluation complete."
+            }
+        } catch {
+            return "\(error)"
+        }
+    }
+
     // MARK: - Locations
 
     /// Opens the file of `location` if needed and asks the editor to show the heading. Offsets

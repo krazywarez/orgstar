@@ -1,0 +1,951 @@
+import Foundation
+
+// Babel (ob-core.el, ob-shell.el, ob-python.el, ob-emacs-lisp.el, Org 9.8.7): executing a src
+// block is planned here, run by the platform, and finished here. The plan resolves header
+// arguments and refuses anything that would make the run differ from Emacs's; the finish turns
+// the output into a result the way `org-babel-insert-result` writes it.
+
+/// A src block run for the platform to carry out.
+public struct BabelJob: Sendable, Equatable {
+    public enum Runner: Sendable, Equatable {
+        /// An interpreter reading the program on standard input.
+        case process(executable: String, arguments: [String])
+        /// `emacs --batch` loading `input` as a script.
+        case emacs
+    }
+
+    public let language: String
+    public let runner: Runner
+    /// Standard input, or the Emacs script. `Babel.resultFileToken` stands for a file the runner
+    /// creates; its contents come back as `BabelOutput.resultFile`.
+    public let input: String
+    /// `:dir`, relative to the file's folder; nil for the folder itself.
+    public let directory: String?
+    /// The block as it was planned, to find it again when the run ends.
+    public let block: Range<Int>
+    public let blockText: String
+    /// Asks every time (`:eval query`) rather than trusting by content.
+    public let alwaysAsk: Bool
+    public let finish: Finish
+
+    public struct Finish: Sendable, Equatable {
+        enum Kind: Sendable, Equatable { case shell(valueIsExitStatus: Bool), python, generic, emacsLisp }
+        let kind: Kind
+        var language = ""
+        public let params: [String]
+        let output: Bool
+        let wrap: String?
+        let name: String?
+    }
+}
+
+public struct BabelOutput: Sendable, Equatable {
+    public var stdout: String
+    public var resultFile: String?
+    public init(stdout: String, resultFile: String? = nil) {
+        self.stdout = stdout
+        self.resultFile = resultFile
+    }
+}
+
+public enum Babel {
+    public static let resultFileToken = "__ORGSTAR_RESULT_FILE__"
+    static let shells: Set<String> = ["sh", "bash", "zsh", "shell", "fish", "ksh", "dash", "ash", "csh", "mksh", "posh"]
+    static let generic: [String: (String, [String])] = [
+        "ruby": ("ruby", []), "js": ("node", []), "javascript": ("node", []), "R": ("Rscript", ["-"]),
+        "awk": ("awk", ["-f", "/dev/stdin"]),
+    ]
+
+    public struct Options: Sendable, Equatable {
+        public var python = "python3"
+        /// `shell-file-name`, for blocks in the `shell` language.
+        public var shell = "/bin/sh"
+        public init() {}
+    }
+
+    // MARK: - Planning
+
+    /// The run for the src block at the caret, or why it can't run.
+    public static func plan(_ context: EditContext, options: Options = Options()) -> Result<BabelJob, Failure> {
+        let text = context.text
+        let ns = text as NSString
+        let model = DocumentModel(tree: context.tree)
+        guard let block = model.srcBlocks.first(where: { $0.range.contains(context.caret) || $0.range.upperBound == context.caret }) else {
+            return .failure(.message("Not in a source block"))
+        }
+        guard let language = block.language else { return .failure(.message("This block has no language")) }
+        let params: Params
+        do {
+            params = try Params(block: block, model: model, text: ns)
+        } catch let error as Failure {
+            return .failure(error)
+        } catch {
+            return .failure(.message("\(error)"))
+        }
+        let eval = params.single[":eval"]?.lowercased()
+        if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
+            return .failure(.message("Evaluation of this \(language) code block\(block.name.map { " (\($0)) " } ?? " ")is disabled."))
+        }
+        for key in [":prologue", ":epilogue", ":file", ":post", ":stdin", ":cmdline", ":shebang"] where params.single[key] != nil {
+            return .failure(.message("\(key) isn't supported yet; nothing was run."))
+        }
+        if let session = params.single[":session"], session != "none" { return .failure(.message(":session isn't supported yet; nothing was run.")) }
+        if let noweb = params.single[":noweb"], !["no", "strip-export", "tangle"].contains(noweb) {
+            return .failure(.message(":noweb isn't supported yet; nothing was run."))
+        }
+        if params.single[":cache"] == "yes" { return .failure(.message(":cache isn't supported yet; nothing was run.")) }
+
+        let body = normalizedBody(block)
+        let output = params.results.contains("output")
+        let finishBase = { (kind: BabelJob.Finish.Kind) in
+            BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: block.name)
+        }
+        let vars: [(String, VarValue)]
+        do {
+            vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: ns)) }
+        } catch let error as Failure {
+            return .failure(error)
+        } catch {
+            return .failure(.message("\(error)"))
+        }
+        let blockText = ns.substring(with: NSRange(block.range))
+        let dir = params.single[":dir"]
+        let alwaysAsk = eval == "query"
+
+        if shells.contains(language) {
+            let valueIsExitStatus = params.results.contains("value")
+            var lines: [String] = []
+            for (name, value) in vars {
+                let s: String
+                switch value {
+                case .scalar(let v), .number(let v): s = v
+                default: return .failure(.message("Tables and lists in :var aren't supported for \(language) yet."))
+                }
+                lines.append("\(name)='" + s.replacingOccurrences(of: "'", with: "'\"'\"'") + "'")
+            }
+            let full = (lines + [body]).joined(separator: "\n") + (valueIsExitStatus ? "\necho $?" : "")
+            let executable = language == "shell" ? options.shell : language
+            return .success(BabelJob(
+                language: language, runner: .process(executable: executable, arguments: []),
+                input: full.trimmingCharacters(in: .whitespacesAndNewlines) + "\n", directory: dir,
+                block: block.range, blockText: blockText, alwaysAsk: alwaysAsk,
+                finish: finishBase(.shell(valueIsExitStatus: valueIsExitStatus))
+            ))
+        }
+        if language == "python" {
+            let lines = vars.map { "\($0.0)=\(pythonLiteral($0.1))" }
+            var full = (lines + [body]).joined(separator: "\n")
+            if let returnValue = params.single[":return"], !output { full += "\nreturn \(returnValue)" }
+            let input: String
+            if output {
+                input = full + "\n"
+            } else {
+                input = pythonFormatter + "def main():\n" + shiftRight(full) + "\n\n__orgstar_format(main(), '\(resultFileToken)', ["
+                    + params.results.map { "\"\($0)\"" }.joined(separator: ", ") + "])\n"
+            }
+            return .success(BabelJob(
+                language: language, runner: .process(executable: params.single[":python"] ?? options.python, arguments: []),
+                input: input, directory: dir, block: block.range, blockText: blockText, alwaysAsk: alwaysAsk,
+                finish: finishBase(.python)
+            ))
+        }
+        if language == "emacs-lisp" || language == "elisp" {
+            let bindings = vars.map { "(\($0.0) '\(lispLiteral($0.1)))" }
+            let expanded = bindings.isEmpty ? body + "\n" : "(let (\(bindings.joined(separator: "\n      ")))\n\(body)\n)"
+            let form = output ? "(with-output-to-string \(expanded))" : "(progn \(expanded)\n)"
+            return .success(BabelJob(
+                language: language, runner: .emacs, input: emacsScript(form: form, params: params.results),
+                directory: dir, block: block.range, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.emacsLisp)
+            ))
+        }
+        if let (executable, arguments) = generic[language] {
+            guard vars.isEmpty else { return .failure(.message(":var isn't supported for \(language) yet.")) }
+            return .success(BabelJob(
+                language: language, runner: .process(executable: params.single[":cmd"] ?? executable, arguments: arguments),
+                input: body + "\n", directory: dir, block: block.range, blockText: blockText, alwaysAsk: alwaysAsk,
+                finish: BabelJob.Finish(kind: .generic, language: language, params: params.results + (output ? [] : ["output"]), output: true, wrap: params.wrap, name: block.name)
+            ))
+        }
+        return .failure(.message("No way to run \(language) blocks yet."))
+    }
+
+    public enum Failure: Error, Equatable {
+        case message(String)
+    }
+
+    /// `org-babel--normalize-body`: without the final newline, and without the indentation
+    /// common to its lines unless `-i` keeps it.
+    static func normalizedBody(_ block: SrcBlockInfo) -> String {
+        var lines = block.body.components(separatedBy: "\n")
+        if lines.last == "" { lines.removeLast() }
+        // Org escapes lines starting with `*` or `#+` inside blocks with a comma.
+        lines = lines.map { $0.replacingOccurrences(of: "^([ \\t]*),([,*]|#\\+)", with: "$1$2", options: .regularExpression) }
+        if !block.switches.contains("-i") {
+            let indents = lines.filter { $0.contains(where: { !$0.isWhitespace }) }.map { $0.prefix { $0 == " " || $0 == "\t" }.count }
+            let common = indents.min() ?? 0
+            lines = lines.map { String($0.dropFirst(min(common, $0.prefix { $0 == " " || $0 == "\t" }.count))) }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: - Header arguments
+
+    struct Params {
+        var results: [String] = ["replace"]
+        var single: [String: String] = [:]
+        var vars: [(name: String, value: String)] = []
+        var wrap: String?
+
+        static let resultGroups: [Set<String>] = [
+            ["file", "list", "vector", "table", "scalar", "verbatim"],
+            ["raw", "html", "latex", "org", "code", "pp", "drawer", "link", "graphics"],
+            ["replace", "silent", "none", "discard", "append", "prepend"],
+            ["output", "value"],
+        ]
+
+        init(block: SrcBlockInfo, model: DocumentModel, text: NSString) throws {
+            var layers: [[(String, String)]] = []
+            let language = block.language ?? ""
+            func properties(_ entries: [Property]) {
+                for key in ["header-args", "header-args:\(language)"] {
+                    for entry in entries where entry.key.lowercased() == key {
+                        let pairs = Params.parse(entry.value)
+                        layers.append(pairs)
+                    }
+                }
+            }
+            properties(model.fileProperties)
+            if let heading = block.heading {
+                for index in model.ancestors(of: heading) + [heading] { properties(model.headings[index].properties) }
+            }
+            let firstLine = text.substring(with: text.lineRange(for: NSRange(location: block.range.lowerBound, length: 0)))
+            if let r = firstLine.range(of: "(?i)#\\+begin_src[ \\t]+\\S+", options: .regularExpression) {
+                var rest = String(firstLine[r.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                while let first = rest.split(separator: " ").first, first.hasPrefix("-") || first.hasPrefix("+") {
+                    rest = String(rest.dropFirst(first.count)).trimmingCharacters(in: .whitespaces)
+                }
+                layers.append(Params.parse(rest))
+            }
+            // `#+HEADER:` lines above the block.
+            var headers: [String] = []
+            var location = block.range.lowerBound
+            while location > 0 {
+                let previous = text.lineRange(for: NSRange(location: location - 1, length: 0))
+                let line = text.substring(with: previous).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard line.range(of: "(?i)^#\\+(header|name|caption|attr_[a-z]+|results|plot|label):", options: .regularExpression) != nil else { break }
+                if line.lowercased().hasPrefix("#+header:") { headers.insert(String(line.dropFirst("#+header:".count)), at: 0) }
+                location = previous.location
+            }
+            for header in headers { layers.append(Params.parse(header)) }
+
+            for layer in layers {
+                for (key, value) in layer {
+                    switch key {
+                    case ":results":
+                        for word in value.split(whereSeparator: \.isWhitespace).map(String.init) {
+                            if let group = Params.resultGroups.first(where: { $0.contains(word) }) { results.removeAll { group.contains($0) } }
+                            results.removeAll { $0 == word }
+                            results.insert(word, at: 0)
+                        }
+                    case ":var":
+                        guard let eq = value.firstIndex(of: "=") else { throw Failure.message(":var \(value) needs a name and a value") }
+                        let name = value[..<eq].trimmingCharacters(in: .whitespaces)
+                        let assigned = value[value.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+                        vars.removeAll { $0.name == name }
+                        vars.append((name, assigned))
+                    case ":wrap":
+                        wrap = value
+                    default:
+                        single[key] = value
+                    }
+                }
+            }
+        }
+
+        /// `org-babel-parse-header-arguments`: split before each `:key` outside quotes and
+        /// parentheses.
+        static func parse(_ text: String) -> [(String, String)] {
+            var parts: [String] = []
+            var current = ""
+            var depth = 0
+            var quoted = false
+            var previous: Character = " "
+            for c in text {
+                if c == "\"" { quoted.toggle() }
+                if !quoted {
+                    if c == "(" { depth += 1 }
+                    if c == ")" { depth = max(0, depth - 1) }
+                }
+                if c == ":", !quoted, depth == 0, previous == " " || previous == "\t" {
+                    parts.append(current)
+                    current = ""
+                }
+                current.append(c)
+                previous = c
+            }
+            parts.append(current)
+            var pairs: [(String, String)] = []
+            for part in parts {
+                let trimmed = part.trimmingCharacters(in: .whitespaces)
+                guard trimmed.hasPrefix(":") else { continue }
+                let key = String(trimmed.prefix { !$0.isWhitespace }).lowercased()
+                var value = trimmed.dropFirst(key.count).trimmingCharacters(in: .whitespaces)
+                if key != ":var", value.count >= 2, value.hasPrefix("\""), value.hasSuffix("\"") {
+                    value = String(value.dropFirst().dropLast())
+                }
+                pairs.append((key, value))
+            }
+            return pairs
+        }
+    }
+
+    // MARK: - Variables
+
+    enum VarValue: Equatable {
+        case scalar(String)
+        case number(String)
+        case table([[Cell]])
+        case list([Cell])
+    }
+
+    enum Cell: Equatable {
+        case text(String)
+        case number(String)
+    }
+
+    /// `org-babel--string-to-number`, keeping Emacs's printed form.
+    static func number(_ s: String) -> String? {
+        let t = s.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty, !t.contains(where: \.isWhitespace), t.range(of: "^[0-9e.+ -]+$", options: .regularExpression) != nil else { return nil }
+        if t.range(of: "^[-+]?[0-9]+\\.?$", options: .regularExpression) != nil {
+            var digits = t.hasSuffix(".") ? String(t.dropLast()) : t
+            let negative = digits.hasPrefix("-")
+            if digits.hasPrefix("-") || digits.hasPrefix("+") { digits.removeFirst() }
+            digits = String(digits.drop { $0 == "0" })
+            if digits.isEmpty { return "0" }
+            return (negative ? "-" : "") + digits
+        }
+        guard t.range(of: "^[-+]?([0-9]+\\.[0-9]+|[0-9]*\\.[0-9]+|[0-9]+(\\.[0-9]*)?e[-+]?[0-9]+|[0-9]*\\.[0-9]+e[-+]?[0-9]+)$", options: .regularExpression) != nil,
+              let d = Double(t) else { return nil }
+        return emacsFloat(d)
+    }
+
+    /// How Emacs prints a float.
+    static func emacsFloat(_ d: Double) -> String {
+        if d == d.rounded(), abs(d) < 1e16 { return String(format: "%.1f", d) }
+        return "\(d)"
+    }
+
+    static func cell(_ s: String) -> Cell {
+        var t = s
+        if let m = s.firstMatch(of: /^\s*"(.+)"\s*$/) { t = String(m.1) }
+        return number(t).map(Cell.number) ?? .text(t)
+    }
+
+    /// `org-babel-ref-resolve` for literals and named tables and lists in the file.
+    static func resolve(_ value: String, model: DocumentModel, text: NSString) throws -> VarValue {
+        if value.hasPrefix("\""), value.hasSuffix("\""), value.count >= 2 { return .scalar(String(value.dropFirst().dropLast())) }
+        if let n = number(value) { return .number(n) }
+        if value.contains("(") || value.contains("[") { throw Failure.message("References like \(value) aren't supported yet.") }
+        // A named element: `#+NAME: value` above a table or list.
+        let pattern = "(?im)^[ \\t]*#\\+name:[ \\t]*" + NSRegularExpression.escapedPattern(for: value) + "[ \\t]*$"
+        guard let r = (text as String).range(of: pattern, options: .regularExpression) else {
+            throw Failure.message("Can't find \(value) for :var.")
+        }
+        let start = NSMaxRange(text.lineRange(for: NSRange(r, in: text as String)))
+        var location = start
+        var rows: [[Cell]] = []
+        var items: [Cell] = []
+        while location < text.length {
+            let lineRange = text.lineRange(for: NSRange(location: location, length: 0))
+            let line = text.substring(with: lineRange).trimmingCharacters(in: .newlines)
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("|") {
+                if trimmed.hasPrefix("|-") { throw Failure.message("Tables with rules in :var aren't supported yet.") }
+                let cells = trimmed.dropFirst().split(separator: "|", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+                rows.append((trimmed.hasSuffix("|") ? Array(cells.dropLast()) : cells).map(cell))
+            } else if let m = trimmed.firstMatch(of: /^[-+*] (.*)$/), rows.isEmpty {
+                items.append(cell(String(m.1)))
+            } else if trimmed.hasPrefix("#+") || (!rows.isEmpty || !items.isEmpty) {
+                if rows.isEmpty, items.isEmpty, trimmed.lowercased().hasPrefix("#+begin_src") {
+                    throw Failure.message("Using a src block's result in :var isn't supported yet.")
+                }
+                break
+            } else {
+                break
+            }
+            location = NSMaxRange(lineRange)
+        }
+        if !rows.isEmpty { return .table(rows) }
+        if !items.isEmpty { return .list(items) }
+        throw Failure.message("\(value) isn't a table or list.")
+    }
+
+    /// `org-babel-python-var-to-python`.
+    static func pythonLiteral(_ value: VarValue) -> String {
+        func cell(_ c: Cell) -> String {
+            switch c {
+            case .number(let n): return n
+            case .text(let s): return lispString(s, triple: s.contains("\n") || s.contains("\r"))
+            }
+        }
+        switch value {
+        case .scalar(let s): return lispString(s, triple: s.contains("\n") || s.contains("\r"))
+        case .number(let n): return n
+        case .list(let items): return "[" + items.map(cell).joined(separator: ", ") + "]"
+        case .table(let rows): return "[" + rows.map { "[" + $0.map(cell).joined(separator: ", ") + "]" }.joined(separator: ", ") + "]"
+        }
+    }
+
+    /// `prin1` of a string.
+    static func lispString(_ s: String, triple: Bool = false) -> String {
+        let quoted = "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        return triple ? "\"\"" + quoted + "\"\"" : quoted
+    }
+
+    static func lispLiteral(_ value: VarValue) -> String {
+        func cell(_ c: Cell) -> String {
+            switch c {
+            case .number(let n): return n
+            case .text(let s): return lispString(s)
+            }
+        }
+        switch value {
+        case .scalar(let s): return lispString(s)
+        case .number(let n): return n
+        case .list(let items): return "(" + items.map(cell).joined(separator: " ") + ")"
+        case .table(let rows): return "(" + rows.map { "(" + $0.map(cell).joined(separator: " ") + ")" }.joined(separator: " ") + ")"
+        }
+    }
+
+    // MARK: - Python
+
+    /// Writes the value of `main()` to the result file as org's Python wrapper does: `pprint`
+    /// for `pp`, `key :: value` items for a dict as a list, dicts as rows for tables,
+    /// otherwise `str`.
+    static let pythonFormatter = """
+    def __orgstar_format(value, path, params):
+        def rows(v):
+            if isinstance(v, dict):
+                return [(k, rows(x)) for k, x in v.items()]
+            if isinstance(v, (list, tuple)):
+                return [rows(x) for x in v]
+            return v
+        with open(path, 'w') as out:
+            if 'pp' in params:
+                import pprint
+                out.write(pprint.pformat(value))
+            elif 'list' in params and isinstance(value, dict):
+                out.write(str(['{} :: {}'.format(k, v) for k, v in value.items()]))
+            else:
+                if not set(params) & {'scalar', 'verbatim', 'raw'} and 'table' in params:
+                    value = rows(value)
+                out.write(str(value))
+
+    """
+
+    /// `org-babel-python--shift-right`: four spaces more on every line outside strings.
+    static func shiftRight(_ body: String) -> String {
+        var inString: String?
+        var lines: [String] = []
+        for line in body.components(separatedBy: "\n") {
+            lines.append(inString == nil ? "    " + line : line)
+            var i = line.startIndex
+            while i < line.endIndex {
+                if let delimiter = inString {
+                    if line[i...].hasPrefix(delimiter) {
+                        inString = nil
+                        i = line.index(i, offsetBy: 3)
+                        continue
+                    }
+                } else if line[i] == "#" {
+                    break
+                } else if line[i...].hasPrefix("\"\"\"") || line[i...].hasPrefix("'''") {
+                    inString = String(line[i...].prefix(3))
+                    i = line.index(i, offsetBy: 3)
+                    continue
+                } else if line[i] == "\"" || line[i] == "'" {
+                    let quote = line[i]
+                    i = line.index(after: i)
+                    while i < line.endIndex, line[i] != quote {
+                        if line[i] == "\\" { i = line.index(after: i) }
+                        if i < line.endIndex { i = line.index(after: i) }
+                    }
+                }
+                if i < line.endIndex { i = line.index(after: i) }
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: - Emacs Lisp
+
+    /// Evaluates `form` and prints the result as JSON: its `%s` and `%S` forms, and its rows
+    /// when it is a table.
+    static func emacsScript(form: String, params: [String]) -> String {
+        """
+        ;;; -*- lexical-binding: t -*-
+        (require 'cl-lib)
+        (require 'json)
+        (let* ((result \(form))
+               (print-level nil)
+               (print-length nil)
+               (cell (lambda (c) (if (stringp c) c (format "%s" c))))
+               (tabulable (and (proper-list-p result)
+                               (cl-every (lambda (e) (or (atom e) (proper-list-p e))) result)))
+               (rows (and tabulable result
+                          (if (cl-every (lambda (e) (or (eq e 'hline) (listp e))) result)
+                              (mapcar (lambda (r) (if (eq r 'hline) "hline" (vconcat (mapcar cell r)))) result)
+                            (list (vconcat (mapcar cell result)))))))
+          (princ (json-encode `((s . ,(format "%s" result))
+                                (S . ,(format "%S" result))
+                                (string . ,(if (stringp result) t :json-false))
+                                (rows . ,(if rows (vconcat rows) :json-null))))))
+        """
+    }
+
+    // MARK: - Finishing
+
+    /// What the run produced, as Babel holds it before inserting.
+    enum Value: Equatable {
+        case none
+        case string(String)
+        /// Rows of cells; nil rows are rules.
+        case table([[String]?])
+    }
+
+    /// The edit that writes the run's result under the block, or why it can't.
+    public static func finish(_ job: BabelJob, output: BabelOutput, text: String, settings: OrgSettings = .default) -> Result<[TextEdit], Failure> {
+        let ns = text as NSString
+        var blockRange = job.block
+        if blockRange.upperBound > ns.length || ns.substring(with: NSRange(blockRange)) != job.blockText {
+            let found = ns.range(of: job.blockText)
+            guard found.location != NSNotFound,
+                  ns.range(of: job.blockText, range: NSRange(location: NSMaxRange(found), length: ns.length - NSMaxRange(found))).location == NSNotFound else {
+                return .failure(.message("The block changed while it ran; the result wasn't written."))
+            }
+            blockRange = found.location..<NSMaxRange(found)
+        }
+        let value = Self.value(job.finish, output)
+        if job.finish.params.contains("silent") || job.finish.params.contains("none") || job.finish.params.contains("discard") { return .success([]) }
+        let buffer = EmacsBuffer(text, point: 0, settings: settings)
+        insertResult(value, job.finish, block: blockRange, buffer: buffer)
+        return .success(singleEdit(from: text, to: buffer.text as String))
+    }
+
+    /// The one edit between two texts: everything between their common prefix and suffix.
+    static func singleEdit(from old: String, to new: String) -> [TextEdit] {
+        let a = Array(old.utf16)
+        let b = Array(new.utf16)
+        var prefix = 0
+        while prefix < a.count, prefix < b.count, a[prefix] == b[prefix] { prefix += 1 }
+        var suffix = 0
+        while suffix < a.count - prefix, suffix < b.count - prefix, a[a.count - 1 - suffix] == b[b.count - 1 - suffix] { suffix += 1 }
+        // Keep the edit on scalar boundaries.
+        while prefix > 0, (prefix < a.count && UTF16.isTrailSurrogate(a[prefix])) || (prefix < b.count && UTF16.isTrailSurrogate(b[prefix])) { prefix -= 1 }
+        while suffix > 0, suffix < a.count, UTF16.isLeadSurrogate(a[a.count - suffix - 1]) { suffix -= 1 }
+        if prefix == a.count, prefix == b.count { return [] }
+        let replacement = String(utf16CodeUnits: Array(b[prefix..<(b.count - suffix)]), count: b.count - suffix - prefix)
+        return [TextEdit(range: prefix..<(a.count - suffix), replacement: replacement)]
+    }
+
+    /// The language's result handling: `org-babel-result-cond` and the table import.
+    static func value(_ finish: BabelJob.Finish, _ output: BabelOutput) -> Value {
+        let params = finish.params
+        let scalar = params.contains("scalar") || params.contains("verbatim") || params.contains("html") || params.contains("code")
+            || params.contains("pp") || params.contains("file")
+            || ((params.contains("output") || params.contains("raw") || params.contains("org")) && !params.contains("table"))
+        switch finish.kind {
+        case .shell(let valueIsExitStatus):
+            var results = output.stdout
+            if valueIsExitStatus {
+                results = results.split(separator: "\n", omittingEmptySubsequences: true).last.map(String.init) ?? ""
+            }
+            if scalar { return .string(results) }
+            return importTable(results)
+        case .generic:
+            return .string(output.stdout)
+        case .python:
+            let raw = finish.output ? output.stdout : (output.resultFile ?? "")
+            if scalar { return .string(raw) }
+            return pythonValue(raw)
+        case .emacsLisp:
+            guard let data = output.stdout.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return .string(output.stdout) }
+            if scalar {
+                return .string((params.contains("scalar") || params.contains("verbatim") ? object["S"] : object["s"]) as? String ?? "")
+            }
+            if object["string"] as? Bool == true { return .string(object["s"] as? String ?? "") }
+            if let rows = object["rows"] as? [Any] {
+                return .table(rows.map { $0 as? String == "hline" ? nil : ($0 as? [String] ?? []) })
+            }
+            let printed = object["S"] as? String ?? ""
+            return printed == "nil" ? .none : .string(printed)
+        }
+    }
+
+    /// `org-babel-import-elisp-from-file`.
+    static func importTable(_ results: String) -> Value {
+        guard !results.isEmpty else { return .none }
+        var lines = results.components(separatedBy: "\n")
+        if lines.last == "" { lines.removeLast() }
+        let nonEmpty = lines.filter { !$0.isEmpty }
+        let rows: [[String]]
+        if !nonEmpty.isEmpty, nonEmpty.allSatisfy({ $0.contains("\t") }) {
+            rows = lines.map { $0.components(separatedBy: "\t") }
+        } else if !nonEmpty.isEmpty, nonEmpty.allSatisfy({ $0.contains(",") }) {
+            rows = lines.map(csvFields)
+        } else if lines.count == 1 {
+            rows = [[lines[0]]]
+        } else {
+            rows = lines.map { line in
+                let trimmed = line.drop { $0 == " " }
+                return trimmed.split(separator: " ", omittingEmptySubsequences: true).map(String.init).isEmpty
+                    ? [""] : trimmed.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+            }
+        }
+        let cells = rows.map { row in row.map { field -> String in
+            let trimmed = field.trimmingCharacters(in: .whitespaces)
+            switch cell(trimmed) {
+            case .number(let n): return n
+            case .text(let t): return t
+            }
+        } }
+        if cells.count == 1, cells[0].count == 1 { return .string(cells[0][0]) }
+        return .table(cells)
+    }
+
+    static func csvFields(_ line: String) -> [String] {
+        var fields: [String] = []
+        var current = ""
+        var quoted = false
+        for c in line {
+            if c == "\"" {
+                quoted.toggle()
+            } else if c == ",", !quoted {
+                fields.append(current.trimmingCharacters(in: .whitespaces))
+                current = ""
+            } else {
+                current.append(c)
+            }
+        }
+        fields.append(current.trimmingCharacters(in: .whitespaces))
+        return fields
+    }
+
+    /// `org-babel-python-table-or-string`.
+    static func pythonValue(_ raw: String) -> Value {
+        guard let first = raw.first, let last = raw.last, raw.count >= 2,
+              (first == "[" && last == "]") || (first == "(" && last == ")") else {
+            if raw.isEmpty { return .string("") }
+            if raw.count > 2, (raw.hasPrefix("'") && raw.hasSuffix("'")) || (raw.hasPrefix("\"") && raw.hasSuffix("\"")) {
+                return .string(String(raw.dropFirst().dropLast()))
+            }
+            if let n = number(raw) { return .string(n) }
+            return .string(raw)
+        }
+        var parser = PythonLiteral(Array(raw))
+        guard let parsed = parser.parse(), parser.atEnd, case .list(let items) = parsed else { return .string(raw) }
+        func text(_ v: PythonLiteral.Node) -> String {
+            switch v {
+            case .atom(let s): return s
+            case .string(let s): return s
+            case .list(let xs): return "(" + xs.map(text).joined(separator: " ") + ")"
+            }
+        }
+        if items.allSatisfy({ if case .list = $0 { return true }; if case .atom("None") = $0 { return true }; return false }) {
+            return .table(items.map { item -> [String]? in
+                if case .list(let cells) = item { return cells.map(text) }
+                return nil
+            })
+        }
+        return .table([items.map { if case .atom("None") = $0 { return "hline" }; return text($0) }])
+    }
+
+    struct PythonLiteral {
+        indirect enum Node: Equatable {
+            case atom(String)
+            case string(String)
+            case list([Node])
+        }
+
+        let chars: [Character]
+        var i = 0
+        init(_ chars: [Character]) { self.chars = chars }
+        var atEnd: Bool { mutating get { skip(); return i == chars.count } }
+
+        mutating func skip() { while i < chars.count, chars[i] == " " || chars[i] == "\n" { i += 1 } }
+
+        mutating func parse() -> Node? {
+            skip()
+            guard i < chars.count else { return nil }
+            let c = chars[i]
+            if c == "[" || c == "(" {
+                let close: Character = c == "[" ? "]" : ")"
+                i += 1
+                var items: [Node] = []
+                skip()
+                if i < chars.count, chars[i] == close {
+                    i += 1
+                    return .list(items)
+                }
+                while true {
+                    guard let item = parse() else { return nil }
+                    items.append(item)
+                    skip()
+                    guard i < chars.count else { return nil }
+                    if chars[i] == "," {
+                        i += 1
+                        skip()
+                        if i < chars.count, chars[i] == close {
+                            i += 1
+                            return .list(items)
+                        }
+                        continue
+                    }
+                    if chars[i] == close {
+                        i += 1
+                        return .list(items)
+                    }
+                    return nil
+                }
+            }
+            if c == "'" || c == "\"" {
+                i += 1
+                var s = ""
+                while i < chars.count, chars[i] != c {
+                    if chars[i] == "\\", i + 1 < chars.count {
+                        i += 1
+                        switch chars[i] {
+                        case "n": s.append("\n")
+                        case "t": s.append("\t")
+                        default: s.append(chars[i])
+                        }
+                    } else {
+                        s.append(chars[i])
+                    }
+                    i += 1
+                }
+                guard i < chars.count else { return nil }
+                i += 1
+                return .string(s)
+            }
+            var s = ""
+            while i < chars.count, !",)] \n".contains(chars[i]) {
+                s.append(chars[i])
+                i += 1
+            }
+            guard !s.isEmpty else { return nil }
+            return .atom(number(s) ?? s)
+        }
+    }
+
+    // MARK: - Inserting
+
+    static let resultKeyword = "(?i)^[ \\t]*#\\+results(\\[[^\\]]*\\])?:"
+
+    /// `org-babel-where-is-src-block-result` with `insert`: the line of the block's results
+    /// keyword, added when there is none.
+    static func resultsLine(_ finish: BabelJob.Finish, block: Range<Int>, buffer: EmacsBuffer) -> Int {
+        let ns = buffer.text
+        if let name = finish.name {
+            let pattern = "(?im)^[ \\t]*#\\+results(\\[[^\\]]*\\])?:[ \\t]*" + NSRegularExpression.escapedPattern(for: name) + "[ \\t]*$"
+            let regex = try! NSRegularExpression(pattern: pattern)
+            for m in regex.matches(in: ns as String, range: NSRange(location: 0, length: ns.length)) {
+                // Not the name of another block.
+                return m.range.location
+            }
+        } else {
+            // The element after the block, past blank lines.
+            var location = block.upperBound
+            while location < ns.length {
+                let line = ns.lineRange(for: NSRange(location: location, length: 0))
+                let content = ns.substring(with: line)
+                if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    location = NSMaxRange(line)
+                    continue
+                }
+                if content.range(of: "(?i)^[ \\t]*#\\+results(\\[[^\\]]*\\])?:[ \\t]*\\n?$", options: .regularExpression) != nil {
+                    return line.location
+                }
+                break
+            }
+        }
+        // A new keyword after the block.
+        buffer.point = min(block.upperBound, buffer.length)
+        buffer.skipBackward([32, 9, 10, 13])
+        buffer.forwardLine(1)
+        if !buffer.bolp { buffer.insert("\n") }
+        let indent = buffer.saveExcursion { () -> String in
+            buffer.point = block.lowerBound
+            let line = buffer.substring(buffer.lineStart(buffer.point), buffer.lineEnd(buffer.point))
+            return String(line.prefix { $0 == " " || $0 == "\t" })
+        }
+        buffer.insert("\n")
+        let keywordLine = buffer.point
+        buffer.insert(indent + "#+RESULTS:" + (finish.name.map { " " + $0 } ?? "") + "\n")
+        if buffer.looking("^[ \\t]*$", caseInsensitive: false, setsMatch: false) == nil {
+            buffer.saveExcursion { buffer.insert("\n") }
+        }
+        return keywordLine
+    }
+
+    /// `org-babel-result-end` with point at the start of the result.
+    static func resultEnd(_ buffer: EmacsBuffer) -> Int {
+        let start = buffer.point
+        let line = buffer.substring(buffer.lineStart(start), buffer.lineEnd(start))
+        if line.trimmingCharacters(in: .whitespaces).isEmpty { return start }
+        if line.range(of: "^[ \\t]*\\[\\[[^\\]]+\\](\\[[^\\]]*\\])?\\][ \\t]*$", options: .regularExpression) != nil {
+            return min(buffer.length, buffer.lineEnd(start) + 1)
+        }
+        let tree = OrgParser.parse(buffer.text as String)
+        var node = tree.root
+        var found: SyntaxNode?
+        while let child = node.child(containing: start) {
+            if child.range.lowerBound == start || (buffer.lineStart(child.range.lowerBound) == start) {
+                if [.fixedWidth, .table, .plainList, .drawer, .block, .dynamicBlock, .latexFragment].contains(child.kind) {
+                    found = child
+                    break
+                }
+            }
+            node = child
+        }
+        guard let element = found else { return start }
+        var end = element.range.upperBound
+        while end > start, let c = buffer.character(at: end - 1), c == 32 || c == 9 || c == 10 || c == 13 { end -= 1 }
+        return min(buffer.length, buffer.lineEnd(end) + 1)
+    }
+
+    /// `org-babel-insert-result` for a src block.
+    static func insertResult(_ value: Value, _ finish: BabelJob.Finish, block: Range<Int>, buffer: EmacsBuffer) {
+        let params = finish.params
+        let keyword = resultsLine(finish, block: block, buffer: buffer)
+        buffer.point = keyword
+        let indent = buffer.substring(buffer.lineStart(keyword), buffer.lineEnd(keyword)).prefix { $0 == " " || $0 == "\t" }.count
+        buffer.forwardLine(1)
+        if buffer.point == buffer.lineEnd(keyword) { buffer.insert("\n") }
+        var beg = buffer.point
+        if params.contains("replace") {
+            buffer.deleteRegion(beg, resultEnd(buffer))
+            buffer.point = beg
+        } else if params.contains("append") {
+            buffer.point = resultEnd(buffer)
+            beg = buffer.point
+        }
+        var tabulated = false
+        switch value {
+        case .none:
+            break
+        case .string(var s) where params.contains("list"):
+            if s.last != "\n" { s += "\n" }
+            let items = s.split(separator: "\n", omittingEmptySubsequences: true)
+            buffer.insert(items.map { "- " + $0 }.joined(separator: "\n") + "\n")
+        case .table(let rows) where params.contains("list"):
+            let items = rows.count == 1 ? (rows[0] ?? []) : rows.compactMap { $0?.joined(separator: " ") }
+            buffer.insert(items.map { "- " + $0 }.joined(separator: "\n") + "\n")
+        case .table(let rows):
+            tabulated = true
+            let lines = rows.map { row in row.map { "| " + $0.map { " " + $0 + " " }.joined(separator: "|").dropFirst() + " |" } ?? "|-" }
+            let start = buffer.point
+            buffer.insert(lines.joined(separator: "\n") + "\n")
+            buffer.point = start
+            buffer.tableAlign()
+            buffer.point = buffer.tableEnd()
+        case .string(var s):
+            if !s.isEmpty, s.last != "\n" { s += "\n" }
+            buffer.insert(s)
+        }
+        let end = buffer.marker(buffer.point, advances: true)
+        defer { buffer.release(end) }
+        func wrap(_ open: String, _ close: String, escape: Bool) {
+            buffer.point = end.position
+            buffer.insert(close + "\n")
+            buffer.point = beg
+            buffer.insert(open + "\n")
+            if escape { escapeCode(buffer, from: buffer.point, to: end.position - close.utf16.count - 1) }
+        }
+        if let wrapValue = finish.wrap {
+            let full = wrapValue.isEmpty ? "results" : wrapValue
+            let type = String(full.split(separator: " ").first ?? "results")
+            if type.lowercased() != "nil", type.lowercased() != "no" {
+                wrap("#+begin_" + full, "#+end_" + type, escape: !["example", "src", "export"].contains(type.lowercased()) ? false : true)
+            }
+        } else if params.contains("html") {
+            wrap("#+begin_export html", "#+end_export", escape: true)
+        } else if params.contains("latex") {
+            wrap("#+begin_export latex", "#+end_export", escape: true)
+        } else if params.contains("org") {
+            wrap("#+begin_src org", "#+end_src", escape: true)
+        } else if params.contains("code") {
+            wrap("#+begin_src \(finish.language.isEmpty ? "none" : finish.language)", "#+end_src", escape: true)
+        } else if params.contains("raw") {
+            // As inserted.
+        } else if params.contains("drawer") {
+            wrap(":results:", ":end:", escape: false)
+        } else if !tabulated, !params.contains("list") {
+            examplify(buffer, beg, end.position)
+        }
+        if indent > 0, !(tabulated && params.contains("append")) {
+            buffer.point = beg
+            while buffer.point < end.position {
+                if !buffer.eolp { buffer.insert(String(repeating: " ", count: indent)) }
+                if buffer.forwardLine(1) != 0 { break }
+            }
+        }
+    }
+
+    /// `org-escape-code-in-region`.
+    static func escapeCode(_ buffer: EmacsBuffer, from start: Int, to end: Int) {
+        buffer.point = start
+        let stop = buffer.marker(end)
+        defer { buffer.release(stop) }
+        while buffer.point < stop.position {
+            let line = buffer.substring(buffer.point, buffer.lineEnd(buffer.point))
+            if let m = line.firstMatch(of: /^[ \t]*(,*(\*|#\+))/) {
+                buffer.point += line[..<m.1.startIndex].utf16.count
+                buffer.insert(",")
+            }
+            if buffer.forwardLine(1) != 0 { break }
+        }
+    }
+
+    /// `org-babel-examplify-region`: fewer than ten lines get `: `, more an example block.
+    static func examplify(_ buffer: EmacsBuffer, _ beg: Int, _ end: Int) {
+        let text = buffer.substring(beg, end)
+        var size = text.components(separatedBy: "\n").count - (text.hasSuffix("\n") ? 1 : 0)
+        if text.isEmpty { size = 0 }
+        guard size > 0 else { return }
+        if size < 10 {
+            buffer.point = beg
+            for _ in 0..<size {
+                buffer.point = buffer.lineStart(buffer.point)
+                buffer.insert(": ")
+                buffer.forwardLine(1)
+            }
+            return
+        }
+        let endMarker = buffer.marker(end)
+        defer { buffer.release(endMarker) }
+        buffer.point = beg
+        buffer.insert("#+begin_example\n")
+        escapeCode(buffer, from: buffer.point, to: endMarker.position)
+        buffer.point = endMarker.position
+        if !buffer.bolp { buffer.insert("\n") }
+        buffer.insert("#+end_example")
+        if !buffer.eolp { buffer.insert("\n") }
+    }
+}
+
+/// C-c C-c in a src block: `org-babel-execute-src-block`.
+public struct ExecuteSrcBlock: OrgCommand {
+    public init() {}
+    public var id: String { "org.babel.execute" }
+    public var title: String { "Run Source Block" }
+    public func applies(in context: EditContext) -> Bool { KeyContext.holds("src", in: context) }
+    public func run(in context: EditContext) -> CommandStep {
+        switch Babel.plan(context) {
+        case .success(let job): return .external(.babel(job))
+        case .failure(.message(let message)): return .failed(message)
+        }
+    }
+}

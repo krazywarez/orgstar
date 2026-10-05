@@ -186,6 +186,23 @@ struct ContentView: View {
                 default: commands.show("Not recalculated")
                 }
             }
+        case .babel(let job):
+            let run = {
+                commands.show("Running \(job.language) block…")
+                Task { commands.show(await session.runBabel(job)) }
+            }
+            guard let path = session.path else { return }
+            if !job.alwaysAsk, trust.isTrusted(path: path, content: job.blockText) { return run() }
+            let choices = job.alwaysAsk ? ["yes", "no"] : ["yes", "no", "always"]
+            commands.ask(Prompt(key: "confirm", message: "Run this \(job.language) block? (\(choices.joined(separator: ", ")))", choices: choices)) { answer in
+                switch answer {
+                case "always":
+                    trust.trust(path: path, content: job.blockText)
+                    run()
+                case "yes": run()
+                default: commands.show("Not run")
+                }
+            }
         }
     }
 

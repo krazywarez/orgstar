@@ -297,6 +297,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.table.recalc"
         when = "table"
         [[bind]]
+        keys = "C-c C-c"
+        command = "org.babel.execute"
+        when = "src"
+        [[bind]]
         keys = "M-<up>"
         command = "org.table.row-up"
         when = "table"

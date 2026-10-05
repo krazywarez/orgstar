@@ -146,6 +146,8 @@ public enum ExternalRequest: Sendable, Equatable {
     /// Recalculate the table whose text is at `table` in Emacs, running `form` with point at
     /// `point`, and put Emacs's table text in its place. `lisp` when its formulas run Lisp.
     case emacsTable(table: Range<Int>, point: Int, form: String, reason: String, lisp: Bool)
+    /// Run a src block; `Babel.finish` turns its output into the result edit.
+    case babel(BabelJob)
 }
 
 /// A named operation. Keys, menus, the palette and touch controls all run commands.
@@ -171,7 +173,7 @@ public enum Commands {
         MoveItemUp(), MoveItemDown(), ToggleCheckbox(),
         InsertTimestamp(), InsertTimestamp(inactive: true), SetPlanning(deadline: false), SetPlanning(deadline: true),
         RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
-        TableRecalculate(all: false), TableRecalculate(all: true),
+        TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
     ]
 

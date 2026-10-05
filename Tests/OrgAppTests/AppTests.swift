@@ -441,3 +441,21 @@ struct EmacsFallbackTests {
         #expect(session.document?.text == "* Prices\n| item | n | twice |\n|------+---+-------|\n| x    | a | 2 a   |\n| y    | 2 | 4     |\n#+TBLFM: $3=$2*2\n")
     }
 }
+
+@MainActor
+struct BabelSessionTests {
+    @Test func runsBlocksAndWritesResults() async throws {
+        let notes = try Folder()
+        let file = try notes.write("b.org", "#+begin_src sh\necho answer\necho \"$((6 * 7))\"\n#+end_src\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        let step = session.perform(ExecuteSrcBlock(), path: file.path, at: 3, expect: nil)
+        guard case .external(.babel(let job)) = step else {
+            Issue.record("\(step)")
+            return
+        }
+        #expect(await session.runBabel(job) == "Code block evaluation complete.")
+        // A column that is half numbers is right-aligned, as org-table-align does.
+        #expect(session.document?.text == "#+begin_src sh\necho answer\necho \"$((6 * 7))\"\n#+end_src\n\n#+RESULTS:\n| answer |\n|     42 |\n")
+    }
+}

@@ -103,7 +103,7 @@ public struct Keymap: Sendable, Equatable {
 
 /// Context names a binding's `when` can use.
 public enum KeyContext {
-    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm"]
+    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src"]
 
     public static func holds(_ name: String, in context: EditContext) -> Bool {
         switch name {
@@ -113,6 +113,7 @@ public enum KeyContext {
         case "region": return context.selection.contains { !$0.isEmpty }
         case "timestamp": return EmacsBuffer(context.text, point: context.caret).atTimestamp() != nil
         case "tblfm": return TableRecalculate.tblfmLine(in: context) != nil
+        case "src": return enclosing(.block, context).map(DocumentModel.isSrcBlock) ?? false
         default: return false
         }
     }
