@@ -261,59 +261,115 @@ struct SettingsView: View {
     @AppStorage("reminders") private var reminders = true
     @AppStorage("reminderLead") private var reminderLead = 12
     @AppStorage("globalCapture") private var globalCapture = true
+    @AppStorage("settingsTab") private var tab = "general"
 
     var body: some View {
-        Form {
-            Picker("Save files:", selection: $saveMode) {
-                Text("Automatically, when typing stops").tag(SaveMode.automatic)
-                Text("Only with File ▸ Save (⌘S)").tag(SaveMode.explicit)
-            }
-            .pickerStyle(.radioGroup)
-            Picker("Keys:", selection: $preset) {
-                ForEach(KeymapPreset.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            Picker("Option as Meta:", selection: $optionAsMeta) {
-                Text("Left Option").tag(OptionAsMeta.left.rawValue)
-                Text("Right Option").tag(OptionAsMeta.right.rawValue)
-                Text("Both").tag(OptionAsMeta([.left, .right]).rawValue)
-                Text("Neither").tag(0)
-            }
-            Text("Your own bindings go in \(KeymapLoader.userFile.path), on top of the preset.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-            Divider()
-            Picker("Tags:", selection: $tagsColumn) {
-                Text("Aligned to end at column 77").tag(-77)
-                Text("One space after the title").tag(0)
-            }
-            Toggle("M-RET adds the new heading after the subtree", isOn: $headingAfterSubtree)
-            Toggle("M-RET splits the line at the caret", isOn: $splitLine)
-            Toggle("Lists can use letters (a. b. c.)", isOn: $alphabeticalLists)
-            Stepper("M-q fills to column \(fillColumn)", value: $fillColumn, in: 40...200)
-            Toggle("Emacs hides emphasis markers (org-hide-emphasis-markers)", isOn: $hiddenMarkers)
-            Toggle("Emacs shows entities as characters (org-pretty-entities)", isOn: $prettyEntities)
-            Text("Tags, tables and M-q measure text as your Emacs displays it, so both write the same file.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            TextField("Default TODO keywords:", text: $todoKeywords)
-            Text("For files without #+TODO, in #+TODO syntax. Takes effect when Orgstar restarts.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Divider()
-            Stepper("Agenda shows \(agendaSpan) days", value: $agendaSpan, in: 1...31)
-            Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
-            Toggle("Agenda includes files in subfolders", isOn: $agendaSubfolders)
-            Toggle("Notify before timed agenda entries", isOn: $reminders)
-            Stepper("\(reminderLead) minutes before (APPT_WARNTIME overrides)", value: $reminderLead, in: 0...120)
-                .disabled(!reminders)
-            Toggle("⌃⌥Space opens Capture from any app", isOn: $globalCapture)
-            Text("Templates go in \(CaptureTemplates.userFile.path).")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
+        TabView(selection: $tab) {
+            Tab("General", systemImage: "gearshape", value: "general") { general }
+            Tab("Editing", systemImage: "text.alignleft", value: "editing") { editing }
+            Tab("Agenda", systemImage: "calendar", value: "agenda") { agenda }
+            Tab("Capture", systemImage: "tray.and.arrow.down", value: "capture") { capture }
         }
-        .padding(20)
-        .frame(width: 480)
+        .frame(width: 600)
+    }
+
+    private var general: some View {
+        Form {
+            Section {
+                Picker("Save files", selection: $saveMode) {
+                    Text("Automatically, when typing stops").tag(SaveMode.automatic)
+                    Text("Only with File ▸ Save (⌘S)").tag(SaveMode.explicit)
+                }
+                .pickerStyle(.radioGroup)
+            }
+            Section {
+                Picker("Keys", selection: $preset) {
+                    ForEach(KeymapPreset.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                Picker("Option as Meta", selection: $optionAsMeta) {
+                    Text("Left Option").tag(OptionAsMeta.left.rawValue)
+                    Text("Right Option").tag(OptionAsMeta.right.rawValue)
+                    Text("Both").tag(OptionAsMeta([.left, .right]).rawValue)
+                    Text("Neither").tag(0)
+                }
+            } footer: {
+                Text("Your own bindings go in \(KeymapLoader.userFile.path), on top of the preset.")
+                    .settingsFooter()
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 250)
+    }
+
+    private var editing: some View {
+        Form {
+            Section {
+                Picker("Tags", selection: $tagsColumn) {
+                    Text("Aligned to end at column 77").tag(-77)
+                    Text("One space after the title").tag(0)
+                }
+                Toggle("M-RET adds the new heading after the subtree", isOn: $headingAfterSubtree)
+                Toggle("M-RET splits the line at the caret", isOn: $splitLine)
+                Toggle("Lists can use letters (a. b. c.)", isOn: $alphabeticalLists)
+                Stepper("M-q fills to column \(fillColumn)", value: $fillColumn, in: 40...200)
+            }
+            Section {
+                Toggle("Emacs hides emphasis markers (org-hide-emphasis-markers)", isOn: $hiddenMarkers)
+                Toggle("Emacs shows entities as characters (org-pretty-entities)", isOn: $prettyEntities)
+            } footer: {
+                Text("Tags, tables and M-q measure text as your Emacs displays it, so both write the same file.")
+                    .settingsFooter()
+            }
+            Section {
+                TextField("Default TODO keywords", text: $todoKeywords)
+            } footer: {
+                Text("For files without #+TODO, in #+TODO syntax. Takes effect when Orgstar restarts.")
+                    .settingsFooter()
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 450)
+    }
+
+    private var agenda: some View {
+        Form {
+            Section {
+                Stepper("Agenda shows \(agendaSpan) days", value: $agendaSpan, in: 1...31)
+                Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
+                Toggle("Include files in subfolders", isOn: $agendaSubfolders)
+            }
+            Section {
+                Toggle("Notify before timed agenda entries", isOn: $reminders)
+                Stepper("\(reminderLead) minutes before", value: $reminderLead, in: 0...120)
+                    .disabled(!reminders)
+            } footer: {
+                Text("An entry's APPT_WARNTIME property overrides the lead time.")
+                    .settingsFooter()
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 290)
+    }
+
+    private var capture: some View {
+        Form {
+            Section {
+                Toggle("⌃⌥Space opens Capture from any app", isOn: $globalCapture)
+            } footer: {
+                Text("Templates go in \(CaptureTemplates.userFile.path).")
+                    .settingsFooter()
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 160)
+    }
+}
+
+private extension Text {
+    func settingsFooter() -> some View {
+        font(.caption)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

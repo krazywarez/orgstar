@@ -42,6 +42,7 @@ struct ContentView: View {
     @State private var query = ""
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     private var main: some View {
         NavigationSplitView {
@@ -192,7 +193,9 @@ struct ContentView: View {
             DevelopmentHooks.scheduleSnapshot()
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
             if let root = DevelopmentHooks.rootToAdd { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
-            if let id = DevelopmentHooks.windowToOpen { openWindow(id: id) }
+            if let id = DevelopmentHooks.windowToOpen {
+                if id == "settings" { openSettings() } else { openWindow(id: id) }
+            }
             await workspace.refresh()
             workspace.startWatching()
         }
