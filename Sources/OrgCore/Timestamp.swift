@@ -42,14 +42,14 @@ public struct Timestamp: Sendable, Equatable {
 
     /// Parses exactly one timestamp or range, with nothing before or after it.
     public static func parse(_ text: some StringProtocol) -> Timestamp? {
-        let chars = Array(text)
+        let chars = Array(text.unicodeScalars)
         guard let result = scanTimestamp(chars, at: 0, limit: chars.count), result.end == chars.count else { return nil }
         return result.stamp
     }
 }
 
 /// A timestamp or `--` range starting at `start`, and the index after it.
-func scanTimestamp(_ chars: [Character], at start: Int, limit: Int) -> (stamp: Timestamp, end: Int)? {
+func scanTimestamp(_ chars: [Unicode.Scalar], at start: Int, limit: Int) -> (stamp: Timestamp, end: Int)? {
     guard let first = scanSingleTimestamp(chars, at: start, limit: limit) else { return nil }
     if first.stamp.end == nil, first.end + 2 < limit, chars[first.end] == "-", chars[first.end + 1] == "-",
        let second = scanSingleTimestamp(chars, at: first.end + 2, limit: limit),
@@ -62,22 +62,23 @@ func scanTimestamp(_ chars: [Character], at start: Int, limit: Int) -> (stamp: T
 }
 
 /// `<YYYY-MM-DD DAY HH:MM-HH:MM REPEATER WARNING>`, or the same in `[...]` for inactive.
-private func scanSingleTimestamp(_ chars: [Character], at start: Int, limit: Int) -> (stamp: Timestamp, end: Int)? {
+private func scanSingleTimestamp(_ chars: [Unicode.Scalar], at start: Int, limit: Int) -> (stamp: Timestamp, end: Int)? {
     guard start < limit, chars[start] == "<" || chars[start] == "[" else { return nil }
     let active = chars[start] == "<"
-    let close: Character = active ? ">" : "]"
+    let close: Unicode.Scalar = active ? ">" : "]"
     var j = start + 1
 
     func number(_ minDigits: Int, _ maxDigits: Int) -> Int? {
         var k = j
-        while k < limit, k - j < maxDigits, chars[k].isASCII, chars[k].isNumber { k += 1 }
+        while k < limit, k - j < maxDigits, isASCIIDigit(chars[k]) { k += 1 }
         guard k - j >= minDigits else { return nil }
-        let value = Int(String(chars[j..<k]))!
+        var value = 0
+        for digit in chars[j..<k] { value = value * 10 + Int(digit.value - 48) }
         j = k
         return value
     }
 
-    func take(_ c: Character) -> Bool {
+    func take(_ c: Unicode.Scalar) -> Bool {
         guard j < limit, chars[j] == c else { return false }
         j += 1
         return true
@@ -85,7 +86,7 @@ private func scanSingleTimestamp(_ chars: [Character], at start: Int, limit: Int
 
     func interval() -> Timestamp.Interval? {
         let before = j
-        guard let value = number(1, 9), j < limit, let unit = Timestamp.Unit(rawValue: chars[j]) else {
+        guard let value = number(1, 9), j < limit, let unit = Timestamp.Unit(rawValue: Character(chars[j])) else {
             j = before
             return nil
         }
@@ -145,7 +146,7 @@ private func scanSingleTimestamp(_ chars: [Character], at start: Int, limit: Int
     // Day name: anything but digits, whitespace, `+`, `-`, `]` and `>`, in any language.
     if j < limit, chars[j] == " " {
         var k = j + 1
-        while k < limit, !(chars[k].isNumber || chars[k].isWhitespace || "+-]>".contains(chars[k])) { k += 1 }
+        while k < limit, !(isDigit(chars[k]) || chars[k].properties.isWhitespace || "+-]>".unicodeScalars.contains(chars[k])) { k += 1 }
         if k > j + 1 { j = k }
     }
 
@@ -178,4 +179,13 @@ private func scanSingleTimestamp(_ chars: [Character], at start: Int, limit: Int
 
     guard take(close) else { return nil }
     return (stamp, j)
+}
+
+func isASCIIDigit(_ c: Unicode.Scalar) -> Bool {
+    c.value >= 48 && c.value <= 57
+}
+
+/// Any numeric character, as `Character.isNumber` would see it in a day name.
+func isDigit(_ c: Unicode.Scalar) -> Bool {
+    c.properties.numericType != nil
 }

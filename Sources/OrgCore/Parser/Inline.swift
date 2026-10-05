@@ -1,22 +1,41 @@
 /// Characters allowed before an emphasis opener, besides whitespace and the start of the run.
-private let emphasisPre: Set<Character> = ["-", "(", "{", "'", "\""]
+private let emphasisPre: Set<Unicode.Scalar> = ["-", "(", "{", "'", "\""]
 
 /// Characters allowed after an emphasis closer, besides whitespace and the end of the run.
-private let emphasisPost: Set<Character> = ["-", ".", ",", ":", "!", "?", ";", "'", "\"", ")", "}", "\\", "["]
-
-private let emphasisKinds: [Character: SyntaxKind] = [
-    "*": .bold, "/": .italic, "_": .underline, "+": .strikeThrough, "=": .verbatim, "~": .code,
-]
+private let emphasisPost: Set<Unicode.Scalar> = ["-", ".", ",", ":", "!", "?", ";", "'", "\"", ")", "}", "\\", "["]
 
 private let angleLinkSchemes: Set<String> = [
     "http", "https", "mailto", "file", "id", "doi", "ftp", "news", "shell", "elisp", "info", "help", "attachment",
 ]
 
-private let plainLinkPrefixes = ["https://", "http://", "mailto:", "file:"]
+private let plainLinkPrefixes: [[Unicode.Scalar]] = ["https://", "http://", "mailto:", "file:"].map { Array($0.unicodeScalars) }
 
-/// "\r\n" is a single Character, so both forms count.
-func isNewline(_ c: Character) -> Bool {
-    c == "\n" || c == "\r\n"
+private func emphasisKind(_ c: Unicode.Scalar) -> SyntaxKind? {
+    switch c {
+    case "*": .bold
+    case "/": .italic
+    case "_": .underline
+    case "+": .strikeThrough
+    case "=": .verbatim
+    case "~": .code
+    default: nil
+    }
+}
+
+func isNewline(_ c: Unicode.Scalar) -> Bool {
+    c == "\n"
+}
+
+func isSpace(_ c: Unicode.Scalar) -> Bool {
+    c.isASCII ? (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "\u{0B}" || c == "\u{0C}") : c.properties.isWhitespace
+}
+
+func isWordScalar(_ c: Unicode.Scalar) -> Bool {
+    if c.isASCII {
+        let v = c.value
+        return (v >= 48 && v <= 57) || (v >= 65 && v <= 90) || (v >= 97 && v <= 122)
+    }
+    return c.properties.isAlphabetic || c.properties.numericType != nil
 }
 
 enum InlineMatch {
@@ -33,16 +52,38 @@ enum InlineMatch {
     }
 }
 
-/// Turns a run of text into text, newline and object tokens. Every character ends up in
-/// exactly one token.
+/// Turns a run of text into text, newline and object tokens. Every scalar ends up in exactly
+/// one token. Works on unicode scalars: every recognizer starts on an ASCII character, so
+/// grapheme clusters never need to be formed.
 struct InlineScanner {
-    let chars: [Character]
+    let chars: [Unicode.Scalar]
+    /// Where each scalar starts in `source`, plus its end, so token text is sliced from the
+    /// source instead of rebuilt scalar by scalar.
+    let source: Substring.UnicodeScalarView
+    let starts: [String.Index]
+
+    init(_ text: Substring) {
+        source = text.unicodeScalars
+        var chars: [Unicode.Scalar] = []
+        var starts: [String.Index] = []
+        chars.reserveCapacity(text.utf8.count)
+        starts.reserveCapacity(text.utf8.count + 1)
+        var index = source.startIndex
+        while index < source.endIndex {
+            chars.append(source[index])
+            starts.append(index)
+            index = source.index(after: index)
+        }
+        starts.append(source.endIndex)
+        self.chars = chars
+        self.starts = starts
+    }
 
     func scan(_ range: Range<Int>, into b: inout GreenBuilder, inLink: Bool = false) {
         var textStart = range.lowerBound
         var i = range.lowerBound
         while i < range.upperBound {
-            if let match = match(at: i, in: range, inLink: inLink) {
+            if Self.mayStartObject(chars[i]), let match = match(at: i, in: range, inLink: inLink) {
                 emitText(textStart..<i, into: &b)
                 emit(match, into: &b, inLink: inLink)
                 i = match.end
@@ -54,12 +95,26 @@ struct InlineScanner {
         emitText(textStart..<range.upperBound, into: &b)
     }
 
+    /// The first characters any recognizer accepts.
+    static func mayStartObject(_ c: Unicode.Scalar) -> Bool {
+        switch c {
+        case "[", "<", "{", "\\", "^", "s", "h", "m", "f", "*", "/", "_", "+", "=", "~": true
+        default: false
+        }
+    }
+
+    /// Text with each line break as its own newline token; "\r\n" stays one token.
     func emitText(_ range: Range<Int>, into b: inout GreenBuilder) {
         var start = range.lowerBound
-        for k in range where isNewline(chars[k]) {
-            if start < k { b.token(.text, string(start..<k)) }
-            b.token(.newline, String(chars[k]))
-            start = k + 1
+        var k = range.lowerBound
+        while k < range.upperBound {
+            if chars[k] == "\n" {
+                let breakStart = k > start && chars[k - 1] == "\r" ? k - 1 : k
+                if start < breakStart { b.token(.text, string(start..<breakStart)) }
+                b.token(.newline, string(breakStart..<(k + 1)))
+                start = k + 1
+            }
+            k += 1
         }
         if start < range.upperBound { b.token(.text, string(start..<range.upperBound)) }
     }
@@ -98,24 +153,25 @@ struct InlineScanner {
     }
 
     func string(_ range: Range<Int>) -> String {
-        String(chars[range])
+        String(source[starts[range.lowerBound]..<starts[range.upperBound]])
+    }
+
+    func hasPrefix(_ s: [Unicode.Scalar], at i: Int, _ limit: Int) -> Bool {
+        guard i + s.count <= limit else { return false }
+        for (offset, c) in s.enumerated() where chars[i + offset] != c { return false }
+        return true
     }
 
     func hasPrefix(_ s: String, at i: Int, _ limit: Int) -> Bool {
-        var j = i
-        for c in s {
-            guard j < limit, chars[j] == c else { return false }
-            j += 1
-        }
-        return true
+        hasPrefix(Array(s.unicodeScalars), at: i, limit)
     }
 
     // MARK: - Recognizers
 
     func match(at i: Int, in range: Range<Int>, inLink: Bool) -> InlineMatch? {
         let limit = range.upperBound
-        let previous: Character? = i > range.lowerBound ? chars[i - 1] : nil
-        let afterWord = previous.map { $0.isLetter || $0.isNumber } ?? false
+        let previous: Unicode.Scalar? = i > range.lowerBound ? chars[i - 1] : nil
+        let afterWord = previous.map(isWordScalar) ?? false
 
         switch chars[i] {
         case "[":
@@ -136,14 +192,14 @@ struct InlineScanner {
             if afterWord, let end = superscript(i, limit) { return .object(.superscript, i..<end) }
         case "s":
             if !afterWord, let end = inlineSourceBlock(i, limit) { return .object(.inlineSourceBlock, i..<end) }
+        case "h", "m", "f":
+            if !inLink, !afterWord, let end = plainLink(i, limit) { return .object(.link, i..<end) }
         default:
             break
         }
 
-        if !inLink, !afterWord, let end = plainLink(i, limit) { return .object(.link, i..<end) }
-
-        if let kind = emphasisKinds[chars[i]],
-           previous.map({ $0.isWhitespace || emphasisPre.contains($0) }) ?? true,
+        if let kind = emphasisKind(chars[i]),
+           previous.map({ isSpace($0) || emphasisPre.contains($0) }) ?? true,
            let close = emphasisClose(i, limit) {
             return .emphasis(kind, open: i, close: close)
         }
@@ -154,15 +210,15 @@ struct InlineScanner {
     /// one line break, and the closer is followed by whitespace, punctuation or the end.
     func emphasisClose(_ i: Int, _ limit: Int) -> Int? {
         let marker = chars[i]
-        guard i + 1 < limit, !chars[i + 1].isWhitespace else { return nil }
+        guard i + 1 < limit, !isSpace(chars[i + 1]) else { return nil }
         var newlines = 0
         var j = i + 1
         while j < limit {
             if isNewline(chars[j]) {
                 newlines += 1
                 if newlines > 1 { return nil }
-            } else if chars[j] == marker, j > i + 1, !chars[j - 1].isWhitespace {
-                if j + 1 == limit || chars[j + 1].isWhitespace || emphasisPost.contains(chars[j + 1]) { return j }
+            } else if chars[j] == marker, j > i + 1, !isSpace(chars[j - 1]) {
+                if j + 1 == limit || isSpace(chars[j + 1]) || emphasisPost.contains(chars[j + 1]) { return j }
             }
             j += 1
         }
@@ -202,7 +258,7 @@ struct InlineScanner {
     func footnoteReference(_ i: Int, _ limit: Int) -> Int? {
         guard hasPrefix("[fn:", at: i, limit) else { return nil }
         var j = i + 4
-        while j < limit, chars[j].isLetter || chars[j].isNumber || chars[j] == "_" || chars[j] == "-" { j += 1 }
+        while j < limit, isWordScalar(chars[j]) || chars[j] == "_" || chars[j] == "-" { j += 1 }
         guard j < limit else { return nil }
         if chars[j] == "]" { return j > i + 4 ? j + 1 : nil }
         guard chars[j] == ":" else { return nil }
@@ -223,13 +279,13 @@ struct InlineScanner {
     /// `[1/3]`, `[/]`, `[50%]` or `[%]`.
     func statisticsCookie(_ i: Int, _ limit: Int) -> Int? {
         var j = i + 1
-        while j < limit, chars[j].isASCII, chars[j].isNumber { j += 1 }
+        while j < limit, isASCIIDigit(chars[j]) { j += 1 }
         guard j < limit else { return nil }
         if chars[j] == "%" {
             j += 1
         } else if chars[j] == "/" {
             j += 1
-            while j < limit, chars[j].isASCII, chars[j].isNumber { j += 1 }
+            while j < limit, isASCIIDigit(chars[j]) { j += 1 }
         } else {
             return nil
         }
@@ -247,14 +303,14 @@ struct InlineScanner {
             j += 1
         }
         guard j > start, j + 1 < limit, chars[j + 1] == ">",
-              !chars[start].isWhitespace, !chars[j - 1].isWhitespace else { return nil }
+              !isSpace(chars[start]), !isSpace(chars[j - 1]) else { return nil }
         return j + 2
     }
 
     /// `<scheme:path>` for a known scheme.
     func angleLink(_ i: Int, _ limit: Int) -> Int? {
         var j = i + 1
-        while j < limit, chars[j].isLetter { j += 1 }
+        while j < limit, chars[j].properties.isAlphabetic { j += 1 }
         guard j < limit, chars[j] == ":", angleLinkSchemes.contains(string((i + 1)..<j).lowercased()) else { return nil }
         j += 1
         let bodyStart = j
@@ -268,12 +324,11 @@ struct InlineScanner {
 
     /// A bare URL. Trailing sentence punctuation stays outside the link.
     func plainLink(_ i: Int, _ limit: Int) -> Int? {
-        guard "hmf".contains(chars[i]),
-              let prefix = plainLinkPrefixes.first(where: { hasPrefix($0, at: i, limit) }) else { return nil }
+        guard let prefix = plainLinkPrefixes.first(where: { hasPrefix($0, at: i, limit) }) else { return nil }
         let bodyStart = i + prefix.count
         var j = bodyStart
-        while j < limit, !chars[j].isWhitespace, !"()<>[]\"".contains(chars[j]) { j += 1 }
-        while j > bodyStart, ".,;:!?'".contains(chars[j - 1]) { j -= 1 }
+        while j < limit, !isSpace(chars[j]), !"()<>[]\"".unicodeScalars.contains(chars[j]) { j += 1 }
+        while j > bodyStart, ".,;:!?'".unicodeScalars.contains(chars[j - 1]) { j -= 1 }
         return j > bodyStart ? j : nil
     }
 
@@ -281,8 +336,8 @@ struct InlineScanner {
     func macro(_ i: Int, _ limit: Int) -> Int? {
         guard hasPrefix("{{{", at: i, limit) else { return nil }
         var j = i + 3
-        guard j < limit, chars[j].isLetter else { return nil }
-        while j < limit, chars[j].isLetter || chars[j].isNumber || chars[j] == "-" || chars[j] == "_" { j += 1 }
+        guard j < limit, chars[j].properties.isAlphabetic else { return nil }
+        while j < limit, isWordScalar(chars[j]) || chars[j] == "-" || chars[j] == "_" { j += 1 }
         if j < limit, chars[j] == "(" {
             var k = j + 1
             while k < limit, !hasPrefix(")}}}", at: k, limit) {
@@ -294,11 +349,12 @@ struct InlineScanner {
         return hasPrefix("}}}", at: j, limit) ? j + 3 : nil
     }
 
-    /// `\\` at the end of a line, before optional trailing blanks. The newline stays outside.
+    /// `\\` at the end of a line, before optional trailing blanks. The line break stays outside.
     func lineBreak(_ i: Int, _ limit: Int) -> Int? {
         guard hasPrefix("\\\\", at: i, limit) else { return nil }
         var j = i + 2
         while j < limit, chars[j] == " " || chars[j] == "\t" { j += 1 }
+        if j + 1 < limit, chars[j] == "\r", chars[j + 1] == "\n" { return j }
         guard j == limit || isNewline(chars[j]) else { return nil }
         return j
     }
@@ -312,9 +368,10 @@ struct InlineScanner {
         case "[": closer = "\\]"
         default: return nil
         }
+        let closing = Array(closer.unicodeScalars)
         var j = i + 2
         while j < limit {
-            if hasPrefix(closer, at: j, limit) { return j + 2 }
+            if hasPrefix(closing, at: j, limit) { return j + 2 }
             j += 1
         }
         return nil
@@ -333,7 +390,7 @@ struct InlineScanner {
             return j < limit ? j + 1 : nil
         }
         let start = j
-        while j < limit, chars[j].isLetter || chars[j].isNumber { j += 1 }
+        while j < limit, isWordScalar(chars[j]) { j += 1 }
         return j > start ? j : nil
     }
 
@@ -342,7 +399,7 @@ struct InlineScanner {
         guard hasPrefix("src_", at: i, limit) else { return nil }
         var j = i + 4
         let languageStart = j
-        while j < limit, !chars[j].isWhitespace, chars[j] != "[", chars[j] != "{" { j += 1 }
+        while j < limit, !isSpace(chars[j]), chars[j] != "[", chars[j] != "{" { j += 1 }
         guard j > languageStart, j < limit else { return nil }
         if chars[j] == "[" {
             while j < limit, chars[j] != "]" {
@@ -370,7 +427,7 @@ struct InlineScanner {
 
 extension Parser {
     mutating func inline(_ text: Substring) {
-        let chars = Array(text)
-        InlineScanner(chars: chars).scan(0..<chars.count, into: &builder)
+        let scanner = InlineScanner(text)
+        scanner.scan(0..<scanner.chars.count, into: &builder)
     }
 }
