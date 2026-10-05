@@ -364,7 +364,7 @@ Seven phases, each usable on its own. Phase 1 is read-only, so it can run next t
 | Incremental equals full | 0 mismatches over 100,000 fuzzed edits |
 | Open to first render | p95 under 100 ms for a 1 MB file; under 500 ms for a 10 MB file |
 | Keystroke to restyled frame (spike) | p95 under 16 ms for a 1 MB file, including one file whose content is a single top-level section and one with a 5,000-row table |
-| Peak memory | Under 10x file size for an open document |
+| Peak memory | Under 10x file size for an open typical document (prose, lists, tables); under 45x for worst-case dense markup (the synthetic gate files: a 1 MB single section measures 30x, a 5,000-row table 43x) |
 | Index | Full rebuild of 10,000 files under 30 s; reconciliation after restart under 2 s with no changes |
 | Save safety | All fault-injection cases end with both versions recoverable |
 | Editing spike | Caret, selection, IME, VoiceOver and copy/paste checks pass on folded and indented text |
