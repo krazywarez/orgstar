@@ -61,7 +61,7 @@ struct HeadingOracleTests {
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func headingCommandsMatchEmacs() throws {
-        try compare(Self.variants.map { ($0, EmacsOracle.positions($0)) })
+        try compareWithEmacs(Self.variants.map { ($0, EmacsOracle.positions($0)) }, Self.commands)
     }
 
     /// Real headings: `ORGSTAR_ORACLE_CORPUS=<folder>` runs every command on up to 400 heading
@@ -86,40 +86,42 @@ struct HeadingOracleTests {
                 samples.append((sample, [parts.start, parts.titleStart, parts.contentEnd]))
             }
         }
-        try compare(samples)
+        try compareWithEmacs(samples, Self.commands)
     }
+}
 
-    func compare(_ inputs: [(text: String, carets: [Int])]) throws {
-        try #require(EmacsOracle.isAvailable, "Emacs is required for the oracle tests; set ORGSTAR_SKIP_ORACLE to skip")
-        var cases: [EmacsOracle.Case] = []
-        var ours: [(label: String, text: String, caret: Int, failed: Bool)] = []
-        for (text, carets) in inputs {
-            for offset in carets {
-                let onHeadingLine = headingOnLine(at: offset, in: OrgParser.parse(text)) != nil
-                for (command, form, headingLineOnly) in Self.commands where onHeadingLine || !headingLineOnly {
-                    cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(offset, in: text), form: form))
-                    let result = runCommand(command, text, caret: offset)
-                    ours.append(("\(command.id) at \(offset) in \(text.debugDescription)", result.text, result.caret, result.failure != nil))
-                }
+/// Runs every command at every caret of every input here and in Emacs, and records each
+/// difference in text, caret or failure.
+func compareWithEmacs(_ inputs: [(text: String, carets: [Int])], _ commands: [(command: any OrgCommand, form: String, headingLineOnly: Bool)]) throws {
+    try #require(EmacsOracle.isAvailable, "Emacs is required for the oracle tests; set ORGSTAR_SKIP_ORACLE to skip")
+    var cases: [EmacsOracle.Case] = []
+    var ours: [(label: String, text: String, caret: Int, failed: Bool)] = []
+    for (text, carets) in inputs {
+        for offset in carets {
+            let onHeadingLine = headingOnLine(at: offset, in: OrgParser.parse(text)) != nil
+            for (command, form, headingLineOnly) in commands where onHeadingLine || !headingLineOnly {
+                cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(offset, in: text), form: form))
+                let result = runCommand(command, text, caret: offset)
+                ours.append(("\(command.id) at \(offset) in \(text.debugDescription)", result.text, result.caret, result.failure != nil))
             }
         }
-        let theirs = try EmacsOracle.run(cases)
-        var mismatches = 0
-        for (mine, emacs) in zip(ours, theirs) {
-            let emacsFailed = !emacs.error.isEmpty
-            let emacsCaret = EmacsOracle.offset(emacs.point, in: emacs.text)
-            let same = mine.failed == emacsFailed && (emacsFailed || (mine.text == emacs.text && mine.caret == emacsCaret))
-            if !same {
-                mismatches += 1
-                if mismatches <= 15 {
-                    Issue.record("""
-                        \(mine.label)
-                          ours:  \(mine.failed ? "failed" : "\(mine.text.debugDescription) @\(mine.caret)")
-                          emacs: \(emacsFailed ? "failed: \(emacs.error)" : "\(emacs.text.debugDescription) @\(emacsCaret)")
-                        """)
-                }
-            }
-        }
-        #expect(mismatches == 0, "\(mismatches) of \(ours.count) cases differ from Emacs")
     }
+    let theirs = try EmacsOracle.run(cases)
+    var mismatches = 0
+    for (mine, emacs) in zip(ours, theirs) {
+        let emacsFailed = !emacs.error.isEmpty
+        let emacsCaret = EmacsOracle.offset(emacs.point, in: emacs.text)
+        let same = mine.failed == emacsFailed && (emacsFailed || (mine.text == emacs.text && mine.caret == emacsCaret))
+        if !same {
+            mismatches += 1
+            if mismatches <= 15 {
+                Issue.record("""
+                    \(mine.label)
+                      ours:  \(mine.failed ? "failed" : "\(mine.text.debugDescription) @\(mine.caret)")
+                      emacs: \(emacsFailed ? "failed: \(emacs.error)" : "\(emacs.text.debugDescription) @\(emacsCaret)")
+                    """)
+            }
+        }
+    }
+    #expect(mismatches == 0, "\(mismatches) of \(ours.count) cases differ from Emacs")
 }

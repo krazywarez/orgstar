@@ -14,10 +14,12 @@ public struct EditContext: Sendable {
     public let calendar: Calendar
     /// Replies to earlier prompts, by prompt key.
     public let answers: [String: String]
+    /// Ranges the view hides (folded text); motion commands skip headings inside them.
+    public let hidden: [Range<Int>]
 
     public init(
         revision: Int, text: String, tree: OrgTree, selection: [Range<Int>],
-        now: Date = Date(), calendar: Calendar = .current, answers: [String: String] = [:]
+        now: Date = Date(), calendar: Calendar = .current, answers: [String: String] = [:], hidden: [Range<Int>] = []
     ) {
         self.revision = revision
         self.text = text
@@ -26,6 +28,7 @@ public struct EditContext: Sendable {
         self.now = now
         self.calendar = calendar
         self.answers = answers
+        self.hidden = hidden
     }
 
     public var caret: Int { selection.first?.lowerBound ?? 0 }
@@ -87,6 +90,9 @@ public protocol OrgCommand: Sendable {
 public enum Commands {
     public static let all: [any OrgCommand] = [
         TodoCycle(), PriorityUp(), PriorityDown(), PromoteHeading(), DemoteHeading(),
+        InsertHeading(), InsertHeadingAfterSubtree(), InsertTodoHeading(),
+        MoveSubtreeUp(), MoveSubtreeDown(), PromoteSubtree(), DemoteSubtree(),
+        NextHeading(), PreviousHeading(), ForwardSameLevel(), BackwardSameLevel(), UpHeading(),
     ]
 
     public static func command(_ id: String) -> (any OrgCommand)? {

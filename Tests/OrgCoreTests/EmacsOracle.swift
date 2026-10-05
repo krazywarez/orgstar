@@ -44,6 +44,8 @@ enum EmacsOracle {
         (with-temp-buffer
           (insert (alist-get 'text c))
           (org-mode)
+          ;; `#+STARTUP' may fold the buffer; cases run with everything visible.
+          (org-fold-show-all)
           (goto-char (alist-get 'point c))
           ;; As an interactive call, not a repeat: some commands cycle differently on repeats.
           (setq this-command 'orgstar-oracle last-command nil)
