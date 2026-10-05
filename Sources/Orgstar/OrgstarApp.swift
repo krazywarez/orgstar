@@ -161,6 +161,7 @@ struct OrgstarApp: App {
             switch workspace {
             case .success(let model):
                 ContentView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)
+                    .environment(\.orgTheme, ConfigSync.shared.theme)
                     .onAppear {
                         delegate.session = session
                         delegate.commands = commands
@@ -173,12 +174,14 @@ struct OrgstarApp: App {
         Window("Agenda", id: "agenda") {
             if case .success(let model) = workspace {
                 AgendaView(workspace: model, session: session, commands: commands, scheduler: scheduler)
+                    .environment(\.orgTheme, ConfigSync.shared.theme)
             }
         }
         .defaultSize(width: 760, height: 720)
         Window("Board", id: "board") {
             if case .success(let model) = workspace {
                 BoardView(workspace: model, session: session, commands: commands)
+                    .environment(\.orgTheme, ConfigSync.shared.theme)
             }
         }
         .defaultSize(width: 1100, height: 700)

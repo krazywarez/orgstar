@@ -12,6 +12,7 @@ struct ModeLine: View {
     let clock: ClockModel
     /// Runs an app command (clock out, go to the clocked entry).
     let perform: (String) -> Void
+    @Environment(\.orgTheme) private var theme
     @State private var words: Int?
     @State private var crlf = false
     @State private var branch: String?
@@ -44,7 +45,7 @@ struct ModeLine: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
-                .foregroundStyle(.primary)
+                .foregroundStyle(theme.color("modeline-highlight") ?? .primary)
                 .help("Clocked in since \(running.startedAt.formatted(date: .omitted, time: .shortened))")
             }
             if selection.length > 0, let region = region(text, selection) {
@@ -70,10 +71,10 @@ struct ModeLine: View {
         .font(.system(.caption, design: .monospaced))
         .monospacedDigit()
         .lineLimit(1)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(theme.color("modeline-foreground") ?? .secondary)
         .padding(.horizontal, 10)
         .frame(height: 22)
-        .background(.bar)
+        .background { if let bg = theme.color("modeline-background") { bg } else { Rectangle().fill(.bar) } }
         .overlay(alignment: .top) { Divider() }
         .task(id: session.path) {
             // HEAD changes outside the app, so look again every few seconds.
@@ -104,7 +105,7 @@ struct ModeLine: View {
         if !path.isEmpty {
             Text(path.joined(separator: " › "))
                 .truncationMode(.head)
-                .foregroundStyle(.primary)
+                .foregroundStyle(theme.color("modeline-highlight") ?? .primary)
                 .help(path.joined(separator: " › "))
         }
     }

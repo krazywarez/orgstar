@@ -12,6 +12,7 @@ struct KeyHint: Hashable {
 /// short pause on a prefix, the keys that can follow it.
 struct EchoArea: View {
     let commands: AppCommands
+    @Environment(\.orgTheme) private var theme
     @State private var showingHints = false
     @State private var answer = ""
     @FocusState private var answerFocused: Bool
@@ -80,7 +81,8 @@ struct EchoArea: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .background(.bar)
+        .foregroundStyle(theme.color("modeline-foreground") ?? .primary)
+        .background { if let bg = theme.color("modeline-background") { bg } else { Rectangle().fill(.bar) } }
         .task(id: commands.pendingKeys) {
             showingHints = false
             guard commands.pendingKeys != nil else { return }
@@ -93,6 +95,7 @@ struct EchoArea: View {
 /// The evil state, as Doom's modeline shows it.
 struct StateTag: View {
     let state: String
+    @Environment(\.orgTheme) private var theme
 
     var body: some View {
         Text(label)
@@ -113,9 +116,9 @@ struct StateTag: View {
 
     private var color: Color {
         switch state {
-        case "insert": .green
-        case "visual", "visual-line": .orange
-        default: .blue
+        case "insert": theme.color("state-insert") ?? .green
+        case "visual", "visual-line": theme.color("state-visual") ?? .orange
+        default: theme.color("state-normal") ?? .blue
         }
     }
 }

@@ -1,5 +1,6 @@
 import OrgApp
 import OrgCore
+import OrgPresentation
 import SwiftUI
 
 /// The agenda window: the day/week agenda, the TODO list, tag matches and saved views.
@@ -74,6 +75,8 @@ struct AgendaView: View {
 
     private var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
 
+    @Environment(\.orgTheme) private var theme
+
     var body: some View {
         List(selection: $selection) {
             if isAgenda {
@@ -83,7 +86,7 @@ struct AgendaView: View {
                     } header: {
                         Text(day.header)
                             .font(.headline)
-                            .foregroundStyle(day.isToday ? Color.accentColor : .primary)
+                            .foregroundStyle(day.isToday ? theme.color("agenda-today") ?? .accentColor : theme.color("agenda-date") ?? .primary)
                     }
                 }
             } else {
@@ -94,6 +97,7 @@ struct AgendaView: View {
                 }
             }
         }
+        .themedListBackground(theme.color("agenda-background"))
         .contextMenu(forSelectionType: String.self) { _ in
         } primaryAction: { ids in
             if let id = ids.first { jump(id) }
@@ -318,6 +322,7 @@ struct AgendaRow: View {
     let item: AgendaItem
     /// The agenda day the row is on, for habit graphs.
     var day: Int?
+    @Environment(\.orgTheme) private var theme
 
     var body: some View {
         switch item.kind {
@@ -329,25 +334,26 @@ struct AgendaRow: View {
                 VStack { Divider() }
             }
             .font(.caption)
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(theme.color("agenda-time").map(AnyShapeStyle.init) ?? AnyShapeStyle(.tertiary))
         case .currentTime:
             HStack(spacing: 8) {
                 Text("now " + Self.trim(item.time))
                     .monospacedDigit()
                     .frame(width: 140, alignment: .trailing)
-                Rectangle().fill(Color.accentColor).frame(height: 1)
+                Rectangle().fill(theme.color("agenda-today") ?? .accentColor).frame(height: 1)
             }
             .font(.caption)
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(theme.color("agenda-today") ?? .accentColor)
         default:
             HStack(spacing: 8) {
                 Text(item.category)
                     .lineLimit(1)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.color("agenda-category") ?? .secondary)
                     .frame(width: 80, alignment: .leading)
                 if item.kind != .todo, item.kind != .tagsMatch {
                     Text(Self.trim(item.time))
                         .monospacedDigit()
+                        .foregroundStyle(theme.color("agenda-time") ?? .primary)
                         .frame(width: 80, alignment: .leading)
                 }
                 if !item.extra.isEmpty {
@@ -359,12 +365,12 @@ struct AgendaRow: View {
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 if let habit = item.habit, let day {
-                    HabitGraph(cells: habit.graph(today: day))
+                    HabitGraph(cells: habit.graph(today: day), theme: theme)
                 }
                 if !item.tags.isEmpty {
                     Text(":" + item.tags.joined(separator: ":") + ":")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.color("tags") ?? .secondary)
                 }
             }
         }
@@ -376,10 +382,10 @@ struct AgendaRow: View {
 
     private var leaderColor: Color {
         switch item.kind {
-        case .deadline: .red
-        case .upcomingDeadline: .orange
-        case .pastScheduled: .brown
-        default: .secondary
+        case .deadline: theme.color("agenda-deadline") ?? .red
+        case .upcomingDeadline: theme.color("agenda-upcoming") ?? .orange
+        case .pastScheduled: theme.color("agenda-scheduled-past") ?? .brown
+        default: theme.color("agenda-scheduled") ?? .secondary
         }
     }
 
@@ -388,13 +394,15 @@ struct AgendaRow: View {
         let text = item.text.trimmingCharacters(in: .whitespaces)
         guard let todo = item.todo, text.hasPrefix(todo + " ") else { return Text(text) }
         let rest = String(text.dropFirst(todo.count))
-        return Text(todo).foregroundColor(item.isDone ? .green : .red).bold() + Text(rest).foregroundColor(item.isDone ? .secondary : .primary)
+        let rest_ = Text(rest).foregroundColor(item.isDone ? theme.color("comment") ?? .secondary : theme.color("foreground") ?? .primary)
+        return Text(todo).foregroundColor(theme.keywordColor(todo, done: item.isDone)).bold() + rest_
     }
 }
 
 /// org-habit's consistency graph: a cell per day, `*` where the habit was done, `!` today.
 struct HabitGraph: View {
     let cells: [Habit.Cell]
+    var theme: ThemeSpec = .default
 
     var body: some View {
         HStack(spacing: 1) {
@@ -402,7 +410,7 @@ struct HabitGraph: View {
                 Text(String(cell.glyph))
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .frame(width: 8, height: 14)
-                    .background(Self.color(cell.face))
+                    .background(color(cell.face))
                     .help(Self.label(cell))
             }
         }
@@ -410,16 +418,18 @@ struct HabitGraph: View {
         .accessibilityLabel("Done \(cells.filter { $0.glyph == "*" }.count) of the last \(Habit.precedingDays) days")
     }
 
-    static func color(_ face: Habit.Face) -> Color {
+    /// Due-state colors, lighter for days to come, as org-habit's faces.
+    func color(_ face: Habit.Face) -> Color {
+        func themed(_ key: String, _ fallback: Color) -> Color { theme.color(key) ?? fallback }
         switch face {
-        case .clear: .blue.opacity(0.6)
-        case .clearFuture: .blue.opacity(0.3)
-        case .ready: .green.opacity(0.7)
-        case .readyFuture: .green.opacity(0.35)
-        case .alert: .yellow.opacity(0.8)
-        case .alertFuture: .yellow.opacity(0.4)
-        case .overdue: .red.opacity(0.7)
-        case .overdueFuture: .red.opacity(0.35)
+        case .clear: return themed("habit-clear", .blue).opacity(0.7)
+        case .clearFuture: return themed("habit-clear", .blue).opacity(0.35)
+        case .ready: return themed("habit-ready", .green).opacity(0.75)
+        case .readyFuture: return themed("habit-ready", .green).opacity(0.35)
+        case .alert: return themed("habit-alert", .yellow).opacity(0.85)
+        case .alertFuture: return themed("habit-alert", .yellow).opacity(0.4)
+        case .overdue: return themed("habit-overdue", .red).opacity(0.75)
+        case .overdueFuture: return themed("habit-overdue", .red).opacity(0.35)
         }
     }
 

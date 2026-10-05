@@ -468,6 +468,7 @@ struct Sidebar: View {
     @AppStorage("collapsedFolders") private var collapsedText = ""
     @State private var removing: String?
     /// A file operation waiting for a name or a confirmation.
+    @Environment(\.orgTheme) private var theme
     @State var pending: FileOperation?
     @State var name = ""
     @State var failure: String?
@@ -490,18 +491,20 @@ struct Sidebar: View {
                 Section(isExpanded: expanded(root)) {
                     OutlineGroup(workspace.tree(forRoot: root).children ?? [], children: \.children) { node in
                         Label(node.name, systemImage: icon(node))
-                            .foregroundStyle(node.file?.kind == .conflict ? .orange : .primary)
+                            .foregroundStyle(node.file?.kind == .conflict ? .orange : theme.color("sidebar-foreground") ?? .primary)
                             .tag(node.file?.path)
                             .contextMenu { fileMenu(node) }
                     }
                 } header: {
                     Text((root as NSString).lastPathComponent)
+                        .foregroundStyle(theme.color("sidebar-header") ?? .secondary)
                         .help(root)
                         .contextMenu { folderMenu(root) }
                 }
             }
         }
         .listStyle(.sidebar)
+        .themedListBackground(theme.color("sidebar-background"))
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 4) {
                 Button("Add Folder…", systemImage: "plus", action: addFolder)
@@ -569,6 +572,7 @@ struct Sidebar: View {
 
 struct OutlineColumn: View {
     let session: DocumentSession
+    @Environment(\.orgTheme) private var theme
 
     var body: some View {
         List(Array(session.outline.enumerated()), id: \.element.start) { _, entry in
@@ -576,11 +580,13 @@ struct OutlineColumn: View {
                 session.reveal(entry.start)
             } label: {
                 Text(entry.title.isEmpty ? "(untitled)" : entry.title)
+                    .foregroundStyle(theme.color("sidebar-foreground") ?? .primary)
                     .lineLimit(1)
                     .padding(.leading, CGFloat(entry.level - 1) * 12)
             }
             .buttonStyle(.plain)
         }
+        .themedListBackground(theme.color("sidebar-background"))
         .overlay {
             if session.path != nil, !session.isOrg {
                 ContentUnavailableView("No outline", systemImage: "doc.plaintext", description: Text("Only org files have an outline."))

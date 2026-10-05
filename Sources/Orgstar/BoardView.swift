@@ -1,5 +1,6 @@
 import OrgApp
 import OrgCore
+import OrgPresentation
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -22,6 +23,7 @@ struct BoardView: View {
     @AppStorage("boardColumns") private var columnText = "EFFORT"
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.orgTheme) private var theme
 
     init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands) {
         self.workspace = workspace
@@ -88,7 +90,7 @@ struct BoardView: View {
     private var table: some View {
         Table(rows, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("TODO", value: \.todoOrder) { row in
-                Text(row.entry.todo ?? "").foregroundStyle(row.entry.isDone ? .green : .red).bold()
+                Text(row.entry.todo ?? "").foregroundStyle(theme.keywordColor(row.entry.todo ?? "", done: row.entry.isDone)).bold()
             }
             .width(min: 50, ideal: 60, max: 90)
             TableColumn("P", value: \.priority) { row in Text(row.priority) }
@@ -134,13 +136,14 @@ struct BoardView: View {
             }
             .padding(12)
         }
+        .background(theme.color("agenda-background") ?? .clear)
     }
 
     private func column(_ keyword: String) -> some View {
         let cards = entries.filter { $0.todo == keyword }
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(keyword).font(.headline)
+                Text(keyword).font(.headline).foregroundStyle(theme.keywordColor(keyword, done: cards.first?.isDone ?? false))
                 Text("\(cards.count)").foregroundStyle(.secondary)
             }
             ScrollView {

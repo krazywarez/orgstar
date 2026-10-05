@@ -156,7 +156,8 @@ struct ThemeSpecTests {
         let (spec, problems) = ThemeSpec.reading(try TOML.parse(ThemeSpec.defaultThemeFile()), over: ThemeSpec(light: [:], dark: [:]))
         #expect(problems.isEmpty)
         #expect(spec.light == ThemeSpec.default.light && spec.dark == ThemeSpec.default.dark)
-        #expect(Set(ThemeSpec.default.light.keys) == Set(ThemeSpec.slots.map(\.key)))
-        #expect(Set(ThemeSpec.default.dark.keys) == Set(ThemeSpec.slots.map(\.key)))
+        let defaulted = Set(ThemeSpec.slots.map(\.key)).subtracting(ThemeSpec.systemDefaults)
+        #expect(Set(ThemeSpec.default.light.keys) == defaulted)
+        #expect(Set(ThemeSpec.default.dark.keys) == defaulted)
     }
 }

@@ -95,6 +95,33 @@ public struct ThemeSpec: Equatable, Sendable {
         ("syntax-number", "code: numbers, constants and escapes"),
         ("syntax-property", "code: properties, attributes and tags"),
         ("syntax-label", "code: labels"),
+        ("sidebar-background", "the folder sidebar and the outline; unset: the system's"),
+        ("sidebar-foreground", "file and heading names there; unset: the system's"),
+        ("sidebar-header", "folder names there; unset: the system's"),
+        ("modeline-background", "the modeline and message line; unset: the system's"),
+        ("modeline-foreground", "modeline text; unset: the system's"),
+        ("modeline-highlight", "the outline path and the clock in the modeline"),
+        ("state-normal", "the NORMAL tag"),
+        ("state-insert", "the INSERT tag"),
+        ("state-visual", "the VISUAL and V-LINE tags"),
+        ("agenda-background", "the agenda and board; unset: the system's"),
+        ("agenda-date", "agenda day headers"),
+        ("agenda-today", "today's header and the current time"),
+        ("agenda-time", "times and the time grid"),
+        ("agenda-category", "categories"),
+        ("agenda-deadline", "deadlines due"),
+        ("agenda-upcoming", "deadlines coming up"),
+        ("agenda-scheduled", "scheduled items"),
+        ("agenda-scheduled-past", "items scheduled on an earlier day"),
+        ("habit-clear", "habit graph: not due yet"),
+        ("habit-ready", "habit graph: due"),
+        ("habit-alert", "habit graph: due today, last chance"),
+        ("habit-overdue", "habit graph: overdue"),
+    ]
+
+    /// Keys the default theme leaves to the system, so windows keep the macOS look.
+    public static let systemDefaults: Set<String> = [
+        "sidebar-background", "sidebar-foreground", "sidebar-header", "modeline-background", "modeline-foreground", "agenda-background",
     ]
 
     // MARK: - The default theme
@@ -117,6 +144,10 @@ public struct ThemeSpec: Equatable, Sendable {
             "line-number": "#8c959f", "line-number-current": "#1f2328",
             "syntax-keyword": "#cf222e", "syntax-string": "#0a3069", "syntax-comment": "#6e7781", "syntax-function": "#8250df",
             "syntax-type": "#953800", "syntax-number": "#0550ae", "syntax-property": "#0550ae", "syntax-label": "#8250df",
+            "modeline-highlight": "#1f2328", "state-normal": "#0969da", "state-insert": "#1a7f37", "state-visual": "#bc4c00",
+            "agenda-date": "#1f2328", "agenda-today": "#0969da", "agenda-time": "#6e7781", "agenda-category": "#6e7781",
+            "agenda-deadline": "#cf222e", "agenda-upcoming": "#bc4c00", "agenda-scheduled": "#6e7781", "agenda-scheduled-past": "#953800",
+            "habit-clear": "#54aeff", "habit-ready": "#4ac26b", "habit-alert": "#d4a72c", "habit-overdue": "#ff8182",
         ]),
         dark: palette([
             "background": "#0d1117", "foreground": "#e6edf3", "cursor": "#58a6ff", "selection": "#388bfd66",
@@ -129,6 +160,10 @@ public struct ThemeSpec: Equatable, Sendable {
             "line-number": "#6e7681", "line-number-current": "#e6edf3",
             "syntax-keyword": "#ff7b72", "syntax-string": "#a5d6ff", "syntax-comment": "#8b949e", "syntax-function": "#d2a8ff",
             "syntax-type": "#ffa657", "syntax-number": "#79c0ff", "syntax-property": "#79c0ff", "syntax-label": "#d2a8ff",
+            "modeline-highlight": "#e6edf3", "state-normal": "#1f6feb", "state-insert": "#238636", "state-visual": "#9e6a03",
+            "agenda-date": "#e6edf3", "agenda-today": "#58a6ff", "agenda-time": "#8b949e", "agenda-category": "#8b949e",
+            "agenda-deadline": "#ff7b72", "agenda-upcoming": "#ffa657", "agenda-scheduled": "#8b949e", "agenda-scheduled-past": "#d29922",
+            "habit-clear": "#1f6feb", "habit-ready": "#238636", "habit-alert": "#9e6a03", "habit-overdue": "#da3633",
         ])
     )
 
@@ -191,7 +226,11 @@ public struct ThemeSpec: Equatable, Sendable {
         for (name, colors) in [("theme.light", ThemeSpec.default.light), ("theme.dark", ThemeSpec.default.dark)] {
             out += "\n[\(name)]\n"
             for slot in slots {
-                guard let color = colors[slot.key] else { continue }
+                guard let color = colors[slot.key] else {
+                    let line = "# \(slot.key) = \"#rrggbb\""
+                    out += line + String(repeating: " ", count: max(2, 36 - line.count)) + "# \(slot.description)\n"
+                    continue
+                }
                 let line = "\(slot.key) = \"\(color.hex)\""
                 out += line + String(repeating: " ", count: max(2, 36 - line.count)) + "# \(slot.description)\n"
             }
