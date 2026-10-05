@@ -13,6 +13,7 @@ struct ContentView: View {
     @AppStorage("reminderLead") private var reminderLead = 12
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @State private var reminderAgenda: AgendaModel?
+    @State private var trust = TrustStore()
     @State private var hour = 0
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
@@ -56,7 +57,7 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 360)
         } detail: {
             if session.path != nil {
-                EditorView(session: session, commands: commands, keymap: keymap, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform)
+                EditorView(session: session, commands: commands, keymap: keymap, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
                     .safeAreaInset(edge: .bottom, spacing: 0) { EchoArea(commands: commands) }
             } else {
                 ContentUnavailableView(
@@ -162,6 +163,29 @@ struct ContentView: View {
             if let id = DevelopmentHooks.windowToOpen { openWindow(id: id) }
             await workspace.refresh()
             workspace.startWatching()
+        }
+    }
+
+    /// Work a command hands to the platform: tables recalculated in Emacs.
+    private func runExternal(_ request: ExternalRequest) {
+        switch request {
+        case .emacsTable(let table, let point, let form, let reason, let lisp):
+            let run = {
+                commands.show("Recalculating in Emacs (\(reason))…")
+                Task { commands.show(await session.recalculateInEmacs(table: table, point: point, form: form)) }
+            }
+            guard lisp, let path = session.path, let text = session.document?.text else { return run() }
+            let content = (text as NSString).substring(with: NSRange(location: table.lowerBound, length: min((text as NSString).length, table.upperBound + 2000) - table.lowerBound))
+            if trust.isTrusted(path: path, content: content) { return run() }
+            commands.ask(Prompt(key: "confirm", message: "This table's formulas run Lisp. Run them? (yes, no, always)", choices: ["yes", "no", "always"])) { answer in
+                switch answer {
+                case "always":
+                    trust.trust(path: path, content: content)
+                    run()
+                case "yes": run()
+                default: commands.show("Not recalculated")
+                }
+            }
         }
     }
 

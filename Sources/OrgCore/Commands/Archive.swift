@@ -327,6 +327,7 @@ public enum Archive {
         case .commit(let result): return .success(Edits(source: result, archive: archiveEdit))
         case .failed(let message): return .failure(.message(message))
         case .prompt: return .failure(.message("unexpected prompt"))
+        case .external: return .failure(.message("unexpected external request"))
         }
     }
 }

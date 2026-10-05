@@ -17,6 +17,7 @@ struct TimestampCommandTests {
             return (new, result.selection?.first?.lowerBound ?? caret, nil)
         case .failed(let message): return (text, caret, message)
         case .prompt(let prompt): return (text, caret, "prompt \(prompt.key)")
+        case .external(let request): return (text, caret, "external \(request)")
         }
     }
 

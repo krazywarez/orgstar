@@ -316,6 +316,33 @@ public final class DocumentSession {
         }
     }
 
+    // MARK: - External work
+
+    /// Recalculates a table in Emacs from a snapshot of the buffer, then replaces the table
+    /// with Emacs's text if it hasn't changed meanwhile. Returns a message for the echo area.
+    public func recalculateInEmacs(table: Range<Int>, point: Int, form: String) async -> String {
+        guard let buffer, let path else { return "No file is open." }
+        let snapshot = buffer.document.text as NSString
+        guard table.upperBound <= snapshot.length else { return "The table moved; try again." }
+        let old = snapshot.substring(with: NSRange(table))
+        let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        do {
+            let new = try await EmacsRunner.recalculateTable(text: snapshot as String, directory: directory, table: table, point: point, form: form)
+            guard let current = self.buffer, self.path == path else { return "The file was closed before Emacs finished." }
+            let text = current.document.text as NSString
+            guard table.upperBound <= text.length, text.substring(with: NSRange(table)) == old else {
+                return "The table changed while Emacs recalculated it; nothing was changed."
+            }
+            guard new != old else { return "Recalculated in Emacs" }
+            let result = EditResult(baseRevision: current.document.revision, edits: [TextEdit(range: table, replacement: new)])
+            if case .failed(let message) = current.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
+            bufferChanged()
+            return "Recalculated in Emacs"
+        } catch {
+            return "\(error)"
+        }
+    }
+
     // MARK: - Locations
 
     /// Opens the file of `location` if needed and asks the editor to show the heading. Offsets

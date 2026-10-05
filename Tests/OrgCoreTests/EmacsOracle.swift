@@ -144,5 +144,7 @@ func runCommand(_ command: any OrgCommand, _ text: String, caret: Int, answers: 
         return (text, caret, message)
     case .prompt(let prompt):
         return (text, caret, "prompt: \(prompt.key)")
+    case .external(let request):
+        return (text, caret, "external: \(request)")
     }
 }

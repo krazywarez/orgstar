@@ -184,6 +184,8 @@ public final class OrgEditor: NSObject {
     public var onAppCommand: ((String) -> Void)?
     /// Called when a command asks a question; reply with the answer, or nil to cancel.
     public var onPrompt: ((Prompt, _ reply: @escaping (String?) -> Void) -> Void)?
+    /// Runs work outside the text, such as a table recalculation in Emacs.
+    public var onExternal: ((ExternalRequest) -> Void)?
 
     public var keymap: Keymap {
         get { dispatcher.keymap }
@@ -324,6 +326,8 @@ public final class OrgEditor: NSObject {
             for case .message(let text) in result.effects { onMessage?(text) }
         case .failed(let message):
             onMessage?(message)
+        case .external(let request):
+            if let onExternal { onExternal(request) } else { onMessage?("This needs Emacs, which isn't available here.") }
         case .prompt(let prompt):
             onPrompt?(prompt) { [weak self] answer in
                 guard let self else { return }

@@ -297,6 +297,8 @@ struct AgendaView: View {
         case .failed(let text):
             message = text
             tick += 1
+        case .external:
+            message = "Not available from the agenda"
         case .commit:
             message = nil
             tick += 1

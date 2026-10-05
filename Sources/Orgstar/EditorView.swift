@@ -17,6 +17,7 @@ struct EditorView: NSViewRepresentable {
     let optionAsMeta: OptionAsMeta
     let options: EditingOptions
     let onAppCommand: (String) -> Void
+    let onExternal: (ExternalRequest) -> Void
 
     final class Coordinator {
         var editor: OrgEditor?
@@ -45,6 +46,7 @@ struct EditorView: NSViewRepresentable {
                     commands?.keyHints = next.map { KeyHint(key: $0.key, title: $0.title) }
                 }
                 editor.onAppCommand = onAppCommand
+                editor.onExternal = onExternal
                 editor.onPrompt = { [weak commands] prompt, reply in commands?.ask(prompt, reply: reply) }
                 commands.editor = editor
                 let scroll = editor.makeScrollView()

@@ -420,3 +420,24 @@ struct ReminderSchedulerTests {
         #expect(center.ids == ["someone.else"])
     }
 }
+
+@MainActor
+struct EmacsFallbackTests {
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func recalculatesTablesNativeCodeCannot() async throws {
+        let notes = try Folder()
+        let file = try notes.write("t.org", "* Prices\n| item | n | twice |\n|------+---+-------|\n| x | a | |\n| y | 2 | |\n#+TBLFM: $3=$2*2\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        let step = session.perform(TableRecalculate(all: true), path: file.path, at: 50, expect: nil)
+        guard case .external(.emacsTable(let table, let point, let form, let reason, let lisp)) = step else {
+            Issue.record("\(step)")
+            return
+        }
+        #expect(reason == "non-numeric field a")
+        #expect(!lisp)
+        let message = await session.recalculateInEmacs(table: table, point: point, form: form)
+        #expect(message == "Recalculated in Emacs")
+        #expect(session.document?.text == "* Prices\n| item | n | twice |\n|------+---+-------|\n| x    | a | 2 a   |\n| y    | 2 | 4     |\n#+TBLFM: $3=$2*2\n")
+    }
+}
