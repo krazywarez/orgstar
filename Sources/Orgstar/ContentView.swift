@@ -17,9 +17,14 @@ struct ContentView: View {
     @AppStorage("splitLine") private var splitLine = false
     @AppStorage("alphabeticalLists") private var alphabeticalLists = true
     @AppStorage("fillColumn") private var fillColumn = 80
+    @AppStorage("hiddenMarkers") private var hiddenMarkers = true
+    @AppStorage("prettyEntities") private var prettyEntities = true
 
     private var options: EditingOptions {
-        Preferences.options(tagsColumn: tagsColumn, headingAfterSubtree: headingAfterSubtree, splitLine: splitLine, alphabeticalLists: alphabeticalLists, fillColumn: fillColumn)
+        Preferences.options(
+            tagsColumn: tagsColumn, headingAfterSubtree: headingAfterSubtree, splitLine: splitLine, alphabeticalLists: alphabeticalLists,
+            fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities
+        )
     }
     @State private var selectedFile: String?
     @State private var query = ""

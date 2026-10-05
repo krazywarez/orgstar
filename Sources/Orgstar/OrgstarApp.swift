@@ -155,6 +155,8 @@ struct SettingsView: View {
     @AppStorage("splitLine") private var splitLine = false
     @AppStorage("alphabeticalLists") private var alphabeticalLists = true
     @AppStorage("fillColumn") private var fillColumn = 80
+    @AppStorage("hiddenMarkers") private var hiddenMarkers = true
+    @AppStorage("prettyEntities") private var prettyEntities = true
     @AppStorage("todoKeywords") private var todoKeywords = Preferences.defaultTodoKeywords
 
     var body: some View {
@@ -186,6 +188,11 @@ struct SettingsView: View {
             Toggle("M-RET splits the line at the caret", isOn: $splitLine)
             Toggle("Lists can use letters (a. b. c.)", isOn: $alphabeticalLists)
             Stepper("M-q fills to column \(fillColumn)", value: $fillColumn, in: 40...200)
+            Toggle("Emacs hides emphasis markers (org-hide-emphasis-markers)", isOn: $hiddenMarkers)
+            Toggle("Emacs shows entities as characters (org-pretty-entities)", isOn: $prettyEntities)
+            Text("Tags, tables and M-q measure text as your Emacs displays it, so both write the same file.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             TextField("Default TODO keywords:", text: $todoKeywords)
             Text("For files without #+TODO, in #+TODO syntax. Takes effect when Orgstar restarts.")
                 .font(.caption)

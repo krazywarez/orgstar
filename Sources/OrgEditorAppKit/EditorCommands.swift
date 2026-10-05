@@ -31,7 +31,7 @@ public struct EditorCommand: Sendable {
 }
 
 public enum EditorCommands {
-    public static let all: [EditorCommand] = Commands.all.map { EditorCommand(id: $0.id, title: $0.title, action: .text($0)) } + [
+    public static let all: [EditorCommand] = Commands.everything.map { EditorCommand(id: $0.id, title: $0.title, action: .text($0)) } + [
         EditorCommand(id: "org.cycle", title: "Cycle Visibility", action: .view),
         EditorCommand(id: "org.cycle-global", title: "Cycle Global Visibility", action: .view),
 

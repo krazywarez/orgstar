@@ -11,10 +11,14 @@ enum Preferences {
         return OrgSettings.default.withTodoKeywords(line) ?? .default
     }
 
-    static func options(tagsColumn: Int, headingAfterSubtree: Bool, splitLine: Bool, alphabeticalLists: Bool, fillColumn: Int) -> EditingOptions {
+    static func options(
+        tagsColumn: Int, headingAfterSubtree: Bool, splitLine: Bool, alphabeticalLists: Bool, fillColumn: Int,
+        hiddenMarkers: Bool, prettyEntities: Bool
+    ) -> EditingOptions {
         EditingOptions(
             tagsColumn: tagsColumn, insertHeadingRespectContent: headingAfterSubtree,
-            metaReturnMaySplitLine: splitLine, listAllowAlphabetical: alphabeticalLists, fillColumn: fillColumn
+            metaReturnMaySplitLine: splitLine, listAllowAlphabetical: alphabeticalLists, fillColumn: fillColumn,
+            hideEmphasisMarkers: hiddenMarkers, prettyEntities: prettyEntities, subSuperscriptsNeedBraces: true
         )
     }
 }
