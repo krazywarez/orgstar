@@ -161,6 +161,13 @@ struct OrgstarApp: App {
             }
         }
         .defaultSize(width: 760, height: 720)
+        Window("Capture", id: "capture") {
+            if case .success(let model) = workspace {
+                CaptureView(workspace: model, session: session, commands: commands)
+            }
+        }
+        .windowResizability(.contentSize)
+        .windowLevel(.floating)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Add Folder…") { commands.showingFolderPicker = true }
@@ -191,6 +198,10 @@ struct OrgstarApp: App {
             }
             CommandGroup(before: .windowList) {
                 AgendaMenuItem()
+            }
+            CommandGroup(after: .newItem) {
+                Button("Capture…") { commands.run("app.capture") }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
             }
         }
         .commands {
@@ -234,6 +245,7 @@ struct SettingsView: View {
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @AppStorage("reminders") private var reminders = true
     @AppStorage("reminderLead") private var reminderLead = 12
+    @AppStorage("globalCapture") private var globalCapture = true
 
     var body: some View {
         Form {
@@ -280,6 +292,11 @@ struct SettingsView: View {
             Toggle("Notify before timed agenda entries", isOn: $reminders)
             Stepper("\(reminderLead) minutes before (APPT_WARNTIME overrides)", value: $reminderLead, in: 0...120)
                 .disabled(!reminders)
+            Toggle("⌃⌥Space opens Capture from any app", isOn: $globalCapture)
+            Text("Templates go in \(CaptureTemplates.userFile.path).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
         .padding(20)
         .frame(width: 480)

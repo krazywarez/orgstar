@@ -15,6 +15,8 @@ struct ContentView: View {
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @State private var reminderAgenda: AgendaModel?
     @State private var trust = TrustStore()
+    @State private var hotKey: GlobalHotKey?
+    @AppStorage("globalCapture") private var globalCapture = true
     @State private var hour = 0
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
@@ -114,6 +116,10 @@ struct ContentView: View {
 
     var body: some View {
         main
+        .onChange(of: globalCapture, initial: true) { _, enabled in
+            hotKey?.unregister()
+            hotKey = enabled ? GlobalHotKey { perform("app.capture") } : nil
+        }
         .onChange(of: commands.runRequest?.serial) {
             if let id = commands.runRequest?.id { perform(id) }
         }
@@ -309,6 +315,9 @@ struct ContentView: View {
             if let message = session.archive() { commands.show(message) }
         case "app.agenda":
             openWindow(id: "agenda")
+        case "app.capture":
+            NSApp.activate()
+            openWindow(id: "capture")
         case let id where id.hasPrefix("app.export."):
             export(String(id.dropFirst("app.export.".count)))
         default:

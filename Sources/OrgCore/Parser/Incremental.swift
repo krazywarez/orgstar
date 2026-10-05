@@ -392,3 +392,22 @@ extension Parser {
         return green.kind == kind ? green : nil
     }
 }
+
+extension TextEdit {
+    /// The one edit between two texts: everything between their common prefix and suffix.
+    public static func between(_ old: String, _ new: String) -> [TextEdit] {
+        let a = Array(old.utf16)
+        let b = Array(new.utf16)
+        var prefix = 0
+        while prefix < a.count, prefix < b.count, a[prefix] == b[prefix] { prefix += 1 }
+        var suffix = 0
+        while suffix < a.count - prefix, suffix < b.count - prefix, a[a.count - 1 - suffix] == b[b.count - 1 - suffix] { suffix += 1 }
+        // Keep the edit on scalar boundaries.
+        while prefix > 0, (prefix < a.count && UTF16.isTrailSurrogate(a[prefix])) || (prefix < b.count && UTF16.isTrailSurrogate(b[prefix])) { prefix -= 1 }
+        while suffix > 0, suffix < a.count, UTF16.isLeadSurrogate(a[a.count - suffix - 1]) { suffix -= 1 }
+        if prefix == a.count, prefix == b.count { return [] }
+        let replacement = String(utf16CodeUnits: Array(b[prefix..<(b.count - suffix)]), count: b.count - suffix - prefix)
+        return [TextEdit(range: prefix..<(a.count - suffix), replacement: replacement)]
+    }
+
+}

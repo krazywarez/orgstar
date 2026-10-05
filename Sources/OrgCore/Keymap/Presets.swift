@@ -154,6 +154,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c a"
         command = "app.agenda"
         [[bind]]
+        keys = "C-c c"
+        command = "app.capture"
+        [[bind]]
         keys = "C-c C-e h h"
         command = "app.export.html"
         [[bind]]

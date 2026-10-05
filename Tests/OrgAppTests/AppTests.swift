@@ -473,3 +473,47 @@ struct EmacsExportTests {
         #expect(try String(contentsOf: file, encoding: .utf8) == "#+TITLE: On disk\n")
     }
 }
+
+@MainActor
+struct CaptureAppTests {
+    @Test func loadsTemplates() throws {
+        let folder = try Folder()
+        let file = try folder.write("capture.toml", """
+        [[template]]
+        key = "w"
+        name = "Work"
+        file = "work.org"
+        olp = "Projects/Work"
+        template = "* TODO %?\\n%a"
+        [[template]]
+        key = "j"
+        type = "plain"
+        file = "~/journal.org"
+        template = "%U %?"
+        prepend = true
+        """)
+        let loaded = CaptureTemplates.load(userFile: file)
+        #expect(loaded.problems.isEmpty)
+        #expect(loaded.templates.map(\.key) == ["w", "j"])
+        #expect(loaded.templates[0].target == .outline(file: "work.org", path: ["Projects", "Work"]))
+        #expect(loaded.templates[0].template == "* TODO %?\n%a")
+        #expect(loaded.templates[1].kind == .plain && loaded.templates[1].prepend)
+        #expect(CaptureTemplates.load(userFile: folder.url.appendingPathComponent("none.toml")).templates == CaptureTemplates.defaults)
+    }
+
+    @Test func capturesIntoClosedMissingAndOpenFiles() throws {
+        let notes = try Folder()
+        let todo = try notes.write("todo.org", "* Inbox\n** TODO Old\n* Later\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        let template = CaptureTemplates.defaults[0]
+        #expect(session.capture("* TODO New\n", template: template, root: notes.url.path) == nil)
+        #expect(try String(contentsOf: todo, encoding: .utf8) == "* Inbox\n** TODO Old\n** TODO New\n* Later\n")
+
+        #expect(session.capture("* Note\n", template: CaptureTemplates.defaults[1], root: notes.url.path) == nil)
+        #expect(try String(contentsOf: notes.url.appendingPathComponent("notes.org"), encoding: .utf8) == "* Inbox\n** Note\n")
+
+        session.open(todo.path)
+        #expect(session.capture("* TODO Third\n", template: template, root: notes.url.path) == nil)
+        #expect(session.document?.text == "* Inbox\n** TODO Old\n** TODO New\n** TODO Third\n* Later\n")
+    }
+}

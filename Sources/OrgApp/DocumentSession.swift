@@ -87,6 +87,8 @@ public final class DocumentSession {
     }
 
     private var url: URL? { path.map { URL(fileURLWithPath: $0) } }
+    /// The caret in the open file.
+    public var caret: Int { buffer?.selection.first?.lowerBound ?? 0 }
     private var name: String { path.map { ($0 as NSString).lastPathComponent } ?? "" }
 
     public func open(_ path: String) {

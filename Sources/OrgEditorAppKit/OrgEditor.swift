@@ -598,6 +598,13 @@ public final class OrgEditor: NSObject {
 }
 
 extension OrgEditor: DocumentBuffer {
+    /// The selected text, for capture's `%i`.
+    public var selectedText: String {
+        let range = textView.selectedRange()
+        guard range.length > 0 else { return "" }
+        return (textView.string as NSString).substring(with: range)
+    }
+
     public var selection: [Range<Int>] {
         let selected = textView.selectedRange()
         return [selected.location..<NSMaxRange(selected)]
