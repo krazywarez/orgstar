@@ -61,6 +61,37 @@ func scanTimestamp(_ chars: [Unicode.Scalar], at start: Int, limit: Int) -> (sta
     return first
 }
 
+/// The end of the timestamp object at `start`. Org reads anything matching
+/// `org-ts-regexp-both` as one, `<2026-10-07 Wed 9am>` included, so a timestamp `parse` rejects
+/// is still an object.
+func timestampEnd(_ chars: [Unicode.Scalar], at start: Int, limit: Int) -> Int? {
+    if let strict = scanTimestamp(chars, at: start, limit: limit) { return strict.end }
+    guard let first = lenientTimestampEnd(chars, at: start, limit: limit) else { return nil }
+    if first + 2 < limit, chars[first] == "-", chars[first + 1] == "-",
+       let second = lenientTimestampEnd(chars, at: first + 2, limit: limit) {
+        return second
+    }
+    return first
+}
+
+/// `[[<]YYYY-MM-DD( .*?)?[]>]`.
+private func lenientTimestampEnd(_ chars: [Unicode.Scalar], at start: Int, limit: Int) -> Int? {
+    guard start + 11 < limit, chars[start] == "<" || chars[start] == "[" else { return nil }
+    for (k, c) in "dddd-dd-dd".unicodeScalars.enumerated() {
+        let actual = chars[start + 1 + k]
+        guard c == "d" ? isASCIIDigit(actual) : actual == c else { return nil }
+    }
+    var j = start + 11
+    if chars[j] == "]" || chars[j] == ">" { return j + 1 }
+    guard chars[j] == " " else { return nil }
+    j += 1
+    while j < limit, chars[j] != "\n" {
+        if chars[j] == "]" || chars[j] == ">" { return j + 1 }
+        j += 1
+    }
+    return nil
+}
+
 /// `<YYYY-MM-DD DAY HH:MM-HH:MM REPEATER WARNING>`, or the same in `[...]` for inactive.
 private func scanSingleTimestamp(_ chars: [Unicode.Scalar], at start: Int, limit: Int) -> (stamp: Timestamp, end: Int)? {
     guard start < limit, chars[start] == "<" || chars[start] == "[" else { return nil }

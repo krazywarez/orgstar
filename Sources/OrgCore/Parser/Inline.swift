@@ -177,10 +177,10 @@ struct InlineScanner {
         case "[":
             if !inLink, let link = bracketLink(i, limit) { return link }
             if let end = footnoteReference(i, limit) { return .object(.footnoteReference, i..<end) }
-            if let end = scanTimestamp(chars, at: i, limit: limit)?.end { return .object(.timestamp, i..<end) }
+            if !inLink, let end = timestampEnd(chars, at: i, limit: limit) { return .object(.timestamp, i..<end) }
             if let end = statisticsCookie(i, limit) { return .object(.statisticsCookie, i..<end) }
         case "<":
-            if let end = scanTimestamp(chars, at: i, limit: limit)?.end { return .object(.timestamp, i..<end) }
+            if !inLink, let end = timestampEnd(chars, at: i, limit: limit) { return .object(.timestamp, i..<end) }
             if let end = target(i, limit) { return .object(.target, i..<end) }
             if !inLink, let end = angleLink(i, limit) { return .object(.link, i..<end) }
         case "{":
