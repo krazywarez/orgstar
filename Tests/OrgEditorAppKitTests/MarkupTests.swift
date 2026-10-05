@@ -70,3 +70,24 @@ struct LineNumberTests {
         #expect(h.textView.textContainerInset.width == 0)
     }
 }
+
+@MainActor
+struct PrettyEntityTests {
+    @Test func entitiesShowAsCharactersOffTheCaretLine() {
+        let text = "first\nThen \\alpha and x_{1}\n"
+        let h = Harness(text)
+        h.caret(at: 0)
+        h.editor.options.prettyEntities = true
+        h.editor.options.subSuperscriptsNeedBraces = true
+        h.editor.showMarkup = false
+        h.drainStyling()
+        let storage = h.textView.textStorage!
+        let last = (text as NSString).range(of: "\\alpha").location + 5
+        #expect(storage.attribute(.orgEntityDisplay, at: last, effectiveRange: nil) as? String == "α")
+        let one = (text as NSString).range(of: "1}").location
+        #expect((storage.attribute(.baselineOffset, at: one, effectiveRange: nil) as? CGFloat ?? 0) < 0)
+
+        h.caret(at: last)
+        #expect(storage.attribute(.orgEntityDisplay, at: last, effectiveRange: nil) == nil)
+    }
+}

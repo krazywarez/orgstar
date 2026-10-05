@@ -54,24 +54,16 @@ struct VisibleLine {
                 }
             }
         }
-        if options.prettyEntities, line.contains(where: { $0 == "\\" || $0 == "_" || $0 == "^" }) {
-            let ns = line as NSString
-            let all = NSRange(location: 0, length: ns.length)
+        if options.prettyEntities {
             // `org-fontify-entities`: a single-character entity is composed into one glyph.
             // Positions inside it stay at its starting column; its width counts at its end.
-            let entity = try! NSRegularExpression(pattern: "\\\\(there4|sup[123]|frac[13][24]|[a-zA-Z]+)($|\\{\\}|[^\\p{L}\\n])")
-            for match in entity.matches(in: line, range: all) {
-                guard let display = OrgEntities.display[ns.substring(with: match.range(at: 1))], display.count == 1 else { continue }
-                let end = ns.substring(with: match.range(at: 2)) == "{}" ? NSMaxRange(match.range(at: 2)) : NSMaxRange(match.range(at: 1))
-                for i in match.range.location..<end where i < widths.count { widths[i] = 0 }
-                widths[end - 1] = displayWidth(display)
-            }
-            let pattern = options.subSuperscriptsNeedBraces
-                ? "\\S([_^])(\\{)[^{}\\n]*(\\})"
-                : "\\S([_^])(?:(\\{)[^{}\\n]*(\\})|[*]|[-+]?[^-+*!@#$%^_ \\t\\r\\n,:\"?<>~;./{}=()]+)"
-            for match in try! NSRegularExpression(pattern: pattern).matches(in: line, range: all) {
-                for group in 1...3 where match.range(at: group).location != NSNotFound {
-                    hide(match.range(at: group).location..<NSMaxRange(match.range(at: group)))
+            for run in PrettyEntities.runs(in: line, subSuperscriptsNeedBraces: options.subSuperscriptsNeedBraces) {
+                switch run {
+                case .entity(let range, let display):
+                    for i in range where i < widths.count { widths[i] = 0 }
+                    widths[range.upperBound - 1] = displayWidth(display)
+                case .script(let markers, _, _):
+                    for marker in markers { hide(marker) }
                 }
             }
         }

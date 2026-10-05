@@ -534,12 +534,55 @@ public final class OrgEditor: NSObject {
             }
         }
         let revealed = caretLine
+        var scriptExclusions: [Range<Int>] = []
         for run in Presentation.styles(document.tree, in: range, highlighter: highlighter) {
             guard let clipped = clip(run.range, to: range) else { continue }
             if !showMarkup, hides(run.role), NSIntersectionRange(clipped, revealed).length == 0 {
                 storage.addAttributes(theme.hidden, range: clipped)
             } else {
                 theme.apply(run.role, to: storage, range: clipped)
+            }
+            switch run.role {
+            case .bold, .italic, .underline, .strikeThrough, .verbatim, .code, .link, .linkMarkup, .keyword: scriptExclusions.append(run.range)
+            default: break
+            }
+        }
+        if !showMarkup, options.prettyEntities { prettify(range, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
+    }
+
+    /// `org-pretty-entities`: entities drawn as their character over the entity's last
+    /// character (the rest hidden), sub/superscripts raised without their markers. Not on the
+    /// caret's line, in comments or in blocks; sub/superscripts not in emphasis, links or
+    /// keywords, as `org-raise-scripts` leaves them.
+    private func prettify(_ range: Range<Int>, in storage: NSTextStorage, revealed: NSRange, scriptExclusions: [Range<Int>]) {
+        let text = storage.string as NSString
+        var location = range.lowerBound
+        while location < range.upperBound {
+            let line = text.lineRange(for: NSRange(location: location, length: 0))
+            guard line.length > 0 else { break }
+            location = NSMaxRange(line)
+            if line.location == revealed.location || shaded.containing(line.location) != nil { continue }
+            let content = text.substring(with: line)
+            if content.range(of: "^[ \\t]*#([ +]|$)", options: .regularExpression) != nil { continue }
+            for run in PrettyEntities.runs(in: content, subSuperscriptsNeedBraces: options.subSuperscriptsNeedBraces) {
+                switch run {
+                case .entity(let r, let display):
+                    let start = line.location + r.lowerBound
+                    let last = line.location + r.upperBound - 1
+                    if last > start { storage.addAttributes(theme.hidden, range: NSRange(location: start, length: last - start)) }
+                    storage.addAttributes([.foregroundColor: NSColor.clear, .orgEntityDisplay: display], range: NSRange(location: last, length: 1))
+                case .script(let markers, let body, let superscript):
+                    let bodyStart = line.location + body.lowerBound
+                    if scriptExclusions.contains(where: { $0.contains(bodyStart) }) || body.isEmpty { continue }
+                    for marker in markers {
+                        storage.addAttributes(theme.hidden, range: NSRange(location: line.location + marker.lowerBound, length: marker.count))
+                    }
+                    let size = theme.font.pointSize
+                    storage.addAttributes([
+                        .font: NSFont.monospacedSystemFont(ofSize: size * 0.7, weight: .regular),
+                        .baselineOffset: (superscript ? 0.3 : -0.3) * size,
+                    ], range: NSRange(location: bodyStart, length: body.count))
+                }
             }
         }
     }
@@ -819,6 +862,9 @@ extension OrgEditor: NSTextLayoutManagerDelegate {
             let offset = manager.offset(from: manager.documentRange.location, to: range.location)
             if folded.contains(offset) { return FoldedHeadingFragment(textElement: textElement, range: range) }
             if shaded.containing(offset) != nil { return ShadedFragment(textElement: textElement, range: range) }
+            if let paragraph = textElement as? NSTextParagraph, EntityFragment.hasEntities(paragraph.attributedString) {
+                return EntityFragment(textElement: textElement, range: range)
+            }
         }
         return NSTextLayoutFragment(textElement: textElement, range: range)
     }
@@ -829,7 +875,9 @@ extension OrgEditor: NSTextLayoutManagerDelegate {
 final class ShadedFragment: NSTextLayoutFragment, @unchecked Sendable {
     private var band: CGRect {
         let width = textLayoutManager?.textContainer?.size.width ?? layoutFragmentFrame.width
-        return CGRect(x: -layoutFragmentFrame.minX, y: 0, width: width, height: layoutFragmentFrame.height)
+        // Not under the empty line TextKit adds after a final newline.
+        let height = textLineFragments.last { $0.characterRange.length > 0 }?.typographicBounds.maxY ?? layoutFragmentFrame.height
+        return CGRect(x: -layoutFragmentFrame.minX, y: 0, width: width, height: height)
     }
 
     override var renderingSurfaceBounds: CGRect { super.renderingSurfaceBounds.union(band) }
@@ -843,10 +891,50 @@ final class ShadedFragment: NSTextLayoutFragment, @unchecked Sendable {
     }
 }
 
+extension NSAttributedString.Key {
+    /// The character an entity shows as, on the entity's last character.
+    static let orgEntityDisplay = NSAttributedString.Key("OrgEntityDisplay")
+}
+
+/// A paragraph with pretty entities: each is drawn as its character where the entity's last
+/// (now invisible) character sits, so it takes one column as in Emacs.
+final class EntityFragment: NSTextLayoutFragment, @unchecked Sendable {
+    static func hasEntities(_ string: NSAttributedString) -> Bool {
+        var found = false
+        string.enumerateAttribute(.orgEntityDisplay, in: NSRange(location: 0, length: string.length)) { value, _, stop in
+            if value != nil { found = true; stop.pointee = true }
+        }
+        return found
+    }
+
+    override func draw(at point: CGPoint, in context: CGContext) {
+        super.draw(at: point, in: context)
+        Self.drawEntities(of: self, at: point, in: context)
+    }
+
+    static func drawEntities(of fragment: NSTextLayoutFragment, at point: CGPoint, in context: CGContext) {
+        guard let string = (fragment.textElement as? NSTextParagraph)?.attributedString else { return }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
+        string.enumerateAttribute(.orgEntityDisplay, in: NSRange(location: 0, length: string.length)) { value, range, _ in
+            guard let display = value as? String,
+                  let line = fragment.textLineFragments.first(where: { NSLocationInRange(range.location, $0.characterRange) }) else { return }
+            var attributes = string.attributes(at: range.location, effectiveRange: nil)
+            attributes[.foregroundColor] = NSColor.textColor
+            attributes[.orgEntityDisplay] = nil
+            let x = line.locationForCharacter(at: range.location).x
+            let bounds = line.typographicBounds
+            NSAttributedString(string: display, attributes: attributes).draw(at: CGPoint(x: point.x + bounds.minX + x, y: point.y + bounds.minY))
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+}
+
 /// A heading line drawn with an ellipsis after it, like org's folded headings.
 final class FoldedHeadingFragment: NSTextLayoutFragment, @unchecked Sendable {
     override func draw(at point: CGPoint, in context: CGContext) {
         super.draw(at: point, in: context)
+        EntityFragment.drawEntities(of: self, at: point, in: context)
         guard let line = textLineFragments.first else { return }
         let bounds = line.typographicBounds
         let ellipsis = NSAttributedString(string: " …", attributes: [
