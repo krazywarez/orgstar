@@ -1,0 +1,85 @@
+#if os(macOS)
+import OrgCore
+
+/// Every command a key, menu or the palette can run, by id.
+public struct EditorCommand: Sendable {
+    public enum Action: Sendable {
+        /// An `OrgCore` command, run through `OrgEditor.perform`.
+        case text(any OrgCommand)
+        /// Folding and other view changes the editor makes itself.
+        case view
+        /// A text-system action; `extending` is its variant that extends the selection, used
+        /// while a mark is active.
+        case edit(selector: String, extending: String? = nil)
+        /// Mark handling in the editor.
+        case mark
+        /// Handled by the app (save, quick open, palette).
+        case app
+    }
+
+    public let id: String
+    public let title: String
+    public let action: Action
+
+    /// Shown in the palette; text-system movement and editing are left to keys.
+    public var inPalette: Bool {
+        switch action {
+        case .edit, .mark: false
+        default: true
+        }
+    }
+}
+
+public enum EditorCommands {
+    public static let all: [EditorCommand] = Commands.all.map { EditorCommand(id: $0.id, title: $0.title, action: .text($0)) } + [
+        EditorCommand(id: "org.cycle", title: "Cycle Visibility", action: .view),
+        EditorCommand(id: "org.cycle-global", title: "Cycle Global Visibility", action: .view),
+
+        EditorCommand(id: "app.save", title: "Save", action: .app),
+        EditorCommand(id: "app.quick-open", title: "Quick Open…", action: .app),
+        EditorCommand(id: "app.palette", title: "Command Palette…", action: .app),
+        EditorCommand(id: "app.search", title: "Search Notes", action: .app),
+        EditorCommand(id: "app.reload-keymap", title: "Reload Keymap", action: .app),
+
+        movement("forward-char", "Forward Character", "moveForward:"),
+        movement("backward-char", "Backward Character", "moveBackward:"),
+        movement("next-line", "Next Line", "moveDown:"),
+        movement("previous-line", "Previous Line", "moveUp:"),
+        movement("beginning-of-line", "Beginning of Line", "moveToBeginningOfParagraph:"),
+        movement("end-of-line", "End of Line", "moveToEndOfParagraph:"),
+        movement("forward-word", "Forward Word", "moveWordForward:"),
+        movement("backward-word", "Backward Word", "moveWordBackward:"),
+        movement("beginning-of-buffer", "Beginning of Buffer", "moveToBeginningOfDocument:"),
+        movement("end-of-buffer", "End of Buffer", "moveToEndOfDocument:"),
+        movement("scroll-up", "Scroll Up", "pageDown:"),
+        movement("scroll-down", "Scroll Down", "pageUp:"),
+        edit("recenter", "Recenter", "centerSelectionInVisibleArea:"),
+        edit("delete-char", "Delete Character", "deleteForward:"),
+        edit("kill-word", "Kill Word", "deleteWordForward:"),
+        edit("backward-kill-word", "Kill Word Backward", "deleteWordBackward:"),
+        edit("kill-line", "Kill Line", "deleteToEndOfParagraph:"),
+        edit("yank", "Yank", "yank:"),
+        edit("select-all", "Select All", "selectAll:"),
+        edit("kill-region", "Kill Region", "cut:"),
+        edit("copy-region", "Copy Region", "copy:"),
+        edit("undo", "Undo", "undo:"),
+        edit("transpose-chars", "Transpose Characters", "transpose:"),
+        edit("find", "Find", "performTextFinderAction:"),
+        EditorCommand(id: "edit.set-mark", title: "Set Mark", action: .mark),
+        EditorCommand(id: "edit.keyboard-quit", title: "Quit", action: .mark),
+    ]
+
+    private static func movement(_ name: String, _ title: String, _ selector: String) -> EditorCommand {
+        let extending = String(selector.dropLast()) + "AndModifySelection:"
+        return EditorCommand(id: "edit.\(name)", title: title, action: .edit(selector: selector, extending: extending))
+    }
+
+    private static func edit(_ name: String, _ title: String, _ selector: String) -> EditorCommand {
+        EditorCommand(id: "edit.\(name)", title: title, action: .edit(selector: selector))
+    }
+
+    private static let byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+
+    public static func command(_ id: String) -> EditorCommand? { byID[id] }
+}
+#endif

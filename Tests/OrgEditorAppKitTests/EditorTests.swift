@@ -89,10 +89,10 @@ struct FoldingTests {
 
     @Test func globalCycleAndStartup() {
         let h = Harness(outline)
-        h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
-        h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        h.editor.run("org.cycle-global")
+        h.editor.run("org.cycle-global")
         #expect(h.visibleLines == ["* a\n", "** b\n", "* c\n"])
-        h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        h.editor.run("org.cycle-global")
         #expect(h.visibleLines.count == 6)
         #expect(Harness("#+STARTUP: overview\n" + outline).visibleLines == ["#+STARTUP: overview\n", "* a\n", "* c\n"])
     }
@@ -118,7 +118,7 @@ struct FoldingTests {
         let h = Harness(outline)
         h.caret(at: 5)
         #expect(!h.editor.cycleAtCaret())
-        h.textView.doCommand(by: #selector(NSResponder.insertBacktab(_:)))
+        h.editor.run("org.cycle-global")
         #expect(h.visibleLines == ["* a\n", "* c\n"])
     }
 

@@ -74,8 +74,13 @@ public final class OrgEditor: NSObject {
 
     public init(document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800), editable: Bool = true) {
         self.document = document
-        textView = NSTextView(usingTextLayoutManager: true)
+        let orgTextView = OrgTextView(usingTextLayoutManager: true)
+        textView = orgTextView
+        dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
         super.init()
+        orgTextView.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
+        orgTextView.onMouseDown = { [weak self] in self?.markActive = false }
+        textView.usesFindBar = true
         textView.frame = frame
         textView.isRichText = false
         textView.isEditable = editable
@@ -166,16 +171,120 @@ public final class OrgEditor: NSObject {
 
     /// Called with messages commands report, such as why one couldn't run here.
     public var onMessage: ((String) -> Void)?
+    /// Called with the pending prefix and what can follow it, and with nil when it ends.
+    public var onKeysPending: ((_ keys: String?, _ next: [(key: String, title: String)]) -> Void)?
+    /// Called with `app.*` commands, which the app carries out.
+    public var onAppCommand: ((String) -> Void)?
+
+    public var keymap: Keymap {
+        get { dispatcher.keymap }
+        set {
+            dispatcher.keymap = newValue
+            dispatcher.reset()
+        }
+    }
+
+    public var optionAsMeta: OptionAsMeta = [.left]
+    private var dispatcher: KeyDispatcher
+    /// A region is active: movement extends the selection, as after C-SPC in Emacs.
+    private(set) var markActive = false
+
+    private func context(now: Date = Date(), answers: [String: String] = [:]) -> EditContext {
+        let selected = textView.selectedRange()
+        return EditContext(
+            revision: document.revision, text: document.text, tree: document.tree,
+            selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers
+        )
+    }
+
+    /// Offers a key press to the keymap. False lets the text system have it.
+    func handleKey(_ event: NSEvent) -> Bool {
+        guard let chord = KeyEvents.chord(for: event, optionAsMeta: optionAsMeta) else { return false }
+        switch dispatcher.feed(chord) {
+        case .pending(let keys):
+            let next = keymap.continuations(of: keys).map { item in
+                (key: item.key.description, title: item.command.map { EditorCommands.command($0)?.title ?? $0 } ?? "+prefix")
+            }
+            onKeysPending?(KeySequence.format(keys), next)
+            return true
+        case .cancelled:
+            onKeysPending?(nil, [])
+            onMessage?("Quit")
+            return true
+        case .undefined(let keys):
+            onKeysPending?(nil, [])
+            onMessage?("\(KeySequence.format(keys)) is undefined")
+            return true
+        case .unbound:
+            return false
+        case .complete(let keys, let candidates):
+            if keys.count > 1 { onKeysPending?(nil, []) }
+            let context = context()
+            let runnable = candidates.first { binding in
+                (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && applies(binding.command, in: context)
+            }
+            if let binding = runnable ?? (keys.count > 1 ? candidates.first : nil) {
+                run(binding.command)
+                return true
+            }
+            return false
+        }
+    }
+
+    private func applies(_ id: String, in context: EditContext) -> Bool {
+        switch EditorCommands.command(id)?.action {
+        case .text(let command): command.applies(in: context)
+        case .view: id != "org.cycle" || Presentation.heading(containing: context.caret, in: context.tree) != nil
+        case .edit, .mark, .app: true
+        case nil: true
+        }
+    }
+
+    /// Runs a command by id, as a key, a menu item or the palette would.
+    public func run(_ id: String) {
+        guard let command = EditorCommands.command(id) else {
+            onMessage?("Unknown command \(id)")
+            return
+        }
+        var keepMark = false
+        switch command.action {
+        case .text(let text):
+            perform(text)
+        case .view:
+            if id == "org.cycle" { cycleAtCaret() } else { cycleGlobal() }
+        case .edit(let selector, let extending):
+            if markActive, let extending {
+                keepMark = true
+                textView.doCommand(by: NSSelectorFromString(extending))
+            } else if selector == "performTextFinderAction:" {
+                let item = NSMenuItem()
+                item.tag = NSTextFinder.Action.showFindInterface.rawValue
+                textView.performTextFinderAction(item)
+            } else {
+                textView.doCommand(by: NSSelectorFromString(selector))
+            }
+        case .mark:
+            if id == "edit.set-mark" {
+                let caret = textView.selectedRange().location
+                textView.setSelectedRange(NSRange(location: caret, length: 0))
+                keepMark = true
+                onMessage?("Mark set")
+            } else {
+                let selected = textView.selectedRange()
+                if markActive || selected.length > 0 { textView.setSelectedRange(NSRange(location: NSMaxRange(selected), length: 0)) }
+                onMessage?("Quit")
+            }
+        case .app:
+            onAppCommand?(id)
+        }
+        markActive = keepMark
+    }
 
     /// Runs `command` at the selection. Edits go through the text view, as typing does, so
     /// they form one undo step and reach the document through the same path.
     @discardableResult
     public func perform(_ command: any OrgCommand, now: Date = Date(), answers: [String: String] = [:]) -> CommandStep {
-        let selected = textView.selectedRange()
-        let context = EditContext(
-            revision: document.revision, text: document.text, tree: document.tree,
-            selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers
-        )
+        let context = context(now: now, answers: answers)
         let step = command.run(in: context)
         switch step {
         case .commit(let result):
@@ -370,6 +479,7 @@ public final class OrgEditor: NSObject {
 
     fileprivate func storageEdited(range: NSRange, delta: Int) {
         guard !isLoading, let storage = textView.textStorage else { return }
+        markActive = false
         let clock = ContinuousClock()
         let start = clock.now
         let replacement = (storage.string as NSString).substring(with: range)
@@ -490,16 +600,6 @@ extension OrgEditor: DocumentBuffer {
 }
 
 extension OrgEditor: NSTextViewDelegate {
-    public func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
-        switch selector {
-        case #selector(NSResponder.insertTab(_:)): return cycleAtCaret()
-        case #selector(NSResponder.insertBacktab(_:)):
-            cycleGlobal()
-            return true
-        default: return false
-        }
-    }
-
     public func textViewDidChangeSelection(_ notification: Notification) {
         selectionChanged()
     }

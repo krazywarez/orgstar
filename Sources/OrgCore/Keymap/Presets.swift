@@ -95,9 +95,6 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-SPC"
         command = "edit.set-mark"
         [[bind]]
-        keys = "C-x C-x"
-        command = "edit.exchange-point-and-mark"
-        [[bind]]
         keys = "C-x h"
         command = "edit.select-all"
         [[bind]]
