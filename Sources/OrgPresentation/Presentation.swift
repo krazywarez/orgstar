@@ -18,6 +18,44 @@ public enum StyleRole: Hashable, Sendable {
     /// Planning lines, drawers, property drawers, clock lines.
     case metadata
     case block, blockDelimiter, table, rule
+    /// Code in a src block, by what the language's grammar says it is.
+    case syntax(SyntaxCategory)
+}
+
+/// Kinds of code token, from tree-sitter highlight capture names.
+public enum SyntaxCategory: String, Hashable, Sendable, CaseIterable {
+    case keyword, string, comment, function, type, number, constant, variable, property, `operator`
+    case punctuation, attribute, tag, escape, label
+
+    /// The category for a capture name such as `keyword.control` or `string.special`.
+    public init?(capture name: String) {
+        let head = name.split(separator: ".").first.map(String.init) ?? name
+        switch head {
+        case "keyword", "conditional", "repeat", "include", "exception", "storageclass": self = .keyword
+        case "string", "character": self = name.hasPrefix("string.escape") ? .escape : .string
+        case "comment": self = .comment
+        case "function", "method": self = .function
+        case "type", "constructor", "module", "namespace": self = .type
+        case "number", "float": self = .number
+        case "constant", "boolean": self = .constant
+        case "variable", "parameter": self = .variable
+        case "property", "field": self = .property
+        case "operator": self = .operator
+        case "punctuation": self = .punctuation
+        case "attribute", "annotation", "decorator": self = .attribute
+        case "tag": self = .tag
+        case "escape": self = .escape
+        case "label": self = .label
+        default: return nil
+        }
+    }
+}
+
+/// Highlights source code; the platform supplies one (tree-sitter on macOS and iOS).
+public protocol CodeHighlighter: Sendable {
+    /// Categories for ranges of `code`, in UTF-16 offsets; later runs win over earlier ones.
+    /// Empty for languages it doesn't know.
+    func highlights(language: String, code: String) -> [(range: Range<Int>, category: SyntaxCategory)]
 }
 
 public struct StyleRun: Sendable, Equatable {
@@ -36,13 +74,31 @@ public struct IndentRun: Sendable, Equatable {
 public enum Presentation {
     /// Style runs for nodes and tokens overlapping `range`, outer before inner, so applying
     /// them in order lets inner roles win.
-    public static func styles(_ tree: OrgTree, in range: Range<Int>) -> [StyleRun] {
+    public static func styles(_ tree: OrgTree, in range: Range<Int>, highlighter: (any CodeHighlighter)? = nil) -> [StyleRun] {
         var runs: [StyleRun] = []
-        visit(tree.root, range, tree.settings, &runs)
+        visit(tree.root, range, tree.settings, highlighter, &runs)
         return runs
     }
 
-    private static func visit(_ node: SyntaxNode, _ range: Range<Int>, _ settings: OrgSettings, _ runs: inout [StyleRun]) {
+    /// Runs for the code inside a src block, from `highlighter`.
+    static func sourceRuns(_ node: SyntaxNode, _ highlighter: any CodeHighlighter) -> [StyleRun] {
+        let lines = node.tokens.filter { $0.kind == .text }
+        guard lines.count >= 2, let first = lines.first, let last = lines.last,
+              let match = first.text.firstMatch(of: /^[ \t]*#\+(?i:begin_src)[ \t]+(\S+)/) else { return [] }
+        let language = String(match.1)
+        let start = first.range.upperBound + 1
+        let end = last.range.lowerBound
+        guard end > start else { return [] }
+        let utf16 = node.text.utf16
+        let lower = utf16.index(utf16.startIndex, offsetBy: start - node.range.lowerBound)
+        let upper = utf16.index(utf16.startIndex, offsetBy: end - node.range.lowerBound)
+        let code = String(node.text[lower..<upper])
+        return highlighter.highlights(language: language, code: code).map {
+            StyleRun(range: ($0.range.lowerBound + start)..<($0.range.upperBound + start), role: .syntax($0.category))
+        }
+    }
+
+    private static func visit(_ node: SyntaxNode, _ range: Range<Int>, _ settings: OrgSettings, _ highlighter: (any CodeHighlighter)?, _ runs: inout [StyleRun]) {
         if let role = role(of: node) { runs.append(StyleRun(range: node.range, role: role)) }
         switch node.kind {
         case .heading:
@@ -74,11 +130,12 @@ public enum Presentation {
             for token in [lines.first, lines.count > 1 ? lines.last : nil].compactMap({ $0 }) {
                 runs.append(StyleRun(range: token.range, role: .blockDelimiter))
             }
+            if let highlighter { runs += sourceRuns(node, highlighter) }
         default:
             break
         }
         for child in node.children(overlapping: range) {
-            visit(child, range, settings, &runs)
+            visit(child, range, settings, highlighter, &runs)
         }
     }
 

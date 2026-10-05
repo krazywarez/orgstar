@@ -60,6 +60,23 @@ struct Theme {
             storage.addAttribute(.backgroundColor, value: NSColor.quaternarySystemFill, range: range)
         case .table, .rule:
             break
+        case .syntax(let category):
+            if let color = Self.color(category) { storage.addAttribute(.foregroundColor, value: color, range: range) }
+        }
+    }
+
+    /// Code colors, close to Xcode's default theme.
+    static func color(_ category: SyntaxCategory) -> NSColor? {
+        switch category {
+        case .keyword: .systemPink
+        case .string: .systemRed
+        case .comment: .secondaryLabelColor
+        case .function: .systemBlue
+        case .type: .systemTeal
+        case .number, .constant, .escape: .systemOrange
+        case .property, .attribute, .tag: .systemIndigo
+        case .label: .systemPurple
+        case .variable, .operator, .punctuation: nil
         }
     }
 

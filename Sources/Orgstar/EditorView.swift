@@ -2,11 +2,15 @@ import AppKit
 import OrgApp
 import OrgCore
 import OrgEditorAppKit
+import OrgHighlight
 import SwiftUI
 
 /// The TextKit 2 editor for the session's file. A new file gets a new editor, which becomes the
 /// session's buffer; reveal requests go to the existing one.
 struct EditorView: NSViewRepresentable {
+    /// One highlighter for every editor: it caches compiled grammars and results.
+    static let highlighter = TreeSitterHighlighter()
+
     let session: DocumentSession
     let commands: AppCommands
     let keymap: Keymap
@@ -33,7 +37,7 @@ struct EditorView: NSViewRepresentable {
             container.subviews.forEach { $0.removeFromSuperview() }
             coordinator.editor = nil
             if let document = session.document {
-                let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable)
+                let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable, highlighter: Self.highlighter)
                 editor.onChange = { [weak session] in session?.bufferChanged() }
                 editor.onMessage = { [weak commands] in commands?.show($0) }
                 editor.onKeysPending = { [weak commands] keys, next in

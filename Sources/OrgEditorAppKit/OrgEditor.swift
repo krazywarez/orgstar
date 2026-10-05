@@ -72,8 +72,15 @@ public final class OrgEditor: NSObject {
     /// Styled per run-loop turn afterwards.
     static let styleChunk = 200_000
 
-    public init(document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800), editable: Bool = true) {
+    /// Highlights code in src blocks; nil leaves code plain.
+    public let highlighter: (any CodeHighlighter)?
+
+    public init(
+        document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800), editable: Bool = true,
+        highlighter: (any CodeHighlighter)? = nil
+    ) {
         self.document = document
+        self.highlighter = highlighter
         let orgTextView = OrgTextView(usingTextLayoutManager: true)
         textView = orgTextView
         dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
@@ -430,7 +437,7 @@ public final class OrgEditor: NSObject {
                 location = NSMaxRange(line)
             }
         }
-        for run in Presentation.styles(document.tree, in: range) {
+        for run in Presentation.styles(document.tree, in: range, highlighter: highlighter) {
             guard let clipped = clip(run.range, to: range) else { continue }
             theme.apply(run.role, to: storage, range: clipped)
         }
