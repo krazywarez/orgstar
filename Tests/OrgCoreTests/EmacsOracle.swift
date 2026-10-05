@@ -34,8 +34,9 @@ enum EmacsOracle {
           org-tags-column -77
           org-priority-highest ?A
           org-priority-lowest ?C
-          org-priority-default ?B
-          indent-tabs-mode nil)
+          org-priority-default ?B)
+    ;; Buffer-local when set, so set the default for the case buffers.
+    (setq-default indent-tabs-mode nil)
     (let* ((input (with-temp-buffer
                     (let ((coding-system-for-read 'utf-8-unix))
                       (insert-file-contents (getenv "ORACLE_INPUT")))

@@ -206,6 +206,45 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c C-q"
         command = "org.tags.set"
+        [[bind]]
+        keys = "M-RET"
+        command = "org.item.insert"
+        when = "item"
+        [[bind]]
+        keys = "M-S-RET"
+        command = "org.item.insert-checkbox"
+        when = "item"
+        [[bind]]
+        keys = "M-<left>"
+        command = "org.item.outdent"
+        when = "item"
+        [[bind]]
+        keys = "M-<right>"
+        command = "org.item.indent"
+        when = "item"
+        [[bind]]
+        keys = "M-S-<left>"
+        command = "org.item.outdent-tree"
+        when = "item"
+        [[bind]]
+        keys = "M-S-<right>"
+        command = "org.item.indent-tree"
+        when = "item"
+        [[bind]]
+        keys = "M-<up>"
+        command = "org.item.up"
+        when = "item"
+        [[bind]]
+        keys = "M-<down>"
+        command = "org.item.down"
+        when = "item"
+        [[bind]]
+        keys = "C-c C-c"
+        command = "org.checkbox.toggle"
+        when = "item"
+        [[bind]]
+        keys = "C-c C-x C-b"
+        command = "org.checkbox.toggle"
 
         """
 
@@ -257,6 +296,41 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-q"
         command = "org.tags.set"
+        [[bind]]
+        keys = "s-RET"
+        command = "org.item.insert"
+        when = "item"
+        [[bind]]
+        keys = "s-S-RET"
+        command = "org.item.insert-checkbox"
+        when = "item"
+        [[bind]]
+        keys = "C-s-<left>"
+        command = "org.item.outdent"
+        when = "item"
+        [[bind]]
+        keys = "C-s-<right>"
+        command = "org.item.indent"
+        when = "item"
+        [[bind]]
+        keys = "C-M-s-<left>"
+        command = "org.item.outdent-tree"
+        when = "item"
+        [[bind]]
+        keys = "C-M-s-<right>"
+        command = "org.item.indent-tree"
+        when = "item"
+        [[bind]]
+        keys = "C-M-s-<up>"
+        command = "org.item.up"
+        when = "item"
+        [[bind]]
+        keys = "C-M-s-<down>"
+        command = "org.item.down"
+        when = "item"
+        [[bind]]
+        keys = "C-s-c"
+        command = "org.checkbox.toggle"
 
         """
 }

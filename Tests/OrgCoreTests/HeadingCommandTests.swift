@@ -115,13 +115,29 @@ func compareWithEmacs(_ inputs: [(text: String, carets: [Int])], _ commands: [(c
         if !same {
             mismatches += 1
             if mismatches <= 15 {
+                let (a, b) = excerpts(mine.text, emacs.text)
                 Issue.record("""
-                    \(mine.label)
-                      ours:  \(mine.failed ? "failed" : "\(mine.text.debugDescription) @\(mine.caret)")
-                      emacs: \(emacsFailed ? "failed: \(emacs.error)" : "\(emacs.text.debugDescription) @\(emacsCaret)")
+                    \(mine.label.prefix(100))
+                      ours:  \(mine.failed ? "failed" : "\(a.debugDescription) @\(mine.caret)")
+                      emacs: \(emacsFailed ? "failed: \(emacs.error)" : "\(b.debugDescription) @\(emacsCaret)")
                     """)
             }
         }
     }
     #expect(mismatches == 0, "\(mismatches) of \(ours.count) cases differ from Emacs")
+}
+
+/// The parts of two texts around their first difference.
+func excerpts(_ a: String, _ b: String) -> (String, String) {
+    let x = Array(a.utf16), y = Array(b.utf16)
+    var prefix = 0
+    while prefix < min(x.count, y.count), x[prefix] == y[prefix] { prefix += 1 }
+    var suffix = 0
+    while suffix < min(x.count, y.count) - prefix, x[x.count - 1 - suffix] == y[y.count - 1 - suffix] { suffix += 1 }
+    let start = max(0, prefix - 40)
+    func cut(_ s: [UInt16]) -> String {
+        let end = min(s.count, s.count - suffix + 40)
+        return "…" + String(decoding: s[start..<max(start, end)], as: UTF16.self) + "…"
+    }
+    return (cut(x), cut(y))
 }

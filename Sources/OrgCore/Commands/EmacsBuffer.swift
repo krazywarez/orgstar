@@ -20,14 +20,37 @@ final class EmacsBuffer {
     var point: Int
     private var markers: [Marker] = []
     let settings: OrgSettings
+    /// Groups of the last successful match, as Emacs's match data.
+    var lastMatch: [Range<Int>?] = []
 
     init(_ text: String, point: Int, settings: OrgSettings = .default) {
         self.text = NSMutableString(string: text)
         self.point = point
         self.settings = settings
+        unchangedPrefix = self.text.length
+        unchangedSuffix = self.text.length
     }
 
-    var string: String { text as String }
+    /// Lengths of the start and end of the text no edit has touched, so the result's diff can
+    /// look only between them.
+    private(set) var unchangedPrefix: Int
+    private(set) var unchangedSuffix: Int
+
+    private func touched(_ range: Range<Int>) {
+        unchangedPrefix = min(unchangedPrefix, range.lowerBound)
+        unchangedSuffix = min(unchangedSuffix, length - range.upperBound)
+    }
+
+    /// The text as a `String` backed by an immutable `NSString`, copied once per change rather
+    /// than per regexp search; regexps read it without converting.
+    var string: String {
+        if let cachedString { return cachedString as String }
+        let copy = text.copy() as! NSString
+        cachedString = copy
+        return copy as String
+    }
+
+    private var cachedString: NSString?
     var length: Int { text.length }
 
     func character(at offset: Int) -> unichar? {
@@ -65,7 +88,9 @@ final class EmacsBuffer {
     func insert(_ string: String) {
         let count = (string as NSString).length
         guard count > 0 else { return }
+        touched(point..<point)
         text.insert(string, at: point)
+        cachedString = nil
         for marker in markers where marker.position > point { marker.position += count }
         point += count
     }
@@ -74,7 +99,9 @@ final class EmacsBuffer {
     func insertBeforeMarkers(_ string: String) {
         let count = (string as NSString).length
         guard count > 0 else { return }
+        touched(point..<point)
         text.insert(string, at: point)
+        cachedString = nil
         for marker in markers where marker.position >= point { marker.position += count }
         point += count
     }
@@ -82,7 +109,9 @@ final class EmacsBuffer {
     func deleteRegion(_ start: Int, _ end: Int) {
         let (lower, upper) = (min(start, end), max(start, end))
         guard upper > lower else { return }
+        touched(lower..<upper)
         text.deleteCharacters(in: NSRange(lower..<upper))
+        cachedString = nil
         func map(_ position: Int) -> Int {
             position <= lower ? position : position >= upper ? position - (upper - lower) : lower
         }
@@ -98,7 +127,9 @@ final class EmacsBuffer {
     /// or after its end shift with the text.
     func replace(_ range: Range<Int>, with replacement: String) {
         let delta = (replacement as NSString).length - range.count
+        touched(range)
         text.replaceCharacters(in: NSRange(range), with: replacement)
+        cachedString = nil
         func map(_ position: Int) -> Int {
             if position >= range.upperBound, position > range.lowerBound { return position + delta }
             return position > range.lowerBound ? range.lowerBound : position
@@ -164,11 +195,19 @@ final class EmacsBuffer {
 
     var currentColumn: Int { column(of: substring(lineStart(point), point)) }
 
-    /// `move-to-column`: as far as `target` on this line, or the line's end.
-    func moveToColumn(_ target: Int) {
+    /// `move-to-column`: as far as `target` on this line, or the line's end. With `force`, a
+    /// tab spanning `target` becomes spaces (`indent-tabs-mode` nil) so point lands on it.
+    func moveToColumn(_ target: Int, force: Bool = false) {
         let start = lineStart(point)
         let line = LineBuffer(substring(start, lineEnd(point)), caret: nil)
         point = start + line.offset(ofColumn: target)
+        guard force, currentColumn > target, character(at: point - 1) == 9 else { return }
+        let tabEnd = currentColumn
+        point -= 1
+        let tabStart = currentColumn
+        deleteRegion(point, point + 1)
+        insert(String(repeating: " ", count: tabEnd - tabStart))
+        point -= tabEnd - target
     }
 
     // MARK: - Outline
@@ -305,15 +344,34 @@ final class EmacsBuffer {
 
     // MARK: - Regular expressions
 
+    static let lookingOptions: NSRegularExpression.MatchingOptions = [.anchored, .withoutAnchoringBounds, .withTransparentBounds]
+    static let searchOptions: NSRegularExpression.MatchingOptions = [.withoutAnchoringBounds, .withTransparentBounds]
+    nonisolated(unsafe) private static var cache: [String: NSRegularExpression] = [:]
+    private static let cacheLock = NSLock()
+
+    /// A compiled Emacs-style pattern: `^` and `$` match at line boundaries, and a leading `^`
+    /// also matches at the end of a buffer that ends with a newline, as in Emacs.
+    static func regex(_ pattern: String, caseInsensitive: Bool) -> NSRegularExpression {
+        let key = (caseInsensitive ? "i" : "c") + pattern
+        return cacheLock.withLock {
+            if let cached = cache[key] { return cached }
+            let source = pattern.hasPrefix("^") ? "(?:(?<=\\n)|(?<![\\s\\S]))" + pattern.dropFirst() : pattern
+            let compiled = try! NSRegularExpression(pattern: source, options: caseInsensitive ? [.anchorsMatchLines, .caseInsensitive] : [.anchorsMatchLines])
+            cache[key] = compiled
+            return compiled
+        }
+    }
+
     /// `looking-at`: the groups of `pattern` matched at point (`^` and `$` match at lines),
     /// or nil. Unmatched groups are nil.
     func lookingAt(_ pattern: String) -> [Range<Int>?]? {
-        let regex = try! NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines])
-        guard let match = regex.firstMatch(in: string, options: [.anchored], range: NSRange(point..<length)) else { return nil }
-        return (0..<match.numberOfRanges).map { i in
+        let regex = Self.regex(pattern, caseInsensitive: false)
+        guard let match = regex.firstMatch(in: string, options: Self.lookingOptions, range: NSRange(point..<length)) else { return nil }
+        lastMatch = (0..<match.numberOfRanges).map { i in
             let range = match.range(at: i)
             return range.location == NSNotFound ? nil : range.location..<NSMaxRange(range)
         }
+        return lastMatch
     }
 
     /// `org-complex-heading-regexp`: 1 stars, 2 keyword, 3 priority, 4 title, 5 tags.
@@ -356,7 +414,9 @@ final class EmacsBuffer {
         }
         let newPoint = map(point)
         let newMarkers = markers.map { map($0.position) }
+        touched(start..<end)
         text.replaceCharacters(in: NSRange(start..<end), with: plain.string)
+        cachedString = nil
         point = newPoint
         for (marker, position) in zip(markers, newMarkers) { marker.position = position }
     }
@@ -373,20 +433,28 @@ func commitBuffer(_ context: EditContext, _ body: (EmacsBuffer) throws -> Void) 
     } catch {
         return .failed("\(error)")
     }
-    let old = context.text as NSString
-    let new = buffer.text
+    // Only the span between the untouched start and end can differ.
+    let oldText = context.text.utf16
+    let oldCount = oldText.count
+    let newCount = buffer.length
+    let lower = min(buffer.unchangedPrefix, oldCount, newCount)
+    let window = max(0, min(buffer.unchangedSuffix, oldCount - lower, newCount - lower))
+    let old = Array(oldText[oldText.index(oldText.startIndex, offsetBy: lower)..<oldText.index(oldText.startIndex, offsetBy: oldCount - window)])
+    var newBuffer = [unichar](repeating: 0, count: newCount - window - lower)
+    buffer.text.getCharacters(&newBuffer, range: NSRange(lower..<(newCount - window)))
+    let new = newBuffer
     var prefix = 0
-    let shorter = min(old.length, new.length)
-    while prefix < shorter, old.character(at: prefix) == new.character(at: prefix) { prefix += 1 }
+    let shorter = min(old.count, new.count)
+    while prefix < shorter, old[prefix] == new[prefix] { prefix += 1 }
     var suffix = 0
-    while suffix < shorter - prefix, old.character(at: old.length - 1 - suffix) == new.character(at: new.length - 1 - suffix) { suffix += 1 }
+    while suffix < shorter - prefix, old[old.count - 1 - suffix] == new[new.count - 1 - suffix] { suffix += 1 }
     // Keep surrogate pairs whole.
-    while prefix > 0, prefix < old.length, UTF16.isTrailSurrogate(old.character(at: prefix)) { prefix -= 1 }
-    while suffix > 0, UTF16.isTrailSurrogate(old.character(at: old.length - suffix)) { suffix -= 1 }
+    while prefix > 0, prefix < old.count, UTF16.isTrailSurrogate(old[prefix]) { prefix -= 1 }
+    while suffix > 0, UTF16.isTrailSurrogate(old[old.count - suffix]) { suffix -= 1 }
     let caret = buffer.point
-    guard old.length != new.length || prefix != old.length else {
+    guard old.count != new.count || prefix != old.count else {
         return .commit(EditResult(baseRevision: context.revision, edits: [], selection: [caret..<caret]))
     }
-    let edit = TextEdit(range: prefix..<(old.length - suffix), replacement: new.substring(with: NSRange(prefix..<(new.length - suffix))))
+    let edit = TextEdit(range: (lower + prefix)..<(lower + old.count - suffix), replacement: String(decoding: new[prefix..<(new.count - suffix)], as: UTF16.self))
     return .commit(EditResult(baseRevision: context.revision, edits: [edit], selection: [caret..<caret]))
 }

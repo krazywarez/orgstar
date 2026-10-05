@@ -97,6 +97,8 @@ public enum Commands {
         MoveSubtreeUp(), MoveSubtreeDown(), PromoteSubtree(), DemoteSubtree(),
         NextHeading(), PreviousHeading(), ForwardSameLevel(), BackwardSameLevel(), UpHeading(),
         SetTags(),
+        InsertItem(), InsertCheckboxItem(), IndentItem(), OutdentItem(), IndentItemTree(), OutdentItemTree(),
+        MoveItemUp(), MoveItemDown(), ToggleCheckbox(),
     ]
 
     public static func command(_ id: String) -> (any OrgCommand)? {
