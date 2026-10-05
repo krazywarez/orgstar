@@ -224,6 +224,11 @@ extension OrgEditor {
         let block = modal && vim.mode != .insert
         (textView as? OrgTextView)?.blockCursor = block
         dispatcher.mode = modal ? vim.mode.keymapMode : nil
+        let state = modal ? vim.mode.rawValue : nil
+        if state != reportedMode {
+            reportedMode = state
+            onModeChange?(state)
+        }
     }
 
     /// A mouse click leaves visual state, as in evil.

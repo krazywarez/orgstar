@@ -46,6 +46,7 @@ struct EditorView: NSViewRepresentable {
                     commands?.pendingKeys = keys
                     commands?.keyHints = next.map { KeyHint(key: $0.key, title: $0.title) }
                 }
+                editor.onModeChange = { [weak commands] in commands?.editorState = $0 }
                 editor.onAppCommand = onAppCommand
                 editor.onExternal = onExternal
                 editor.onPrompt = { [weak commands] prompt, reply in commands?.ask(prompt, reply: reply) }

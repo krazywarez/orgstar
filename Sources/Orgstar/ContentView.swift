@@ -320,6 +320,7 @@ struct ContentView: View {
         switch id {
         case "app.save":
             if !session.save(), session.conflict != nil { commands.showingConflict = true }
+        case "app.quit": NSApp.terminate(nil)
         case "app.quick-open": commands.showingQuickOpen = true
         case "app.palette": commands.showingPalette = true
         case "app.search": commands.focusSearch = true

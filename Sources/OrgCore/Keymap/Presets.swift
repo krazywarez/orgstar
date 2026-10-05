@@ -75,6 +75,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "app.quick-open"
         mode = "normal"
         [[bind]]
+        keys = "SPC q q"
+        command = "app.quit"
+        mode = "normal"
+        [[bind]]
         keys = "SPC ."
         command = "app.quick-open"
         mode = "normal"
@@ -314,6 +318,51 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "RET"
         command = "org.table.next-row"
         when = "table"
+        mode = "insert"
+        [[bind]]
+        keys = "TAB"
+        command = "org.cycle"
+        mode = "visual"
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.cycle-global"
+        mode = "visual"
+
+        # Insert state: org-cycle and org-shifttab with Doom's +org-indent-maybe-h, which
+        # demotes or promotes a heading and indents or outdents an item tree.
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.cycle-global"
+        mode = "insert"
+        [[bind]]
+        keys = "TAB"
+        command = "org.table.next-field"
+        when = "table"
+        mode = "insert"
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.table.previous-field"
+        when = "table"
+        mode = "insert"
+        [[bind]]
+        keys = "TAB"
+        command = "org.item.indent-tree"
+        when = "item"
+        mode = "insert"
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.item.outdent-tree"
+        when = "item"
+        mode = "insert"
+        [[bind]]
+        keys = "TAB"
+        command = "org.heading.demote"
+        when = "heading"
+        mode = "insert"
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.heading.promote"
+        when = "heading"
         mode = "insert"
 
         """

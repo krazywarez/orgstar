@@ -21,6 +21,8 @@ final class AppCommands {
     var editor: OrgEditor?
     /// The pending key prefix, and what can follow it.
     var pendingKeys: String?
+    /// The editor's evil state in the Doom preset.
+    var editorState: String?
     var keyHints: [KeyHint] = []
     /// A question a command asked, answered in the echo area.
     private(set) var prompt: PromptRequest?

@@ -76,4 +76,51 @@ struct ModalTests {
         #expect(h.editor.document.text == " two three\n")
         #expect(h.textView.selectedRange().length == 0)
     }
+
+    func shiftTab(_ h: Harness) {
+        KeyTests().send(h, characters: "\u{19}", ignoring: "\u{19}", code: 48, flags: .shift)
+    }
+
+    @Test func insertStateTabFollowsDoom() {
+        let h = doom("* Top\n** Sub\n- one\n- item\n  - child\nbody\n")
+        h.caret(at: 8)
+        type(h, "i")
+        #expect(h.editor.vim.mode == .insert)
+        shiftTab(h)
+        #expect(h.editor.document.text.hasPrefix("* Top\n* Sub\n"))
+        type(h, "TAB")
+        #expect(h.editor.document.text.hasPrefix("* Top\n** Sub\n"))
+        let item = (h.editor.document.text as NSString).range(of: "- item").location
+        h.caret(at: item + 3)
+        type(h, "TAB")
+        #expect(h.editor.document.text.contains("- one\n  - item\n    - child\n"))
+        #expect(h.editor.vim.mode == .insert)
+    }
+
+    @Test func shiftTabCyclesInNormalState() {
+        let h = doom("* Top\nbody\n")
+        h.caret(at: 7)
+        let before = h.editor.document.text
+        shiftTab(h)
+        #expect(h.editor.document.text == before)
+        #expect(h.editor.vim.mode == .normal)
+    }
+
+    @Test func reportsStateAndQuits() {
+        let h = doom("text\n")
+        var states: [String?] = []
+        var app: [String] = []
+        h.editor.onModeChange = { states.append($0) }
+        h.editor.onAppCommand = { app.append($0) }
+        h.caret(at: 0)
+        type(h, "i")
+        type(h, "ESC")
+        type(h, "V")
+        type(h, "ESC")
+        type(h, "SPC q q")
+        #expect(states == ["insert", "normal", "visual-line", "normal"])
+        #expect(app == ["app.quit"])
+        h.editor.modal = false
+        #expect(states.last == .some(nil))
+    }
 }

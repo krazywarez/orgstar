@@ -71,14 +71,17 @@ struct EchoArea: View {
                     answerFocused = true
                 }
                 .id(request.id)
-            } else if let text = commands.pendingKeys.map({ $0 + "-" }) ?? commands.message {
+            } else if commands.editorState != nil || commands.pendingKeys != nil || commands.message != nil {
                 Divider()
-                Text(text)
-                    .font(.system(.callout, design: .monospaced))
-                    .lineLimit(1)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 8) {
+                    if let state = commands.editorState { StateTag(state: state) }
+                    Text(commands.pendingKeys.map { $0 + "-" } ?? commands.message ?? "")
+                        .font(.system(.callout, design: .monospaced))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .background(.bar)
@@ -87,6 +90,36 @@ struct EchoArea: View {
             guard commands.pendingKeys != nil else { return }
             try? await Task.sleep(for: .milliseconds(600))
             if !Task.isCancelled { showingHints = true }
+        }
+    }
+}
+
+/// The evil state, as Doom's modeline shows it.
+struct StateTag: View {
+    let state: String
+
+    var body: some View {
+        Text(label)
+            .font(.system(.caption, design: .monospaced).bold())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(color, in: RoundedRectangle(cornerRadius: 4))
+            .accessibilityLabel("\(label.capitalized) state")
+    }
+
+    private var label: String {
+        switch state {
+        case "visual-line": "V-LINE"
+        default: state.uppercased()
+        }
+    }
+
+    private var color: Color {
+        switch state {
+        case "insert": .green
+        case "visual", "visual-line": .orange
+        default: .blue
         }
     }
 }
