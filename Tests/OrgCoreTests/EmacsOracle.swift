@@ -124,11 +124,11 @@ enum EmacsOracle {
 /// The options as Emacs Lisp bindings around `form`.
 func withOptions(_ options: EditingOptions, _ form: String) -> String {
     func flag(_ value: Bool) -> String { value ? "t" : "nil" }
-    return "(let ((org-tags-column \(options.tagsColumn)) (org-insert-heading-respect-content \(flag(options.insertHeadingRespectContent))) (org-M-RET-may-split-line \(flag(options.metaReturnMaySplitLine))) (org-list-allow-alphabetical \(flag(options.listAllowAlphabetical)))) \(form))"
+    return "(let ((org-tags-column \(options.tagsColumn)) (org-insert-heading-respect-content \(flag(options.insertHeadingRespectContent))) (org-M-RET-may-split-line \(flag(options.metaReturnMaySplitLine))) (org-list-allow-alphabetical \(flag(options.listAllowAlphabetical))) (fill-column \(options.fillColumn)) (sentence-end-double-space nil)) \(form))"
 }
 
 /// The options in the user's Doom Emacs.
-let doomOptions = EditingOptions(tagsColumn: 0, insertHeadingRespectContent: true, metaReturnMaySplitLine: false, listAllowAlphabetical: true)
+let doomOptions = EditingOptions(tagsColumn: 0, insertHeadingRespectContent: true, metaReturnMaySplitLine: false, listAllowAlphabetical: true, fillColumn: 80)
 
 /// Runs a command the way an editor would: build a context, run, apply the edits.
 func runCommand(_ command: any OrgCommand, _ text: String, caret: Int, answers: [String: String] = [:], options: EditingOptions = .org) -> (text: String, caret: Int, failure: String?) {

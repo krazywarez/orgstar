@@ -267,6 +267,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c C-d"
         command = "org.deadline"
         [[bind]]
+        keys = "M-q"
+        command = "org.fill-paragraph"
+        [[bind]]
         keys = "S-<up>"
         command = "org.timestamp.up"
         when = "timestamp"
@@ -386,6 +389,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-d"
         command = "org.deadline"
+        [[bind]]
+        keys = "C-s-p"
+        command = "org.fill-paragraph"
         [[bind]]
         keys = "C-s-<up>"
         command = "org.timestamp.up"

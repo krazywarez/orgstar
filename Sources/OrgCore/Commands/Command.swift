@@ -13,16 +13,19 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var listAllowAlphabetical: Bool
     /// `org-log-repeat` `time`: completing a repeating entry records LAST_REPEAT and a state note.
     public var logRepeat: Bool
+    /// `fill-column` for M-q.
+    public var fillColumn: Int
 
     public init(
         tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true,
-        listAllowAlphabetical: Bool = false, logRepeat: Bool = true
+        listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70
     ) {
         self.tagsColumn = tagsColumn
         self.insertHeadingRespectContent = insertHeadingRespectContent
         self.metaReturnMaySplitLine = metaReturnMaySplitLine
         self.listAllowAlphabetical = listAllowAlphabetical
         self.logRepeat = logRepeat
+        self.fillColumn = fillColumn
     }
 
     /// Org's own defaults.
@@ -148,7 +151,7 @@ public enum Commands {
         InsertItem(), InsertCheckboxItem(), IndentItem(), OutdentItem(), IndentItemTree(), OutdentItemTree(),
         MoveItemUp(), MoveItemDown(), ToggleCheckbox(),
         InsertTimestamp(), InsertTimestamp(inactive: true), SetPlanning(deadline: false), SetPlanning(deadline: true),
-        RemovePlanning(deadline: false), RemovePlanning(deadline: true),
+        RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
     ]
 
