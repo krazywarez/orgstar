@@ -15,6 +15,9 @@ final class OrgTextView: NSTextView {
     /// Returns true when the key was handled.
     var keyHandler: ((NSEvent) -> Bool)?
     var onMouseDown: (() -> Void)?
+    var lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+    var lineNumberColor = NSColor.tertiaryLabelColor
+    var currentLineNumberColor = NSColor.labelColor
     var showsLineNumbers = false {
         didSet { if showsLineNumbers != oldValue { updateGutter() } }
     }

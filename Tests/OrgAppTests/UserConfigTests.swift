@@ -1,5 +1,6 @@
 import Foundation
 import OrgCore
+import OrgPresentation
 import Testing
 @testable import OrgApp
 
@@ -55,6 +56,14 @@ struct UserConfigTests {
             == "# top\nfill-column = 70\n\n[orgstar]\nsave = \"explicit\"\n")
     }
 
+    @Test func missingSectionsAreAdded() {
+        let text = "# mine\nfill-column = 70\n\n[orgstar]\nsave = \"explicit\"\n"
+        let completed = UserConfig.addingMissingSections(text, from: defaults())
+        #expect(completed.hasPrefix(text))
+        #expect(completed.contains("\n[theme]\nfont = \"\"") && !completed.contains("keymap"))
+        #expect(UserConfig.addingMissingSections(completed, from: defaults()) == completed)
+    }
+
     @Test func legacyFilesAreRewritten() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-config-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -88,5 +97,29 @@ struct UserConfigTests {
         #expect(store.integer(forKey: "agendaSpan") == 7)
         #expect(store.integer(forKey: "agendaStartOffset") == 0)
         #expect(sync.problems.isEmpty)
+    }
+}
+
+@MainActor
+struct ThemeConfigTests {
+    @Test func themeTablesAreNotSettingsProblems() throws {
+        let name = "orgstar-theme-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let problems = UserConfig.apply("[theme]\nfont-size = 15\nlink = \"#123456\"\n[theme.dark]\nlink = \"#654321\"\n", to: defaults)
+        #expect(problems.isEmpty)
+        #expect(defaults.integer(forKey: "themeFontSize") == 15)
+
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-theme-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "[theme.light]\nlink = \"#000001\"\ntodo = \"#000002\"\n".write(to: folder.appendingPathComponent("mine.toml"), atomically: true, encoding: .utf8)
+        try "[theme]\ntheme-file = \"mine.toml\"\nlink = \"#000003\"\n".write(to: folder.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+        let sync = ConfigSync(url: folder.appendingPathComponent("config.toml"), defaults: defaults)
+        sync.start(watch: false)
+        #expect(sync.problems.isEmpty, "\(sync.problems)")
+        #expect(sync.theme.light["link"]?.hex == "#000003")
+        #expect(sync.theme.light["todo"]?.hex == "#000002")
+        #expect(FileManager.default.fileExists(atPath: folder.appendingPathComponent("default-theme.toml").path))
     }
 }

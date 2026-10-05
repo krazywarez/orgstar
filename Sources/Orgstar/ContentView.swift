@@ -2,6 +2,7 @@ import AppKit
 import OrgApp
 import OrgCore
 import OrgEditorAppKit
+import OrgPresentation
 import OrgIndex
 import SwiftUI
 import UniformTypeIdentifiers
@@ -45,6 +46,20 @@ struct ContentView: View {
     @AppStorage("outlineShown") private var orgOutlineShown = true
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
+    @AppStorage("themeFont") private var themeFont = ""
+    @AppStorage("themeFontSize") private var themeFontSize = 13
+    @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
+    @AppStorage("themeHeadingStep") private var themeHeadingStep = 1
+
+    /// The theme's colors from config.toml with the type settings.
+    private var theme: ThemeSpec {
+        var spec = ConfigSync.shared.theme
+        spec.font = themeFont
+        spec.fontSize = themeFontSize
+        spec.lineSpacing = themeLineSpacing
+        spec.headingSizeStep = themeHeadingStep
+        return spec
+    }
     /// The outline for a file that isn't org, off until asked for.
     @State private var plainOutlineShown = false
     @State private var showingImport = false
@@ -68,7 +83,7 @@ struct ContentView: View {
         if let previewPath {
             FilePreview(path: previewPath)
         } else if session.path != nil {
-            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, onAppCommand: perform, onExternal: runExternal)
+            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme, onAppCommand: perform, onExternal: runExternal)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
                         ModeLine(session: session, commands: commands, clock: clock, perform: perform)

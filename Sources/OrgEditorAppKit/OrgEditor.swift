@@ -54,7 +54,17 @@ public final class OrgEditor: NSObject {
     let folded = FoldedHeadings()
     /// Blocks drawn on a shaded band.
     let shaded = HiddenRanges()
-    let theme = Theme()
+    private(set) var theme = Theme()
+    /// Colors and type; a change restyles the file.
+    public var themeSpec: ThemeSpec = .default {
+        didSet {
+            guard themeSpec != oldValue else { return }
+            theme = Theme(themeSpec)
+            applyThemeToView()
+            restyleEverything()
+            textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+        }
+    }
     private var isLoading = false
     private var previousSelection = 0
     /// Text before this offset is styled; after it, only base attributes until the background
@@ -113,8 +123,7 @@ public final class OrgEditor: NSObject {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
         textView.isAutomaticSpellingCorrectionEnabled = false
-        textView.font = theme.font
-        textView.typingAttributes = theme.base
+        applyThemeToView()
         textView.isVerticallyResizable = true
         textView.autoresizingMask = [.width]
         textView.textContainer?.widthTracksTextView = true
@@ -149,6 +158,23 @@ public final class OrgEditor: NSObject {
         let end = target == text.length ? target : NSMaxRange(text.lineRange(for: NSRange(location: target, length: 0)))
         restyleOutsideEditing(styledUpTo..<end)
         styledUpTo = end
+    }
+
+    /// The text view's own colors and font, and the line numbers'.
+    private func applyThemeToView() {
+        textView.font = theme.font
+        textView.typingAttributes = theme.base
+        textView.drawsBackground = true
+        textView.backgroundColor = theme.color("background") ?? .textBackgroundColor
+        textView.insertionPointColor = theme.color("cursor") ?? .textColor
+        textView.selectedTextAttributes = [.backgroundColor: theme.color("selection") ?? .selectedTextBackgroundColor]
+        if let view = orgTextView {
+            view.lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: max(8, theme.font.pointSize - 2), weight: .regular)
+            view.lineNumberColor = theme.color("line-number") ?? .tertiaryLabelColor
+            view.currentLineNumberColor = theme.color("line-number-current") ?? .labelColor
+            view.updateGutter()
+            view.needsDisplay = true
+        }
     }
 
     /// Styles the whole file again, a screenful now and the rest in the background.

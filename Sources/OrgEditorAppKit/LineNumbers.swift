@@ -5,15 +5,13 @@ import AppKit
 /// per line of the file (folded lines skipped, wrapped lines numbered once), the caret's line
 /// bright. Drawn by the text view itself: an `NSRulerView` stops TextKit 2 from drawing text.
 extension OrgTextView {
-    static let lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-
     /// Width of the margin for the largest line number, or 0 when numbers are off.
     func updateGutter() {
         var width: CGFloat = 0
         if showsLineNumbers {
             let lines = (string as NSString).components(separatedBy: "\n").count
             let digits = max(2, String(lines).count)
-            width = ceil(("0" as NSString).size(withAttributes: [.font: Self.lineNumberFont]).width * CGFloat(digits) + 16)
+            width = ceil(("0" as NSString).size(withAttributes: [.font: lineNumberFont]).width * CGFloat(digits) + 16)
         }
         if textContainerInset.width != width {
             textContainerInset = NSSize(width: width, height: textContainerInset.height)
@@ -44,8 +42,8 @@ extension OrgTextView {
                 counted += 1
             }
             let label = NSAttributedString(string: "\(line)", attributes: [
-                .font: Self.lineNumberFont,
-                .foregroundColor: offset == caretLine ? NSColor.labelColor : NSColor.tertiaryLabelColor,
+                .font: lineNumberFont,
+                .foregroundColor: offset == caretLine ? currentLineNumberColor : lineNumberColor,
             ])
             let lineHeight = fragment.textLineFragments.first?.typographicBounds.height ?? frame.height
             let size = label.size()

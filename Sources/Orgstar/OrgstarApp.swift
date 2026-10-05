@@ -343,11 +343,21 @@ struct SettingsView: View {
     @AppStorage("reminderLead") private var reminderLead = 12
     @AppStorage("globalCapture") private var globalCapture = true
     @AppStorage("settingsTab") private var tab = "general"
+    @AppStorage("themeFont") private var themeFont = ""
+    @AppStorage("themeFontSize") private var themeFontSize = 13
+    @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
+    @AppStorage("themeHeadingStep") private var themeHeadingStep = 1
+
+    /// Installed monospaced font families.
+    private static let monospacedFamilies: [String] = NSFontManager.shared.availableFontFamilies.filter { family in
+        NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: 13)?.isFixedPitch == true
+    }
 
     var body: some View {
         TabView(selection: $tab) {
             Tab("General", systemImage: "gearshape", value: "general") { general }
             Tab("Editing", systemImage: "text.alignleft", value: "editing") { editing }
+            Tab("Appearance", systemImage: "paintpalette", value: "appearance") { appearance }
             Tab("Agenda", systemImage: "calendar", value: "agenda") { agenda }
             Tab("Capture", systemImage: "tray.and.arrow.down", value: "capture") { capture }
         }
@@ -432,6 +442,41 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(height: 450)
+    }
+
+    private var appearance: some View {
+        Form {
+            Section {
+                Picker("Font", selection: $themeFont) {
+                    Text("System monospaced").tag("")
+                    Divider()
+                    ForEach(Self.monospacedFamilies, id: \.self) { Text($0).tag($0) }
+                    if !themeFont.isEmpty, !Self.monospacedFamilies.contains(themeFont) { Text(themeFont).tag(themeFont) }
+                }
+                Stepper("Size: \(themeFontSize) pt", value: $themeFontSize, in: 8...36)
+                Stepper("Line spacing: \(themeLineSpacing) pt", value: $themeLineSpacing, in: 0...16)
+                Stepper("Headings grow by \(themeHeadingStep) pt a level", value: $themeHeadingStep, in: 0...8)
+            } footer: {
+                Text("Tags and tables line up in columns, so a monospaced font keeps them straight.")
+                    .settingsFooter()
+            }
+            Section {
+                LabeledContent("Colors") {
+                    HStack {
+                        Button("Edit in config.toml") { editConfig() }
+                        Button("Show Default Theme") {
+                            openWindow(id: "main")
+                            commands.jump(path: UserConfig.directory.appendingPathComponent("default-theme.toml").path, offset: 0)
+                        }
+                    }
+                }
+            } footer: {
+                Text("Set colors under [theme] (both appearances), [theme.light] or [theme.dark] in config.toml, and TODO keyword colors under [theme.todo]. default-theme.toml lists every color with the default theme's values.")
+                    .settingsFooter()
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 380)
     }
 
     private var agenda: some View {

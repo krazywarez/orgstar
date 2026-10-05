@@ -130,3 +130,33 @@ struct CyclingTests {
         #expect(Presentation.startupOptions(OrgParser.parse("#+begin_example\n#+STARTUP: overview\n#+end_example\n")).isEmpty)
     }
 }
+
+struct ThemeSpecTests {
+    @Test func readsColorsOverTheDefault() throws {
+        let tables = try TOML.parse("""
+            [theme]
+            font = "Menlo"
+            link = "#112233"
+            [theme.dark]
+            link = "#445566cc"
+            heading-1 = "blue"
+            sparkle = "#000000"
+            [theme.todo]
+            WAIT = "#bf8700"
+            """)
+        let (spec, problems) = ThemeSpec.reading(tables)
+        #expect(spec.light["link"] == RGBA(hex: "#112233"))
+        #expect(spec.dark["link"]?.hex == "#445566cc")
+        #expect(spec.dark["heading-1"] == ThemeSpec.default.dark["heading-1"])
+        #expect(spec.todo["WAIT"]?.hex == "#bf8700")
+        #expect(problems.count == 2)
+    }
+
+    @Test func defaultThemeFileReadsBackAsTheDefault() throws {
+        let (spec, problems) = ThemeSpec.reading(try TOML.parse(ThemeSpec.defaultThemeFile()), over: ThemeSpec(light: [:], dark: [:]))
+        #expect(problems.isEmpty)
+        #expect(spec.light == ThemeSpec.default.light && spec.dark == ThemeSpec.default.dark)
+        #expect(Set(ThemeSpec.default.light.keys) == Set(ThemeSpec.slots.map(\.key)))
+        #expect(Set(ThemeSpec.default.dark.keys) == Set(ThemeSpec.slots.map(\.key)))
+    }
+}

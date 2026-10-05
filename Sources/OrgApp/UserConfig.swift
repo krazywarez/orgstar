@@ -1,5 +1,6 @@
 import Foundation
 import OrgCore
+import OrgPresentation
 
 /// The configuration folder (`$XDG_CONFIG_HOME/orgstar`, else `~/.config/orgstar`) and
 /// `config.toml` in it: every setting of the Settings window as text, to edit, keep in a
@@ -80,6 +81,16 @@ public enum UserConfig {
                 comment: "the agenda's first day: \"-3d\", \"+0d\"", legacy: "agenda.start-offset"),
         Setting(section: "", key: "appt-message-warning-time", defaultsKey: "reminderLead", kind: .integer, fallback: .integer(12),
                 comment: "minutes of warning before timed entries; APPT_WARNTIME overrides", legacy: "agenda.reminder-lead"),
+        Setting(section: "theme", key: "font", defaultsKey: "themeFont", kind: .string, fallback: .string(""),
+                comment: "a monospaced font family; \"\" for the system's", legacy: ""),
+        Setting(section: "theme", key: "font-size", defaultsKey: "themeFontSize", kind: .integer, fallback: .integer(13),
+                comment: "points", legacy: ""),
+        Setting(section: "theme", key: "line-spacing", defaultsKey: "themeLineSpacing", kind: .integer, fallback: .integer(2),
+                comment: "points between lines", legacy: ""),
+        Setting(section: "theme", key: "heading-size-step", defaultsKey: "themeHeadingStep", kind: .integer, fallback: .integer(1),
+                comment: "points a heading is larger than the level below; level 4 and deeper are body size", legacy: ""),
+        Setting(section: "theme", key: "theme-file", defaultsKey: "themeFile", kind: .string, fallback: .string(""),
+                comment: "a theme in its own file in this folder, under the colors set here; colors: see default-theme.toml", legacy: ""),
         Setting(section: "orgstar", key: "save", defaultsKey: "saveMode", kind: .choice([("automatic", "automatic"), ("explicit", "explicit")]),
                 fallback: .string("automatic"), comment: "automatic (1 s after typing stops) or explicit (only with ⌘S)", legacy: "general.save"),
         Setting(section: "orgstar", key: "keymap", defaultsKey: "keymap", kind: .choice([("emacs", "emacs"), ("mac", "mac"), ("doom", "doom")]),
@@ -162,7 +173,10 @@ public enum UserConfig {
             if defaults.object(forKey: setting.defaultsKey) != nil { defaults.removeObject(forKey: setting.defaultsKey) }
         }
         for table in tables {
+            // Colors are the theme's to read.
+            if ThemeSpec.isThemeTable(table.name), table.name != "theme" { continue }
             for (key, value) in table.values.sorted(by: { $0.key < $1.key }) {
+                if table.name == "theme", !ThemeSpec.typeKeys.contains(key) { continue }
                 let name = path(table.name, key)
                 guard let setting = settings.first(where: { $0.path == name || $0.legacy == name }) else {
                     problems.append("config.toml: unknown setting \(name)")
@@ -222,6 +236,25 @@ public enum UserConfig {
             if setting.section != section {
                 section = setting.section
                 out += "\n[\(section)]\n"
+            }
+            out += "\(setting.key) = \(format(value(setting, in: defaults)))  # \(setting.comment)\n"
+        }
+        return out
+    }
+
+    /// `text` with the sections it lacks entirely added at the end, every setting at its
+    /// value in `defaults`: how a file from an earlier version gets settings added since.
+    /// Single lines left out stay out; they mean the default.
+    public static func addingMissingSections(_ text: String, from defaults: UserDefaults) -> String {
+        let tables = (try? TOML.parse(text)) ?? []
+        let present = Set(tables.filter { !$0.values.isEmpty || $0.name != "" }.map(\.name))
+        var out = text
+        var section: String?
+        for setting in settings where !setting.section.isEmpty && !present.contains(setting.section) {
+            if setting.section != section {
+                section = setting.section
+                if !out.hasSuffix("\n") { out += "\n" }
+                out += "\n[\(setting.section)]\n"
             }
             out += "\(setting.key) = \(format(value(setting, in: defaults)))  # \(setting.comment)\n"
         }

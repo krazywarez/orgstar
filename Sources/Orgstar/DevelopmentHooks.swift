@@ -7,6 +7,7 @@ import AppKit
 /// - `ORGSTAR_WINDOW`: a window to open at launch (`agenda`, `settings`); the snapshot renders it.
 /// - `ORGSTAR_COMMAND`: a command to run at launch (`app.import-emacs`); a sheet it opens is
 ///   what the snapshot renders.
+/// - `ORGSTAR_APPEARANCE`: `dark` or `light`, instead of the system's.
 /// - `ORGSTAR_SNAPSHOT`: after `ORGSTAR_SNAPSHOT_DELAY` seconds (default 3), render the main
 ///   window to this PNG path and quit. Rendering from inside the app needs no screen-recording
 ///   permission.
@@ -19,6 +20,9 @@ enum DevelopmentHooks {
     @MainActor
     static func scheduleSnapshot() {
         let environment = ProcessInfo.processInfo.environment
+        if let appearance = environment["ORGSTAR_APPEARANCE"] {
+            NSApp.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
+        }
         guard let path = environment["ORGSTAR_SNAPSHOT"] else { return }
         let delay = Double(environment["ORGSTAR_SNAPSHOT_DELAY"] ?? "") ?? 3
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {

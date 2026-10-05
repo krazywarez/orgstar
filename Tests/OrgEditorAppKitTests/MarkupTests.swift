@@ -1,5 +1,6 @@
 import AppKit
 import OrgCore
+import OrgPresentation
 import Testing
 @testable import OrgEditorAppKit
 
@@ -89,5 +90,24 @@ struct PrettyEntityTests {
 
         h.caret(at: last)
         #expect(storage.attribute(.orgEntityDisplay, at: last, effectiveRange: nil) == nil)
+    }
+}
+
+@MainActor
+struct EditorThemeTests {
+    @Test func themeChangesFontAndColors() {
+        let h = Harness("* Heading\nbody\n")
+        var spec = ThemeSpec.default
+        spec.fontSize = 17
+        spec.light["heading-1"] = RGBA(hex: "#ff0000")
+        spec.dark["heading-1"] = RGBA(hex: "#ff0000")
+        spec.todo["WAIT"] = RGBA(hex: "#00ff00")
+        h.editor.themeSpec = spec
+        h.drainStyling()
+        let storage = h.textView.textStorage!
+        #expect((storage.attribute(.font, at: 11, effectiveRange: nil) as? NSFont)?.pointSize == 17)
+        let color = (storage.attribute(.foregroundColor, at: 3, effectiveRange: nil) as? NSColor)?.usingColorSpace(.sRGB)
+        #expect(color.map { ($0.redComponent * 255).rounded() } == 255)
+        #expect((storage.attribute(.font, at: 3, effectiveRange: nil) as? NSFont)?.pointSize == 20)
     }
 }
