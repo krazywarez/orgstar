@@ -16,6 +16,11 @@ struct Theme {
         ("0" as NSString).size(withAttributes: [.font: font]).width
     }
 
+    /// The band behind blocks.
+    nonisolated(unsafe) static let blockBackground = NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? NSColor(white: 1, alpha: 0.06) : NSColor(white: 0, alpha: 0.045)
+    }
+
     /// Markup hidden from view: no width, no color.
     var hidden: [NSAttributedString.Key: Any] {
         [.font: NSFont.monospacedSystemFont(ofSize: 0.01, weight: .regular), .foregroundColor: NSColor.clear]
@@ -61,9 +66,7 @@ struct Theme {
             storage.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: range)
         case .footnote, .cookie, .target, .macro, .latex:
             storage.addAttribute(.foregroundColor, value: NSColor.systemTeal, range: range)
-        case .block:
-            storage.addAttribute(.backgroundColor, value: NSColor.quaternarySystemFill, range: range)
-        case .table, .rule:
+        case .block, .table, .rule:
             break
         case .syntax(let category):
             if let color = Self.color(category) { storage.addAttribute(.foregroundColor, value: color, range: range) }

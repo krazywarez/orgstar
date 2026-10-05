@@ -187,6 +187,26 @@ public enum Presentation {
         }
     }
 
+    /// Blocks and fixed-width areas, drawn on a shaded band the width of the view. Sorted.
+    public static func shadedBlocks(_ tree: OrgTree) -> [Range<Int>] {
+        var ranges: [Range<Int>] = []
+        func walk(_ node: SyntaxNode) {
+            for child in node.children {
+                switch child.kind {
+                case .block, .dynamicBlock, .fixedWidth:
+                    // Without the blank lines org counts as part of the element.
+                    let text = child.text
+                    let trimmed = text.utf16.count - String(text.reversed().prefix { $0.isWhitespace }).utf16.count
+                    ranges.append(child.range.lowerBound..<(child.range.lowerBound + trimmed))
+                case .paragraph, .table, .heading, .planning, .propertyDrawer, .drawer, .keyword, .comment: continue
+                default: walk(child)
+                }
+            }
+        }
+        walk(tree.root)
+        return ranges
+    }
+
     /// Ranges to hide. A heading in `folds` hides everything after its line to the end of its
     /// section; one in `bodyFolds` hides only its own body, up to its first child heading.
     /// Sorted, without nested duplicates.

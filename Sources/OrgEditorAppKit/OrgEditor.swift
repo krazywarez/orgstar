@@ -52,6 +52,8 @@ public final class OrgEditor: NSObject {
 
     let hidden = HiddenRanges()
     let folded = FoldedHeadings()
+    /// Blocks drawn on a shaded band.
+    let shaded = HiddenRanges()
     let theme = Theme()
     private var isLoading = false
     private var previousSelection = 0
@@ -121,6 +123,7 @@ public final class OrgEditor: NSObject {
         textLayoutManager.delegate = self
         textContentStorage.delegate = self
 
+        if isOrg { shaded.set(Presentation.shadedBlocks(document.tree)) }
         load(document.text)
         if isOrg, let startup = Presentation.startupFoldState(document.tree) { setFolds(startup) }
     }
@@ -653,7 +656,10 @@ public final class OrgEditor: NSObject {
         let delta = edit.replacement.utf16.count - edit.range.count
         let oldMapped = oldAffected.lowerBound..<(oldAffected.upperBound >= edit.range.upperBound ? oldAffected.upperBound + delta : newEnd)
         restyle(min(oldMapped.lowerBound, newAffected.lowerBound)..<min(max(oldMapped.upperBound, newAffected.upperBound), newText.length), in: storage)
-        if hidden.all != oldHidden.map({ mapRange($0, through: edit) }) {
+        let oldShaded = shaded.all
+        if isOrg { shaded.set(Presentation.shadedBlocks(document.tree)) }
+        if hidden.all != oldHidden.map({ mapRange($0, through: edit) })
+            || shaded.all != oldShaded.map({ mapRange($0, through: edit) }) {
             textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
         }
         onEditTiming?(clock.now - start)
@@ -799,8 +805,28 @@ extension OrgEditor: NSTextLayoutManagerDelegate {
         if let range, let manager = textLayoutManager.textContentManager {
             let offset = manager.offset(from: manager.documentRange.location, to: range.location)
             if folded.contains(offset) { return FoldedHeadingFragment(textElement: textElement, range: range) }
+            if shaded.containing(offset) != nil { return ShadedFragment(textElement: textElement, range: range) }
         }
         return NSTextLayoutFragment(textElement: textElement, range: range)
+    }
+}
+
+/// A line of a block, on a band across the whole width of the view, as Emacs extends the
+/// `org-block` face.
+final class ShadedFragment: NSTextLayoutFragment, @unchecked Sendable {
+    private var band: CGRect {
+        let width = textLayoutManager?.textContainer?.size.width ?? layoutFragmentFrame.width
+        return CGRect(x: -layoutFragmentFrame.minX, y: 0, width: width, height: layoutFragmentFrame.height)
+    }
+
+    override var renderingSurfaceBounds: CGRect { super.renderingSurfaceBounds.union(band) }
+
+    override func draw(at point: CGPoint, in context: CGContext) {
+        context.saveGState()
+        context.setFillColor(Theme.blockBackground.cgColor)
+        context.fill(band.offsetBy(dx: point.x, dy: point.y))
+        context.restoreGState()
+        super.draw(at: point, in: context)
     }
 }
 

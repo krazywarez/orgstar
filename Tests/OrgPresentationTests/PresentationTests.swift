@@ -1,3 +1,4 @@
+import Foundation
 import OrgCore
 import Testing
 @testable import OrgPresentation
@@ -65,6 +66,15 @@ struct FoldTests {
         #expect(Presentation.hiddenRanges(tree, folds: [0, 9]) == [4..<19])
         #expect(Presentation.hiddenRanges(tree, folds: [19]) == [23..<28])
         #expect(Presentation.hiddenRanges(OrgParser.parse("* a"), folds: [0]).isEmpty)
+    }
+
+    @Test func shadedBlocks() {
+        let text = "* a\n#+begin_src sh\nls\n#+end_src\n\n- item\n  #+begin_quote\n  q\n  #+end_quote\n: fixed\n"
+        let ns = text as NSString
+        let ranges = Presentation.shadedBlocks(OrgParser.parse(text))
+        #expect(ranges.map { ns.substring(with: NSRange($0)) } == [
+            "#+begin_src sh\nls\n#+end_src", "  #+begin_quote\n  q\n  #+end_quote", ": fixed",
+        ])
     }
 
     @Test func headingContaining() {
