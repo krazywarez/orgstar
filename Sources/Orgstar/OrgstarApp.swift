@@ -90,9 +90,15 @@ enum UnsavedChanges {
 @main
 struct OrgstarApp: App {
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
-    @State private var workspace = Result { try WorkspaceModel(directory: WorkspaceModel.defaultDirectory) }
+    @State private var workspace = Result {
+        try WorkspaceModel(directory: WorkspaceModel.defaultDirectory, settings: .with(todoKeywords: Preferences.orgSettings))
+    }
     @State private var commands = AppCommands()
-    @State private var session = DocumentSession()
+    @State private var session: DocumentSession = {
+        let session = DocumentSession()
+        session.defaults = Preferences.orgSettings
+        return session
+    }()
 
     var body: some Scene {
         Window("Orgstar", id: "main") {
@@ -144,6 +150,11 @@ struct SettingsView: View {
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
     @AppStorage("optionAsMeta") private var optionAsMeta = OptionAsMeta.left.rawValue
+    @AppStorage("tagsColumn") private var tagsColumn = -77
+    @AppStorage("headingAfterSubtree") private var headingAfterSubtree = true
+    @AppStorage("splitLine") private var splitLine = false
+    @AppStorage("alphabeticalLists") private var alphabeticalLists = true
+    @AppStorage("todoKeywords") private var todoKeywords = Preferences.defaultTodoKeywords
 
     var body: some View {
         Form {
@@ -165,8 +176,20 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
+            Divider()
+            Picker("Tags:", selection: $tagsColumn) {
+                Text("Aligned to end at column 77").tag(-77)
+                Text("One space after the title").tag(0)
+            }
+            Toggle("M-RET adds the new heading after the subtree", isOn: $headingAfterSubtree)
+            Toggle("M-RET splits the line at the caret", isOn: $splitLine)
+            Toggle("Lists can use letters (a. b. c.)", isOn: $alphabeticalLists)
+            TextField("Default TODO keywords:", text: $todoKeywords)
+            Text("For files without #+TODO, in #+TODO syntax. Takes effect when Orgstar restarts.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding(20)
-        .frame(width: 420)
+        .frame(width: 480)
     }
 }

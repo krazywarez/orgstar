@@ -11,6 +11,7 @@ struct EditorView: NSViewRepresentable {
     let commands: AppCommands
     let keymap: Keymap
     let optionAsMeta: OptionAsMeta
+    let options: EditingOptions
     let onAppCommand: (String) -> Void
 
     final class Coordinator {
@@ -54,6 +55,7 @@ struct EditorView: NSViewRepresentable {
         if let editor = coordinator.editor {
             if editor.keymap != keymap { editor.keymap = keymap }
             editor.optionAsMeta = optionAsMeta
+            editor.options = options
         }
         container.window?.isDocumentEdited = session.isDirty
         if let request = session.revealRequest, request.id != coordinator.revealID {
