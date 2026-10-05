@@ -79,7 +79,7 @@ public final class ClockModel {
     /// Where the running clock's line is, for `org-clock-goto`.
     public func location(_ session: DocumentSession) -> (path: String, offset: Int)? {
         guard let clock = running else { return nil }
-        let open = session.path == clock.path ? session.document?.text : nil
+        let open = session.openDocuments.first { $0.path == clock.path }?.document.text
         guard let text = open ?? (try? String(contentsOfFile: clock.path, encoding: .utf8)) else { return nil }
         let buffer = text as NSString
         let range = buffer.range(of: "CLOCK: [\(clock.start)]")

@@ -95,6 +95,9 @@ struct KeymapTests {
         let labels = doom.keyLabels(for: "org.todo.cycle", modes: ["normal", "insert"])
         #expect(labels == ["C-c C-t", "SPC m t"])
         #expect(doom.keyLabels(for: "app.quit", modes: ["normal", "insert"]) == ["SPC q q"])
+        #expect(doom.keyLabels(for: "app.buffer.kill", modes: ["normal"], limit: 3) == ["SPC b d", "SPC b k"])
+        #expect(doom.keyLabels(for: "app.buffer.next", modes: ["normal"]) == ["] b", "SPC b ]"])
+        #expect(emacs.keyLabels(for: "app.buffer.switch") == ["C-x b", "C-x C-b"])
     }
 
     @Test func dispatchesPrefixes() {

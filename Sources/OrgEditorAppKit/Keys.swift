@@ -15,6 +15,9 @@ final class OrgTextView: NSTextView {
     /// Returns true when the key was handled.
     var keyHandler: ((NSEvent) -> Bool)?
     var onMouseDown: (() -> Void)?
+    /// Each editor keeps its own undo history, not the window's.
+    private let ownUndoManager = UndoManager()
+    override var undoManager: UndoManager? { ownUndoManager }
     var lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
     var lineNumberColor = NSColor.tertiaryLabelColor
     var currentLineNumberColor = NSColor.labelColor

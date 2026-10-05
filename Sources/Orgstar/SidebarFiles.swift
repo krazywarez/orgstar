@@ -30,11 +30,13 @@ extension Sidebar {
         pending = operation
     }
 
-    /// Whether `path` is the open file or a folder holding it.
-    func holdsOpenFile(_ path: String) -> Bool {
-        guard let open = session.path else { return false }
-        return open == path || open.hasPrefix(path + "/")
+    /// The open buffers of `path`, a file or a folder holding them.
+    func openFiles(under path: String) -> [String] {
+        session.openPaths.filter { $0 == path || $0.hasPrefix(path + "/") }
     }
+
+    /// Whether `path` is an open file or a folder holding one.
+    func holdsOpenFile(_ path: String) -> Bool { !openFiles(under: path).isEmpty }
 
     func finish() {
         guard let operation = pending else { return }
@@ -45,20 +47,26 @@ extension Sidebar {
                 case .create(let folder):
                     selection = try await workspace.createFile(named: name, in: folder)
                 case .rename(let path):
-                    let affected = holdsOpenFile(path)
-                    // The open file is saved first, so the rename carries its edits.
-                    if affected, !UnsavedChanges.resolve(session) { return }
+                    let affected = openFiles(under: path)
+                    // Open files are saved first, so the rename carries their edits, and open
+                    // again under their new paths.
+                    if !UnsavedChanges.resolve(session, paths: affected) { return }
+                    let shown = session.path
                     let renamed = try await workspace.rename(path, to: name)
-                    if affected, let open = session.path {
-                        let moved = renamed + open.dropFirst(path.count)
+                    for open in affected {
+                        session.kill(open)
+                        session.open(renamed + open.dropFirst(path.count))
+                    }
+                    if let shown, affected.contains(shown) {
+                        let moved = renamed + shown.dropFirst(path.count)
                         session.open(moved)
                         selection = moved
+                    } else if let shown {
+                        session.open(shown)
                     }
                 case .trash(let path):
-                    if holdsOpenFile(path) {
-                        session.close()
-                        selection = nil
-                    }
+                    for open in openFiles(under: path) { session.kill(open) }
+                    if session.path == nil { selection = nil }
                     try await workspace.trash(path)
                 }
             } catch {

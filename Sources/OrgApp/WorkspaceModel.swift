@@ -266,6 +266,15 @@ public final class WorkspaceModel {
     /// Index rows for an open file's unsaved text, keyed by path, for queries to use in place
     /// of its rows on disk. Empty when the file has no unsaved edits. Cached until the text
     /// changes.
+    /// Index records for open buffers with unsaved edits, so search sees what they hold.
+    public func overlay(_ documents: [(path: String, document: DocumentState)]) -> [String: FileRecord] {
+        var result: [String: FileRecord] = [:]
+        for (path, document) in documents where document.isDirty {
+            result.merge(overlay(path: path, document: document)) { a, _ in a }
+        }
+        return result
+    }
+
     public func overlay(path: String?, document: DocumentState?) -> [String: FileRecord] {
         guard let path, let document, document.isDirty, let bytes = try? document.encodedText(),
               let entry = files.first(where: { $0.path == path }) else { return [:] }

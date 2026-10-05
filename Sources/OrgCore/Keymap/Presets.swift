@@ -94,6 +94,71 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "SPC f s"
         command = "app.save"
         mode = "normal"
+        # Buffers
+        [[bind]]
+        keys = "SPC b b"
+        command = "app.buffer.switch"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b B"
+        command = "app.buffer.switch"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC ,"
+        command = "app.buffer.switch"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC `"
+        command = "app.buffer.last"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b k"
+        command = "app.buffer.kill"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b d"
+        command = "app.buffer.kill"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b K"
+        command = "app.buffer.kill-all"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b O"
+        command = "app.buffer.kill-others"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b n"
+        command = "app.buffer.next"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b p"
+        command = "app.buffer.previous"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b ]"
+        command = "app.buffer.next"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b ["
+        command = "app.buffer.previous"
+        mode = "normal"
+        [[bind]]
+        keys = "] b"
+        command = "app.buffer.next"
+        mode = "normal"
+        [[bind]]
+        keys = "[ b"
+        command = "app.buffer.previous"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b s"
+        command = "app.save"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC b S"
+        command = "app.save-all"
+        mode = "normal"
         [[bind]]
         keys = "SPC s s"
         command = "edit.find"
@@ -490,6 +555,24 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-x C-s"
         command = "app.save"
         [[bind]]
+        keys = "C-x b"
+        command = "app.buffer.switch"
+        [[bind]]
+        keys = "C-x C-b"
+        command = "app.buffer.switch"
+        [[bind]]
+        keys = "C-x k"
+        command = "app.buffer.kill"
+        [[bind]]
+        keys = "C-x <right>"
+        command = "app.buffer.next"
+        [[bind]]
+        keys = "C-x <left>"
+        command = "app.buffer.previous"
+        [[bind]]
+        keys = "C-x s"
+        command = "app.save-all"
+        [[bind]]
         keys = "C-x C-f"
         command = "app.quick-open"
         [[bind]]
@@ -745,6 +828,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
     /// Standard Mac text keys stay as they are; org commands use Control-Command chords, which
     /// macOS text editing leaves free.
     static let macBindings = """
+        [[bind]]
+        keys = "C-TAB"
+        command = "app.buffer.next"
+        [[bind]]
+        keys = "C-S-TAB"
+        command = "app.buffer.previous"
         [[bind]]
         keys = "C-s-t"
         command = "org.todo.cycle"

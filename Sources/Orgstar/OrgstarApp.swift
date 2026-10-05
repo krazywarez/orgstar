@@ -115,7 +115,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let session else { return .terminateNow }
-        return UnsavedChanges.resolve(session) ? .terminateNow : .terminateCancel
+        BufferRestore.save(session)
+        return UnsavedChanges.resolve(session, paths: session.openPaths) ? .terminateNow : .terminateCancel
     }
 }
 
@@ -138,6 +139,54 @@ enum UnsavedChanges {
         case .alertSecondButtonReturn: return true
         default: return false
         }
+    }
+
+    /// Whether the buffers of `paths` can be closed: saved in automatic mode, or as the user
+    /// chooses for all of them in explicit mode.
+    static func resolve(_ session: DocumentSession, paths: [String]) -> Bool {
+        let dirty = paths.filter(session.dirtyPaths.contains)
+        guard !dirty.isEmpty else { return true }
+        if session.saveMode == .automatic { return dirty.map(session.save).allSatisfy { $0 } }
+        if dirty == [session.path] { return resolve(session) }
+        let alert = NSAlert()
+        alert.messageText = "Save changes to \(dirty.count) files?"
+        alert.informativeText = dirty.map { ($0 as NSString).lastPathComponent }.joined(separator: ", ")
+        alert.addButton(withTitle: "Save All")
+        alert.addButton(withTitle: "Don't Save")
+        alert.addButton(withTitle: "Cancel")
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: return dirty.map(session.save).allSatisfy { $0 }
+        case .alertSecondButtonReturn: return true
+        default: return false
+        }
+    }
+}
+
+/// The open buffers, their order and carets, kept for the next launch.
+@MainActor
+enum BufferRestore {
+    private static let key = "openBuffers"
+
+    struct State: Codable {
+        var paths: [String]
+        var current: String?
+        var carets: [String: Int]
+    }
+
+    static func save(_ session: DocumentSession, defaults: UserDefaults = .standard) {
+        var carets: [String: Int] = [:]
+        for path in session.openPaths { carets[path] = session.caret(of: path) }
+        let state = State(paths: session.openPaths, current: session.path, carets: carets)
+        if let data = try? JSONEncoder().encode(state) { defaults.set(data, forKey: key) }
+    }
+
+    /// Opens the buffers that were open, in order, and returns the carets to show them at.
+    static func restore(_ session: DocumentSession, defaults: UserDefaults = .standard) -> [String: Int] {
+        guard let data = defaults.data(forKey: key), let state = try? JSONDecoder().decode(State.self, from: data) else { return [:] }
+        let existing = state.paths.filter { FileManager.default.fileExists(atPath: $0) }
+        for path in existing { session.open(path) }
+        if let current = state.current, existing.contains(current) { session.open(current) }
+        return state.carets
     }
 }
 
@@ -216,11 +265,26 @@ struct OrgstarApp: App {
                 .disabled(session.path == nil)
             }
             CommandGroup(replacing: .saveItem) {
+                Button("Close Buffer") {
+                    // ⌘W closes the buffer in the main window, and other windows themselves.
+                    if let key = NSApp.keyWindow, key.identifier?.rawValue.contains("main") != true {
+                        key.performClose(nil)
+                    } else {
+                        commands.run("app.buffer.kill")
+                    }
+                }
+                .keyboardShortcut("w")
+                Button("Close Window") { NSApp.keyWindow?.performClose(nil) }
+                    .keyboardShortcut("w", modifiers: [.command, .shift])
+                Divider()
                 Button("Save") {
                     if !session.save(), session.conflict != nil { commands.showingConflict = true }
                 }
                 .keyboardShortcut("s")
                 .disabled(session.path == nil || session.isReadOnly)
+                Button("Save All") { commands.run("app.save-all") }
+                    .keyboardShortcut("s", modifiers: [.command, .option])
+                    .disabled(session.dirtyPaths.isEmpty)
             }
             CommandGroup(after: .sidebar) {
                 Button("Show or Hide Outline") { commands.run("app.toggle-outline") }
@@ -237,6 +301,13 @@ struct OrgstarApp: App {
             }
             CommandGroup(before: .windowList) {
                 AgendaMenuItem()
+                Divider()
+                Button("Switch to Buffer…") { commands.run("app.buffer.switch") }
+                Button("Next Buffer") { commands.run("app.buffer.next") }
+                    .keyboardShortcut("]", modifiers: [.command, .shift])
+                Button("Previous Buffer") { commands.run("app.buffer.previous") }
+                    .keyboardShortcut("[", modifiers: [.command, .shift])
+                Divider()
             }
             CommandGroup(after: .newItem) {
                 Button("Capture…") { commands.run("app.capture") }
@@ -279,6 +350,7 @@ struct OrgMenuItems: View {
 
 /// View ▸ Show Markup (link brackets and targets, emphasis markers) and Show Line Numbers.
 struct MarkupToggle: View {
+    @AppStorage("showTabBar") private var showTabBar = false
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
 
@@ -287,6 +359,7 @@ struct MarkupToggle: View {
             .keyboardShortcut("m", modifiers: [.command, .shift])
         Toggle("Show Line Numbers", isOn: $showLineNumbers)
             .keyboardShortcut("l", modifiers: [.command, .shift])
+        Toggle("Show Tab Bar", isOn: $showTabBar)
     }
 }
 

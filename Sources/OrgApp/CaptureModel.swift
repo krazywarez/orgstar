@@ -70,7 +70,7 @@ extension DocumentSession {
     /// otherwise in the file, created if missing, through the save path.
     public func capture(_ text: String, template: CaptureTemplate, root: String?) -> String? {
         let path = Self.resolve(template.target.file, root: root)
-        if path != self.path, !FileManager.default.fileExists(atPath: path) {
+        if !isOpen(path), !FileManager.default.fileExists(atPath: path) {
             do {
                 try FileManager.default.createDirectory(at: URL(fileURLWithPath: path).deletingLastPathComponent(), withIntermediateDirectories: true)
                 try Data().write(to: URL(fileURLWithPath: path))

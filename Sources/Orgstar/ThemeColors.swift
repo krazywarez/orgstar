@@ -9,12 +9,26 @@ extension EnvironmentValues {
 
 extension ThemeSpec {
     /// A color that follows the appearance, or nil when the theme leaves `key` to the system.
+    /// A key set for one appearance only leaves the other to the system.
     func color(_ key: String) -> Color? {
-        guard let light = self.light[key] ?? self.dark[key], let dark = self.dark[key] ?? self.light[key] else { return nil }
+        guard light[key] != nil || dark[key] != nil else { return nil }
+        let (light, dark) = (light[key], dark[key])
+        let fallback = Self.systemColor(key)
         return Color(nsColor: NSColor(name: nil) { appearance in
-            let c = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            guard let c = isDark ? dark : light else { return fallback }
             return NSColor(srgbRed: c.red, green: c.green, blue: c.blue, alpha: c.alpha)
         })
+    }
+
+    /// What the system shows for a key the theme leaves unset in one appearance.
+    static func systemColor(_ key: String) -> NSColor {
+        switch key {
+        case "sidebar-background", "modeline-background": .windowBackgroundColor
+        case "agenda-background", "background": .textBackgroundColor
+        case "sidebar-header", "modeline-foreground", "agenda-time", "agenda-category", "agenda-scheduled", "tags": .secondaryLabelColor
+        default: .labelColor
+        }
     }
 
     /// A TODO keyword's color: its own from `[theme.todo]`, else the theme's TODO or DONE.

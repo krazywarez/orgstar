@@ -162,7 +162,7 @@ struct AgendaView: View {
             agenda.span = span
             agenda.startOffset = startOffset
             agenda.includeSubfolders = includeSubfolders
-            let open = session.path.flatMap { path in session.document.map { (path, $0.text) } }
+            let open = session.openTexts
             await agenda.refresh(open: open)
         }
         .task {

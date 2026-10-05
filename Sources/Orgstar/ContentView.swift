@@ -67,6 +67,9 @@ struct ContentView: View {
     /// The outline for a file that isn't org, off until asked for.
     @State private var plainOutlineShown = false
     @State private var showingImport = false
+    @AppStorage("showTabBar") private var showTabBar = false
+    /// Carets of restored buffers, shown when each first shows.
+    @State private var pendingCarets: [String: Int] = [:]
     @State private var query = ""
     @FocusState private var searchFocused: Bool
     @Environment(\.openWindow) private var openWindow
@@ -87,13 +90,16 @@ struct ContentView: View {
         if let previewPath {
             FilePreview(path: previewPath)
         } else if session.path != nil {
-            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme, onAppCommand: perform, onExternal: runExternal)
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    VStack(spacing: 0) {
-                        ModeLine(session: session, commands: commands, clock: clock, perform: perform)
-                        EchoArea(commands: commands)
-                    }
+            VStack(spacing: 0) {
+                if showTabBar { BufferTabs(session: session) }
+                EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme, onAppCommand: perform, onExternal: runExternal)
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    ModeLine(session: session, commands: commands, clock: clock, perform: perform)
+                    EchoArea(commands: commands)
                 }
+            }
         } else {
             ContentUnavailableView(
                 workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file",
@@ -146,8 +152,7 @@ struct ContentView: View {
                         if query.isEmpty {
                             OutlineColumn(session: session)
                         } else {
-                            SearchResults(results: workspace.search(query, overlay: workspace.overlay(path: session.path, document: session.document))) { location in
-                                guard location.path == session.path || UnsavedChanges.resolve(session) else { return }
+                            SearchResults(results: workspace.search(query, overlay: workspace.overlay(session.openDocuments))) { location in
                                 selectedFile = location.path
                                 session.show(location)
                             }
@@ -177,12 +182,15 @@ struct ContentView: View {
             }
             previewPath = nil
             guard path != session.path else { return }
-            if UnsavedChanges.resolve(session) {
-                session.open(path)
-            } else {
-                selectedFile = old
-            }
+            session.open(path)
         }
+        .onChange(of: session.path) {
+            // Buffers switched by keys show in the sidebar too; a restored caret shows once.
+            if let path = session.path, selectedFile != path { selectedFile = path }
+            if let path = session.path, let caret = pendingCarets.removeValue(forKey: path) { session.reveal(caret) }
+            BufferRestore.save(session)
+        }
+        .onChange(of: session.openPaths) { BufferRestore.save(session) }
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
         .onChange(of: options, initial: true) { _, options in session.options = options }
         .onChange(of: preset, initial: true) { loadKeymap() }
@@ -233,7 +241,6 @@ struct ContentView: View {
         .onChange(of: commands.jumpRequest?.id) {
             guard let request = commands.jumpRequest else { return }
             if request.path != session.path {
-                guard UnsavedChanges.resolve(session) else { return }
                 session.open(request.path)
                 selectedFile = request.path
             }
@@ -279,6 +286,8 @@ struct ContentView: View {
         }
         .task {
             DevelopmentHooks.scheduleSnapshot()
+            pendingCarets = BufferRestore.restore(session)
+            if let path = session.path, let caret = pendingCarets.removeValue(forKey: path) { session.reveal(caret) }
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
             if let root = DevelopmentHooks.rootToAdd { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
             if let command = DevelopmentHooks.commandToRun { perform(command) }
@@ -389,7 +398,7 @@ struct ContentView: View {
         let agenda = reminderAgenda ?? AgendaModel(workspace: workspace)
         reminderAgenda = agenda
         agenda.includeSubfolders = agendaSubfolders
-        let open = session.path.flatMap { path in session.document.map { (path, $0.text) } }
+        let open = session.openTexts
         let reminders = await agenda.reminders(open: open, lead: reminderLead)
         guard !Task.isCancelled else { return }
         await scheduler.reconcile(reminders)
@@ -406,6 +415,22 @@ struct ContentView: View {
         }
     }
 
+    /// `SPC b b`: open buffers, most recent first, by name (with the folder when names repeat).
+    private func switchBuffer() {
+        let paths = session.recentPaths.dropFirst() + session.recentPaths.prefix(1)
+        let names = paths.map { ($0 as NSString).lastPathComponent }
+        let labels = paths.map { path in
+            let name = (path as NSString).lastPathComponent
+            guard names.filter({ $0 == name }).count > 1 else { return name }
+            return name + " — " + ((path as NSString).deletingLastPathComponent as NSString).lastPathComponent
+        }
+        guard !labels.isEmpty else { return commands.show("No buffers are open") }
+        commands.ask(Prompt(key: "buffer", message: "Switch to buffer:", choices: labels)) { answer in
+            guard let answer, let index = labels.firstIndex(of: answer) else { return }
+            session.open(Array(paths)[index])
+        }
+    }
+
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
         let orgOnly = ["app.refile", "app.archive", "app.clock.in"].contains(id) || id.hasPrefix("app.export.")
@@ -417,6 +442,25 @@ struct ContentView: View {
         case "app.save":
             if !session.save(), session.conflict != nil { commands.showingConflict = true }
         case "app.quit": NSApp.terminate(nil)
+        case "app.save-all":
+            if !session.saveAll(), session.conflict != nil { commands.showingConflict = true }
+        case "app.buffer.switch": switchBuffer()
+        case "app.buffer.next": session.cycle(1)
+        case "app.buffer.previous": session.cycle(-1)
+        case "app.buffer.last": session.showPrevious()
+        case "app.buffer.kill":
+            guard let path = session.path else {
+                NSApp.keyWindow?.performClose(nil)
+                return
+            }
+            if UnsavedChanges.resolve(session) { session.kill(path) }
+        case "app.buffer.kill-others":
+            let others = session.openPaths.filter { $0 != session.path }
+            if UnsavedChanges.resolve(session, paths: others) { others.forEach(session.kill) }
+        case "app.buffer.kill-all":
+            let all = session.openPaths
+            if UnsavedChanges.resolve(session, paths: all) { all.forEach(session.kill) }
+        case "app.toggle-tab-bar": showTabBar.toggle()
         case "app.toggle-outline": toggleOutline()
         case "app.toggle-markup": showMarkup.toggle()
         case "app.toggle-line-numbers": showLineNumbers.toggle()
@@ -678,5 +722,54 @@ struct PaneDivider: View {
                 width = min(max(base + drag.translation.width, range.lowerBound), range.upperBound)
             }.onEnded { _ in start = nil }))
             .accessibilityHidden(true)
+    }
+}
+
+/// A tab for each open buffer: click to show it, × to close it, a dot for unsaved edits.
+struct BufferTabs: View {
+    let session: DocumentSession
+    @Environment(\.orgTheme) private var theme
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(session.openPaths, id: \.self) { path in
+                    tab(path)
+                }
+            }
+        }
+        .frame(height: 28)
+        .background { if let bg = theme.color("modeline-background") { bg } else { Rectangle().fill(.bar) } }
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func tab(_ path: String) -> some View {
+        let current = path == session.path
+        return HStack(spacing: 6) {
+            Text((path as NSString).lastPathComponent)
+                .lineLimit(1)
+                .foregroundStyle(current ? .primary : .secondary)
+            Button {
+                if path == session.path {
+                    if UnsavedChanges.resolve(session) { session.kill(path) }
+                } else if UnsavedChanges.resolve(session, paths: [path]) {
+                    session.kill(path)
+                }
+            } label: {
+                Image(systemName: session.dirtyPaths.contains(path) ? "circle.fill" : "xmark")
+                    .font(.system(size: session.dirtyPaths.contains(path) ? 6 : 9, weight: .semibold))
+                    .frame(width: 12, height: 12)
+            }
+            .buttonStyle(.borderless)
+            .help("Close")
+        }
+        .font(.callout)
+        .padding(.horizontal, 12)
+        .frame(maxHeight: .infinity)
+        .background(current ? theme.color("background") ?? Color(nsColor: .textBackgroundColor) : .clear)
+        .overlay(alignment: .trailing) { Divider() }
+        .contentShape(Rectangle())
+        .onTapGesture { session.open(path) }
+        .help(path)
     }
 }

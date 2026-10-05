@@ -78,7 +78,7 @@ struct BoardView: View {
         .navigationTitle(kanban ? "Kanban" : "Entries")
         .task(id: RefreshKey(match: match, subfolders: includeSubfolders, files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, path: session.path, tick: tick)) {
             agenda.includeSubfolders = includeSubfolders
-            let open = session.path.flatMap { path in session.document.map { (path, $0.text) } }
+            let open = session.openTexts
             let result = await agenda.board(open: open, match: match)
             entries = result.entries
             keywords = result.keywords

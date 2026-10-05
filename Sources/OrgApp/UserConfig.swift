@@ -99,6 +99,8 @@ public enum UserConfig {
         Setting(section: "orgstar", key: "option-as-meta", defaultsKey: "optionAsMeta",
                 kind: .integerChoice([("left", 1), ("right", 2), ("both", 3), ("none", 0)]), fallback: .string("left"),
                 comment: "left, right, both or none", legacy: "general.option-as-meta"),
+        Setting(section: "orgstar", key: "tab-bar", defaultsKey: "showTabBar", kind: .bool, fallback: .bool(false),
+                comment: "a tab for each open buffer above the editor (View ▸ Show Tab Bar)", legacy: ""),
         Setting(section: "orgstar", key: "show-markup", defaultsKey: "showMarkup", kind: .bool, fallback: .bool(false),
                 comment: "show link brackets and emphasis markers (View ▸ Show Markup)", legacy: "editor.show-markup"),
         Setting(section: "orgstar", key: "show-hidden-files", defaultsKey: "showHiddenFiles", kind: .bool, fallback: .bool(true),

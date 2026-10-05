@@ -19,8 +19,10 @@ struct Theme {
 
     /// A color that follows the appearance, or nil when the theme has none for `key`.
     func color(_ key: String) -> NSColor? {
-        let light = spec.light[key] ?? spec.dark[key]
-        let dark = spec.dark[key] ?? spec.light[key]
+        // Editor colors are set for both appearances by the default theme; a key the theme
+        // has for one only takes the default for the other.
+        let light = spec.light[key] ?? ThemeSpec.default.light[key] ?? spec.dark[key]
+        let dark = spec.dark[key] ?? ThemeSpec.default.dark[key] ?? spec.light[key]
         guard let light, let dark else { return nil }
         return Self.dynamic(light, dark)
     }

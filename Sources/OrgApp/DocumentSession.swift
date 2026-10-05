@@ -42,15 +42,17 @@ public enum SaveMode: String, Sendable, CaseIterable {
     case explicit
 }
 
-/// The file open in a window: its buffer, outline, saving, and requests for the editor to
-/// show a location. The view layer attaches the editor as the buffer and follows
-/// `revealRequest`.
+/// The files open in a window, as Emacs's buffers: each keeps its text, caret, undo and
+/// unsaved edits while another is shown. The current buffer's outline, saving and requests
+/// for the editor to show a location are what most views use. The view layer attaches an
+/// editor to each buffer and follows `path` and `revealRequest`.
 @MainActor
 @Observable
 public final class DocumentSession {
+    /// The current buffer's file.
     public private(set) var path: String?
-    /// A copy of the buffer's state as of its last change. Not observed: it changes on every
-    /// keystroke; views follow `path`, `isDirty` and `outline`.
+    /// A copy of the current buffer's state as of its last change. Not observed: it changes
+    /// on every keystroke; views follow `path`, `isDirty` and `outline`.
     @ObservationIgnored public private(set) var document: DocumentState?
     public private(set) var outline: [OutlineEntry] = []
     /// Bumped when the buffer settles after edits, and when a file opens: views that read
@@ -63,6 +65,10 @@ public final class DocumentSession {
     public private(set) var conflict: String?
     /// Bumped to ask the editor to reveal an offset.
     public private(set) var revealRequest: (offset: Int, id: Int)?
+    /// Open files, in the order buffers were opened (each after the one current then).
+    public private(set) var openPaths: [String] = []
+    /// Open files with unsaved edits.
+    public private(set) var dirtyPaths: Set<String> = []
     public var lastError: String?
     public var saveMode: SaveMode = .automatic
     public var autosaveDelay: Duration = .seconds(1)
@@ -71,10 +77,26 @@ public final class DocumentSession {
     /// TODO keywords and priorities for files without their own settings.
     public var defaults: OrgSettings = .default
 
+    /// One open file.
+    @MainActor
+    final class Entry {
+        let path: String
+        var buffer: DocumentBuffer
+        var conflict: String?
+        var autosave: Task<Void, Never>?
+
+        init(path: String, buffer: DocumentBuffer) {
+            self.path = path
+            self.buffer = buffer
+        }
+    }
+
     private let fileSystem: FileSystem
     private let recovery: RecoveryStore
-    @ObservationIgnored private var buffer: DocumentBuffer?
-    @ObservationIgnored var autosave: Task<Void, Never>?
+    @ObservationIgnored private var entries: [Entry] = []
+    @ObservationIgnored private var current: Entry?
+    /// Paths, most recently shown first.
+    @ObservationIgnored private var history: [String] = []
     @ObservationIgnored private var outlineUpdate: Task<Void, Never>?
     private var requestID = 0
 
@@ -86,6 +108,9 @@ public final class DocumentSession {
         self.recovery = recovery
     }
 
+    private var buffer: DocumentBuffer? { current?.buffer }
+    /// The current buffer's pending autosave, for tests to wait on.
+    var autosave: Task<Void, Never>? { current?.autosave }
     private var url: URL? { path.map { URL(fileURLWithPath: $0) } }
     /// Whether the open file is an org file (`.org`, `.org_archive`), not plain text.
     public var isOrg: Bool { path.map(Self.isOrgPath) ?? false }
@@ -98,39 +123,101 @@ public final class DocumentSession {
     public var caret: Int { buffer?.selection.first?.lowerBound ?? 0 }
     private var name: String { path.map { ($0 as NSString).lastPathComponent } ?? "" }
 
+    private func entry(_ path: String) -> Entry? { entries.first { $0.path == path } }
+
+    public func isOpen(_ path: String) -> Bool { entry(path) != nil }
+
+    /// The caret of an open file.
+    public func caret(of path: String) -> Int? { entry(path)?.buffer.selection.first?.lowerBound }
+
+    /// The text of every open file, for views that read files (the agenda, search).
+    public var openDocuments: [(path: String, document: DocumentState)] {
+        entries.map { ($0.path, $0.buffer.document) }
+    }
+
+    /// The text of every open file by path, for the agenda.
+    public var openTexts: [String: String] {
+        Dictionary(entries.map { ($0.path, $0.buffer.document.text) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    /// Open buffers, most recently shown first.
+    public var recentPaths: [String] { history.filter(isOpen) }
+
+    /// Shows the buffer of `path`, opening the file if it isn't open.
     public func open(_ path: String) {
+        if let existing = entry(path) {
+            activate(existing)
+            return
+        }
         do {
             guard let bytes = try fileSystem.read(URL(fileURLWithPath: path)) else {
                 lastError = "\((path as NSString).lastPathComponent) no longer exists."
                 return
             }
-            autosave?.cancel()
-            self.path = path
-            buffer = StateBuffer(DocumentState(bytes: bytes, defaults: defaults))
-            conflict = nil
-            revealRequest = nil
-            refresh()
+            let entry = Entry(path: path, buffer: StateBuffer(DocumentState(bytes: bytes, defaults: defaults)))
+            let index = current.flatMap { c in entries.firstIndex { $0 === c } }.map { $0 + 1 } ?? entries.count
+            entries.insert(entry, at: index)
+            activate(entry)
         } catch {
             lastError = "Can't open \(path): \(error.localizedDescription)"
         }
     }
 
-    /// Closes the open file without saving, as when it was deleted.
-    public func close() {
-        autosave?.cancel()
-        outlineUpdate?.cancel()
-        path = nil
-        buffer = nil
-        document = nil
-        outline = []
-        isDirty = false
-        conflict = nil
+    private func activate(_ entry: Entry) {
+        current = entry
+        path = entry.path
+        conflict = entry.conflict
         revealRequest = nil
+        history.removeAll { $0 == entry.path }
+        history.insert(entry.path, at: 0)
+        refresh()
     }
 
-    /// Makes `buffer`, built from `document`, the live state of the open file.
+    /// The buffer before or after the current one, wrapping.
+    public func cycle(_ step: Int) {
+        guard let current, let index = entries.firstIndex(where: { $0 === current }), entries.count > 1 else { return }
+        activate(entries[((index + step) % entries.count + entries.count) % entries.count])
+    }
+
+    /// The buffer shown before the current one.
+    public func showPrevious() {
+        guard let previous = recentPaths.dropFirst().first else { return }
+        open(previous)
+    }
+
+    /// Closes the buffer of `path` without saving it; the most recent other buffer shows.
+    public func kill(_ path: String) {
+        guard let entry = entry(path) else { return }
+        entry.autosave?.cancel()
+        entries.removeAll { $0 === entry }
+        history.removeAll { $0 == path }
+        if entry === current {
+            current = nil
+            if let next = recentPaths.first.flatMap(self.entry) ?? entries.last {
+                activate(next)
+            } else {
+                outlineUpdate?.cancel()
+                self.path = nil
+                document = nil
+                outline = []
+                isDirty = false
+                conflict = nil
+                revealRequest = nil
+                refreshLists()
+            }
+        } else {
+            refreshLists()
+        }
+    }
+
+    /// Closes the current buffer without saving, as when its file was deleted.
+    public func close() {
+        if let path { kill(path) }
+    }
+
+    /// Makes `buffer`, built from `document`, the live state of the current file.
     public func attach(_ buffer: DocumentBuffer) {
-        self.buffer = buffer
+        current?.buffer = buffer
         refresh()
     }
 
@@ -144,58 +231,87 @@ public final class DocumentSession {
             self.outline = self.isOrg ? Presentation.outline(document.tree) : []
             self.editVersion += 1
         }
-        scheduleAutosave()
+        if let current { scheduleAutosave(current) }
     }
 
     private func refresh(outline updateOutline: Bool = true) {
+        refreshLists()
         guard let buffer else { return }
         let state = buffer.document
         document = state
         if isDirty != state.isDirty { isDirty = state.isDirty }
         if isReadOnly == state.isEditable { isReadOnly = !state.isEditable }
+        if conflict != current?.conflict { conflict = current?.conflict }
         if updateOutline {
             outline = isOrg ? Presentation.outline(state.tree) : []
             editVersion += 1
         }
     }
 
+    private func refreshLists() {
+        let paths = entries.map(\.path)
+        if paths != openPaths { openPaths = paths }
+        let dirty = Set(entries.filter { $0.buffer.document.isDirty }.map(\.path))
+        if dirty != dirtyPaths { dirtyPaths = dirty }
+    }
+
     // MARK: - Saving
 
     private var saver: Saver { Saver(fileSystem: fileSystem, recovery: recovery) }
 
-    private func scheduleAutosave() {
-        autosave?.cancel()
-        guard saveMode == .automatic, isDirty, conflict == nil else { return }
-        autosave = Task { [weak self, autosaveDelay] in
+    private func scheduleAutosave(_ entry: Entry) {
+        entry.autosave?.cancel()
+        guard saveMode == .automatic, entry.buffer.document.isDirty, entry.conflict == nil else { return }
+        entry.autosave = Task { [weak self, weak entry, autosaveDelay] in
             try? await Task.sleep(for: autosaveDelay)
-            guard !Task.isCancelled else { return }
-            self?.save()
+            guard !Task.isCancelled, let self, let entry else { return }
+            self.save(entry)
         }
     }
 
-    /// Saves now. True when nothing is left unsaved.
+    /// Saves the current buffer now. True when nothing is left unsaved.
     @discardableResult
     public func save() -> Bool {
-        autosave?.cancel()
-        guard let buffer, let url, isDirty else { return !isDirty }
-        guard conflict == nil else { return false }
+        guard let current else { return true }
+        return save(current)
+    }
+
+    /// Saves the buffer of `path`. True when nothing is left unsaved.
+    @discardableResult
+    public func save(_ path: String) -> Bool {
+        guard let entry = entry(path) else { return true }
+        return save(entry)
+    }
+
+    /// Saves every open buffer. True when nothing is left unsaved.
+    @discardableResult
+    public func saveAll() -> Bool {
+        entries.map { save($0) }.allSatisfy { $0 }
+    }
+
+    @discardableResult
+    private func save(_ entry: Entry) -> Bool {
+        entry.autosave?.cancel()
+        let name = (entry.path as NSString).lastPathComponent
+        guard entry.buffer.document.isDirty else { return true }
+        guard entry.conflict == nil else { return false }
         do {
-            let outcome = try buffer.update { try saver.save(&$0, to: url) }
+            let outcome = try entry.buffer.update { try saver.save(&$0, to: URL(fileURLWithPath: entry.path)) }
             switch outcome {
             case .saved, .mergedAndSaved:
                 break
             case .conflict:
-                conflict = "\(name) changed on disk, and the changes conflict with yours."
+                entry.conflict = "\(name) changed on disk, and the changes conflict with yours."
             case .overwroteExternalChange(let change), .changedAfterWrite(let change):
                 if case .conflict = change {
-                    conflict = "\(name) changed on disk while saving, and the changes conflict with yours."
+                    entry.conflict = "\(name) changed on disk while saving, and the changes conflict with yours."
                 }
             }
         } catch {
             lastError = "Can't save \(name): \(error.localizedDescription)"
         }
-        refresh()
-        return !isDirty
+        if entry === current { refresh() } else { refreshLists() }
+        return !entry.buffer.document.isDirty
     }
 
     /// Resolves a conflict by writing the buffer over the disk version, which goes to recovery.
@@ -203,7 +319,7 @@ public final class DocumentSession {
         guard let buffer, let url else { return }
         do {
             try buffer.update { try saver.overwrite(&$0, to: url) }
-            conflict = nil
+            current?.conflict = nil
         } catch {
             lastError = "Can't save \(name): \(error.localizedDescription)"
         }
@@ -217,7 +333,7 @@ public final class DocumentSession {
             guard let bytes = try fileSystem.read(url) else { return }
             if isDirty { try recovery.keep(try buffer.document.encodedText(), for: url, label: "local") }
             buffer.update { $0 = DocumentState(bytes: bytes, defaults: $0.defaults) }
-            conflict = nil
+            current?.conflict = nil
         } catch {
             lastError = "Can't read \(name): \(error.localizedDescription)"
         }
@@ -310,12 +426,15 @@ public final class DocumentSession {
             guard expect.start + (expect.line as NSString).length <= ns.length else { return false }
             return ns.substring(with: NSRange(location: expect.start, length: (expect.line as NSString).length)) == expect.line
         }
-        if path == self.path, let buffer {
+        if let entry = entry(path) {
+            let buffer = entry.buffer
             guard matches(buffer.document.text) else { return stale }
             do {
                 let options = self.options
                 let step = try buffer.update { try $0.run(command, selection: [offset..<offset], now: now, answers: answers, options: options) }
-                if case .commit = step { bufferChanged() }
+                if case .commit = step {
+                    if entry === current { bufferChanged() } else { scheduleAutosave(entry); refreshLists() }
+                }
                 return step
             } catch {
                 return .failed("\(error)")
@@ -343,14 +462,16 @@ public final class DocumentSession {
     /// Recalculates a table in Emacs from a snapshot of the buffer, then replaces the table
     /// with Emacs's text if it hasn't changed meanwhile. Returns a message for the echo area.
     public func recalculateInEmacs(table: Range<Int>, point: Int, form: String) async -> String {
-        guard let buffer, let path else { return "No file is open." }
-        let snapshot = buffer.document.text as NSString
+        guard let entry = current else { return "No file is open." }
+        let path = entry.path
+        let snapshot = entry.buffer.document.text as NSString
         guard table.upperBound <= snapshot.length else { return "The table moved; try again." }
         let old = snapshot.substring(with: NSRange(table))
         let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
         do {
             let new = try await EmacsRunner.recalculateTable(text: snapshot as String, directory: directory, table: table, point: point, form: form)
-            guard let current = self.buffer, self.path == path else { return "The file was closed before Emacs finished." }
+            guard entries.contains(where: { $0 === entry }) else { return "The file was closed before Emacs finished." }
+            let current = entry.buffer
             let text = current.document.text as NSString
             guard table.upperBound <= text.length, text.substring(with: NSRange(table)) == old else {
                 return "The table changed while Emacs recalculated it; nothing was changed."
@@ -358,7 +479,7 @@ public final class DocumentSession {
             guard new != old else { return "Recalculated in Emacs" }
             let result = EditResult(baseRevision: current.document.revision, edits: [TextEdit(range: table, replacement: new)])
             if case .failed(let message) = current.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
-            bufferChanged()
+            changed(entry)
             return "Recalculated in Emacs"
         } catch {
             return "\(error)"
@@ -368,11 +489,12 @@ public final class DocumentSession {
     /// Runs a src block and writes its result under it, unless the block changed while it
     /// ran. Returns a message for the echo area.
     public func runBabel(_ job: BabelJob) async -> String {
-        guard let path, buffer != nil else { return "No file is open." }
-        let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        guard let entry = current else { return "No file is open." }
+        let directory = URL(fileURLWithPath: entry.path).deletingLastPathComponent()
         do {
             let output = try await BabelRunner.run(job, fileDirectory: directory)
-            guard let current = self.buffer, self.path == path else { return "The file was closed before the block finished." }
+            guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
+            let current = entry.buffer
             let document = current.document
             switch Babel.finish(job, output: output, text: document.text, settings: document.tree.settings) {
             case .failure(.message(let message)):
@@ -381,12 +503,17 @@ public final class DocumentSession {
                 guard !edits.isEmpty else { return job.finish.params.contains("silent") ? output.stdout : "Code block evaluation complete." }
                 let result = EditResult(baseRevision: document.revision, edits: edits)
                 if case .failed(let message) = current.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
-                bufferChanged()
+                changed(entry)
                 return "Code block evaluation complete."
             }
         } catch {
             return "\(error)"
         }
+    }
+
+    /// A buffer changed outside typing: the current one updates its views, another saves.
+    private func changed(_ entry: Entry) {
+        if entry === current { bufferChanged() } else { scheduleAutosave(entry); refreshLists() }
     }
 
     // MARK: - Locations
@@ -416,19 +543,22 @@ public final class DocumentSession {
         revealRequest = (offset, requestID)
     }
 
-    /// Called when the workspace sees the open file change on disk.
+    /// Called when the workspace sees a file change on disk: an open buffer of it takes the
+    /// change in.
     public func fileChanged(_ path: String) {
-        guard path == self.path, let buffer, let bytes = try? fileSystem.read(URL(fileURLWithPath: path)) else { return }
+        guard let entry = entry(path), let bytes = try? fileSystem.read(URL(fileURLWithPath: path)) else { return }
+        let buffer = entry.buffer
         guard bytes != buffer.document.mergeBase else { return }
+        let name = (path as NSString).lastPathComponent
         switch buffer.update({ $0.diskChanged(to: bytes) }) {
         case .conflict:
-            autosave?.cancel()
-            conflict = "\(name) changed on disk, and the changes conflict with yours."
+            entry.autosave?.cancel()
+            entry.conflict = "\(name) changed on disk, and the changes conflict with yours."
         case .merged, .reloaded:
-            conflict = nil
+            entry.conflict = nil
         case .unchanged:
             break
         }
-        refresh()
+        if entry === current { refresh() } else { refreshLists() }
     }
 }

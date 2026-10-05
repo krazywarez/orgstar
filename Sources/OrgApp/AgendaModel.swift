@@ -41,8 +41,8 @@ public final class AgendaModel {
             .sorted()
     }
 
-    /// Recomputes the days. `open` is the open file's path and text.
-    public func refresh(open: (path: String, text: String)?, now: Date = Date(), calendar: Calendar = .current) async {
+    /// Recomputes the days. `open` is the open buffers' text by path.
+    public func refresh(open: [String: String], now: Date = Date(), calendar: Calendar = .current) async {
         generation += 1
         let id = generation
         isComputing = true
@@ -78,25 +78,25 @@ public final class AgendaModel {
     }
 
     /// Reminders for the timed entries of the next `days` days.
-    public func reminders(open: (path: String, text: String)?, now: Date = Date(), calendar: Calendar = .current, days: Int = 7, lead: Int = 12) async -> [Reminder] {
+    public func reminders(open: [String: String], now: Date = Date(), calendar: Calendar = .current, days: Int = 7, lead: Int = 12) async -> [Reminder] {
         let all = await sources(open: open)
         return await Task.detached { Reminders.upcoming(all, now: now, calendar: calendar, days: days, lead: lead) }.value
     }
 
     /// Entries for the table and kanban views, and the keywords their files use.
-    public func board(open: (path: String, text: String)?, match: String) async -> (entries: [BoardEntry], keywords: [String]) {
+    public func board(open: [String: String], match: String) async -> (entries: [BoardEntry], keywords: [String]) {
         let all = await sources(open: open)
         return await Task.detached { (Board.entries(all, match: match), Board.keywords(all)) }.value
     }
 
     /// The agenda files' sources: the open file's from its text, the others from the cache
     /// while their modification date and size are unchanged.
-    private func sources(open: (path: String, text: String)?) async -> [AgendaSource] {
+    private func sources(open: [String: String]) async -> [AgendaSource] {
         let defaults = workspace.settings.org
         var reads: [(path: String, cached: AgendaSource?, mtime: Date, size: Int, text: String?)] = []
         for path in files {
-            if let open, open.path == path {
-                reads.append((path, nil, .distantPast, -1, open.text))
+            if let text = open[path] {
+                reads.append((path, nil, .distantPast, -1, text))
                 continue
             }
             let attributes = try? FileManager.default.attributesOfItem(atPath: path)

@@ -561,14 +561,71 @@ struct ClockModelTests {
         #expect(clock.running?.heading == "Task")
         #expect(ClockModel(file: stateFile).running == clock.running)
 
-        // Out from another file: the clocked file is closed now (saved first, as leaving a
-        // file does in the app).
-        #expect(session.save())
+        // Out from another file: the clocked file's buffer is still open behind it and takes
+        // the change.
         session.open(other.path)
         let message = clock.clockOut(session, now: start.addingTimeInterval(95 * 60))
         #expect(message == "Clock stopped after 1:35")
         #expect(clock.running == nil)
+        #expect(session.dirtyPaths == [work.path])
+        #expect(session.saveAll())
         let text = try String(contentsOf: work, encoding: .utf8)
         #expect(text.hasPrefix("* Task\n:LOGBOOK:\nCLOCK: [") && text.contains("=>  1:35\n:END:\nBody\n"), "\(text)")
+    }
+}
+
+@MainActor
+struct BufferTests {
+    @Test func buffersKeepEditsWhileOthersShow() throws {
+        let notes = try Folder()
+        let a = try notes.write("a.org", "* A\n")
+        let b = try notes.write("b.org", "* B\n")
+        let c = try notes.write("c.org", "* C\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.saveMode = .explicit
+        session.open(a.path)
+        _ = session.perform(SetTodo(keyword: "TODO"), path: a.path, at: 0, expect: nil)
+        session.open(b.path)
+        #expect(session.path == b.path)
+        #expect(session.openPaths == [a.path, b.path])
+        #expect(session.dirtyPaths == [a.path])
+        // A background buffer takes commands for its file, not the disk.
+        _ = session.perform(SetTodo(keyword: "DONE"), path: a.path, at: 0, expect: nil)
+        #expect(try String(contentsOf: a, encoding: .utf8) == "* A\n")
+        #expect(session.openDocuments.first { $0.path == a.path }?.document.text.hasPrefix("* DONE A") == true)
+
+        session.open(a.path)
+        #expect(session.document?.text.hasPrefix("* DONE A") == true)
+        session.open(c.path)
+        // Opened after the current buffer.
+        #expect(session.openPaths == [a.path, c.path, b.path])
+        session.cycle(1)
+        #expect(session.path == b.path)
+        session.cycle(1)
+        #expect(session.path == a.path)
+        session.showPrevious()
+        #expect(session.path == b.path)
+        #expect(session.recentPaths == [b.path, a.path, c.path])
+
+        session.kill(b.path)
+        #expect(session.path == a.path)
+        #expect(session.openPaths == [a.path, c.path])
+        #expect(session.saveAll())
+        #expect(try String(contentsOf: a, encoding: .utf8).hasPrefix("* DONE A"))
+        session.kill(a.path)
+        session.kill(c.path)
+        #expect(session.path == nil && session.document == nil && session.openPaths.isEmpty)
+    }
+
+    @Test func backgroundBuffersFollowTheDisk() throws {
+        let notes = try Folder()
+        let a = try notes.write("a.org", "* A\n")
+        let b = try notes.write("b.org", "* B\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(a.path)
+        session.open(b.path)
+        try notes.write("a.org", "* A changed\n")
+        session.fileChanged(a.path)
+        #expect(session.openDocuments.first { $0.path == a.path }?.document.text == "* A changed\n")
     }
 }
