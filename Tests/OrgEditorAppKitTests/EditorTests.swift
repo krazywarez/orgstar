@@ -2,6 +2,7 @@ import AppKit
 import OrgCore
 import OrgDocument
 import OrgPresentation
+@testable import OrgApp
 import Testing
 @testable import OrgEditorAppKit
 
@@ -249,6 +250,30 @@ struct BufferTests {
         #expect(h.editor.foldState.folds == [h.offset(of: "** b")])
         #expect(h.textView.undoManager?.canUndo != true)
         h.checkInSync()
+    }
+
+    /// The wiring the app uses: the editor is the session's buffer and reports typing.
+    @Test func sessionSavesWhatIsTyped() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = folder.appendingPathComponent("a.org")
+        try Data(outline.utf8).write(to: file)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: folder.appendingPathComponent("r")))
+        session.autosaveDelay = .milliseconds(10)
+        session.open(file.path)
+        let h = Harness(try #require(session.document))
+        h.editor.onChange = { [weak session] in session?.bufferChanged() }
+        session.attach(h.editor)
+        h.textView.insertText("x", replacementRange: NSRange(location: 0, length: 0))
+        #expect(session.isDirty)
+        await session.autosave?.value
+        #expect(!session.isDirty)
+        #expect(try String(contentsOf: file, encoding: .utf8) == "x" + outline)
+
+        try Data(("x" + outline + "end\n").utf8).write(to: file)
+        session.fileChanged(file.path)
+        #expect(h.string == "x" + outline + "end\n")
     }
 }
 

@@ -24,6 +24,8 @@ public final class DocumentSession {
     @ObservationIgnored public private(set) var document: DocumentState?
     public private(set) var outline: [OutlineEntry] = []
     public private(set) var isDirty = false
+    /// The file isn't UTF-8, so it can't be edited or saved.
+    public private(set) var isReadOnly = false
     /// Set while the buffer and the file on disk conflict; says how to resolve it.
     public private(set) var conflict: String?
     /// Bumped to ask the editor to reveal an offset.
@@ -90,6 +92,7 @@ public final class DocumentSession {
         let state = buffer.document
         document = state
         if isDirty != state.isDirty { isDirty = state.isDirty }
+        if isReadOnly == state.isEditable { isReadOnly = !state.isEditable }
         if updateOutline { outline = Presentation.outline(state.tree) }
     }
 

@@ -3,8 +3,8 @@ import OrgApp
 import OrgEditorAppKit
 import SwiftUI
 
-/// The read-only TextKit 2 editor for the session's file. A new file gets a new editor; reveal
-/// requests and changes on disk go to the existing one, so folds survive a reload.
+/// The TextKit 2 editor for the session's file. A new file gets a new editor, which becomes the
+/// session's buffer; reveal requests go to the existing one.
 struct EditorView: NSViewRepresentable {
     let session: DocumentSession
 
@@ -27,7 +27,8 @@ struct EditorView: NSViewRepresentable {
             container.subviews.forEach { $0.removeFromSuperview() }
             coordinator.editor = nil
             if let document = session.document {
-                let editor = OrgEditor(document: document, frame: container.bounds, editable: false)
+                let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable)
+                editor.onChange = { [weak session] in session?.bufferChanged() }
                 let scroll = editor.makeScrollView()
                 scroll.frame = container.bounds
                 scroll.autoresizingMask = [.width, .height]
@@ -37,6 +38,7 @@ struct EditorView: NSViewRepresentable {
                 session.attach(editor)
             }
         }
+        container.window?.isDocumentEdited = session.isDirty
         if let request = session.revealRequest, request.id != coordinator.revealID {
             coordinator.revealID = request.id
             coordinator.editor?.reveal(request.offset)

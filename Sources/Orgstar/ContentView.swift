@@ -4,8 +4,9 @@ import SwiftUI
 
 struct ContentView: View {
     let workspace: WorkspaceModel
+    let session: DocumentSession
     @Bindable var commands: AppCommands
-    @State private var session = DocumentSession()
+    @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @State private var selectedFile: String?
     @State private var query = ""
     @FocusState private var searchFocused: Bool
@@ -19,7 +20,8 @@ struct ContentView: View {
                 if query.isEmpty {
                     OutlineColumn(session: session)
                 } else {
-                    SearchResults(results: workspace.search(query)) { location in
+                    SearchResults(results: workspace.search(query, overlay: workspace.overlay(path: session.path, document: session.document))) { location in
+                        guard location.path == session.path || UnsavedChanges.resolve(session) else { return }
                         selectedFile = location.path
                         session.show(location)
                     }
@@ -38,13 +40,34 @@ struct ContentView: View {
             }
         }
         .navigationTitle(session.path.map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
+        .navigationSubtitle(session.isReadOnly ? "Read-only: not UTF-8" : "")
         .searchable(text: $query, placement: .toolbar, prompt: "Search notes")
         .searchFocused($searchFocused)
         .toolbar {
             if workspace.isIndexing { ProgressView().controlSize(.small) }
+            if session.conflict != nil {
+                Button("Conflict", systemImage: "exclamationmark.triangle") { commands.showingConflict = true }
+                    .help("The file changed on disk, and the changes conflict with yours")
+            }
         }
-        .onChange(of: selectedFile) { _, path in
-            if let path, path != session.path { session.open(path) }
+        .onChange(of: selectedFile) { old, path in
+            guard let path, path != session.path else { return }
+            if UnsavedChanges.resolve(session) {
+                session.open(path)
+            } else {
+                selectedFile = old
+            }
+        }
+        .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
+        .onChange(of: session.conflict) { _, conflict in
+            if conflict != nil { commands.showingConflict = true }
+        }
+        .alert("Conflicting changes", isPresented: $commands.showingConflict) {
+            Button("Keep Mine") { session.keepMine() }
+            Button("Use Disk Version") { session.useDiskVersion() }
+            Button("Decide Later", role: .cancel) {}
+        } message: {
+            Text((session.conflict ?? "") + " The version you don't keep is saved in the recovery folder.")
         }
         .onChange(of: workspace.changedFile?.version) {
             if let path = workspace.changedFile?.path { session.fileChanged(path) }

@@ -33,7 +33,7 @@ let package = Package(
         .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"]),
         .testTarget(name: "OrgWorkspaceTests", dependencies: ["OrgWorkspace"]),
         .testTarget(name: "OrgPresentationTests", dependencies: ["OrgPresentation"]),
-        .testTarget(name: "OrgEditorAppKitTests", dependencies: ["OrgEditorAppKit"]),
+        .testTarget(name: "OrgEditorAppKitTests", dependencies: ["OrgEditorAppKit", "OrgApp"]),
         .testTarget(name: "OrgAppTests", dependencies: ["OrgApp", "OrgDocument"])
     ]
 )
