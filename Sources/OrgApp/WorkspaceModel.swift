@@ -185,6 +185,66 @@ public final class WorkspaceModel {
         return url
     }
 
+    // MARK: - Files
+
+    public struct FileError: LocalizedError {
+        public let message: String
+        public var errorDescription: String? { message }
+    }
+
+    /// Creates an empty file at `name` (a name or a relative path; `.org` is added when it has
+    /// no extension) inside `folder`, which must be in a root. Returns its path.
+    public func createFile(named name: String, in folder: String) async throws -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, !trimmed.hasPrefix("/"), !trimmed.split(separator: "/").contains(where: { $0 == ".." }) else {
+            throw FileError(message: "Not a file name: \(name)")
+        }
+        var url = URL(fileURLWithPath: folder).appendingPathComponent(trimmed)
+        if url.pathExtension.isEmpty { url.appendPathExtension("org") }
+        guard rootURL(containing: url.path) != nil else { throw FileError(message: "\(folder) isn't in a folder you added.") }
+        guard !FileManager.default.fileExists(atPath: url.path) else { throw FileError(message: "\(url.lastPathComponent) already exists.") }
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data().write(to: url, options: .withoutOverwriting)
+        await rescan(containing: url.path)
+        return url.standardizedFileURL.path
+    }
+
+    /// Renames a file or folder in place. Returns the new path.
+    public func rename(_ path: String, to name: String) async throws -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, !trimmed.contains("/"), trimmed != ".", trimmed != ".." else {
+            throw FileError(message: "Not a file name: \(name)")
+        }
+        let target = URL(fileURLWithPath: path).deletingLastPathComponent().appendingPathComponent(trimmed)
+        guard target.path != path else { return path }
+        guard !FileManager.default.fileExists(atPath: target.path) else { throw FileError(message: "\(trimmed) already exists.") }
+        try FileManager.default.moveItem(atPath: path, toPath: target.path)
+        await rescan(containing: path)
+        return target.standardizedFileURL.path
+    }
+
+    /// How `trash` disposes of a file; tests replace it so nothing reaches the real Trash.
+    @ObservationIgnored public var trasher: @Sendable (URL) throws -> Void = { url in
+        try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+    }
+
+    /// Moves a file or folder to the Trash.
+    public func trash(_ path: String) async throws {
+        try trasher(URL(fileURLWithPath: path))
+        await rescan(containing: path)
+    }
+
+    private func rootURL(containing path: String) -> URL? {
+        resolvedRoots.first { path == $0.key || path.hasPrefix($0.key + "/") }?.value
+    }
+
+    /// Brings the index up to date for the root holding `path` now, rather than when the
+    /// file events arrive.
+    private func rescan(containing path: String) async {
+        guard let root = rootURL(containing: path) else { return }
+        await filesChanged([], rescan: [root])
+    }
+
     // MARK: - Queries
 
     public func tree(forRoot path: String) -> FileTreeNode {

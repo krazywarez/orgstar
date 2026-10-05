@@ -115,6 +115,19 @@ public final class DocumentSession {
         }
     }
 
+    /// Closes the open file without saving, as when it was deleted.
+    public func close() {
+        autosave?.cancel()
+        outlineUpdate?.cancel()
+        path = nil
+        buffer = nil
+        document = nil
+        outline = []
+        isDirty = false
+        conflict = nil
+        revealRequest = nil
+    }
+
     /// Makes `buffer`, built from `document`, the live state of the open file.
     public func attach(_ buffer: DocumentBuffer) {
         self.buffer = buffer

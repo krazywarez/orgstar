@@ -115,7 +115,7 @@ struct ContentView: View {
 
     private var main: some View {
         NavigationSplitView {
-            Sidebar(workspace: workspace, selection: $selectedFile) { commands.showingFolderPicker = true }
+            Sidebar(workspace: workspace, session: session, selection: $selectedFile) { commands.showingFolderPicker = true }
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260)
         } detail: {
             HSplitView {
@@ -427,11 +427,16 @@ struct ContentView: View {
 
 struct Sidebar: View {
     let workspace: WorkspaceModel
+    let session: DocumentSession
     @Binding var selection: String?
     var addFolder: () -> Void = {}
     /// Folders shown collapsed, by path, one per line.
     @AppStorage("collapsedFolders") private var collapsedText = ""
     @State private var removing: String?
+    /// A file operation waiting for a name or a confirmation.
+    @State var pending: FileOperation?
+    @State var name = ""
+    @State var failure: String?
 
     private var collapsed: Set<String> { Set(collapsedText.split(separator: "\n").map(String.init)) }
 
@@ -453,6 +458,7 @@ struct Sidebar: View {
                         Label(node.name, systemImage: icon(node))
                             .foregroundStyle(node.file?.kind == .conflict ? .orange : .primary)
                             .tag(node.file?.path)
+                            .contextMenu { fileMenu(node) }
                     }
                 } header: {
                     Text((root as NSString).lastPathComponent)
@@ -496,10 +502,13 @@ struct Sidebar: View {
         } message: {
             Text("The folder and its files stay on disk.")
         }
+        .fileOperations(self)
     }
 
     @ViewBuilder
     private func folderMenu(_ root: String) -> some View {
+        Button("New File…") { ask(.create(folder: root)) }
+        Divider()
         Button(collapsed.contains(root) ? "Expand" : "Collapse") { expanded(root).wrappedValue.toggle() }
         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: root)]) }
         Divider()

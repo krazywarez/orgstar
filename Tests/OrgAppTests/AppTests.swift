@@ -74,6 +74,31 @@ struct WorkspaceModelTests {
         #expect(reopened.search("apples").isEmpty)
     }
 
+    @Test func createRenameAndTrashFiles() async throws {
+        let notes = try Folder()
+        try notes.write("a.org", "* Alpha\n")
+        let model = try WorkspaceModel(directory: nil)
+        model.trasher = { try FileManager.default.removeItem(at: $0) }
+        try await model.addRoot(notes.url)
+        let root = try #require(model.rootPaths.first)
+
+        let created = try await model.createFile(named: "projects/plan", in: root)
+        #expect(created == root + "/projects/plan.org")
+        #expect(model.files.map(\.path).contains(created))
+        await #expect(throws: WorkspaceModel.FileError.self) { try await model.createFile(named: "projects/plan.org", in: root) }
+        await #expect(throws: WorkspaceModel.FileError.self) { try await model.createFile(named: "../escape", in: root) }
+
+        let renamed = try await model.rename(created, to: "roadmap.org")
+        #expect(model.files.map(\.path).contains(renamed) && !model.files.map(\.path).contains(created))
+        let folder = try await model.rename(root + "/projects", to: "work")
+        #expect(model.files.map(\.path).contains(folder + "/roadmap.org"))
+
+        try await model.trash(folder + "/roadmap.org")
+        #expect(!FileManager.default.fileExists(atPath: folder + "/roadmap.org"))
+        #expect(!model.files.map(\.path).contains(folder + "/roadmap.org"))
+        #expect(model.search("alpha").count == 1)
+    }
+
     @Test func changedFilesAreReindexed() async throws {
         let notes = try Folder()
         let file = try notes.write("a.org", "* Old\n")
