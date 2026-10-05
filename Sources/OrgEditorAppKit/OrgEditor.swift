@@ -59,6 +59,13 @@ public final class OrgEditor: NSObject {
     /// passes reach it. Always at a line start.
     private(set) var styledUpTo = 0
     private var stylingScheduled = false
+    /// One paragraph style object per indent pair, shared by every line that uses it.
+    private var paragraphStyles: [IndentKey: NSParagraphStyle] = [:]
+
+    private struct IndentKey: Hashable {
+        let firstLine: Int
+        let wrapped: Int
+    }
 
     /// Styled before the first render: more than a screenful.
     static let firstStyleChunk = 30_000
@@ -253,7 +260,7 @@ public final class OrgEditor: NSObject {
         for run in Presentation.indents(document.tree, in: range) {
             guard let clipped = clip(run.range, to: range) else { continue }
             guard run.firstLine == run.wrapped else {
-                storage.addAttribute(.paragraphStyle, value: theme.paragraphStyle(firstLine: run.firstLine, wrapped: run.wrapped), range: clipped)
+                storage.addAttribute(.paragraphStyle, value: paragraphStyle(run.firstLine, run.wrapped), range: clipped)
                 continue
             }
             // Body lines wrap under their own text: past leading blanks, and past a list bullet
@@ -263,7 +270,7 @@ public final class OrgEditor: NSObject {
                 let line = text.lineRange(for: NSRange(location: location, length: 0))
                 let hanging = Self.hangingColumns(text.substring(with: line))
                 let lineRange = NSIntersectionRange(line, clipped)
-                storage.addAttribute(.paragraphStyle, value: theme.paragraphStyle(firstLine: run.firstLine, wrapped: run.wrapped + hanging), range: lineRange)
+                storage.addAttribute(.paragraphStyle, value: paragraphStyle(run.firstLine, run.wrapped + hanging), range: lineRange)
                 location = NSMaxRange(line)
             }
         }
@@ -271,6 +278,14 @@ public final class OrgEditor: NSObject {
             guard let clipped = clip(run.range, to: range) else { continue }
             theme.apply(run.role, to: storage, range: clipped)
         }
+    }
+
+    private func paragraphStyle(_ firstLine: Int, _ wrapped: Int) -> NSParagraphStyle {
+        let key = IndentKey(firstLine: firstLine, wrapped: wrapped)
+        if let style = paragraphStyles[key] { return style }
+        let style = theme.paragraphStyle(firstLine: firstLine, wrapped: wrapped)
+        paragraphStyles[key] = style
+        return style
     }
 
     private func clip(_ run: Range<Int>, to range: Range<Int>) -> NSRange? {
