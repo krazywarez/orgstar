@@ -43,6 +43,7 @@ struct ContentView: View {
     /// A file that isn't text, shown as a preview instead of the open document.
     @State private var previewPath: String?
     @AppStorage("outlineShown") private var orgOutlineShown = true
+    @AppStorage("showMarkup") private var showMarkup = false
     /// The outline for a file that isn't org, off until asked for.
     @State private var plainOutlineShown = false
     @State private var query = ""
@@ -65,7 +66,7 @@ struct ContentView: View {
         if let previewPath {
             FilePreview(path: previewPath)
         } else if session.path != nil {
-            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, onAppCommand: perform, onExternal: runExternal)
+            EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, onAppCommand: perform, onExternal: runExternal)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
                         ModeLine(session: session, commands: commands, clock: clock, perform: perform)
@@ -382,6 +383,7 @@ struct ContentView: View {
             if !session.save(), session.conflict != nil { commands.showingConflict = true }
         case "app.quit": NSApp.terminate(nil)
         case "app.toggle-outline": toggleOutline()
+        case "app.toggle-markup": showMarkup.toggle()
         case "app.quick-open": commands.showingQuickOpen = true
         case "app.palette": commands.showingPalette = true
         case "app.search": commands.focusSearch = true

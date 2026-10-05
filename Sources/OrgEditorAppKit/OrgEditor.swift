@@ -148,6 +148,19 @@ public final class OrgEditor: NSObject {
         styledUpTo = end
     }
 
+    /// Styles the whole file again, a screenful now and the rest in the background.
+    private func restyleEverything() {
+        styledUpTo = 0
+        revealedLine = caretLine
+        styleNextChunk(Self.firstStyleChunk)
+        scheduleStyling()
+    }
+
+    private var caretLine: NSRange {
+        let text = textView.string as NSString
+        return text.lineRange(for: NSRange(location: min(textView.selectedRange().location, text.length), length: 0))
+    }
+
     private func scheduleStyling() {
         guard !stylingScheduled, styledUpTo < utf16Length else { return }
         stylingScheduled = true
@@ -217,7 +230,18 @@ public final class OrgEditor: NSObject {
 
     public var optionAsMeta: OptionAsMeta = [.left]
     /// Org options commands follow.
-    public var options: EditingOptions = .org
+    public var options: EditingOptions = .org {
+        didSet {
+            if options.hideEmphasisMarkers != oldValue.hideEmphasisMarkers, !showMarkup { restyleEverything() }
+        }
+    }
+    /// Show link brackets and targets, and emphasis markers (when Emacs hides them, per
+    /// `options`). Hidden markup shows on the caret's line, so it can be edited.
+    public var showMarkup = true {
+        didSet { if showMarkup != oldValue { restyleEverything() } }
+    }
+    /// The line last revealed while markup is hidden, to hide again when the caret leaves.
+    private var revealedLine: NSRange?
     var dispatcher: KeyDispatcher
     /// Evil-style editing, for modal keymaps such as Doom's.
     public var modal = false {
@@ -498,9 +522,38 @@ public final class OrgEditor: NSObject {
                 location = NSMaxRange(line)
             }
         }
+        let revealed = caretLine
         for run in Presentation.styles(document.tree, in: range, highlighter: highlighter) {
             guard let clipped = clip(run.range, to: range) else { continue }
-            theme.apply(run.role, to: storage, range: clipped)
+            if !showMarkup, hides(run.role), NSIntersectionRange(clipped, revealed).length == 0 {
+                storage.addAttributes(theme.hidden, range: clipped)
+            } else {
+                theme.apply(run.role, to: storage, range: clipped)
+            }
+        }
+    }
+
+    /// Link brackets and targets are hidden as with `org-link-descriptive`; emphasis
+    /// markers only when Emacs hides them too.
+    private func hides(_ role: StyleRole) -> Bool {
+        switch role {
+        case .linkMarkup: true
+        case .markup: options.hideEmphasisMarkers
+        default: false
+        }
+    }
+
+    /// Moving to another line shows its markup and hides the last one's.
+    private func revealCaretLine() {
+        guard !showMarkup, isOrg else { return }
+        let line = caretLine
+        guard line != revealedLine else { return }
+        let text = textView.string as NSString
+        // The old line may have moved with edits since; restyle the line now at its start.
+        let old = revealedLine.flatMap { $0.location <= text.length ? text.lineRange(for: NSRange(location: $0.location, length: 0)) : nil }
+        revealedLine = line
+        for range in [old, line].compactMap({ $0 }) where range.location < styledUpTo {
+            restyleOutsideEditing(range.location..<NSMaxRange(range))
         }
     }
 
@@ -659,6 +712,7 @@ public final class OrgEditor: NSObject {
         let selection = textView.selectedRange()
         defer { previousSelection = selection.location }
         onSelectionChange?(selection)
+        revealCaretLine()
         // A selection reaching into folded text, as a find match does, unfolds it.
         if selection.length > 0 {
             if hidden.containing(selection.location) != nil || hidden.containing(NSMaxRange(selection) - 1) != nil {

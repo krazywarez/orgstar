@@ -41,6 +41,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.save", title: "Save", action: .app),
         EditorCommand(id: "app.quit", title: "Quit Orgstar", action: .app),
         EditorCommand(id: "app.toggle-outline", title: "Show or Hide Outline", action: .app),
+        EditorCommand(id: "app.toggle-markup", title: "Show or Hide Markup", action: .app),
         EditorCommand(id: "app.quick-open", title: "Quick Open…", action: .app),
         EditorCommand(id: "app.palette", title: "Command Palette…", action: .app),
         EditorCommand(id: "app.search", title: "Search Notes", action: .app),

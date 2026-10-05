@@ -16,6 +16,11 @@ struct Theme {
         ("0" as NSString).size(withAttributes: [.font: font]).width
     }
 
+    /// Markup hidden from view: no width, no color.
+    var hidden: [NSAttributedString.Key: Any] {
+        [.font: NSFont.monospacedSystemFont(ofSize: 0.01, weight: .regular), .foregroundColor: NSColor.clear]
+    }
+
     func paragraphStyle(firstLine: Int, wrapped: Int) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
         style.firstLineHeadIndent = CGFloat(firstLine) * column

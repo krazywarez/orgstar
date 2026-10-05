@@ -222,6 +222,7 @@ struct OrgstarApp: App {
             CommandGroup(after: .sidebar) {
                 Button("Show or Hide Outline") { commands.run("app.toggle-outline") }
                     .keyboardShortcut("o", modifiers: [.command, .option])
+                MarkupToggle()
             }
             CommandGroup(after: .pasteboard) {
                 Divider()
@@ -264,6 +265,16 @@ struct OrgMenuItems: View {
             }
             .disabled(commands.editor == nil)
         }
+    }
+}
+
+/// View ▸ Show Markup: link brackets and targets, and emphasis markers.
+struct MarkupToggle: View {
+    @AppStorage("showMarkup") private var showMarkup = false
+
+    var body: some View {
+        Toggle("Show Markup", isOn: $showMarkup)
+            .keyboardShortcut("m", modifiers: [.command, .shift])
     }
 }
 
