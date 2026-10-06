@@ -326,6 +326,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "app.clock.report"
         mode = "normal"
         [[bind]]
+        keys = "SPC m c E"
+        command = "org.effort.set"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m p u"
         command = "org.priority.up"
         mode = "normal"
@@ -630,6 +634,19 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c ^"
         command = "org.sort"
+        [[bind]]
+        keys = "C-c C-x C-r"
+        command = "org.clock.report"
+        [[bind]]
+        keys = "C-c C-x C-u"
+        command = "org.dblock.update"
+        [[bind]]
+        keys = "C-c C-x e"
+        command = "org.effort.set"
+        [[bind]]
+        keys = "C-c C-c"
+        command = "org.dblock.update"
+        when = "dblock"
         [[bind]]
         keys = "C-c C-,"
         command = "org.structure-template"

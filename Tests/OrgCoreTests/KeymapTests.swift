@@ -180,3 +180,13 @@ struct ToggleKeyTests {
         #expect(first(minus, plain) == "org.item.toggle")
     }
 }
+
+struct DynamicBlockKeyTests {
+    @Test func ctrlCCtrlCUpdatesOnTheBeginLine() {
+        let keymap = KeymapPreset.emacs.keymap
+        let text = "#+BEGIN: clocktable :maxlevel 2\n#+END:\n* a\n"
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [3..<3])
+        let found = keymap.candidates(for: KeySequence.parse("C-c C-c")!).first { $0.when.map { KeyContext.holds($0, in: context) } ?? true }
+        #expect(found?.command == "org.dblock.update")
+    }
+}

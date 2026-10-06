@@ -216,6 +216,7 @@ public enum Commands {
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(),
+        UpdateDynamicBlock(), ClockReportTable(), SetEffort(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }
