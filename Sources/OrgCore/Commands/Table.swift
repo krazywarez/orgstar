@@ -625,9 +625,16 @@ public struct CreateTable: OrgCommand {
     public var title: String { "Create Table" }
     public func applies(in context: EditContext) -> Bool { !KeyContext.holds("table", in: context) }
     public func run(in context: EditContext) -> CommandStep {
+        if let converted = convert(context) { return converted }
         guard let size = context.answers["size"] else {
             return .prompt(Prompt(key: "size", message: "Table size Columns x Rows [e.g. 5x2]:", initial: ""))
         }
         return tableCommand(context) { try $0.tableCreate(size.isEmpty ? "5x2" : size) }
+    }
+
+    /// `org-table-create-or-convert-from-region`.
+    private func convert(_ context: EditContext) -> CommandStep? {
+        guard let region = context.selection.first, !region.isEmpty else { return nil }
+        return commitBuffer(context) { $0.tableConvertRegion(region.lowerBound, region.upperBound) }
     }
 }

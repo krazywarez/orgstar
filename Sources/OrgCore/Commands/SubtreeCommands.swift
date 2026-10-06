@@ -240,7 +240,7 @@ public struct SortEntries: OrgCommand {
 
     public func run(in context: EditContext) -> CommandStep {
         // `org-sort` sorts table lines and list items there; those aren't here yet.
-        if KeyContext.holds("table", in: context) { return .failed("Sorting table lines isn't supported yet") }
+        if KeyContext.holds("table", in: context) { return SortTableLines().run(in: context) }
         if EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).inItem() != nil {
             return .failed("Sorting list items isn't supported yet")
         }
@@ -442,8 +442,11 @@ public struct SortEntries: OrgCommand {
     static func visibleTitle(_ title: String) -> String {
         var t = title
         if t == "COMMENT" { t = "" } else if t.hasPrefix("COMMENT ") { t = String(t.dropFirst(8)) }
-        t = Links.displayFormat(t)
-        t = t.replacingOccurrences(of: "(^|[\\s(])[*/_+=~]([^\\s*/_+=~](?:.*?[^\\s])?)[*/_+=~](?=$|[\\s.,;:!?)])", with: "$1$2", options: .regularExpression)
-        return t
+        return removeInvisible(t)
+    }
+
+    /// `org-sort-remove-invisible`: links as their descriptions, emphasis markers gone.
+    static func removeInvisible(_ s: String) -> String {
+        Links.displayFormat(s).replacingOccurrences(of: "(^|[\\s(])[*/_+=~]([^\\s*/_+=~](?:.*?[^\\s])?)[*/_+=~](?=$|[\\s.,;:!?)])", with: "$1$2", options: .regularExpression)
     }
 }

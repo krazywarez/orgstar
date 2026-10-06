@@ -510,6 +510,29 @@ struct ContentView: View {
             }
         case "app.archive":
             if let message = session.archive() { commands.show(message) }
+        case "app.table-import":
+            // `org-table-import`: a TSV, CSV or space-separated file becomes a table at point.
+            guard let editor = commands.editor else { return commands.show("No file is open") }
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.commaSeparatedText, .tabSeparatedText, .plainText]
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return commands.show("Can't read \(url.lastPathComponent)") }
+            editor.perform(ImportTable(contents: contents))
+        case "app.table-export":
+            // `org-table-export`: CSV for a .csv name, else TSV.
+            guard let editor = commands.editor else { return commands.show("No file is open") }
+            let context = editor.context()
+            guard ImportTable.exportText(context.text, at: context.caret, path: "") != nil else { return commands.show("No table at point") }
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = "table.csv"
+            guard panel.runModal() == .OK, let url = panel.url,
+                  let text = ImportTable.exportText(context.text, at: context.caret, path: url.path) else { return }
+            do {
+                try text.write(to: url, atomically: true, encoding: .utf8)
+                commands.show("Export done.")
+            } catch {
+                commands.show("File not written: \(error.localizedDescription)")
+            }
         case "org.subtree.paste":
             guard let text = NSPasteboard.general.string(forType: .string) else { return commands.show("The clipboard is empty") }
             commands.editor?.perform(PasteSubtree(text: text))

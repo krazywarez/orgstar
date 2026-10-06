@@ -75,6 +75,8 @@ public enum EditorCommands {
         EditorCommand(id: "app.clock.cancel", title: "Cancel Clock", action: .app),
         EditorCommand(id: "app.clock.goto", title: "Go to Clocked Entry", action: .app),
         EditorCommand(id: "app.clock.report", title: "Clock Report", action: .app),
+        EditorCommand(id: "app.table-import", title: "Import Table from File…", action: .app),
+        EditorCommand(id: "app.table-export", title: "Export Table to File…", action: .app),
         EditorCommand(id: "app.export.html", title: "Export to HTML", action: .app),
         EditorCommand(id: "app.export.html-open", title: "Export to HTML and Open", action: .app),
         EditorCommand(id: "app.export.markdown", title: "Export to Markdown", action: .app),
