@@ -208,6 +208,9 @@ struct ContentView: View {
             if let path = session.path, selectedFile != path { selectedFile = path }
             if let path = session.path, let caret = pendingCarets.removeValue(forKey: path) { session.reveal(caret) }
             BufferRestore.save(session)
+            // Syncthing's conflict copies of the file.
+            let copies = session.syncConflictCopies().count
+            if copies > 0 { commands.show("\(copies) sync conflict \(copies == 1 ? "copy" : "copies") of this file; Resolve Sync Conflicts compares them.") }
         }
         .onChange(of: session.openPaths) { BufferRestore.save(session) }
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
@@ -220,6 +223,12 @@ struct ContentView: View {
                 ColumnViewSheet(view: view) { offset in commands.editor?.reveal(offset) }
             case .export(_, let source):
                 ExportSheet(source: source) { format, destination, open in export(format, to: destination, open: open) }
+            case .conflict:
+                ConflictSheet(session: session)
+            case .syncCopies:
+                SyncConflictSheet(session: session) { commands.show($0) }
+            case .recovery:
+                RecoverySheet(session: session) { commands.show($0) }
             }
         }
         .sheet(item: $blockEdit) { request in
@@ -239,12 +248,10 @@ struct ContentView: View {
         .onChange(of: session.conflict) { _, conflict in
             if conflict != nil { commands.showingConflict = true }
         }
-        .alert("Conflicting changes", isPresented: $commands.showingConflict) {
-            Button("Keep Mine") { session.keepMine() }
-            Button("Use Disk Version") { session.useDiskVersion() }
-            Button("Decide Later", role: .cancel) {}
-        } message: {
-            Text((session.conflict ?? "") + " The version you don't keep is saved in the recovery folder.")
+        .onChange(of: commands.showingConflict) { _, showing in
+            guard showing else { return }
+            commands.showingConflict = false
+            if session.conflict != nil { panel = .conflict(UUID()) }
         }
         .onChange(of: workspace.changedFile?.version) {
             if let path = workspace.changedFile?.path { session.fileChanged(path) }
@@ -595,6 +602,12 @@ struct ContentView: View {
         case "app.capture":
             NSApp.activate()
             openWindow(id: "capture")
+        case "app.sync-conflicts":
+            guard session.path != nil else { return commands.show("No file is open") }
+            panel = .syncCopies(UUID())
+        case "app.recovery":
+            guard session.path != nil else { return commands.show("No file is open") }
+            panel = .recovery(UUID())
         case "app.export-dialog":
             guard let path = session.path else { return commands.show("No file is open") }
             panel = .export(UUID(), URL(fileURLWithPath: path))
@@ -879,10 +892,13 @@ struct BufferTabs: View {
 enum Panel: Identifiable {
     case columns(UUID, ColumnView.View)
     case export(UUID, URL)
+    case conflict(UUID)
+    case syncCopies(UUID)
+    case recovery(UUID)
 
     var id: UUID {
         switch self {
-        case .columns(let id, _), .export(let id, _): id
+        case .columns(let id, _), .export(let id, _), .conflict(let id), .syncCopies(let id), .recovery(let id): id
         }
     }
 }

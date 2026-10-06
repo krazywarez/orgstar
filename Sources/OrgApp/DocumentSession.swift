@@ -347,6 +347,105 @@ public final class DocumentSession {
         refresh()
     }
 
+    // MARK: - Comparing versions
+
+    /// The buffer, the file on disk and the version both started from, while they conflict.
+    public func conflictVersions() -> (mine: String, disk: String, base: String)? {
+        guard current?.conflict != nil, let buffer, let url, let disk = try? fileSystem.read(url) else { return nil }
+        return (buffer.document.text, SourceText(bytes: disk).text, SourceText(bytes: buffer.document.mergeBase).text)
+    }
+
+    /// Resolves a conflict as `git merge` leaves one: the buffer holds both sides' changes, those
+    /// that conflict between markers, to fix and save. The disk version becomes the base, and
+    /// the buffer as it was goes to recovery.
+    public func mergeConflictWithMarkers() {
+        guard let versions = conflictVersions(), let buffer, let url, let disk = try? fileSystem.read(url) else { return }
+        do {
+            try recovery.keep(try buffer.document.encodedText(), for: url, label: "local")
+            let merged = mergeWithMarkers(base: versions.base, ours: versions.mine, theirs: versions.disk, oursLabel: "yours", theirsLabel: "disk")
+            try buffer.update { state in
+                state = DocumentState(bytes: disk, defaults: state.defaults)
+                try state.apply(lineEdits(from: versions.disk, to: merged), baseRevision: state.revision)
+            }
+            current?.conflict = nil
+        } catch {
+            lastError = "Can't merge \(name): \(error.localizedDescription)"
+        }
+        refresh()
+    }
+
+    /// Syncthing's conflict copies of the open file beside it: `name.sync-conflict-DATE-TIME-ID.ext`.
+    public func syncConflictCopies() -> [URL] {
+        guard let url else { return [] }
+        let folder = url.deletingLastPathComponent()
+        let stem = NSRegularExpression.escapedPattern(for: url.deletingPathExtension().lastPathComponent)
+        let ext = url.pathExtension.isEmpty ? "" : "\\." + NSRegularExpression.escapedPattern(for: url.pathExtension)
+        let pattern = "^" + stem + "\\.sync-conflict-[0-9]{8}-[0-9]{6}-[A-Z0-9]+" + ext + "$"
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return names.filter { $0.range(of: pattern, options: .regularExpression) != nil }.sorted().map { folder.appendingPathComponent($0) }
+    }
+
+    /// What to do with a conflict copy: keep the file as it is, take the copy's text, or merge
+    /// the two with markers. The copy goes to recovery and is removed.
+    public enum CopyResolution { case keepFile, useCopy, merge }
+
+    public func resolve(copy: URL, _ resolution: CopyResolution) -> String? {
+        guard let buffer, let url else { return "No file is open" }
+        do {
+            guard let bytes = try fileSystem.read(copy) else { return "\(copy.lastPathComponent) is gone" }
+            let copyText = SourceText(bytes: bytes).text
+            let mine = buffer.document.text
+            let new: String? = switch resolution {
+            case .keepFile: nil
+            case .useCopy: copyText
+            case .merge: mergeWithMarkers(base: nil, ours: mine, theirs: copyText, oursLabel: url.lastPathComponent, theirsLabel: copy.lastPathComponent)
+            }
+            if let new, new != mine {
+                let result = EditResult(baseRevision: buffer.document.revision, edits: lineEdits(from: mine, to: new))
+                if case .failed(let message) = buffer.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
+            }
+            try recovery.keep(bytes, for: url, label: "sync-conflict")
+            try FileManager.default.removeItem(at: copy)
+        } catch {
+            return "Can't resolve \(copy.lastPathComponent): \(error.localizedDescription)"
+        }
+        if let current { changed(current) }
+        return nil
+    }
+
+    /// Versions of the open file kept in recovery, newest first, with when and why each was
+    /// kept.
+    public func recoveryVersions() -> [(url: URL, date: Date, label: String)] {
+        guard let url, let store = recovery as? FileRecoveryStore, let versions = try? store.versions(for: url) else { return [] }
+        // `STAMP-LABEL-UUID8-NAME`, as `FileRecoveryStore.keep` names them.
+        return versions.reversed().map { version in
+            let m = version.lastPathComponent.firstMatch(of: /^([0-9]+)-(.+?)-([0-9A-Fa-f]{8})-/)
+            let nanos = m.flatMap { UInt64($0.1) } ?? 0
+            return (version, Date(timeIntervalSince1970: Double(nanos) / 1_000_000_000), m.map { String($0.2) } ?? "")
+        }
+    }
+
+    /// The text of a kept version.
+    public func recoveryText(_ version: URL) -> String? {
+        (try? fileSystem.read(version)).flatMap { $0 }.map { SourceText(bytes: $0).text }
+    }
+
+    /// Puts a kept version's text in the buffer, as an edit that can be undone; the buffer as it
+    /// was goes to recovery.
+    public func restore(_ version: URL) -> String? {
+        guard let buffer, let url, let text = recoveryText(version) else { return "Can't read that version" }
+        do {
+            try recovery.keep(try buffer.document.encodedText(), for: url, label: "local")
+        } catch {
+            return "Can't keep the current version: \(error.localizedDescription)"
+        }
+        let mine = buffer.document.text
+        let result = EditResult(baseRevision: buffer.document.revision, edits: lineEdits(from: mine, to: text))
+        if case .failed(let message) = buffer.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
+        if let current { changed(current) }
+        return nil
+    }
+
     // MARK: - Moving subtrees
 
     /// The current context of the buffer, as commands see it.
