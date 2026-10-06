@@ -5,7 +5,7 @@ import SwiftUI
 
 /// The agenda window: the day/week agenda, the TODO list, tag matches and saved views.
 /// Return or a double click jumps to the entry in the main window. Keys as in Emacs's agenda:
-/// f/b/. move the span, g refreshes, t cycles the TODO state, +/- change the priority, : or
+/// f/b/. move the span, g refreshes, l shows the log (closed and clocked), t cycles the TODO state, +/- change the priority, : or
 /// C-c C-q sets tags, C-c C-s / C-c C-d schedule and set a deadline, S-→/S-← move the date.
 struct AgendaView: View {
     let workspace: WorkspaceModel
@@ -22,9 +22,13 @@ struct AgendaView: View {
     @State private var prompt: PendingPrompt?
     @State private var promptText = ""
     @State private var prefix = false
+    @State private var logMode = false
     @AppStorage("agendaSpan") private var span = 10
     @AppStorage("agendaStartOffset") private var startOffset = -3
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
+    @AppStorage("agendaPrefixAgenda") private var prefixAgenda = PrefixFormat.defaults["agenda"]!
+    @AppStorage("agendaPrefixTodo") private var prefixTodo = PrefixFormat.defaults["todo"]!
+    @AppStorage("agendaPrefixTags") private var prefixTags = PrefixFormat.defaults["tags"]!
     @Environment(\.openWindow) private var openWindow
 
     static let match = "Match…"
@@ -53,6 +57,8 @@ struct AgendaView: View {
         var span: Int
         var startOffset: Int
         var includeSubfolders: Bool
+        var prefix: [String]
+        var logMode: Bool
         var files: Int
         var changed: Int?
         var edits: Int
@@ -62,7 +68,7 @@ struct AgendaView: View {
 
     private var refreshKey: RefreshKey {
         RefreshKey(
-            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, includeSubfolders: includeSubfolders,
+            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags], logMode: logMode,
             files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
             path: session.path, tick: tick
         )
@@ -74,6 +80,14 @@ struct AgendaView: View {
     }
 
     private var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
+
+    private var customPrefix: Bool {
+        switch agenda.mode {
+        case .agenda: prefixAgenda != PrefixFormat.defaults["agenda"]
+        case .todo: prefixTodo != PrefixFormat.defaults["todo"]
+        case .match: prefixTags != PrefixFormat.defaults["tags"]
+        }
+    }
 
     @Environment(\.orgTheme) private var theme
 
@@ -174,6 +188,8 @@ struct AgendaView: View {
             agenda.span = span
             agenda.startOffset = startOffset
             agenda.includeSubfolders = includeSubfolders
+            agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
+            agenda.options.logMode = logMode
             let open = session.openTexts
             await agenda.refresh(open: open)
         }
@@ -190,7 +206,7 @@ struct AgendaView: View {
     @ViewBuilder
     private func rows(_ items: [AgendaItem], prefix: String, day: Int? = nil) -> some View {
         ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-            AgendaRow(item: item, day: day)
+            AgendaRow(item: item, day: day, customPrefix: customPrefix)
                 .tag("\(prefix):\(index)")
                 .selectionDisabled(item.path == nil)
         }
@@ -281,6 +297,9 @@ struct AgendaView: View {
         case "f" where isAgenda: agenda.shift(forward: true)
         case "b" where isAgenda: agenda.shift(forward: false)
         case "." where isAgenda: agenda.showToday()
+        case "l" where isAgenda:
+            logMode.toggle()
+            message = logMode ? "Log mode on" : "Log mode off"
         case "g", "r":
             loadViews()
             tick += 1
@@ -334,6 +353,8 @@ struct AgendaRow: View {
     let item: AgendaItem
     /// The agenda day the row is on, for habit graphs.
     var day: Int?
+    /// A user `org-agenda-prefix-format`: the prefix as Emacs prints it, not the columns.
+    var customPrefix = false
     @Environment(\.orgTheme) private var theme
 
     var body: some View {
@@ -357,6 +378,19 @@ struct AgendaRow: View {
             .font(.caption)
             .foregroundStyle(theme.color("agenda-today") ?? .accentColor)
         default:
+            if customPrefix {
+                HStack(spacing: 0) {
+                    Text(item.prefix)
+                        .font(.body.monospaced())
+                        .foregroundStyle(theme.color("agenda-category") ?? .secondary)
+                    title.lineLimit(1)
+                    Spacer(minLength: 8)
+                    if let habit = item.habit, let day { HabitGraph(cells: habit.graph(today: day), theme: theme) }
+                    if !item.tags.isEmpty {
+                        Text(":" + item.tags.joined(separator: ":") + ":").font(.caption).foregroundStyle(theme.color("tags") ?? .secondary)
+                    }
+                }
+            } else {
             HStack(spacing: 8) {
                 Text(item.category)
                     .lineLimit(1)
@@ -384,6 +418,7 @@ struct AgendaRow: View {
                         .font(.caption)
                         .foregroundStyle(theme.color("tags") ?? .secondary)
                 }
+            }
             }
         }
     }

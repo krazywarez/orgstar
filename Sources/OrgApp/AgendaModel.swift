@@ -65,9 +65,9 @@ public final class AgendaModel {
             case .agenda:
                 days = Agenda.list(all, start: first, days: span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: options)
             case .todo(let keywords):
-                list = Agenda.todoList(all, keywords: keywords)
+                list = Agenda.todoList(all, keywords: keywords, options: options)
             case .match(let match, let todoOnly):
-                list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar)
+                list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar, options: options)
             }
             return (days, list)
         }.value

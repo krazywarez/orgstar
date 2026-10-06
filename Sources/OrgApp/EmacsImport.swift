@@ -460,6 +460,15 @@ public struct EmacsImport: Sendable {
             } else {
                 add(name, .bool(truthy))
             }
+        case "org-agenda-prefix-format":
+            if let s = value.string {
+                for view in ["agenda", "todo", "tags"] { add("org-agenda-prefix-format.\(view)", .string(s)) }
+            } else {
+                for entry in value.elements ?? [] {
+                    guard case .dotted(let key, let format) = entry, let view = key.first?.symbol, let s = format.string else { continue }
+                    if ["agenda", "todo", "tags"].contains(view) { add("org-agenda-prefix-format.\(view)", .string(s)) }
+                }
+            }
         case "org-log-done":
             switch value.symbol {
             case "nil": add(name, .string("nil"))
@@ -622,7 +631,7 @@ extension EmacsImport {
         var problems: [String] = []
         for item in items {
             guard case .setting(let key, let value) = item.change,
-                  let setting = UserConfig.settings.first(where: { $0.key == key }) else { continue }
+                  let setting = UserConfig.settings.first(where: { $0.path == key || $0.key == key }) else { continue }
             if let problem = UserConfig.store(value, setting, in: defaults) { problems.append(problem) } else { settings += 1 }
         }
         for item in items {

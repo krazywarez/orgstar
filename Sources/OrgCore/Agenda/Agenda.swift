@@ -12,6 +12,8 @@ public struct AgendaItem: Sendable, Equatable {
         case currentTime
         case todo
         case tagsMatch = "tagsmatch"
+        /// Log mode: a closed entry, a clock line, a state change.
+        case closed, clock, state
     }
 
     public let kind: Kind
@@ -41,6 +43,8 @@ public struct AgendaItem: Sendable, Equatable {
     public let habit: Habit?
     /// The line as org prints it, with one space before the tags.
     public let line: String
+    /// What `org-agenda-prefix-format` puts before the heading text.
+    public var prefix = ""
 }
 
 public struct AgendaDay: Sendable, Equatable {
@@ -58,8 +62,18 @@ public struct AgendaOptions: Sendable, Equatable {
     public var gridTrailing = " ┄┄┄┄┄ "
     public var gridLine = "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
     public var currentTimeLine = "← now ───────────────────────────────────────────────"
+    /// `org-agenda-prefix-format`, by view: `agenda`, `todo`, `tags`, `search`.
+    public var prefixFormat = PrefixFormat.defaults
+    /// Log mode (`l`): closed entries and clocked time on each day.
+    public var logMode = false
+    /// `org-agenda-log-mode-items`.
+    public var logItems: Set<String> = ["closed", "clock"]
 
     public init() {}
+
+    func prefix(_ view: String) -> PrefixFormat {
+        PrefixFormat(prefixFormat[view] ?? PrefixFormat.defaults[view]!)
+    }
 
     /// What Emacs shows without a graphical display.
     public static let terminal: AgendaOptions = {
@@ -91,7 +105,7 @@ public enum Agenda {
     /// `org-agenda-get-day-entries` with the default entry types.
     static func entries(_ source: AgendaSource, day: Int, today: Int, options: AgendaOptions) -> [AgendaItem] {
         let deadlines = self.deadlines(source, day: day, today: today, options: options)
-        return deadlines + scheduled(source, day: day, today: today, options: options) + blocks(source, day: day, options: options)
+        return (options.logMode ? progress(source, day: day, options: options) : []) + deadlines + scheduled(source, day: day, today: today, options: options) + blocks(source, day: day, options: options)
             + timestamps(source, day: day, today: today, options: options)
     }
 
@@ -126,7 +140,7 @@ public enum Agenda {
             let upcoming = isToday && deadline > today
             items.append(format(
                 source, heading, kind: upcoming ? .upcomingDeadline : .deadline, marker: offset, extra: extra,
-                dotime: time, removing: nil, trailing: options.gridTrailing, urgency: { (isToday ? -diff : 0) + $0 }
+                dotime: time, removing: nil, trailing: options.gridTrailing, prefix: options.prefix("agenda"), urgency: { (isToday ? -diff : 0) + $0 }
             ))
         }
         return items
@@ -153,7 +167,7 @@ public enum Agenda {
             let habit = heading.isHabit ? heading.habit : nil
             items.append(format(
                 source, heading, kind: past ? .pastScheduled : .scheduled, marker: offset, extra: extra,
-                dotime: time, removing: nil, trailing: options.gridTrailing, habit: habit,
+                dotime: time, removing: nil, trailing: options.gridTrailing, prefix: options.prefix("agenda"), habit: habit,
                 urgency: { habit?.urgency(today: today) ?? 99 + diff + $0 }
             ))
         }
@@ -177,7 +191,45 @@ public enum Agenda {
             } else {
                 dotime = nil
             }
-            items.append(format(source, heading, kind: .block, marker: block.marker, extra: extra, dotime: dotime, removing: nil, trailing: options.gridTrailing, urgency: { $0 }))
+            items.append(format(source, heading, kind: .block, marker: block.marker, extra: extra, dotime: dotime, removing: nil, trailing: options.gridTrailing, prefix: options.prefix("agenda"), urgency: { $0 }))
+        }
+        return items
+    }
+
+    /// `org-agenda-get-progress`.
+    static func progress(_ source: AgendaSource, day current: Int, options: AgendaOptions) -> [AgendaItem] {
+        let date = Days.date(current)
+        let literal = String(format: "%04d-%02d-%02d", date.year, date.month, date.day)
+        var items: [AgendaItem] = []
+        for entry in source.progress where entry.date == literal {
+            let kind: AgendaItem.Kind
+            let extra: String
+            switch entry.kind {
+            case .closed:
+                guard options.logItems.contains("closed") else { continue }
+                (kind, extra) = (.closed, "Closed:    ")
+            case .clock:
+                guard options.logItems.contains("clock") else { continue }
+                (kind, extra) = (.clock, "Clocked:   (\(entry.clocked))")
+            case .state:
+                guard options.logItems.contains("state") else { continue }
+                (kind, extra) = (.state, "State:     (\(entry.state ?? ""))")
+            }
+            let heading = source.headings[entry.heading]
+            var head = heading.head
+            if let note = entry.note {
+                // Before the tags, as org adds it.
+                if let tags = head.range(of: "([ \\t]+)(:[^ \\n\\t]*?:)[ \\t]*$", options: .regularExpression) {
+                    let tagText = head[tags].trimmingCharacters(in: .whitespaces)
+                    head = head[..<tags.lowerBound] + " - " + note + " " + tagText
+                } else {
+                    head += " - " + note
+                }
+            }
+            items.append(format(
+                source, heading, kind: kind, marker: entry.offset, extra: extra, dotime: .only(entry.timestamp), removing: nil,
+                trailing: options.gridTrailing, prefix: options.prefix("agenda"), head: head, urgency: { _ in 100_000 }
+            ))
         }
         return items
     }
@@ -210,7 +262,7 @@ public enum Agenda {
             let heading = source.headings[stamp.heading]
             items.append(format(
                 source, heading, kind: .timestamp, marker: stamp.offset, extra: "",
-                dotime: .string(timestamp), removing: stampActive, trailing: options.gridTrailing,
+                dotime: .string(timestamp), removing: stampActive, trailing: options.gridTrailing, prefix: options.prefix("agenda"),
                 urgency: { heading.isHabit ? heading.habit?.urgency(today: today) ?? $0 : $0 }
             ))
         }
@@ -229,6 +281,8 @@ public enum Agenda {
         case string(String)
         /// Look for a time in the heading only.
         case headline
+        /// In the string only (`org-agenda-search-headline-for-time` nil).
+        case only(String)
     }
 
     static let tagGroup = try! NSRegularExpression(pattern: "[ \\t]+(:([\\p{L}\\p{N}_@#%:]+):)[ \\t]*$")
@@ -246,10 +300,10 @@ public enum Agenda {
     /// `org-agenda-highlight-todo`.
     static func format(
         _ source: AgendaSource, _ heading: AgendaSource.Heading, kind: AgendaItem.Kind, marker: Int,
-        extra: String, dotime: Dotime?, removing: NSRegularExpression?, trailing: String, hasTime: Bool = true,
-        habit: Habit? = nil, urgency: (Int) -> Int
+        extra: String, dotime: Dotime?, removing: NSRegularExpression?, trailing: String, prefix prefixFormat: PrefixFormat,
+        head: String? = nil, habit: Habit? = nil, urgency: (Int) -> Int
     ) -> AgendaItem {
-        var txt = heading.head.trimmingCharacters(in: .whitespaces)
+        var txt = (head ?? heading.head).trimmingCharacters(in: .whitespaces)
         // `org-agenda-fix-displayed-tags`: the heading's tags are replaced by the full list.
         let tags = heading.tags
         if let m = tagGroup.firstMatch(in: txt, range: NSRange(location: 0, length: (txt as NSString).length)) {
@@ -270,16 +324,17 @@ public enum Agenda {
             tagString = ":" + parts.joined(separator: ":") + (haveInherited ? "::" : ":")
         }
 
-        let timed = timeFields(&txt, tagString: tagString, dotime: dotime, trailing: trailing, removeTimes: hasTime)
+        let timed = timeFields(&txt, tagString: tagString, dotime: dotime, trailing: trailing, removeTimes: prefixFormat.hasTime)
         if let removing {
             while let m = removing.firstMatch(in: txt, range: NSRange(location: 0, length: (txt as NSString).length)) {
                 txt = (txt as NSString).replacingCharacters(in: m.range, with: "")
             }
         }
         let category = heading.category
-        // ` %i %-12:c%?-12t% s` in the agenda, ` %i %-12:c` in TODO and tags lists.
-        let prefix = "  " + pad(category.isEmpty ? "" : category + ":", 12)
-            + (hasTime ? (timed.time.isEmpty ? "" : pad(timed.time, 12)) + (extra.isEmpty ? "" : extra + " ") : "")
+        let prefix = prefixFormat.render([
+            "c": category, "t": timed.time, "s": habit == nil ? extra : "", "l": String(repeating: " ", count: heading.level),
+            "e": heading.properties["EFFORT"] ?? "", "b": breadcrumbs(source, heading), "T": tags.last?.name ?? "",
+        ])
         txt = highlightTodo(txt, keywords: source.keywords)
         let priority = Self.priority(prefix + txt, source.priorities)
         return AgendaItem(
@@ -287,8 +342,22 @@ public enum Agenda {
             timeOfDay: timed.timeOfDay, time: timed.time, extra: extra, text: txt, tags: tags.map(\.name),
             todo: heading.todo, isDone: heading.isDone, urgency: urgency(priority),
             warntime: heading.properties["APPT_WARNTIME"].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }, habit: habit,
-            line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString)
+            line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString), prefix: prefix
         )
+    }
+
+    /// `%b`: the outline path above the heading, each title followed by `->`.
+    static func breadcrumbs(_ source: AgendaSource, _ heading: AgendaSource.Heading) -> String {
+        guard let index = source.headings.firstIndex(where: { $0.start == heading.start }) else { return "" }
+        var path: [String] = []
+        var level = heading.level
+        for candidate in source.headings[..<index].reversed() where candidate.level < level {
+            let title = candidate.title.replacingOccurrences(of: "\\[[0-9]+%\\]|\\[[0-9]+/[0-9]+\\]", with: "", options: .regularExpression)
+            path.insert(Links.displayFormat(title).trimmingCharacters(in: .whitespaces), at: 0)
+            level = candidate.level
+            if level == 1 { break }
+        }
+        return path.isEmpty ? "" : path.joined(separator: "->") + "->"
     }
 
     /// The time-of-day part of `org-agenda-format-item`: finds the time, removes it from the
@@ -301,6 +370,7 @@ public enum Agenda {
         switch dotime {
         case .string(let s): containing = s + withoutStamps
         case .headline: containing = withoutStamps
+        case .only(let s): containing = s
         }
         guard let timeOfDay = time(of: containing) else { return (nil, "") }
         let ns = containing as NSString
@@ -402,7 +472,7 @@ public enum Agenda {
             return AgendaItem(
                 kind: kind, path: nil, headingOffset: nil, headingLine: nil, markerOffset: nil, category: "", timeOfDay: timed.timeOfDay,
                 time: timed.time, extra: "", text: txt, tags: [], todo: nil, isDone: false, urgency: 0, warntime: nil, habit: nil,
-                line: "  " + pad("", 12) + pad(timed.time, 12) + txt
+                line: options.prefix("agenda").render(["t": timed.time]) + txt, prefix: options.prefix("agenda").render(["t": timed.time])
             )
         }
         var new = options.gridTimes.reversed().map { t in

@@ -107,12 +107,26 @@ enum AgendaOracle {
         line.replacingOccurrences(of: "[ \\t]+(:[^ \\t]+:)[ \\t]*$", with: " $1", options: .regularExpression)
     }
 
-    static func compare(files: [(name: String, text: String)], start: Int, span: Int, today: Int, hour: Int = 9, minute: Int = 30) throws {
+    /// `org-agenda-prefix-format` as Lisp.
+    static func prefixLisp(_ formats: [String: String]) -> String {
+        "'(" + formats.sorted { $0.key < $1.key }.map { "(\($0.key) . \"\($0.value)\")" }.joined(separator: " ") + ")"
+    }
+
+    static func compare(
+        files: [(name: String, text: String)], start: Int, span: Int, today: Int, hour: Int = 9, minute: Int = 30,
+        prefix: [String: String]? = nil, logMode: Bool = false
+    ) throws {
         let date = Days.date(start)
-        let emacs = try run(files: files, form: "(org-agenda-list nil \"\(String(format: "%04d-%02d-%02d", date.year, date.month, date.day))\" \(span))", today: today, hour: hour, minute: minute)
+        var form = "(org-agenda-list nil \"\(String(format: "%04d-%02d-%02d", date.year, date.month, date.day))\" \(span))"
+        if let prefix { form = "(let ((org-agenda-prefix-format \(prefixLisp(prefix)))) \(form))" }
+        if logMode { form = "(let ((org-agenda-start-with-log-mode t)) \(form))" }
+        let emacs = try run(files: files, form: form, today: today, hour: hour, minute: minute)
         let defaults = OrgSettings.default.withTodoKeywords(keywords)!
         let sources = files.map { AgendaSource(path: $0.name, text: $0.text, defaults: defaults) }
-        let ours = Agenda.list(sources, start: start, days: span, today: today, now: (hour, minute), options: .terminal)
+        var options = AgendaOptions.terminal
+        if let prefix { options.prefixFormat = prefix }
+        options.logMode = logMode
+        let ours = Agenda.list(sources, start: start, days: span, today: today, now: (hour, minute), options: options)
         #expect(ours.count == emacs.count)
         for (o, e) in zip(ours, emacs) {
             #expect(o.header == e.header)
@@ -376,5 +390,86 @@ struct ReminderTests {
         let reminders = Reminders.upcoming([source], now: Self.date(5, 9, 30), calendar: Self.utc)
         #expect(reminders.count == 6)
         #expect(Set(reminders.map(\.id)).count == 6)
+    }
+}
+
+struct AgendaPrefixFormatTests {
+    static let file = """
+    #+TODO: TODO NEXT | DONE
+    * Projects [1/2] :proj:
+    ** TODO [#A] Write report :work:
+    :PROPERTIES:
+    :Effort:   1:30
+    :END:
+    SCHEDULED: <2026-10-05 Mon 10:00>
+    *** NEXT Outline [[https://x.org][the plan]]
+    DEADLINE: <2026-10-06 Tue>
+    * Errands
+    :PROPERTIES:
+    :CATEGORY: averyverylongcategory
+    :END:
+    ** TODO Groceries 14:00
+    SCHEDULED: <2026-10-05 Mon>
+    """
+
+    static let formats = [
+        "agenda": " %i %-12:c%?-12t%-6e% s%l%b", "todo": " %-8.6c %e %?-4l|", "tags": "%c %?-5:l %b", "search": " %i %-12:c",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func agendaMatchesEmacs() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        try AgendaOracle.compare(files: [("p.org", Self.file)], start: today, span: 2, today: today, prefix: Self.formats)
+    }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func listsMatchEmacs() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        var options = AgendaOptions()
+        options.prefixFormat = Self.formats
+        let lisp = AgendaOracle.prefixLisp(Self.formats)
+        try AgendaOracle.compareList(files: [("p.org", Self.file)], form: "(let ((org-agenda-prefix-format \(lisp))) (org-todo-list))", today: today) {
+            Agenda.todoList($0, options: options)
+        }
+        try AgendaOracle.compareList(files: [("p.org", Self.file)], form: "(let ((org-agenda-prefix-format \(lisp))) (org-tags-view nil \"work|proj\"))", today: today) {
+            Agenda.tagsMatch($0, match: "work|proj", options: options)
+        }
+    }
+
+    @Test func compilesFields() {
+        let format = PrefixFormat(" %-8.6c|%?-4t%e")
+        #expect(format.render(["c": "category", "e": "1:00"]) == " categ   |1:00")
+        #expect(format.render(["c": "cat", "t": "9:00"]) == " cat     |9:00")
+    }
+}
+
+struct AgendaLogModeTests {
+    static let file = """
+    #+TODO: TODO NEXT | DONE
+    * DONE Ship release :work:
+    CLOSED: [2026-10-05 Mon 16:20] SCHEDULED: <2026-10-05 Mon>
+    :LOGBOOK:
+    CLOCK: [2026-10-05 Mon 14:00]--[2026-10-05 Mon 15:30] =>  1:30
+    - Fixed the build
+    CLOCK: [2026-10-04 Sun 22:00]--[2026-10-05 Mon 01:15] =>  3:15
+    :END:
+    * TODO Writing
+    :LOGBOOK:
+    CLOCK: [2026-10-06 Tue 09:00]--[2026-10-06 Tue 09:45] =>  0:45
+    CLOCK: [2026-10-06 Tue 11:00]
+    :END:
+    ** DONE Draft [1/1]
+    CLOSED: [2026-10-06 Tue]
+    * Archived :ARCHIVE:
+    CLOSED: [2026-10-05 Mon 10:00]
+    * Plain
+    Mentions CLOSED: [2026-10-05 Mon 09:00] in text.
+    """
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func logModeMatchesEmacs() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        try AgendaOracle.compare(files: [("log.org", Self.file)], start: today - 1, span: 3, today: today, logMode: true)
+        try AgendaOracle.compare(files: [("log.org", Self.file)], start: today - 1, span: 3, today: today, prefix: ["agenda": " %-8:c%?-12t%s %l"], logMode: true)
     }
 }

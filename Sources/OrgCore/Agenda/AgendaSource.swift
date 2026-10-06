@@ -56,9 +56,28 @@ public struct AgendaSource: Sendable {
         let heading: Int
     }
 
+    /// A `CLOSED:`, `CLOCK:` or `- State "…"` line, for log mode (`org-agenda-get-progress`).
+    struct Progress: Sendable {
+        enum Kind: Sendable { case closed, clock, state }
+        let kind: Kind
+        let offset: Int
+        let heading: Int
+        /// `YYYY-MM-DD` of the first timestamp.
+        let date: String
+        /// The timestamp, from the keyword; a clock's ends with its end time (`[… 10:00-11:30]`).
+        let timestamp: String
+        /// A clock's duration, or `-`.
+        let clocked: String
+        /// The state a note records.
+        let state: String?
+        /// The first line of the note under it.
+        let note: String?
+    }
+
     let headings: [Heading]
     let stamps: [Stamp]
     let blocks: [Block]
+    let progress: [Progress]
     /// The file's TODO keywords, active and done.
     let keywords: [String]
     let priorities: Priorities
@@ -243,6 +262,48 @@ public struct AgendaSource: Sendable {
             blocks.append(Block(start: ns.substring(with: m.range(at: 1)), end: ns.substring(with: m.range(at: 2)), marker: point, heading: owner))
         }
         self.blocks = blocks
+
+        // Log lines: org searches the raw text, then the heading above each match.
+        let keywordPattern = keywords.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+        let logLine = try! NSRegularExpression(pattern: "(\\bCLOSED:|\\bCLOCK:|- +State \"(\(keywordPattern.isEmpty ? "(?!)" : keywordPattern))\".*?) *\\[([0-9]{4}-[0-9]{2}-[0-9]{2})")
+        let inactive = try! NSRegularExpression(pattern: "\\[([0-9]{4}-[0-9]{2}-[0-9]{2}( +[^\\]+0-9>\\r\\n -]+)?( +([0-9]{1,2}):([0-9]{2}))?)\\]")
+        let clockEnd = try! NSRegularExpression(pattern: "([0-9]{1,2}:[0-9]{2})\\].*?([0-9]{1,2}:[0-9]{2})")
+        let stateNote = try! NSRegularExpression(pattern: ".*\\\\\\n[ \\t]*([^-\\n \\t].*?)[ \\t]*$", options: .anchorsMatchLines)
+        let clockNote = try! NSRegularExpression(pattern: ".*\\n[ \\t]*-[ \\t]+([^-\\n \\t].*?)[ \\t]*$", options: .anchorsMatchLines)
+        var progress: [Progress] = []
+        for m in logLine.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            guard let owner = heading(at: m.range.location), !skipped[owner] else { continue }
+            let keyword = ns.substring(with: m.range(at: 1))
+            let kind: Progress.Kind = keyword == "CLOSED:" ? .closed : keyword == "CLOCK:" ? .clock : .state
+            var timestamp = restOfLine(m.range.location)
+            var clocked = "-"
+            let tns = timestamp as NSString
+            if let ts = inactive.firstMatch(in: timestamp, range: NSRange(location: 0, length: tns.length)) {
+                let rest = tns.substring(from: NSMaxRange(ts.range))
+                timestamp = tns.substring(to: NSMaxRange(ts.range))
+                let rns = rest as NSString
+                if kind == .clock, let end = clockEnd.firstMatch(in: rest, range: NSRange(location: 0, length: rns.length)) {
+                    timestamp = String(timestamp.dropLast()) + "-" + rns.substring(with: end.range(at: 1)) + "]"
+                    clocked = rns.substring(with: end.range(at: 2))
+                }
+            }
+            // The note: after a state line ending in `\\`, or a list item under a clock line.
+            var note: String?
+            let after = NSMaxRange(m.range)
+            let notePattern: NSRegularExpression? = switch kind {
+            case .state: stateNote
+            case .clock: clockNote
+            case .closed: nil
+            }
+            if let notePattern, let n = notePattern.firstMatch(in: text, options: .anchored, range: NSRange(location: after, length: ns.length - after)) {
+                note = ns.substring(with: n.range(at: 1))
+            }
+            progress.append(Progress(
+                kind: kind, offset: m.range.location, heading: owner, date: ns.substring(with: m.range(at: 3)), timestamp: timestamp,
+                clocked: clocked, state: m.range(at: 2).location == NSNotFound ? nil : ns.substring(with: m.range(at: 2)), note: note
+            ))
+        }
+        self.progress = progress
     }
 
     /// `org-ts--internal-regexp`.

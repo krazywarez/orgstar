@@ -3,7 +3,7 @@ import Foundation
 extension Agenda {
     /// `org-todo-list`: unfinished entries, or with `keywords` (`WAIT|HOLD`) those with any of
     /// the keywords.
-    public static func todoList(_ sources: [AgendaSource], keywords: String? = nil) -> [AgendaItem] {
+    public static func todoList(_ sources: [AgendaSource], keywords: String? = nil, options: AgendaOptions = AgendaOptions()) -> [AgendaItem] {
         let selected = keywords.map { $0.split(separator: "|").map(String.init) }
         var items: [AgendaItem] = []
         for source in sources {
@@ -16,7 +16,7 @@ extension Agenda {
                 }
                 items.append(format(
                     source, heading, kind: .todo, marker: heading.start, extra: "", dotime: .headline, removing: nil,
-                    trailing: "", hasTime: false, urgency: { 1 + $0 }
+                    trailing: "", prefix: options.prefix("todo"), urgency: { 1 + $0 }
                 ))
             }
         }
@@ -25,7 +25,10 @@ extension Agenda {
 
     /// `org-tags-view`: entries matching a tags/property/TODO match string. `todoOnly` keeps
     /// unfinished TODO entries, as `M` does.
-    public static func tagsMatch(_ sources: [AgendaSource], match: String, todoOnly: Bool = false, now: Date = Date(), calendar: Calendar = .current) -> [AgendaItem] {
+    public static func tagsMatch(
+        _ sources: [AgendaSource], match: String, todoOnly: Bool = false, now: Date = Date(), calendar: Calendar = .current,
+        options: AgendaOptions = AgendaOptions()
+    ) -> [AgendaItem] {
         let matcher = TagsMatcher(match, todoOnly: todoOnly)
         var items: [AgendaItem] = []
         for source in sources {
@@ -34,7 +37,7 @@ extension Agenda {
                 guard matcher.matches(heading, in: source, now: now, calendar: calendar), !heading.skipped else { continue }
                 items.append(format(
                     source, heading, kind: .tagsMatch, marker: heading.start, extra: "", dotime: nil, removing: nil,
-                    trailing: "", hasTime: false, urgency: { $0 }
+                    trailing: "", prefix: options.prefix("tags"), urgency: { $0 }
                 ))
             }
         }

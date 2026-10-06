@@ -19,6 +19,7 @@ struct EmacsImportTests {
             org-tags-column -80))
     (setq org-tags-column 4)
     (setq org-log-done 'note org-log-into-drawer t)
+    (setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s%b") (todo . " %-8:c")))
     (setq fill-column (+ 70 2))
     (setq org-capture-templates
           '(("t" "Todo" entry (file+headline "~/notes/todo.org" "Inbox") "* TODO %?\n%a")
@@ -71,6 +72,8 @@ struct EmacsImportTests {
         #expect(s["org-pretty-entities"] == .bool(true))
         #expect(s["org-log-done"] == .string("note"))
         #expect(s["org-log-into-drawer"] == .string("LOGBOOK"))
+        #expect(s["org-agenda-prefix-format.agenda"] == .string(" %i %-12:c%?-12t% s%b"))
+        #expect(s["org-agenda-prefix-format.todo"] == .string(" %-8:c"))
         // after! org runs after the top-level setq.
         #expect(s["org-tags-column"] == .integer(-80))
         #expect(s["org-agenda-span"] == .integer(10))
@@ -140,7 +143,7 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 14 settings, 3 capture templates, 3 key bindings."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 16 settings, 3 capture templates, 3 key bindings."), "\(summary)")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
         #expect(defaults.integer(forKey: "themeFontSize") == 14)
     }
