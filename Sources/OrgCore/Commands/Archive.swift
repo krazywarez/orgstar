@@ -239,8 +239,24 @@ public enum Archive {
         let step = commitBuffer(context) { source in
             let target = archive ?? source
             let level: Int
-            let headingText: String?
-            if let heading = destination.heading, let stars = heading.range(of: "^\\*+", options: .regularExpression) {
+            var headingText: String?
+            var heading = destination.heading
+            // `datetree/`: three levels of date headings, stars after it a heading below them.
+            var datetree: DateComponents?
+            var datetreeSubheading = false
+            if let h = heading, let m = h.firstMatch(of: /^datetree\/(\**)/) {
+                let nsub = m.1.count
+                heading = String(repeating: "*", count: 3 + nsub) + h[m.range.upperBound...]
+                datetreeSubheading = nsub > 0
+                let closed = source.saveExcursion { () -> String? in
+                    _ = try? source.backToHeading()
+                    source.forwardLine(1)
+                    guard let line = source.lookingAt("^[ \\t]*(?:SCHEDULED|DEADLINE|CLOSED):.*$") else { return nil }
+                    return source.substring(line[0]!.lowerBound, line[0]!.upperBound).firstMatch(of: /CLOSED: *\[([^\]]+)\]/).map { String($0.1) }
+                }
+                datetree = EmacsBuffer.parseTimeString(closed ?? time)
+            }
+            if let heading, let stars = heading.range(of: "^\\*+", options: .regularExpression) {
                 level = heading[stars].count
                 headingText = heading
             } else {
@@ -264,28 +280,44 @@ public enum Archive {
                     target.point = target.length
                     target.insert("\nArchived entries from file \(sourcePath)\n\n")
                 }
-                target.point = 0
-                if let headingText {
+                // The date's entry, as `org-datetree-find-date-create` then `org-narrow-to-subtree`.
+                let low = target.marker(0)
+                let high = target.marker(target.length, advances: true)
+                defer {
+                    target.release(low)
+                    target.release(high)
+                }
+                if let date = datetree {
+                    let day = Datetree.findCreate(target, under: nil, tree: .day, date: date)
+                    low.position = day
+                    high.position = Datetree.narrowEnd(target, day, limit: target.length)
+                }
+                target.point = low.position
+                if let headingText, !(datetree != nil && !datetreeSubheading) {
                     let pattern = "^" + NSRegularExpression.escapedPattern(for: headingText) + "([ \\t]+:([[:alnum:]_@#%]+:)+)?[ \\t]*$"
-                    if let match = target.searchForward(pattern) {
+                    if let match = target.searchForward(pattern, bound: high.position) {
                         target.point = match[0]!.upperBound
                     } else {
-                        target.point = target.length
+                        target.point = high.position
                         if !target.bolp { target.insert("\n") }
-                        target.insert("\n" + headingText + "\n")
+                        target.insert((datetree != nil ? "" : "\n") + headingText + "\n")
                         target.forwardLine(-1)
                         target.endOfLine()
                     }
                     target.endOfSubtree()
+                    target.point = min(target.point, high.position)
                     target.skipBackward(EmacsBuffer.whitespace)
+                    target.point = max(target.point, low.position)
                     let blanks = target.looking("[ \\t\\r\\n]*")!
-                    target.replace(blanks[0]!, with: "\n\n")
-                    target.point = blanks[0]!.lowerBound + 2
+                    let clipped = blanks[0]!.lowerBound..<min(blanks[0]!.upperBound, high.position)
+                    let separator = datetree != nil ? "\n" : "\n\n"
+                    target.replace(clipped, with: separator)
+                    target.point = clipped.lowerBound + separator.count
                 } else {
-                    target.point = target.length
-                    target.insert("\n")
+                    target.point = high.position
+                    if !(datetree != nil && target.bolp) { target.insert("\n") }
                 }
-                try target.pasteSubtree(level: max(1, level + (headingText == nil ? 0 : 1)), tree: tree)
+                try target.pasteSubtree(level: max(1, level + (headingText == nil ? 0 : 1)), tree: tree, limit: datetree != nil ? high.position : nil)
                 if !inherited.isEmpty, destination.isSameFile {
                     let all = inherited + local
                     target.saveExcursion {

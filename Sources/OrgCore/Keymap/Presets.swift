@@ -326,6 +326,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "app.archive"
         mode = "normal"
         [[bind]]
+        keys = "SPC m s a"
+        command = "org.archive.toggle-tag"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m s h"
         command = "org.subtree.promote"
         mode = "normal"
@@ -718,6 +722,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c C-x i"
         command = "org.columns.insert-dblock"
+        [[bind]]
+        keys = "C-c C-x a"
+        command = "org.archive.toggle-tag"
+        [[bind]]
+        keys = "C-c C-x A"
+        command = "org.archive.to-sibling"
         [[bind]]
         keys = "C-c C-x C-c"
         command = "org.columns"

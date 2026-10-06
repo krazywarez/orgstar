@@ -43,8 +43,12 @@ struct ArchiveTests {
         "#+ARCHIVE: ::* Archive\n* a :x:\n* Archive\n** old\n",
         "* P\n:PROPERTIES:\n:ARCHIVE: ::* Old :t:\n:CATEGORY: c\n:END:\n** a\n* Old :t:\n",
         "* a\nSCHEDULED: <2026-01-01 Thu>\n:PROPERTIES:\n:ID: 1\n:END:\n* b",
+        "#+ARCHIVE: ::datetree/\n* a\nbody\n* b\n",
+        "#+ARCHIVE: %s_archive::datetree/\n* DONE a\nCLOSED: [2026-08-15 Sat 09:00]\n* b\n",
+        "#+ARCHIVE: ::datetree/* Notes\n* a\n** sub\n* b\n",
     ]
-    static let archives: [String?] = [nil, "", "* existing\n", "\n#+TITLE: arch\n\n* x\n:PROPERTIES:\n:ARCHIVE_TIME: t\n:END:\n\n"]
+    static let archives: [String?] = [nil, "", "* existing\n", "\n#+TITLE: arch\n\n* x\n:PROPERTIES:\n:ARCHIVE_TIME: t\n:END:\n\n",
+                                      "* 2026\n** 2026-09 September\n*** 2026-09-10 Thursday\n**** prior\n*** 2026-09-12 Saturday\n"]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func archiveMatchesEmacs() throws {

@@ -460,6 +460,10 @@ public final class OrgEditor: NSObject {
                 switch effect {
                 case .message(let text): onMessage?(text)
                 case .sparseTree(let points, let highlights): showSparseTree(points, highlights: highlights)
+                case .fold(let start):
+                    var state = foldState
+                    state.folds.insert(start)
+                    setFolds(state)
                 default: onEffect?(effect)
                 }
             }

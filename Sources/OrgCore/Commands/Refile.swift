@@ -32,13 +32,13 @@ extension EmacsBuffer {
         }
     }
 
-    /// `org-paste-subtree` with a numeric level.
-    func pasteSubtree(level: Int, tree: String) throws {
+    /// `org-paste-subtree` with a numeric level; `limit` ends the buffer there, as narrowing does.
+    func pasteSubtree(level: Int, tree: String, limit: Int? = nil) throws {
         let oldLevel = tree.range(of: "(?m)^\\*+ ", options: .regularExpression).map { tree[$0].count - 1 } ?? -1
         let shift = oldLevel == -1 || oldLevel == level ? 0 : level - oldLevel
         if !(bolp && atHeading) {
             endOfLine()
-            point = nextHeadingStart(after: point) ?? length
+            point = min(nextHeadingStart(after: point) ?? length, limit ?? length)
             if !bolp { insert("\n") }
         }
         var begin = point
