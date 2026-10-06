@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import OrgDocument
 import OrgPresentation
+import OrgCore
 import OrgIndex
 import OrgWorkspace
 
@@ -271,6 +272,16 @@ public final class WorkspaceModel {
 
     public func tree(forRoot path: String) -> FileTreeNode {
         FileTreeNode.build(root: path, files: files)
+    }
+
+    /// Headings with links to `target`, the target heading's own links left out.
+    public func backlinks(to target: Backlinks.Target, excluding start: Int? = nil, overlay: [String: FileRecord] = [:]) -> [HeadingLocation] {
+        var seen = Set<HeadingLocation>()
+        return ((try? index.links(overlay: overlay)) ?? []).compactMap { link in
+            guard !(link.source.path == target.path && link.source.start == start),
+                  Backlinks.links(link.target, from: link.source.path, to: target), seen.insert(link.source).inserted else { return nil }
+            return link.source
+        }
     }
 
     public func search(_ query: String, overlay: [String: FileRecord] = [:]) -> [HeadingLocation] {

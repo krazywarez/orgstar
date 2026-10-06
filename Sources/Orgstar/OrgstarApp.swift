@@ -349,6 +349,7 @@ struct OrgstarApp: App {
             }
             CommandGroup(after: .sidebar) {
                 Button("Show or Hide Outline") { commands.run("app.toggle-outline") }
+                Button("Show or Hide Backlinks") { commands.run("app.toggle-backlinks") }
                     .keyboardShortcut("o", modifiers: [.command, .option])
                 MarkupToggle()
             }

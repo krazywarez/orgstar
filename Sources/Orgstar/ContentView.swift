@@ -68,6 +68,7 @@ struct ContentView: View {
     @State private var previewPath: String?
     @AppStorage("outlineShown") private var orgOutlineShown = true
     @AppStorage("outlineWidth") private var outlineWidth = 220.0
+    @AppStorage("backlinksShown") private var backlinksShown = true
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
     @AppStorage("showHiddenFiles") private var showHiddenFiles = true
@@ -172,7 +173,17 @@ struct ContentView: View {
                 if outlineShown {
                     Group {
                         if query.isEmpty {
-                            OutlineColumn(session: session)
+                            VStack(spacing: 0) {
+                                OutlineColumn(session: session)
+                                if backlinksShown, session.isOrg {
+                                    Divider()
+                                    BacklinksPane(workspace: workspace, session: session, commands: commands) { location in
+                                        selectedFile = location.path
+                                        session.show(location)
+                                    }
+                                    .frame(height: 200)
+                                }
+                            }
                         } else {
                             SearchResults(results: workspace.search(query, overlay: workspace.overlay(session.openDocuments))) { location in
                                 selectedFile = location.path
@@ -535,6 +546,7 @@ struct ContentView: View {
         case "app.babel.cancel":
             if session.isRunningBabel { session.cancelBabel() } else { commands.show("No block is running") }
         case "app.toggle-outline": toggleOutline()
+        case "app.toggle-backlinks": backlinksShown.toggle()
         case "app.toggle-markup": showMarkup.toggle()
         case "app.toggle-line-numbers": showLineNumbers.toggle()
         case "app.import-emacs": showingImport = true

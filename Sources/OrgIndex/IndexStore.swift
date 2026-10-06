@@ -316,6 +316,24 @@ public final class IndexStore: Sendable {
         return indexed.filter { overlay[$0.path] == nil } + live
     }
 
+    /// Every link and the heading it's in, unsaved buffers' in place of their files'.
+    public func links(overlay: [String: FileRecord] = [:]) throws -> [(source: HeadingLocation, target: String)] {
+        let indexed = try database.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT f.path, f.hash, h.ordinal, h.title, h.start_offset, l.target
+                    FROM links l JOIN headings h ON h.id = l.heading_id JOIN files f ON f.id = h.file_id
+                    WHERE f.kind = 'org' ORDER BY f.path, h.ordinal
+                    """
+            ).map { (source: location($0), target: $0["target"] as String) }
+        }
+        let live = overlay.values.sorted { $0.path < $1.path }.flatMap { record in
+            record.headings.flatMap { heading in heading.links.map { (source: location(record, heading), target: $0.target) } }
+        }
+        return indexed.filter { overlay[$0.source.path] == nil } + live
+    }
+
     /// IDs used by more than one heading.
     public func duplicateIDs(overlay: [String: FileRecord] = [:]) throws -> [String: [HeadingLocation]] {
         let indexed = try database.read { db in
