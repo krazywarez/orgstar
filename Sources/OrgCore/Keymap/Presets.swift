@@ -647,6 +647,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c ="
         command = "org.table.column-formula"
         [[bind]]
+        keys = "C-c TAB"
+        command = "org.table.toggle-column-width"
+        when = "table"
+        [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"
         [[bind]]
