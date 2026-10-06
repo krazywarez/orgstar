@@ -9,7 +9,7 @@ public enum SyntaxKind: String, Sendable {
     case planning, propertyDrawer, nodeProperty, drawer, clock
     case paragraph, plainList, item, table, tableRow, tableCell, tableFormula
     case block, dynamicBlock, keyword, affiliatedKeyword
-    case comment, fixedWidth, horizontalRule, footnoteDefinition, latexEnvironment
+    case comment, fixedWidth, horizontalRule, footnoteDefinition, latexEnvironment, inlineTask
 
     // Objects
     case bold, italic, underline, strikeThrough, verbatim, code

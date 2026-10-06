@@ -24,6 +24,8 @@ struct TableFormulaTests {
         "| a | b |\n|---+---|\n| 1 | |\n|---+---|\n| 2 | |\n| 3 | |\n#+TBLFM: $2=@I$1+@II$1+@-I$1\n",
         "| a | b | c |\n|---+---+---|\n| 1 | 2 | |\n#+TBLFM: $3=($1+$2)*2/3-1::$1=$1\n",
         "| a |\n|---|\n| 1 |\n| 2 |\n|---|\n| |\n#+TBLFM: @>$1=vmax(@I..@II)-vmin(@I..@II)+vcount(@I..@II)+vmedian(@I..@II)\n",
+        "#+CONSTANTS: c=10 k=2.5\n| a | b |\n|---+---|\n| 1 | |\n| 2 | |\n#+TBLFM: $2=$1*$c+$k\n",
+        "* Rates\n:PROPERTIES:\n:Rate:     3\n:END:\n| h | pay |\n|---+-----|\n| 2 | |\n#+TBLFM: $2=$1*$PROP_Rate\n",
     ]
 
     static func carets(_ text: String) -> [Int] {

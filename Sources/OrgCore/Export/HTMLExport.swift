@@ -235,6 +235,20 @@ final class HTMLRenderer {
             return block(node)
         case .horizontalRule:
             return "<hr>\n"
+        case .inlineTask:
+            // As ox-html: the title in bold, then the contents.
+            var out = "<div class=\"inlinetask\">\n"
+            for child in node.children {
+                if child.kind == .heading {
+                    guard child.range.lowerBound == node.range.lowerBound else { continue }
+                    let title = child.firstChild(.title).map { inline($0).trimmingCharacters(in: .whitespaces) } ?? ""
+                    let todo = options.todo ? child.tokens.first { $0.kind == .todoKeyword }.map { "<span class=\"todo \(Self.escape($0.text))\">\(Self.escape($0.text))</span> " } ?? "" : ""
+                    out += "<b>\(todo)\(title)</b><br>\n"
+                } else {
+                    out += element(child)
+                }
+            }
+            return out + "</div>\n"
         case .latexEnvironment:
             // For MathJax, as ox-html leaves it with `tex:t`.
             guard options.tex else { return "" }

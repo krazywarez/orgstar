@@ -313,6 +313,7 @@ extension EmacsBuffer {
             }
         }
         if formula.hasPrefix("'(") { throw Calc.Unsupported("Lisp formula") }
+        formula = substituteConstants(formula)
         if formula.range(of: "\\$[a-zA-Z_]", options: .regularExpression) != nil || formula.contains("remote(")
             || formula.range(of: "[<\\[][0-9]{4}-", options: .regularExpression) != nil || formula.contains("&") {
             throw Calc.Unsupported("names, constants, remote references or dates")
@@ -360,6 +361,32 @@ extension EmacsBuffer {
             result = String(format: fmt, Self.stringToNumber(result))
         }
         tableSetField(result)
+    }
+
+    /// `org-table-formula-substitute-names` for constants: `$name` from `#+CONSTANTS`, or
+    /// `$PROP_name` from the entry's property, in parentheses; unknown names become
+    /// `#UNDEFINED_NAME`.
+    func substituteConstants(_ formula: String) -> String {
+        guard formula.range(of: "\\$[a-zA-Z]", options: .regularExpression) != nil else { return formula }
+        var constants: [String: String] = [:]
+        for m in string.matches(of: #/(?mi)^[ \t]*#\+CONSTANTS:(.*)$/#) {
+            for pair in m.1.split(whereSeparator: \.isWhitespace) {
+                let parts = pair.split(separator: "=", maxSplits: 1)
+                if parts.count == 2, constants[String(parts[0])] == nil { constants[String(parts[0])] = String(parts[1]) }
+            }
+        }
+        let regex = try! NSRegularExpression(pattern: "\\$([a-zA-Z][_a-zA-Z0-9]*)")
+        var out = formula
+        while let m = regex.firstMatch(in: out, range: NSRange(location: 0, length: (out as NSString).length)) {
+            let ns = out as NSString
+            let name = ns.substring(with: m.range(at: 1))
+            var value = constants[name]
+            if value == nil, name.hasPrefix("PROP_") {
+                value = inheritedProperty(String(name.dropFirst(5)))?.value
+            }
+            out = ns.replacingCharacters(in: m.range, with: "(" + (value ?? "#UNDEFINED_NAME") + ")")
+        }
+        return out
     }
 
     /// `string-to-number`.

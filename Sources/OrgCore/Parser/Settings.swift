@@ -45,6 +45,8 @@ public struct OrgSettings: Sendable, Equatable {
     public var priorities: Priorities
     /// `<<<radio target>>>` texts in the file, longest first: their words elsewhere are links.
     public var radioTargets: [String] = []
+    /// `org-list-allow-alphabetical`: `a.` and `A)` are bullets.
+    public var listAllowAlphabetical = false
 
     public init(todoSequences: [TodoSequence], priorities: Priorities, radioTargets: [String] = []) {
         self.todoSequences = todoSequences
@@ -113,8 +115,10 @@ enum SettingsScanner {
                 radio.append(String(m.1))
             }
         }
-        return OrgSettings(todoSequences: sequences.isEmpty ? defaults.todoSequences : sequences, priorities: priorities,
-                           radioTargets: radio.sorted { $0.count > $1.count })
+        var settings = OrgSettings(todoSequences: sequences.isEmpty ? defaults.todoSequences : sequences, priorities: priorities,
+                                   radioTargets: radio.sorted { $0.count > $1.count })
+        settings.listAllowAlphabetical = defaults.listAllowAlphabetical
+        return settings
     }
 
     static func keywordValue(_ line: Substring) -> Substring {

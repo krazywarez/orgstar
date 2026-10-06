@@ -40,7 +40,7 @@ extension OrgParser {
         _ old: OrgTree, oldText: String, edit: TextEdit, defaults: OrgSettings = .default
     ) -> (tree: OrgTree, strategy: ReparseStrategy) {
         let newText = edit.apply(to: oldText)
-        let context = ReparseContext(oldText: oldText, newText: newText, edit: edit)
+        let context = ReparseContext(oldText: oldText, newText: newText, edit: edit, alphabetical: defaults.listAllowAlphabetical)
         if context.touchesSettings() { return (parse(newText, defaults: defaults), .full) }
         if let tree = context.reparseElement(old) { return (tree, .element) }
         if let tree = context.reparseRegion(old) { return (tree, .region) }
@@ -53,6 +53,8 @@ private struct ReparseContext {
     let oldText: String
     let newText: String
     let edit: TextEdit
+    /// `org-list-allow-alphabetical`, for classifying lines.
+    let alphabetical: Bool
     /// Change in UTF-16 length.
     var delta: Int { edit.replacement.utf16.count - edit.range.count }
 
@@ -334,7 +336,7 @@ private struct ReparseContext {
     // MARK: - Text helpers
 
     func classes(_ text: Substring) -> [ClassifiedLine] {
-        splitRawLines(String(text)).map { classifyLine($0.content) }
+        splitRawLines(String(text)).map { classifyLine($0.content, alphabetical: alphabetical) }
     }
 
     func slice(_ text: String, _ from: Int, _ to: Int) -> Substring {

@@ -20,7 +20,7 @@ struct Parser {
 
     init(text: String, defaults: OrgSettings) {
         let lines = splitRawLines(text)
-        let info = lines.map { classifyLine($0.content) }
+        let info = lines.map { classifyLine($0.content, alphabetical: defaults.listAllowAlphabetical) }
         let ends = Parser.matchEnds(info, lines)
         let settings = SettingsScanner.scan(lines: lines, info: info, blockEnds: ends, defaults: defaults)
         self.init(lines: lines, info: info, blockEnds: ends, settings: settings)
@@ -29,7 +29,7 @@ struct Parser {
     /// Parses part of a document with the settings already read from the whole file.
     init(text: String, settings: OrgSettings) {
         let lines = splitRawLines(text)
-        let info = lines.map { classifyLine($0.content) }
+        let info = lines.map { classifyLine($0.content, alphabetical: settings.listAllowAlphabetical) }
         self.init(lines: lines, info: info, blockEnds: Parser.matchEnds(info, lines), settings: settings)
     }
 
@@ -87,6 +87,14 @@ struct Parser {
         builder.start(.document)
         if !lines.isEmpty, !isHeading(0) {
             builder.start(.zerothSection)
+            // A property drawer first in the file, after comments and blank lines, holds the
+            // file's properties.
+            while i < lines.count, info[i].cls == .blank || info[i].cls == .comment {
+                if info[i].cls == .blank { line(i); i += 1 } else { consecutive(.comment, limit: lines.count, floor: nil) { $0 == .comment } }
+            }
+            if i < lines.count, case .drawerBegin(let name) = info[i].cls, name.uppercased() == "PROPERTIES", let end = blockEnds[i] {
+                propertyDrawer(end: end)
+            }
             parseContent(limit: lines.count)
             builder.finish()
         }
@@ -183,6 +191,8 @@ struct Parser {
             } else {
                 paragraph(limit: limit, floor: floor)
             }
+        case .inlineTask:
+            inlineTask(limit: limit)
         case .keyword(let key):
             let affiliated = Self.affiliatedKeys.contains(key) || key.hasPrefix("ATTR_")
             single(affiliated ? .affiliatedKeyword : .keyword)
@@ -203,6 +213,31 @@ struct Parser {
         default:
             paragraph(limit: limit, floor: floor)
         }
+    }
+
+    /// An inline task: its heading line, and with an END line before the next heading, the
+    /// elements up to it and that line.
+    mutating func inlineTask(limit: Int) {
+        builder.start(.inlineTask)
+        headingLine(lines[i])
+        i += 1
+        var end: Int?
+        var k = i
+        while k < limit, !isHeading(k) {
+            if info[k].cls == .inlineTaskEnd { end = k; break }
+            if case .inlineTask = info[k].cls { break }
+            k += 1
+        }
+        if let end {
+            if i < end, info[i].cls == .planning { single(.planning) }
+            if i < end, case .drawerBegin(let name) = info[i].cls, name.uppercased() == "PROPERTIES", let drawerEnd = blockEnds[i], drawerEnd < end {
+                propertyDrawer(end: drawerEnd)
+            }
+            parseContent(limit: end)
+            headingLine(lines[i])
+            i += 1
+        }
+        builder.finish()
     }
 
     /// Kinds whose single line holds inline objects (timestamps on planning and clock lines).

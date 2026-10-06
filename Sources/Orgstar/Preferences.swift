@@ -12,7 +12,9 @@ enum Preferences {
         // config.toml applies before anything reads settings.
         ConfigSync.shared.start()
         let line = UserDefaults.standard.string(forKey: "todoKeywords") ?? defaultTodoKeywords
-        return OrgSettings.default.withTodoKeywords(line) ?? .default
+        var settings = OrgSettings.default.withTodoKeywords(line) ?? .default
+        settings.listAllowAlphabetical = UserDefaults.standard.object(forKey: "alphabeticalLists") as? Bool ?? true
+        return settings
     }
 
     static func options(

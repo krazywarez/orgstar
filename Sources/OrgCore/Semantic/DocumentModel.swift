@@ -121,9 +121,9 @@ public struct DocumentModel: Sendable {
             case .planning:
                 if let heading { planning(child, heading) }
             case .propertyDrawer:
-                if let heading {
-                    headings[heading].properties += child.children.filter { $0.kind == .nodeProperty }.compactMap { Property(line: $0.text) }
-                }
+                let properties = child.children.filter { $0.kind == .nodeProperty }.compactMap { Property(line: $0.text) }
+                // The file's own drawer comes after its #+PROPERTY lines, as org reads them.
+                if let heading { headings[heading].properties += properties } else { fileProperties += properties }
             case .clock:
                 if let heading, let clock = clock(child) { headings[heading].clocks.append(clock) }
             case .timestamp:

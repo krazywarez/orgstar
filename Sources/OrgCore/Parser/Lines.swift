@@ -35,6 +35,9 @@ func splitRawLines(_ text: String) -> [RawLine] {
 enum LineClass: Equatable {
     case blank
     case heading(level: Int)
+    /// Fifteen stars or more (`org-inlinetask-min-level`): an inline task, not a heading.
+    case inlineTask(level: Int)
+    case inlineTaskEnd
     case blockBegin(name: String)
     case blockEnd(name: String)
     case dynamicBegin
@@ -62,7 +65,7 @@ struct ClassifiedLine {
     let indent: Int
 }
 
-func classifyLine(_ line: Substring) -> ClassifiedLine {
+func classifyLine(_ line: Substring, alphabetical: Bool = false) -> ClassifiedLine {
     var column = 0
     var rest = line
     while let c = rest.first, c == " " || c == "\t" {
@@ -70,10 +73,13 @@ func classifyLine(_ line: Substring) -> ClassifiedLine {
         rest = rest.dropFirst()
     }
     if rest.isEmpty { return ClassifiedLine(cls: .blank, indent: column) }
-    return ClassifiedLine(cls: lineClass(rest, columnZero: column == 0), indent: column)
+    return ClassifiedLine(cls: lineClass(rest, columnZero: column == 0, alphabetical: alphabetical), indent: column)
 }
 
-private func lineClass(_ rest: Substring, columnZero: Bool) -> LineClass {
+/// `org-inlinetask-min-level`.
+let inlineTaskLevel = 15
+
+private func lineClass(_ rest: Substring, columnZero: Bool, alphabetical: Bool) -> LineClass {
     let trimmed = rest.trimmingTrailingWhitespace
 
     // As org's `org-outline-regexp`: stars and then a space. A lone `*`, or stars before a tab,
@@ -81,7 +87,8 @@ private func lineClass(_ rest: Substring, columnZero: Bool) -> LineClass {
     if columnZero, rest.first == "*" {
         let stars = rest.prefix { $0 == "*" }
         if rest.dropFirst(stars.count).first == " " {
-            return .heading(level: stars.count)
+            guard stars.count >= inlineTaskLevel else { return .heading(level: stars.count) }
+            return trimmed.dropFirst(stars.count).trimmingCharacters(in: .whitespaces) == "END" ? .inlineTaskEnd : .inlineTask(level: stars.count)
         }
     }
 
@@ -138,17 +145,19 @@ private func lineClass(_ rest: Substring, columnZero: Bool) -> LineClass {
 
     if rest.hasPrefix("CLOCK:") { return .clock }
     if rest.hasPrefix("SCHEDULED:") || rest.hasPrefix("DEADLINE:") || rest.hasPrefix("CLOSED:") { return .planning }
-    if isListBullet(rest, indented: !columnZero) { return .listItem }
+    if isListBullet(rest, indented: !columnZero, alphabetical: alphabetical) { return .listItem }
     return .plain
 }
 
-/// `-`, `+`, `*` (indented only), `1.` or `1)`, followed by whitespace or end of line.
-/// Alphabetical bullets are off, as in org's default.
-private func isListBullet(_ rest: Substring, indented: Bool) -> Bool {
+/// `-`, `+`, `*` (indented only), `1.` or `1)`, and with `org-list-allow-alphabetical` `a.` or
+/// `A)`, followed by whitespace or end of line.
+private func isListBullet(_ rest: Substring, indented: Bool, alphabetical: Bool) -> Bool {
     guard let first = rest.first else { return false }
     let afterBullet: Substring
     if first == "-" || first == "+" || (first == "*" && indented) {
         afterBullet = rest.dropFirst()
+    } else if alphabetical, first.isASCII, first.isLetter, let separator = rest.dropFirst().first, separator == "." || separator == ")" {
+        afterBullet = rest.dropFirst(2)
     } else if first.isASCII, first.isNumber {
         let digits = rest.prefix { $0.isASCII && $0.isNumber }
         let tail = rest.dropFirst(digits.count)
