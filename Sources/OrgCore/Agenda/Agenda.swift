@@ -45,6 +45,8 @@ public struct AgendaItem: Sendable, Equatable {
     public let line: String
     /// What `org-agenda-prefix-format` puts before the heading text.
     public var prefix = ""
+    /// The entry's `Effort` property.
+    public var effort: String?
 }
 
 public struct AgendaDay: Sendable, Equatable {
@@ -342,7 +344,7 @@ public enum Agenda {
             timeOfDay: timed.timeOfDay, time: timed.time, extra: extra, text: txt, tags: tags.map(\.name),
             todo: heading.todo, isDone: heading.isDone, urgency: urgency(priority),
             warntime: heading.properties["APPT_WARNTIME"].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }, habit: habit,
-            line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString), prefix: prefix
+            line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString), prefix: prefix, effort: heading.properties["EFFORT"]
         )
     }
 

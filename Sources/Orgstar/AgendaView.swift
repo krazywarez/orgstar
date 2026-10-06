@@ -5,7 +5,9 @@ import SwiftUI
 
 /// The agenda window: the day/week agenda, the TODO list, tag matches and saved views.
 /// Return or a double click jumps to the entry in the main window. Keys as in Emacs's agenda:
-/// f/b/. move the span, g refreshes, l shows the log (closed and clocked), t cycles the TODO state, +/- change the priority, : or
+/// f/b/. move the span, g refreshes, l shows the log (closed and clocked), / filters
+/// (`+cat-tag<0:10-/regexp/`), \ by tag, < by the line's category, = by regexp, _ by effort,
+/// | clears filters, t cycles the TODO state, +/- change the priority, : or
 /// C-c C-q sets tags, C-c C-s / C-c C-d schedule and set a deadline, S-→/S-← move the date.
 struct AgendaView: View {
     let workspace: WorkspaceModel
@@ -23,6 +25,10 @@ struct AgendaView: View {
     @State private var promptText = ""
     @State private var prefix = false
     @State private var logMode = false
+    @State private var filter = AgendaFilter()
+    /// A filter question: its title, the text it starts with, and how the answer applies.
+    @State private var filterPrompt: (title: String, kind: Character)?
+    @State private var filterText = ""
     @AppStorage("agendaSpan") private var span = 10
     @AppStorage("agendaStartOffset") private var startOffset = -3
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
@@ -96,7 +102,7 @@ struct AgendaView: View {
             if isAgenda {
                 ForEach(agenda.days, id: \.day) { day in
                     Section {
-                        rows(day.items, prefix: "\(day.day)", day: day.day)
+                        rows(day.items.filter(filter.keeps), prefix: "\(day.day)", day: day.day)
                     } header: {
                         Text(day.header)
                             .font(.headline)
@@ -105,7 +111,7 @@ struct AgendaView: View {
                 }
             } else {
                 Section {
-                    rows(agenda.list, prefix: "list")
+                    rows(agenda.list.filter(filter.keeps), prefix: "list")
                 } header: {
                     Text(listTitle).font(.headline)
                 }
@@ -118,7 +124,7 @@ struct AgendaView: View {
         }
         .onKeyPress(phases: .down) { press in handle(press) }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if let message = message ?? reminderStatus {
+            if let message = message ?? (filter.isEmpty ? reminderStatus : "Filter: " + filter.description) {
                 Text(message)
                     .font(.callout)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -180,6 +186,15 @@ struct AgendaView: View {
         } message: {
             if let choices = prompt?.prompt.choices, !choices.isEmpty {
                 Text(choices.prefix(12).joined(separator: "  "))
+            }
+        }
+        .alert(filterPrompt?.title ?? "", isPresented: Binding(get: { filterPrompt != nil }, set: { if !$0 { filterPrompt = nil } })) {
+            TextField("", text: $filterText)
+            Button("Filter") { applyFilter() }
+            Button("Cancel", role: .cancel) { filterPrompt = nil }
+        } message: {
+            if filterPrompt?.kind == "/" || filterPrompt?.kind == "\\" {
+                Text(shown.tags.sorted().prefix(20).joined(separator: "  "))
             }
         }
         .navigationTitle(viewName.replacingOccurrences(of: "…", with: ""))
@@ -254,8 +269,63 @@ struct AgendaView: View {
     private func item(_ id: String) -> AgendaItem? {
         let parts = id.split(separator: ":")
         guard parts.count == 2, let index = Int(parts[1]) else { return nil }
-        let items = parts[0] == "list" ? agenda.list : agenda.days.first { "\($0.day)" == parts[0] }?.items ?? []
+        let items = (parts[0] == "list" ? agenda.list : agenda.days.first { "\($0.day)" == parts[0] }?.items ?? []).filter(filter.keeps)
         return index < items.count ? items[index] : nil
+    }
+
+    // MARK: - Filters
+
+    /// The tags and categories on the view's lines, which filter words are read against.
+    private var shown: (tags: Set<String>, categories: Set<String>) {
+        let items = (isAgenda ? agenda.days.flatMap(\.items) : agenda.list).filter { $0.path != nil }
+        return (Set(items.flatMap(\.tags)), Set(items.map(\.category)))
+    }
+
+    private func askFilter(_ kind: Character) {
+        switch kind {
+        case "/": filterText = filter.description
+        default: filterText = ""
+        }
+        let title = switch kind {
+        case "/": "Filter [+cat-tag<0:10-/regexp/]:"
+        case "\\": "Tag filter (+tag-tag):"
+        case "=": "Regexp filter (-re to drop):"
+        default: "Effort filter (<0:30, >1:00, =1:00):"
+        }
+        filterPrompt = (title, kind)
+    }
+
+    private func applyFilter() {
+        guard let kind = filterPrompt?.kind else { return }
+        filterPrompt = nil
+        let text = filterText.trimmingCharacters(in: .whitespaces)
+        var current = filter
+        switch kind {
+        case "/":
+            let (parsed, ignored) = AgendaFilter().parse(text, tags: shown.tags, categories: shown.categories)
+            current = parsed
+            if !ignored.isEmpty { message = "\(ignored.joined(separator: " ")) ignored: no line has that tag or category" }
+        case "\\":
+            // Every word as a tag.
+            current.tags = AgendaFilter().parse(text, tags: Set(text.split(whereSeparator: { "+- ".contains($0) }).map(String.init)), categories: []).filter.tags
+        case "=":
+            current.regexps = text.isEmpty ? [] : [text.hasPrefix("-") || text.hasPrefix("+") ? text : "+" + text]
+        default:
+            current.efforts = text.isEmpty ? [] : ["+" + text]
+        }
+        filter = current
+        selection = nil
+    }
+
+    /// `<`: keep only the selected line's category, or drop that filter.
+    private func toggleCategoryFilter() {
+        if !filter.categories.isEmpty {
+            filter.categories = []
+        } else if let selection, let item = item(selection) {
+            filter.categories = ["+" + item.category]
+        } else {
+            message = "No entry selected"
+        }
     }
 
     private func jump(_ id: String) {
@@ -297,6 +367,11 @@ struct AgendaView: View {
         case "f" where isAgenda: agenda.shift(forward: true)
         case "b" where isAgenda: agenda.shift(forward: false)
         case "." where isAgenda: agenda.showToday()
+        case "/", "\\", "=", "_": askFilter(press.characters.first!)
+        case "<": toggleCategoryFilter()
+        case "|":
+            filter = AgendaFilter()
+            message = "Filters removed"
         case "l" where isAgenda:
             logMode.toggle()
             message = logMode ? "Log mode on" : "Log mode off"

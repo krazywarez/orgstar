@@ -45,6 +45,7 @@ enum AgendaOracle {
                  ((get-text-property p 'org-agenda-date-header)
                   (when header (push `((header . ,header) (items . ,(vconcat (nreverse items)))) days))
                   (setq header line items nil))
+                 ((get-text-property p 'org-filter-type))
                  ((or header hd)
                   (push `((line . ,line)
                           (type . ,(get-text-property p 'type))
@@ -471,5 +472,68 @@ struct AgendaLogModeTests {
         let today = Days.absolute(year: 2026, month: 10, day: 5)
         try AgendaOracle.compare(files: [("log.org", Self.file)], start: today - 1, span: 3, today: today, logMode: true)
         try AgendaOracle.compare(files: [("log.org", Self.file)], start: today - 1, span: 3, today: today, prefix: ["agenda": " %-8:c%?-12t%s %l"], logMode: true)
+    }
+}
+
+struct AgendaFilterTests {
+    static let file = """
+    #+TODO: TODO NEXT | DONE
+    #+CATEGORY: home
+    * TODO Groceries :errand:
+    :PROPERTIES:
+    :Effort:   0:20
+    :END:
+    SCHEDULED: <2026-10-05 Mon>
+    * Work stuff
+    :PROPERTIES:
+    :CATEGORY: work
+    :END:
+    ** TODO Write Report :writing:urgent:
+    :PROPERTIES:
+    :Effort:   2:00
+    :END:
+    SCHEDULED: <2026-10-05 Mon 10:00>
+    ** NEXT Call Bob :phone:
+    DEADLINE: <2026-10-06 Tue>
+    ** TODO Review PR :urgent:
+    :PROPERTIES:
+    :Effort:   1h
+    :END:
+    SCHEDULED: <2026-10-05 Mon>
+    """
+
+    static let filters = ["+urgent", "-urgent", "work", "-work", "+home+work", "<0:30", ">1:00", "=1:00", "/report/", "-/call/", "+work-phone<2:00", "nonexistent", "urgent-writing/review/"]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func filtersLikeOrgAgendaFilter() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        let defaults = OrgSettings.default.withTodoKeywords(AgendaOracle.keywords)!
+        let sources = [AgendaSource(path: "f.org", text: Self.file, defaults: defaults)]
+        let days = Agenda.list(sources, start: today, days: 2, today: today, now: (9, 30), options: .terminal)
+        let all = days.flatMap(\.items)
+        let tags = Set(all.flatMap(\.tags))
+        let categories = Set(all.filter { $0.path != nil }.map(\.category))
+        for filterText in Self.filters {
+            let emacs = try AgendaOracle.run(files: [("f.org", Self.file)], form: """
+                (progn
+                  (org-agenda-list nil "2026-10-05" 2)
+                  (with-current-buffer org-agenda-buffer-name
+                    (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) \(lispString(filterText)))))
+                      (org-agenda-filter))))
+                """, today: today, hour: 9, minute: 30)
+            let filter = AgendaFilter().parse(filterText, tags: tags, categories: categories).filter
+            let ours = days.map { day in day.items.filter(filter.keeps) }
+            #expect(ours.map { AgendaOracle.describe($0, today: today) } == emacs.map { AgendaOracle.describe($0.items) }, "\(filterText)")
+        }
+    }
+
+    @Test func parsesAndDescribes() {
+        let (filter, ignored) = AgendaFilter().parse("+work-phone<2:00/rep/ zzz", tags: ["phone"], categories: ["work"])
+        #expect(filter.categories == ["+work"] && filter.tags == ["-phone"] && filter.efforts == ["+<2:00"] && filter.regexps == ["+rep"])
+        #expect(ignored == ["+zzz"])
+        #expect(filter.description == "+work-phone<2:00/rep/")
+        #expect(AgendaFilter.durationMinutes("1h 30min") == 90 && AgendaFilter.durationMinutes("0:45") == 45)
+        let kept = filter.parse("++urgent", tags: ["urgent"], categories: []).filter
+        #expect(kept.tags == ["-phone", "+urgent"])
     }
 }
