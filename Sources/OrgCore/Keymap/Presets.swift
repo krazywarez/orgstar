@@ -190,6 +190,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
 
         # Localleader (SPC m)
         [[bind]]
+        keys = "SPC m '"
+        command = "org.edit-special"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m s c"
         command = "org.subtree.clone"
         mode = "normal"
@@ -626,6 +630,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c ^"
         command = "org.sort"
+        [[bind]]
+        keys = "C-c C-,"
+        command = "org.structure-template"
+        [[bind]]
+        keys = "C-c '"
+        command = "org.edit-special"
         [[bind]]
         keys = "C-x b"
         command = "app.buffer.switch"

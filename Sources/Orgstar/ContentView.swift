@@ -46,6 +46,9 @@ struct ContentView: View {
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup
         )
     }
+    /// A block being edited apart (`org-edit-special`).
+    @State private var blockEdit: BlockEditRequest?
+
     @State private var selectedFile: String?
     /// A file that isn't text, shown as a preview instead of the open document.
     @State private var previewPath: String?
@@ -200,6 +203,13 @@ struct ContentView: View {
         .onChange(of: options, initial: true) { _, options in session.options = options }
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
+        .sheet(item: $blockEdit) { request in
+            BlockEditorView(edit: request.edit) { content in
+                blockEdit = nil
+                guard let content else { return }
+                commands.editor?.perform(ReplaceBlockLines(edit: request.edit, content: content))
+            }
+        }
         .sheet(isPresented: $commands.showingPalette) {
             PaletteView(commands: commands) { id in
                 commands.showingPalette = false
@@ -353,6 +363,8 @@ struct ContentView: View {
         switch request {
         case .openLink(let link):
             if let message = LinkOpener.open(link, session: session, workspace: workspace) { commands.show(message) }
+        case .editBlock(let edit):
+            blockEdit = BlockEditRequest(edit: edit)
         case .emacsTable(let table, let point, let form, let reason, let lisp):
             let run = {
                 commands.show("Recalculating in Emacs (\(reason))…")
@@ -803,4 +815,9 @@ struct BufferTabs: View {
         .onTapGesture { session.open(path) }
         .help(path)
     }
+}
+
+struct BlockEditRequest: Identifiable {
+    let id = UUID()
+    let edit: BlockEdit
 }

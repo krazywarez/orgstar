@@ -185,6 +185,8 @@ public enum ExternalRequest: Sendable, Equatable {
     case babel(BabelJob)
     /// Follow a link: the app opens URLs and files and searches headings.
     case openLink(OrgLink)
+    /// Edit a block's text apart (`org-edit-special`); `ReplaceBlockLines` puts it back.
+    case editBlock(BlockEdit)
 }
 
 /// A named operation. Keys, menus, the palette and touch controls all run commands.
@@ -213,7 +215,7 @@ public enum Commands {
         TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
-        CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(),
+        CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }
