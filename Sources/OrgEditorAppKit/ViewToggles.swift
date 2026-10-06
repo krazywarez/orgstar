@@ -89,6 +89,13 @@ extension OrgEditor {
 extension OrgEditor: NSTextViewDelegate {
     public func textViewDidChangeSelection(_ notification: Notification) {
         selectionChanged()
+        if completionPopup != nil, let popup = completionPopup, textView.selectedRange().location != popup.completion.range.upperBound {
+            refreshCompletion()
+        }
+    }
+
+    public func textDidChange(_ notification: Notification) {
+        textTyped()
     }
 
     /// No spelling marks in code, links, dates, tags or keywords.

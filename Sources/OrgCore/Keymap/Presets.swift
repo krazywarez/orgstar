@@ -489,6 +489,16 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.cycle-global"
         mode = "visual"
 
+        # Doom's corfu: completion-at-point in insert state.
+        [[bind]]
+        keys = "C-SPC"
+        command = "editor.complete"
+        mode = "insert"
+        [[bind]]
+        keys = "C-@"
+        command = "editor.complete"
+        mode = "insert"
+
         # Insert state: org-cycle and org-shifttab with Doom's +org-indent-maybe-h, which
         # demotes or promotes a heading and indents or outdents an item tree.
         [[bind]]
@@ -616,6 +626,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-SPC"
         command = "edit.set-mark"
+        [[bind]]
+        keys = "C-M-i"
+        command = "editor.complete"
         [[bind]]
         keys = "C-x h"
         command = "edit.select-all"

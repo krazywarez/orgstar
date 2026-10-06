@@ -97,6 +97,9 @@ public final class OrgEditor: NSObject {
 
     public let mode: Mode
     public var isOrg: Bool { mode == .org }
+    /// The open completion list, and the pause before one opens by itself.
+    var completionPopup: CompletionPopup?
+    var completionTimer: DispatchWorkItem?
     /// The spell checker's skipped ranges and the text they were found in.
     var spellSkipCache: (text: String, ranges: [Range<Int>])?
     /// Highlights of the whole file in plain mode, and the revision they were made for.
@@ -363,6 +366,7 @@ public final class OrgEditor: NSObject {
     /// Offers a key press to the keymap. False lets the text system have it.
     func handleKey(_ event: NSEvent) -> Bool {
         guard let chord = KeyEvents.chord(for: event, optionAsMeta: optionAsMeta) else { return modal && vim.mode != .insert }
+        if let handled = completionKey(chord) { return handled }
         if modal { return handleModal(chord) }
         switch dispatcher.feed(chord) {
         case .pending(let keys):
@@ -437,6 +441,7 @@ public final class OrgEditor: NSObject {
             case "org.narrow.subtree", "org.narrow.block", "org.narrow.toggle", "org.widen": narrow(id)
             case "org.toggle-inline-images": toggleImages()
             case "editor.toggle-spell-check": toggleSpellCheck()
+            case "editor.complete": completeAtPoint()
             case "editor.toggle-truncate-lines": toggleTruncateLines()
             default: tableColumnWidth(id)
             }

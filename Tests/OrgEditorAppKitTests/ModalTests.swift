@@ -20,7 +20,9 @@ struct ModalTests {
             let key = String(token)
             if key.hasPrefix("C-") {
                 let letter = String(key.dropFirst(2))
-                KeyTests().send(h, characters: letter, ignoring: letter, code: 0, flags: .control)
+                let named = codes[letter]
+                let characters = named == nil ? letter : " "
+                KeyTests().send(h, characters: characters, ignoring: characters, code: named ?? 0, flags: .control)
             } else if let code = codes[key] {
                 let characters = key == "ESC" ? "\u{1b}" : key == "RET" ? "\r" : key == "TAB" ? "\t" : " "
                 KeyTests().send(h, characters: characters, ignoring: characters, code: code)
