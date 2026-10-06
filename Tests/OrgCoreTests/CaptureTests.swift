@@ -212,3 +212,77 @@ struct CaptureTests {
         #expect(filled.text == "* untitled for me\nuntitled again\n")
     }
 }
+
+struct CaptureEscapeTests {
+    /// Templates and the answers to their prompts, in order.
+    static let cases: [(template: String, answers: [String])] = [
+        ("* TODO %^{Task} %^g\n%^{Effort}p%?", ["Call bank", "work:phone", "1:00"]),
+        ("* Meeting %^T\n%^{Who|Ann|Bob} said %\\1, tags %\\*2", ["fri 14:00", ""]),
+        ("* %^{Title} :work:\nSCHEDULED: %^t\n%^u %^U", ["Plan", "+2d", "", "2026-10-01 9:30"]),
+        ("* Link %^L and %^C", ["https://orgmode.org", ""]),
+        ("* %A\n%:annotation %:initial %k%?", ["the page"]),
+        ("\\%a literal and \\\\%a doubled %c", []),
+        ("* Heading %^{Due}t and %^{Seen}U", ["tue", ""]),
+        ("%^{Name}\n- item %^g", ["Bob", "a:b"]),
+        ("* A rather long heading title that goes on %^G", ["x:y"]),
+        ("* Empty tags %^g done", [""]),
+        ("* Prop %^{CATEGORY|home}p\nbody", [""]),
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func fillsLikeOrgCaptureFillTemplate() throws {
+        let seconds = 1_789_000_000
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-fill-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let forms = Self.cases.map { c in
+            """
+            (let ((answers (list \(c.answers.map(CaptureTests.lisp).joined(separator: " ")))))
+              (cl-letf* ((next (lambda (default) (let ((a (pop answers))) (if (or (null a) (equal a "")) (or default "") a))))
+                         (ord (symbol-function 'org-read-date))
+                         ((symbol-function 'org-completing-read) (lambda (_p _c &optional _a _b _i _h def &rest _) (funcall next def)))
+                         ((symbol-function 'completing-read-multiple) (lambda (&rest _) (split-string (funcall next "") ":" t)))
+                         ((symbol-function 'read-string) (lambda (_p &optional _i _h def &rest _) (funcall next def)))
+                         ((symbol-function 'org-read-property-value) (lambda (_p &optional _e def) (funcall next def)))
+                         ((symbol-function 'org-read-date)
+                          (lambda (&optional with-time to-time _from prompt &rest _)
+                            (let ((a (pop answers))) (funcall ord with-time to-time (if (equal a "") "." a) prompt)))))
+                (with-temp-buffer
+                  (org-mode)
+                  (setq org-capture-plist (list :buffer (current-buffer) :pos 1))
+                  (push (org-capture-fill-template \(CaptureTests.lisp(c.template)) "Selected" "[[file:~/n.org::*Task][Task]]") results))))
+            """
+        }
+        let output = folder.appendingPathComponent("out.json")
+        let script = folder.appendingPathComponent("fill.el")
+        try """
+        ;;; -*- lexical-binding: t -*-
+        (require 'org)
+        (require 'org-capture)
+        (require 'json)
+        (require 'cl-lib)
+        (setq org-adapt-indentation nil)
+        (kill-new "Clip")
+        (defvar results nil)
+        \(frozenClock(seconds, "(progn " + forms.joined(separator: "\n") + ")"))
+        (with-temp-file \(CaptureTests.lisp(output.path)) (insert (json-encode (vconcat (nreverse results)))))
+        """.write(to: script, atomically: true, encoding: .utf8)
+        let log = try EmacsOracle.run(["-Q", "--batch", "-l", script.path], environment: ["TZ": "UTC"])
+        guard FileManager.default.fileExists(atPath: output.path) else { throw EmacsOracle.EvaluateError(log: log) }
+        let emacs = try JSONDecoder().decode([String].self, from: Data(contentsOf: output))
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let context = CaptureContext(now: Date(timeIntervalSince1970: Double(seconds)), calendar: utc, initial: "Selected",
+                                     annotation: "[[file:~/n.org::*Task][Task]]", clipboard: "Clip")
+        for (c, expected) in zip(Self.cases, emacs) {
+            #expect(Capture.questions(c.template, context: context).count == c.answers.count, "\(c.template.debugDescription)")
+            guard case .success(let filled) = Capture.fill(c.template, context: context, answers: c.answers) else {
+                Issue.record("fill failed for \(c.template.debugDescription)")
+                continue
+            }
+            var mine = filled.text
+            if c.template.contains("%?") { mine.insert(contentsOf: "%?", at: String.Index(utf16Offset: filled.cursor, in: mine)) }
+            #expect(mine == expected, "\(c.template.debugDescription)\nours:  \(mine.debugDescription)\nemacs: \(expected.debugDescription)")
+        }
+    }
+}

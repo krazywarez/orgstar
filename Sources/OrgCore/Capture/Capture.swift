@@ -100,14 +100,26 @@ public struct CaptureContext: Sendable {
     public var initial: String
     /// `%a`: a link to where capture started, `[[target][description]]`, or empty.
     public var annotation: String
-    /// `%c`: the clipboard.
+    /// `%c` and `%x`: the clipboard.
     public var clipboard: String
     /// `%f` and `%F`: the file capture started from.
     public var file: String
     /// `%n`.
     public var userName: String
+    /// `%k` and `%K`: the clocked-in entry's title and a link to it, or empty.
+    public var clockHeading: String
+    public var clockLink: String
+    /// `%^g` and `%^G` offer these: the target file's tags, and every file's.
+    public var fileTags: [String]
+    public var allTags: [String]
+    /// `org-tags-column`, for aligning tags `%^g` adds to a heading.
+    public var tagsColumn: Int
 
-    public init(now: Date = Date(), calendar: Calendar = .current, initial: String = "", annotation: String = "", clipboard: String = "", file: String = "", userName: String = "") {
+    public init(
+        now: Date = Date(), calendar: Calendar = .current, initial: String = "", annotation: String = "", clipboard: String = "",
+        file: String = "", userName: String = "", clockHeading: String = "", clockLink: String = "",
+        fileTags: [String] = [], allTags: [String] = [], tagsColumn: Int = -77
+    ) {
         self.now = now
         self.calendar = calendar
         self.initial = initial
@@ -115,6 +127,11 @@ public struct CaptureContext: Sendable {
         self.clipboard = clipboard
         self.file = file
         self.userName = userName
+        self.clockHeading = clockHeading
+        self.clockLink = clockLink
+        self.fileTags = fileTags
+        self.allTags = allTags
+        self.tagsColumn = tagsColumn
     }
 }
 
@@ -123,26 +140,181 @@ public enum Capture {
         case message(String)
     }
 
-    /// A `%^{prompt|default|choice…}` the template asks before it can be filled.
+    /// A question the template asks before it can be filled: `%^{prompt|default|choice…}`,
+    /// or one of `%^g`, `%^G`, `%^t`, `%^T`, `%^u`, `%^U`, `%^C`, `%^L`, `%^{prop}p`.
     public struct Question: Sendable, Equatable {
+        public enum Kind: Sendable, Equatable {
+            case text
+            /// Tags, separated by colons.
+            case tags
+            /// A date as `org-read-date` reads it (`+2d`, `fri 14:00`); empty is today.
+            case date(withTime: Bool, inactive: Bool)
+            /// `%^C` and `%^L`: text from the clipboard, inserted as a link with `link`.
+            case clipboard(link: Bool)
+            /// `%^{NAME}p`: the value of property `NAME`.
+            case property
+        }
+
         public let prompt: String
         public let defaultValue: String
         public let choices: [String]
-    }
+        public let kind: Kind
 
-    /// The prompts in `template`, in order.
-    public static func questions(_ template: String) -> [Question] {
-        let regex = try! NSRegularExpression(pattern: "(?<!%)%\\^\\{([^}]*)\\}")
-        let ns = template as NSString
-        return regex.matches(in: template, range: NSRange(location: 0, length: ns.length)).map { m in
-            let items = ns.substring(with: m.range(at: 1)).components(separatedBy: "|")
-            return Question(prompt: items[0], defaultValue: items.count > 1 ? items[1] : "", choices: Array(items.dropFirst(2)))
+        public init(prompt: String, defaultValue: String, choices: [String], kind: Kind = .text) {
+            self.prompt = prompt
+            self.defaultValue = defaultValue
+            self.choices = choices
+            self.kind = kind
         }
     }
+
+    static let promptPattern = "%\\^(?:\\{([^}]*)\\})?([CgGLptTuU])?"
+
+    /// The questions `template` asks, in order.
+    public static func questions(_ template: String, context: CaptureContext = CaptureContext()) -> [Question] {
+        guard case .success(let expanded) = expand(template, context) else { return [] }
+        return prompts(in: expanded).map { question($0.items, $0.key, context) }
+    }
+
+    static func question(_ items: [String]?, _ key: String?, _ context: CaptureContext) -> Question {
+        let prompt = items?.first
+        let defaultValue = items.map { $0.count > 1 ? $0[1] : "" } ?? ""
+        switch key {
+        case "g", "G": return Question(prompt: prompt ?? "Tags", defaultValue: "", choices: key == "g" ? context.fileTags : context.allTags, kind: .tags)
+        case "t", "T", "u", "U":
+            let upper = key == key?.uppercased()
+            return Question(prompt: prompt ?? "Date", defaultValue: "", choices: [], kind: .date(withTime: upper, inactive: key == "u" || key == "U"))
+        case "C", "L":
+            let values = [context.initial, context.clipboard].filter { !$0.isEmpty }
+            return Question(prompt: "Clipboard/kill value", defaultValue: context.initial, choices: values, kind: .clipboard(link: key == "L"))
+        case "p": return Question(prompt: prompt ?? "", defaultValue: defaultValue, choices: [], kind: .property)
+        default: return Question(prompt: prompt ?? "Enter string", defaultValue: defaultValue, choices: items.map { Array($0.dropFirst(2)) } ?? [])
+        }
+    }
+
+    /// The unescaped `%^` placeholders in `text`.
+    static func prompts(in text: String) -> [(range: NSRange, items: [String]?, key: String?)] {
+        let regex = try! NSRegularExpression(pattern: promptPattern)
+        let ns = text as NSString
+        return regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).compactMap { m in
+            guard !escaped(ns, at: m.range.location) else { return nil }
+            let items = m.range(at: 1).location == NSNotFound ? nil : ns.substring(with: m.range(at: 1)).components(separatedBy: "|")
+            let key = m.range(at: 2).location == NSNotFound ? nil : ns.substring(with: m.range(at: 2))
+            return (m.range, items, key)
+        }
+    }
+
+    /// `org-capture-escaped-%` without its unescaping: an odd run of backslashes before `%`.
+    static func escaped(_ ns: NSString, at index: Int) -> Bool {
+        var i = index
+        while i > 0, ns.character(at: i - 1) == 92 { i -= 1 }
+        return (index - i) % 2 == 1
+    }
+
+    /// Where `%?` puts the cursor while the template is filled.
+    static let cursorMark = "\u{E000}"
 
     /// `org-capture-fill-template`: the text and where `%?` puts the cursor. `answers` holds
     /// the replies to `questions(template)` in order.
     public static func fill(_ template: String, context: CaptureContext, answers: [String] = []) -> Result<(text: String, cursor: Int), Failure> {
+        let expanded: String
+        switch expand(template, context) {
+        case .failure(let failure): return .failure(failure)
+        case .success(let text): expanded = text
+        }
+        // Prompts, in order, answered in the text as it stands then, as org does.
+        var options = EditingOptions.org
+        options.tagsColumn = context.tagsColumn
+        let buffer = EmacsBuffer(expanded, point: 0, settings: .default, options: options)
+        buffer.now = context.now
+        buffer.calendar = context.calendar
+        var strings: [String] = []
+        var all: [String] = []
+        var index = 0
+        while let match = buffer.searchForward(promptPattern, caseInsensitive: false) {
+            let whole = match[0]!
+            if unescape(buffer, at: whole.lowerBound) { continue }
+            let start = buffer.point - whole.count
+            let items = match[1].map { buffer.substring($0.lowerBound, $0.upperBound).components(separatedBy: "|") }
+            let key = match[2].map { buffer.substring($0.lowerBound, $0.upperBound) }
+            let question = question(items, key, context)
+            let answer = index < answers.count ? answers[index] : ""
+            index += 1
+            buffer.deleteRegion(start, buffer.point)
+            buffer.point = start
+            switch question.kind {
+            case .text:
+                let value = answer.isEmpty ? question.defaultValue : answer
+                strings.append(value)
+                all.append(value)
+                buffer.insert(value)
+            case .tags:
+                let tags = answer.split(separator: ":").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                guard !tags.isEmpty else { continue }
+                all.append(":" + tags.joined(separator: ":") + ":")
+                if buffer.point == 0 || buffer.character(at: buffer.point - 1) != 58 { buffer.insert(":") }
+                buffer.insert(tags.joined(separator: ":"))
+                if buffer.point >= buffer.length || buffer.character(at: buffer.point) != 58 { buffer.insert(":") }
+                if buffer.lookingAtLine("^\\*+ ") { buffer.alignTags(onLineAt: buffer.point) }
+            case .date(let withTime, let inactive):
+                let result: ReadDate.Answer
+                if answer.trimmingCharacters(in: .whitespaces).isEmpty {
+                    let c = context.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: context.now)
+                    result = ReadDate.Answer(year: c.year!, month: c.month!, day: c.day!, hour: c.hour!, minute: c.minute!, timeGiven: false)
+                } else {
+                    result = buffer.readDate(answer, default: context.now)
+                }
+                let stamp = buffer.insertTimestamp(result.components(context.calendar), withTime: result.timeGiven || withTime, inactive: inactive, endTime: result.endTime)
+                all.append(stamp)
+            case .clipboard(let link):
+                let value = answer.isEmpty ? question.defaultValue : answer
+                all.append(value)
+                buffer.insert(link ? Links.makeString(value, nil) : value)
+            case .property:
+                let value = answer.isEmpty ? question.defaultValue : answer
+                buffer.saveExcursion { buffer.entryPut(question.prompt, value) }
+                all.append(value)
+            }
+        }
+        // `%\N`: the Nth `%^{…}` answer; `%\*N`: the Nth answer of any prompt.
+        var text = buffer.string
+        for (pattern, values) in [("%\\\\\\*([1-9][0-9]*)", all), ("%\\\\([1-9][0-9]*)", strings)] {
+            let regex = try! NSRegularExpression(pattern: pattern)
+            let ns = text as NSString
+            var out = text
+            for m in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).reversed() where !escaped(ns, at: m.range.location) {
+                let n = Int(ns.substring(with: m.range(at: 1)))!
+                out = (out as NSString).replacingCharacters(in: m.range, with: n <= values.count ? values[n - 1] : "")
+            }
+            text = out
+        }
+        // No blank lines before the text; it ends with one newline, or is empty.
+        var lines = text.components(separatedBy: "\n")
+        while let first = lines.first, first.trimmingCharacters(in: .whitespaces).isEmpty, lines.count > 1 { lines.removeFirst() }
+        var marked = lines.joined(separator: "\n")
+        let trimmed = marked.replacingOccurrences(of: "[ \\t\\n]+$", with: "", options: .regularExpression)
+        marked = trimmed.isEmpty ? "" : trimmed + "\n"
+        marked = marked.replacingOccurrences(of: "\t", with: "        ")
+        guard let range = marked.range(of: cursorMark) else { return .success((marked, marked.utf16.count > 0 ? marked.utf16.count - 1 : 0)) }
+        let offset = marked[..<range.lowerBound].utf16.count
+        marked.removeSubrange(range)
+        return .success((marked, offset))
+    }
+
+    /// `org-capture-escaped-%` at the `%` at `index`: drops half the backslashes before it;
+    /// true when it was escaped. Point follows the deletion.
+    static func unescape(_ buffer: EmacsBuffer, at index: Int) -> Bool {
+        var i = index
+        while i > 0, buffer.character(at: i - 1) == 92 { i -= 1 }
+        let n = index - i
+        guard n > 0 else { return false }
+        buffer.deleteRegion(i, i + (n + 1) / 2)
+        return n % 2 == 1
+    }
+
+    /// The escapes that need no answer (`%a`, `%t`, `%<…>`, `%?`…), with `%^` prompts and `%\N`
+    /// left in place.
+    static func expand(_ template: String, _ context: CaptureContext) -> Result<String, Failure> {
         func stamp(_ active: Bool, _ withTime: Bool) -> String {
             let c = context.calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute], from: context.now)
             let day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][(c.weekday ?? 1) - 1]
@@ -156,9 +328,6 @@ public enum Capture {
             return template.replacingOccurrences(of: "$1", with: ns.substring(with: m.range(at: 1)))
         }
         var text = ""
-        var answerIndex = 0
-        var answered: [String] = []
-        var cursor: Int?
         let chars = Array(template)
         var i = 0
         while i < chars.count {
@@ -168,86 +337,80 @@ public enum Capture {
                 i += 1
                 continue
             }
+            // A `%` after an odd run of backslashes stays, with half of them.
+            var slashes = 0
+            while slashes < text.count, text.dropLast(slashes).last == "\\" { slashes += 1 }
             let next = chars[i + 1]
-            if next == "%" {
-                text.append("%")
-                i += 2
-                continue
+            if slashes > 0, "aAcfFikKlLntTuUx:<?".contains(next) {
+                text.removeLast((slashes + 1) / 2)
+                if slashes % 2 == 1 {
+                    text.append(c)
+                    i += 1
+                    continue
+                }
             }
             var consumed = 2
             switch next {
-            case "?": cursor = text.utf16.count
+            case "?": text += cursorMark
             case "i":
                 // Continuation lines keep the indentation of the line `%i` is on.
                 let lead = String(text.split(separator: "\n", omittingEmptySubsequences: false).last ?? "").prefix { $0 == " " || $0 == "\t" }
                 text += context.initial.replacingOccurrences(of: "\n", with: "\n" + lead)
             case "a": text += context.annotation == "[[]]" ? "" : context.annotation
+            case "A":
+                // The link, with its description asked for.
+                let ns = context.annotation as NSString
+                if let m = link.firstMatch(in: context.annotation, range: NSRange(location: 0, length: ns.length)) {
+                    text += ns.replacingCharacters(in: m.range, with: "[[" + ns.substring(with: m.range(at: 1)) + "][%^{Link description}]]")
+                } else {
+                    text += context.annotation
+                }
             case "l": text += linkForm("[[$1]]")
             case "L": text += linkForm("$1")
-            case "c": text += context.clipboard
+            case "c", "x": text += context.clipboard
             case "f": text += (context.file as NSString).lastPathComponent
             case "F": text += context.file
             case "n": text += context.userName
+            case "k": text += context.clockHeading
+            case "K": text += context.clockLink
             case "t": text += stamp(true, false)
             case "T": text += stamp(true, true)
             case "u": text += stamp(false, false)
             case "U": text += stamp(false, true)
             case "<":
-                guard let close = chars[(i + 2)...].firstIndex(of: ">") else { return .failure(.message("Unclosed %< in the template")) }
-                text += strftime(String(chars[(i + 2)..<close]), context)
-                consumed = close - i + 1
-            case "^":
-                guard i + 2 < chars.count, chars[i + 2] == "{", let close = chars[(i + 3)...].firstIndex(of: "}") else {
-                    return .failure(.message("Template escapes like %^\(i + 2 < chars.count ? String(chars[i + 2]) : "") aren't supported yet."))
-                }
-                let after = close + 1 < chars.count ? chars[close + 1] : " "
-                if "CgGLptTuU".contains(after) { return .failure(.message("Template escapes like %^{…}\(after) aren't supported yet.")) }
-                let items = String(chars[(i + 3)..<close]).components(separatedBy: "|")
-                var answer = answerIndex < answers.count ? answers[answerIndex] : ""
-                if answer.isEmpty, items.count > 1 { answer = items[1] }
-                answerIndex += 1
-                answered.append(answer)
-                text += answer
-                consumed = close - i + 1
-            case "\\":
-                var j = i + 2
-                var digits = ""
-                while j < chars.count, chars[j].isNumber {
-                    digits.append(chars[j])
-                    j += 1
-                }
-                if let n = Int(digits), n >= 1, n <= answered.count {
-                    text += answered[n - 1]
-                    consumed = j - i
-                } else {
+                guard let close = chars[(i + 2)...].firstIndex(of: ">"), !chars[(i + 2)..<close].contains("\n") else {
                     text.append(c)
                     consumed = 1
+                    break
                 }
-            case "(", "[", "k", "K", "x", "A", ":":
-                return .failure(.message("Template escapes like %\(next) aren't supported yet."))
+                text += strftime(String(chars[(i + 2)..<close]), context)
+                consumed = close - i + 1
+            case ":":
+                // A link property (`%:annotation`); only the capture's own are known.
+                var j = i + 2
+                while j < chars.count, chars[j].isLetter || chars[j] == "-" { j += 1 }
+                guard j > i + 2 else {
+                    text.append(c)
+                    consumed = 1
+                    break
+                }
+                switch String(chars[(i + 2)..<j]) {
+                case "annotation": text += context.annotation
+                case "initial": text += context.initial
+                default: break
+                }
+                consumed = j - i
+            case "(":
+                return .failure(.message("Template escapes like %( run Emacs Lisp, which Orgstar doesn't."))
+            case "[":
+                return .failure(.message("Template escapes like %[file] aren't supported yet."))
             default:
                 text.append(c)
                 consumed = 1
             }
             i += consumed
         }
-        // No blank lines before the text; it ends with one newline, or is empty.
-        var marked = text
-        let marker = "\u{0}CURSOR\u{0}"
-        if let cursor {
-            let index = String.Index(utf16Offset: cursor, in: marked)
-            marked.insert(contentsOf: marker, at: index)
-        }
-        var lines = marked.components(separatedBy: "\n")
-        while let first = lines.first, first.trimmingCharacters(in: .whitespaces).isEmpty, lines.count > 1 { lines.removeFirst() }
-        marked = lines.joined(separator: "\n")
-        let trimmed = marked.replacingOccurrences(of: "[ \\t\\n]+$", with: "", options: .regularExpression)
-        marked = trimmed.isEmpty ? "" : trimmed + "\n"
-        marked = marked.replacingOccurrences(of: "\t", with: "        ")
-        guard let range = marked.range(of: marker) else { return .success((marked, marked.utf16.count > 0 ? marked.utf16.count - 1 : 0)) }
-        let offset = marked[..<range.lowerBound].utf16.count
-        marked.removeSubrange(range)
-        return .success((marked, offset))
+        return .success(text)
     }
 
     static func strftime(_ format: String, _ context: CaptureContext) -> String {

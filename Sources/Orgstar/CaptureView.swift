@@ -42,7 +42,11 @@ struct CaptureView: View {
                 Text(template.name).font(.headline)
                 Form {
                     ForEach(questions.indices, id: \.self) { index in
-                        TextField(questions[index].prompt, text: $answers[index], prompt: Text(questions[index].defaultValue))
+                        let question = questions[index]
+                        TextField(question.prompt, text: $answers[index], prompt: Text(placeholder(question)))
+                        if !question.choices.isEmpty {
+                            Text(question.choices.prefix(12).joined(separator: "  ")).font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                 }
                 HStack {
@@ -80,6 +84,15 @@ struct CaptureView: View {
         .onAppear(perform: reset)
     }
 
+    /// What an empty answer means.
+    private func placeholder(_ question: Capture.Question) -> String {
+        switch question.kind {
+        case .text, .property, .clipboard: question.defaultValue
+        case .tags: "tag:tag"
+        case .date(let withTime, _): withTime ? "now; or +2d, fri 14:00" : "today; or +2d, fri"
+        }
+    }
+
     private func target(_ template: CaptureTemplate) -> String {
         let file = (template.target.file as NSString).lastPathComponent
         switch template.target {
@@ -98,18 +111,31 @@ struct CaptureView: View {
         problem = loaded.problems.first
         template = nil
         editing = false
+        let clocked = clock.running
+        let clockFile = clocked.map { Links.abbreviate($0.path, home: NSHomeDirectory()) }
         context = CaptureContext(
             initial: commands.editor?.selectedText ?? "",
             annotation: session.captureAnnotation(),
             clipboard: NSPasteboard.general.string(forType: .string) ?? "",
             file: session.path ?? "",
-            userName: NSFullUserName()
+            userName: NSFullUserName(),
+            clockHeading: clocked?.heading ?? "",
+            clockLink: clocked.map { "[[file:\(clockFile!)::*\($0.heading)][\($0.heading)]]" } ?? "",
+            allTags: (try? workspace.index.tags()) ?? [],
+            tagsColumn: UserDefaults.standard.object(forKey: "tagsColumn") as? Int ?? -77
         )
     }
 
     private func choose(_ chosen: CaptureTemplate) {
         template = chosen
-        questions = Capture.questions(chosen.template)
+        // `%^g` offers the target file's tags.
+        let path = DocumentSession.resolve(chosen.target.file, root: workspace.rootPaths.first)
+        if !chosen.target.file.isEmpty, let text = session.openDocuments.first(where: { $0.path == path })?.document.text ?? (try? String(contentsOfFile: path, encoding: .utf8)) {
+            var tags: [String] = []
+            for heading in DocumentModel(tree: OrgParser.parse(text)).headings { for tag in heading.localTags where !tags.contains(tag) { tags.append(tag) } }
+            context.fileTags = tags
+        }
+        questions = Capture.questions(chosen.template, context: context)
         answers = questions.map { _ in "" }
         if questions.isEmpty { expand() }
     }
