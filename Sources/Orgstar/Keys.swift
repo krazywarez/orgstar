@@ -134,6 +134,7 @@ struct StateTag: View {
     private var label: String {
         switch state {
         case "visual-line": "V-LINE"
+        case "visual-block": "V-BLOCK"
         default: state.uppercased()
         }
     }
@@ -141,7 +142,7 @@ struct StateTag: View {
     private var color: Color {
         switch state {
         case "insert": theme.color("state-insert") ?? .green
-        case "visual", "visual-line": theme.color("state-visual") ?? .orange
+        case "visual", "visual-line", "visual-block": theme.color("state-visual") ?? .orange
         default: theme.color("state-normal") ?? .blue
         }
     }

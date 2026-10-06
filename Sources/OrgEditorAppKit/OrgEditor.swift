@@ -277,6 +277,8 @@ public final class OrgEditor: NSObject {
     public var onKeysPending: ((_ keys: String?, _ next: [(key: String, title: String)]) -> Void)?
     /// Called with `app.*` commands, which the app carries out.
     public var onAppCommand: ((String) -> Void)?
+    /// `:e FILE`: the path as typed, for the app to open.
+    public var onOpenFile: ((String) -> Void)?
     /// Called when a command asks a question; reply with the answer, or nil to cancel.
     public var onPrompt: ((Prompt, _ reply: @escaping (String?) -> Void) -> Void)?
     /// Runs work outside the text, such as a table recalculation in Emacs.
@@ -330,6 +332,16 @@ public final class OrgEditor: NSObject {
     var insertSnapshot: (text: String, caret: Int)?
     /// The evil cursor in visual states, where the selection's start isn't it.
     var visualCaret: Int?
+    /// Vim marks, mapped through edits.
+    var vimMarks: [Character: Int] = [:]
+    /// Jump positions, oldest first, mapped through edits; `jumpIndex` is where C-o and C-i are.
+    var jumpList: [Int] = []
+    var jumpIndex = 0
+    /// The register keys go into while `q` records, and its keys so far.
+    var recordingRegister: Character?
+    var recordedKeys: [KeyChord] = []
+    var macros: [Character: [KeyChord]] = [:]
+    var replayingMacro = 0
     /// A region is active: movement extends the selection, as after C-SPC in Emacs.
     private(set) var markActive = false
 
@@ -1180,6 +1192,7 @@ public final class OrgEditor: NSObject {
         view = view.mapped(through: [edit]).pruned(to: document.tree, wrappers: false)
         mapWrapperFolds(through: edit, near: min(oldMapped.lowerBound, newAffected.lowerBound)..<max(oldMapped.upperBound, newAffected.upperBound))
         if let narrowed { self.narrowed = ViewState(selection: [narrowed]).mapped(through: [edit]).selection[0] }
+        mapVimPositions(through: edit)
         if let sparse = sparseHidden { sparseHidden = ViewState(selection: sparse).mapped(through: [edit]).selection.filter { !$0.isEmpty } }
         let oldHighlights = ViewState(selection: highlights).mapped(through: [edit]).selection
         highlights = []

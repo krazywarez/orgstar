@@ -602,6 +602,11 @@ struct ContentView: View {
         case "app.capture":
             NSApp.activate()
             openWindow(id: "capture")
+        case "app.revert":
+            // `:e`: the file as it is on disk; unsaved changes go to recovery.
+            guard session.path != nil else { return commands.show("No file is open") }
+            session.useDiskVersion()
+            commands.show("Reverted to the file on disk")
         case "app.sync-conflicts":
             guard session.path != nil else { return commands.show("No file is open") }
             panel = .syncCopies(UUID())

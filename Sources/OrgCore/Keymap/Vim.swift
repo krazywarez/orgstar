@@ -8,13 +8,14 @@ public struct Vim: Sendable {
     public enum Mode: String, Sendable {
         case normal, insert, visual
         case visualLine = "visual-line"
+        case visualBlock = "visual-block"
 
         /// The keymap mode name for bindings.
         public var keymapMode: String {
             switch self {
             case .normal: "normal"
             case .insert: "insert"
-            case .visual, .visualLine: "visual"
+            case .visual, .visualLine, .visualBlock: "visual"
             }
         }
     }
@@ -32,6 +33,19 @@ public struct Vim: Sendable {
         /// Ask for a search pattern (`/`, `?`) or an ex command (`:`).
         case prompt(String)
         case message(String)
+        /// `m`: a mark at this offset, for the editor to keep through edits.
+        case setMark(Character, Int)
+        /// A jump left this offset: the editor adds it to the jump list.
+        case jumped(from: Int)
+        /// C-o and C-i through the jump list.
+        case jumpBack(Int)
+        case jumpForward(Int)
+        /// `q`: start recording keys into a register, or with nil stop.
+        case recordMacro(Character?)
+        /// `@`: play a register's keys, this many times.
+        case playMacro(Character, Int)
+        /// A block selection: one range per line.
+        case selectBlock([Range<Int>])
     }
 
     public struct Context: Sendable {
@@ -40,16 +54,19 @@ public struct Vim: Sendable {
         public var clipboard: String?
         /// Lines in a half page, for C-d and C-u.
         public var halfPage: Int
+        /// Marks where the editor keeps them now; `'` and `` ` `` are the last jump's start.
+        public var marks: [Character: Int]
 
-        public init(text: String, caret: Int, clipboard: String? = nil, halfPage: Int = 15) {
+        public init(text: String, caret: Int, clipboard: String? = nil, halfPage: Int = 15, marks: [Character: Int] = [:]) {
             self.text = text
             self.caret = caret
             self.clipboard = clipboard
             self.halfPage = halfPage
+            self.marks = marks
         }
     }
 
-    public private(set) var mode: Mode = .normal
+    public internal(set) var mode: Mode = .normal
     /// Keys of the command being typed.
     public private(set) var pending: [KeyChord] = []
     var registers: [Character: (text: String, linewise: Bool)] = [:]
@@ -68,6 +85,20 @@ public struct Vim: Sendable {
     var caretForApply = 0
     /// Typed in insert state since it began, kept by `inserted(_:)`.
     var insertedText = ""
+    /// The last visual selection, for `gv`.
+    var lastVisual: (anchor: Int, caret: Int, mode: Mode)?
+    /// Marks the engine set this run, for a context without the editor's.
+    var marks: [Character: Int] = [:]
+    /// Where block `I`, `A` and `c` copy what was typed when insert state ends: the other lines,
+    /// by number from 1, the column, and whether short lines are padded to it.
+    var blockInsert: (lines: [Int], column: Int, pad: Bool)?
+    /// The editor's marks for this key.
+    var contextMarks: [Character: Int] = [:]
+    /// Keys are going into a macro register.
+    public internal(set) var recording = false
+    var lastMacro: Character?
+    /// `$` in block visual state: every line to its end.
+    var blockToEnd = false
 
     public init() {}
 
@@ -77,10 +108,11 @@ public struct Vim: Sendable {
         switch mode {
         case .insert:
             return insertKey(key, context)
-        case .normal, .visual, .visualLine:
+        case .normal, .visual, .visualLine, .visualBlock:
             pending.append(key)
             let keys = pending
             caretForApply = context.caret
+            contextMarks = context.marks
             var buffer = Buffer(context)
             switch parse(keys, &buffer, context) {
             case .incomplete:
@@ -115,6 +147,10 @@ public struct Vim: Sendable {
             }
             let caret = context.caret
             let lineStart = buffer.lineStart(caret)
+            if let block = blockInsert {
+                blockInsert = nil
+                if !insertedText.isEmpty, !insertedText.contains("\n") { return replicateBlockInsert(block, buffer, caret: caret) }
+            }
             return [.move(caret: caret > lineStart ? caret - 1 : caret)]
         }
         if key == KeyChord("w", .control) {
@@ -204,6 +240,9 @@ public struct Vim: Sendable {
         let n = count ?? 1
         let caret = context.caret
 
+        if mode == .visualBlock { return parseBlock(rest, &buffer, context, register: register, count: n, keys: keys) }
+        if let result = parseExtras(rest, &buffer, context, register: register, count: count, keys: keys) { return result }
+
         // Operators.
         let operatorKeys: [String: String] = ["d": "d", "c": "c", "y": "y", ">": ">", "<": "<"]
         var op: String?
@@ -212,7 +251,7 @@ public struct Vim: Sendable {
             op = o
         } else if first.key == "g", first.modifiers.isEmpty {
             guard let second = rest.dropFirst().first else { return .incomplete }
-            if ["~", "u", "U"].contains(second.key), second.modifiers.isEmpty {
+            if ["~", "u", "U", "c"].contains(second.key), second.modifiers.isEmpty {
                 op = "g" + second.key
                 afterOp = rest.dropFirst(2)
             }
@@ -240,6 +279,8 @@ public struct Vim: Sendable {
             if motionFirst.key == "i" || motionFirst.key == "a", motionFirst.modifiers.isEmpty {
                 guard motionKeys.count >= 2 else { return .incomplete }
                 guard let object = textObject(motionFirst.key == "i", motionKeys[motionKeys.startIndex + 1], buffer, caret, count: total) else { return .invalid }
+                // evil-org's subtree objects move point to the heading first.
+                if motionKeys[motionKeys.startIndex + 1].key == "R" { caretForApply = buffer.lineStart(object.range.lowerBound) }
                 return .done(apply(op, range: object.range, linewise: object.linewise, buffer, register: register, keys: keys, count: total))
             }
             var motionCaret = caret
@@ -285,6 +326,7 @@ public struct Vim: Sendable {
         if visual, first.modifiers.isEmpty {
             switch first.key {
             case "ESC":
+                lastVisual = (anchor, caret, mode)
                 mode = .normal
                 return .done([.move(caret: buffer.clampNormal(caret))])
             case "o":
@@ -427,7 +469,8 @@ public struct Vim: Sendable {
         case .invalid: return .invalid
         case .moved(let to, _):
             if visual { return .done(visualActions(buffer, to)) }
-            return .done([.move(caret: buffer.clampNormal(to))])
+            let jump: [Action] = Self.isJump(Array(rest)) && to != caret ? [.jumped(from: caret)] : []
+            return .done(jump + [.move(caret: buffer.clampNormal(to))])
         }
     }
 
@@ -560,6 +603,13 @@ public struct Vim: Sendable {
         case ("%", []):
             guard let p = buffer.matchingBracket(c) else { return .invalid }
             return .moved(p, .inclusive)
+        case ("'", []), ("`", []):
+            guard keys.count >= 2 else { return .incomplete }
+            let name = keys[1].key == "'" || keys[1].key == "`" ? Character("'") : keys[1].key.first
+            guard let name, let mark = currentMarks[name] else { return .invalid }
+            goalColumn = nil
+            let p = min(mark, buffer.length)
+            return key.key == "'" ? .moved(buffer.firstNonBlank(buffer.lineStart(p)), .linewise) : .moved(p, .exclusive)
         case ("}", []), ("{", []):
             var p = c
             for _ in 0..<n { p = buffer.paragraph(p, forward: key.key == "}") }
@@ -642,6 +692,8 @@ public struct Vim: Sendable {
             return buffer.bracketObject(c, open: 60, close: 62, inner: inner).map { ($0, false) }
         case "p":
             return buffer.paragraphObject(c, inner: inner).map { ($0, true) }
+        case "e", "E", "r", "R":
+            return Self.orgObject(key.key, inner: inner, buffer, c)
         default:
             return nil
         }
@@ -698,6 +750,7 @@ public struct Vim: Sendable {
 
     mutating func apply(_ op: String, range: Range<Int>, linewise: Bool, _ buffer: Buffer, register: Character?, keys: [KeyChord], count: Int) -> [Action] {
         let wasVisual = mode == .visual || mode == .visualLine
+        if wasVisual { lastVisual = (anchor, caretForApply, mode) }
         let context0Column = max(0, caretForApply - buffer.lineStart(caretForApply))
         mode = .normal
         let text = buffer.substring(range)
@@ -764,6 +817,9 @@ public struct Vim: Sendable {
             }
             lastChange = (wasVisual ? [] : keys, nil)
             return [.edit(edits, caret: start)]
+        case "gc":
+            lastChange = (wasVisual ? [] : keys, nil)
+            return [.edit(Self.toggleComments(buffer, range), caret: buffer.lineStart(range.lowerBound))]
         default:
             let transformed: String
             switch op {
@@ -882,13 +938,13 @@ public struct Vim: Sendable {
         let buffer = Buffer(context)
         guard let p = buffer.search(pattern, from: context.caret, forward: forward, count: 1) else { return [.message("Search failed: \(pattern)")] }
         if mode == .visual || mode == .visualLine { return visualActions(buffer, p) }
-        return [.move(caret: p)]
+        return [.jumped(from: context.caret), .move(caret: p)]
     }
 
     /// Leave a visual state without acting, as `ESC` does.
     public mutating func reset() {
         pending = []
-        if mode == .visual || mode == .visualLine { mode = .normal }
+        if mode == .visual || mode == .visualLine || mode == .visualBlock { mode = .normal }
     }
 
     // MARK: - Text
@@ -962,6 +1018,17 @@ public struct Vim: Sendable {
                 line = end + 1
             }
             return line
+        }
+
+        /// The number, from 1, of the line holding `i`.
+        func lineNumber(_ i: Int) -> Int {
+            var count = 1
+            var p = 0
+            while p < min(i, length) {
+                if char(p) == 10 { count += 1 }
+                p += 1
+            }
+            return count
         }
 
         func lineCount(_ r: Range<Int>) -> Int {

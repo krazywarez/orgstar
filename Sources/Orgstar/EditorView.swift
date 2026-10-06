@@ -95,6 +95,16 @@ struct EditorView: NSViewRepresentable {
         editor.onModeChange = { [weak commands] in commands?.editorState = $0 }
         editor.onSelectionChange = { [weak commands] in commands?.selection = $0 }
         editor.onAppCommand = onAppCommand
+        editor.onOpenFile = { [weak session, weak commands] typed in
+            let expanded = (typed as NSString).expandingTildeInPath
+            let base = URL(fileURLWithPath: path).deletingLastPathComponent()
+            let target = expanded.hasPrefix("/") ? expanded : base.appendingPathComponent(expanded).standardizedFileURL.path
+            guard FileManager.default.fileExists(atPath: target) else {
+                commands?.show("No file \(typed)")
+                return
+            }
+            session?.open(target)
+        }
         editor.onExternal = onExternal
         editor.knownTags = knownTags
         editor.onPrompt = { [weak commands] prompt, reply in commands?.ask(prompt, reply: reply) }

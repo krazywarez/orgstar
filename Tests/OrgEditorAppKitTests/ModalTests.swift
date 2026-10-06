@@ -18,7 +18,10 @@ struct ModalTests {
         let codes: [String: UInt16] = ["ESC": 53, "RET": 36, "TAB": 48, "SPC": 49]
         for token in keys.split(separator: " ") {
             let key = String(token)
-            if let code = codes[key] {
+            if key.hasPrefix("C-") {
+                let letter = String(key.dropFirst(2))
+                KeyTests().send(h, characters: letter, ignoring: letter, code: 0, flags: .control)
+            } else if let code = codes[key] {
                 let characters = key == "ESC" ? "\u{1b}" : key == "RET" ? "\r" : key == "TAB" ? "\t" : " "
                 KeyTests().send(h, characters: characters, ignoring: characters, code: code)
             } else {
@@ -122,5 +125,36 @@ struct ModalTests {
         #expect(app == ["app.quit"])
         h.editor.modal = false
         #expect(states.last == .some(nil))
+    }
+
+    @Test func macrosReplayKeys() {
+        let h = doom("one two\nthree four\nfive six\nseven\n")
+        h.caret(at: 0)
+        type(h, "q a d w j q")
+        #expect(h.editor.document.text == "two\nthree four\nfive six\nseven\n")
+        type(h, "@ a")
+        #expect(h.editor.document.text == "two\nfour\nfive six\nseven\n")
+        type(h, "@ @")
+        #expect(h.editor.document.text == "two\nfour\nsix\nseven\n")
+        type(h, "g g q b A ! ESC j q 2 @ b")
+        #expect(h.editor.document.text == "two!\nfour!\nsix!\nseven\n", "\(h.editor.document.text.debugDescription)")
+    }
+
+    @Test func jumpsAndMarks() {
+        let h = doom("one\ntwo\nthree\nfour\n")
+        h.caret(at: 4)
+        type(h, "G")
+        #expect(h.textView.selectedRange().location == 19)
+        type(h, "C-o")
+        #expect(h.textView.selectedRange().location == 4)
+        type(h, "C-i")
+        #expect(h.textView.selectedRange().location == 19)
+        type(h, "g g m a G ' a")
+        #expect(h.textView.selectedRange().location == 0)
+        // Marks follow edits above them.
+        type(h, "G m b g g O")
+        h.textView.insertText("new", replacementRange: h.textView.selectedRange())
+        type(h, "ESC ` b")
+        #expect(h.textView.selectedRange().location == 23)
     }
 }

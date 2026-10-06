@@ -1,6 +1,7 @@
 #if os(macOS)
 import AppKit
 import OrgCore
+import OrgDocument
 
 /// Modal editing: keys go to the keymap for the current evil state first (leader keys,
 /// evil-org's org keys), then to `Vim`.
@@ -8,6 +9,7 @@ extension OrgEditor {
     func handleModal(_ chord: KeyChord) -> Bool {
         // ⌘ shortcuts stay with the menus.
         if chord.modifiers.contains(.command) { return false }
+        if recordingRegister != nil, replayingMacro == 0 { recordedKeys.append(chord) }
         dispatcher.mode = vim.mode.keymapMode
         if !vim.pending.isEmpty, vim.mode != .insert {
             return feedVim([chord])
@@ -61,7 +63,9 @@ extension OrgEditor {
             let visual = vim.mode == .visual || vim.mode == .visualLine
             let caret = visual ? (visualCaret ?? textView.selectedRange().location) : textView.selectedRange().location
             let clipboard = NSPasteboard.general.string(forType: .string)
-            let actions = vim.feed(key, Vim.Context(text: document.text, caret: caret, clipboard: clipboard, halfPage: halfPage))
+            var marks = vimMarks
+            if jumpIndex > 0, jumpIndex <= jumpList.count { marks["'"] = jumpList[jumpIndex - 1] }
+            let actions = vim.feed(key, Vim.Context(text: document.text, caret: caret, clipboard: clipboard, halfPage: halfPage, marks: marks))
             apply(actions)
             if !wasInsert, vim.mode == .insert {
                 insertSnapshot = (document.text, textView.selectedRange().location)
@@ -74,7 +78,16 @@ extension OrgEditor {
         return true
     }
 
-    private func insertTyped(_ key: KeyChord) {
+    /// Moves marks and jump positions through an edit.
+    func mapVimPositions(through edit: TextEdit) {
+        guard !vimMarks.isEmpty || !jumpList.isEmpty else { return }
+        let names = Array(vimMarks.keys)
+        let mapped = ViewState(selection: names.map { vimMarks[$0]!..<vimMarks[$0]! } + jumpList.map { $0..<$0 }).mapped(through: [edit]).selection
+        for (i, name) in names.enumerated() { vimMarks[name] = mapped[i].lowerBound }
+        jumpList = mapped.dropFirst(names.count).map { $0.lowerBound }
+    }
+
+    func insertTyped(_ key: KeyChord) {
         let text = key.key == "SPC" ? " " : key.key == "RET" ? "\n" : key.key == "TAB" ? "\t" : key.key
         guard key.modifiers.isEmpty, text.count == 1 else { return }
         textView.insertText(text, replacementRange: textView.selectedRange())
@@ -132,6 +145,54 @@ extension OrgEditor {
                 prompt(kind)
             case .message(let text):
                 onMessage?(text)
+            case .setMark(let name, let offset):
+                vimMarks[name] = offset
+            case .jumped(let from):
+                // A new jump drops the ones C-o went back past.
+                jumpList = Array(jumpList.prefix(jumpIndex))
+                if jumpList.last != from { jumpList.append(from) }
+                if jumpList.count > 100 { jumpList.removeFirst(jumpList.count - 100) }
+                jumpIndex = jumpList.count
+            case .jumpBack(let count):
+                // Leaving the newest place keeps it, so C-i comes back to it.
+                if jumpIndex == jumpList.count {
+                    jumpList.append(textView.selectedRange().location)
+                    jumpIndex = jumpList.count - 1
+                }
+                guard jumpIndex - count >= 0 else { continue }
+                jumpIndex -= count
+                reveal(jumpList[jumpIndex])
+            case .jumpForward(let count):
+                guard jumpIndex + count < jumpList.count else { continue }
+                jumpIndex += count
+                reveal(jumpList[jumpIndex])
+            case .recordMacro(let name):
+                if let name {
+                    recordingRegister = name
+                    recordedKeys = []
+                    onMessage?("Defining keyboard macro…")
+                } else if let register = recordingRegister {
+                    // Without the `q` that ended it.
+                    macros[register] = Array(recordedKeys.dropLast())
+                    recordingRegister = nil
+                    onMessage?("Keyboard macro defined")
+                }
+            case .playMacro(let name, let count):
+                guard let keys = macros[name], !keys.isEmpty else {
+                    onMessage?("No macro in register \(name)")
+                    continue
+                }
+                guard replayingMacro < 20 else { continue }
+                replayingMacro += 1
+                defer { replayingMacro -= 1 }
+                for _ in 0..<count {
+                    for key in keys where !handleModal(key) {
+                        // Printable keys in insert state type, as the text system would.
+                        insertTyped(key)
+                    }
+                }
+            case .selectBlock(let ranges):
+                textView.setSelectedRanges(ranges.map { NSValue(range: NSRange($0)) }, affinity: .downstream, stillSelecting: false)
             }
         }
     }
@@ -161,11 +222,21 @@ extension OrgEditor {
         }
     }
 
-    /// The ex commands people reach for: `:w`, `:q`, `:wq`, `:x`, `:N`, `:s` and `:%s`.
+    /// The ex commands people reach for: `:w`, `:q`, `:wq`, `:x`, `:N`, `:s`, `:%s`, `:e FILE`,
+    /// `:bn`, `:bp`, `:bd`, `:b` and `:ls`.
     func ex(_ command: String) {
         let trimmed = command.trimmingCharacters(in: .whitespaces)
+        if let m = trimmed.firstMatch(of: #/^e(?:dit)?!?\s+(.+)$/#) {
+            onOpenFile?(String(m.1).trimmingCharacters(in: .whitespaces))
+            return
+        }
         switch trimmed {
         case "w", "write": onAppCommand?("app.save")
+        case "bn", "bnext": onAppCommand?("app.buffer.next")
+        case "bp", "bprevious", "bN", "bNext": onAppCommand?("app.buffer.previous")
+        case "bd", "bdelete", "bd!", "bw", "bwipeout": onAppCommand?("app.buffer.kill")
+        case "b", "buffer", "ls", "buffers", "files": onAppCommand?("app.buffer.switch")
+        case "e", "edit", "e!", "edit!": onAppCommand?("app.revert")
         case "q", "quit", "q!": textView.window?.performClose(nil)
         case "wq", "x", "wq!":
             onAppCommand?("app.save")
