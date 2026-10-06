@@ -73,6 +73,8 @@ struct InspectorPane: View {
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { session.reveal(row.start) }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { session.reveal(row.start) }
                     }
                 }
                 .font(.system(.callout, design: .monospaced))
@@ -105,6 +107,9 @@ struct InspectorPane: View {
                     .fontWeight(entry.start == heading ? .semibold : .regular)
                     .contentShape(Rectangle())
                     .onTapGesture { session.reveal(entry.start) }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction { session.reveal(entry.start) }
                 }
                 HStack {
                     Text("Total").bold()

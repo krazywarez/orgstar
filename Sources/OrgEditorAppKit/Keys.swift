@@ -14,6 +14,8 @@ public struct OptionAsMeta: OptionSet, Sendable {
 final class OrgTextView: NSTextView {
     /// Returns true when the key was handled.
     var keyHandler: ((NSEvent) -> Bool)?
+    /// The text as shown, for accessibility.
+    var accessibleText: (() -> AccessibleText)?
     var onMouseDown: (() -> Void)?
     /// Each editor keeps its own undo history, not the window's.
     private let ownUndoManager = UndoManager()

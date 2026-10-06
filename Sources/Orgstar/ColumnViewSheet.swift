@@ -35,6 +35,11 @@ struct ColumnViewSheet: View {
                             }
                         }
                         .contentShape(Rectangle())
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction {
+                            jump(row.start)
+                            dismiss()
+                        }
                         .onTapGesture {
                             jump(row.start)
                             dismiss()

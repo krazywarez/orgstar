@@ -97,6 +97,10 @@ public final class OrgEditor: NSObject {
 
     public let mode: Mode
     public var isOrg: Bool { mode == .org }
+    /// The text as shown for accessibility, and the storage generation it's for.
+    var accessibleCache: (storage: Int, text: AccessibleText)?
+    /// Bumped on every character or attribute change to the storage.
+    var storageGeneration = 0
     /// The open completion list, and the pause before one opens by itself.
     var completionPopup: CompletionPopup?
     var completionTimer: DispatchWorkItem?
@@ -125,6 +129,13 @@ public final class OrgEditor: NSObject {
             return true
         }
         orgTextView.onClick = { [weak self] offset in self?.click(at: offset) ?? false }
+        orgTextView.accessibleText = { [weak self] in
+            guard let self, let storage = self.textView.textStorage else { return AccessibleText(NSAttributedString()) }
+            if let cached = self.accessibleCache, cached.storage == self.storageGeneration { return cached.text }
+            let text = AccessibleText(storage)
+            self.accessibleCache = (self.storageGeneration, text)
+            return text
+        }
         orgTextView.onMouseDown = { [weak self] in
             self?.markActive = false
             self?.modalMouseDown()
@@ -1351,6 +1362,7 @@ extension OrgEditor: NSTextStorageDelegate {
     public nonisolated func textStorage(
         _ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int
     ) {
+        MainActor.assumeIsolated { storageGeneration += 1 }
         guard editedMask.contains(.editedCharacters) else { return }
         MainActor.assumeIsolated { storageEdited(range: editedRange, delta: delta) }
     }

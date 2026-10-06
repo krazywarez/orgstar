@@ -152,6 +152,15 @@ struct BoardView: View {
                         card(entry)
                             .draggable(entry.id)
                             .onTapGesture(count: 2) { jump(entry) }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityAction { jump(entry) }
+                            .accessibilityActions {
+                                // Dragging between columns, for VoiceOver.
+                                ForEach(keywords.filter { $0 != keyword }, id: \.self) { other in
+                                    Button("Move to \(other)") { setTodo(entry, other) }
+                                }
+                            }
                     }
                 }
             }

@@ -891,6 +891,8 @@ struct BufferTabs: View {
             Text((path as NSString).lastPathComponent)
                 .lineLimit(1)
                 .foregroundStyle(current ? .primary : .secondary)
+                .accessibilityAddTraits(current ? [.isButton, .isSelected] : .isButton)
+                .accessibilityAction { session.open(path) }
             Button {
                 if path == session.path {
                     if UnsavedChanges.resolve(session) { session.kill(path) }
@@ -904,6 +906,7 @@ struct BufferTabs: View {
             }
             .buttonStyle(.borderless)
             .help("Close")
+            .accessibilityLabel("Close \((path as NSString).lastPathComponent)" + (session.dirtyPaths.contains(path) ? ", unsaved" : ""))
         }
         .font(.callout)
         .padding(.horizontal, 12)
