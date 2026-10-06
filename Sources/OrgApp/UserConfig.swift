@@ -8,7 +8,11 @@ import OrgWorkspace
 /// dotfiles repository and share. The file is the source of truth: Settings writes its changes
 /// into it, keeping comments and order, and edits to it apply while the app runs.
 public enum UserConfig {
+    /// A folder chosen in the app (on iOS, a synced copy of the Mac's), used over the default.
+    nonisolated(unsafe) public static var directoryOverride: URL?
+
     public static var directory: URL {
+        if let directoryOverride { return directoryOverride }
         let environment = ProcessInfo.processInfo.environment
         if let override = environment["ORGSTAR_CONFIG_DIR"] { return URL(fileURLWithPath: override) }
         // Development runs keep everything in their data folder.

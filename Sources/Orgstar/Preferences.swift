@@ -4,17 +4,14 @@ import OrgCore
 
 /// Org preferences, stored in user defaults by the Settings window.
 enum Preferences {
-    static let defaultTodoKeywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)"
+    static let defaultTodoKeywords = OrgPreferences.defaultTodoKeywords
 
     /// TODO keywords for files without `#+TODO`, read at launch.
     @MainActor
     static var orgSettings: OrgSettings {
         // config.toml applies before anything reads settings.
         ConfigSync.shared.start()
-        let line = UserDefaults.standard.string(forKey: "todoKeywords") ?? defaultTodoKeywords
-        var settings = OrgSettings.default.withTodoKeywords(line) ?? .default
-        settings.listAllowAlphabetical = UserDefaults.standard.object(forKey: "alphabeticalLists") as? Bool ?? true
-        return settings
+        return OrgPreferences.orgSettings()
     }
 
     static func options(

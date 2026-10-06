@@ -8,6 +8,7 @@ struct AgendaScreen: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     @Bindable var agenda: AgendaModel
+    let scheduler: ReminderScheduler
     @State private var message: String?
     @State private var tick = 0
 
@@ -28,6 +29,9 @@ struct AgendaScreen: View {
         var tick: Int
         var view: String
         var start: Int?
+        var span: Int
+        var startOffset: Int
+        var subfolders: Bool
     }
 
     var body: some SwiftUI.View {
@@ -44,6 +48,9 @@ struct AgendaScreen: View {
                 }
             } else {
                 ForEach(agenda.list.indices, id: \.self) { i in row(agenda.list[i]) }
+            }
+            if let reminderStatus {
+                Section { } footer: { Text(reminderStatus) }
             }
         }
         .listStyle(.insetGrouped)
@@ -81,9 +88,20 @@ struct AgendaScreen: View {
             await agenda.refresh(open: session.openTexts)
         }
         .task(id: Key(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, tick: tick,
-                      view: view.wrappedValue.rawValue, start: agenda.start)) {
+                      view: view.wrappedValue.rawValue, start: agenda.start, span: agenda.span, startOffset: agenda.startOffset,
+                      subfolders: agenda.includeSubfolders)) {
             await agenda.refresh(open: session.openTexts)
         }
+    }
+
+    /// How far ahead notifications are set, as the design asks the agenda to show: iOS keeps
+    /// at most 64, and sets no more while the app isn't opened.
+    private var reminderStatus: String? {
+        guard OrgPreferences.reminders() else { return nil }
+        if !scheduler.isAuthorized { return "Notifications are off for Orgstar in Settings." }
+        guard let through = scheduler.scheduledThrough else { return nil }
+        return "Reminders are set through " + through.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute())
+            + ". Open Orgstar to set later ones."
     }
 
     private func row(_ item: AgendaItem) -> some SwiftUI.View {

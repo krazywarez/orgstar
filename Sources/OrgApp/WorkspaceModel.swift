@@ -21,7 +21,13 @@ public final class WorkspaceModel {
     public private(set) var changedFile: (path: String, version: Int)?
 
     public let index: IndexStore
-    public let settings: IndexSettings
+    /// A change (other TODO keywords) reindexes the files it affects.
+    public var settings: IndexSettings {
+        didSet {
+            guard settings.version != oldValue.version else { return }
+            Task { await refresh() }
+        }
+    }
     private let rootsFile: URL
     /// Resolved root folders, keyed by their resolved path, which is how the index stores them.
     private var resolvedRoots: [String: URL] = [:]
