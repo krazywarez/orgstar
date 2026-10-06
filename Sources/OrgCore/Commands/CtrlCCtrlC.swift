@@ -16,7 +16,7 @@ public struct CtrlCCtrlC: OrgCommand {
 
     public func run(in context: EditContext) -> CommandStep {
         let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
-        if KeyContext.holds("src", in: context) { return ExecuteSrcBlock().run(in: context) }
+        if KeyContext.holds("src", in: context) || ExecuteSrcBlock.atCallOrInline(context) { return ExecuteSrcBlock().run(in: context) }
         if KeyContext.holds("table", in: context) || TableRecalculate.tblfmLine(in: context) != nil {
             // At the table's very start the context is the table itself, which org recalculates.
             let atStart = buffer.saveExcursion { buffer.tableBegin() } == context.caret

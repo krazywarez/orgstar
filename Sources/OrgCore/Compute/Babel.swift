@@ -36,6 +36,8 @@ public struct BabelJob: Sendable, Equatable {
         let output: Bool
         let wrap: String?
         let name: String?
+        /// An inline block: the result goes after it, in `{{{results(…)}}}`.
+        var inline = false
     }
 }
 
@@ -87,18 +89,87 @@ public enum Babel {
         let text = context.text
         let ns = text as NSString
         let model = DocumentModel(tree: context.tree)
-        guard let block = model.srcBlocks.first(where: { $0.range.contains(context.caret) || $0.range.upperBound == context.caret }) else {
-            return .failure(.message("Not in a source block"))
-        }
-        guard let language = block.language else { return .failure(.message("This block has no language")) }
-        let params: Params
         do {
-            params = try Params(block: block, model: model, text: ns)
+            if let block = model.srcBlocks.first(where: { $0.range.contains(context.caret) || $0.range.upperBound == context.caret }) {
+                return plan(block, params: try Params(block: block, model: model, text: ns), model: model, text: ns, options: options,
+                            location: block.range, name: block.name)
+            }
+            if let call = try callAt(context.caret, model: model, text: ns) {
+                return plan(call.block, params: call.params, model: model, text: ns, options: options, location: call.location, name: call.name)
+            }
+            if let inline = try inlineAt(context.caret, tree: context.tree, model: model, text: ns) {
+                return plan(inline.block, params: inline.params, model: model, text: ns, options: options, location: inline.block.range, name: nil, inline: true)
+            }
         } catch let error as Failure {
             return .failure(error)
         } catch {
             return .failure(.message("\(error)"))
         }
+        return .failure(.message("Not in a source block"))
+    }
+
+    /// The `#+CALL:` line at `offset`: the block it names, with the call's inside header, its
+    /// arguments as `:var` and its end header over the block's own (`org-babel-lob-get-info`).
+    static func callAt(_ offset: Int, model: DocumentModel, text: NSString) throws -> (block: SrcBlockInfo, params: Params, location: Range<Int>, name: String?)? {
+        let lineRange = text.lineRange(for: NSRange(location: min(offset, text.length), length: 0))
+        let line = text.substring(with: lineRange)
+        guard let m = line.firstMatch(of: #/(?i)^[ \t]*#\+CALL:[ \t]*([^\s(\[]+)(?:\[([^\]]*)\])?\((.*?)\)[ \t]*(.*?)[ \t]*\n?$/#) else { return nil }
+        let name = String(m.1)
+        guard let block = model.srcBlocks.first(where: { $0.name == name }) else { throw Failure.message("Reference '\(name)' not found in this buffer") }
+        var extra: [[(String, String)]] = []
+        if let inside = m.2 { extra.append(Params.parse(String(inside))) }
+        extra.append(splitArguments(String(m.3)).map { (":var", $0) })
+        if !m.4.isEmpty { extra.append(Params.parse(String(m.4))) }
+        // The call's own #+NAME names its results.
+        var callName: String?
+        if lineRange.location > 0 {
+            let previous = text.substring(with: text.lineRange(for: NSRange(location: lineRange.location - 1, length: 0)))
+            callName = previous.firstMatch(of: #/(?i)^[ \t]*#\+NAME:[ \t]*(\S+)/#).map { String($0.1) }
+        }
+        let location = lineRange.location..<NSMaxRange(lineRange)
+        return (block, try Params(block: block, model: model, text: text, extra: extra), location, callName)
+    }
+
+    /// Call arguments split on commas outside quotes and parentheses.
+    static func splitArguments(_ s: String) -> [String] {
+        var parts: [String] = []
+        var current = ""
+        var depth = 0
+        var quoted = false
+        for c in s {
+            if c == "\"" { quoted.toggle() }
+            if !quoted, c == "(" { depth += 1 }
+            if !quoted, c == ")" { depth -= 1 }
+            if c == ",", !quoted, depth == 0 {
+                parts.append(current)
+                current = ""
+            } else {
+                current.append(c)
+            }
+        }
+        parts.append(current)
+        return parts.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    /// The inline `src_LANG[HEADERS]{BODY}` at `offset`.
+    static func inlineAt(_ offset: Int, tree: OrgTree, model: DocumentModel, text: NSString) throws -> (block: SrcBlockInfo, params: Params)? {
+        var node = tree.root
+        var found: SyntaxNode?
+        while let child = node.child(containing: offset) {
+            if child.kind == .inlineSourceBlock { found = child }
+            node = child
+        }
+        guard let object = found, let m = object.text.firstMatch(of: /^src_([^\s\[{]+)(?:\[([^\]]*)\])?\{(.*)\}$/) else { return nil }
+        let heading = model.headings.lastIndex { $0.headingRange.lowerBound <= object.range.lowerBound }
+        let block = SrcBlockInfo(range: object.range, heading: heading, name: nil, language: String(m.1), switches: [], body: String(m.3), headerArguments: [:])
+        var extra: [[(String, String)]] = [[(":exports", "results"), (":hlines", "yes")]]
+        if let headers = m.2 { extra.append(Params.parse(String(headers))) }
+        return (block, try Params(block: block, model: model, text: text, extra: extra, inline: true))
+    }
+
+    static func plan(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text ns: NSString, options: Options,
+                     location: Range<Int>, name: String?, inline: Bool = false) -> Result<BabelJob, Failure> {
+        guard let language = block.language else { return .failure(.message("This block has no language")) }
         let eval = params.single[":eval"]?.lowercased()
         if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
             return .failure(.message("Evaluation of this \(language) code block\(block.name.map { " (\($0)) " } ?? " ")is disabled."))
@@ -107,15 +178,21 @@ public enum Babel {
             return .failure(.message("\(key) isn't supported yet; nothing was run."))
         }
         if let session = params.single[":session"], session != "none" { return .failure(.message(":session isn't supported yet; nothing was run.")) }
-        if let noweb = params.single[":noweb"], !["no", "strip-export", "tangle"].contains(noweb) {
-            return .failure(.message(":noweb isn't supported yet; nothing was run."))
-        }
         if params.single[":cache"] == "yes" { return .failure(.message(":cache isn't supported yet; nothing was run.")) }
 
-        let body = normalizedBody(block)
+        var body = normalizedBody(block)
+        if nowebEvaluates(params.single[":noweb"]) {
+            do {
+                body = try expandNoweb(block, params: params, model: model, text: ns)
+            } catch let error as Failure {
+                return .failure(error)
+            } catch {
+                return .failure(.message("\(error)"))
+            }
+        }
         let output = params.results.contains("output")
         let finishBase = { (kind: BabelJob.Finish.Kind) in
-            BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: block.name)
+            BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: name, inline: inline)
         }
         let vars: [(String, VarValue)]
         do {
@@ -125,7 +202,7 @@ public enum Babel {
         } catch {
             return .failure(.message("\(error)"))
         }
-        let blockText = ns.substring(with: NSRange(block.range))
+        let blockText = ns.substring(with: NSRange(location))
         let dir = params.single[":dir"]
         let alwaysAsk = eval == "query"
 
@@ -145,7 +222,7 @@ public enum Babel {
             return .success(BabelJob(
                 language: language, runner: .process(executable: executable, arguments: []),
                 input: full.trimmingCharacters(in: .whitespacesAndNewlines) + "\n", directory: dir,
-                block: block.range, blockText: blockText, alwaysAsk: alwaysAsk,
+                block: location, blockText: blockText, alwaysAsk: alwaysAsk,
                 finish: finishBase(.shell(valueIsExitStatus: valueIsExitStatus))
             ))
         }
@@ -162,7 +239,7 @@ public enum Babel {
             }
             return .success(BabelJob(
                 language: language, runner: .process(executable: params.single[":python"] ?? options.python, arguments: []),
-                input: input, directory: dir, block: block.range, blockText: blockText, alwaysAsk: alwaysAsk,
+                input: input, directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
                 finish: finishBase(.python)
             ))
         }
@@ -172,15 +249,15 @@ public enum Babel {
             let form = output ? "(with-output-to-string \(expanded))" : "(progn \(expanded)\n)"
             return .success(BabelJob(
                 language: language, runner: .emacs, input: emacsScript(form: form, params: params.results),
-                directory: dir, block: block.range, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.emacsLisp)
+                directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.emacsLisp)
             ))
         }
         if let (executable, arguments) = generic[language] {
             guard vars.isEmpty else { return .failure(.message(":var isn't supported for \(language) yet.")) }
             return .success(BabelJob(
                 language: language, runner: .process(executable: params.single[":cmd"] ?? executable, arguments: arguments),
-                input: body + "\n", directory: dir, block: block.range, blockText: blockText, alwaysAsk: alwaysAsk,
-                finish: BabelJob.Finish(kind: .generic, language: language, params: params.results + (output ? [] : ["output"]), output: true, wrap: params.wrap, name: block.name)
+                input: body + "\n", directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
+                finish: BabelJob.Finish(kind: .generic, language: language, params: params.results + (output ? [] : ["output"]), output: true, wrap: params.wrap, name: name, inline: inline)
             ))
         }
         return .failure(.message("No way to run \(language) blocks yet."))
@@ -188,6 +265,78 @@ public enum Babel {
 
     public enum Failure: Error, Equatable {
         case message(String)
+    }
+
+    // MARK: - Noweb
+
+    /// `org-babel-noweb-p` in the `:eval` context.
+    static func nowebEvaluates(_ value: String?) -> Bool {
+        (value ?? "").split(whereSeparator: \.isWhitespace).contains { ["yes", "no-export", "strip-export", "eval", "strip-tangle"].contains(String($0)) }
+    }
+
+    /// `org-babel-expand-noweb-references` for evaluation: each `<<name>>` becomes the body of
+    /// the block named so, or of every block with that `:noweb-ref`, joined by `:noweb-sep`, or
+    /// the contents of the heading with that ID; the text before it on its line goes before
+    /// each line it brings.
+    static func expandNoweb(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text: NSString, depth: Int = 0) throws -> String {
+        guard depth < 32 else { throw Failure.message("Noweb references nest too deeply") }
+        let body = normalizedBody(block)
+        let prefixing = params.single[":noweb-prefix"].map { $0 != "no" && $0 != "nil" } ?? true
+        func expand(_ other: SrcBlockInfo) throws -> String {
+            let otherParams = try Params(block: other, model: model, text: text)
+            return nowebEvaluates(otherParams.single[":noweb"])
+                ? try expandNoweb(other, params: otherParams, model: model, text: text, depth: depth + 1)
+                : normalizedBody(other)
+        }
+        func inCommentedHeading(_ b: SrcBlockInfo) -> Bool {
+            guard let h = b.heading else { return false }
+            return ([h] + model.ancestors(of: h)).contains { model.headings[$0].title == "COMMENT" || model.headings[$0].title.hasPrefix("COMMENT ") }
+        }
+        let regex = try! NSRegularExpression(pattern: "(.*?)(<<([^ \\t\\n](?:.*?[^ \\t\\n])?)>>)")
+        let ns = body as NSString
+        var out = ""
+        var at = 0
+        for m in regex.matches(in: body, range: NSRange(location: 0, length: ns.length)) {
+            let prefix = ns.substring(with: m.range(at: 1))
+            let id = ns.substring(with: m.range(at: 3))
+            out += ns.substring(with: NSRange(location: at, length: m.range(at: 2).location - at))
+            at = NSMaxRange(m.range)
+            var expansion = ""
+            if id.range(of: "\\(.*\\)", options: .regularExpression) != nil {
+                throw Failure.message("Noweb references that run a block (\(id)) aren't supported yet; nothing was run.")
+            } else if let heading = model.headings.firstIndex(where: { h in
+                h.properties.contains { ($0.key.uppercased() == "ID" && $0.value == id) || ($0.key.uppercased() == "CUSTOM_ID" && "#" + $0.value == id) }
+            }) {
+                expansion = headlineBody(heading, model: model, text: text)
+            } else if let named = model.srcBlocks.first(where: { $0.name == id }), !inCommentedHeading(named) {
+                expansion = try expand(named)
+            } else {
+                var parts: [String] = []
+                var separators: [String] = []
+                for other in model.srcBlocks where !inCommentedHeading(other) {
+                    let p = try Params(block: other, model: model, text: text)
+                    guard p.single[":noweb-ref"] == id else { continue }
+                    parts.append(try expand(other))
+                    separators.append(p.single[":noweb-sep"] ?? "\n")
+                }
+                for (i, part) in parts.enumerated() {
+                    if i > 0 { expansion += separators[i - 1] }
+                    expansion += part
+                }
+            }
+            out += prefixing ? expansion.components(separatedBy: CharacterSet(charactersIn: "\n\r")).joined(separator: "\n" + prefix) : expansion
+        }
+        return out + ns.substring(from: at)
+    }
+
+    /// `org-babel-ref-headline-body`: the entry after its planning and drawers.
+    static func headlineBody(_ index: Int, model: DocumentModel, text: NSString) -> String {
+        let heading = model.headings[index]
+        let buffer = EmacsBuffer(text as String, point: heading.headingRange.lowerBound)
+        buffer.endOfMetaData()
+        let start = buffer.point
+        let end = model.headings[(index + 1)...].first.map { $0.headingRange.lowerBound } ?? text.length
+        return start < end ? text.substring(with: NSRange(location: start, length: end - start)).trimmingCharacters(in: .whitespacesAndNewlines) : ""
     }
 
     /// `org-babel--normalize-body`: without the final newline, and without the indentation
@@ -220,7 +369,7 @@ public enum Babel {
             ["output", "value"],
         ]
 
-        init(block: SrcBlockInfo, model: DocumentModel, text: NSString) throws {
+        init(block: SrcBlockInfo, model: DocumentModel, text: NSString, extra: [[(String, String)]] = [], inline: Bool = false) throws {
             var layers: [[(String, String)]] = []
             let language = block.language ?? ""
             func properties(_ entries: [Property]) {
@@ -235,7 +384,7 @@ public enum Babel {
             if let heading = block.heading {
                 for index in model.ancestors(of: heading) + [heading] { properties(model.headings[index].properties) }
             }
-            let firstLine = text.substring(with: text.lineRange(for: NSRange(location: block.range.lowerBound, length: 0)))
+            let firstLine = inline ? "" : text.substring(with: text.lineRange(for: NSRange(location: block.range.lowerBound, length: 0)))
             if let r = firstLine.range(of: "(?i)#\\+begin_src[ \\t]+\\S+", options: .regularExpression) {
                 var rest = String(firstLine[r.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
                 while let first = rest.split(separator: " ").first, first.hasPrefix("-") || first.hasPrefix("+") {
@@ -246,7 +395,7 @@ public enum Babel {
             // `#+HEADER:` lines above the block.
             var headers: [String] = []
             var location = block.range.lowerBound
-            while location > 0 {
+            while !inline, location > 0 {
                 let previous = text.lineRange(for: NSRange(location: location - 1, length: 0))
                 let line = text.substring(with: previous).trimmingCharacters(in: .whitespacesAndNewlines)
                 guard line.range(of: "(?i)^#\\+(header|name|caption|attr_[a-z]+|results|plot|label):", options: .regularExpression) != nil else { break }
@@ -254,6 +403,7 @@ public enum Babel {
                 location = previous.location
             }
             for header in headers { layers.append(Params.parse(header)) }
+            layers += extra
 
             for layer in layers {
                 for (key, value) in layer {
@@ -546,6 +696,16 @@ public enum Babel {
         let value = Self.value(job.finish, output)
         if job.finish.params.contains("silent") || job.finish.params.contains("none") || job.finish.params.contains("discard") { return .success([]) }
         let buffer = EmacsBuffer(text, point: 0, settings: settings)
+        if job.finish.inline {
+            do {
+                try insertInlineResult(value, job.finish, at: blockRange, buffer: buffer)
+            } catch let error as Failure {
+                return .failure(error)
+            } catch {
+                return .failure(.message("\(error)"))
+            }
+            return .success(TextEdit.between(text, buffer.text as String))
+        }
         insertResult(value, job.finish, block: blockRange, buffer: buffer)
         return .success(TextEdit.between(text, buffer.text as String))
     }
@@ -818,6 +978,31 @@ public enum Babel {
     }
 
     /// `org-babel-insert-result` for a src block.
+    /// An inline block's result, after it: ` {{{results(=value=)}}}`, replacing one already
+    /// there; raw results go in as they are.
+    static func insertInlineResult(_ value: Value, _ finish: BabelJob.Finish, at object: Range<Int>, buffer: EmacsBuffer) throws {
+        var string: String
+        switch value {
+        case .none: string = ""
+        case .string(let s): string = s
+        case .table(let rows):
+            let cells = rows.compactMap { $0 }
+            guard cells.count == 1, cells[0].count == 1 else { throw Failure.message("Inline source block results can't be tables or lists") }
+            string = cells[0][0]
+        }
+        buffer.point = object.upperBound
+        if let existing = buffer.lookingAt("[ \\t]*\\{\\{\\{results\\(.*?\\)\\}\\}\\}") {
+            buffer.deleteRegion(existing[0]!.lowerBound, existing[0]!.upperBound)
+        }
+        if finish.params.contains("raw") {
+            buffer.insert(" " + string)
+            return
+        }
+        if string.hasSuffix("\n") { string.removeLast() }
+        guard !string.contains("\n") else { throw Failure.message("Inline source block results must be one line") }
+        buffer.insert(" {{{results(=" + string + "=)}}}")
+    }
+
     static func insertResult(_ value: Value, _ finish: BabelJob.Finish, block: Range<Int>, buffer: EmacsBuffer) {
         let params = finish.params
         let keyword = resultsLine(finish, block: block, buffer: buffer)
@@ -942,7 +1127,21 @@ public struct ExecuteSrcBlock: OrgCommand {
     public init() {}
     public var id: String { "org.babel.execute" }
     public var title: String { "Run Source Block" }
-    public func applies(in context: EditContext) -> Bool { KeyContext.holds("src", in: context) }
+    public func applies(in context: EditContext) -> Bool { KeyContext.holds("src", in: context) || Self.atCallOrInline(context) }
+
+    /// On a `#+CALL:` line or an inline `src_` block.
+    static func atCallOrInline(_ context: EditContext) -> Bool {
+        let ns = context.text as NSString
+        let line = ns.substring(with: ns.lineRange(for: NSRange(location: min(context.caret, ns.length), length: 0)))
+        if line.range(of: "(?i)^[ \\t]*#\\+CALL:", options: .regularExpression) != nil { return true }
+        var node = context.tree.root
+        while let child = node.child(containing: context.caret) {
+            if child.kind == .inlineSourceBlock { return true }
+            node = child
+        }
+        return false
+    }
+
     public func run(in context: EditContext) -> CommandStep {
         switch Babel.plan(context) {
         case .success(let job): return .external(.babel(job))

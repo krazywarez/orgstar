@@ -138,7 +138,7 @@ struct BabelTests {
         for (text, message) in [
             ("#+begin_src sh :eval never\necho\n#+end_src\n", "Evaluation of this sh code block is disabled."),
             ("#+begin_src sh :session s\necho\n#+end_src\n", ":session isn't supported yet; nothing was run."),
-            ("#+begin_src sh :noweb yes\necho\n#+end_src\n", ":noweb isn't supported yet; nothing was run."),
+            ("#+begin_src sh :noweb yes\n<<x()>>\n#+end_src\n", "Noweb references that run a block (x()) aren't supported yet; nothing was run."),
             ("#+begin_src sh :file out.txt\necho\n#+end_src\n", ":file isn't supported yet; nothing was run."),
             ("#+begin_src cobol\nDISPLAY\n#+end_src\n", "No way to run cobol blocks yet."),
         ] {
@@ -148,6 +148,48 @@ struct BabelTests {
                 continue
             }
             #expect(got == message)
+        }
+    }
+}
+
+struct BabelCallTests {
+    static let named = "#+NAME: double\n#+begin_src sh :var n=2\necho $((n*2))\n#+end_src\n\n"
+    static let cases: [(String, String)] = [
+        (named + "#+CALL: double(n=5)\n", "#+CALL"),
+        (named + "#+CALL: double()\n", "#+CALL"),
+        (named + "#+CALL: double(n=5)\n\n#+RESULTS:\n: 99\n\nAfter.\n", "#+CALL"),
+        (named + "#+CALL: double[:results raw](n=7)\n", "#+CALL"),
+        (named + "#+CALL: double(n=3) :results verbatim\n", "#+CALL"),
+        (named + "#+NAME: six\n#+CALL: double(n=3)\n", "#+CALL"),
+        ("Text src_sh{echo hi} end.\n", "src_sh"),
+        ("Text src_sh{echo hi} {{{results(=old=)}}} end.\n", "src_sh"),
+        ("Text src_sh[:results raw]{echo raw} end.\n", "src_sh"),
+        ("Text src_python{return 6*7} end.\n", "src_python"),
+        ("Text src_sh[:var x=3]{echo $x} end.\n", "src_sh"),
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func matchesEmacs() throws {
+        let folder = FileManager.default.temporaryDirectory
+        var emacsCases: [EmacsOracle.Case] = []
+        var ours: [(text: String, failure: String?)] = []
+        for (text, at) in Self.cases {
+            let caret = (text as NSString).range(of: at).location + 2
+            ours.append(try TestBabelRunner.execute(text, caret: caret, directory: folder))
+            emacsCases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: """
+            (progn
+              (require 'ob-shell)
+              (require 'ob-python)
+              (setq org-confirm-babel-evaluate nil
+                    org-babel-python-command "python3"
+                    default-directory temporary-file-directory)
+              (org-ctrl-c-ctrl-c))
+            """))
+        }
+        let emacs = try EmacsOracle.run(emacsCases)
+        for (i, (mine, theirs)) in zip(ours, emacs).enumerated() {
+            #expect(mine.text == theirs.text && (mine.failure != nil) == !theirs.error.isEmpty,
+                    "case \(i):\n\(Self.cases[i].0)\nours (\(mine.failure ?? "")):\n\(mine.text)\nemacs (\(theirs.error)):\n\(theirs.text)")
         }
     }
 }
