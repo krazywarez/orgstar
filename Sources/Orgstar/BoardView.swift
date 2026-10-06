@@ -190,9 +190,16 @@ struct BoardView: View {
 
     // MARK: - Editing
 
-    private func perform(_ command: any OrgCommand, on entry: BoardEntry) {
-        switch session.perform(command, path: entry.path, at: entry.headingOffset, expect: (entry.headingOffset, entry.headingLine)) {
+    private func perform(_ command: any OrgCommand, on entry: BoardEntry, answers: [String: String] = [:]) {
+        switch session.perform(command, path: entry.path, at: entry.headingOffset, expect: (entry.headingOffset, entry.headingLine), answers: answers) {
         case .failed(let text): message = text
+        case .prompt(let prompt):
+            // A state note: asked in the main window's echo area.
+            commands.ask(prompt) { answer in
+                guard let answer else { return }
+                perform(command, on: entry, answers: answers.merging([prompt.key: answer]) { $1 })
+            }
+            openWindow(id: "main")
         default: message = nil
         }
         tick += 1

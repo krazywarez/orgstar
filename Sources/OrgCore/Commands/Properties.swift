@@ -37,11 +37,7 @@ public struct SetTodo: OrgCommand {
             try buffer.saveExcursion {
                 let previous = buffer.todoKeyword
                 buffer.setTodoKeyword(keyword)
-                guard previous != keyword else { return }
-                if let keyword, settings.isDone(keyword), !(previous.map(settings.isDone) ?? false),
-                   let (marker, note) = try buffer.autoRepeat(doneWord: keyword, previous: previous) {
-                    buffer.storeNote(marker, note)
-                }
+                try buffer.afterTodoChange(previous: previous, answers: context.answers)
             }
         }
     }

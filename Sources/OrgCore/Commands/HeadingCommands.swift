@@ -211,9 +211,7 @@ public struct TodoCycle: OrgCommand {
         return followUp(context, cycle(in: context)) { buffer in
             try buffer.saveExcursion {
                 buffer.updateParentTodoStatistics()
-                let settings = context.tree.settings
-                guard let new = buffer.todoKeyword, settings.isDone(new), !(previous.map(settings.isDone) ?? false) else { return }
-                if let (marker, note) = try buffer.autoRepeat(doneWord: new, previous: previous) { buffer.storeNote(marker, note) }
+                try buffer.afterTodoChange(previous: previous, answers: context.answers)
             }
         }
     }

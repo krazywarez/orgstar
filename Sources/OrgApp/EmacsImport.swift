@@ -457,6 +457,15 @@ public struct EmacsImport: Sendable {
             } else {
                 add(name, .bool(truthy))
             }
+        case "org-log-done":
+            switch value.symbol {
+            case "nil": add(name, .string("nil"))
+            case "time", "t": add(name, .string("time"))
+            case "note": add(name, .string("note"))
+            default: note("unexpected value \(value.description)")
+            }
+        case "org-log-into-drawer":
+            if let s = value.string { add(name, .string(s)) } else { add(name, .string(truthy ? "LOGBOOK" : "")) }
         case "display-line-numbers-type":
             add(name, .bool(truthy), truthy && value.symbol != "t" ? "display-line-numbers-type = true (Orgstar numbers lines absolutely)" : nil)
         case "org-agenda-span":

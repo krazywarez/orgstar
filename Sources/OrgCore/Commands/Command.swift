@@ -13,6 +13,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var listAllowAlphabetical: Bool
     /// `org-log-repeat` `time`: completing a repeating entry records LAST_REPEAT and a state note.
     public var logRepeat: Bool
+    /// `org-log-done`: CLOSED when an entry becomes done, and a note with `.note`.
+    public var logDone: LogHow?
+    /// `org-log-into-drawer`: the drawer state notes go in, or nil for none.
+    public var logIntoDrawer: String?
     /// `fill-column` for M-q.
     public var fillColumn: Int
     /// `org-hide-emphasis-markers`: table alignment measures emphasis without its markers.
@@ -25,8 +29,11 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public init(
         tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true,
         listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70,
-        hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false
+        hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false,
+        logDone: LogHow? = nil, logIntoDrawer: String? = nil
     ) {
+        self.logDone = logDone
+        self.logIntoDrawer = logIntoDrawer
         self.tagsColumn = tagsColumn
         self.insertHeadingRespectContent = insertHeadingRespectContent
         self.metaReturnMaySplitLine = metaReturnMaySplitLine

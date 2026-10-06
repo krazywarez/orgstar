@@ -1,8 +1,7 @@
 import Foundation
 
-// Repeating entries (`org-auto-repeat-maybe`, Org 9.8.7) and the state note org logs for them
-// (`org-add-log-setup`, `org-store-log-note`, `org-log-beginning`), with `org-log-repeat`
-// `time`, `org-log-into-drawer` nil, `org-todo-repeat-to-state` nil.
+// Repeating entries (`org-auto-repeat-maybe`, Org 9.8.7) and where state notes go
+// (`org-log-beginning`), with `org-todo-repeat-to-state` nil.
 
 extension EmacsBuffer {
     static let repeatPattern = "<[0-9]{4}-[0-9][0-9]-[0-9][0-9] [^>\\n]*?([.+]?\\+[0-9]+[hdwmy](/[0-9]+[hdwmy])?)"
@@ -48,9 +47,9 @@ extension EmacsBuffer {
         }
     }
 
-    /// `org-auto-repeat-maybe` after `doneWord` replaced `previous`. Returns the note to log, if
-    /// any, with the marker it belongs at.
-    func autoRepeat(doneWord: String, previous: String?) throws -> (Marker, String)? {
+    /// `org-auto-repeat-maybe` after `doneWord` replaced `previous`. Returns the state note the
+    /// repeat logs, if any.
+    func autoRepeat(doneWord: String, previous: String?, log: LogSettings) throws -> LogSetup? {
         guard let cookie = repeatCookie(), (Int(cookie.drop { !$0.isNumber }.prefix { $0.isNumber }) ?? 0) != 0 else { return nil }
         let end = marker(entryEnd)
         defer { release(end) }
@@ -63,8 +62,7 @@ extension EmacsBuffer {
         try backToHeading()
         try addPlanningInfo(nil, time: nil, withTime: false, endTime: nil, remove: [.closed])
         let stamp = formatTimestamp(calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now), withTime: true, inactive: true)
-        if options.logRepeat { entryPut("LAST_REPEAT", stamp) }
-        let note = marker(point)
+        if log.repeatHow != nil { entryPut("LAST_REPEAT", stamp) }
         if let scheduled = planningValue(.scheduled), ("<" + scheduled + ">").range(of: Self.repeatPattern, options: .regularExpression) == nil {
             saveExcursion { removePlanning(.scheduled) }
         }
@@ -102,36 +100,7 @@ extension EmacsBuffer {
             }
             try saveExcursion { try changeTimestamp(n, what: unit, suppressDelay: true) }
         }
-        guard options.logRepeat else {
-            release(note)
-            return nil
-        }
-        func quoted(_ text: String?) -> String { text.map { "\"\($0)\"" } ?? "" }
-        let line = "State " + quoted(doneWord).padding(toLength: max(12, quoted(doneWord).count), withPad: " ", startingAt: 0)
-            + " from " + quoted(previous).padding(toLength: max(12, quoted(previous).count), withPad: " ", startingAt: 0)
-            + " " + stamp
-        return (note, line)
-    }
-
-    /// `org-store-log-note` for a one-line note at `marker`.
-    func storeNote(_ marker: Marker, _ text: String) {
-        saveExcursion {
-            point = marker.position
-            release(marker)
-            point = logBeginning()
-            if !bolp {
-                insert("\n")
-            } else if lookingAt("[ \\t]*\\S") != nil {
-                saveExcursion { insert("\n") }
-            }
-            if let item = inItem() {
-                let structure = saveExcursion { point = item; return listStruct() }
-                indentLineTo(structure.ind(structure.top))
-            } else {
-                indentLineTo(0)
-            }
-            insert("- " + text)
-        }
+        return log.repeatHow.map { LogSetup(purpose: .state, state: doneWord, previous: previous, how: $0, drawer: log.drawer) }
     }
 
     /// `org-end-of-meta-data` without FULL.
@@ -145,10 +114,11 @@ extension EmacsBuffer {
         }
     }
 
-    /// `org-log-beginning` without a log drawer, with `org-log-states-order-reversed` t: the
-    /// newest note comes first.
-    func logBeginning() -> Int {
+    /// `org-log-beginning` with `org-log-states-order-reversed` t: the newest note comes first.
+    /// With `drawer`, notes go at the top of that drawer, which `create` adds when missing.
+    func logBeginning(drawer: String? = nil, create: Bool = false) -> Int {
         saveExcursion {
+            if let drawer { return drawerLogBeginning(drawer, create: create) }
             endOfMetaData()
             let endpos = point
             skipForward([32, 9, 10])
@@ -158,5 +128,33 @@ extension EmacsBuffer {
             let end = lineEnd(point)
             return end < length ? end + 1 : length
         }
+    }
+
+    private func drawerLogBeginning(_ drawer: String, create: Bool) -> Int {
+        endOfMetaData()
+        let start = point
+        let end = atHeading ? point : saveExcursion { outlineNextHeading(); return point }
+        let name = NSRegularExpression.escapedPattern(for: drawer)
+        while let match = searchForward("^[ \\t]*:" + name + ":[ \\t]*$", bound: end, caseInsensitive: true) {
+            let closed = saveExcursion { searchForward("^[ \\t]*:END:[ \\t]*$", bound: end, caseInsensitive: true) != nil }
+            if closed {
+                point = match[0]!.upperBound
+                return bolp ? point : lineEnd(point) < length ? lineEnd(point) + 1 : length
+            }
+        }
+        point = start
+        guard create else { return bolp ? point : lineEnd(point) < length ? lineEnd(point) + 1 : length }
+        if !eobp, atHeading { point -= 1 }
+        let atBlankLine = lookingAt("^[ \\t]*$") != nil
+        let atNonBlankLineStart = bolp && !eolp
+        if !bolp { insert("\n") }
+        insert(":" + drawer + ":")
+        insert("\n:END:")
+        if atBlankLine || atNonBlankLineStart {
+            insert("\n")
+            point -= 1
+        }
+        point = lineStart(point) - 1
+        return lineStart(point) == point ? point : lineEnd(point) + 1
     }
 }

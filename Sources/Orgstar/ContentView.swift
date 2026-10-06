@@ -34,11 +34,13 @@ struct ContentView: View {
     @AppStorage("fillColumn") private var fillColumn = 80
     @AppStorage("hiddenMarkers") private var hiddenMarkers = true
     @AppStorage("prettyEntities") private var prettyEntities = true
+    @AppStorage("logDone") private var logDone = "nil"
+    @AppStorage("logIntoDrawer") private var logIntoDrawer = ""
 
     private var options: EditingOptions {
         Preferences.options(
             tagsColumn: tagsColumn, headingAfterSubtree: headingAfterSubtree, splitLine: splitLine, alphabeticalLists: alphabeticalLists,
-            fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities
+            fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities, logDone: logDone, logIntoDrawer: logIntoDrawer
         )
     }
     @State private var selectedFile: String?

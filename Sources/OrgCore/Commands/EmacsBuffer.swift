@@ -21,6 +21,11 @@ final class EmacsBuffer {
         let message: String
     }
 
+    /// The command needs an answer first.
+    struct Ask: Error {
+        let prompt: Prompt
+    }
+
     private(set) var text: NSMutableString
     var point: Int
     private var markers: [Marker] = []
@@ -470,6 +475,8 @@ func commitBuffer(_ context: EditContext, _ body: (EmacsBuffer) throws -> Void) 
         try body(buffer)
     } catch let error as EmacsBuffer.UserError {
         return .failed(error.message)
+    } catch let ask as EmacsBuffer.Ask {
+        return .prompt(ask.prompt)
     } catch {
         return .failed("\(error)")
     }

@@ -34,8 +34,8 @@ public struct OrgDwim: OrgCommand {
                 buffer.setTodoKeyword(sequence.active.first?.name)
             } else if let done = sequence.done.first?.name {
                 buffer.setTodoKeyword(done)
-                if let (marker, note) = try buffer.autoRepeat(doneWord: done, previous: current) { buffer.storeNote(marker, note) }
             }
+            try buffer.afterTodoChange(previous: current, answers: context.answers)
         }
     }
 }
