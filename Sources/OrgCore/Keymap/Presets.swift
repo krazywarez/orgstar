@@ -87,10 +87,6 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "app.quick-open"
         mode = "normal"
         [[bind]]
-        keys = "SPC b b"
-        command = "app.quick-open"
-        mode = "normal"
-        [[bind]]
         keys = "SPC f s"
         command = "app.save"
         mode = "normal"
@@ -574,9 +570,6 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "app.save-all"
         [[bind]]
         keys = "C-x C-f"
-        command = "app.quick-open"
-        [[bind]]
-        keys = "C-x b"
         command = "app.quick-open"
         [[bind]]
         keys = "M-x"

@@ -101,8 +101,7 @@ public struct Keymap: Sendable, Equatable {
     public func keyLabels(for command: String, modes: [String?] = [nil], limit: Int = 2) -> [String] {
         var found: [(keys: [KeyChord], rank: [Int])] = []
         for (order, mode) in modes.enumerated() {
-            for binding in bindings.reversed() where binding.mode == mode && binding.command == command
-                && candidates(for: binding.keys, mode: mode).contains(binding) {
+            for binding in bindings.reversed() where binding.mode == mode && binding.command == command && isLive(binding) {
                 found.append((binding.keys, [order, binding.when == nil ? 0 : 1, binding.keys.count, found.count]))
             }
         }
@@ -112,6 +111,15 @@ public struct Keymap: Sendable, Equatable {
             .filter { seen.insert($0).inserted }
             .prefix(limit)
             .map { $0 }
+    }
+
+    /// Whether `binding` can run: no binding that always applies takes its keys first.
+    func isLive(_ binding: KeyBinding) -> Bool {
+        for candidate in candidates(for: binding.keys, mode: binding.mode) {
+            if candidate == binding { return true }
+            if candidate.when == nil { return false }
+        }
+        return false
     }
 
     /// The first live binding of `command`, for showing its keys.

@@ -98,6 +98,27 @@ struct KeymapTests {
         #expect(doom.keyLabels(for: "app.buffer.kill", modes: ["normal"], limit: 3) == ["C-x k", "SPC b d", "SPC b k"])
         #expect(doom.keyLabels(for: "app.buffer.next", modes: ["normal"]) == ["] b", "C-x <right>"])
         #expect(emacs.keyLabels(for: "app.buffer.switch") == ["C-x C-b", "C-x b"])
+        #expect(!emacs.keyLabels(for: "app.quick-open").contains("C-x b"))
+    }
+
+    /// Two bindings of the same keys in the same state, both always applying: the earlier one
+    /// can never run.
+    @Test func presetsBindEachKeyOnce() {
+        for preset in KeymapPreset.allCases {
+            var seen: [String: String] = [:]
+            for binding in preset.keymap.bindings where binding.when == nil && !binding.unbinds {
+                let key = "\(binding.mode ?? "-") \(KeySequence.format(binding.keys))"
+                #expect(seen[key] == nil, "\(preset): \(key) is \(seen[key] ?? "") and \(binding.command)")
+                seen[key] = binding.command
+            }
+        }
+    }
+
+    @Test func shadowedBindingsShowNoKeys() throws {
+        var problems: [String] = []
+        let map = Keymap.layered([KeymapPreset.emacs.keymap, try Keymap(toml: "[[bind]]\nkeys = \"C-c C-t\"\ncommand = \"app.save\"\n", problems: &problems)])
+        #expect(!map.keyLabels(for: "org.todo.cycle").contains("C-c C-t"))
+        #expect(map.keyLabels(for: "app.save").contains("C-c C-t"))
     }
 
     @Test func dispatchesPrefixes() {
