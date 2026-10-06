@@ -9,7 +9,7 @@ public enum BabelRunner {
     }
 
     /// PATH with the usual install locations, which an app launched from the Dock lacks.
-    static var environment: [String: String] {
+    public static var environment: [String: String] {
         var environment = ProcessInfo.processInfo.environment
         let extra = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
         let path = (environment["PATH"] ?? "").split(separator: ":").map(String.init)
@@ -23,6 +23,10 @@ public enum BabelRunner {
         defer { try? FileManager.default.removeItem(at: folder) }
         let resultFile = folder.appendingPathComponent("result")
         let input = job.input.replacingOccurrences(of: Babel.resultFileToken, with: resultFile.path)
+        if case .session(let name, let executable, let python) = job.runner {
+            let directory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: fileDirectory).standardizedFileURL } ?? fileDirectory
+            return try await BabelSessions.shared.run(job, name: name, executable: executable, python: python, directory: directory, resultFile: resultFile)
+        }
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -36,6 +40,8 @@ public enum BabelRunner {
             let script = folder.appendingPathComponent("babel.el")
             try input.write(to: script, atomically: true, encoding: .utf8)
             process.arguments = [emacs.path, "-Q", "--batch", "-l", script.path]
+        case .session:
+            return BabelOutput(stdout: "")
         }
         let directory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: fileDirectory).standardizedFileURL } ?? fileDirectory
         guard FileManager.default.fileExists(atPath: directory.path) else { throw Failure(description: "No folder \(directory.path) for :dir.") }

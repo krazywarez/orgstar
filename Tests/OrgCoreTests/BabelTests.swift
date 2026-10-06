@@ -19,6 +19,8 @@ enum TestBabelRunner {
             let script = folder.appendingPathComponent("babel.el")
             try input.write(to: script, atomically: true, encoding: .utf8)
             process.arguments = [EmacsOracle.executable, "-Q", "--batch", "-l", script.path]
+        case .session:
+            return BabelOutput(stdout: "")
         }
         process.currentDirectoryURL = job.directory.map { URL(fileURLWithPath: $0, relativeTo: directory) } ?? directory
         let stdin = Pipe()
@@ -41,6 +43,9 @@ enum TestBabelRunner {
         case .failure(.message(let message)): return (text, message)
         case .success(let job):
             let output = try run(job, directory: directory)
+            if let file = Babel.fileResult(job, output: output) {
+                try file.contents.write(to: directory.appendingPathComponent(file.path), atomically: true, encoding: .utf8)
+            }
             switch Babel.finish(job, output: output, text: text) {
             case .failure(.message(let message)): return (text, message)
             case .success(let edits):
@@ -137,9 +142,9 @@ struct BabelTests {
     @Test func refusesWhatWouldRunDifferently() {
         for (text, message) in [
             ("#+begin_src sh :eval never\necho\n#+end_src\n", "Evaluation of this sh code block is disabled."),
-            ("#+begin_src sh :session s\necho\n#+end_src\n", ":session isn't supported yet; nothing was run."),
+            ("#+begin_src ruby :session s\nputs 1\n#+end_src\n", ":session isn't supported for ruby yet; nothing was run."),
             ("#+begin_src sh :noweb yes\n<<x()>>\n#+end_src\n", "Noweb references that run a block (x()) aren't supported yet; nothing was run."),
-            ("#+begin_src sh :file out.txt\necho\n#+end_src\n", ":file isn't supported yet; nothing was run."),
+            ("#+begin_src sh :cmdline -x\necho\n#+end_src\n", ":cmdline isn't supported yet; nothing was run."),
             ("#+begin_src cobol\nDISPLAY\n#+end_src\n", "No way to run cobol blocks yet."),
         ] {
             let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
@@ -191,5 +196,55 @@ struct BabelCallTests {
             #expect(mine.text == theirs.text && (mine.failure != nil) == !theirs.error.isEmpty,
                     "case \(i):\n\(Self.cases[i].0)\nours (\(mine.failure ?? "")):\n\(mine.text)\nemacs (\(theirs.error)):\n\(theirs.text)")
         }
+    }
+}
+
+struct BabelFileTests {
+    static let cases = [
+        "#+begin_src sh :results file :file out.txt\necho hello\necho there\n#+end_src\n",
+        "#+begin_src sh :results output file :file x.txt :file-desc Desc\necho out\n#+end_src\n",
+        "#+begin_src sh :results file :file y.txt :file-desc\necho y\n#+end_src\n",
+        "#+begin_src python :results file :file p.txt\nreturn [[1,2],[3,4]]\n#+end_src\n",
+        "#+begin_src sh :results file\necho no-file.txt\n#+end_src\n",
+        "#+begin_src sh :results file :file w.txt :output-dir outd\necho w\n#+end_src\n",
+        "#+begin_src sh :file plain.txt\necho not to a file\n#+end_src\n",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func matchesEmacs() throws {
+        for (i, text) in Self.cases.enumerated() {
+            let ours = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-file-ours-\(UUID().uuidString)")
+            let theirs = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-file-emacs-\(UUID().uuidString)")
+            for folder in [ours, theirs] { try FileManager.default.createDirectory(at: folder.appendingPathComponent("outd"), withIntermediateDirectories: true) }
+            defer { for folder in [ours, theirs] { try? FileManager.default.removeItem(at: folder) } }
+            let mine = try TestBabelRunner.execute(text, caret: 2, directory: ours)
+            let emacs = try EmacsOracle.run([EmacsOracle.Case(text: text, point: 3, form: """
+                (progn (require 'ob-shell) (require 'ob-python)
+                  (setq org-confirm-babel-evaluate nil org-babel-python-command "python3" default-directory \(lispString(theirs.path + "/")))
+                  (org-babel-execute-src-block))
+                """)])[0]
+            #expect(mine.text == emacs.text, "case \(i)\nours: \(mine.text) \(mine.failure ?? "")\nemacs: \(emacs.text) \(emacs.error)")
+            for name in ["out.txt", "x.txt", "y.txt", "p.txt", "outd/w.txt", "plain.txt"] {
+                let a = try? String(contentsOf: ours.appendingPathComponent(name), encoding: .utf8)
+                let b = try? String(contentsOf: theirs.appendingPathComponent(name), encoding: .utf8)
+                #expect(a == b, "case \(i) \(name): \(a.debugDescription) vs \(b.debugDescription)")
+            }
+        }
+    }
+
+    @Test func plansDiagrams() throws {
+        let text = "#+begin_src dot :file g.svg\ndigraph { a -> b }\n#+end_src\n"
+        guard case .success(let job) = Babel.plan(EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])) else {
+            Issue.record("not planned")
+            return
+        }
+        #expect(job.runner == .process(executable: "/bin/sh", arguments: ["-c", "dot -Tsvg -o 'g.svg'"]))
+        guard case .success(let edits) = Babel.finish(job, output: BabelOutput(stdout: ""), text: text) else { return }
+        let new = edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(text) { $1.apply(to: $0) }
+        #expect(new.hasSuffix("#+RESULTS:\n[[file:g.svg]]\n"))
+        #expect(Babel.fileResult(job, output: BabelOutput(stdout: "")) == nil)
+        let uml = "#+begin_src plantuml :file u.png\nA -> B\n#+end_src\n"
+        guard case .success(let umlJob) = Babel.plan(EditContext(revision: 0, text: uml, tree: OrgParser.parse(uml), selection: [2..<2])) else { return }
+        #expect(umlJob.input == "@startuml\nA -> B\n@enduml\n")
     }
 }

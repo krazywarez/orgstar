@@ -12,6 +12,9 @@ public struct BabelJob: Sendable, Equatable {
         case process(executable: String, arguments: [String])
         /// `emacs --batch` loading `input` as a script.
         case emacs
+        /// A long-running interpreter named by `:session`: a shell gets `input` as commands, Python
+        /// runs `input` as a program in its globals.
+        case session(name: String, executable: String, python: Bool)
     }
 
     public let language: String
@@ -32,12 +35,17 @@ public struct BabelJob: Sendable, Equatable {
         enum Kind: Sendable, Equatable { case shell(valueIsExitStatus: Bool), python, generic, emacsLisp }
         let kind: Kind
         var language = ""
-        public let params: [String]
+        public internal(set) var params: [String]
         let output: Bool
         let wrap: String?
         let name: String?
         /// An inline block: the result goes after it, in `{{{results(…)}}}`.
         var inline = false
+        /// `:file` (under `:output-dir`) with `:results file`, and `:file-desc`.
+        var file: String?
+        var fileDescription: String?
+        /// The program writes `file` itself, as graphics languages do.
+        var writesFile = false
     }
 }
 
@@ -174,10 +182,16 @@ public enum Babel {
         if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
             return .failure(.message("Evaluation of this \(language) code block\(block.name.map { " (\($0)) " } ?? " ")is disabled."))
         }
-        for key in [":prologue", ":epilogue", ":file", ":post", ":stdin", ":cmdline", ":shebang"] where params.single[key] != nil {
+        if params.single[":cmdline"] != nil, !["dot", "plantuml", "mermaid"].contains(language) {
+            return .failure(.message(":cmdline isn't supported yet; nothing was run."))
+        }
+        for key in [":prologue", ":epilogue", ":post", ":stdin", ":shebang"] where params.single[key] != nil {
             return .failure(.message("\(key) isn't supported yet; nothing was run."))
         }
-        if let session = params.single[":session"], session != "none" { return .failure(.message(":session isn't supported yet; nothing was run.")) }
+        let session = params.single[":session"].flatMap { $0 == "none" ? nil : ($0.isEmpty ? "*\(language)*" : $0) }
+        if session != nil, !shells.contains(language), language != "python" {
+            return .failure(.message(":session isn't supported for \(language) yet; nothing was run."))
+        }
         if params.single[":cache"] == "yes" { return .failure(.message(":cache isn't supported yet; nothing was run.")) }
 
         var body = normalizedBody(block)
@@ -191,8 +205,13 @@ public enum Babel {
             }
         }
         let output = params.results.contains("output")
+        let file = params.single[":file"].map { name in
+            params.single[":output-dir"].map { $0.hasSuffix("/") ? $0 + name : $0 + "/" + name } ?? name
+        }
+        let toFile = params.results.contains("file")
         let finishBase = { (kind: BabelJob.Finish.Kind) in
-            BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: name, inline: inline)
+            BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: name, inline: inline,
+                            file: toFile ? file : nil, fileDescription: params.single[":file-desc"])
         }
         let vars: [(String, VarValue)]
         do {
@@ -220,10 +239,35 @@ public enum Babel {
             let full = (lines + [body]).joined(separator: "\n") + (valueIsExitStatus ? "\necho $?" : "")
             let executable = language == "shell" ? options.shell : language
             return .success(BabelJob(
-                language: language, runner: .process(executable: executable, arguments: []),
+                language: language, runner: session.map { .session(name: $0, executable: executable, python: false) } ?? .process(executable: executable, arguments: []),
                 input: full.trimmingCharacters(in: .whitespacesAndNewlines) + "\n", directory: dir,
                 block: location, blockText: blockText, alwaysAsk: alwaysAsk,
                 finish: finishBase(.shell(valueIsExitStatus: valueIsExitStatus))
+            ))
+        }
+        if language == "python", let session {
+            // `org-babel-python--eval-ast`: the body at top level in the session, the value its
+            // last expression's.
+            let lines = vars.map { "\($0.0)=\(pythonLiteral($0.1))" }
+            let source = (lines + [body]).joined(separator: "\n")
+            let literal = String(data: try! JSONSerialization.data(withJSONObject: [source]), encoding: .utf8)!.dropFirst().dropLast()
+            let program: String
+            if output {
+                program = "exec(compile(\(literal), '<org-babel>', 'exec'), globals())\n"
+            } else {
+                program = pythonFormatter + """
+                    import ast as __orgstar_ast
+                    __orgstar_tree = __orgstar_ast.parse(\(literal))
+                    __orgstar_last = None
+                    if __orgstar_tree.body and isinstance(__orgstar_tree.body[-1], __orgstar_ast.Expr):
+                        __orgstar_last = __orgstar_ast.Expression(__orgstar_tree.body.pop().value)
+                    exec(compile(__orgstar_tree, '<org-babel>', 'exec'), globals())
+                    __orgstar_format(eval(compile(__orgstar_last, '<org-babel>', 'eval'), globals()) if __orgstar_last else None, '\(resultFileToken)', [
+                    """ + params.results.map { "\"\($0)\"" }.joined(separator: ", ") + "])\n"
+            }
+            return .success(BabelJob(
+                language: language, runner: .session(name: session, executable: params.single[":python"] ?? options.python, python: true),
+                input: program, directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.python)
             ))
         }
         if language == "python" {
@@ -250,6 +294,32 @@ public enum Babel {
             return .success(BabelJob(
                 language: language, runner: .emacs, input: emacsScript(form: form, params: params.results),
                 directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.emacsLisp)
+            ))
+        }
+        if ["dot", "plantuml", "mermaid"].contains(language) {
+            // ob-dot, ob-plantuml and ob-mermaid: the program draws into `:file`.
+            guard let file else { return .failure(.message("\(language) code blocks need a :file header argument")) }
+            let quoted = "'" + file.replacingOccurrences(of: "'", with: "'\"'\"'") + "'"
+            let ext = (file as NSString).pathExtension.isEmpty ? "png" : (file as NSString).pathExtension
+            let cmdline = params.single[":cmdline"].map { " " + $0 } ?? ""
+            var input = body + "\n"
+            let command: String
+            switch language {
+            case "dot":
+                command = "dot\(cmdline) -T\(ext) -o \(quoted)"
+            case "plantuml":
+                if body.range(of: "^[ \\t]*@start", options: .regularExpression) == nil { input = "@startuml\n" + body + "\n@enduml\n" }
+                command = "plantuml\(cmdline) -p -t\(ext) > \(quoted)"
+            default:
+                command = "f=$(mktemp).mmd; cat > \"$f\"; mmdc\(cmdline) -i \"$f\" -o \(quoted); s=$?; rm -f \"$f\"; exit $s"
+            }
+            var finish = finishBase(.generic)
+            finish.file = file
+            finish.writesFile = true
+            finish.params = params.results.filter { !["table", "scalar", "verbatim", "list", "vector"].contains($0) } + (params.results.contains("file") ? [] : ["file"])
+            return .success(BabelJob(
+                language: language, runner: .process(executable: "/bin/sh", arguments: ["-c", command]),
+                input: input, directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finish
             ))
         }
         if let (executable, arguments) = generic[language] {
@@ -713,6 +783,13 @@ public enum Babel {
     /// The language's result handling: `org-babel-result-cond` and the table import.
     static func value(_ finish: BabelJob.Finish, _ output: BabelOutput) -> Value {
         let params = finish.params
+        if params.contains("file") {
+            // `org-babel-result-to-file`: a link to `:file`, or to the result as a path.
+            let path = finish.file ?? rawResult(finish, output)
+            var link = "[[file:" + path + "]"
+            if let description = finish.fileDescription { link += "[" + (description.isEmpty ? path : description) + "]" }
+            return .string(link + "]")
+        }
         let scalar = params.contains("scalar") || params.contains("verbatim") || params.contains("html") || params.contains("code")
             || params.contains("pp") || params.contains("file")
             || ((params.contains("output") || params.contains("raw") || params.contains("org")) && !params.contains("table"))
@@ -743,6 +820,26 @@ public enum Babel {
             let printed = object["S"] as? String ?? ""
             return printed == "nil" ? .none : .string(printed)
         }
+    }
+
+    /// The result as the program left it, before tables are read.
+    static func rawResult(_ finish: BabelJob.Finish, _ output: BabelOutput) -> String {
+        switch finish.kind {
+        case .python: return finish.output ? output.stdout : (output.resultFile ?? "")
+        case .emacsLisp:
+            guard let data = output.stdout.data(using: .utf8), let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return output.stdout }
+            return object["s"] as? String ?? ""
+        case .shell(let valueIsExitStatus):
+            return valueIsExitStatus ? output.stdout.split(separator: "\n").last.map(String.init) ?? "" : output.stdout
+        case .generic: return output.stdout
+        }
+    }
+
+    /// With `:results file` and `:file`, what to write there, relative to the run's folder;
+    /// nil when there's nothing to write or the program wrote it.
+    public static func fileResult(_ job: BabelJob, output: BabelOutput) -> (path: String, contents: String)? {
+        guard job.finish.params.contains("file"), let file = job.finish.file, !job.finish.writesFile else { return nil }
+        return (file, rawResult(job.finish, output))
     }
 
     /// `org-babel-import-elisp-from-file`.
@@ -1064,7 +1161,7 @@ public enum Babel {
             wrap("#+begin_src org", "#+end_src", escape: true)
         } else if params.contains("code") {
             wrap("#+begin_src \(finish.language.isEmpty ? "none" : finish.language)", "#+end_src", escape: true)
-        } else if params.contains("raw") {
+        } else if params.contains("raw") || params.contains("file") {
             // As inserted.
         } else if params.contains("drawer") {
             wrap(":results:", ":end:", escape: false)

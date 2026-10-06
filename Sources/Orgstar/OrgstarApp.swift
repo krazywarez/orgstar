@@ -108,6 +108,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         if SystemReminderCenter.isAvailable { UNUserNotificationCenter.current().delegate = self }
     }
 
+    /// `:session` interpreters end with the app.
+    func applicationWillTerminate(_ notification: Notification) {
+        BabelSessions.shared.stopAll()
+    }
+
     /// Reminders show while Orgstar is in front too.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter, willPresent notification: UNNotification

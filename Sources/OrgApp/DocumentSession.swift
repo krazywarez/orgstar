@@ -582,6 +582,15 @@ public final class DocumentSession {
         do {
             let output = try await BabelRunner.run(job, fileDirectory: directory)
             guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
+            if let file = Babel.fileResult(job, output: output) {
+                let runDirectory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: directory).standardizedFileURL } ?? directory
+                let target = file.path.hasPrefix("/") ? URL(fileURLWithPath: file.path) : runDirectory.appendingPathComponent(file.path)
+                do {
+                    try file.contents.write(to: target, atomically: true, encoding: .utf8)
+                } catch {
+                    return "Can't write \(file.path): \(error.localizedDescription)"
+                }
+            }
             let current = entry.buffer
             let document = current.document
             let done = output.problem ?? "Code block evaluation complete."
