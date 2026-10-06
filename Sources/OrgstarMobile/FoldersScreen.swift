@@ -14,7 +14,9 @@ struct FoldersScreen: View {
                 Section((root as NSString).lastPathComponent) {
                     let files = workspace.files.filter { $0.root == root && $0.kind == .org }
                     ForEach(files) { file in
-                        Label(file.relativePath, systemImage: "doc.text")
+                        NavigationLink(value: ReaderRoute.file(file.path)) {
+                            Label(file.relativePath, systemImage: "doc.text")
+                        }
                     }
                     let pending = workspace.downloading.filter { $0.hasPrefix(root + "/") }.sorted()
                     ForEach(pending, id: \.self) { path in

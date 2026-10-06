@@ -11,6 +11,8 @@ public protocol ReminderCenter: Sendable {
     func authorize() async -> Bool
     /// IDs of pending requests.
     func pendingIDs() async -> [String]
+    /// IDs of notifications shown and still in Notification Center.
+    func deliveredIDs() async -> [String]
     func add(_ reminder: Reminder) async throws
     func remove(_ ids: [String])
 }
@@ -25,6 +27,8 @@ public final class ReminderScheduler {
     public private(set) var isAuthorized = true
 
     private let center: ReminderCenter
+    /// What this run set; one no longer pending has fired and isn't set again.
+    private var scheduled: Set<String> = []
 
     public init(center: ReminderCenter) {
         self.center = center
@@ -41,8 +45,12 @@ public final class ReminderScheduler {
         let pending = Set(await center.pendingIDs().filter { $0.hasPrefix("orgstar.") })
         let stale = pending.subtracting(wanted)
         if !stale.isEmpty { center.remove(Array(stale)) }
-        for reminder in reminders where !pending.contains(reminder.id) {
+        scheduled.subtract(stale)
+        // A reminder whose warning time has passed fires at once; once shown, it stays shown.
+        let delivered = Set(await center.deliveredIDs())
+        for reminder in reminders where !pending.contains(reminder.id) && !scheduled.contains(reminder.id) && !delivered.contains(reminder.id) {
             try? await center.add(reminder)
+            scheduled.insert(reminder.id)
         }
         scheduledThrough = reminders.map(\.eventDate).max()
     }
@@ -51,6 +59,7 @@ public final class ReminderScheduler {
     public func clear() async {
         let ours = await center.pendingIDs().filter { $0.hasPrefix("orgstar.") }
         if !ours.isEmpty { center.remove(ours) }
+        scheduled = []
         scheduledThrough = nil
     }
 }
@@ -86,6 +95,10 @@ public struct SystemReminderCenter: ReminderCenter {
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: reminder.fireDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: reminder.id, content: content, trigger: trigger))
+    }
+
+    public func deliveredIDs() async -> [String] {
+        await UNUserNotificationCenter.current().deliveredNotifications().map(\.request.identifier)
     }
 
     public func remove(_ ids: [String]) {

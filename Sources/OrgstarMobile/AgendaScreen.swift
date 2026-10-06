@@ -105,6 +105,21 @@ struct AgendaScreen: View {
     }
 
     private func row(_ item: AgendaItem) -> some SwiftUI.View {
+        Group {
+            if let path = item.path, let offset = item.headingOffset {
+                NavigationLink(value: ReaderRoute.offset(path, offset)) { entry(item) }
+            } else {
+                entry(item)
+            }
+        }
+        .swipeActions(edge: .trailing) {
+            if item.todo != nil, !item.isDone, doneKeyword(for: item) != nil {
+                Button("Done", systemImage: "checkmark") { markDone(item) }.tint(.green)
+            }
+        }
+    }
+
+    private func entry(_ item: AgendaItem) -> some SwiftUI.View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 if let time = item.time.firstMatch(of: /[0-9]{1,2}:[0-9]{2}(-[0-9]{1,2}:[0-9]{2})?/) {
@@ -120,11 +135,6 @@ struct AgendaScreen: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-        }
-        .swipeActions(edge: .trailing) {
-            if item.todo != nil, !item.isDone, doneKeyword(for: item) != nil {
-                Button("Done", systemImage: "checkmark") { markDone(item) }.tint(.green)
-            }
         }
     }
 

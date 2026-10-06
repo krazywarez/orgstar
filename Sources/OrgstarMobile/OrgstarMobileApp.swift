@@ -14,6 +14,7 @@ struct OrgstarMobileApp: App {
         WindowGroup {
             if let workspace = model.workspace, let agenda = model.agenda {
                 RootView(model: model, workspace: workspace, agenda: agenda)
+                    .onAppear { delegate.model = model }
             } else {
                 ContentUnavailableView("Can't open the index", systemImage: "exclamationmark.triangle", description: Text(model.failure ?? ""))
             }
@@ -21,8 +22,10 @@ struct OrgstarMobileApp: App {
     }
 }
 
-/// Reminders show while the app is open too.
+/// Reminders show while the app is open too, and open their entry when tapped.
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    @MainActor var model: MobileModel?
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         return true
@@ -30,6 +33,23 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .sound, .list]
+    }
+
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let info = response.notification.request.content.userInfo
+        guard let path = info["path"] as? String, let offset = info["offset"] as? Int else { return }
+        await MainActor.run { model?.openRequest = .offset(path, offset) }
+    }
+}
+
+enum AppTab: Hashable { case agenda, folders, settings, search }
+
+extension View {
+    /// Readers pushed for `ReaderRoute`s.
+    func readerDestination(workspace: WorkspaceModel, session: DocumentSession) -> some View {
+        navigationDestination(for: ReaderRoute.self) { route in
+            ReaderScreen(route: route, workspace: workspace, session: session)
+        }
     }
 }
 
@@ -45,6 +65,8 @@ struct RootView: View {
     let workspace: WorkspaceModel
     let agenda: AgendaModel
     @State private var capture: CaptureRequest?
+    @State private var tab = AppTab.agenda
+    @State private var agendaPath = NavigationPath()
     @State private var hour = 0
     @Environment(\.scenePhase) private var scenePhase
 
@@ -60,22 +82,40 @@ struct RootView: View {
     }
 
     var body: some View {
-        TabView {
-            Tab("Agenda", systemImage: "calendar") {
-                NavigationStack {
+        TabView(selection: $tab) {
+            Tab("Agenda", systemImage: "calendar", value: .agenda) {
+                NavigationStack(path: $agendaPath) {
                     AgendaScreen(workspace: workspace, session: session, agenda: agenda, scheduler: model.scheduler)
                         .toolbar { captureButton }
+                        .readerDestination(workspace: workspace, session: session)
                 }
             }
-            Tab("Folders", systemImage: "folder") {
+            Tab("Folders", systemImage: "folder", value: .folders) {
                 NavigationStack {
                     FoldersScreen(workspace: workspace)
                         .toolbar { captureButton }
+                        .readerDestination(workspace: workspace, session: session)
                 }
             }
-            Tab("Settings", systemImage: "gearshape") {
+            Tab("Settings", systemImage: "gearshape", value: .settings) {
                 NavigationStack { SettingsScreen(model: model) }
             }
+            Tab(value: .search, role: .search) {
+                NavigationStack {
+                    SearchScreen(workspace: workspace, session: session)
+                        .readerDestination(workspace: workspace, session: session)
+                }
+            }
+        }
+        .onChange(of: model.openRequest) {
+            guard let route = model.openRequest else { return }
+            model.openRequest = nil
+            tab = .agenda
+            agendaPath.append(route)
+        }
+        .onChange(of: workspace.changedFile?.version) {
+            // An open file takes in what changed on disk.
+            if let path = workspace.changedFile?.path { session.fileChanged(path) }
         }
         .sheet(item: $capture) { request in
             CaptureScreen(workspace: workspace, session: session, request: request)

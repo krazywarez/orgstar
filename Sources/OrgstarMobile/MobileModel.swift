@@ -18,6 +18,8 @@ final class MobileModel {
     let scheduler = ReminderScheduler(center: SystemReminderCenter())
     private(set) var configFolder: URL?
     private(set) var configProblems: [String] = []
+    /// An entry to show, from a tapped reminder.
+    var openRequest: ReaderRoute?
     /// Bumped when settings apply, so views that read them update.
     private(set) var settingsVersion = 0
     @ObservationIgnored private var presenter: FolderPresenter?

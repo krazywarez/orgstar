@@ -74,6 +74,27 @@ struct WorkspaceModelTests {
         #expect(reopened.search("apples").isEmpty)
     }
 
+    @Test func aMovedFolderLeavesNoOldRows() async throws {
+        let parent = try Folder()
+        let original = parent.url.appendingPathComponent("notes")
+        try FileManager.default.createDirectory(at: original, withIntermediateDirectories: true)
+        try "* Plumber\n".write(to: original.appendingPathComponent("a.org"), atomically: true, encoding: .utf8)
+        let data = parent.url.appendingPathComponent("data")
+        let model = try WorkspaceModel(directory: data)
+        try await model.addRoot(original)
+        #expect(model.search("plumber").count == 1)
+
+        let moved = parent.url.appendingPathComponent("moved")
+        try FileManager.default.moveItem(at: original, to: moved)
+        let reopened = try WorkspaceModel(directory: data)
+        await reopened.refresh()
+        let found = reopened.search("plumber").map(\.path)
+        #expect(found.count == 1 && found[0].hasSuffix("/moved/a.org"), "\(found)")
+        // Adding it again, under its new path, adds nothing.
+        try await reopened.addRoot(moved)
+        #expect(reopened.roots.count == 1)
+    }
+
     @Test func listsDownloadsInTheTree() {
         let files = [FileEntry(path: "/r/a.org", root: "/r", kind: .org)]
         let tree = FileTreeNode.build(root: "/r", files: files, downloading: ["/r/b.org", "/r/sub/c.org"])
@@ -535,6 +556,15 @@ final class FakeReminderCenter: ReminderCenter, @unchecked Sendable {
 
     func authorize() async -> Bool { authorized }
     func pendingIDs() async -> [String] { lock.withLock { pending } }
+    var delivered: [String] = []
+    func deliveredIDs() async -> [String] { lock.withLock { delivered } }
+    /// The system showing a notification: no longer pending.
+    func fire(_ id: String, keep: Bool) {
+        lock.withLock {
+            pending.removeAll { $0 == id }
+            if keep { delivered.append(id) }
+        }
+    }
     func add(_ reminder: Reminder) async throws {
         lock.withLock {
             pending.append(reminder.id)
@@ -566,6 +596,17 @@ struct ReminderSchedulerTests {
         await scheduler.clear()
         #expect(center.ids == ["someone.else"])
         #expect(scheduler.scheduledThrough == nil)
+
+        // Fired reminders aren't set again, whether or not they're still in Notification Center.
+        await scheduler.reconcile([reminder("e", 5), reminder("f", 6)])
+        center.fire("orgstar.e", keep: false)
+        await scheduler.reconcile([reminder("e", 5), reminder("f", 6)])
+        #expect(center.added.filter { $0 == "orgstar.e" }.count == 1)
+        let relaunched = ReminderScheduler(center: center)
+        center.fire("orgstar.f", keep: true)
+        await relaunched.reconcile([reminder("f", 6)])
+        #expect(center.added.filter { $0 == "orgstar.f" }.count == 1)
+        await scheduler.clear()
 
         center.authorized = false
         await scheduler.reconcile([reminder("d", 4)])

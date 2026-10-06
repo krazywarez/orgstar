@@ -69,7 +69,8 @@ public final class WorkspaceModel {
 
     public func addRoot(_ url: URL) async throws {
         let root = try WorkspaceRoot(url: url)
-        guard !roots.contains(where: { $0.path == root.path }) else { return }
+        // A folder already added, perhaps since moved: its bookmark resolves to it.
+        guard !roots.contains(where: { $0.path == root.path }), resolvedRoots[root.path] == nil else { return }
         roots.append(root)
         try saveRoots()
         resolveRoots()
@@ -144,6 +145,13 @@ public final class WorkspaceModel {
             } catch {
                 lastError = "Indexing \(url.path) failed: \(error.localizedDescription)"
             }
+        }
+        // Rows of folders that moved or went away (indexed under their old paths).
+        let current = Array(resolvedRoots.keys)
+        if let indexed = try? index.files() {
+            var change = IndexChange()
+            change.removals = indexed.map(\.path).filter { path in !current.contains { path.hasPrefix($0 + "/") } }
+            if !change.removals.isEmpty { try? index.apply(change) }
         }
         try? reloadFiles()
         setDownloading(pending)
