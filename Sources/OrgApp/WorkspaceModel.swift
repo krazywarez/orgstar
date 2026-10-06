@@ -23,6 +23,8 @@ public final class WorkspaceModel {
     /// Resolved root folders, keyed by their resolved path, which is how the index stores them.
     private var resolvedRoots: [String: URL] = [:]
     @ObservationIgnored private var watcher: AnyObject?
+    /// Set once watching starts, so adding or removing a root watches the new set.
+    @ObservationIgnored private var watching = false
     private var changeVersion = 0
     @ObservationIgnored private var overlayCache: (text: String, record: FileRecord)?
 
@@ -60,6 +62,7 @@ public final class WorkspaceModel {
         roots.append(root)
         try saveRoots()
         resolveRoots()
+        rootsChanged()
         await refresh()
     }
 
@@ -69,10 +72,17 @@ public final class WorkspaceModel {
         roots.removeAll { bookmarkPaths.contains($0.path) }
         try saveRoots()
         resolveRoots()
+        rootsChanged()
         var change = IndexChange()
         change.removals = files.filter { $0.root == path }.map(\.path)
         try index.apply(change)
         try reloadFiles()
+    }
+
+    private func rootsChanged() {
+        #if os(macOS)
+        if watching { startWatching() }
+        #endif
     }
 
     private func saveRoots() throws {
@@ -154,8 +164,12 @@ public final class WorkspaceModel {
     }
 
     #if os(macOS)
-    /// Watches every root; changes reconcile the index and are reported through `changedFile`.
+    /// Watches every root, including roots added later; changes reconcile the index and are
+    /// reported through `changedFile`.
     public func startWatching() {
+        watching = true
+        (watcher as? FSEventsWatcher)?.stop()
+        watcher = nil
         let roots = Array(resolvedRoots.values)
         guard !roots.isEmpty else { return }
         let fsWatcher = FSEventsWatcher(roots: roots.map { $0.resolvingSymlinksInPath() }) { [weak self] events in

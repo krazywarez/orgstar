@@ -99,6 +99,22 @@ struct WorkspaceModelTests {
         #expect(model.search("alpha").count == 1)
     }
 
+    /// Watching starts with no folders (a first launch); a folder added afterwards is
+    /// watched.
+    @Test func foldersAddedLaterAreWatched() async throws {
+        let notes = try Folder()
+        let model = try WorkspaceModel(directory: nil)
+        model.startWatching()
+        try await model.addRoot(notes.url)
+        let file = try notes.write("new.org", "* Fresh heading\n")
+        var found = false
+        for _ in 0..<40 where !found {
+            try await Task.sleep(for: .milliseconds(100))
+            found = model.files.contains { URL(fileURLWithPath: $0.path).resolvingSymlinksInPath() == file.resolvingSymlinksInPath() }
+        }
+        #expect(found)
+    }
+
     @Test func changedFilesAreReindexed() async throws {
         let notes = try Folder()
         let file = try notes.write("a.org", "* Old\n")
