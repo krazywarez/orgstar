@@ -52,7 +52,8 @@ struct ContentView: View {
     }
     /// A block being edited apart (`org-edit-special`).
     @State private var blockEdit: BlockEditRequest?
-    @State private var columnView: ColumnViewRequest?
+    /// A sheet a command opened: column view or the export dialog.
+    @State private var panel: Panel?
 
     @State private var selectedFile: String?
     /// A file that isn't text, shown as a preview instead of the open document.
@@ -208,8 +209,13 @@ struct ContentView: View {
         .onChange(of: options, initial: true) { _, options in session.options = options }
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
-        .sheet(item: $columnView) { request in
-            ColumnViewSheet(view: request.view) { offset in commands.editor?.reveal(offset) }
+        .sheet(item: $panel) { panel in
+            switch panel {
+            case .columns(_, let view):
+                ColumnViewSheet(view: view) { offset in commands.editor?.reveal(offset) }
+            case .export(_, let source):
+                ExportSheet(source: source) { format, destination, open in export(format, to: destination, open: open) }
+            }
         }
         .sheet(item: $blockEdit) { request in
             BlockEditorView(edit: request.edit) { content in
@@ -333,8 +339,9 @@ struct ContentView: View {
         }
     }
 
-    /// Writes the export beside the file, as Emacs's export dispatcher does.
-    private func export(_ format: String) {
+    /// Writes the export beside the file, as Emacs's export dispatcher does, or to
+    /// `destination`, and opens it with `open`.
+    private func export(_ format: String, to destination: URL? = nil, open: Bool = false) {
         guard let path = session.path, let text = session.document?.text else {
             commands.show("No file is open")
             return
@@ -342,16 +349,17 @@ struct ContentView: View {
         let url = URL(fileURLWithPath: path)
         let base = url.deletingPathExtension()
         let defaults = Preferences.orgSettings
+        let open = open || format == "html-open"
         switch format {
         case "html", "html-open", "markdown":
-            let target = base.appendingPathExtension(format == "markdown" ? "md" : "html")
+            let target = destination ?? base.appendingPathExtension(format == "markdown" ? "md" : "html")
             let content = format == "markdown"
                 ? MarkdownExport.document(text, settings: defaults)
-                : HTMLExport.page(text, fallbackTitle: base.lastPathComponent, settings: defaults)
+                : HTMLExport.page(text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path)
             do {
                 try content.write(to: target, atomically: true, encoding: .utf8)
                 commands.show("Exported to \(target.lastPathComponent)")
-                if format == "html-open" { NSWorkspace.shared.open(target) }
+                if open { NSWorkspace.shared.open(target) }
             } catch {
                 commands.show("Can't write \(target.lastPathComponent): \(error.localizedDescription)")
             }
@@ -361,8 +369,14 @@ struct ContentView: View {
             commands.show("Exporting with Emacs…")
             Task {
                 do {
-                    let written = try await EmacsRunner.export(text: text, path: path, function: function)
-                    commands.show("Exported to \((written as NSString).lastPathComponent)")
+                    var written = URL(fileURLWithPath: try await EmacsRunner.export(text: text, path: path, function: function))
+                    if let destination, destination.standardizedFileURL != written.standardizedFileURL {
+                        try? FileManager.default.removeItem(at: destination)
+                        try FileManager.default.moveItem(at: written, to: destination)
+                        written = destination
+                    }
+                    commands.show("Exported to \(written.lastPathComponent)")
+                    if open { NSWorkspace.shared.open(written) }
                 } catch {
                     commands.show("\(error)")
                 }
@@ -378,7 +392,7 @@ struct ContentView: View {
         case .editBlock(let edit):
             blockEdit = BlockEditRequest(edit: edit)
         case .columnView(let view):
-            columnView = ColumnViewRequest(view: view)
+            panel = .columns(UUID(), view)
         case .emacsTable(let table, let point, let form, let reason, let lisp):
             let run = {
                 commands.show("Recalculating in Emacs (\(reason))…")
@@ -576,6 +590,9 @@ struct ContentView: View {
         case "app.capture":
             NSApp.activate()
             openWindow(id: "capture")
+        case "app.export-dialog":
+            guard let path = session.path else { return commands.show("No file is open") }
+            panel = .export(UUID(), URL(fileURLWithPath: path))
         case let id where id.hasPrefix("app.export."):
             export(String(id.dropFirst("app.export.".count)))
         default:
@@ -851,6 +868,17 @@ struct BufferTabs: View {
         .contentShape(Rectangle())
         .onTapGesture { session.open(path) }
         .help(path)
+    }
+}
+
+enum Panel: Identifiable {
+    case columns(UUID, ColumnView.View)
+    case export(UUID, URL)
+
+    var id: UUID {
+        switch self {
+        case .columns(let id, _), .export(let id, _): id
+        }
     }
 }
 

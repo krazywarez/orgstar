@@ -55,8 +55,3 @@ struct ColumnViewSheet: View {
         return String(repeating: "*", count: row.level) + " " + row.values[i]
     }
 }
-
-struct ColumnViewRequest: Identifiable {
-    let id = UUID()
-    let view: ColumnView.View
-}

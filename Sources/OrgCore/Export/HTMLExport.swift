@@ -12,7 +12,7 @@ public struct ExportMetadata: Sendable, Equatable {
 /// footnotes collected at the end, captioned images as figures.
 public enum HTMLExport {
     public static func body(_ text: String, settings: OrgSettings = .default) -> String {
-        let renderer = HTMLRenderer(settings: settings)
+        let renderer = HTMLRenderer(settings: settings, options: .orgo)
         return renderer.document(text)
     }
 
@@ -36,15 +36,30 @@ public enum HTMLExport {
         return meta
     }
 
-    /// A standalone page: the body under the document's title, with a small stylesheet.
-    public static func page(_ text: String, fallbackTitle: String, settings: OrgSettings = .default) -> String {
+    /// A standalone page: the body under the document's title, with a small stylesheet, as
+    /// `#+OPTIONS` and the export keywords ask. `path` is the file's, for `#+INCLUDE` and
+    /// `{{{input-file}}}`.
+    public static func page(_ text: String, fallbackTitle: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date()) -> String {
+        let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
+        let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now)
+        let options = ExportOptions.parse(text)
         let meta = metadata(text, settings: settings)
         let title = meta.title ?? fallbackTitle
-        let renderer = HTMLRenderer(settings: settings)
+        let renderer = HTMLRenderer(settings: settings, options: options)
         let titleHTML = renderer.inlineString(title)
-        var header = "<h1 class=\"title\">\(titleHTML)</h1>\n"
-        let byline = [meta.author, meta.date].compactMap { $0 }.filter { !$0.isEmpty }
+        var header = options.title ? "<h1 class=\"title\">\(titleHTML)</h1>\n" : ""
+        let byline = [options.author ? meta.author : nil, options.date ? meta.date : nil].compactMap { $0 }.filter { !$0.isEmpty }
         if !byline.isEmpty { header += "<p class=\"byline\">\(byline.map(HTMLRenderer.escape).joined(separator: " · "))</p>\n" }
+        let body = renderer.document(text)
+        header += renderer.tableOfContents()
+        var head = options.htmlHead.map { $0 + "\n" }.joined()
+        if renderer.hasMath {
+            head += """
+            <script>window.MathJax = { tex: { inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]'], ['$$', '$$']] } };</script>
+            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+            """
+        }
         return """
         <!DOCTYPE html>
         <html lang="en">
@@ -62,10 +77,11 @@ public enum HTMLExport {
         .tag { font-size: 0.75em; padding: 0 0.3em; border-radius: 3px; background: rgba(127, 127, 127, 0.18); }
         .todo { color: #c33; } .done { color: #393; } .byline { color: #888; } .center { text-align: center; }
         figure { margin: 1em 0; } img { max-width: 100%; }
+        #table-of-contents ul { list-style: none; padding-left: 1.2em; } #table-of-contents > div > ul { padding-left: 0; }
         </style>
-        </head>
+        \(head)</head>
         <body>
-        \(header)\(renderer.document(text))</body>
+        \(header)\(body)</body>
         </html>
 
         """
@@ -74,6 +90,13 @@ public enum HTMLExport {
 
 final class HTMLRenderer {
     let settings: OrgSettings
+    let options: ExportOptions
+    /// With select tags in the document: the sections to export, by heading start.
+    private var selected: Set<Int>?
+    private var numbers: [Int] = []
+    private var tocEntries: [(level: Int, id: String, html: String)] = []
+    /// A LaTeX fragment was exported, for MathJax.
+    private(set) var hasMath = false
     private var footnoteNumbers: [String: Int] = [:]
     private var footnoteOrder: [(label: String, content: FootnoteContent)] = []
     private var definitions: [String: String] = [:]
@@ -86,8 +109,9 @@ final class HTMLRenderer {
         case inline(String)
     }
 
-    init(settings: OrgSettings) {
+    init(settings: OrgSettings, options: ExportOptions = .orgo) {
         self.settings = settings
+        self.options = options
     }
 
     static func escape(_ s: String) -> String {
@@ -109,6 +133,7 @@ final class HTMLRenderer {
     func document(_ text: String) -> String {
         let tree = OrgParser.parse(text, defaults: settings)
         collectDefinitions(tree.root)
+        selected = Self.selection(tree, tags: options.selectTags)
         var out = ""
         for child in tree.root.children { out += element(child) }
         out += footnoteSection()
@@ -176,7 +201,19 @@ final class HTMLRenderer {
             if exports == "results" || exports == "none" { return "" }
         }
         switch node.kind {
-        case .zerothSection, .section, .document:
+        case .section:
+            guard let heading = node.firstChild(.heading) else { fallthrough }
+            let tags = heading.tokens.first { $0.kind == .tags }?.text.split(separator: ":").map(String.init) ?? []
+            let title = heading.firstChild(.title)?.text.trimmingCharacters(in: .whitespaces) ?? ""
+            // `org-export--skip-p`: excluded tags, COMMENT, unselected trees.
+            if tags.contains(where: options.excludeTags.contains) || title == "COMMENT" || title.hasPrefix("COMMENT ") { return "" }
+            if let selected, !selected.contains(heading.range.lowerBound) { return "" }
+            // Archived trees export their heading only.
+            if tags.contains("ARCHIVE") { return self.heading(heading) }
+            var out = ""
+            for child in node.children { out += element(child) }
+            return out
+        case .zerothSection, .document:
             var out = ""
             for child in node.children { out += element(child) }
             return out
@@ -244,6 +281,55 @@ final class HTMLRenderer {
         return candidate
     }
 
+    /// `org-export--selected-trees`: headings with a select tag, everything below them and
+    /// their ancestors; nil when no heading has one.
+    static func selection(_ tree: OrgTree, tags: [String]) -> Set<Int>? {
+        let model = DocumentModel(tree: tree)
+        let picked = model.headings.indices.filter { model.headings[$0].localTags.contains(where: tags.contains) }
+        guard !picked.isEmpty else { return nil }
+        var set: Set<Int> = []
+        for index in picked {
+            set.insert(model.headings[index].headingRange.lowerBound)
+            for a in model.ancestors(of: index) { set.insert(model.headings[a].headingRange.lowerBound) }
+            let level = model.headings[index].level
+            for d in model.headings[(index + 1)...].prefix(while: { $0.level > level }) { set.insert(d.headingRange.lowerBound) }
+        }
+        return set
+    }
+
+    /// The table of contents, as ox-html writes it, or nothing.
+    func tableOfContents() -> String {
+        guard options.toc != nil, !tocEntries.isEmpty else { return "" }
+        var out = "<div id=\"table-of-contents\" role=\"doc-toc\">\n<h2>Table of Contents</h2>\n<div id=\"text-table-of-contents\" role=\"doc-toc\">\n"
+        var depth = 0
+        var open: [Bool] = []
+        let base = tocEntries.map(\.level).min() ?? 1
+        for entry in tocEntries {
+            let level = entry.level - base + 1
+            if level > depth {
+                while depth < level {
+                    out += "\n<ul>\n"
+                    depth += 1
+                    open.append(false)
+                }
+            } else {
+                out += "</li>\n"
+                while depth > level {
+                    out += "</ul>\n</li>\n"
+                    depth -= 1
+                    open.removeLast()
+                }
+            }
+            out += "<li><a href=\"#\(Self.escape(entry.id))\">\(entry.html)</a>"
+        }
+        out += "</li>\n"
+        while depth > 1 {
+            out += "</ul>\n</li>\n"
+            depth -= 1
+        }
+        return out + "</ul>\n</div>\n</div>\n"
+    }
+
     private func heading(_ node: SyntaxNode) -> String {
         let tokens = node.tokens
         let level = tokens.first { $0.kind == .stars }?.text.count ?? 1
@@ -259,17 +345,28 @@ final class HTMLRenderer {
         let id = customID ?? slug(titleText)
         if customID != nil { ids.insert(id) }
         var parts: [String] = []
-        if let todo = tokens.first(where: { $0.kind == .todoKeyword })?.text {
+        let h = min(level + 1, 6)
+        if let num = options.num, level <= num {
+            if numbers.count < level { numbers += Array(repeating: 0, count: level - numbers.count) }
+            numbers = Array(numbers.prefix(level))
+            numbers[level - 1] += 1
+            parts.append("<span class=\"section-number-\(h)\">\(numbers.map(String.init).joined(separator: ".")).</span>")
+        }
+        if options.todo, let todo = tokens.first(where: { $0.kind == .todoKeyword })?.text {
             parts.append("<span class=\"todo \(settings.isDone(todo) ? "done " : "")\(Self.escape(todo))\">\(Self.escape(todo))</span>")
         }
-        if let priority = tokens.first(where: { $0.kind == .priority })?.text {
+        if options.priority, let priority = tokens.first(where: { $0.kind == .priority })?.text {
             parts.append("<span class=\"priority\">\(Self.escape(priority))</span>")
         }
         if let title, !titleText.isEmpty { parts.append(inline(title).trimmingCharacters(in: .whitespaces)) }
-        if let tags = tokens.first(where: { $0.kind == .tags })?.text {
-            parts += tags.split(separator: ":").map { "<span class=\"tag\">\(Self.escape(String($0)))</span>" }
+        var tagParts: [String] = []
+        if options.tags, let tags = tokens.first(where: { $0.kind == .tags })?.text {
+            tagParts = tags.split(separator: ":").map { "<span class=\"tag\">\(Self.escape(String($0)))</span>" }
         }
-        let h = min(level + 1, 6)
+        if let toc = options.toc, level <= toc {
+            tocEntries.append((level, id, (parts + (options.tagsInTOC ? tagParts : [])).joined(separator: " ")))
+        }
+        parts += tagParts
         return "<h\(h) id=\"\(Self.escape(id))\">\(parts.joined(separator: " "))</h\(h)>\n"
     }
 
@@ -488,21 +585,44 @@ final class HTMLRenderer {
         return out
     }
 
-    /// `\alpha` and friends as characters.
+    /// Text: LaTeX fragments left for MathJax, `\alpha` and friends as characters, `_` and `^`
+    /// scripts as `<sub>` and `<sup>`, as `#+OPTIONS` says.
+    static let textObjects = try! NSRegularExpression(pattern: [
+        #"\\\((.+?)\\\)"#, #"\\\[(.+?)\\\]"#, #"\$\$(.+?)\$\$"#,
+        #"(?<![$\w])\$([^\s$.,;](?:[^$]*?[^\s$.,\\])?)\$(?=[\s.,;:!?'")\]-]|$)"#,
+        #"\\([a-zA-Z]+)(\{\})?"#,
+        #"(?<=\S)([_^])(\{[^{}]*\}|[+-]?[\p{L}\p{N}.,\\]*[\p{L}\p{N}])"#,
+    ].joined(separator: "|"))
+
     private func entities(_ text: String) -> String {
-        guard text.contains("\\") else { return Self.escape(text) }
+        guard text.contains(where: { $0 == "\\" || $0 == "$" || $0 == "_" || $0 == "^" }) else { return Self.escape(text) }
+        let ns = text as NSString
         var out = ""
-        var rest = Substring(text)
-        while let m = rest.firstMatch(of: /\\([a-zA-Z]+)(\{\})?/) {
-            out += Self.escape(String(rest[..<m.range.lowerBound]))
-            if let display = OrgEntities.display[String(m.1)] {
-                out += Self.escape(display)
+        var at = 0
+        for m in Self.textObjects.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            out += Self.escape(ns.substring(with: NSRange(location: at, length: m.range.location - at)))
+            at = NSMaxRange(m.range)
+            let whole = ns.substring(with: m.range)
+            func group(_ i: Int) -> String? { m.range(at: i).location == NSNotFound ? nil : ns.substring(with: m.range(at: i)) }
+            if group(1) != nil || group(2) != nil || group(3) != nil || group(4) != nil {
+                guard options.tex else { continue }
+                hasMath = true
+                out += Self.escape(whole)
+            } else if let name = group(5) {
+                out += Self.escape(OrgEntities.display[name] ?? whole)
+            } else if let marker = group(7), let body = group(8) {
+                let braced = body.hasPrefix("{")
+                if options.scripts == .off || (options.scripts == .braces && !braced) {
+                    out += Self.escape(whole)
+                    continue
+                }
+                let inner = braced ? String(body.dropFirst().dropLast()) : body
+                out += marker == "_" ? "<sub>\(Self.escape(inner))</sub>" : "<sup>\(Self.escape(inner))</sup>"
             } else {
-                out += Self.escape(String(rest[m.range]))
+                out += Self.escape(whole)
             }
-            rest = rest[m.range.upperBound...]
         }
-        return out + Self.escape(String(rest))
+        return out + Self.escape(ns.substring(from: at))
     }
 
     private func object(_ node: SyntaxNode) -> String {
@@ -520,14 +640,21 @@ final class HTMLRenderer {
         case .superscript:
             let text = node.text
             let body = text.dropFirst()
-            let inner = body.hasPrefix("{") && body.hasSuffix("}") ? String(body.dropFirst().dropLast()) : String(body)
+            let braced = body.hasPrefix("{") && body.hasSuffix("}")
+            if options.scripts == .off || (options.scripts == .braces && !braced) { return Self.escape(text) }
+            let inner = braced ? String(body.dropFirst().dropLast()) : String(body)
             return text.hasPrefix("_") ? "<sub>\(Self.escape(inner))</sub>" : "<sup>\(Self.escape(inner))</sup>"
         case .lineBreak: return "<br>\n"
         case .target, .macro: return ""
         case .inlineSourceBlock:
             if let m = node.text.firstMatch(of: /\{(.*)\}$/) { return "<code>\(Self.escape(String(m.1)))</code>" }
             return Self.escape(node.text)
-        case .statisticsCookie, .latexFragment: return Self.escape(node.text)
+        case .latexFragment:
+            // For MathJax, as ox-html leaves them with `tex:t`; `tex:nil` drops them.
+            guard options.tex else { return "" }
+            hasMath = true
+            return Self.escape(node.text)
+        case .statisticsCookie: return Self.escape(node.text)
         default: return inline(node)
         }
     }
