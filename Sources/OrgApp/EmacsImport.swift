@@ -61,7 +61,7 @@ public struct EmacsImport: Sendable {
 
     /// Where an Emacs configuration usually is, first found first.
     public static func defaultLocations() -> [URL] {
-        let home = FileManager.default.homeDirectoryForCurrentUser
+        let home = URL(fileURLWithPath: NSHomeDirectory())
         let environment = ProcessInfo.processInfo.environment
         var candidates: [URL] = []
         if let doom = environment["DOOMDIR"] { candidates.append(URL(fileURLWithPath: doom)) }
@@ -77,7 +77,7 @@ public struct EmacsImport: Sendable {
 
     /// Doom's org module and core defaults, if Doom is installed.
     static func doomDefaultFiles() -> [URL] {
-        let home = FileManager.default.homeDirectoryForCurrentUser
+        let home = URL(fileURLWithPath: NSHomeDirectory())
         let environment = ProcessInfo.processInfo.environment
         let installs = ([environment["EMACSDIR"]].compactMap { $0 }.map { URL(fileURLWithPath: $0) })
             + [".config/emacs", ".emacs.d"].map { home.appendingPathComponent($0) }

@@ -12,7 +12,7 @@ enum FileOperation: Equatable {
 extension Sidebar {
     @ViewBuilder
     func fileMenu(_ node: FileTreeNode) -> some View {
-        let folder = node.file == nil ? node.path : (node.path as NSString).deletingLastPathComponent
+        let folder = node.file == nil && !node.isDownloading ? node.path : (node.path as NSString).deletingLastPathComponent
         Button("New File…") { ask(.create(folder: folder)) }
         Divider()
         Button("Rename…") { ask(.rename(path: node.path)) }

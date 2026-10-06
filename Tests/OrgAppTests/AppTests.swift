@@ -74,6 +74,14 @@ struct WorkspaceModelTests {
         #expect(reopened.search("apples").isEmpty)
     }
 
+    @Test func listsDownloadsInTheTree() {
+        let files = [FileEntry(path: "/r/a.org", root: "/r", kind: .org)]
+        let tree = FileTreeNode.build(root: "/r", files: files, downloading: ["/r/b.org", "/r/sub/c.org"])
+        #expect(tree.children?.map(\.name) == ["sub", "a.org", "b.org"])
+        #expect(tree.children?[2].isDownloading == true && tree.children?[2].file == nil)
+        #expect(tree.children?[0].children?.map(\.name) == ["c.org"])
+    }
+
     @Test func findsBacklinks() async throws {
         let notes = try Folder()
         try notes.write("a.org", "* Sink\n:PROPERTIES:\n:ID: s-1\n:CUSTOM_ID: sink\n:END:\nsee [[*Taps]]\n* Taps\n")

@@ -12,6 +12,8 @@ import OrgWorkspace
 public final class WorkspaceModel {
     public private(set) var roots: [WorkspaceRoot] = []
     public private(set) var files: [FileEntry] = []
+    /// iCloud files asked to download and not indexed yet, by path.
+    public private(set) var downloading: Set<String> = []
     public private(set) var isIndexing = false
     /// The last error worth showing, such as a folder that can no longer be found.
     public var lastError: String?
@@ -24,6 +26,8 @@ public final class WorkspaceModel {
     /// Resolved root folders, keyed by their resolved path, which is how the index stores them.
     private var resolvedRoots: [String: URL] = [:]
     @ObservationIgnored private var watcher: AnyObject?
+    /// Watchers of the roots where there are no FSEvents.
+    @ObservationIgnored private var presenters: [FolderPresenter] = []
     /// Set once watching starts, so adding or removing a root watches the new set.
     @ObservationIgnored private var watching = false
     private var changeVersion = 0
@@ -81,9 +85,7 @@ public final class WorkspaceModel {
     }
 
     private func rootsChanged() {
-        #if os(macOS)
         if watching { startWatching() }
-        #endif
     }
 
     private func saveRoots() throws {
@@ -128,14 +130,23 @@ public final class WorkspaceModel {
         isIndexing = true
         defer { isIndexing = false }
         let reconciler = Reconciler(index: index, settings: settings, rules: scanRules)
+        var pending: Set<String> = []
         for url in resolvedRoots.values {
             do {
-                _ = try await Task.detached { try reconciler.reconcile(root: url) }.value
+                let report = try await Task.detached { try reconciler.reconcile(root: url) }.value
+                pending.formUnion(report.placeholders.map(\.path))
             } catch {
                 lastError = "Indexing \(url.path) failed: \(error.localizedDescription)"
             }
         }
         try? reloadFiles()
+        setDownloading(pending)
+    }
+
+    /// Pending downloads, less the ones that have arrived and been indexed.
+    private func setDownloading(_ pending: Set<String>) {
+        let still = pending.subtracting(files.map(\.path))
+        if still != downloading { downloading = still }
     }
 
     private func reloadFiles() throws {
@@ -149,15 +160,19 @@ public final class WorkspaceModel {
     /// Reconciles the paths a batch of file events named, or whole roots when events were lost.
     public func filesChanged(_ paths: [URL], rescan roots: [URL]) async {
         let reconciler = Reconciler(index: index, settings: settings, rules: scanRules)
+        var pending = downloading
         for rootURL in roots {
-            _ = try? await Task.detached { try reconciler.reconcile(root: rootURL) }.value
+            let report = try? await Task.detached { try reconciler.reconcile(root: rootURL) }.value
+            pending = pending.filter { !$0.hasPrefix(rootURL.path + "/") }.union(report?.placeholders.map(\.path) ?? [])
         }
         for (rootPath, rootURL) in resolvedRoots where !roots.contains(rootURL) {
             let inRoot = paths.filter { $0.path.hasPrefix(rootPath + "/") }
             guard !inRoot.isEmpty else { continue }
-            _ = try? await Task.detached { try reconciler.reconcile(root: rootURL, paths: inRoot) }.value
+            let report = try? await Task.detached { try reconciler.reconcile(root: rootURL, paths: inRoot) }.value
+            pending.formUnion(report?.placeholders.map(\.path) ?? [])
         }
         try? reloadFiles()
+        setDownloading(pending)
         for path in paths {
             changeVersion += 1
             changedFile = (path.standardizedFileURL.path, changeVersion)
@@ -189,6 +204,30 @@ public final class WorkspaceModel {
         }
         fsWatcher.start()
         watcher = fsWatcher
+    }
+    #else
+    /// Watches every root through file presenters; changes reconcile the index and are
+    /// reported through `changedFile`.
+    public func startWatching() {
+        watching = true
+        presenters.forEach { $0.stop() }
+        presenters = resolvedRoots.values.map { root in
+            FolderPresenter(root: root) { [weak self] events in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    var changed: [URL] = []
+                    var rescans: [URL] = []
+                    for event in events {
+                        switch event {
+                        case .changed(let url): changed.append(url)
+                        case .rescan(let url): rescans.append(url)
+                        }
+                    }
+                    await self.filesChanged(changed, rescan: rescans.compactMap(self.root(containing:)))
+                }
+            }
+        }
+        presenters.forEach { $0.start() }
     }
     #endif
 
@@ -271,7 +310,7 @@ public final class WorkspaceModel {
     // MARK: - Queries
 
     public func tree(forRoot path: String) -> FileTreeNode {
-        FileTreeNode.build(root: path, files: files)
+        FileTreeNode.build(root: path, files: files, downloading: downloading.sorted())
     }
 
     /// Headings with links to `target`, the target heading's own links left out.

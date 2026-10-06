@@ -221,7 +221,7 @@ A workspace is one or more root folders. The files are the only source of truth;
 - Roots are identified by bookmark, not path, so a moved root is followed or reported.
 - iOS (later): `NSFilePresenter` plus `NSMetadataQuery` for iCloud.
 - Ignore Syncthing temp files (`.syncthing.*.tmp`). Show Syncthing conflict files (`*.sync-conflict-*`) with a diff against the original.
-- iCloud placeholders: a file not yet downloaded is requested with `startDownloadingUbiquitousItem` and shown as loading.
+- iCloud placeholders: a file not yet downloaded (a dataless file since macOS 14, or `.name.icloud`) is requested with `startDownloadingUbiquitousItem`, shown as downloading, and indexed when it arrives. An evicted file keeps its index rows.
 
 **Saving**
 
@@ -351,7 +351,7 @@ Status, 2026-10-05: phases 1–6 are built for macOS. Owed from phase 1: the ite
 - [x] Document session: original bytes, revisions, merge base, per-view state
 - [x] Save path with merge, recovery copies and fault-injection tests (used by the editing spike, not exposed in the viewer)
 - [ ] Editable TextKit 2 spike: folding and org-indent display with correct caret movement, selection, IME composition, VoiceOver and copy/paste across folded text (done but the VoiceOver check)
-- [ ] Workspace: folders, bookmarks, discovery/agenda/link scopes, FSEvents with reconciliation scans, Syncthing temp/conflict handling, iCloud placeholders (done but placeholders, which are only asked to download)
+- [x] Workspace: folders, bookmarks, discovery/agenda/link scopes, FSEvents with reconciliation scans, Syncthing temp/conflict handling, iCloud placeholders
 - [x] Index: schema, settings version, dirty-buffer overlay, FTS5 search
 - [x] Mac app (read-only): sidebar of folders and files, outline of the current file, quick open (`⌘P`), full-text search
 - [x] Rendering over the text: heading styles, TODO/priority/tag styling, links, emphasis, tables, src blocks highlighted for org, emacs-lisp, sh and python only (the rest move to phase 2)

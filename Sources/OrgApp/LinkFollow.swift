@@ -53,7 +53,7 @@ extension DocumentSession {
     public static func resolve(_ path: String, from current: String?) -> String {
         let expanded = (path as NSString).expandingTildeInPath
         if expanded.hasPrefix("/") { return (expanded as NSString).standardizingPath }
-        let folder = current.map { ($0 as NSString).deletingLastPathComponent } ?? FileManager.default.homeDirectoryForCurrentUser.path
+        let folder = current.map { ($0 as NSString).deletingLastPathComponent } ?? NSHomeDirectory()
         return ((folder as NSString).appendingPathComponent(expanded) as NSString).standardizingPath
     }
 

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import OrgCore
 
@@ -95,3 +96,4 @@ public enum BabelRunner {
         return BabelOutput(stdout: output, resultFile: result, stderr: errors, status: process.terminationStatus)
     }
 }
+#endif

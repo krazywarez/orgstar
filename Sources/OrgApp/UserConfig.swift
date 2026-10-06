@@ -16,7 +16,7 @@ public enum UserConfig {
         if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
             return URL(fileURLWithPath: xdg).appendingPathComponent("orgstar")
         }
-        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/orgstar")
+        return URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".config/orgstar")
     }
 
     /// A file of the configuration folder; one that exists only where earlier versions kept

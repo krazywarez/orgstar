@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 /// Runs `emacs --batch` for what the native code hands over, such as tables outside the
@@ -131,3 +132,4 @@ public enum EmacsRunner {
         return written
     }
 }
+#endif

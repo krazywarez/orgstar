@@ -30,7 +30,9 @@ public struct Reconciler: Sendable {
         for placeholder in discovery.placeholders {
             try? FileManager.default.startDownloadingUbiquitousItem(at: placeholder)
         }
-        var report = try reconcile(root: root, found: discovery.files, known: index.fileStates(root: root.path))
+        // Files iCloud evicted keep their rows until they're back.
+        let pending = Set(discovery.placeholders.map(\.path))
+        var report = try reconcile(root: root, found: discovery.files, known: index.fileStates(root: root.path).filter { !pending.contains($0.key) })
         report.placeholders = discovery.placeholders
         return report
     }
@@ -40,19 +42,28 @@ public struct Reconciler: Sendable {
         let wanted = Set(paths.map(\.standardizedFileURL.path))
         let known = try index.fileStates(root: root.path).filter { wanted.contains($0.key) }
         var found: [DiscoveredFile] = []
+        var placeholders: [URL] = []
         let rootComponents = root.standardizedFileURL.pathComponents.count
         for url in paths.map(\.standardizedFileURL) {
             // Files in ignored folders (`.git`) aren't part of the workspace, as in `scan`.
             if url.pathComponents.dropFirst(rootComponents).dropLast().contains(where: rules.skipsFolder) { continue }
             guard case .file(let kind) = WorkspaceScanner.classify(url.lastPathComponent, rules: rules),
-                  let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey]),
+                  let values = try? url.resourceValues(forKeys: Set(WorkspaceScanner.keys)),
                   values.isDirectory != true else { continue }
+            if WorkspaceScanner.isPending(values) {
+                try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+                placeholders.append(url)
+                continue
+            }
             found.append(DiscoveredFile(
                 url: url, kind: kind, size: values.fileSize ?? 0,
                 mtime: values.contentModificationDate?.timeIntervalSince1970 ?? 0
             ))
         }
-        return try reconcile(root: root, found: found, known: known)
+        let pending = Set(placeholders.map(\.path))
+        var report = try reconcile(root: root, found: found, known: known.filter { !pending.contains($0.key) })
+        report.placeholders = placeholders
+        return report
     }
 
     private func reconcile(root: URL, found: [DiscoveredFile], known: [String: FileState]) throws -> ReconcileReport {

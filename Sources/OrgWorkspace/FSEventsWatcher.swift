@@ -2,12 +2,6 @@
 import CoreServices
 import Foundation
 
-public enum WatchEvent: Sendable, Equatable {
-    case changed(URL)
-    /// Events were dropped or coalesced for this folder, or a root moved: rescan it.
-    case rescan(URL)
-}
-
 /// FSEvents with file-level events. Delivers batches on a private queue.
 public final class FSEventsWatcher: @unchecked Sendable {
     private let paths: [String]

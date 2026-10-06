@@ -86,9 +86,25 @@ public enum WorkspaceScanner {
         return .file(.other)
     }
 
+    /// Resource keys a scan reads.
+    static let keys: [URLResourceKey] = [
+        .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
+    ]
+
+    /// An iCloud file whose contents aren't on this device: reading it would wait for the
+    /// download, so it's asked to download and indexed when it arrives. Since macOS 14 these
+    /// keep their own names rather than `.name.icloud`.
+    public static func isPending(isUbiquitous: Bool?, status: URLUbiquitousItemDownloadingStatus?) -> Bool {
+        isUbiquitous == true && status == .notDownloaded
+    }
+
+    static func isPending(_ values: URLResourceValues) -> Bool {
+        isPending(isUbiquitous: values.isUbiquitousItem, status: values.ubiquitousItemDownloadingStatus)
+    }
+
     /// Every file under `root`, skipping the folders `rules` ignores.
     public static func scan(_ root: URL, rules: ScanRules = ScanRules()) throws -> Discovery {
-        let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
+        let keys = Self.keys
         guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys) else {
             return Discovery()
         }
@@ -101,6 +117,8 @@ public enum WorkspaceScanner {
                 continue
             }
             switch classify(name, rules: rules) {
+            case .file where isPending(values):
+                discovery.placeholders.append(url.standardizedFileURL)
             case .file(let kind):
                 discovery.files.append(DiscoveredFile(
                     url: url.standardizedFileURL,

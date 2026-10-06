@@ -113,7 +113,7 @@ extension DocumentSession {
     public static func resolve(_ file: String, root: String?) -> String {
         if file.hasPrefix("/") { return file }
         if file.hasPrefix("~") { return (file as NSString).expandingTildeInPath }
-        return ((root ?? FileManager.default.homeDirectoryForCurrentUser.path) as NSString).appendingPathComponent(file)
+        return ((root ?? NSHomeDirectory()) as NSString).appendingPathComponent(file)
     }
 
     /// `%a`: a link to the heading at the caret, as `org-store-link` makes one.

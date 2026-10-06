@@ -649,6 +649,7 @@ public final class DocumentSession {
     /// Recalculates a table in Emacs from a snapshot of the buffer, then replaces the table
     /// with Emacs's text if it hasn't changed meanwhile. Returns a message for the echo area.
     public func recalculateInEmacs(table: Range<Int>, point: Int, form: String) async -> String {
+        #if os(macOS)
         guard let entry = current else { return "No file is open." }
         let path = entry.path
         let snapshot = entry.buffer.document.text as NSString
@@ -671,11 +672,15 @@ public final class DocumentSession {
         } catch {
             return "\(error)"
         }
+        #else
+        return "Tables that need Emacs aren't recalculated on iOS."
+        #endif
     }
 
     /// Runs a src block and writes its result under it, unless the block changed while it
     /// ran. Returns a message for the echo area.
     public func runBabel(_ job: BabelJob) async -> String {
+        #if os(macOS)
         guard let entry = current else { return "No file is open." }
         let directory = URL(fileURLWithPath: entry.path).deletingLastPathComponent()
         do {
@@ -708,6 +713,9 @@ public final class DocumentSession {
         } catch {
             return "\(error)"
         }
+        #else
+        return "Source blocks don't run on iOS."
+        #endif
     }
 
     /// The block running now, to cancel.

@@ -683,7 +683,8 @@ struct Sidebar: View {
                 Section(isExpanded: expanded(root)) {
                     OutlineGroup(workspace.tree(forRoot: root).children ?? [], children: \.children) { node in
                         Label(node.name, systemImage: icon(node))
-                            .foregroundStyle(node.file?.kind == .conflict ? .orange : theme.color("sidebar-foreground") ?? .primary)
+                            .foregroundStyle(node.file?.kind == .conflict ? .orange : node.isDownloading ? .secondary : theme.color("sidebar-foreground") ?? .primary)
+                            .help(node.isDownloading ? "Downloading from iCloud" : "")
                             .tag(node.file?.path)
                             .contextMenu { fileMenu(node) }
                     }
@@ -745,6 +746,7 @@ struct Sidebar: View {
     }
 
     private func icon(_ node: FileTreeNode) -> String {
+        if node.isDownloading { return "icloud.and.arrow.down" }
         guard let file = node.file else { return "folder" }
         switch file.kind {
         case .org: return "doc.text"

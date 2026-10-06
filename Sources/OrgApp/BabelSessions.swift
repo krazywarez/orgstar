@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import OrgCore
 
@@ -122,3 +123,4 @@ public final class BabelSessions: @unchecked Sendable {
         }
     }
 }
+#endif
