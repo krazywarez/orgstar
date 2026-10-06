@@ -145,6 +145,8 @@ public enum Effect: Sendable, Equatable {
     case message(String)
     /// An inserted link was a stored one; it leaves `org-stored-links`.
     case storedLinkUsed(String)
+    /// Text for the clipboard (the kill ring).
+    case copy(String)
 }
 
 public struct EditResult: Sendable, Equatable {
@@ -211,6 +213,7 @@ public enum Commands {
         TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
+        CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

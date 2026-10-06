@@ -98,7 +98,13 @@ struct EditorView: NSViewRepresentable {
         editor.knownTags = knownTags
         editor.onPrompt = { [weak commands] prompt, reply in commands?.ask(prompt, reply: reply) }
         editor.onEffect = { [weak commands] effect in
-            if case .storedLinkUsed(let link) = effect { commands?.storedLinks.removeAll { $0.link == link } }
+            switch effect {
+            case .storedLinkUsed(let link): commands?.storedLinks.removeAll { $0.link == link }
+            case .copy(let text):
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+            case .message: break
+            }
         }
         let scroll = editor.makeScrollView()
         scroll.autoresizingMask = [.width, .height]

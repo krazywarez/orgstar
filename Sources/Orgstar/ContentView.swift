@@ -496,6 +496,9 @@ struct ContentView: View {
             }
         case "app.archive":
             if let message = session.archive() { commands.show(message) }
+        case "org.subtree.paste":
+            guard let text = NSPasteboard.general.string(forType: .string) else { return commands.show("The clipboard is empty") }
+            commands.editor?.perform(PasteSubtree(text: text))
         case "org.link.insert":
             commands.editor?.perform(InsertLink(stored: commands.storedLinks, file: session.path))
         case "org.link.store":
