@@ -22,10 +22,30 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
 
     public var toml: String {
         switch self {
-        case .emacs: Self.common + Self.emacsBindings
-        case .mac: Self.common + Self.macBindings
-        case .doom: Self.doomToml
+        case .emacs: Self.common + Self.speedBindings(mode: nil) + Self.emacsBindings
+        case .mac: Self.common + Self.speedBindings(mode: nil) + Self.macBindings
+        case .doom: Self.doomToml + Self.speedBindings(mode: "insert")
         }
+    }
+
+    /// `org-speed-commands`, for the start of a heading line when `org-use-speed-commands` is on.
+    static let speedCommands: [(key: String, command: String)] = [
+        ("n", "org.heading.next"), ("p", "org.heading.previous"), ("f", "org.heading.forward-same-level"),
+        ("b", "org.heading.backward-same-level"), ("u", "org.heading.up"), ("j", "org.goto"),
+        ("c", "org.cycle"), ("C", "org.cycle-global"), ("s", "org.narrow.toggle"), ("k", "org.subtree.cut"),
+        ("U", "org.subtree.up"), ("D", "org.subtree.down"), ("r", "org.heading.demote"), ("l", "org.heading.promote"),
+        ("R", "org.subtree.demote"), ("L", "org.subtree.promote"), ("i", "org.heading.insert-after-subtree"),
+        ("^", "org.sort"), ("w", "app.refile"), ("a", "app.archive"), ("@", "org.subtree.mark"),
+        ("#", "org.heading.toggle-comment"), ("I", "app.clock.in"), ("O", "app.clock.out"), ("t", "org.todo.cycle"),
+        (",", "org.priority.set"), ("0", "org.priority.remove"), ("1", "org.priority.set-a"), ("2", "org.priority.set-b"),
+        ("3", "org.priority.set-c"), (":", "org.tags.set"), ("e", "org.effort.set"), ("v", "app.agenda"),
+        ("/", "org.sparse-tree"), ("o", "org.link.open"),
+    ]
+
+    static func speedBindings(mode: String?) -> String {
+        speedCommands.map { key, command in
+            "[[bind]]\nkeys = \"\(key)\"\ncommand = \"\(command)\"\nwhen = \"speed\"\n" + (mode.map { "mode = \"\($0)\"\n" } ?? "")
+        }.joined()
     }
 
     /// Doom: the Emacs preset's org bindings in every evil state (as org-mode-map's are), with
@@ -344,6 +364,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "SPC m c E"
         command = "org.effort.set"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m p p"
+        command = "org.priority.set"
         mode = "normal"
         [[bind]]
         keys = "SPC m p u"
@@ -681,6 +705,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c /"
         command = "org.sparse-tree"
+        [[bind]]
+        keys = "C-c ,"
+        command = "org.priority.set"
         [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"

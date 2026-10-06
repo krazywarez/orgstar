@@ -40,6 +40,7 @@ public enum EditorCommands {
         EditorCommand(id: "org.narrow.subtree", title: "Narrow to Subtree", action: .view),
         EditorCommand(id: "org.narrow.block", title: "Narrow to Block", action: .view),
         EditorCommand(id: "org.widen", title: "Widen", action: .view),
+        EditorCommand(id: "org.narrow.toggle", title: "Narrow to Subtree or Widen", action: .view),
         EditorCommand(id: "org.table.toggle-column-width", title: "Shrink or Expand Table Column", action: .view),
         EditorCommand(id: "org.table.shrink", title: "Shrink Table Columns with Widths", action: .view),
         EditorCommand(id: "org.table.expand", title: "Expand Table Columns", action: .view),

@@ -135,7 +135,7 @@ struct KeymapTests {
         #expect(dispatcher.feed(z) == .undefined([c, z]))
         #expect(dispatcher.feed(c) == .pending([c]))
         #expect(dispatcher.feed(KeyDispatcher.quit) == .cancelled)
-        #expect(dispatcher.feed(KeyChord("a")) == .unbound)
+        #expect(dispatcher.feed(KeyChord("z")) == .unbound)
     }
 
     @Test func continuationsListNextKeys() {

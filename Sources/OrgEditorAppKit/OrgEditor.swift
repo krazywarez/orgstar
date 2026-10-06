@@ -405,7 +405,7 @@ public final class OrgEditor: NSObject {
             switch id {
             case "org.cycle": cycleAtCaret()
             case "org.cycle-global": cycleGlobal()
-            case "org.narrow.subtree", "org.narrow.block", "org.widen": narrow(id)
+            case "org.narrow.subtree", "org.narrow.block", "org.narrow.toggle", "org.widen": narrow(id)
             default: tableColumnWidth(id)
             }
         case .edit(let selector, let extending):
@@ -615,6 +615,8 @@ public final class OrgEditor: NSObject {
         do {
             switch id {
             case "org.narrow.subtree": narrowed = try Narrowing.subtree(at: caret, in: textView.string)
+            // `org-toggle-narrow-to-subtree`.
+            case "org.narrow.toggle": narrowed = narrowed == nil ? try Narrowing.subtree(at: caret, in: textView.string) : nil
             case "org.narrow.block": narrowed = try Narrowing.block(at: caret, in: textView.string)
             default: narrowed = nil
             }

@@ -296,8 +296,12 @@ struct PriorityChange {
         } else {
             new = Self.value(priorities.default)
         }
-        let cookie = new.map { "[#\(Self.label($0, numeric: numeric))]" }
-        return line.commit(context) { buffer in
+        return Self.write(new.map { "[#\(Self.label($0, numeric: numeric))]" }, line: line, context: context)
+    }
+
+    /// Puts `cookie` on the heading, or with nil removes it.
+    static func write(_ cookie: String?, line: HeadingLine, context: EditContext) -> CommandStep {
+        line.commit(context) { buffer in
             if let existing = line.priority {
                 let range = line.local(existing.range)
                 if let cookie {
@@ -328,6 +332,62 @@ struct PriorityChange {
 
     static func label(_ value: Int, numeric: Bool) -> String {
         numeric ? String(value) : String(Character(Unicode.Scalar(UInt32(value))!))
+    }
+}
+
+/// C-c ,: `org-priority` with `set`, asking for the priority (SPC removes it); with `value`,
+/// that priority, or with " " none, as the speed keys 1, 2, 3 and 0 do.
+public struct SetPriority: OrgCommand {
+    let value: Character?
+    public init(value: Character? = nil) { self.value = value }
+    public var id: String {
+        switch value {
+        case nil: "org.priority.set"
+        case " ": "org.priority.remove"
+        case let v?: "org.priority.set-\(v.lowercased())"
+        }
+    }
+    public var title: String {
+        switch value {
+        case nil: "Set Priority…"
+        case " ": "Remove Priority"
+        case let v?: "Set Priority \(v)"
+        }
+    }
+    public func applies(in context: EditContext) -> Bool { headingOnLine(at: context.caret, in: context.tree) != nil }
+
+    public func run(in context: EditContext) -> CommandStep {
+        guard let heading = headingOnLine(at: context.caret, in: context.tree) else { return .failed("Not on a heading") }
+        let priorities = context.tree.settings.priorities
+        let numeric = Int(priorities.lowest) != nil
+        let answer: String
+        if let value {
+            answer = String(value)
+        } else if let given = context.answers["priority"] {
+            answer = given
+        } else {
+            let message = "Priority \(priorities.highest)-\(priorities.lowest), SPC to remove:"
+            if numeric, (Int(priorities.lowest) ?? 0) >= 10 { return .prompt(Prompt(key: "priority", message: message)) }
+            guard let high = PriorityChange.value(priorities.highest), let low = PriorityChange.value(priorities.lowest), high <= low else {
+                return .failed("Unsupported priority range")
+            }
+            let items: [FastSelection.Item] = (high...low).map { v in
+                let label = PriorityChange.label(v, numeric: numeric)
+                return .option(key: Character(label.lowercased()), name: label)
+            } + [.option(key: " ", name: "remove")]
+            return .prompt(Prompt(key: "priority", message: message, fast: FastSelection(items: items, multiple: false)))
+        }
+        let line = HeadingLine(heading)
+        if answer == " " {
+            guard line.priority != nil else { return .failed("No priority cookie found in line") }
+            return PriorityChange.write(nil, line: line, context: context)
+        }
+        let new = numeric ? Int(answer.trimmingCharacters(in: .whitespaces)) : PriorityChange.value(answer.uppercased())
+        guard let new, let high = PriorityChange.value(priorities.highest), let low = PriorityChange.value(priorities.lowest), new >= high, new <= low else {
+            return .failed(numeric ? "Priority must be a number between `\(priorities.highest)' and `\(priorities.lowest)'"
+                : "Priority must be between `\(priorities.highest)' and `\(priorities.lowest)'")
+        }
+        return PriorityChange.write("[#\(PriorityChange.label(new, numeric: numeric))]", line: line, context: context)
     }
 }
 

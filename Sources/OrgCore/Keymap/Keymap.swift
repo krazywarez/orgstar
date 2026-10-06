@@ -101,7 +101,8 @@ public struct Keymap: Sendable, Equatable {
     public func keyLabels(for command: String, modes: [String?] = [nil], limit: Int = 2) -> [String] {
         var found: [(keys: [KeyChord], rank: [Int])] = []
         for (order, mode) in modes.enumerated() {
-            for binding in bindings.reversed() where binding.mode == mode && binding.command == command && isLive(binding) {
+            // Speed keys are labels for nothing: they act only at a heading's start.
+            for binding in bindings.reversed() where binding.mode == mode && binding.command == command && isLive(binding) && binding.when != "speed" {
                 found.append((binding.keys, [order, binding.when == nil ? 0 : 1, binding.keys.count, found.count]))
             }
         }
@@ -130,7 +131,7 @@ public struct Keymap: Sendable, Equatable {
 
 /// Context names a binding's `when` can use.
 public enum KeyContext {
-    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src", "fold-line", "dblock"]
+    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src", "fold-line", "dblock", "speed"]
 
     public static func holds(_ name: String, in context: EditContext) -> Bool {
         switch name {
@@ -147,6 +148,13 @@ public enum KeyContext {
         case "dblock":
             let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings)
             return buffer.lookingAtLine(EmacsBuffer.dblockStart)
+        // `org-use-speed-commands`: at the very start of a heading line.
+        case "speed":
+            guard context.options.useSpeedCommands, context.selection.allSatisfy(\.isEmpty) else { return false }
+            let ns = context.text as NSString
+            let caret = context.caret
+            guard caret == 0 || (caret <= ns.length && ns.character(at: caret - 1) == 10) else { return false }
+            return ns.substring(from: caret).range(of: "^\\*+ ", options: .regularExpression) != nil
         default: return false
         }
     }

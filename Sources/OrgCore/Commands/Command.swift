@@ -22,6 +22,8 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var logRedeadline: LogHow?
     /// `org-use-fast-todo-selection` `auto`: with keys in the keywords, C-c C-t asks for one.
     public var fastTodoSelection: Bool
+    /// `org-use-speed-commands`: single keys at the start of a heading line run commands.
+    public var useSpeedCommands: Bool
     /// `org-cycle-hide-drawer-startup`: drawers are folded when a file opens.
     public var hideDrawerStartup: Bool
     /// `org-cycle-hide-block-startup`: blocks are folded when a file opens.
@@ -40,8 +42,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
         listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70,
         hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false,
         logDone: LogHow? = nil, logIntoDrawer: String? = nil, fastTodoSelection: Bool = true,
-        hideDrawerStartup: Bool = true, hideBlockStartup: Bool = false, logReschedule: LogHow? = nil, logRedeadline: LogHow? = nil
+        hideDrawerStartup: Bool = true, hideBlockStartup: Bool = false, logReschedule: LogHow? = nil, logRedeadline: LogHow? = nil,
+        useSpeedCommands: Bool = false
     ) {
+        self.useSpeedCommands = useSpeedCommands
         self.logReschedule = logReschedule
         self.logRedeadline = logRedeadline
         self.hideDrawerStartup = hideDrawerStartup
@@ -235,7 +239,7 @@ public enum Commands {
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(),
-        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(),
+        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(), SetPriority(), SetPriority(value: "A"), SetPriority(value: "B"), SetPriority(value: "C"), SetPriority(value: " "),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

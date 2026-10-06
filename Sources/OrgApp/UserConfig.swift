@@ -82,6 +82,8 @@ public enum UserConfig {
                 fallback: .string("nil"), comment: "nil, time or note: log changing or removing a DEADLINE", legacy: ""),
         Setting(section: "", key: "org-log-into-drawer", defaultsKey: "logIntoDrawer", kind: .string, fallback: .string(""),
                 comment: "the drawer state notes go in (\"LOGBOOK\" is Emacs's t); \"\" for none", legacy: ""),
+        Setting(section: "", key: "org-use-speed-commands", defaultsKey: "useSpeedCommands", kind: .bool, fallback: .bool(false),
+                comment: "single keys at the start of a heading line run commands (n, p, t, c, …)", legacy: ""),
         Setting(section: "", key: "org-cycle-hide-drawer-startup", defaultsKey: "hideDrawerStartup", kind: .bool, fallback: .bool(true),
                 comment: "fold drawers when a file opens; #+STARTUP: nohidedrawers overrides", legacy: ""),
         Setting(section: "", key: "org-cycle-hide-block-startup", defaultsKey: "hideBlockStartup", kind: .bool, fallback: .bool(false),
