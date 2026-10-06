@@ -24,3 +24,20 @@ struct FindTests {
         #expect(h.textView.selectedRange() == needle)
     }
 }
+
+@MainActor
+struct BodyFoldTests {
+    /// CONTENTS view hides bodies (body folds); an edit elsewhere keeps them hidden.
+    @Test func bodyFoldsSurviveEdits() {
+        let h = Harness("* A\nbody a\n** B\nbody b\n* C\nbody c\n")
+        h.editor.cycleGlobal()
+        h.editor.cycleGlobal()
+        #expect(!h.editor.foldState.bodyFolds.isEmpty)
+        let hiddenBefore = h.editor.hidden.all
+        #expect(!hiddenBefore.isEmpty)
+        h.caret(at: 3)
+        h.textView.insertText("x", replacementRange: NSRange(location: 3, length: 0))
+        #expect(h.editor.hidden.all.count == hiddenBefore.count)
+        #expect(h.editor.hidden.all.map { $0.count } == hiddenBefore.map { $0.count })
+    }
+}

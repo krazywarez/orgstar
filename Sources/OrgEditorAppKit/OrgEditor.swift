@@ -727,8 +727,7 @@ public final class OrgEditor: NSObject {
         }
         let oldHidden = hidden.all
         view = view.mapped(through: [edit]).pruned(to: document.tree)
-        folded.set(view.folds)
-        hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds))
+        updateHidden()
         let newAffected = Self.affectedRange(document.tree, newText, edit.range.lowerBound, newEnd, touchedHeadings: touchedHeadings)
         let delta = edit.replacement.utf16.count - edit.range.count
         let oldMapped = oldAffected.lowerBound..<(oldAffected.upperBound >= edit.range.upperBound ? oldAffected.upperBound + delta : newEnd)
