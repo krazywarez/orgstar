@@ -447,8 +447,11 @@ public struct EmacsImport: Sendable {
         case "fill-column", "org-tags-column", "appt-message-warning-time":
             guard let n = value.integer else { return note("not a number") }
             add(name, .integer(n))
-        case "org-insert-heading-respect-content", "org-list-allow-alphabetical", "org-hide-emphasis-markers", "org-pretty-entities":
+        case "org-insert-heading-respect-content", "org-list-allow-alphabetical", "org-hide-emphasis-markers", "org-pretty-entities",
+             "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup":
             add(name, .bool(truthy))
+        case "org-hide-drawer-startup", "org-hide-block-startup":
+            add(name == "org-hide-drawer-startup" ? "org-cycle-hide-drawer-startup" : "org-cycle-hide-block-startup", .bool(truthy))
         case "org-M-RET-may-split-line":
             if let alist = value.elements, !alist.isEmpty {
                 // `((default . nil))`: the default entry, as most configurations write it.

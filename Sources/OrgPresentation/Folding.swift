@@ -1,13 +1,18 @@
 import OrgCore
 
-/// Which headings are folded: whole subtrees, or only their own bodies.
+/// Which headings are folded, whole subtrees or only their own bodies, and which drawers and
+/// blocks. Drawer and block folds are kept apart, as org's `drawer` and `block` fold specs:
+/// cycling headings leaves them as they are.
 public struct FoldState: Sendable, Equatable {
     public var folds: Set<Int>
     public var bodyFolds: Set<Int>
+    /// Opening-line starts of folded drawers and blocks.
+    public var wrapperFolds: Set<Int>
 
-    public init(folds: Set<Int> = [], bodyFolds: Set<Int> = []) {
+    public init(folds: Set<Int> = [], bodyFolds: Set<Int> = [], wrapperFolds: Set<Int> = []) {
         self.folds = folds
         self.bodyFolds = bodyFolds
+        self.wrapperFolds = wrapperFolds
     }
 }
 
@@ -82,14 +87,61 @@ extension Presentation {
         return next
     }
 
-    /// Shift-TAB: overview, contents, show all, and around.
-    public static func cycleGlobal(from current: GlobalVisibility?, in tree: OrgTree) -> (GlobalVisibility, FoldState) {
+    /// TAB at `offset` (`org-cycle`): on the first or last line of a drawer or block, folds or
+    /// unfolds it; on a heading, cycles it. Nil elsewhere.
+    public static func cycle(at offset: Int, in tree: OrgTree, _ state: FoldState) -> FoldState? {
+        if let wrapper = Wrappers.toggleable(at: offset, in: tree) {
+            var next = state
+            if next.wrapperFolds.remove(wrapper.start) == nil { next.wrapperFolds.insert(wrapper.start) }
+            return next
+        }
+        return heading(containing: offset, in: tree).map { cycle($0, in: tree, state) }
+    }
+
+    /// Shift-TAB: overview, contents, show all, and around. Drawer and block folds carry over
+    /// from `wrapperFolds`: show all opens blocks, and overview and contents fold the drawers
+    /// before the first heading (`org-cycle-hide-drawers`).
+    public static func cycleGlobal(from current: GlobalVisibility?, in tree: OrgTree, wrapperFolds: Set<Int> = []) -> (GlobalVisibility, FoldState) {
         let next: GlobalVisibility = switch current {
         case .overview: .contents
         case .contents: .showAll
         case .showAll, nil: .overview
         }
-        return (next, foldState(for: next, in: tree))
+        var state = foldState(for: next, in: tree)
+        let wrappers = Wrappers.all(tree)
+        switch next {
+        case .showAll:
+            let blocks = Set(wrappers.filter { $0.kind == .block }.map(\.start))
+            state.wrapperFolds = wrapperFolds.subtracting(blocks)
+        case .overview, .contents:
+            let firstHeading = outline(tree).first?.start ?? Int.max
+            state.wrapperFolds = wrapperFolds.union(wrappers.filter { $0.kind == .drawer && $0.start < firstHeading }.map(\.start))
+        }
+        return (next, state)
+    }
+
+    /// The drawers and blocks folded when a file opens: drawers unless `org-cycle-hide-drawer-startup`
+    /// is off, blocks when `org-cycle-hide-block-startup` is on; `#+STARTUP` (`hidedrawers`,
+    /// `nohidedrawers`, `hideblocks`, `nohideblocks`, `showeverything`) overrides both.
+    public static func startupWrapperFolds(_ tree: OrgTree, hideDrawers: Bool = true, hideBlocks: Bool = false) -> Set<Int> {
+        Set(startupWrappers(tree, hideDrawers: hideDrawers, hideBlocks: hideBlocks).map(\.start))
+    }
+
+    public static func startupWrappers(_ tree: OrgTree, hideDrawers: Bool = true, hideBlocks: Bool = false) -> [Wrapper] {
+        var drawers = hideDrawers
+        var blocks = hideBlocks
+        for option in startupOptions(tree) {
+            switch option.lowercased() {
+            case "hidedrawers": drawers = true
+            case "nohidedrawers": drawers = false
+            case "hideblocks": blocks = true
+            case "nohideblocks": blocks = false
+            case "showeverything": return []
+            default: break
+            }
+        }
+        guard drawers || blocks else { return [] }
+        return Wrappers.all(tree).filter { $0.kind == .drawer ? drawers : blocks }
     }
 
     public static func foldState(for visibility: GlobalVisibility, in tree: OrgTree) -> FoldState {

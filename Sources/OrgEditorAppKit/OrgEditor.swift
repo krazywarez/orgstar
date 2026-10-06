@@ -102,9 +102,10 @@ public final class OrgEditor: NSObject {
 
     public init(
         document: DocumentState, frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800), editable: Bool = true,
-        highlighter: (any CodeHighlighter)? = nil, mode: Mode = .org
+        highlighter: (any CodeHighlighter)? = nil, mode: Mode = .org, options: EditingOptions = .org
     ) {
         self.document = document
+        self.options = options
         self.highlighter = highlighter
         self.mode = mode
         let orgTextView = OrgTextView(usingTextLayoutManager: true)
@@ -142,7 +143,12 @@ public final class OrgEditor: NSObject {
 
         if isOrg { shaded.set(Presentation.shadedBlocks(document.tree)) }
         load(document.text)
-        if isOrg, let startup = Presentation.startupFoldState(document.tree) { setFolds(startup) }
+        if isOrg {
+            var startup = Presentation.startupFoldState(document.tree) ?? FoldState()
+            let wrappers = Presentation.startupWrappers(document.tree, hideDrawers: options.hideDrawerStartup, hideBlocks: options.hideBlockStartup)
+            startup.wrapperFolds = Set(wrappers.map(\.start))
+            if startup != FoldState() { setFolds(startup, wrappers: wrappers) }
+        }
     }
 
     /// Replaces the storage's text. Setting the attributed string directly is about 100x
@@ -361,6 +367,7 @@ public final class OrgEditor: NSObject {
         return switch EditorCommands.command(id)?.action {
         case .text(let command): command.applies(in: context)
         case .view: id != "org.cycle" || Presentation.heading(containing: context.caret, in: context.tree) != nil
+            || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
         case .edit, .mark, .app, .find: true
         case nil: true
         }
@@ -459,15 +466,26 @@ public final class OrgEditor: NSObject {
     // MARK: - Folding
 
     public var foldState: FoldState {
-        FoldState(folds: view.folds, bodyFolds: view.bodyFolds)
+        FoldState(folds: view.folds, bodyFolds: view.bodyFolds, wrapperFolds: view.wrapperFolds)
     }
 
     private var globalVisibility: GlobalVisibility?
 
     public func setFolds(_ state: FoldState) {
+        setFolds(state, wrappers: nil)
+    }
+
+    /// `wrappers`, when given, holds every folded drawer and block.
+    private func setFolds(_ state: FoldState, wrappers: [Wrapper]?) {
         view.folds = state.folds
         view.bodyFolds = state.bodyFolds
-        view = view.pruned(to: document.tree)
+        view = view.pruned(to: document.tree, wrappers: false)
+        // Found one by one, or all at once when there are many.
+        let found = wrappers ?? (state.wrapperFolds.count > 32
+            ? Wrappers.all(document.tree).filter { state.wrapperFolds.contains($0.start) }
+            : state.wrapperFolds.compactMap { Wrappers.starting(at: $0, in: document.tree) })
+        wrapperHidden = Dictionary(found.map { ($0.start, $0.hidden) }) { a, _ in a }
+        view.wrapperFolds = Set(wrapperHidden.keys)
         updateHidden()
         orgTextView?.redrawLineNumbers()
         textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
@@ -476,22 +494,50 @@ public final class OrgEditor: NSObject {
         if let range = hidden.containing(caret) { setCaret(range.lowerBound - 1) }
     }
 
+    /// What each folded drawer and block hides, by opening-line start; kept in step with
+    /// `view.wrapperFolds` and mapped through edits.
+    private var wrapperHidden: [Int: Range<Int>] = [:]
+
     private func updateHidden() {
-        folded.set(view.folds.union(view.bodyFolds))
-        hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds, bodyFolds: view.bodyFolds))
+        folded.set(view.folds.union(view.bodyFolds).union(view.wrapperFolds))
+        hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds, bodyFolds: view.bodyFolds, wrapperRanges: Array(wrapperHidden.values)))
     }
 
-    /// TAB on a heading: folded, children, subtree. Returns false off a heading.
+    /// Moves drawer and block folds through `edit`, checking again only those near it.
+    private func mapWrapperFolds(through edit: TextEdit, near affected: Range<Int>) {
+        guard !wrapperHidden.isEmpty else { return }
+        var mapped: [Int: Range<Int>] = [:]
+        let entries = Array(wrapperHidden)
+        // One pass maps every start and range.
+        let moved = ViewState(selection: entries.flatMap { [$0.key..<$0.key, $0.value] }).mapped(through: [edit]).selection
+        for i in entries.indices {
+            let newStart = moved[2 * i].lowerBound
+            let newRange = moved[2 * i + 1]
+            if newStart <= affected.upperBound, newRange.upperBound >= affected.lowerBound {
+                if let wrapper = Wrappers.starting(at: newStart, in: document.tree) { mapped[newStart] = wrapper.hidden }
+            } else {
+                mapped[newStart] = newRange
+            }
+        }
+        wrapperHidden = mapped
+        view.wrapperFolds = Set(mapped.keys)
+    }
+
+    /// TAB on the first or last line of a drawer or block folds or unfolds it; on a heading,
+    /// cycles folded, children, subtree. Returns false elsewhere.
     @discardableResult
     public func cycleAtCaret() -> Bool {
-        guard let heading = Presentation.heading(containing: textView.selectedRange().location, in: document.tree) else { return false }
-        setFolds(Presentation.cycle(heading, in: document.tree, foldState))
+        let caret = textView.selectedRange().location
+        guard let state = Presentation.cycle(at: caret, in: document.tree, foldState) else { return false }
+        setFolds(state)
+        // Off a closing line that folding hid, to the opening line, as org does.
+        if let wrapper = Wrappers.toggleable(at: caret, in: document.tree), hidden.containing(caret) != nil { setCaret(wrapper.start) }
         return true
     }
 
     /// Shift-TAB: overview, contents, show all.
     public func cycleGlobal() {
-        let (visibility, state) = Presentation.cycleGlobal(from: globalVisibility, in: document.tree)
+        let (visibility, state) = Presentation.cycleGlobal(from: globalVisibility, in: document.tree, wrapperFolds: view.wrapperFolds)
         globalVisibility = visibility
         setFolds(state)
     }
@@ -510,6 +556,9 @@ public final class OrgEditor: NSObject {
         for entry in Presentation.outline(document.tree) where entry.start < offset && offset < entry.end {
             state.folds.remove(entry.start)
             state.bodyFolds.remove(entry.start)
+        }
+        for start in state.wrapperFolds where Wrappers.starting(at: start, in: document.tree)?.hidden.contains(offset) == true {
+            state.wrapperFolds.remove(start)
         }
         guard state != foldState else { return }
         setFolds(state)
@@ -773,11 +822,12 @@ public final class OrgEditor: NSObject {
             styledUpTo = (storage.string as NSString).lineRange(for: NSRange(location: edit.range.lowerBound, length: 0)).location
         }
         let oldHidden = hidden.all
-        view = view.mapped(through: [edit]).pruned(to: document.tree)
-        updateHidden()
         let newAffected = Self.affectedRange(document.tree, newText, edit.range.lowerBound, newEnd, touchedHeadings: touchedHeadings)
         let delta = edit.replacement.utf16.count - edit.range.count
         let oldMapped = oldAffected.lowerBound..<(oldAffected.upperBound >= edit.range.upperBound ? oldAffected.upperBound + delta : newEnd)
+        view = view.mapped(through: [edit]).pruned(to: document.tree, wrappers: false)
+        mapWrapperFolds(through: edit, near: min(oldMapped.lowerBound, newAffected.lowerBound)..<max(oldMapped.upperBound, newAffected.upperBound))
+        updateHidden()
         restyle(min(oldMapped.lowerBound, newAffected.lowerBound)..<min(max(oldMapped.upperBound, newAffected.upperBound), newText.length), in: storage)
         let oldShaded = shaded.all
         if isOrg {
@@ -894,7 +944,7 @@ extension OrgEditor: DocumentBuffer {
             state.selection = [selected.location..<NSMaxRange(selected)]
             let mapped = state.mapped(through: edits)
             load(document.text)
-            setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds))
+            setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds, wrapperFolds: mapped.wrapperFolds))
             let selection = mapped.selection[0]
             setCaret(selection.lowerBound)
             if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }

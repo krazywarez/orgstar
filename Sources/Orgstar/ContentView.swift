@@ -36,11 +36,14 @@ struct ContentView: View {
     @AppStorage("prettyEntities") private var prettyEntities = true
     @AppStorage("logDone") private var logDone = "nil"
     @AppStorage("logIntoDrawer") private var logIntoDrawer = ""
+    @AppStorage("hideDrawerStartup") private var hideDrawerStartup = true
+    @AppStorage("hideBlockStartup") private var hideBlockStartup = false
 
     private var options: EditingOptions {
         Preferences.options(
             tagsColumn: tagsColumn, headingAfterSubtree: headingAfterSubtree, splitLine: splitLine, alphabeticalLists: alphabeticalLists,
-            fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities, logDone: logDone, logIntoDrawer: logIntoDrawer
+            fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities, logDone: logDone, logIntoDrawer: logIntoDrawer,
+            hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup
         )
     }
     @State private var selectedFile: String?

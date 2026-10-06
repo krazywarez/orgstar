@@ -15,6 +15,17 @@ import Testing
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_GATES"] != nil))
 struct GateTests {
     /// About 1 MB of body text under a single top-level heading.
+    /// Entries with property and LOGBOOK drawers, all folded when the file opens.
+    static let drawers: String = {
+        var text = ""
+        for n in 0..<3_000 {
+            text += "* TODO Entry \(n) :tag:\n:PROPERTIES:\n:ID:       \(n)-uuid\n:CREATED:  [2026-10-04 Sun]\n:END:\n"
+            text += ":LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-10-04 Sun 10:00]\nCLOCK: [2026-10-04 Sun 09:00]--[2026-10-04 Sun 10:00] =>  1:00\n:END:\n"
+            text += "Body of entry \(n), a paragraph of text.\n\n"
+        }
+        return text
+    }()
+
     static let singleSection: String = {
         var text = "* One big section\n"
         var n = 0
@@ -88,7 +99,7 @@ struct GateTests {
         // per process; an app pays that at launch, not per file.
         NSTextView(usingTextLayoutManager: true).textStorage?.setAttributedString(NSAttributedString(string: "warm up"))
         // Memory limits: worst-case dense markup for the synthetic files, typical for real ones.
-        var inputs = [("single 1 MB section", Self.singleSection, 45.0), ("5,000-row table", Self.bigTable, 45.0)]
+        var inputs = [("single 1 MB section", Self.singleSection, 45.0), ("5,000-row table", Self.bigTable, 45.0), ("3,000 entries with drawers", Self.drawers, 45.0)]
         if let path = ProcessInfo.processInfo.environment["ORGSTAR_GATE_FILE"] {
             inputs.append((URL(fileURLWithPath: path).lastPathComponent, try String(contentsOfFile: path, encoding: .utf8), 10.0))
         }

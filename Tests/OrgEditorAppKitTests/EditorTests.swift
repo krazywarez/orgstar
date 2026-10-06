@@ -147,6 +147,43 @@ struct FoldingTests {
         #expect(pasteboard.string(forType: .string) == "* a\nbody\n** b\nmore\n* c\n")
     }
 
+    @Test func drawersFoldAtOpenAndToggleWithTab() {
+        let text = "* a\n:PROPERTIES:\n:ID: x\n:END:\nbody\n#+begin_src sh\necho\n#+end_src\n* c\n"
+        let h = Harness(text)
+        #expect(h.visibleLines == ["* a\n", ":PROPERTIES:\n", "body\n", "#+begin_src sh\n", "echo\n", "#+end_src\n", "* c\n"])
+        h.caret(at: h.offset(of: ":PROPERTIES:"))
+        #expect(h.editor.cycleAtCaret())
+        #expect(h.visibleLines.count == 9)
+        h.caret(at: h.offset(of: "#+end_src"))
+        #expect(h.editor.cycleAtCaret())
+        #expect(h.visibleLines == ["* a\n", ":PROPERTIES:\n", ":ID: x\n", ":END:\n", "body\n", "#+begin_src sh\n", "* c\n"])
+        #expect(h.textView.selectedRange().location == h.offset(of: "#+begin_src"))
+        // Heading cycling leaves the block folded.
+        h.caret(at: 1)
+        h.editor.cycleAtCaret()
+        h.editor.cycleAtCaret()
+        #expect(h.visibleLines.contains("#+begin_src sh\n") && !h.visibleLines.contains("echo\n"))
+        #expect(Harness("#+STARTUP: nohidedrawers\n" + text).visibleLines.contains(":ID: x\n"))
+        let folded = Harness(text)
+        folded.editor.reveal(folded.offset(of: ":ID: x") + 1)
+        #expect(folded.visibleLines.contains(":ID: x\n"))
+    }
+
+    @Test func drawerFoldsFollowEdits() {
+        let h = Harness("* a\n:PROPERTIES:\n:ID: x\n:END:\nbody\n* b\n:LOGBOOK:\nl\n:END:\n")
+        h.caret(at: h.offset(of: "body") + 4)
+        h.textView.insertText(" more", replacementRange: h.textView.selectedRange())
+        h.textView.insertNewline(nil)
+        h.caret(at: 2)
+        h.textView.insertText("new ", replacementRange: h.textView.selectedRange())
+        #expect(h.visibleLines == ["* new a\n", ":PROPERTIES:\n", "body more\n", "\n", "* b\n", ":LOGBOOK:\n"])
+        // Renaming the drawer's opening line keeps a drawer, and its fold.
+        h.caret(at: h.offset(of: ":LOGBOOK:") + 1)
+        h.textView.insertText("X", replacementRange: h.textView.selectedRange())
+        #expect(h.visibleLines.last == ":XLOGBOOK:\n")
+        h.checkInSync()
+    }
+
     @Test func foldsFollowEdits() {
         let h = Harness(outline)
         h.caret(at: h.offset(of: "* c") + 1)

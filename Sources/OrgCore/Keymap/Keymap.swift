@@ -130,7 +130,7 @@ public struct Keymap: Sendable, Equatable {
 
 /// Context names a binding's `when` can use.
 public enum KeyContext {
-    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src"]
+    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src", "fold-line"]
 
     public static func holds(_ name: String, in context: EditContext) -> Bool {
         switch name {
@@ -141,6 +141,8 @@ public enum KeyContext {
         case "timestamp": return EmacsBuffer(context.text, point: context.caret).atTimestamp() != nil
         case "tblfm": return TableRecalculate.tblfmLine(in: context) != nil
         case "src": return enclosing(.block, context).map(DocumentModel.isSrcBlock) ?? false
+        // The first or last line of a drawer or block, where TAB folds it.
+        case "fold-line": return Wrappers.toggleable(at: context.caret, in: context.tree) != nil
         default: return false
         }
     }

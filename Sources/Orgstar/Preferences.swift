@@ -17,13 +17,15 @@ enum Preferences {
 
     static func options(
         tagsColumn: Int, headingAfterSubtree: Bool, splitLine: Bool, alphabeticalLists: Bool, fillColumn: Int,
-        hiddenMarkers: Bool, prettyEntities: Bool, logDone: String, logIntoDrawer: String
+        hiddenMarkers: Bool, prettyEntities: Bool, logDone: String, logIntoDrawer: String,
+        hideDrawerStartup: Bool, hideBlockStartup: Bool
     ) -> EditingOptions {
         EditingOptions(
             tagsColumn: tagsColumn, insertHeadingRespectContent: headingAfterSubtree,
             metaReturnMaySplitLine: splitLine, listAllowAlphabetical: alphabeticalLists, fillColumn: fillColumn,
             hideEmphasisMarkers: hiddenMarkers, prettyEntities: prettyEntities, subSuperscriptsNeedBraces: true,
-            logDone: LogHow(rawValue: logDone), logIntoDrawer: logIntoDrawer.isEmpty ? nil : logIntoDrawer
+            logDone: LogHow(rawValue: logDone), logIntoDrawer: logIntoDrawer.isEmpty ? nil : logIntoDrawer,
+            hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup
         )
     }
 }

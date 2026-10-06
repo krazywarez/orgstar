@@ -210,11 +210,22 @@ public enum Presentation {
     /// Ranges to hide. A heading in `folds` hides everything after its line to the end of its
     /// section; one in `bodyFolds` hides only its own body, up to its first child heading.
     /// Sorted, without nested duplicates.
-    public static func hiddenRanges(_ tree: OrgTree, folds: Set<Int>, bodyFolds: Set<Int> = []) -> [Range<Int>] {
-        guard !folds.isEmpty || !bodyFolds.isEmpty else { return [] }
+    /// A drawer or block in `wrapperFolds` hides the lines after its opening line.
+    public static func hiddenRanges(_ tree: OrgTree, folds: Set<Int>, bodyFolds: Set<Int> = [], wrapperFolds: Set<Int> = []) -> [Range<Int>] {
+        hiddenRanges(tree, folds: folds, bodyFolds: bodyFolds, wrapperRanges: wrapperFolds.compactMap { Wrappers.starting(at: $0, in: tree)?.hidden })
+    }
+
+    /// The same, with the folded drawers' and blocks' hidden ranges already found.
+    public static func hiddenRanges(_ tree: OrgTree, folds: Set<Int>, bodyFolds: Set<Int>, wrapperRanges: [Range<Int>]) -> [Range<Int>] {
+        guard !folds.isEmpty || !bodyFolds.isEmpty || !wrapperRanges.isEmpty else { return [] }
         var ranges: [Range<Int>] = []
-        collectHidden(tree.root, folds, bodyFolds, &ranges)
-        return ranges
+        if !folds.isEmpty || !bodyFolds.isEmpty { collectHidden(tree.root, folds, bodyFolds, &ranges) }
+        guard !wrapperRanges.isEmpty else { return ranges }
+        ranges += wrapperRanges
+        ranges.sort { $0.lowerBound != $1.lowerBound ? $0.lowerBound < $1.lowerBound : $0.upperBound > $1.upperBound }
+        var merged: [Range<Int>] = []
+        for range in ranges where !(merged.last.map { $0.upperBound >= range.upperBound } ?? false) { merged.append(range) }
+        return merged
     }
 
     private static func collectHidden(_ node: SyntaxNode, _ folds: Set<Int>, _ bodyFolds: Set<Int>, _ ranges: inout [Range<Int>]) {

@@ -19,6 +19,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var logIntoDrawer: String?
     /// `org-use-fast-todo-selection` `auto`: with keys in the keywords, C-c C-t asks for one.
     public var fastTodoSelection: Bool
+    /// `org-cycle-hide-drawer-startup`: drawers are folded when a file opens.
+    public var hideDrawerStartup: Bool
+    /// `org-cycle-hide-block-startup`: blocks are folded when a file opens.
+    public var hideBlockStartup: Bool
     /// `fill-column` for M-q.
     public var fillColumn: Int
     /// `org-hide-emphasis-markers`: table alignment measures emphasis without its markers.
@@ -32,8 +36,11 @@ public struct EditingOptions: Sendable, Equatable, Codable {
         tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true,
         listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70,
         hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false,
-        logDone: LogHow? = nil, logIntoDrawer: String? = nil, fastTodoSelection: Bool = true
+        logDone: LogHow? = nil, logIntoDrawer: String? = nil, fastTodoSelection: Bool = true,
+        hideDrawerStartup: Bool = true, hideBlockStartup: Bool = false
     ) {
+        self.hideDrawerStartup = hideDrawerStartup
+        self.hideBlockStartup = hideBlockStartup
         self.fastTodoSelection = fastTodoSelection
         self.logDone = logDone
         self.logIntoDrawer = logIntoDrawer

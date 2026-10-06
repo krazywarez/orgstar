@@ -450,6 +450,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "TAB"
         command = "org.cycle"
         when = "heading"
+        [[bind]]
+        keys = "TAB"
+        command = "org.cycle"
+        when = "fold-line"
 
         [[bind]]
         keys = "S-TAB"

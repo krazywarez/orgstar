@@ -7,11 +7,14 @@ public struct ViewState: Sendable, Equatable {
     public var folds: Set<Int>
     /// Start offsets of headings whose own body is folded; their child headings stay visible.
     public var bodyFolds: Set<Int>
+    /// Opening-line starts of folded drawers and blocks.
+    public var wrapperFolds: Set<Int>
 
-    public init(selection: [Range<Int>] = [0..<0], folds: Set<Int> = [], bodyFolds: Set<Int> = []) {
+    public init(selection: [Range<Int>] = [0..<0], folds: Set<Int> = [], bodyFolds: Set<Int> = [], wrapperFolds: Set<Int> = []) {
         self.selection = selection
         self.folds = folds
         self.bodyFolds = bodyFolds
+        self.wrapperFolds = wrapperFolds
     }
 
     /// Maps through non-overlapping edits given in old coordinates.
@@ -20,17 +23,20 @@ public struct ViewState: Sendable, Equatable {
         return ViewState(
             selection: selection.map { mapOffset($0.lowerBound, sorted)..<mapOffset($0.upperBound, sorted) },
             folds: Set(folds.map { mapOffset($0, sorted) }),
-            bodyFolds: Set(bodyFolds.map { mapOffset($0, sorted) })
+            bodyFolds: Set(bodyFolds.map { mapOffset($0, sorted) }),
+            wrapperFolds: Set(wrapperFolds.map { mapOffset($0, sorted) })
         )
     }
 
-    /// Drops folds that no longer sit at the start of a heading.
-    public func pruned(to tree: OrgTree) -> ViewState {
-        guard !folds.isEmpty || !bodyFolds.isEmpty else { return self }
+    /// Drops folds that no longer sit at the start of a heading, drawer or block.
+    /// Without `wrappers`, drawer and block folds are left for the caller to check.
+    public func pruned(to tree: OrgTree, wrappers: Bool = true) -> ViewState {
+        guard !folds.isEmpty || !bodyFolds.isEmpty || (wrappers && !wrapperFolds.isEmpty) else { return self }
         return ViewState(
             selection: selection,
             folds: folds.filter { isHeadingStart($0, tree.root) },
-            bodyFolds: bodyFolds.filter { isHeadingStart($0, tree.root) }
+            bodyFolds: bodyFolds.filter { isHeadingStart($0, tree.root) },
+            wrapperFolds: wrappers ? wrapperFolds.filter { Wrappers.starting(at: $0, in: tree) != nil } : wrapperFolds
         )
     }
 }
