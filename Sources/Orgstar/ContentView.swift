@@ -43,6 +43,8 @@ struct ContentView: View {
     @AppStorage("startupIndented") private var startupIndented = true
     @AppStorage("hideLeadingStars") private var hideLeadingStars = false
     @AppStorage("startupAlignAllTables") private var startupAlignAllTables = false
+    @AppStorage("startupTruncated") private var startupTruncated = false
+    @AppStorage("spellCheck") private var spellCheck = false
     @AppStorage("hideDrawerStartup") private var hideDrawerStartup = true
     @AppStorage("hideBlockStartup") private var hideBlockStartup = false
 
@@ -52,7 +54,8 @@ struct ContentView: View {
             fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities, logDone: logDone, logIntoDrawer: logIntoDrawer,
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup, logReschedule: logReschedule, logRedeadline: logRedeadline,
             useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages,
-            startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables
+            startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables,
+            startupTruncated: startupTruncated, spellCheck: spellCheck
         )
     }
     /// A block being edited apart (`org-edit-special`).

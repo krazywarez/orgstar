@@ -46,6 +46,8 @@ public struct Vim: Sendable {
         case playMacro(Character, Int)
         /// A block selection: one range per line.
         case selectBlock([Range<Int>])
+        /// `gj`, `gk`: down (or, negative, up) by screen lines, which only the editor knows.
+        case visualLines(Int)
     }
 
     public struct Context: Sendable {
@@ -460,6 +462,10 @@ public struct Vim: Sendable {
             default:
                 break
             }
+        }
+
+        if mode == .normal, rest.count == 2, first == KeyChord("g"), rest.last == KeyChord("j") || rest.last == KeyChord("k") {
+            return .done([.visualLines(rest.last == KeyChord("j") ? n : -n)])
         }
 
         // Motions move the caret, or extend the selection in visual states.

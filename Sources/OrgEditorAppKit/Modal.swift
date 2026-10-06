@@ -132,6 +132,11 @@ extension OrgEditor {
                 textView.setSelectedRange(NSRange(range))
             case .command(let id):
                 run(id)
+            case .visualLines(let count):
+                for _ in 0..<abs(count) {
+                    if count > 0 { textView.moveDown(nil) } else { textView.moveUp(nil) }
+                }
+                clampCaret()
             case .undo(let count):
                 for _ in 0..<count { textView.undoManager?.undo() }
                 clampCaret()

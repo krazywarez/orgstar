@@ -83,12 +83,19 @@ final class OrgTextView: NSTextView {
     /// ⌘-click: given the clicked offset, true when it followed a link.
     var onCommandClick: ((Int) -> Bool)?
 
+    /// A plain single click: given the clicked offset, true when it was handled.
+    var onClick: ((Int) -> Bool)?
+
     override func mouseDown(with event: NSEvent) {
         if event.modifierFlags.contains(.command), let onCommandClick {
             let offset = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
             if onCommandClick(offset) { return }
         }
         onMouseDown?()
+        if event.modifierFlags.intersection([.command, .shift, .option, .control]).isEmpty, event.clickCount == 1,
+           onClick?(characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))) == true {
+            return
+        }
         super.mouseDown(with: event)
     }
 }

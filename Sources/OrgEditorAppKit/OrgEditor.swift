@@ -97,6 +97,8 @@ public final class OrgEditor: NSObject {
 
     public let mode: Mode
     public var isOrg: Bool { mode == .org }
+    /// The spell checker's skipped ranges and the text they were found in.
+    var spellSkipCache: (text: String, ranges: [Range<Int>])?
     /// Highlights of the whole file in plain mode, and the revision they were made for.
     private var codeRuns: (revision: Int, runs: [(range: Range<Int>, category: SyntaxCategory)])?
 
@@ -119,6 +121,7 @@ public final class OrgEditor: NSObject {
             self.run("org.link.open")
             return true
         }
+        orgTextView.onClick = { [weak self] offset in self?.click(at: offset) ?? false }
         orgTextView.onMouseDown = { [weak self] in
             self?.markActive = false
             self?.modalMouseDown()
@@ -164,6 +167,8 @@ public final class OrgEditor: NSObject {
             }
             if !indented || !hideStars { restyleOutsideEditing(0..<utf16Length) }
         }
+        spellChecking = options.spellCheck
+        truncatesLines = options.startupTruncated
     }
 
     /// Replaces the storage's text. Setting the attributed string directly is about 100x
@@ -431,6 +436,8 @@ public final class OrgEditor: NSObject {
             case "org.cycle-global": cycleGlobal()
             case "org.narrow.subtree", "org.narrow.block", "org.narrow.toggle", "org.widen": narrow(id)
             case "org.toggle-inline-images": toggleImages()
+            case "editor.toggle-spell-check": toggleSpellCheck()
+            case "editor.toggle-truncate-lines": toggleTruncateLines()
             default: tableColumnWidth(id)
             }
         case .edit(let selector, let extending):
@@ -1274,7 +1281,7 @@ public final class OrgEditor: NSObject {
 
     /// Keeps the caret out of folded text: moving forward into a fold jumps past it, moving
     /// back jumps to the end of the heading line.
-    fileprivate func selectionChanged() {
+    func selectionChanged() {
         let selection = textView.selectedRange()
         defer { previousSelection = selection.location }
         onSelectionChange?(selection)
@@ -1332,12 +1339,6 @@ extension OrgEditor: DocumentBuffer {
         }
         onChange?()
         return result
-    }
-}
-
-extension OrgEditor: NSTextViewDelegate {
-    public func textViewDidChangeSelection(_ notification: Notification) {
-        selectionChanged()
     }
 }
 

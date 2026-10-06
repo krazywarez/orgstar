@@ -32,6 +32,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var hideLeadingStars = false
     /// `org-startup-align-all-tables`.
     public var startupAlignAllTables = false
+    /// `org-startup-truncated`: long lines run off the right edge instead of wrapping.
+    public var startupTruncated = false
+    /// Spell checking while typing, outside code and markup.
+    public var spellCheck = false
     /// `org-cycle-hide-drawer-startup`: drawers are folded when a file opens.
     public var hideDrawerStartup: Bool
     /// `org-cycle-hide-block-startup`: blocks are folded when a file opens.
@@ -52,8 +56,11 @@ public struct EditingOptions: Sendable, Equatable, Codable {
         logDone: LogHow? = nil, logIntoDrawer: String? = nil, fastTodoSelection: Bool = true,
         hideDrawerStartup: Bool = true, hideBlockStartup: Bool = false, logReschedule: LogHow? = nil, logRedeadline: LogHow? = nil,
         useSpeedCommands: Bool = false, startupWithInlineImages: Bool = false,
-        startupIndented: Bool = true, hideLeadingStars: Bool = false, startupAlignAllTables: Bool = false
+        startupIndented: Bool = true, hideLeadingStars: Bool = false, startupAlignAllTables: Bool = false,
+        startupTruncated: Bool = false, spellCheck: Bool = false
     ) {
+        self.startupTruncated = startupTruncated
+        self.spellCheck = spellCheck
         self.startupIndented = startupIndented
         self.hideLeadingStars = hideLeadingStars
         self.startupAlignAllTables = startupAlignAllTables

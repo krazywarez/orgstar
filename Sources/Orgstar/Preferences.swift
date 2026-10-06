@@ -21,7 +21,7 @@ enum Preferences {
         tagsColumn: Int, headingAfterSubtree: Bool, splitLine: Bool, alphabeticalLists: Bool, fillColumn: Int,
         hiddenMarkers: Bool, prettyEntities: Bool, logDone: String, logIntoDrawer: String,
         hideDrawerStartup: Bool, hideBlockStartup: Bool, logReschedule: String, logRedeadline: String, useSpeedCommands: Bool, startupWithInlineImages: Bool,
-        startupIndented: Bool, hideLeadingStars: Bool, startupAlignAllTables: Bool
+        startupIndented: Bool, hideLeadingStars: Bool, startupAlignAllTables: Bool, startupTruncated: Bool, spellCheck: Bool
     ) -> EditingOptions {
         EditingOptions(
             tagsColumn: tagsColumn, insertHeadingRespectContent: headingAfterSubtree,
@@ -31,7 +31,8 @@ enum Preferences {
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup,
             logReschedule: LogHow(rawValue: logReschedule), logRedeadline: LogHow(rawValue: logRedeadline),
             useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages,
-            startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables
+            startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables,
+            startupTruncated: startupTruncated, spellCheck: spellCheck
         )
     }
 }

@@ -207,6 +207,14 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "SPC h r r"
         command = "app.reload-keymap"
         mode = "normal"
+        [[bind]]
+        keys = "SPC t s"
+        command = "editor.toggle-spell-check"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC t w"
+        command = "editor.toggle-truncate-lines"
+        mode = "normal"
 
         # Localleader (SPC m)
         [[bind]]
@@ -707,6 +715,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-x n w"
         command = "org.widen"
+        [[bind]]
+        keys = "C-x x t"
+        command = "editor.toggle-truncate-lines"
         [[bind]]
         keys = "C-c C-j"
         command = "org.goto"
