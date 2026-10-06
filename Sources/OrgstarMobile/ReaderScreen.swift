@@ -13,6 +13,12 @@ enum ReaderRoute: Hashable {
     case heading(HeadingLocation)
 }
 
+/// Editing a file, from the reader.
+struct EditorRoute: Hashable {
+    let path: String
+    let offset: Int?
+}
+
 /// A file to read: headings that fold and unfold with a tap, as TAB cycles them, text styled as
 /// in the editor, and links to follow.
 struct ReaderScreen: View {
@@ -58,8 +64,11 @@ struct ReaderScreen: View {
         .navigationTitle(((session.path ?? "") as NSString).lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
                 Button("Outline", systemImage: "list.bullet.indent") { showingOutline = true }.disabled(outline.isEmpty)
+                if let path = session.path {
+                    NavigationLink(value: EditorRoute(path: path, offset: nil)) { Label("Edit", systemImage: "square.and.pencil") }
+                }
             }
         }
         .sheet(isPresented: $showingOutline) { outlineSheet }

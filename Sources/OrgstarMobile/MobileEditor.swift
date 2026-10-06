@@ -1,0 +1,397 @@
+#if os(iOS)
+import OrgCore
+import OrgDocument
+import OrgPresentation
+import UIKit
+
+/// Ranges read by TextKit's delegate callbacks.
+final class LockedRanges: @unchecked Sendable {
+    private let lock = NSLock()
+    private var ranges: [Range<Int>] = []
+    private var starts: Set<Int> = []
+
+    func set(_ new: [Range<Int>], folded: Set<Int>) { lock.withLock { ranges = new; starts = folded } }
+    var all: [Range<Int>] { lock.withLock { ranges } }
+    func covers(_ start: Int, _ end: Int) -> Bool { lock.withLock { ranges.contains { $0.lowerBound <= start && end <= $0.upperBound } } }
+    func isFolded(_ start: Int) -> Bool { lock.withLock { starts.contains(start) } }
+    func containing(_ offset: Int) -> Range<Int>? { lock.withLock { ranges.first { $0.contains(offset) } } }
+}
+
+/// The iOS editor: a TextKit 2 text view that is the open file's live state, as the Mac's
+/// `OrgEditor` is. Typing and undo go through the text view and into the document; commands
+/// run on the document and apply their edits as one undo step; headings, drawers and blocks
+/// fold as TAB cycles them.
+@MainActor
+final class MobileEditor: NSObject, DocumentBuffer {
+    private(set) var document: DocumentState
+    let textView: UITextView
+    var options: EditingOptions = .org
+    var keymap = KeymapPreset.emacs.keymap
+    var onChange: (() -> Void)?
+    var onMessage: ((String) -> Void)?
+    var onPrompt: ((Prompt, @escaping (String?) -> Void) -> Void)?
+    var onLink: ((OrgLink) -> Void)?
+    /// Tags used across the workspace, for completion.
+    var knownTags: @Sendable () -> [String] = { [] }
+
+    private let theme = MobileTheme()
+    private(set) var fold = FoldState()
+    private var globalVisibility: GlobalVisibility?
+    let hidden = LockedRanges()
+    private var loading = false
+    private var restyleScheduled: Range<Int>?
+
+    init(document: DocumentState, editable: Bool) {
+        self.document = document
+        textView = UITextView(usingTextLayoutManager: true)
+        super.init()
+        textView.isEditable = editable
+        textView.autocorrectionType = .no
+        textView.autocapitalizationType = .none
+        textView.smartQuotesType = .no
+        textView.smartDashesType = .no
+        textView.smartInsertDeleteType = .no
+        textView.spellCheckingType = .yes
+        textView.keyboardDismissMode = .interactive
+        textView.alwaysBounceVertical = true
+        textView.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 24, right: 8)
+        textView.delegate = self
+        textView.textStorage.delegate = self
+        textView.textLayoutManager?.delegate = self
+        (textView.textLayoutManager?.textContentManager as? NSTextContentStorage)?.delegate = self
+        load(document.text)
+        let tree = document.tree
+        var state = Presentation.applyVisibilityProperties(Presentation.startupFoldState(tree) ?? FoldState(), in: tree)
+        state.wrapperFolds = Presentation.startupWrapperFolds(tree)
+        setFolds(state)
+        textView.selectedRange = NSRange(location: 0, length: 0)
+    }
+
+    // MARK: - DocumentBuffer
+
+    var selection: [Range<Int>] {
+        let selected = textView.selectedRange
+        return [selected.location..<NSMaxRange(selected)]
+    }
+
+    func update<T>(_ change: (inout DocumentState) throws -> T) rethrows -> T {
+        let before = document.text
+        let selected = textView.selectedRange
+        let result = try change(&document)
+        if document.text != before {
+            // A save that merged a change from disk, or a revert: the view shows the new text.
+            load(document.text)
+            let length = (document.text as NSString).length
+            textView.selectedRange = NSRange(location: min(selected.location, length), length: 0)
+            textView.undoManager?.removeAllActions()
+            setFolds(fold)
+        }
+        return result
+    }
+
+    func perform(_ command: any OrgCommand, now: Date = Date(), answers: [String: String] = [:]) -> CommandStep {
+        let context = EditContext(
+            revision: document.revision, text: document.text, tree: document.tree, selection: selection,
+            now: now, answers: answers, hidden: hidden.all, options: options, knownTags: knownTags
+        )
+        let step = command.run(in: context)
+        switch step {
+        case .commit(let result):
+            guard textView.isEditable || result.edits.isEmpty else {
+                onMessage?("This file is read-only.")
+                return .failed("read-only")
+            }
+            applyEdits(result.edits)
+            if let selected = result.selection?.first {
+                unfold(around: selected.lowerBound)
+                textView.selectedRange = NSRange(location: selected.lowerBound, length: selected.count)
+                textView.scrollRangeToVisible(textView.selectedRange)
+            }
+            for effect in result.effects {
+                switch effect {
+                case .message(let text): onMessage?(text)
+                case .fold(let start):
+                    var state = fold
+                    state.folds.insert(start)
+                    setFolds(state)
+                default: break
+                }
+            }
+        case .failed(let message):
+            onMessage?(message)
+        case .prompt(let prompt):
+            onPrompt?(prompt) { [weak self] answer in
+                guard let self else { return }
+                guard let answer else { return self.onMessage?("Quit") ?? () }
+                _ = self.perform(command, now: now, answers: answers.merging([prompt.key: answer]) { $1 })
+            }
+        case .external:
+            onMessage?("\(command.title) needs Emacs, which runs on the Mac.")
+        }
+        return step
+    }
+
+    // MARK: - Commands by name and key
+
+    /// Runs what `keys` (as `C-c C-t`) is bound to in the Emacs keymap, for the caret's context.
+    func run(keys: String) {
+        guard let chords = KeySequence.parse(keys) else { return }
+        let context = editContext()
+        let binding = keymap.candidates(for: chords).first { binding in
+            (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && applies(binding.command, in: context)
+        }
+        guard let binding else { return onMessage?("Nothing to do here") ?? () }
+        run(binding.command)
+    }
+
+    func run(_ id: String) {
+        switch id {
+        case "org.cycle":
+            if !cycleAtCaret() { onMessage?("Not on a heading, drawer or block") }
+        case "org.cycle-global": cycleGlobal()
+        case "org.link.open": openLinkAtCaret()
+        case "edit.undo": textView.undoManager?.undo()
+        case "edit.redo": textView.undoManager?.redo()
+        default:
+            if let command = Commands.command(id) {
+                _ = perform(command)
+            } else {
+                onMessage?("Not available on iOS yet")
+            }
+        }
+    }
+
+    func applies(_ id: String, in context: EditContext) -> Bool {
+        if let command = Commands.command(id) { return command.applies(in: context) }
+        switch id {
+        case "org.cycle":
+            return Presentation.heading(containing: context.caret, in: context.tree) != nil || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
+        case "org.cycle-global", "edit.undo", "edit.redo": return true
+        case "org.link.open": return Links.link(at: context.caret, text: context.text, tree: context.tree) != nil
+        default: return false
+        }
+    }
+
+    func editContext() -> EditContext {
+        EditContext(revision: document.revision, text: document.text, tree: document.tree, selection: selection, hidden: hidden.all, options: options, knownTags: knownTags)
+    }
+
+    private func openLinkAtCaret() {
+        guard let link = Links.link(at: textView.selectedRange.location, text: document.text, tree: document.tree)?.link else {
+            return onMessage?("No link here") ?? ()
+        }
+        onLink?(link)
+    }
+
+    // MARK: - Editing
+
+    /// Applies `edits` (against the current text) through the text view as one undo step.
+    func applyEdits(_ edits: [TextEdit]) {
+        guard !edits.isEmpty else { return }
+        let undo = textView.undoManager
+        undo?.beginUndoGrouping()
+        for edit in edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
+            guard let start = textView.position(from: textView.beginningOfDocument, offset: edit.range.lowerBound),
+                  let end = textView.position(from: textView.beginningOfDocument, offset: edit.range.upperBound),
+                  let range = textView.textRange(from: start, to: end) else { continue }
+            textView.replace(range, withText: edit.replacement)
+        }
+        undo?.endUndoGrouping()
+    }
+
+    /// The storage changed (typing, a command, undo): the document takes the same edit, and
+    /// folds and styles follow.
+    fileprivate func storageEdited(range: NSRange, delta: Int) {
+        guard !loading else { return }
+        let old = range.location..<(range.location + range.length - delta)
+        let replacement = (textView.textStorage.string as NSString).substring(with: range)
+        do {
+            try document.apply([TextEdit(range: old, replacement: replacement)], baseRevision: document.revision)
+        } catch {
+            // Out of step: the view's text wins.
+            load(textView.textStorage.string)
+            return
+        }
+        fold = FoldState(
+            folds: Self.map(fold.folds, old, delta), bodyFolds: Self.map(fold.bodyFolds, old, delta),
+            wrapperFolds: Self.map(fold.wrapperFolds, old, delta)
+        )
+        scheduleRestyle(range.location..<NSMaxRange(range))
+        onChange?()
+    }
+
+    /// Starts after the edit move with it; ones inside it go.
+    private static func map(_ starts: Set<Int>, _ old: Range<Int>, _ delta: Int) -> Set<Int> {
+        Set(starts.compactMap { start in
+            if start >= old.upperBound { return start + delta }
+            return start <= old.lowerBound ? start : nil
+        })
+    }
+
+    // MARK: - Styling
+
+    private func load(_ text: String) {
+        loading = true
+        textView.textStorage.setAttributedString(NSAttributedString(string: text, attributes: theme.base))
+        loading = false
+        restyle(0..<(text as NSString).length)
+        textView.typingAttributes = theme.base
+    }
+
+    /// Styles are set after the edit has been processed, as TextKit asks.
+    private func scheduleRestyle(_ range: Range<Int>) {
+        if let pending = restyleScheduled {
+            restyleScheduled = min(pending.lowerBound, range.lowerBound)..<max(pending.upperBound, range.upperBound)
+            return
+        }
+        restyleScheduled = range
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let range = self.restyleScheduled else { return }
+            self.restyleScheduled = nil
+            // Small files are restyled whole: a heading or block line changes what follows it.
+            let length = self.textView.textStorage.length
+            self.restyle(length < 60_000 ? 0..<length : range)
+            self.updateHidden()
+            self.textView.typingAttributes = self.theme.base
+        }
+    }
+
+    private func restyle(_ range: Range<Int>) {
+        let storage = textView.textStorage
+        let ns = storage.string as NSString
+        guard ns.length > 0 else { return }
+        let lower = min(range.lowerBound, ns.length)
+        let lines = ns.lineRange(for: NSRange(location: lower, length: min(range.count, ns.length - lower)))
+        storage.beginEditing()
+        storage.setAttributes(theme.base, range: lines)
+        for run in Presentation.styles(document.tree, in: lines.location..<NSMaxRange(lines)) {
+            let clipped = NSIntersectionRange(NSRange(location: run.range.lowerBound, length: run.range.count), lines)
+            if clipped.length > 0 { theme.apply(run.role, to: storage, range: clipped) }
+        }
+        storage.endEditing()
+    }
+
+    // MARK: - Folding
+
+    func setFolds(_ state: FoldState) {
+        fold = state
+        updateHidden()
+    }
+
+    private func updateHidden() {
+        let tree = document.tree
+        let wrappers = fold.wrapperFolds.compactMap { Wrappers.starting(at: $0, in: tree)?.hidden }
+        hidden.set(
+            Presentation.hiddenRanges(tree, folds: fold.folds, bodyFolds: fold.bodyFolds, wrapperRanges: wrappers),
+            folded: fold.folds.union(fold.bodyFolds).union(fold.wrapperFolds)
+        )
+        if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+        textView.setNeedsDisplay()
+    }
+
+    /// TAB at the caret: a heading cycles, a drawer or block opens or closes.
+    @discardableResult
+    func cycleAtCaret() -> Bool {
+        guard let next = Presentation.cycle(at: textView.selectedRange.location, in: document.tree, fold) else { return false }
+        setFolds(next)
+        return true
+    }
+
+    /// Shift-TAB: overview, contents, show all.
+    func cycleGlobal() {
+        let (visibility, state) = Presentation.cycleGlobal(from: globalVisibility, in: document.tree, wrapperFolds: fold.wrapperFolds)
+        globalVisibility = visibility
+        setFolds(state)
+    }
+
+    /// Opens the folds hiding `offset`.
+    func unfold(around offset: Int) {
+        var state = fold
+        for entry in Presentation.outline(document.tree) where entry.start < offset && offset < entry.end {
+            state.folds.remove(entry.start)
+            state.bodyFolds.remove(entry.start)
+        }
+        for start in state.wrapperFolds where Wrappers.starting(at: start, in: document.tree)?.hidden.contains(offset) == true {
+            state.wrapperFolds.remove(start)
+        }
+        if state != fold { setFolds(state) }
+    }
+
+    /// Shows the heading at `offset`, unfolded, at the top.
+    func reveal(_ offset: Int) {
+        let length = textView.textStorage.length
+        let target = min(max(0, offset), length)
+        unfold(around: target)
+        textView.selectedRange = NSRange(location: target, length: 0)
+        textView.scrollRangeToVisible(NSRange(location: target, length: 0))
+    }
+
+    /// The caret left hidden text (a tap past a fold): what hides it opens.
+    fileprivate func selectionChanged() {
+        let caret = textView.selectedRange.location
+        if hidden.containing(caret) != nil { unfold(around: caret) }
+    }
+}
+
+extension MobileEditor: UITextViewDelegate {
+    func textViewDidChangeSelection(_ textView: UITextView) {
+        selectionChanged()
+    }
+}
+
+extension MobileEditor: NSTextStorageDelegate {
+    nonisolated func textStorage(
+        _ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorage.EditActions, range editedRange: NSRange, changeInLength delta: Int
+    ) {
+        guard editedMask.contains(.editedCharacters) else { return }
+        MainActor.assumeIsolated { storageEdited(range: editedRange, delta: delta) }
+    }
+}
+
+extension MobileEditor: NSTextContentStorageDelegate {
+    /// Folded text isn't enumerated, so it isn't laid out or drawn.
+    nonisolated func textContentManager(
+        _ textContentManager: NSTextContentManager, shouldEnumerate textElement: NSTextElement, options: NSTextContentManager.EnumerationOptions = []
+    ) -> Bool {
+        guard let range = textElement.elementRange else { return true }
+        let documentStart = textContentManager.documentRange.location
+        let start = textContentManager.offset(from: documentStart, to: range.location)
+        let end = textContentManager.offset(from: documentStart, to: range.endLocation)
+        return !hidden.covers(start, end)
+    }
+}
+
+extension MobileEditor: NSTextLayoutManagerDelegate {
+    /// Folded headings, drawers and blocks end with `…`.
+    nonisolated func textLayoutManager(
+        _ textLayoutManager: NSTextLayoutManager, textLayoutFragmentFor location: NSTextLocation, in textElement: NSTextElement
+    ) -> NSTextLayoutFragment {
+        let range = textElement.elementRange
+        if let range, let manager = textLayoutManager.textContentManager {
+            let offset = manager.offset(from: manager.documentRange.location, to: range.location)
+            if hidden.isFolded(offset) { return FoldedLineFragment(textElement: textElement, range: range) }
+        }
+        return NSTextLayoutFragment(textElement: textElement, range: range)
+    }
+}
+
+/// A folded line drawn with an ellipsis after it, like org's folded headings.
+final class FoldedLineFragment: NSTextLayoutFragment, @unchecked Sendable {
+    override func draw(at point: CGPoint, in context: CGContext) {
+        super.draw(at: point, in: context)
+        guard let line = textLineFragments.first(where: { $0.characterRange.length > 0 }) ?? textLineFragments.first else { return }
+        let bounds = line.typographicBounds
+        let ellipsis = NSAttributedString(string: " …", attributes: [
+            .font: UIFont.monospacedSystemFont(ofSize: UIFont.systemFontSize, weight: .regular),
+            .foregroundColor: UIColor.secondaryLabel,
+        ])
+        UIGraphicsPushContext(context)
+        ellipsis.draw(at: CGPoint(x: point.x + bounds.maxX, y: point.y + bounds.minY))
+        UIGraphicsPopContext()
+    }
+
+    override var renderingSurfaceBounds: CGRect {
+        super.renderingSurfaceBounds.insetBy(dx: -40, dy: 0).offsetBy(dx: 40, dy: 0)
+    }
+}
+#endif

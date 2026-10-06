@@ -50,6 +50,9 @@ extension View {
         navigationDestination(for: ReaderRoute.self) { route in
             ReaderScreen(route: route, workspace: workspace, session: session)
         }
+        .navigationDestination(for: EditorRoute.self) { route in
+            EditorScreen(path: route.path, offset: route.offset, workspace: workspace, session: session)
+        }
     }
 }
 
@@ -141,6 +144,10 @@ struct RootView: View {
             await model.updateReminders()
         }
         .onChange(of: scenePhase) { _, phase in
+            // Unsaved edits are written before the app may be stopped.
+            if phase == .background {
+                for path in session.dirtyPaths { _ = session.save(path) }
+            }
             // Files and settings synced while away; not every sync tool tells file presenters.
             guard phase == .active else { return }
             model.reloadConfig()
