@@ -9,7 +9,7 @@ extension OrgTextView {
     func updateGutter() {
         var width: CGFloat = 0
         if showsLineNumbers {
-            let lines = (string as NSString).components(separatedBy: "\n").count
+            let lines = lineIndex?.lineCount ?? 1
             let digits = max(2, String(lines).count)
             width = ceil(("0" as NSString).size(withAttributes: [.font: lineNumberFont]).width * CGFloat(digits) + 16)
         }
@@ -30,17 +30,12 @@ extension OrgTextView {
         guard let start = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, rect.minY - origin.y)))?.rangeInElement.location
             ?? layout.textViewportLayoutController.viewportRange?.location else { return }
 
-        var counted = 0
-        var line = 1
         layout.enumerateTextLayoutFragments(from: start, options: []) { fragment in
             let frame = fragment.layoutFragmentFrame
             if frame.minY + origin.y > rect.maxY { return false }
             let offset = content.offset(from: documentStart, to: fragment.rangeInElement.location)
             guard offset <= text.length else { return false }
-            while counted < offset {
-                if text.character(at: counted) == 10 { line += 1 }
-                counted += 1
-            }
+            let line = lineIndex?.line(of: offset) ?? 1
             let label = NSAttributedString(string: "\(line)", attributes: [
                 .font: lineNumberFont,
                 .foregroundColor: offset == caretLine ? currentLineNumberColor : lineNumberColor,

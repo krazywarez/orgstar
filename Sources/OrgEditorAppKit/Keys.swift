@@ -21,6 +21,8 @@ final class OrgTextView: NSTextView {
     var lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
     var lineNumberColor = NSColor.tertiaryLabelColor
     var currentLineNumberColor = NSColor.labelColor
+    /// Line starts, kept by the editor, for the line numbers.
+    var lineIndex: LineIndex?
     var showsLineNumbers = false {
         didSet { if showsLineNumbers != oldValue { updateGutter() } }
     }

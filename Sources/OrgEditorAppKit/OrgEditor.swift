@@ -52,6 +52,8 @@ public final class OrgEditor: NSObject {
 
     let hidden = HiddenRanges()
     let folded = FoldedHeadings()
+    /// Where lines start, for line numbers.
+    let lines = LineIndex()
     /// Blocks drawn on a shaded band.
     let shaded = HiddenRanges()
     private(set) var theme = Theme()
@@ -143,6 +145,9 @@ public final class OrgEditor: NSObject {
         isLoading = true
         textView.textStorage?.setAttributedString(NSAttributedString(string: text, attributes: theme.base))
         isLoading = false
+        lines.reset(text as NSString)
+        orgTextView?.lineIndex = lines
+        orgTextView?.updateGutter()
         styledUpTo = 0
         styleNextChunk(Self.firstStyleChunk)
         scheduleStyling()
@@ -699,6 +704,36 @@ public final class OrgEditor: NSObject {
 
     // MARK: - Editing
 
+    private var blockCheck: DispatchWorkItem?
+
+    /// Looks for blocks over the whole file once typing pauses, catching what moving the
+    /// ranges can't see (a block's end found far away).
+    private func scheduleBlockCheck() {
+        blockCheck?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.settleBlocks() }
+        blockCheck = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+    }
+
+    func settleBlocks() {
+        blockCheck?.cancel()
+        guard isOrg else { return }
+        let blocks = Presentation.shadedBlocks(document.tree)
+        guard blocks != shaded.all else { return }
+        shaded.set(blocks)
+        textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+    }
+
+    /// Whether the lines around `range`, and the line after it (a deleted newline joins it to
+    /// them), hold a block delimiter or a fixed-width line.
+    static func mayChangeBlocks(_ text: NSString, _ range: Range<Int>) -> Bool {
+        let start = min(range.lowerBound, text.length)
+        let end = min(range.upperBound + 1, text.length)
+        let lines = text.lineRange(for: NSRange(location: start, length: end - start))
+        let content = text.substring(with: lines)
+        return content.contains("#+") || content.range(of: "(^|\\n)([ \\t]*:|\\*)", options: .regularExpression) != nil
+    }
+
     fileprivate func storageEdited(range: NSRange, delta: Int) {
         guard !isLoading, let storage = textView.textStorage else { return }
         markActive = false
@@ -733,15 +768,24 @@ public final class OrgEditor: NSObject {
         let oldMapped = oldAffected.lowerBound..<(oldAffected.upperBound >= edit.range.upperBound ? oldAffected.upperBound + delta : newEnd)
         restyle(min(oldMapped.lowerBound, newAffected.lowerBound)..<min(max(oldMapped.upperBound, newAffected.upperBound), newText.length), in: storage)
         let oldShaded = shaded.all
-        if isOrg { shaded.set(Presentation.shadedBlocks(document.tree)) }
+        if isOrg {
+            // Walking the tree for blocks costs more than typing; only an edit on a line that
+            // could start or end one (`#+…`, `: …`) needs it, others move the ranges.
+            if Self.mayChangeBlocks(oldText, edit.range) || Self.mayChangeBlocks(newText, edit.range.lowerBound..<newEnd) {
+                shaded.set(Presentation.shadedBlocks(document.tree))
+            } else {
+                shaded.set(oldShaded.map { mapRange($0, through: edit) })
+            }
+            scheduleBlockCheck()
+        }
         if hidden.all != oldHidden.map({ mapRange($0, through: edit) })
             || shaded.all != oldShaded.map({ mapRange($0, through: edit) }) {
             textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
         }
         onEditTiming?(clock.now - start)
-        if edit.replacement.contains("\n") || (oldText.substring(with: NSRange(edit.range)) as String).contains("\n") {
-            orgTextView?.updateGutter()
-        }
+        let lineCount = lines.lineCount
+        lines.replace(edit.range, newLength: edit.replacement.utf16.count, in: newText)
+        if lines.lineCount != lineCount { orgTextView?.updateGutter() }
         orgTextView?.redrawLineNumbers()
         onChange?()
     }
