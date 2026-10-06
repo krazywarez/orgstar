@@ -252,6 +252,36 @@ struct BufferTests {
         h.checkInSync()
     }
 
+    /// Each buffer's editor reports its own changes: a background buffer's edit saves its
+    /// file, not the shown one's.
+    @Test func backgroundEditorsSaveTheirOwnFiles() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let a = folder.appendingPathComponent("a.org"), b = folder.appendingPathComponent("b.org")
+        try Data("* A\n".utf8).write(to: a)
+        try Data("* B\n".utf8).write(to: b)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: folder.appendingPathComponent("r")))
+        session.autosaveDelay = .milliseconds(10)
+        var harnesses: [String: Harness] = [:]
+        for file in [a, b] {
+            session.open(file.path)
+            let h = Harness(try #require(session.document))
+            let path = file.path
+            h.editor.onChange = { [weak session] in session?.bufferChanged(path) }
+            session.attach(h.editor)
+            harnesses[path] = h
+        }
+        #expect(session.path == b.path)
+        harnesses[a.path]!.textView.insertText("x", replacementRange: NSRange(location: 0, length: 0))
+        #expect(session.dirtyPaths == [a.path])
+        #expect(!session.isDirty)
+        for _ in 0..<50 where (try? String(contentsOf: a, encoding: .utf8)) != "x* A\n" {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(try String(contentsOf: a, encoding: .utf8) == "x* A\n")
+    }
+
     /// The wiring the app uses: the editor is the session's buffer and reports typing.
     @Test func sessionSavesWhatIsTyped() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-\(UUID().uuidString)")

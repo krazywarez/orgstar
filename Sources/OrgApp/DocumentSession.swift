@@ -221,6 +221,13 @@ public final class DocumentSession {
         refresh()
     }
 
+    /// The buffer of `path` changed in its editor: the current one updates its views, another
+    /// saves on its own.
+    public func bufferChanged(_ path: String) {
+        guard let entry = entry(path) else { return }
+        if entry === current { bufferChanged() } else { scheduleAutosave(entry); refreshLists() }
+    }
+
     /// The buffer changed through typing. The outline follows once typing pauses.
     public func bufferChanged() {
         refresh(outline: false)
@@ -556,6 +563,8 @@ public final class DocumentSession {
             entry.conflict = "\(name) changed on disk, and the changes conflict with yours."
         case .merged, .reloaded:
             entry.conflict = nil
+            // Edits merged with the disk's still need saving.
+            scheduleAutosave(entry)
         case .unchanged:
             break
         }

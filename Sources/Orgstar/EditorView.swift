@@ -83,7 +83,8 @@ struct EditorView: NSViewRepresentable {
         guard let document = session.document else { return nil }
         let mode: OrgEditor.Mode = session.isOrg ? .org : .plain(language: session.path.flatMap(FileTypes.language))
         let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable, highlighter: Self.highlighter, mode: mode)
-        editor.onChange = { [weak session] in session?.bufferChanged() }
+        let path = session.path ?? ""
+        editor.onChange = { [weak session] in session?.bufferChanged(path) }
         editor.onMessage = { [weak commands] in commands?.show($0) }
         editor.onKeysPending = { [weak commands] keys, next in
             commands?.pendingKeys = keys
