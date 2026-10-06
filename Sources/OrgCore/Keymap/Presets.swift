@@ -190,6 +190,22 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
 
         # Localleader (SPC m)
         [[bind]]
+        keys = "SPC m l l"
+        command = "org.link.insert"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m l s"
+        command = "org.link.store"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m l i"
+        command = "org.id.store-link"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n l"
+        command = "org.link.store"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m t"
         command = "org.todo.cycle"
         mode = "normal"
@@ -553,6 +569,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c C-o"
         command = "org.link.open"
+        [[bind]]
+        keys = "C-c C-l"
+        command = "org.link.insert"
+        [[bind]]
+        keys = "C-c l"
+        command = "org.link.store"
         [[bind]]
         keys = "C-x b"
         command = "app.buffer.switch"

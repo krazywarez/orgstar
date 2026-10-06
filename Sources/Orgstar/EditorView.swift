@@ -95,6 +95,9 @@ struct EditorView: NSViewRepresentable {
         editor.onAppCommand = onAppCommand
         editor.onExternal = onExternal
         editor.onPrompt = { [weak commands] prompt, reply in commands?.ask(prompt, reply: reply) }
+        editor.onEffect = { [weak commands] effect in
+            if case .storedLinkUsed(let link) = effect { commands?.storedLinks.removeAll { $0.link == link } }
+        }
         let scroll = editor.makeScrollView()
         scroll.autoresizingMask = [.width, .height]
         return (editor, scroll)

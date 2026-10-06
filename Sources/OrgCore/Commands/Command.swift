@@ -85,14 +85,16 @@ public struct Prompt: Sendable, Equatable {
     public let message: String
     /// Text the answer field starts with.
     public let initial: String
-    /// When set, the answer is one of these.
+    /// When set, the answer is one of these, or with `requireMatch` false, these are offered.
     public let choices: [String]
+    public let requireMatch: Bool
 
-    public init(key: String, message: String, initial: String = "", choices: [String] = []) {
+    public init(key: String, message: String, initial: String = "", choices: [String] = [], requireMatch: Bool = true) {
         self.key = key
         self.message = message
         self.initial = initial
         self.choices = choices
+        self.requireMatch = requireMatch
     }
 }
 
@@ -112,6 +114,8 @@ public struct PrecomputedEdit: OrgCommand {
 /// Things a command asks for besides text changes; the platform layer carries them out.
 public enum Effect: Sendable, Equatable {
     case message(String)
+    /// An inserted link was a stored one; it leaves `org-stored-links`.
+    case storedLinkUsed(String)
 }
 
 public struct EditResult: Sendable, Equatable {
@@ -177,7 +181,7 @@ public enum Commands {
         RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
         TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
-        OpenLinkAtPoint(),
+        OpenLinkAtPoint(), CreateID(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

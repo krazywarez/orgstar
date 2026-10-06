@@ -52,16 +52,24 @@ struct EchoArea: View {
                 Divider()
                 HStack(spacing: 6) {
                     Text(request.prompt.message).font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                     TextField("", text: $answer)
+                        .frame(minWidth: 240)
                         .textFieldStyle(.plain)
                         .font(.system(.callout, design: .monospaced))
                         .focused($answerFocused)
                         .onSubmit {
-                            if request.prompt.choices.isEmpty {
+                            if request.prompt.choices.isEmpty || !request.prompt.requireMatch {
                                 commands.answer(answer)
                             } else if let first = filteredChoices(request.prompt.choices).first {
                                 commands.answer(first)
                             }
+                        }
+                        .onKeyPress(.tab) {
+                            guard let first = filteredChoices(request.prompt.choices).first else { return .ignored }
+                            answer = first
+                            return .handled
                         }
                         .onExitCommand { commands.answer(nil) }
                 }

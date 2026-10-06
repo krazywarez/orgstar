@@ -37,6 +37,9 @@ public enum EditorCommands {
     public static let all: [EditorCommand] = Commands.everything.map { EditorCommand(id: $0.id, title: $0.title, action: .text($0)) } + [
         EditorCommand(id: "org.cycle", title: "Cycle Visibility", action: .view),
         EditorCommand(id: "org.cycle-global", title: "Cycle Global Visibility", action: .view),
+        EditorCommand(id: "org.link.insert", title: "Insert Link…", action: .app),
+        EditorCommand(id: "org.link.store", title: "Store Link", action: .app),
+        EditorCommand(id: "org.id.store-link", title: "Store ID Link", action: .app),
 
         EditorCommand(id: "app.save", title: "Save", action: .app),
         EditorCommand(id: "app.quit", title: "Quit Orgstar", action: .app),

@@ -293,7 +293,11 @@ struct ContentView: View {
             AppDelegate.pendingOpens = []
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
             if let root = DevelopmentHooks.rootToAdd { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
-            if let command = DevelopmentHooks.commandToRun { perform(command) }
+            if let commandList = DevelopmentHooks.commandToRun {
+                // The file opened above needs its editor first.
+                for _ in 0..<20 where DevelopmentHooks.fileToOpen != nil && commands.editor == nil { try? await Task.sleep(for: .milliseconds(100)) }
+                for command in commandList.split(separator: ",") { perform(String(command)) }
+            }
             if let id = DevelopmentHooks.windowToOpen {
                 if id == "settings" { openSettings() } else { openWindow(id: id) }
             }
@@ -438,7 +442,7 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
-        let orgOnly = ["app.refile", "app.archive", "app.clock.in"].contains(id) || id.hasPrefix("app.export.")
+        let orgOnly = ["app.refile", "app.archive", "app.clock.in"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
         if orgOnly, !session.isOrg {
             commands.show("Not an org file")
             return
@@ -487,6 +491,17 @@ struct ContentView: View {
             }
         case "app.archive":
             if let message = session.archive() { commands.show(message) }
+        case "org.link.insert":
+            commands.editor?.perform(InsertLink(stored: commands.storedLinks, file: session.path))
+        case "org.link.store":
+            guard let editor = commands.editor, let path = session.path else { return commands.show("No method for storing a link from this buffer") }
+            commands.storeLink(Links.store(in: editor.context(), path: Links.abbreviate(path, home: NSHomeDirectory())))
+        case "org.id.store-link":
+            guard let editor = commands.editor, let path = session.path else { return }
+            if case .commit = editor.perform(CreateID()),
+               let link = Links.storeID(in: editor.context(), fileName: (path as NSString).lastPathComponent) {
+                commands.storeLink(link)
+            }
         case "app.agenda":
             openWindow(id: "agenda")
         case "app.clock.in":

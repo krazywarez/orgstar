@@ -5,8 +5,8 @@ import AppKit
 /// - `ORGSTAR_OPEN`: a file to select at launch.
 /// - `ORGSTAR_ROOT`: a folder to add at launch.
 /// - `ORGSTAR_WINDOW`: a window to open at launch (`agenda`, `settings`); the snapshot renders it.
-/// - `ORGSTAR_COMMAND`: a command to run at launch (`app.import-emacs`); a sheet it opens is
-///   what the snapshot renders.
+/// - `ORGSTAR_COMMAND`: commands to run at launch, separated by commas (`app.import-emacs`); a
+///   sheet or prompt they open is what the snapshot renders.
 /// - `ORGSTAR_APPEARANCE`: `dark` or `light`, instead of the system's.
 /// - `ORGSTAR_SNAPSHOT`: after `ORGSTAR_SNAPSHOT_DELAY` seconds (default 3), render the main
 ///   window to this PNG path and quit. Rendering from inside the app needs no screen-recording

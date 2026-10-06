@@ -260,6 +260,8 @@ public final class OrgEditor: NSObject {
     public var onPrompt: ((Prompt, _ reply: @escaping (String?) -> Void) -> Void)?
     /// Runs work outside the text, such as a table recalculation in Emacs.
     public var onExternal: ((ExternalRequest) -> Void)?
+    /// Effects other than messages, for the app to carry out.
+    public var onEffect: ((Effect) -> Void)?
 
     public var keymap: Keymap {
         get { dispatcher.keymap }
@@ -308,7 +310,7 @@ public final class OrgEditor: NSObject {
     /// A region is active: movement extends the selection, as after C-SPC in Emacs.
     private(set) var markActive = false
 
-    private func context(now: Date = Date(), answers: [String: String] = [:]) -> EditContext {
+    public func context(now: Date = Date(), answers: [String: String] = [:]) -> EditContext {
         let selected = textView.selectedRange()
         return EditContext(
             revision: document.revision, text: document.text, tree: document.tree,
@@ -423,7 +425,9 @@ public final class OrgEditor: NSObject {
                 setCaret(selection.lowerBound)
                 if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
             }
-            for case .message(let text) in result.effects { onMessage?(text) }
+            for effect in result.effects {
+                if case .message(let text) = effect { onMessage?(text) } else { onEffect?(effect) }
+            }
         case .failed(let message):
             onMessage?(message)
         case .external(let request):

@@ -26,6 +26,20 @@ final class AppCommands {
     /// The keymap in use, for showing keys in menus and the palette.
     var keymap = KeymapPreset.emacs.keymap
     var modal = false
+    /// `org-stored-links`, most recent first; kept for the session, as in Emacs.
+    var storedLinks: [StoredLink] = []
+
+    /// `org-link--add-to-stored-links`: puts `link` first and says what happened.
+    func storeLink(_ link: StoredLink) {
+        if storedLinks.first == link {
+            show("This link has already been stored")
+        } else {
+            let moved = storedLinks.contains(link)
+            storedLinks.removeAll { $0 == link }
+            storedLinks.insert(link, at: 0)
+            show((moved ? "Link moved to front: " : "Stored: ") + (link.description ?? link.link))
+        }
+    }
 
     /// The keys that run `command`, as menus and the palette show them.
     func keyLabel(for command: String) -> String? {
