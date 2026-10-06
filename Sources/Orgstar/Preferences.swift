@@ -20,7 +20,8 @@ enum Preferences {
     static func options(
         tagsColumn: Int, headingAfterSubtree: Bool, splitLine: Bool, alphabeticalLists: Bool, fillColumn: Int,
         hiddenMarkers: Bool, prettyEntities: Bool, logDone: String, logIntoDrawer: String,
-        hideDrawerStartup: Bool, hideBlockStartup: Bool, logReschedule: String, logRedeadline: String, useSpeedCommands: Bool, startupWithInlineImages: Bool
+        hideDrawerStartup: Bool, hideBlockStartup: Bool, logReschedule: String, logRedeadline: String, useSpeedCommands: Bool, startupWithInlineImages: Bool,
+        startupIndented: Bool, hideLeadingStars: Bool, startupAlignAllTables: Bool
     ) -> EditingOptions {
         EditingOptions(
             tagsColumn: tagsColumn, insertHeadingRespectContent: headingAfterSubtree,
@@ -29,7 +30,8 @@ enum Preferences {
             logDone: LogHow(rawValue: logDone), logIntoDrawer: logIntoDrawer.isEmpty ? nil : logIntoDrawer,
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup,
             logReschedule: LogHow(rawValue: logReschedule), logRedeadline: LogHow(rawValue: logRedeadline),
-            useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages
+            useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages,
+            startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables
         )
     }
 }

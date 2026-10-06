@@ -153,6 +153,42 @@ extension Presentation {
         }
     }
 
+    /// `org-cycle-set-visibility-according-to-property` and `org-cycle-hide-archived-subtrees`
+    /// after the startup visibility: each heading's `VISIBILITY` (`folded`, `children`, `content`,
+    /// `all`) in turn, then ARCHIVE-tagged subtrees folded.
+    public static func applyVisibilityProperties(_ state: FoldState, in tree: OrgTree) -> FoldState {
+        let outline = outline(tree)
+        let model = DocumentModel(tree: tree)
+        var next = state
+        for (index, heading) in model.headings.enumerated() {
+            guard index < outline.count,
+                  let value = heading.properties.last(where: { $0.key.uppercased() == "VISIBILITY" })?.value.lowercased() else { continue }
+            let entry = outline[index]
+            let descendants = outline.filter { $0.start > entry.start && $0.start < entry.end }.map(\.start)
+            let children = outline.enumerated().filter { $0.element.parent == index }.map(\.element.start)
+            switch value {
+            case "folded":
+                next.folds.insert(entry.start)
+            case "children":
+                next.folds.remove(entry.start)
+                next.bodyFolds.remove(entry.start)
+                next.folds.formUnion(children)
+            case "content":
+                next.folds.subtract([entry.start] + descendants)
+                next.bodyFolds.formUnion([entry.start] + descendants)
+            case "all", "showall":
+                next.folds.subtract([entry.start] + descendants)
+                next.bodyFolds.subtract([entry.start] + descendants)
+            default:
+                break
+            }
+        }
+        for (index, heading) in model.headings.enumerated() where index < outline.count && heading.localTags.contains("ARCHIVE") {
+            next.folds.insert(outline[index].start)
+        }
+        return next
+    }
+
     /// Headings of levels 1 through `levels` visible, no bodies.
     public static func foldState(showingLevels levels: Int, in tree: OrgTree) -> FoldState {
         let outline = outline(tree)

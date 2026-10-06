@@ -146,12 +146,23 @@ public final class OrgEditor: NSObject {
         // Files open at their start, as in Emacs; replacing the storage leaves it at the end.
         textView.setSelectedRange(NSRange(location: 0, length: 0))
         if isOrg {
+            let words = Presentation.startupOptions(document.tree).map { $0.lowercased() }
+            indented = words.contains("indent") ? true : words.contains("noindent") ? false : options.startupIndented
+            hideStars = words.contains("hidestars") ? true : words.contains("showstars") ? false : options.hideLeadingStars
             var startup = Presentation.startupFoldState(document.tree) ?? FoldState()
+            // VISIBILITY properties and archived trees, unless everything shows.
+            if Presentation.startupFoldState(document.tree) != nil, !words.contains("showeverything") {
+                startup = Presentation.applyVisibilityProperties(startup, in: document.tree)
+            }
             let wrappers = Presentation.startupWrappers(document.tree, hideDrawers: options.hideDrawerStartup, hideBlocks: options.hideBlockStartup)
             startup.wrapperFolds = Set(wrappers.map(\.start))
             if startup != FoldState() { setFolds(startup, wrappers: wrappers) }
             shrinkAtStartup()
             if InlineImages.startup(document.tree) ?? options.startupWithInlineImages { showsImages = true }
+            if words.contains("align") || (options.startupAlignAllTables && !words.contains("noalign")) {
+                _ = perform(AlignAllTables())
+            }
+            if !indented || !hideStars { restyleOutsideEditing(0..<utf16Length) }
         }
     }
 
@@ -610,6 +621,13 @@ public final class OrgEditor: NSObject {
         }
     }
 
+    // MARK: - STARTUP display
+
+    /// `org-indent-mode`: headings' bodies indented under their titles (`#+STARTUP: indent`).
+    private var indented = true
+    /// `org-hide-leading-stars` (`#+STARTUP: hidestars`); org-indent hides them as well.
+    private var hideStars = false
+
     // MARK: - Inline images
 
     /// `org-toggle-inline-images`: lines that are only an image link show the image.
@@ -938,7 +956,7 @@ public final class OrgEditor: NSObject {
             return
         }
         let text = storage.string as NSString
-        for run in Presentation.indents(document.tree, in: range) {
+        for run in Presentation.indents(document.tree, in: range) where indented {
             guard let clipped = clip(run.range, to: range) else { continue }
             guard run.firstLine == run.wrapped else {
                 storage.addAttribute(.paragraphStyle, value: paragraphStyle(run.firstLine, run.wrapped), range: clipped)
@@ -959,6 +977,7 @@ public final class OrgEditor: NSObject {
         var scriptExclusions: [Range<Int>] = []
         for run in Presentation.styles(document.tree, in: range, highlighter: highlighter) {
             guard let clipped = clip(run.range, to: range) else { continue }
+            if run.role == .leadingStars, !indented, !hideStars { continue }
             if !showMarkup, hides(run.role), NSIntersectionRange(clipped, revealed).length == 0 {
                 storage.addAttributes(theme.hidden, range: clipped)
             } else {

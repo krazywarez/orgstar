@@ -448,7 +448,8 @@ public struct EmacsImport: Sendable {
             guard let n = value.integer else { return note("not a number") }
             add(name, .integer(n))
         case "org-insert-heading-respect-content", "org-list-allow-alphabetical", "org-hide-emphasis-markers", "org-pretty-entities",
-             "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup", "org-use-speed-commands", "org-startup-with-inline-images":
+             "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup", "org-use-speed-commands", "org-startup-with-inline-images",
+             "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables":
             add(name, .bool(truthy))
         case "org-hide-drawer-startup", "org-hide-block-startup":
             add(name == "org-hide-drawer-startup" ? "org-cycle-hide-drawer-startup" : "org-cycle-hide-block-startup", .bool(truthy))

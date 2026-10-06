@@ -620,6 +620,31 @@ public struct TableCommand: OrgCommand {
     }
 }
 
+/// `#+STARTUP: align` (`org-startup-align-all-tables`): every table aligned.
+public struct AlignAllTables: OrgCommand {
+    public init() {}
+    public var id: String { "org.table.align-all" }
+    public var title: String { "Align All Tables" }
+    public func applies(in context: EditContext) -> Bool { true }
+    public func run(in context: EditContext) -> CommandStep {
+        let starts = context.tree.root.descendants().filter { $0.kind == .table }.map(\.range.lowerBound)
+        guard !starts.isEmpty else { return .commit(EditResult(baseRevision: context.revision, edits: [])) }
+        return commitBuffer(context) { buffer in
+            let caret = buffer.marker(buffer.point)
+            defer {
+                buffer.point = caret.position
+                buffer.release(caret)
+            }
+            for start in starts.reversed() {
+                buffer.point = start
+                buffer.skipForward([32, 9])
+                buffer.point += 1
+                buffer.tableAlign()
+            }
+        }
+    }
+}
+
 /// C-c |: `org-table-create` with a size prompt.
 public struct CreateTable: OrgCommand {
     public init() {}
