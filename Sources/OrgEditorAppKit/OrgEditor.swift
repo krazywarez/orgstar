@@ -392,6 +392,11 @@ public final class OrgEditor: NSObject {
             onMessage?("Not an org file")
             return
         }
+        // `org-ctrl-c-ctrl-c` first removes sparse tree highlights.
+        if id == "org.ctrl-c-ctrl-c", !highlights.isEmpty {
+            clearHighlights()
+            return
+        }
         var keepMark = false
         switch command.action {
         case .text(let text):
@@ -452,7 +457,11 @@ public final class OrgEditor: NSObject {
                 if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
             }
             for effect in result.effects {
-                if case .message(let text) = effect { onMessage?(text) } else { onEffect?(effect) }
+                switch effect {
+                case .message(let text): onMessage?(text)
+                case .sparseTree(let points, let highlights): showSparseTree(points, highlights: highlights)
+                default: onEffect?(effect)
+                }
             }
         case .failed(let message):
             onMessage?(message)
@@ -494,6 +503,7 @@ public final class OrgEditor: NSObject {
 
     /// `wrappers`, when given, holds every folded drawer and block.
     private func setFolds(_ state: FoldState, wrappers: [Wrapper]?) {
+        sparseHidden = nil
         view.folds = state.folds
         view.bodyFolds = state.bodyFolds
         view = view.pruned(to: document.tree, wrappers: false)
@@ -516,8 +526,82 @@ public final class OrgEditor: NSObject {
     private var wrapperHidden: [Int: Range<Int>] = [:]
 
     private func updateHidden() {
+        if let sparseHidden {
+            let ns = textView.string as NSString
+            // Headings whose next line is hidden show the fold ellipsis.
+            let headings = Presentation.outline(document.tree).map(\.start).filter { start in
+                let next = NSMaxRange(ns.lineRange(for: NSRange(location: start, length: 0)))
+                return sparseHidden.contains { $0.contains(next) } && !sparseHidden.contains { $0.contains(start) }
+            }
+            folded.set(Set(headings).union(view.wrapperFolds))
+            hidden.set(sparseHidden + Array(wrapperHidden.values) + narrowHidden)
+            return
+        }
         folded.set(view.folds.union(view.bodyFolds).union(view.wrapperFolds))
         hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds, bodyFolds: view.bodyFolds, wrapperRanges: Array(wrapperHidden.values)) + narrowHidden)
+    }
+
+    // MARK: - Sparse trees
+
+    /// What a sparse tree (`org-sparse-tree`) hides, replacing heading folds until the next
+    /// fold change. Mapped through edits.
+    private var sparseHidden: [Range<Int>]?
+    /// Sparse tree matches, highlighted until the next edit or C-c C-c.
+    private var highlights: [Range<Int>] = []
+
+    private func showSparseTree(_ points: [Int], highlights: [Range<Int>]) {
+        let text = textView.string
+        var state = foldState
+        for start in state.wrapperFolds where points.contains(where: { Wrappers.starting(at: start, in: document.tree)?.hidden.contains($0) == true }) {
+            state.wrapperFolds.remove(start)
+        }
+        sparseHidden = nil
+        setFolds(state)
+        sparseHidden = SparseTree.hidden(points, in: text, tree: document.tree)
+        self.highlights = highlights
+        updateHidden()
+        restyleOutsideEditing(0..<utf16Length)
+        textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+        orgTextView?.redrawLineNumbers()
+        textView.needsDisplay = true
+        let caret = textView.selectedRange().location
+        if let range = hidden.containing(caret) { setCaret(max(0, range.lowerBound - 1)) }
+    }
+
+    /// Leaves a sparse tree for ordinary folds: headings with something shown below them
+    /// open, the others folded.
+    private func leaveSparseTree() {
+        guard let sparse = sparseHidden else { return }
+        sparseHidden = nil
+        let outline = Presentation.outline(document.tree)
+        let ns = textView.string as NSString
+        var open: Set<Int> = []
+        for entry in outline where !sparse.contains(where: { $0.contains(entry.start) }) {
+            var parent = entry.parent
+            while let p = parent {
+                open.insert(outline[p].start)
+                parent = outline[p].parent
+            }
+            let next = NSMaxRange(ns.lineRange(for: NSRange(location: entry.start, length: 0)))
+            if next < entry.end, !sparse.contains(where: { $0.contains(next) }) { open.insert(entry.start) }
+        }
+        var state = foldState
+        state.folds = Set(outline.map(\.start)).subtracting(open)
+        state.bodyFolds = []
+        setFolds(state)
+    }
+
+    private func clearHighlights() {
+        guard !highlights.isEmpty else { return }
+        let old = highlights
+        highlights = []
+        for range in old where range.upperBound <= utf16Length { restyleOutsideEditing(range) }
+    }
+
+    private func applyHighlights(_ range: Range<Int>, in storage: NSTextStorage) {
+        for highlight in highlights where highlight.overlaps(range) && highlight.upperBound <= storage.length {
+            storage.addAttribute(.backgroundColor, value: NSColor.findHighlightColor.withAlphaComponent(0.45), range: NSRange(highlight.clamped(to: range)))
+        }
     }
 
     // MARK: - Narrowing
@@ -689,6 +773,7 @@ public final class OrgEditor: NSObject {
     /// cycles folded, children, subtree. Returns false elsewhere.
     @discardableResult
     public func cycleAtCaret() -> Bool {
+        leaveSparseTree()
         let caret = textView.selectedRange().location
         guard let state = Presentation.cycle(at: caret, in: document.tree, foldState) else { return false }
         setFolds(state)
@@ -699,6 +784,7 @@ public final class OrgEditor: NSObject {
 
     /// Shift-TAB: overview, contents, show all.
     public func cycleGlobal() {
+        leaveSparseTree()
         let (visibility, state) = Presentation.cycleGlobal(from: globalVisibility, in: document.tree, wrapperFolds: view.wrapperFolds)
         globalVisibility = visibility
         setFolds(state)
@@ -715,6 +801,7 @@ public final class OrgEditor: NSObject {
 
     /// Unfolds the headings whose folds hide `offset`, leaving the selection alone.
     func unfold(around offset: Int) {
+        leaveSparseTree()
         var state = foldState
         for entry in Presentation.outline(document.tree) where entry.start < offset && offset < entry.end {
             state.folds.remove(entry.start)
@@ -804,6 +891,7 @@ public final class OrgEditor: NSObject {
         }
         if !showMarkup, options.prettyEntities { prettify(range, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
         applyShrunk(range, in: storage)
+        applyHighlights(range, in: storage)
     }
 
     /// `org-pretty-entities`: entities drawn as their character over the entity's last
@@ -992,9 +1080,16 @@ public final class OrgEditor: NSObject {
         view = view.mapped(through: [edit]).pruned(to: document.tree, wrappers: false)
         mapWrapperFolds(through: edit, near: min(oldMapped.lowerBound, newAffected.lowerBound)..<max(oldMapped.upperBound, newAffected.upperBound))
         if let narrowed { self.narrowed = ViewState(selection: [narrowed]).mapped(through: [edit]).selection[0] }
+        if let sparse = sparseHidden { sparseHidden = ViewState(selection: sparse).mapped(through: [edit]).selection.filter { !$0.isEmpty } }
+        let oldHighlights = ViewState(selection: highlights).mapped(through: [edit]).selection
+        highlights = []
         updateHidden()
         restyle(min(oldMapped.lowerBound, newAffected.lowerBound)..<min(max(oldMapped.upperBound, newAffected.upperBound), newText.length), in: storage)
         for table in mapShrunk(through: edit) { restyle(table.lowerBound..<min(table.upperBound, newText.length), in: storage) }
+        for range in oldHighlights where range.upperBound <= newText.length {
+            let lines = newText.lineRange(for: NSRange(range))
+            restyle(lines.location..<NSMaxRange(lines), in: storage)
+        }
         let oldShaded = shaded.all
         if isOrg {
             // Walking the tree for blocks costs more than typing; only an edit on a line that

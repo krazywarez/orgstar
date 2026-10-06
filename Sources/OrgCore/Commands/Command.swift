@@ -163,6 +163,9 @@ public enum Effect: Sendable, Equatable {
     case storedLinkUsed(String)
     /// Text for the clipboard (the kill ring).
     case copy(String)
+    /// Show a sparse tree: the context of each point, the rest folded, and highlights until
+    /// the next edit or C-c C-c.
+    case sparseTree(show: [Int], highlights: [Range<Int>])
 }
 
 public struct EditResult: Sendable, Equatable {
@@ -232,7 +235,7 @@ public enum Commands {
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(),
-        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(),
+        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

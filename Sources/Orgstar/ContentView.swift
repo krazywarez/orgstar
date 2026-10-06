@@ -314,6 +314,10 @@ struct ContentView: View {
                 // The file opened above needs its editor first.
                 for _ in 0..<20 where DevelopmentHooks.fileToOpen != nil && commands.editor == nil { try? await Task.sleep(for: .milliseconds(100)) }
                 for command in commandList.split(separator: ",") { perform(String(command)) }
+                for answer in DevelopmentHooks.answers {
+                    for _ in 0..<20 where commands.prompt == nil { try? await Task.sleep(for: .milliseconds(100)) }
+                    commands.answer(answer)
+                }
             }
             if let id = DevelopmentHooks.windowToOpen {
                 if id == "settings" { openSettings() } else { openWindow(id: id) }

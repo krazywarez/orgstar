@@ -103,7 +103,7 @@ struct EditorView: NSViewRepresentable {
             case .copy(let text):
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
-            case .message: break
+            case .message, .sparseTree: break
             }
         }
         let scroll = editor.makeScrollView()

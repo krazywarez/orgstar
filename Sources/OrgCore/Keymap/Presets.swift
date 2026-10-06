@@ -210,6 +210,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.narrow.subtree"
         mode = "normal"
         [[bind]]
+        keys = "SPC m s s"
+        command = "org.sparse-tree"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m s N"
         command = "org.widen"
         mode = "normal"
@@ -674,6 +678,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c C-j"
         command = "org.goto"
+        [[bind]]
+        keys = "C-c /"
+        command = "org.sparse-tree"
         [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"
