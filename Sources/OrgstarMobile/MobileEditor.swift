@@ -17,6 +17,35 @@ final class LockedRanges: @unchecked Sendable {
     func containing(_ offset: Int) -> Range<Int>? { lock.withLock { ranges.first { $0.contains(offset) } } }
 }
 
+/// A text view that offers hardware-keyboard presses to the editor's keymap first.
+final class KeyedTextView: UITextView {
+    var keyHandler: ((UIKey) -> Bool)?
+    /// Keys the editor took, whose release the text system doesn't see. Optional: made by
+    /// UIKit's `init(usingTextLayoutManager:)`, the view skips Swift's default values.
+    private var handled: Set<UIKeyboardHIDUsage>?
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        var rest: Set<UIPress> = []
+        for press in presses {
+            if let key = press.key, keyHandler?(key) == true {
+                handled = (handled ?? []).union([key.keyCode])
+            } else {
+                rest.insert(press)
+            }
+        }
+        if !rest.isEmpty { super.pressesBegan(rest, with: event) }
+    }
+
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        let rest = presses.filter { press in
+            guard let code = press.key?.keyCode, handled?.contains(code) == true else { return true }
+            handled?.remove(code)
+            return false
+        }
+        if !rest.isEmpty { super.pressesEnded(rest, with: event) }
+    }
+}
+
 /// The iOS editor: a TextKit 2 text view that is the open file's live state, as the Mac's
 /// `OrgEditor` is. Typing and undo go through the text view and into the document; commands
 /// run on the document and apply their edits as one undo step; headings, drawers and blocks
@@ -43,8 +72,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     init(document: DocumentState, editable: Bool) {
         self.document = document
-        textView = UITextView(usingTextLayoutManager: true)
+        let keyed = KeyedTextView(usingTextLayoutManager: true)
+        textView = keyed
         super.init()
+        keyed.keyHandler = { [weak self] key in self?.handleKey(key) ?? false }
         textView.isEditable = editable
         textView.autocorrectionType = .no
         textView.autocapitalizationType = .none
@@ -169,6 +200,65 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.cycle-global", "edit.undo", "edit.redo": return true
         case "org.link.open": return Links.link(at: context.caret, text: context.text, tree: context.tree) != nil
         default: return false
+        }
+    }
+
+    // MARK: - Hardware keyboard
+
+    private lazy var dispatcher = KeyDispatcher(keymap: keymap)
+
+    private static let named: [UIKeyboardHIDUsage: String] = [
+        .keyboardTab: "TAB", .keyboardReturnOrEnter: "RET", .keypadEnter: "RET", .keyboardSpacebar: "SPC",
+        .keyboardEscape: "ESC", .keyboardDeleteOrBackspace: "DEL", .keyboardDeleteForward: "<delete>",
+        .keyboardLeftArrow: "<left>", .keyboardRightArrow: "<right>", .keyboardUpArrow: "<up>", .keyboardDownArrow: "<down>",
+        .keyboardHome: "<home>", .keyboardEnd: "<end>", .keyboardPageUp: "<prior>", .keyboardPageDown: "<next>",
+    ]
+
+    /// A key press as a chord; Option is Meta, as `option-as-meta` makes it on the Mac.
+    static func chord(_ key: UIKey) -> KeyChord? {
+        var modifiers: KeyChord.Modifiers = []
+        let flags = key.modifierFlags
+        if flags.contains(.control) { modifiers.insert(.control) }
+        if flags.contains(.alternate) { modifiers.insert(.meta) }
+        if flags.contains(.command) { modifiers.insert(.command) }
+        if let name = named[key.keyCode] {
+            if flags.contains(.shift) { modifiers.insert(.shift) }
+            return KeyChord(name, modifiers)
+        }
+        var characters = key.charactersIgnoringModifiers
+        if flags.contains(.shift), characters.count == 1, characters.lowercased() == characters { characters = characters.uppercased() }
+        guard characters.count == 1 else { return nil }
+        return KeyChord(characters, modifiers)
+    }
+
+    /// The Emacs keymap's commands on an iPad keyboard. Keys it doesn't bind, Command shortcuts
+    /// and editing keys (C-a, C-e, C-k...) are the text system's.
+    func handleKey(_ key: UIKey) -> Bool {
+        guard let chord = Self.chord(key), !chord.modifiers.contains(.command) else { return false }
+        // Option alone types characters unless it begins a binding.
+        if chord.modifiers == [.meta], dispatcher.pending.isEmpty,
+           keymap.candidates(for: [chord]).isEmpty, !keymap.isPrefix([chord]) { return false }
+        switch dispatcher.feed(chord) {
+        case .pending(let keys):
+            onMessage?(KeySequence.format(keys) + "-")
+            return true
+        case .cancelled:
+            onMessage?("Quit")
+            return true
+        case .undefined(let keys):
+            onMessage?("\(KeySequence.format(keys)) is undefined")
+            return true
+        case .unbound:
+            return false
+        case .complete(let keys, let candidates):
+            let context = editContext()
+            let runnable = candidates.first { binding in
+                (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && applies(binding.command, in: context)
+            }
+            guard let binding = runnable else { return keys.count > 1 }
+            if binding.command.hasPrefix("edit."), !["edit.undo", "edit.redo"].contains(binding.command) { return keys.count > 1 }
+            run(binding.command)
+            return true
         }
     }
 
