@@ -1,6 +1,9 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
+/// App extensions start in Foundation's NSExtensionMain.
+let extensionEntry: [LinkerSetting] = [.unsafeFlags(["-Xlinker", "-e", "-Xlinker", "_NSExtensionMain"])]
+
 let package = Package(
     name: "Orgstar",
     platforms: [.macOS(.v26), .iOS(.v26)],
@@ -14,7 +17,9 @@ let package = Package(
         .executable(name: "OrgstarSpike", targets: ["OrgstarSpike"]),
         .library(name: "OrgApp", targets: ["OrgApp"]),
         .library(name: "OrgHighlight", targets: ["OrgHighlight"]),
-        .executable(name: "Orgstar", targets: ["Orgstar"])
+        .executable(name: "Orgstar", targets: ["Orgstar"]),
+        .executable(name: "OrgstarQuickLook", targets: ["OrgstarQuickLook"]),
+        .executable(name: "OrgstarSpotlight", targets: ["OrgstarSpotlight"])
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1"),
@@ -75,6 +80,9 @@ let package = Package(
         .executableTarget(name: "OrgstarSpike", dependencies: ["OrgEditorAppKit"]),
         .target(name: "OrgApp", dependencies: ["OrgWorkspace", "OrgDocument", "OrgPresentation"]),
         .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgEditorAppKit", "OrgHighlight"]),
+        // App extensions, bundled into Orgstar.app by scripts/build-app.sh.
+        .executableTarget(name: "OrgstarQuickLook", dependencies: ["OrgCore"], linkerSettings: extensionEntry),
+        .executableTarget(name: "OrgstarSpotlight", dependencies: ["OrgCore"], linkerSettings: extensionEntry),
         .testTarget(name: "OrgCoreTests", dependencies: ["OrgCore"]),
         .testTarget(name: "OrgDocumentTests", dependencies: ["OrgDocument"]),
         .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"]),

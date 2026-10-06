@@ -9,6 +9,8 @@ version="${1:-0.1.0}"
 app=".build/app/Orgstar.app"
 
 swift build -c release --product Orgstar
+swift build -c release --product OrgstarQuickLook
+swift build -c release --product OrgstarSpotlight
 binary="$(swift build -c release --show-bin-path)/Orgstar"
 
 rm -rf "$app"
@@ -111,6 +113,61 @@ echo "$PWD/$objects/Orgstar-primary.swiftconstvalues" > "$work/constvalues.txt"
     --platform-family macOS --deployment-target 26.0 --bundle-identifier sh.krz.orgstar \
     --target-triple "$(uname -m)-apple-macos26.0" --binary-file "$binary" --source-file-list "$objects/Orgstar.SwiftFileList" \
     --swift-const-vals-list "$work/constvalues.txt" --output "$app/Contents/Resources" --force > /dev/null 2>&1
+rm -rf "$work"
+
+# App extensions: Quick Look previews and the Spotlight importer. They run sandboxed.
+appex() { # name, extension point, principal class, attributes
+    dir="$app/Contents/PlugIns/$1.appex/Contents"
+    mkdir -p "$dir/MacOS"
+    cp "$(dirname "$binary")/$1" "$dir/MacOS/$1"
+    cat > "$dir/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>sh.krz.orgstar.$(echo "$1" | sed 's/^Orgstar//' | tr 'A-Z' 'a-z')</string>
+    <key>CFBundleName</key>
+    <string>$1</string>
+    <key>CFBundleExecutable</key>
+    <string>$1</string>
+    <key>CFBundlePackageType</key>
+    <string>XPC!</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${version}</string>
+    <key>CFBundleVersion</key>
+    <string>${version}</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>$2</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>$3</string>
+        <key>NSExtensionAttributes</key>
+        <dict>$4</dict>
+    </dict>
+</dict>
+</plist>
+PLIST
+    cat > "$work/sandbox.entitlements" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+    codesign --force --sign - --entitlements "$work/sandbox.entitlements" "$app/Contents/PlugIns/$1.appex"
+}
+work="$(mktemp -d)"
+appex OrgstarQuickLook com.apple.quicklook.preview PreviewProvider \
+    "<key>QLSupportedContentTypes</key><array><string>org.orgmode.org</string></array><key>QLIsDataBasedPreview</key><true/>"
+appex OrgstarSpotlight com.apple.spotlight.import ImportExtension \
+    "<key>CSSupportedContentTypes</key><array><string>org.orgmode.org</string></array>"
 rm -rf "$work"
 
 codesign --force --sign - "$app"
