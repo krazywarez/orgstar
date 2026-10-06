@@ -400,6 +400,7 @@ public final class OrgEditor: NSObject {
             switch id {
             case "org.cycle": cycleAtCaret()
             case "org.cycle-global": cycleGlobal()
+            case "org.narrow.subtree", "org.narrow.block", "org.widen": narrow(id)
             default: tableColumnWidth(id)
             }
         case .edit(let selector, let extending):
@@ -446,6 +447,7 @@ public final class OrgEditor: NSObject {
             applyEdits(result.edits)
             commandEditing = false
             if let selection = result.selection?.first {
+                if hidden.containing(selection.lowerBound) != nil { unfold(around: selection.lowerBound) }
                 setCaret(selection.lowerBound)
                 if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
             }
@@ -515,7 +517,51 @@ public final class OrgEditor: NSObject {
 
     private func updateHidden() {
         folded.set(view.folds.union(view.bodyFolds).union(view.wrapperFolds))
-        hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds, bodyFolds: view.bodyFolds, wrapperRanges: Array(wrapperHidden.values)))
+        hidden.set(Presentation.hiddenRanges(document.tree, folds: view.folds, bodyFolds: view.bodyFolds, wrapperRanges: Array(wrapperHidden.values)) + narrowHidden)
+    }
+
+    // MARK: - Narrowing
+
+    /// The text shown while narrowed (`org-narrow-to-subtree`, `org-narrow-to-block`); the
+    /// rest is hidden until `widen`. Mapped through edits.
+    public private(set) var narrowed: Range<Int>?
+
+    private func narrow(_ id: String) {
+        let caret = textView.selectedRange().location
+        do {
+            switch id {
+            case "org.narrow.subtree": narrowed = try Narrowing.subtree(at: caret, in: textView.string)
+            case "org.narrow.block": narrowed = try Narrowing.block(at: caret, in: textView.string)
+            default: narrowed = nil
+            }
+        } catch let failure as Narrowing.Failure {
+            onMessage?(failure.message)
+            return
+        } catch {
+            return
+        }
+        updateHidden()
+        textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+        orgTextView?.redrawLineNumbers()
+        textView.needsDisplay = true
+        if let narrowed {
+            setCaret(max(narrowed.lowerBound, min(caret, narrowed.upperBound)))
+            textView.scrollRangeToVisible(NSRange(location: narrowed.lowerBound, length: 0))
+        } else {
+            textView.scrollRangeToVisible(NSRange(location: caret, length: 0))
+        }
+    }
+
+    /// What narrowing hides: the text before the region, and the lines after it.
+    private var narrowHidden: [Range<Int>] {
+        guard let narrowed else { return [] }
+        let length = utf16Length
+        var ranges: [Range<Int>] = []
+        if narrowed.lowerBound > 0 { ranges.append(0..<narrowed.lowerBound) }
+        let ns = textView.string as NSString
+        let tail = narrowed.upperBound < length && ns.character(at: narrowed.upperBound) == 10 ? narrowed.upperBound + 1 : narrowed.upperBound
+        if tail < length { ranges.append(tail..<length) }
+        return ranges
     }
 
     // MARK: - Shrunk table columns
@@ -661,6 +707,7 @@ public final class OrgEditor: NSObject {
     /// Unfolds whatever hides `offset`, puts the caret there and scrolls to it.
     public func reveal(_ offset: Int) {
         let target = max(0, min(offset, utf16Length))
+        if let narrowed, !(narrowed.lowerBound...narrowed.upperBound).contains(target) { narrow("org.widen") }
         unfold(around: target)
         setCaret(target)
         textView.scrollRangeToVisible(NSRange(location: target, length: 0))
@@ -944,6 +991,7 @@ public final class OrgEditor: NSObject {
         let oldMapped = oldAffected.lowerBound..<(oldAffected.upperBound >= edit.range.upperBound ? oldAffected.upperBound + delta : newEnd)
         view = view.mapped(through: [edit]).pruned(to: document.tree, wrappers: false)
         mapWrapperFolds(through: edit, near: min(oldMapped.lowerBound, newAffected.lowerBound)..<max(oldMapped.upperBound, newAffected.upperBound))
+        if let narrowed { self.narrowed = ViewState(selection: [narrowed]).mapped(through: [edit]).selection[0] }
         updateHidden()
         restyle(min(oldMapped.lowerBound, newAffected.lowerBound)..<min(max(oldMapped.upperBound, newAffected.upperBound), newText.length), in: storage)
         for table in mapShrunk(through: edit) { restyle(table.lowerBound..<min(table.upperBound, newText.length), in: storage) }
@@ -1024,6 +1072,11 @@ public final class OrgEditor: NSObject {
         onSelectionChange?(selection)
         revealCaretLine()
         orgTextView?.redrawLineNumbers()
+        // Narrowing keeps the caret in the region.
+        if let narrowed, selection.length == 0, !(narrowed.lowerBound...narrowed.upperBound).contains(selection.location) {
+            setCaret(max(narrowed.lowerBound, min(selection.location, narrowed.upperBound)))
+            return
+        }
         // A selection reaching into folded text, as a find match does, unfolds it.
         if selection.length > 0 {
             if hidden.containing(selection.location) != nil || hidden.containing(NSMaxRange(selection) - 1) != nil {

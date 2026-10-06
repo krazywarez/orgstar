@@ -206,6 +206,18 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.sort"
         mode = "normal"
         [[bind]]
+        keys = "SPC m s n"
+        command = "org.narrow.subtree"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m s N"
+        command = "org.widen"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m ."
+        command = "org.goto"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m h"
         command = "org.heading.toggle"
         mode = "normal"
@@ -650,6 +662,18 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c TAB"
         command = "org.table.toggle-column-width"
         when = "table"
+        [[bind]]
+        keys = "C-x n s"
+        command = "org.narrow.subtree"
+        [[bind]]
+        keys = "C-x n b"
+        command = "org.narrow.block"
+        [[bind]]
+        keys = "C-x n w"
+        command = "org.widen"
+        [[bind]]
+        keys = "C-c C-j"
+        command = "org.goto"
         [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"
