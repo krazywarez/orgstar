@@ -165,6 +165,17 @@ public enum ReadDate {
         return (n * (direction == "-" ? -1 : 1), what, relativeToDefault, match)
     }
 
+    /// `org-read-date`'s reading of a prompt answer: an empty one takes the default date.
+    public static func read(_ answer: String, default defaultDate: Date?, now: Date, calendar: Calendar) -> Answer {
+        let def = defaultDate ?? now
+        var input = answer
+        if input.trimmingCharacters(in: .whitespaces).isEmpty {
+            let c = calendar.dateComponents([.year, .month, .day], from: def)
+            input = String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!)
+        }
+        return analyze(input, default: def, now: now, calendar: calendar)
+    }
+
     /// `org-read-date-analyze` with `org-read-date-prefer-future` t.
     public static func analyze(_ input: String, default defaultDate: Date, now: Date, calendar: Calendar) -> Answer {
         let units: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second, .weekday]

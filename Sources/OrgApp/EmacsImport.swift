@@ -469,7 +469,7 @@ public struct EmacsImport: Sendable {
                     if ["agenda", "todo", "tags"].contains(view) { add("org-agenda-prefix-format.\(view)", .string(s)) }
                 }
             }
-        case "org-log-done":
+        case "org-log-done", "org-log-reschedule", "org-log-redeadline":
             switch value.symbol {
             case "nil": add(name, .string("nil"))
             case "time", "t": add(name, .string("time"))

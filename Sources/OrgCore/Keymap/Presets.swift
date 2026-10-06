@@ -638,6 +638,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c C-c"
         command = "org.ctrl-c-ctrl-c"
         [[bind]]
+        keys = "C-c C-y"
+        command = "org.timestamp.evaluate-range"
+        [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"
         [[bind]]

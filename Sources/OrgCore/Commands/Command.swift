@@ -17,6 +17,9 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var logDone: LogHow?
     /// `org-log-into-drawer`: the drawer state notes go in, or nil for none.
     public var logIntoDrawer: String?
+    /// `org-log-reschedule` and `org-log-redeadline`: a note when a date changes or goes.
+    public var logReschedule: LogHow?
+    public var logRedeadline: LogHow?
     /// `org-use-fast-todo-selection` `auto`: with keys in the keywords, C-c C-t asks for one.
     public var fastTodoSelection: Bool
     /// `org-cycle-hide-drawer-startup`: drawers are folded when a file opens.
@@ -37,8 +40,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
         listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70,
         hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false,
         logDone: LogHow? = nil, logIntoDrawer: String? = nil, fastTodoSelection: Bool = true,
-        hideDrawerStartup: Bool = true, hideBlockStartup: Bool = false
+        hideDrawerStartup: Bool = true, hideBlockStartup: Bool = false, logReschedule: LogHow? = nil, logRedeadline: LogHow? = nil
     ) {
+        self.logReschedule = logReschedule
+        self.logRedeadline = logRedeadline
         self.hideDrawerStartup = hideDrawerStartup
         self.hideBlockStartup = hideBlockStartup
         self.fastTodoSelection = fastTodoSelection
@@ -78,12 +83,15 @@ public struct EditContext: Sendable {
     public let options: EditingOptions
     /// Tags used across the workspace, for completion; read when a command needs them.
     public let knownTags: @Sendable () -> [String]
+    /// The command run just before, with nothing typed since (`last-command`).
+    public let lastCommand: String?
 
     public init(
         revision: Int, text: String, tree: OrgTree, selection: [Range<Int>],
         now: Date = Date(), calendar: Calendar = .current, answers: [String: String] = [:], hidden: [Range<Int>] = [],
-        options: EditingOptions = .org, knownTags: @escaping @Sendable () -> [String] = { [] }
+        options: EditingOptions = .org, knownTags: @escaping @Sendable () -> [String] = { [] }, lastCommand: String? = nil
     ) {
+        self.lastCommand = lastCommand
         self.knownTags = knownTags
         self.revision = revision
         self.text = text
@@ -112,10 +120,17 @@ public struct Prompt: Sendable, Equatable {
     public let completionSeparator: Character?
     /// Single keys answer instead of text.
     public let fast: FastSelection?
+    /// A date prompt, read by `org-read-date` against this default (nil: today).
+    public let date: DateRead?
+
+    public struct DateRead: Sendable, Equatable {
+        public let defaultDate: Date?
+        public init(defaultDate: Date?) { self.defaultDate = defaultDate }
+    }
 
     public init(
         key: String, message: String, initial: String = "", choices: [String] = [], requireMatch: Bool = true,
-        completionSeparator: Character? = nil, fast: FastSelection? = nil
+        completionSeparator: Character? = nil, fast: FastSelection? = nil, date: DateRead? = nil
     ) {
         self.key = key
         self.message = message
@@ -124,6 +139,7 @@ public struct Prompt: Sendable, Equatable {
         self.requireMatch = requireMatch
         self.completionSeparator = completionSeparator
         self.fast = fast
+        self.date = date
     }
 }
 
@@ -216,7 +232,7 @@ public enum Commands {
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(),
-        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(),
+        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

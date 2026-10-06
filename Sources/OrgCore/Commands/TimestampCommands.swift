@@ -4,14 +4,11 @@ extension EmacsBuffer {
     /// Reads a date prompt answer the way `org-read-date` does: an empty answer takes the
     /// default date.
     func readDate(_ answer: String, default defaultDate: Date?) -> ReadDate.Answer {
-        let def = defaultDate ?? now
-        var input = answer
-        if input.trimmingCharacters(in: .whitespaces).isEmpty {
-            let c = calendar.dateComponents([.year, .month, .day], from: def)
-            input = String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!)
-        }
-        return ReadDate.analyze(input, default: def, now: now, calendar: calendar)
+        ReadDate.read(answer, default: defaultDate, now: now, calendar: calendar)
     }
+
+    /// The date an Org time string stands for, as a prompt default.
+    func dateDefault(_ stamp: String?) -> Date? { stamp.flatMap(Self.parseTimeString).map(date) }
 
     func date(_ components: DateComponents) -> Date { calendar.date(from: components)! }
 
@@ -45,7 +42,7 @@ extension EmacsBuffer {
     }
 
     /// `org--deadline-or-schedule` without a prefix argument.
-    func schedule(_ kind: PlanningKind, answer: String) throws {
+    func schedule(_ kind: PlanningKind, answer: String, answers: [String: String] = [:]) throws {
         let old = planningValue(kind)
         let repeatPattern = "([.+-]+[0-9]+[hdwmy](?:[/ ][-+]?[0-9]+[hdwmy])?)"
         let repeater = old.flatMap { $0.firstMatch(of: try! Regex(repeatPattern)).map { String($0.output[1].substring!) } }
@@ -61,6 +58,9 @@ extension EmacsBuffer {
                     insert(" " + repeater)
                 }
             }
+        }
+        if let old, let inserted = lastInsertedTimestamp {
+            try logPlanningChange(kind, old: "<" + old + ">", new: inserted, answers: answers)
         }
     }
 
@@ -108,7 +108,21 @@ public struct InsertTimestamp: OrgCommand {
     public func applies(in context: EditContext) -> Bool { true }
     public func run(in context: EditContext) -> CommandStep {
         guard let answer = context.answers["date"] else {
-            return .prompt(Prompt(key: "date", message: "Date+time:", initial: timeOfDayAtCaret(context)))
+            let buffer = EmacsBuffer(context.text, point: context.caret)
+            buffer.calendar = context.calendar
+            let stamp = buffer.atTimestamp().map { buffer.substring($0.match[0]!.lowerBound, $0.match[0]!.upperBound) }
+            let repeated = context.lastCommand == "org.timestamp.active" || context.lastCommand == "org.timestamp.inactive"
+            return .prompt(Prompt(key: "date", message: "Date+time:", initial: timeOfDayAtCaret(context),
+                                  date: .init(defaultDate: repeated ? nil : buffer.dateDefault(stamp))))
+        }
+        // Twice in a row on a timestamp: a range to a second one.
+        let repeated = context.lastCommand == "org.timestamp.active" || context.lastCommand == "org.timestamp.inactive"
+        if repeated, EmacsBuffer(context.text, point: context.caret).atTimestamp() != nil {
+            return timestampCommand(context) { buffer in
+                let result = buffer.readDate(answer, default: nil)
+                buffer.insert("--")
+                buffer.insertTimestamp(result.components(buffer.calendar), withTime: result.timeGiven, inactive: inactive)
+            }
         }
         return timestampCommand(context) { $0.timestampCommand(answer, inactive: inactive) }
     }
@@ -126,10 +140,12 @@ public struct SetPlanning: OrgCommand {
         let kind: EmacsBuffer.PlanningKind = deadline ? .deadline : .scheduled
         guard let answer = context.answers["date"] else {
             let buffer = EmacsBuffer(context.text, point: context.caret)
+            buffer.calendar = context.calendar
             let initial = buffer.planningDefault(kind).flatMap(EmacsBuffer.compactTimeOfDay) ?? ""
-            return .prompt(Prompt(key: "date", message: deadline ? "DEADLINE:" : "SCHEDULED:", initial: initial))
+            return .prompt(Prompt(key: "date", message: deadline ? "DEADLINE:" : "SCHEDULED:", initial: initial,
+                                  date: .init(defaultDate: buffer.dateDefault(buffer.planningDefault(kind)))))
         }
-        return timestampCommand(context) { try $0.schedule(kind, answer: answer) }
+        return timestampCommand(context) { try $0.schedule(kind, answer: answer, answers: context.answers) }
     }
 }
 
@@ -141,7 +157,12 @@ public struct RemovePlanning: OrgCommand {
     public var title: String { deadline ? "Remove Deadline" : "Remove Schedule" }
     public func applies(in context: EditContext) -> Bool { entryHeading(at: context.caret, in: context.tree) != nil }
     public func run(in context: EditContext) -> CommandStep {
-        timestampCommand(context) { $0.removePlanning(deadline ? .deadline : .scheduled) }
+        timestampCommand(context) { buffer in
+            let kind: EmacsBuffer.PlanningKind = deadline ? .deadline : .scheduled
+            let old = buffer.planningValue(kind)
+            if let old { try buffer.logPlanningChange(kind, old: "<" + old + ">", new: nil, answers: context.answers) }
+            buffer.removePlanning(kind)
+        }
     }
 }
 
@@ -166,5 +187,46 @@ public struct ShiftTimestampDay: OrgCommand {
     public func applies(in context: EditContext) -> Bool { atTimestamp(context) }
     public func run(in context: EditContext) -> CommandStep {
         timestampCommand(context) { try $0.changeTimestamp(later ? 1 : -1, what: .day, updown: true) }
+    }
+}
+
+/// C-c C-y: `org-evaluate-time-range`. On a clock line, updates it; otherwise says how long the
+/// range at the caret, or the first on its line, lasts.
+public struct EvaluateTimeRange: OrgCommand {
+    public init() {}
+    public var id: String { "org.timestamp.evaluate-range" }
+    public var title: String { "Evaluate Time Range" }
+    public func applies(in context: EditContext) -> Bool { true }
+    public func run(in context: EditContext) -> CommandStep {
+        let buffer = EmacsBuffer(context.text, point: context.caret)
+        buffer.calendar = context.calendar
+        if buffer.lookingAtLine("^[ \\t]*CLOCK:") { return CtrlCCtrlC().run(in: context) }
+        let ns = context.text as NSString
+        let line = ns.lineRange(for: NSRange(location: min(context.caret, ns.length), length: 0))
+        let regex = try! NSRegularExpression(pattern: "[\\[<]([0-9]{4}-[0-9]{2}-[0-9]{2}[^\\]>\\n]*?)[\\]>]--?-?[\\[<]([0-9]{4}-[0-9]{2}-[0-9]{2}[^\\]>\\n]*?)[\\]>]")
+        let matches = regex.matches(in: context.text, range: line)
+        guard let m = matches.first(where: { $0.range.location <= context.caret && context.caret <= NSMaxRange($0.range) }) ?? matches.first else {
+            return .failed("Not at a timestamp range, and none found in current line")
+        }
+        let ts1 = ns.substring(with: m.range(at: 1))
+        let ts2 = ns.substring(with: m.range(at: 2))
+        let haveTime = ts1.count > 15 || ts2.count > 15
+        let t1 = TagsMatcher.seconds(ts1, now: context.now, calendar: context.calendar)
+        let t2 = TagsMatcher.seconds(ts2, now: context.now, calendar: context.calendar)
+        var diff = abs(t2 - t1)
+        var d = 0, h = 0, minutes = 0
+        if haveTime {
+            d = Int(floor(diff / 86400)); diff = diff.truncatingRemainder(dividingBy: 86400)
+            h = Int(floor(diff / 3600)); diff = diff.truncatingRemainder(dividingBy: 3600)
+            minutes = Int(floor(diff / 60))
+        } else {
+            d = Int((diff / 86400).rounded())
+        }
+        var parts: [String] = []
+        if d > 0 { parts.append("\(d) day" + (d > 1 ? "s" : "")) }
+        if h > 0 { parts.append("\(h) hour" + (h > 1 ? "s" : "")) }
+        if minutes > 0 { parts.append("\(minutes) minute" + (minutes > 1 ? "s" : "")) }
+        let text = parts.isEmpty ? "" : parts.joined(separator: " ") + " "
+        return .commit(EditResult(baseRevision: context.revision, edits: [], effects: [.message(text)]))
     }
 }

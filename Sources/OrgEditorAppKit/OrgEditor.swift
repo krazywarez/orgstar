@@ -325,7 +325,8 @@ public final class OrgEditor: NSObject {
         return EditContext(
             revision: document.revision, text: document.text, tree: document.tree,
             selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers,
-            hidden: hidden.all, options: options, knownTags: knownTags
+            hidden: hidden.all, options: options, knownTags: knownTags,
+            lastCommand: lastCommand.flatMap { $0.revision == document.revision ? $0.id : nil }
         )
     }
 
@@ -375,8 +376,12 @@ public final class OrgEditor: NSObject {
         }
     }
 
+    /// The last command run and the revision it left, for `last-command`.
+    private var lastCommand: (id: String, revision: Int)?
+
     /// Runs a command by id, as a key, a menu item or the palette would.
     public func run(_ id: String) {
+        defer { lastCommand = (id, document.revision) }
         guard let command = EditorCommands.command(id) else {
             onMessage?("Unknown command \(id)")
             return

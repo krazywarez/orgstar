@@ -55,6 +55,10 @@ struct EchoArea: View {
                     }
                     .frame(maxHeight: 200)
                 }
+                if let read = request.prompt.date {
+                    Divider()
+                    DatePickerView(answer: answer, read: read) { commands.answer($0) }
+                }
                 Divider()
                 HStack(spacing: 6) {
                     Text(request.prompt.message).font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary)
@@ -75,6 +79,12 @@ struct EchoArea: View {
                         .onKeyPress(.tab) {
                             guard let first = filteredChoices(request.prompt.choices).first else { return .ignored }
                             complete(first, request.prompt)
+                            return .handled
+                        }
+                        .onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow]) { press in
+                            guard let read = request.prompt.date, press.modifiers == .shift else { return .ignored }
+                            let days = [KeyEquivalent.leftArrow: -1, .rightArrow: 1, .upArrow: -7, .downArrow: 7][press.key]!
+                            answer = DatePickerView.shifted(answer, read, by: days)
                             return .handled
                         }
                         .onExitCommand { commands.answer(nil) }

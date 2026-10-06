@@ -14,6 +14,9 @@ public enum LogHow: String, Sendable, Equatable, Codable {
 struct LogSettings {
     var done: LogHow?
     var repeatHow: LogHow?
+    /// `org-log-reschedule` and `org-log-redeadline`.
+    var reschedule: LogHow?
+    var redeadline: LogHow?
     var drawer: String?
     /// `org-todo-log-states`: keyword → (on entering, on leaving).
     var states: [String: (enter: LogHow?, leave: LogHow?)] = [:]
@@ -35,6 +38,12 @@ struct LogSettings {
         case "logrepeat": repeatHow = .time
         case "lognoterepeat": repeatHow = .note
         case "nologrepeat": repeatHow = nil
+        case "logreschedule": reschedule = .time
+        case "lognotereschedule": reschedule = .note
+        case "nologreschedule": reschedule = nil
+        case "logredeadline": redeadline = .time
+        case "lognoteredeadline": redeadline = .note
+        case "nologredeadline": redeadline = nil
         case "logdrawer": drawer = "LOGBOOK"
         case "nologdrawer": drawer = nil
         default: break
@@ -53,7 +62,7 @@ struct LogSettings {
 
 /// A note `org-add-log-setup` asked for, stored when the command ends.
 struct LogSetup {
-    enum Purpose { case done, state }
+    enum Purpose { case done, state, reschedule, delschedule, redeadline, deldeadline }
     var purpose: Purpose
     var state: String?
     var previous: String?
@@ -64,7 +73,8 @@ struct LogSetup {
 extension EmacsBuffer {
     /// The logging settings for the entry at point.
     func logSettings() -> LogSettings {
-        var log = LogSettings(done: options.logDone, repeatHow: options.logRepeat ? .time : nil, drawer: options.logIntoDrawer)
+        var log = LogSettings(done: options.logDone, repeatHow: options.logRepeat ? .time : nil,
+                              reschedule: options.logReschedule, redeadline: options.logRedeadline, drawer: options.logIntoDrawer)
         for sequence in settings.todoSequences {
             for keyword in sequence.active + sequence.done {
                 let enter = LogSettings.how(keyword.logOnEnter)
@@ -123,6 +133,10 @@ extension EmacsBuffer {
         let about = switch setup.purpose {
         case .done: "closed todo item"
         case .state: "state change from \"\(setup.previous ?? "")\" to \"\(setup.state ?? "")\""
+        case .reschedule: "rescheduling"
+        case .delschedule: "no longer scheduled"
+        case .redeadline: "changing deadline"
+        case .deldeadline: "removing deadline"
         }
         return Prompt(key: "note", message: "Note for \(about):")
     }
@@ -137,6 +151,10 @@ extension EmacsBuffer {
             "State " + quoted(setup.state).padding(toLength: max(12, quoted(setup.state).count), withPad: " ", startingAt: 0)
                 + " from " + quoted(setup.previous).padding(toLength: max(12, quoted(setup.previous).count), withPad: " ", startingAt: 0)
                 + " " + stamp
+        case .reschedule: "Rescheduled from \(Self.quotedState(setup.previous)) on \(stamp)"
+        case .delschedule: "Not scheduled, was \(Self.quotedState(setup.previous)) on \(stamp)"
+        case .redeadline: "New deadline from \(Self.quotedState(setup.previous)) on \(stamp)"
+        case .deldeadline: "Removed deadline, was \(Self.quotedState(setup.previous)) on \(stamp)"
         }
         var trimmed = text
         while let range = trimmed.range(of: "^# .*\\n[ \\t\\n]*", options: .regularExpression) { trimmed.removeSubrange(range) }
@@ -181,6 +199,36 @@ extension EmacsBuffer {
         }
         guard let setup else { return }
         if setup.how == .note {
+            guard let note = answers["note"] else { throw Ask(prompt: Self.notePrompt(setup)) }
+            storeLog(setup, text: note)
+        } else {
+            storeLog(setup, text: "")
+        }
+    }
+
+    /// `%S` in `org-log-note-headings`: a timestamp as an inactive one, in quotes.
+    static func quotedState(_ s: String?) -> String {
+        guard let s else { return "" }
+        if s.range(of: "^[\\[<][0-9]{4}-[0-9]{2}-[0-9]{2}", options: .regularExpression) != nil {
+            return "\"[" + s.dropFirst().dropLast() + "]\""
+        }
+        return "\"" + s + "\""
+    }
+
+    /// The note `org--deadline-or-schedule` logs when a planning date changes or goes, with
+    /// `org-log-reschedule` and `org-log-redeadline`; asks for its text with `answers`.
+    func logPlanningChange(_ kind: PlanningKind, old: String, new: String?, answers: [String: String]) throws {
+        let log = logSettings()
+        guard let how = kind == .deadline ? log.redeadline : log.reschedule else { return }
+        if let new, new == old { return }
+        let purpose: LogSetup.Purpose = switch (kind == .deadline, new == nil) {
+        case (true, true): .deldeadline
+        case (true, false): .redeadline
+        case (false, true): .delschedule
+        case (false, false): .reschedule
+        }
+        let setup = LogSetup(purpose: purpose, state: new, previous: old, how: how, drawer: log.drawer)
+        if how == .note {
             guard let note = answers["note"] else { throw Ask(prompt: Self.notePrompt(setup)) }
             storeLog(setup, text: note)
         } else {
