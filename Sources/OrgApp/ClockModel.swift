@@ -35,14 +35,21 @@ public final class ClockModel {
     /// `org-clock-in` at the heading under the caret, clocking out a running clock first.
     public func clockIn(_ session: DocumentSession, now: Date = Date()) -> String {
         guard let path = session.path, session.document != nil else { return "No file is open." }
-        guard let entry = session.outline.last(where: { $0.start <= session.caret }) else { return "Before first headline" }
+        return clockIn(session, path: path, at: session.caret, now: now)
+    }
+
+    /// `org-clock-in` at the heading containing `offset` in `path`.
+    public func clockIn(_ session: DocumentSession, path: String, at offset: Int, now: Date = Date()) -> String {
+        guard let text = Self.text(path, session) else { return "Can't read \(path)" }
+        let tree = OrgParser.parse(text)
+        guard let entry = DocumentModel(tree: tree).headings.last(where: { $0.headingRange.lowerBound <= offset }) else { return "Before first headline" }
         if running != nil {
             let message = clockOut(session, now: now)
             if running != nil { return message }
         }
-        switch session.perform(ClockIn(), path: path, at: session.caret, expect: nil, now: now) {
+        switch session.perform(ClockIn(), path: path, at: offset, expect: nil, now: now) {
         case .commit:
-            guard let updated = session.document?.text, let start = ClockIn.runningStart(in: updated, near: entry.start) else {
+            guard let updated = Self.text(path, session), let start = ClockIn.runningStart(in: updated, near: entry.headingRange.lowerBound) else {
                 return "The clock line wasn't found after clocking in."
             }
             running = Running(path: path, start: start, heading: entry.title, startedAt: now)
@@ -74,6 +81,17 @@ public final class ClockModel {
         default:
             return "Can't clock out."
         }
+    }
+
+    static func text(_ path: String, _ session: DocumentSession) -> String? {
+        session.openDocuments.first { $0.path == path }?.document.text ?? (try? String(contentsOfFile: path, encoding: .utf8))
+    }
+
+    /// The clocked entry's heading, for the `clock` capture target.
+    public func entry(_ session: DocumentSession) -> (path: String, offset: Int)? {
+        guard let line = location(session), let text = Self.text(line.path, session) else { return nil }
+        let heading = DocumentModel(tree: OrgParser.parse(text)).headings.last { $0.headingRange.lowerBound <= line.offset }
+        return heading.map { (line.path, $0.headingRange.lowerBound) }
     }
 
     /// Where the running clock's line is, for `org-clock-goto`.

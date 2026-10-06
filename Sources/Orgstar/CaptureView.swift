@@ -10,6 +10,7 @@ struct CaptureView: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     let commands: AppCommands
+    let clock: ClockModel
     @State private var templates = CaptureTemplates.defaults
     @State private var problem: String?
     @State private var template: CaptureTemplate?
@@ -82,9 +83,12 @@ struct CaptureView: View {
     private func target(_ template: CaptureTemplate) -> String {
         let file = (template.target.file as NSString).lastPathComponent
         switch template.target {
-        case .file: return file
+        case .file, .heading: return file
         case .headline(_, let headline): return "\(file) / \(headline)"
         case .outline(_, let path): return ([file] + path).joined(separator: " / ")
+        case .datetree(_, let path, _): return ([file] + path + ["date tree"]).joined(separator: " / ")
+        case .id(let id): return "ID \(id)"
+        case .clock: return "clocked entry"
         }
     }
 
@@ -119,6 +123,10 @@ struct CaptureView: View {
             self.template = nil
         case .success(let filled):
             text = filled.text
+            if template.options.immediateFinish {
+                finish()
+                return
+            }
             let index = String.Index(utf16Offset: filled.cursor, in: text)
             selection = TextSelection(insertionPoint: index)
             editing = true
@@ -126,13 +134,50 @@ struct CaptureView: View {
         }
     }
 
+    /// `id` and `clock` targets as a file and a heading.
+    private func resolved(_ template: CaptureTemplate) -> Result<(template: CaptureTemplate, file: String?), CaptureError> {
+        switch template.target {
+        case .id(let id):
+            guard let location = try? workspace.index.headings(withID: id).first else {
+                return .failure(CaptureError(message: "Cannot find target ID \"\(id)\""))
+            }
+            return .success((template, location.path))
+        case .clock:
+            guard let entry = clock.entry(session) else { return .failure(CaptureError(message: "No running clock")) }
+            return .success((template.retargeted(.heading(file: entry.path, offset: entry.offset)), entry.path))
+        default:
+            return .success((template, nil))
+        }
+    }
+
     private func finish() {
         guard let template else { return }
-        if let message = session.capture(text, template: template, root: workspace.rootPaths.first) {
-            problem = message
-            return
+        let opened = context.now
+        let now = Date()
+        let placed = resolved(template).flatMap { resolved in
+            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: now)
         }
-        commands.show("Captured to \(target(template))")
+        switch placed {
+        case .failure(let error):
+            problem = error.message
+            if template.options.immediateFinish { editing = true }
+            return
+        case .success(let entry):
+            commands.show("Captured to \(target(template))")
+            let options = template.options
+            if options.clockIn {
+                // Clocked from when capture began; the clock it interrupted resumes after.
+                let previous = clock.entry(session)
+                commands.show(clock.clockIn(session, path: entry.path, at: entry.offset, now: opened))
+                if !options.clockKeep {
+                    commands.show(clock.clockOut(session, now: now))
+                    if options.clockResume, let previous {
+                        commands.show(clock.clockIn(session, path: previous.path, at: previous.offset, now: now))
+                    }
+                }
+            }
+            if options.jumpToCaptured { commands.jump(path: entry.path, offset: entry.offset) }
+        }
         close()
     }
 

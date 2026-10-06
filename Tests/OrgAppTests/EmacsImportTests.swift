@@ -22,7 +22,9 @@ struct EmacsImportTests {
     (setq fill-column (+ 70 2))
     (setq org-capture-templates
           '(("t" "Todo" entry (file+headline "~/notes/todo.org" "Inbox") "* TODO %?\n%a")
-            ("j" "Journal" entry (file+olp+datetree "~/notes/journal.org") "* %?")
+            ("j" "Journal" entry (file+olp+datetree "~/notes/journal.org") "* %?" :tree-type week :empty-lines 1 :time-prompt t)
+            ("c" "Clocked" item (clock) "%?" :immediate-finish t)
+            ("x" "Function" entry (function ignore) "* %?")
             ("w" "Work")
             ("wn" "Work note" plain (file "~/work/notes.org") "%?" :prepend t)))
     (map! :leader :desc "Report" "z t" #'tr/report
@@ -81,7 +83,7 @@ struct EmacsImportTests {
         #expect(folders == ["~/notes/", "~/work"])
         #expect(result.unreadable.map(\.name) == ["fill-column"])
         #expect(Set(result.unsupported.map(\.name)) == ["org-support-shift-select", "doom-theme", "org-roam-directory",
-            "capture \"j\"", "SPC z t → tr/report", "C-c l"])
+            "capture \"j\"", "capture \"x\"", "SPC z t → tr/report", "C-c l"])
         #expect(result.skipped == 1)
         #expect(result.doomDefaultsLeftOut == 1)
     }
@@ -89,10 +91,12 @@ struct EmacsImportTests {
     @Test func readsCaptureTemplatesAndBindings() throws {
         let result = try scan()
         let captures = result.items.compactMap { if case .capture(let key, let toml) = $0.change { (key, toml) } else { nil } }
-        #expect(captures.map(\.0) == ["t", "wn"])
+        #expect(captures.map(\.0) == ["t", "j", "c", "wn"])
+        #expect(captures[1].1 == "[[template]]\nkey = \"j\"\nname = \"Journal\"\ntype = \"entry\"\nfile = \"~/notes/journal.org\"\ndatetree = true\ntree-type = \"week\"\nempty-lines = 1\ntemplate = \"* %?\"\n")
+        #expect(captures[2].1.contains("clock = true\n") && captures[2].1.contains("immediate-finish = true\n"))
+        #expect(result.unsupported.contains { $0.name == "capture \"j\"" && $0.reason == ":time-prompt left out" })
         #expect(captures[0].1 == "[[template]]\nkey = \"t\"\nname = \"Todo\"\ntype = \"entry\"\nfile = \"~/notes/todo.org\"\nheadline = \"Inbox\"\ntemplate = \"* TODO %?\\n%a\"\n")
-        #expect(captures[1].1.contains("prepend = true\n") && captures[1].1.contains("type = \"plain\""))
-        #expect(result.unsupported.contains { $0.name == "capture \"j\"" })
+        #expect(captures[3].1.contains("prepend = true\n") && captures[3].1.contains("type = \"plain\""))
 
         let bindings = result.items.compactMap { if case .binding(let keys, let command, let mode) = $0.change { "\(keys) \(command) \(mode ?? "-")" } else { nil } }
         #expect(bindings == ["SPC m x org.checkbox.toggle normal", "g s app.save normal", "C-c a app.agenda normal"])
@@ -131,12 +135,12 @@ struct EmacsImportTests {
         #expect(defaults.integer(forKey: "agendaStartOffset") == -3)
         #expect(defaults.string(forKey: "todoKeywords") == "TODO(t) WAIT(w) | DONE(d)\nBUG | FIXED")
         let capture = try String(contentsOf: folder.appendingPathComponent("capture.toml"), encoding: .utf8)
-        #expect(capture.components(separatedBy: "[[template]]").count == 3)
+        #expect(capture.components(separatedBy: "[[template]]").count == 5)
         #expect(CaptureTemplates.load(userFile: folder.appendingPathComponent("capture.toml")).problems.isEmpty)
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 14 settings, 1 capture template, 3 key bindings."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 14 settings, 3 capture templates, 3 key bindings."), "\(summary)")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
         #expect(defaults.integer(forKey: "themeFontSize") == 14)
     }

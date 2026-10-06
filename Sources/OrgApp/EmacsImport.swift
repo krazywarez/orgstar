@@ -526,13 +526,27 @@ public struct EmacsImport: Sendable {
         func quoted(_ s: String) -> String { UserConfig.format(.string(s)) }
         var toml = "[[template]]\nkey = \(quoted(key))\nname = \(quoted(name))\ntype = \(quoted(type))\n"
         let strings = target.dropFirst().compactMap(\.string)
+        // Property list after the template: `:prepend t :empty-lines 1 …`.
+        var properties: [String: Sexp] = [:]
+        let rest = Array(parts.dropFirst(5))
+        for i in stride(from: 0, to: rest.count - 1, by: 2) { if let name = rest[i].symbol { properties[name] = rest[i + 1] } }
+        let allStrings = strings.count == target.count - 1
+        var treeType = properties[":tree-type"]?.symbol
         let place: String? = switch kind {
         case "file" where strings.count == 1 && target.count == 2:
             "file = \(quoted(strings[0]))\n"
         case "file+headline" where strings.count == 2 && target.count == 3:
             "file = \(quoted(strings[0]))\nheadline = \(quoted(strings[1]))\n"
-        case "file+olp" where strings.count >= 2 && strings.count == target.count - 1:
+        case "file+olp" where strings.count >= 2 && allStrings:
             "file = \(quoted(strings[0]))\nolp = \(quoted(strings.dropFirst().joined(separator: "/")))\n"
+        case "file+olp+datetree" where strings.count >= 1 && allStrings:
+            "file = \(quoted(strings[0]))\ndatetree = true\n" + (strings.count > 1 ? "olp = \(quoted(strings.dropFirst().joined(separator: "/")))\n" : "")
+        case let legacy where (legacy == "file+datetree" || legacy == "file+weektree") && strings.count == 1 && target.count == 2:
+            "file = \(quoted(strings[0]))\ndatetree = true\n"
+        case "id" where strings.count == 1 && target.count == 2:
+            "id = \(quoted(strings[0]))\n"
+        case "clock" where target.count == 1:
+            "clock = true\n"
         default:
             nil
         }
@@ -540,9 +554,25 @@ public struct EmacsImport: Sendable {
             unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "target \(kind) isn't supported", source: source))
             return
         }
+        if kind == "file+weektree" { treeType = "week" }
         toml += place
-        let prepend = parts.dropFirst(5).enumerated().contains { $0.element.symbol == ":prepend" && parts.dropFirst(5).dropFirst($0.offset + 1).first?.symbol != "nil" }
-        if prepend { toml += "prepend = true\n" }
+        if let treeType {
+            guard ["day", "week", "month"].contains(treeType) else {
+                unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: ":tree-type \(treeType) isn't supported", source: source))
+                return
+            }
+            if treeType != "day" { toml += "tree-type = \(quoted(treeType))\n" }
+        }
+        for flag in ["prepend", "immediate-finish", "jump-to-captured", "clock-in", "clock-keep", "clock-resume"] {
+            if let value = properties[":" + flag], value.symbol != "nil" { toml += "\(flag) = true\n" }
+        }
+        for count in ["empty-lines", "empty-lines-before", "empty-lines-after"] {
+            if let n = properties[":" + count]?.integer { toml += "\(count) = \(n)\n" }
+        }
+        let ignored = properties.keys.filter { ![":prepend", ":immediate-finish", ":jump-to-captured", ":clock-in", ":clock-keep", ":clock-resume", ":empty-lines", ":empty-lines-before", ":empty-lines-after", ":tree-type"].contains($0) }
+        if !ignored.isEmpty {
+            unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "\(ignored.sorted().joined(separator: ", ")) left out", source: source))
+        }
         toml += "template = \(quoted(template))\n"
         items.append(Item(id: id(), name: "capture \"\(key)\" \(name)", summary: "capture template \"\(key)\"", source: source, change: .capture(key: key, toml: toml)))
     }

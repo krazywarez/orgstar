@@ -626,6 +626,35 @@ struct CaptureAppTests {
         #expect(loaded.templates[0].target == .outline(file: "work.org", path: ["Projects", "Work"]))
         #expect(loaded.templates[0].template == "* TODO %?\n%a")
         #expect(loaded.templates[1].kind == .plain && loaded.templates[1].prepend)
+        try """
+        [[template]]
+        key = "d"
+        file = "journal.org"
+        datetree = true
+        olp = "Journal"
+        tree-type = "month"
+        template = "* %?"
+        empty-lines-after = 1
+        jump-to-captured = true
+        [[template]]
+        key = "i"
+        id = "abc"
+        template = "* %?"
+        clock-in = true
+        clock-resume = true
+        [[template]]
+        key = "k"
+        clock = true
+        type = "item"
+        template = "%?"
+        immediate-finish = true
+        """.write(to: file, atomically: true, encoding: .utf8)
+        let targets = CaptureTemplates.load(userFile: file)
+        #expect(targets.problems.isEmpty)
+        #expect(targets.templates.map(\.target) == [.datetree(file: "journal.org", path: ["Journal"], tree: .month), .id("abc"), .clock])
+        #expect(targets.templates[0].options == .init(emptyLinesAfter: 1, jumpToCaptured: true))
+        #expect(targets.templates[1].options == .init(clockIn: true, clockResume: true))
+        #expect(targets.templates[2].options.immediateFinish)
         #expect(CaptureTemplates.load(userFile: folder.url.appendingPathComponent("none.toml")).templates == CaptureTemplates.defaults)
     }
 
@@ -634,15 +663,22 @@ struct CaptureAppTests {
         let todo = try notes.write("todo.org", "* Inbox\n** TODO Old\n* Later\n")
         let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
         let template = CaptureTemplates.defaults[0]
-        #expect(session.capture("* TODO New\n", template: template, root: notes.url.path) == nil)
+        let placed = try session.capture("* TODO New\n", template: template, root: notes.url.path).get()
         #expect(try String(contentsOf: todo, encoding: .utf8) == "* Inbox\n** TODO Old\n** TODO New\n* Later\n")
+        #expect(placed.path == todo.path && placed.offset == ("* Inbox\n** TODO Old\n" as NSString).length)
 
-        #expect(session.capture("* Note\n", template: CaptureTemplates.defaults[1], root: notes.url.path) == nil)
+        _ = try session.capture("* Note\n", template: CaptureTemplates.defaults[1], root: notes.url.path).get()
         #expect(try String(contentsOf: notes.url.appendingPathComponent("notes.org"), encoding: .utf8) == "* Inbox\n** Note\n")
 
         session.open(todo.path)
-        #expect(session.capture("* TODO Third\n", template: template, root: notes.url.path) == nil)
+        _ = try session.capture("* TODO Third\n", template: template, root: notes.url.path).get()
         #expect(session.document?.text == "* Inbox\n** TODO Old\n** TODO New\n** TODO Third\n* Later\n")
+
+        // An ID's file is resolved by the caller.
+        let id = CaptureTemplate(key: "i", name: "", target: .id("x1"), template: "")
+        let ided = try notes.write("ided.org", "* Target\n:PROPERTIES:\n:ID: x1\n:END:\n")
+        _ = try session.capture("* Child\n", template: id, root: nil, file: ided.path).get()
+        #expect(try String(contentsOf: ided, encoding: .utf8) == "* Target\n:PROPERTIES:\n:ID: x1\n:END:\n** Child\n")
     }
 }
 

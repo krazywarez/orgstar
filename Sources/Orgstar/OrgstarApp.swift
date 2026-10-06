@@ -270,7 +270,7 @@ struct OrgstarApp: App {
         .defaultSize(width: 860, height: 560)
         Window("Capture", id: "capture") {
             if case .success(let model) = workspace {
-                CaptureView(workspace: model, session: session, commands: commands)
+                CaptureView(workspace: model, session: session, commands: commands, clock: clock)
             }
         }
         .windowResizability(.contentSize)

@@ -15,6 +15,11 @@ import OrgDocument
 /// template = "* TODO %?\n%i\n%a"
 /// prepend = false
 /// ```
+///
+/// Other targets: `datetree = true` (under `olp` if given; `tree-type` "day", "week" or
+/// "month"), `id = "…"` without `file`, `clock = true` without `file`. Other properties, as
+/// in `org-capture-templates`: `immediate-finish`, `empty-lines`, `empty-lines-before`,
+/// `empty-lines-after`, `jump-to-captured`, `clock-in`, `clock-keep`, `clock-resume`.
 @MainActor
 public enum CaptureTemplates {
     public static var userFile: URL { UserConfig.file("capture.toml") }
@@ -40,7 +45,9 @@ public enum CaptureTemplates {
                 problems.append("capture.toml line \(table.line): expected [[template]]")
                 continue
             }
-            guard let key = table.values["key"]?.string, let file = table.values["file"]?.string, let body = table.values["template"]?.string else {
+            let values = table.values
+            let fileless = values["id"]?.string != nil || values["clock"]?.bool == true
+            guard let key = values["key"]?.string, let body = values["template"]?.string, let file = values["file"]?.string ?? (fileless ? "" : nil) else {
                 problems.append("capture.toml line \(table.line): a template needs key, file and template")
                 continue
             }
@@ -48,18 +55,33 @@ public enum CaptureTemplates {
                 problems.append("capture.toml line \(table.line): unknown type")
                 continue
             }
+            let olp = values["olp"]?.string.map { $0.split(separator: "/").map(String.init) }
             let target: CaptureTemplate.Target
-            if let headline = table.values["headline"]?.string {
+            if let id = values["id"]?.string {
+                target = .id(id)
+            } else if values["clock"]?.bool == true {
+                target = .clock
+            } else if values["datetree"]?.bool == true {
+                guard let tree = CaptureTemplate.TreeType(rawValue: values["tree-type"]?.string ?? "day") else {
+                    problems.append("capture.toml line \(table.line): tree-type is day, week or month")
+                    continue
+                }
+                target = .datetree(file: file, path: olp ?? [], tree: tree)
+            } else if let headline = values["headline"]?.string {
                 target = .headline(file: file, headline: headline)
-            } else if let olp = table.values["olp"]?.string {
-                target = .outline(file: file, path: olp.split(separator: "/").map(String.init))
+            } else if let olp {
+                target = .outline(file: file, path: olp)
             } else {
                 target = .file(file)
             }
-            templates.append(CaptureTemplate(
-                key: key, name: table.values["name"]?.string ?? key, kind: kind, target: target, template: body,
-                prepend: table.values["prepend"]?.bool ?? false
-            ))
+            func flag(_ name: String) -> Bool { values[name]?.bool ?? false }
+            func lines(_ name: String) -> Int? { values[name]?.integer }
+            let options = CaptureTemplate.Options(
+                prepend: flag("prepend"), immediateFinish: flag("immediate-finish"), emptyLines: lines("empty-lines"),
+                emptyLinesBefore: lines("empty-lines-before"), emptyLinesAfter: lines("empty-lines-after"),
+                jumpToCaptured: flag("jump-to-captured"), clockIn: flag("clock-in"), clockKeep: flag("clock-keep"), clockResume: flag("clock-resume")
+            )
+            templates.append(CaptureTemplate(key: key, name: values["name"]?.string ?? key, kind: kind, target: target, template: body, options: options))
         }
         return (templates.isEmpty ? defaults : templates, problems)
     }
@@ -67,21 +89,23 @@ public enum CaptureTemplates {
 
 extension DocumentSession {
     /// Places captured `text` with `template`: through the buffer when the target is open,
-    /// otherwise in the file, created if missing, through the save path.
-    public func capture(_ text: String, template: CaptureTemplate, root: String?) -> String? {
-        let path = Self.resolve(template.target.file, root: root)
+    /// otherwise in the file, created if missing, through the save path. `id` and `clock`
+    /// targets must be resolved first (`file` names the ID's file). Returns the file and where
+    /// the entry starts.
+    public func capture(_ text: String, template: CaptureTemplate, root: String?, file: String? = nil, now: Date = Date()) -> Result<(path: String, offset: Int), CaptureError> {
+        let path = file ?? Self.resolve(template.target.file, root: root)
         if !isOpen(path), !FileManager.default.fileExists(atPath: path) {
             do {
                 try FileManager.default.createDirectory(at: URL(fileURLWithPath: path).deletingLastPathComponent(), withIntermediateDirectories: true)
                 try Data().write(to: URL(fileURLWithPath: path))
             } catch {
-                return "Can't create \(path): \(error.localizedDescription)"
+                return .failure(CaptureError(message: "Can't create \(path): \(error.localizedDescription)"))
             }
         }
-        switch perform(CapturePlacement(text: text, template: template), path: path, at: 0, expect: nil) {
-        case .commit: return nil
-        case .failed(let message): return message
-        default: return "Can't capture there."
+        switch perform(CapturePlacement(text: text, template: template), path: path, at: 0, expect: nil, now: now) {
+        case .commit(let result): return .success((path, result.selection?.first?.lowerBound ?? 0))
+        case .failed(let message): return .failure(CaptureError(message: message))
+        default: return .failure(CaptureError(message: "Can't capture there."))
         }
     }
 
@@ -101,7 +125,13 @@ extension DocumentSession {
     }
 }
 
-/// The edit `Capture.place` makes, as a command so the save path applies it.
+public struct CaptureError: Error, Equatable {
+    public let message: String
+    public init(message: String) { self.message = message }
+}
+
+/// The edit `Capture.place` makes, as a command so the save path applies it. The selection
+/// it leaves is the captured entry's start.
 struct CapturePlacement: OrgCommand {
     let text: String
     let template: CaptureTemplate
@@ -109,11 +139,11 @@ struct CapturePlacement: OrgCommand {
     var title: String { "Capture" }
     func applies(in context: EditContext) -> Bool { true }
     func run(in context: EditContext) -> CommandStep {
-        switch Capture.place(text, template: template, in: context.text, settings: context.tree.settings) {
+        switch Capture.placement(text, template: template, in: context.text, settings: context.tree.settings, now: context.now, calendar: context.calendar) {
         case .failure(.message(let message)):
             return .failed(message)
-        case .success(let new):
-            return .commit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new)))
+        case .success(let placed):
+            return .commit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, placed.text), selection: [placed.start..<placed.start]))
         }
     }
 }
