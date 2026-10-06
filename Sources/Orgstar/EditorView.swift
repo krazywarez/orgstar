@@ -86,6 +86,7 @@ struct EditorView: NSViewRepresentable {
         let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable, highlighter: Self.highlighter, mode: mode, options: options)
         let path = session.path ?? ""
         editor.onChange = { [weak session] in session?.bufferChanged(path) }
+        if !path.isEmpty { editor.baseDirectory = URL(fileURLWithPath: path).deletingLastPathComponent() }
         editor.onMessage = { [weak commands] in commands?.show($0) }
         editor.onKeysPending = { [weak commands] keys, next in
             commands?.pendingKeys = keys

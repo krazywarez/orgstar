@@ -151,6 +151,7 @@ public final class OrgEditor: NSObject {
             startup.wrapperFolds = Set(wrappers.map(\.start))
             if startup != FoldState() { setFolds(startup, wrappers: wrappers) }
             shrinkAtStartup()
+            if InlineImages.startup(document.tree) ?? options.startupWithInlineImages { showsImages = true }
         }
     }
 
@@ -406,6 +407,7 @@ public final class OrgEditor: NSObject {
             case "org.cycle": cycleAtCaret()
             case "org.cycle-global": cycleGlobal()
             case "org.narrow.subtree", "org.narrow.block", "org.narrow.toggle", "org.widen": narrow(id)
+            case "org.toggle-inline-images": toggleImages()
             default: tableColumnWidth(id)
             }
         case .edit(let selector, let extending):
@@ -605,6 +607,78 @@ public final class OrgEditor: NSObject {
     private func applyHighlights(_ range: Range<Int>, in storage: NSTextStorage) {
         for highlight in highlights where highlight.overlaps(range) && highlight.upperBound <= storage.length {
             storage.addAttribute(.backgroundColor, value: NSColor.findHighlightColor.withAlphaComponent(0.45), range: NSRange(highlight.clamped(to: range)))
+        }
+    }
+
+    // MARK: - Inline images
+
+    /// `org-toggle-inline-images`: lines that are only an image link show the image.
+    public private(set) var showsImages = false
+    /// The file's folder, for relative image paths.
+    public var baseDirectory: URL? {
+        didSet { if showsImages, oldValue != baseDirectory { refreshImages() } }
+    }
+    private static let imageCache = NSCache<NSString, NSImage>()
+
+    private func toggleImages() {
+        showsImages.toggle()
+        refreshImages()
+        if showsImages {
+            let ns = textView.string as NSString
+            var count = 0
+            var offset = 0
+            while offset < ns.length {
+                let line = ns.lineRange(for: NSRange(location: offset, length: 0))
+                if let image = InlineImages.image(atLine: line.location, in: ns), loadImage(image.path) != nil { count += 1 }
+                offset = NSMaxRange(line)
+            }
+            onMessage?("\(count) images displayed inline")
+        } else {
+            onMessage?("Inline image display turned off")
+        }
+    }
+
+    private func refreshImages() {
+        restyleOutsideEditing(0..<utf16Length)
+        textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+        textView.needsDisplay = true
+    }
+
+    private func loadImage(_ path: String) -> NSImage? {
+        let expanded = (path as NSString).expandingTildeInPath
+        let url = expanded.hasPrefix("/") ? URL(fileURLWithPath: expanded) : (baseDirectory ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath)).appendingPathComponent(expanded)
+        let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?.timeIntervalSince1970 ?? 0
+        let key = "\(url.path)|\(modified)" as NSString
+        if let cached = Self.imageCache.object(forKey: key) { return cached }
+        guard let image = NSImage(contentsOf: url) else { return nil }
+        Self.imageCache.setObject(image, forKey: key)
+        return image
+    }
+
+    /// Image lines in `range` show the image over the link, which is hidden unless the caret is
+    /// on the line.
+    private func applyImages(_ range: Range<Int>, in storage: NSTextStorage, revealed: NSRange) {
+        guard showsImages, isOrg else { return }
+        let text = storage.string as NSString
+        let maxWidth = max(80, (textView.textContainer?.size.width ?? 600) - 40)
+        var location = range.lowerBound
+        while location < range.upperBound, location < text.length {
+            let line = text.lineRange(for: NSRange(location: location, length: 0))
+            location = NSMaxRange(line)
+            guard let image = InlineImages.image(atLine: line.location, in: text), let picture = loadImage(image.path) else { continue }
+            var width = image.width.map(CGFloat.init) ?? picture.size.width
+            width = min(width, maxWidth)
+            let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0
+            let content = NSRange(location: line.location, length: line.length - (text.substring(with: line).hasSuffix("\n") ? 1 : 0))
+            // Invisible, keeping the line's height, so line numbers stay apart.
+            if line.location != revealed.location, content.length > 0 {
+                storage.addAttributes([.foregroundColor: NSColor.clear, .underlineStyle: 0], range: content)
+            }
+            storage.addAttribute(.orgImage, value: InlineImageBox(image: picture, size: CGSize(width: width, height: height)), range: NSRange(location: line.location, length: max(1, content.length)))
+            let style = (storage.attribute(.paragraphStyle, at: line.location, effectiveRange: nil) as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+            // The image sits where the line is; the spacing makes room for the rest of it.
+            style.paragraphSpacing = max(0, height + 4 - theme.font.boundingRectForFont.height)
+            storage.addAttribute(.paragraphStyle, value: style, range: line)
         }
     }
 
@@ -898,6 +972,7 @@ public final class OrgEditor: NSObject {
         if !showMarkup, options.prettyEntities { prettify(range, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
         applyShrunk(range, in: storage)
         applyHighlights(range, in: storage)
+        applyImages(range, in: storage, revealed: revealed)
     }
 
     /// `org-pretty-entities`: entities drawn as their character over the entity's last
@@ -1265,6 +1340,9 @@ extension OrgEditor: NSTextLayoutManagerDelegate {
             let offset = manager.offset(from: manager.documentRange.location, to: range.location)
             if folded.contains(offset) { return FoldedHeadingFragment(textElement: textElement, range: range) }
             if shaded.containing(offset) != nil { return ShadedFragment(textElement: textElement, range: range) }
+            if let paragraph = textElement as? NSTextParagraph, ImageFragment.image(paragraph.attributedString) != nil {
+                return ImageFragment(textElement: textElement, range: range)
+            }
             if let paragraph = textElement as? NSTextParagraph, EntityFragment.hasEntities(paragraph.attributedString) {
                 return EntityFragment(textElement: textElement, range: range)
             }
@@ -1297,6 +1375,47 @@ final class ShadedFragment: NSTextLayoutFragment, @unchecked Sendable {
 extension NSAttributedString.Key {
     /// The character an entity shows as, on the entity's last character.
     static let orgEntityDisplay = NSAttributedString.Key("OrgEntityDisplay")
+    /// The image an image link's line shows under it.
+    static let orgImage = NSAttributedString.Key("OrgImage")
+}
+
+final class InlineImageBox: NSObject, @unchecked Sendable {
+    let image: NSImage
+    let size: CGSize
+    init(image: NSImage, size: CGSize) {
+        self.image = image
+        self.size = size
+    }
+}
+
+/// An image link's line drawn as the image, with the paragraph spacing making room for its
+/// height.
+final class ImageFragment: NSTextLayoutFragment, @unchecked Sendable {
+    static func image(_ string: NSAttributedString) -> InlineImageBox? {
+        var found: InlineImageBox?
+        string.enumerateAttribute(.orgImage, in: NSRange(location: 0, length: string.length)) { value, _, stop in
+            if let box = value as? InlineImageBox { found = box; stop.pointee = true }
+        }
+        return found
+    }
+
+    private var frame: CGRect? {
+        guard let box = (textElement as? NSTextParagraph).flatMap({ Self.image($0.attributedString) }), let line = textLineFragments.first else { return nil }
+        return CGRect(x: line.typographicBounds.minX, y: line.typographicBounds.minY + 2, width: box.size.width, height: box.size.height)
+    }
+
+    override var renderingSurfaceBounds: CGRect {
+        frame.map { super.renderingSurfaceBounds.union($0) } ?? super.renderingSurfaceBounds
+    }
+
+    override func draw(at point: CGPoint, in context: CGContext) {
+        super.draw(at: point, in: context)
+        guard let box = (textElement as? NSTextParagraph).flatMap({ Self.image($0.attributedString) }), let frame else { return }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
+        box.image.draw(in: frame.offsetBy(dx: point.x, dy: point.y), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+        NSGraphicsContext.restoreGraphicsState()
+    }
 }
 
 /// A paragraph with pretty entities: each is drawn as its character where the entity's last

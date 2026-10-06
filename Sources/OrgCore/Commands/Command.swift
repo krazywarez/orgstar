@@ -24,6 +24,8 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var fastTodoSelection: Bool
     /// `org-use-speed-commands`: single keys at the start of a heading line run commands.
     public var useSpeedCommands: Bool
+    /// `org-startup-with-inline-images`.
+    public var startupWithInlineImages: Bool
     /// `org-cycle-hide-drawer-startup`: drawers are folded when a file opens.
     public var hideDrawerStartup: Bool
     /// `org-cycle-hide-block-startup`: blocks are folded when a file opens.
@@ -43,9 +45,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
         hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false,
         logDone: LogHow? = nil, logIntoDrawer: String? = nil, fastTodoSelection: Bool = true,
         hideDrawerStartup: Bool = true, hideBlockStartup: Bool = false, logReschedule: LogHow? = nil, logRedeadline: LogHow? = nil,
-        useSpeedCommands: Bool = false
+        useSpeedCommands: Bool = false, startupWithInlineImages: Bool = false
     ) {
         self.useSpeedCommands = useSpeedCommands
+        self.startupWithInlineImages = startupWithInlineImages
         self.logReschedule = logReschedule
         self.logRedeadline = logRedeadline
         self.hideDrawerStartup = hideDrawerStartup

@@ -39,6 +39,7 @@ struct ContentView: View {
     @AppStorage("logReschedule") private var logReschedule = "nil"
     @AppStorage("logRedeadline") private var logRedeadline = "nil"
     @AppStorage("useSpeedCommands") private var useSpeedCommands = false
+    @AppStorage("startupWithInlineImages") private var startupWithInlineImages = false
     @AppStorage("hideDrawerStartup") private var hideDrawerStartup = true
     @AppStorage("hideBlockStartup") private var hideBlockStartup = false
 
@@ -47,7 +48,7 @@ struct ContentView: View {
             tagsColumn: tagsColumn, headingAfterSubtree: headingAfterSubtree, splitLine: splitLine, alphabeticalLists: alphabeticalLists,
             fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities, logDone: logDone, logIntoDrawer: logIntoDrawer,
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup, logReschedule: logReschedule, logRedeadline: logRedeadline,
-            useSpeedCommands: useSpeedCommands
+            useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages
         )
     }
     /// A block being edited apart (`org-edit-special`).

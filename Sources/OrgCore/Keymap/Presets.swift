@@ -732,6 +732,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c C-e"
         command = "app.export-dialog"
         [[bind]]
+        keys = "C-c C-x C-v"
+        command = "org.toggle-inline-images"
+        [[bind]]
         keys = "C-c C-x C-c"
         command = "org.columns"
         [[bind]]
