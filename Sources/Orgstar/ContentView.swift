@@ -288,6 +288,9 @@ struct ContentView: View {
             DevelopmentHooks.scheduleSnapshot()
             pendingCarets = BufferRestore.restore(session)
             if let path = session.path, let caret = pendingCarets.removeValue(forKey: path) { session.reveal(caret) }
+            // Files handed over at launch open after the restored buffers, and show.
+            for path in AppDelegate.pendingOpens { session.open(path) }
+            AppDelegate.pendingOpens = []
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
             if let root = DevelopmentHooks.rootToAdd { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
             if let command = DevelopmentHooks.commandToRun { perform(command) }

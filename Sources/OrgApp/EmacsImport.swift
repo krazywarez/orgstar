@@ -290,6 +290,31 @@ public struct EmacsImport: Sendable {
 
     // MARK: - Values
 
+    /// `(font-spec :family "JetBrains Mono" :size 14)`, or `"JetBrains Mono-14"`.
+    static func fontSpec(_ sexp: Sexp) -> (family: String?, size: Int?)? {
+        if let name = sexp.string {
+            let parts = name.split(separator: "-")
+            if parts.count > 1, let size = Int(parts.last!) { return (parts.dropLast().joined(separator: "-"), size) }
+            return (name, nil)
+        }
+        guard sexp.head == "font-spec", let args = sexp.elements?.dropFirst() else { return nil }
+        let list = Array(args)
+        var family: String?
+        var size: Int?
+        var i = 0
+        while i + 1 < list.count {
+            switch list[i].symbol {
+            case ":family": family = list[i + 1].string
+            case ":size":
+                if let n = list[i + 1].integer { size = n }
+                if case .float(let d) = list[i + 1] { size = Int(d.rounded()) }
+            default: break
+            }
+            i += 2
+        }
+        return family == nil && size == nil ? nil : (family, size)
+    }
+
     static func unquote(_ sexp: Sexp) -> Sexp? {
         if let items = sexp.elements, items.count == 2, items[0].symbol == "quote" || items[0].symbol == "function" { return items[1] }
         if case .list(let items) = sexp, items.count == 2, items[0].symbol == "\\`" { return items[1] }
@@ -358,6 +383,15 @@ public struct EmacsImport: Sendable {
             let assignment = winners[name]!
             guard Self.orgRelated.contains(where: { name.hasPrefix($0) }) else {
                 if assignment.rank >= 2 { skipped += 1 }
+                continue
+            }
+            if name == "doom-font", let spec = Self.fontSpec(assignment.value) {
+                if let family = spec.family {
+                    items.append(Item(id: id(), name: name, summary: "font = \"\(family)\"", source: assignment.source, change: .setting(key: "font", value: .string(family))))
+                }
+                if let size = spec.size {
+                    items.append(Item(id: id(), name: name, summary: "font-size = \(size)", source: assignment.source, change: .setting(key: "font-size", value: .integer(size))))
+                }
                 continue
             }
             guard let value = Self.evaluate(assignment.value, env) else {
@@ -448,8 +482,12 @@ public struct EmacsImport: Sendable {
             }
         case "org-capture-templates":
             for entry in value.elements ?? [] { captureTemplate(entry, source: source, id: id) }
-        case "doom-font", "doom-variable-pitch-font", "doom-theme":
-            note("Orgstar has no fonts or themes to set yet")
+        case "doom-font":
+            note("not a font-spec Orgstar can read")
+        case "doom-variable-pitch-font":
+            note("Orgstar uses one font; set it with doom-font or [theme] font")
+        case "doom-theme":
+            note("Emacs themes aren't read; set colors under [theme] in config.toml")
         default:
             note("Orgstar has no equivalent")
         }

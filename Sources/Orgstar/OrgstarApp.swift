@@ -111,6 +111,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
     }
 
+    /// Files opened from Finder, `open`, or a drop on the Dock icon: each opens as a buffer.
+    /// Ones that arrive before the window is ready wait for it (`pendingOpens`).
+    static var pendingOpens: [String] = []
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        let paths = urls.filter(\.isFileURL).map(\.path)
+        guard commands != nil, let session else {
+            Self.pendingOpens += paths
+            return
+        }
+        NSApp.activate()
+        for path in paths { session.open(path) }
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

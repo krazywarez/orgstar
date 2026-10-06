@@ -52,7 +52,7 @@ Diagram (described in text):
 - `OrgCore`: parser, syntax tree, semantic layer, commands, agenda queries, table formula evaluator, Babel header parsing and results writing. Foundation only.
 - `OrgIndex`: GRDB schema, indexing and queries. Foundation only.
 - `OrgPlatform`: TextKit 2 editor view, file access and watching, process runner, notifications. Separate macOS and iOS implementations behind shared protocols.
-- `OrgSwift` (existing): HTML and SwiftUI rendering, used for export and preview.
+- `OrgSwift` (existing): HTML and SwiftUI rendering. Orgstar doesn't use it: HTML export is `OrgCore`'s own (`HTMLExport`), checked against orgo's conformance cases.
 - App target: windows, sidebar, menus, settings, keymap loading.
 
 ## OrgCore data model
@@ -334,6 +334,8 @@ Fidelity is checked against Emacs itself, using the same oracle pattern as orgo'
 
 Seven phases, each usable on its own. Phase 1 is read-only, so it can run next to Emacs from the first build.
 
+Status, 2026-10-05: phases 1–6 are built for macOS. Owed from phase 1: the items left open below and the gate run on the M1 Air. The gates pass on an M-series Mac except peak memory for small real files (about 20x for a 161 kB file, from fixed overhead). Phase 7 has not started.
+
 1. **Core and viewer:** `OrgCore` parser, workspace, index, read-only rendering, folding, search.
 2. **Editor:** text editing, structure and heading commands, timestamps, `M-q`, table alignment, command palette, Emacs and Mac keymaps, remaining tree-sitter grammars.
 3. **Agenda:** day/week views, tag and TODO search, saved custom views, notifications from SCHEDULED/DEADLINE.
@@ -344,17 +346,17 @@ Seven phases, each usable on its own. Phase 1 is read-only, so it can run next t
 
 **Phase 1 scope**
 
-- [ ] `OrgCore` package: lossless parser with UTF-16 ranges and the bytes-and-encoding contract; element-aware settings pass; inline rules ported from OrgSwift
-- [ ] Incremental reparse with old/new classification and synchronization points; differential tests
-- [ ] Document session: original bytes, revisions, merge base, per-view state
-- [ ] Save path with merge, recovery copies and fault-injection tests (used by the editing spike, not exposed in the viewer)
-- [ ] Editable TextKit 2 spike: folding and org-indent display with correct caret movement, selection, IME composition, VoiceOver and copy/paste across folded text
-- [ ] Workspace: folders, bookmarks, discovery/agenda/link scopes, FSEvents with reconciliation scans, Syncthing temp/conflict handling, iCloud placeholders
-- [ ] Index: schema, settings version, dirty-buffer overlay, FTS5 search
-- [ ] Mac app (read-only): sidebar of folders and files, outline of the current file, quick open (`⌘P`), full-text search
-- [ ] Rendering over the text: heading styles, TODO/priority/tag styling, links, emphasis, tables, src blocks highlighted for org, emacs-lisp, sh and python only (the rest move to phase 2)
-- [ ] Folding: local and global cycling, `#+STARTUP` visibility
-- [ ] Benchmarks recorded for the files listed in the exit gates
+- [x] `OrgCore` package: lossless parser with UTF-16 ranges and the bytes-and-encoding contract; element-aware settings pass; inline rules ported from OrgSwift
+- [x] Incremental reparse with old/new classification and synchronization points; differential tests
+- [x] Document session: original bytes, revisions, merge base, per-view state
+- [x] Save path with merge, recovery copies and fault-injection tests (used by the editing spike, not exposed in the viewer)
+- [ ] Editable TextKit 2 spike: folding and org-indent display with correct caret movement, selection, IME composition, VoiceOver and copy/paste across folded text (done but the VoiceOver check)
+- [ ] Workspace: folders, bookmarks, discovery/agenda/link scopes, FSEvents with reconciliation scans, Syncthing temp/conflict handling, iCloud placeholders (done but placeholders, which are only asked to download)
+- [x] Index: schema, settings version, dirty-buffer overlay, FTS5 search
+- [x] Mac app (read-only): sidebar of folders and files, outline of the current file, quick open (`⌘P`), full-text search
+- [x] Rendering over the text: heading styles, TODO/priority/tag styling, links, emphasis, tables, src blocks highlighted for org, emacs-lisp, sh and python only (the rest move to phase 2)
+- [x] Folding: local and global cycling, `#+STARTUP` visibility
+- [ ] Benchmarks recorded for the files listed in the exit gates (recorded on an M-series Mac; the M1 Air run is owed)
 
 **Phase 1 exit gates** (measured on an M1 MacBook Air, 8 GB, the slowest supported reference machine):
 

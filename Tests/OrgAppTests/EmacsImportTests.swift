@@ -7,6 +7,7 @@ struct EmacsImportTests {
     static let config = #"""
     (setq user-full-name "Someone")
     (setq doom-theme 'doom-homage-black)
+    (setq doom-font (font-spec :family "JetBrains Mono" :size 14))
     (setq display-line-numbers-type t)
     (setq org-support-shift-select t)
     (setq org-directory "~/notes/")
@@ -72,6 +73,7 @@ struct EmacsImportTests {
         #expect(s["org-M-RET-may-split-line"] == .bool(false))
         #expect(s["org-todo-keywords"] == .string("TODO(t) WAIT(w) | DONE(d)"))
         #expect(s["fill-column"] == nil)
+        #expect(s["font"] == .string("JetBrains Mono") && s["font-size"] == .integer(14))
         let folders = result.items.compactMap { if case .folder(let f) = $0.change { f } else { nil } }
         #expect(folders == ["~/notes/", "~/work"])
         #expect(result.unreadable.map(\.name) == ["fill-column"])
@@ -131,6 +133,8 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 10 settings, 1 capture template, 3 key bindings."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 12 settings, 1 capture template, 3 key bindings."), "\(summary)")
+        #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
+        #expect(defaults.integer(forKey: "themeFontSize") == 14)
     }
 }

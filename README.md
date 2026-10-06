@@ -6,7 +6,10 @@ The files are the source of truth: Orgstar edits them in place and leaves
 every byte you didn't change as it was, so Emacs and sync tools can work on
 the same folder.
 
-Status: phase 1 (parser, workspace, read-only viewer).
+Status: macOS v1, design phases 1–6: editing with Emacs, Mac and Doom keys,
+agenda, table formulas, Babel, export, capture, clocking, board, themes and
+buffers. Owed: the M1 Air gate run and the VoiceOver check. iOS (phase 7) is
+not started.
 
 ## Build and run
 
@@ -18,8 +21,14 @@ open .build/app/Orgstar.app
 ```
 
 Add a folder with File > Add Folder… (⇧⌘O). ⌘P opens a file by name, ⇧⌘F
-searches. In the editor, TAB on a heading cycles its folding and Shift-TAB
-cycles the whole file.
+searches, ⇧⌘A shows the agenda. In the editor, TAB on a heading cycles its
+folding and Shift-TAB cycles the whole file. Orgstar opens `.org` files from
+Finder once the app has been launched.
+
+Settings live in `~/.config/orgstar/config.toml` (Orgstar ▸ Edit Config File),
+with keys in `keymap.toml` and capture templates in `capture.toml` beside it.
+Settings ▸ General ▸ Import from Emacs reads an existing Emacs or Doom
+configuration.
 
 ```sh
 swift test                                            # all tests
