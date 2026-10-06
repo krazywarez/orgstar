@@ -8,6 +8,7 @@ import AppKit
 /// - `ORGSTAR_COMMAND`: commands to run at launch, separated by commas (`app.import-emacs`); a
 ///   sheet or prompt they open is what the snapshot renders.
 /// - `ORGSTAR_ANSWERS`: answers to the prompts those commands ask, in order, separated by commas.
+/// - `ORGSTAR_URL`: an `org-protocol://` link to handle at launch, as if opened from a browser.
 /// - `ORGSTAR_APPEARANCE`: `dark` or `light`, instead of the system's.
 /// - `ORGSTAR_SNAPSHOT`: after `ORGSTAR_SNAPSHOT_DELAY` seconds (default 3), render the main
 ///   window to this PNG path and quit. Rendering from inside the app needs no screen-recording
@@ -17,6 +18,7 @@ enum DevelopmentHooks {
     static var rootToAdd: String? { ProcessInfo.processInfo.environment["ORGSTAR_ROOT"] }
     static var windowToOpen: String? { ProcessInfo.processInfo.environment["ORGSTAR_WINDOW"] }
     static var commandToRun: String? { ProcessInfo.processInfo.environment["ORGSTAR_COMMAND"] }
+    static var urlToOpen: String? { ProcessInfo.processInfo.environment["ORGSTAR_URL"] }
     static var answers: [String] { ProcessInfo.processInfo.environment["ORGSTAR_ANSWERS"]?.split(separator: ",").map(String.init) ?? [] }
 
     @MainActor

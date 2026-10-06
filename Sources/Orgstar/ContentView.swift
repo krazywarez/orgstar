@@ -335,6 +335,8 @@ struct ContentView: View {
             // Files handed over at launch open after the restored buffers, and show.
             for path in AppDelegate.pendingOpens { session.open(path) }
             AppDelegate.pendingOpens = []
+            for link in AppDelegate.pendingLinks + [DevelopmentHooks.urlToOpen].compactMap({ $0 }) { commands.handle(protocolURL: link) }
+            AppDelegate.pendingLinks = []
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
             if let root = DevelopmentHooks.rootToAdd { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
             if let commandList = DevelopmentHooks.commandToRun {

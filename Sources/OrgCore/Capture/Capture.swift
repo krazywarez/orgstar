@@ -114,6 +114,8 @@ public struct CaptureContext: Sendable {
     public var allTags: [String]
     /// `org-tags-column`, for aligning tags `%^g` adds to a heading.
     public var tagsColumn: Int
+    /// `org-store-link-plist` as org-protocol sets it, for `%:link`, `%:description` and others.
+    public var linkProperties: [String: String] = [:]
 
     public init(
         now: Date = Date(), calendar: Calendar = .current, initial: String = "", annotation: String = "", clipboard: String = "",
@@ -386,7 +388,7 @@ public enum Capture {
                 text += strftime(String(chars[(i + 2)..<close]), context)
                 consumed = close - i + 1
             case ":":
-                // A link property (`%:annotation`); only the capture's own are known.
+                // A link property (`%:annotation`), from org-protocol or the capture's own.
                 var j = i + 2
                 while j < chars.count, chars[j].isLetter || chars[j] == "-" { j += 1 }
                 guard j > i + 2 else {
@@ -394,7 +396,9 @@ public enum Capture {
                     consumed = 1
                     break
                 }
-                switch String(chars[(i + 2)..<j]) {
+                let name = String(chars[(i + 2)..<j])
+                switch name {
+                case _ where context.linkProperties[name] != nil: text += context.linkProperties[name]!
                 case "annotation": text += context.annotation
                 case "initial": text += context.initial
                 default: break

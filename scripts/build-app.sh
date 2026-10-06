@@ -75,6 +75,15 @@ cat > "$app/Contents/Info.plist" <<EOF
             <array><string>public.plain-text</string></array>
         </dict>
     </array>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>org-protocol</string>
+            <key>CFBundleURLSchemes</key>
+            <array><string>org-protocol</string></array>
+        </dict>
+    </array>
     <key>CFBundleShortVersionString</key>
     <string>${version}</string>
     <key>CFBundleVersion</key>
@@ -90,6 +99,19 @@ cat > "$app/Contents/Info.plist" <<EOF
 </dict>
 </plist>
 EOF
+
+# App Intents metadata for Shortcuts, from the constant values Swift Build extracted; SwiftPM
+# doesn't run this step itself.
+toolchain="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
+objects=".build/out/Intermediates.noindex/Orgstar.build/Release/Orgstar-p.build/Objects-normal/$(uname -m)"
+work="$(mktemp -d)"
+echo "$PWD/$objects/Orgstar-primary.swiftconstvalues" > "$work/constvalues.txt"
+"$toolchain/usr/bin/appintentsmetadataprocessor" --toolchain-dir "$toolchain" --module-name Orgstar \
+    --sdk-root "$(xcrun --sdk macosx --show-sdk-path)" --xcode-version "$(xcodebuild -version | awk '/Build version/ {print $3}')" \
+    --platform-family macOS --deployment-target 26.0 --bundle-identifier sh.krz.orgstar \
+    --target-triple "$(uname -m)-apple-macos26.0" --binary-file "$binary" --source-file-list "$objects/Orgstar.SwiftFileList" \
+    --swift-const-vals-list "$work/constvalues.txt" --output "$app/Contents/Resources" --force > /dev/null 2>&1
+rm -rf "$work"
 
 codesign --force --sign - "$app"
 echo "$app"

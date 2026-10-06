@@ -25,6 +25,11 @@ searches, ⇧⌘A shows the agenda. In the editor, TAB on a heading cycles its
 folding and Shift-TAB cycles the whole file. Orgstar opens `.org` files from
 Finder once the app has been launched.
 
+`org-protocol://capture?template=…&url=…&title=…&body=…` and
+`org-protocol://store-link?url=…&title=…` links work as in Emacs, so browser
+bookmarklets written for org-protocol work unchanged. Shortcuts has a
+"Capture to Orgstar" action that files text with a capture template.
+
 Settings live in `~/.config/orgstar/config.toml` (Orgstar ▸ Edit Config File),
 with keys in `keymap.toml` and capture templates in `capture.toml` beside it.
 Settings ▸ General ▸ Import from Emacs reads an existing Emacs or Doom

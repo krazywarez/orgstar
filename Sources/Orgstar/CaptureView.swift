@@ -26,7 +26,7 @@ struct CaptureView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let template, editing {
-                Text("\(template.name) → \(target(template))").font(.headline)
+                Text("\(template.name) → \(Self.target(template))").font(.headline)
                 TextEditor(text: $text, selection: $selection)
                     .font(.body.monospaced())
                     .focused($focused)
@@ -66,7 +66,7 @@ struct CaptureView: View {
                             Text("[\(template.key)]").monospaced().foregroundStyle(.secondary)
                             Text(template.name)
                             Spacer()
-                            Text(target(template)).foregroundStyle(.secondary).font(.caption)
+                            Text(Self.target(template)).foregroundStyle(.secondary).font(.caption)
                         }
                     }
                     .buttonStyle(.plain)
@@ -81,7 +81,15 @@ struct CaptureView: View {
             choose(match)
             return .handled
         }
-        .onAppear(perform: reset)
+        .onAppear {
+            reset()
+            takeRequest()
+        }
+        .onChange(of: commands.captureRequest?.serial) {
+            guard commands.captureRequest != nil else { return }
+            reset()
+            takeRequest()
+        }
     }
 
     /// What an empty answer means.
@@ -93,7 +101,7 @@ struct CaptureView: View {
         }
     }
 
-    private func target(_ template: CaptureTemplate) -> String {
+    static func target(_ template: CaptureTemplate) -> String {
         let file = (template.target.file as NSString).lastPathComponent
         switch template.target {
         case .file, .heading: return file
@@ -124,6 +132,19 @@ struct CaptureView: View {
             allTags: (try? workspace.index.tags()) ?? [],
             tagsColumn: UserDefaults.standard.object(forKey: "tagsColumn") as? Int ?? -77
         )
+    }
+
+    /// An org-protocol capture: its link properties fill `%a`, `%i` and `%:…`, and its
+    /// template, when it names one, is chosen.
+    private func takeRequest() {
+        guard let request = commands.captureRequest else { return }
+        commands.captureRequest = nil
+        context.initial = request.properties["initial"] ?? ""
+        context.annotation = request.properties["annotation"] ?? ""
+        context.linkProperties = request.properties
+        if let key = request.template {
+            if let match = templates.first(where: { $0.key == key }) { choose(match) } else { problem = "No capture template \"\(key)\"" }
+        }
     }
 
     private func choose(_ chosen: CaptureTemplate) {
@@ -161,7 +182,9 @@ struct CaptureView: View {
     }
 
     /// `id` and `clock` targets as a file and a heading.
-    private func resolved(_ template: CaptureTemplate) -> Result<(template: CaptureTemplate, file: String?), CaptureError> {
+    static func resolved(
+        _ template: CaptureTemplate, workspace: WorkspaceModel, session: DocumentSession, clock: ClockModel
+    ) -> Result<(template: CaptureTemplate, file: String?), CaptureError> {
         switch template.target {
         case .id(let id):
             guard let location = try? workspace.index.headings(withID: id).first else {
@@ -180,7 +203,7 @@ struct CaptureView: View {
         guard let template else { return }
         let opened = context.now
         let now = Date()
-        let placed = resolved(template).flatMap { resolved in
+        let placed = Self.resolved(template, workspace: workspace, session: session, clock: clock).flatMap { resolved in
             session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: now)
         }
         switch placed {
@@ -189,7 +212,7 @@ struct CaptureView: View {
             if template.options.immediateFinish { editing = true }
             return
         case .success(let entry):
-            commands.show("Captured to \(target(template))")
+            commands.show("Captured to \(Self.target(template))")
             let options = template.options
             if options.clockIn {
                 // Clocked from when capture began; the clock it interrupted resumes after.

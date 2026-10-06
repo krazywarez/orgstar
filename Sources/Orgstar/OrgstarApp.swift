@@ -77,6 +77,27 @@ final class AppCommands {
         runRequest = (id, runSerial)
     }
 
+    /// An org-protocol capture waiting for the capture window: the template key and the link
+    /// properties for its escapes.
+    var captureRequest: (template: String?, properties: [String: String], serial: Int)?
+    private var captureSerial = 0
+
+    /// `org-protocol://capture` and `store-link`.
+    func handle(protocolURL url: String) {
+        switch OrgProtocol.parse(url) {
+        case .capture(let template, let properties):
+            captureSerial += 1
+            captureRequest = (template, properties, captureSerial)
+            run("app.capture")
+        case .storeLink(let link, let title):
+            storeLink(StoredLink(link: link, description: title))
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(link, forType: .string)
+        case nil:
+            show("Orgstar handles org-protocol capture and store-link")
+        }
+    }
+
     func jump(path: String, offset: Int) {
         jumpID += 1
         jumpRequest = (path, offset, jumpID)
@@ -136,13 +157,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     func application(_ application: NSApplication, open urls: [URL]) {
         let paths = urls.filter(\.isFileURL).map(\.path)
-        guard commands != nil, let session else {
+        let links = urls.filter { $0.scheme == "org-protocol" }.map(\.absoluteString)
+        guard let commands, let session else {
             Self.pendingOpens += paths
+            Self.pendingLinks += links
             return
         }
         NSApp.activate()
         for path in paths { session.open(path) }
+        for link in links { commands.handle(protocolURL: link) }
     }
+
+    /// org-protocol links that arrive before the window is ready.
+    static var pendingLinks: [String] = []
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
@@ -247,6 +274,7 @@ struct OrgstarApp: App {
                     .onAppear {
                         delegate.session = session
                         delegate.commands = commands
+                        CaptureIntent.environment = (model, session, clock, commands)
                     }
             case .failure(let error):
                 ContentUnavailableView("Can't open the index", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
