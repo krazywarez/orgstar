@@ -250,7 +250,7 @@ struct OrgstarApp: App {
         .defaultSize(width: 1280, height: 860)
         Window("Agenda", id: "agenda") {
             if case .success(let model) = workspace {
-                AgendaView(workspace: model, session: session, commands: commands, scheduler: scheduler)
+                AgendaView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)
                     .environment(\.orgTheme, ConfigSync.shared.theme)
             }
         }

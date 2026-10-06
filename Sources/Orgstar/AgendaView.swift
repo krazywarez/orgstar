@@ -1,4 +1,5 @@
 import OrgApp
+import OrgDocument
 import OrgCore
 import OrgPresentation
 import SwiftUI
@@ -7,13 +8,15 @@ import SwiftUI
 /// Return or a double click jumps to the entry in the main window. Keys as in Emacs's agenda:
 /// f/b/. move the span, g refreshes, l shows the log (closed and clocked), / filters
 /// (`+cat-tag<0:10-/regexp/`), \ by tag, < by the line's category, = by regexp, _ by effort,
-/// | clears filters, t cycles the TODO state, +/- change the priority, : or
+/// | clears filters, I/O/X clock in, out and cancel, C-c C-w refiles, $ archives, m/u/U mark
+/// and unmark, B acts on the marked entries, t cycles the TODO state, +/- change the priority, : or
 /// C-c C-q sets tags, C-c C-s / C-c C-d schedule and set a deadline, S-→/S-← move the date.
 struct AgendaView: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     let commands: AppCommands
     let scheduler: ReminderScheduler?
+    let clock: ClockModel
     @State private var agenda: AgendaModel
     @State private var views = AgendaViewLoader.builtIn
     @State private var viewName = AgendaViewLoader.builtIn[0].name
@@ -23,12 +26,21 @@ struct AgendaView: View {
     @State private var message: String?
     @State private var prompt: PendingPrompt?
     @State private var promptText = ""
-    @State private var prefix = false
+    @State private var prefix: String?
+    /// Entries marked for a bulk action.
+    @State private var marked: [EntryRef] = []
     @State private var logMode = false
     @State private var filter = AgendaFilter()
-    /// A filter question: its title, the text it starts with, and how the answer applies.
+    /// A filter question: its title and which filter it sets.
     @State private var filterPrompt: (title: String, kind: Character)?
     @State private var filterText = ""
+    /// A one-line question for an agenda action, and what to do with the answer.
+    struct TextPrompt {
+        let title: String
+        let apply: (String) -> Void
+    }
+    @State private var textPrompt: TextPrompt?
+    @State private var textAnswer = ""
     @AppStorage("agendaSpan") private var span = 10
     @AppStorage("agendaStartOffset") private var startOffset = -3
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
@@ -40,12 +52,27 @@ struct AgendaView: View {
     static let match = "Match…"
     static let todoMatch = "TODO Match…"
 
-    init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands, scheduler: ReminderScheduler?) {
+    init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands, scheduler: ReminderScheduler?, clock: ClockModel) {
         self.workspace = workspace
         self.session = session
         self.commands = commands
         self.scheduler = scheduler
+        self.clock = clock
         _agenda = State(initialValue: AgendaModel(workspace: workspace))
+    }
+
+    /// An agenda entry by its file, heading line and where that line was.
+    struct EntryRef: Hashable {
+        let path: String
+        let line: String
+        let offset: Int
+
+        init?(_ item: AgendaItem) {
+            guard let path = item.path, let line = item.headingLine, let offset = item.headingOffset else { return nil }
+            self.path = path
+            self.line = line
+            self.offset = offset
+        }
     }
 
     struct PendingPrompt: Identifiable {
@@ -197,6 +224,21 @@ struct AgendaView: View {
                 Text(shown.tags.sorted().prefix(20).joined(separator: "  "))
             }
         }
+        .alert(textPrompt?.title ?? "", isPresented: Binding(get: { textPrompt != nil }, set: { if !$0 { textPrompt = nil } })) {
+            TextField("", text: $textAnswer)
+            Button("OK") {
+                let pending = textPrompt
+                let answer = textAnswer
+                textPrompt = nil
+                textAnswer = ""
+                // A follow-up question opens after this alert closes.
+                DispatchQueue.main.async { pending?.apply(answer) }
+            }
+            Button("Cancel", role: .cancel) {
+                textPrompt = nil
+                textAnswer = ""
+            }
+        }
         .navigationTitle(viewName.replacingOccurrences(of: "…", with: ""))
         .onChange(of: viewName) { applyView() }
         .task(id: refreshKey) {
@@ -221,7 +263,7 @@ struct AgendaView: View {
     @ViewBuilder
     private func rows(_ items: [AgendaItem], prefix: String, day: Int? = nil) -> some View {
         ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-            AgendaRow(item: item, day: day, customPrefix: customPrefix)
+            AgendaRow(item: item, day: day, customPrefix: customPrefix, marked: EntryRef(item).map(marked.contains) ?? false)
                 .tag("\(prefix):\(index)")
                 .selectionDisabled(item.path == nil)
         }
@@ -338,19 +380,36 @@ struct AgendaView: View {
 
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         let control = press.modifiers.contains(.control)
-        if prefix {
-            prefix = false
-            switch (control, press.characters) {
-            case (true, "\u{13}"), (true, "s"): run(SetPlanning(deadline: false))
-            case (true, "\u{04}"), (true, "d"): run(SetPlanning(deadline: true))
-            case (true, "\u{11}"), (true, "q"): run(SetTags())
-            case (true, "\u{14}"), (true, "t"): run(TodoCycle())
-            default: message = "C-c \(press.characters) is undefined"
+        // `C-x` and friends arrive as control characters or as letters with control.
+        func isControl(_ letter: String, _ code: String) -> Bool { control && (press.characters == letter || press.characters == code) }
+        if let pending = prefix {
+            prefix = nil
+            if pending == "C-c C-x" {
+                if isControl("s", "\u{13}") { archive() } else { message = "C-c C-x \(press.characters) is undefined" }
+                return .handled
+            }
+            if isControl("s", "\u{13}") {
+                run(SetPlanning(deadline: false))
+            } else if isControl("d", "\u{04}") {
+                run(SetPlanning(deadline: true))
+            } else if isControl("q", "\u{11}") {
+                run(SetTags())
+            } else if isControl("t", "\u{14}") {
+                run(TodoCycle())
+            } else if isControl("w", "\u{17}") {
+                refile(marked: false)
+            } else if isControl("x", "\u{18}") {
+                prefix = "C-c C-x"
+                message = "C-c C-x-"
+            } else if press.characters == "$" {
+                archive()
+            } else {
+                message = "C-c \(press.characters) is undefined"
             }
             return .handled
         }
-        if control, press.characters == "c" || press.characters == "\u{03}" {
-            prefix = true
+        if isControl("c", "\u{03}") {
+            prefix = "C-c"
             message = "C-c-"
             return .handled
         }
@@ -378,6 +437,16 @@ struct AgendaView: View {
         case "g", "r":
             loadViews()
             tick += 1
+        case "I": clockIn()
+        case "O": message = clock.clockOut(session)
+        case "X": message = clock.clockOut(session, cancel: true)
+        case "$": archive()
+        case "m": mark(true)
+        case "u": mark(false)
+        case "U":
+            marked = []
+            message = "No entries marked"
+        case "B": askBulk()
         case "t": run(TodoCycle())
         case "+": run(PriorityUp())
         case "-": run(PriorityDown())
@@ -385,6 +454,130 @@ struct AgendaView: View {
         default: return .ignored
         }
         return .handled
+    }
+
+    // MARK: - Clock, refile, archive, bulk
+
+    private var selectedEntry: EntryRef? { selection.flatMap(item).flatMap(EntryRef.init) }
+
+    private func clockIn() {
+        guard let entry = selectedEntry, let offset = session.locateHeading(path: entry.path, line: entry.line, near: entry.offset) else {
+            message = "No entry selected"
+            return
+        }
+        message = clock.clockIn(session, path: entry.path, at: offset)
+        tick += 1
+    }
+
+    private func archive() {
+        guard let entry = selectedEntry, let offset = session.locateHeading(path: entry.path, line: entry.line, near: entry.offset) else {
+            message = "No entry selected"
+            return
+        }
+        message = session.archive(from: (entry.path, offset))
+        tick += 1
+    }
+
+    /// Refiles the selected entry, or with `marked` the marked ones, to a target asked for in
+    /// the main window, where the list of targets is searchable.
+    private func refile(marked bulk: Bool) {
+        let entries = bulk ? marked : selectedEntry.map { [$0] } ?? []
+        guard !entries.isEmpty else {
+            message = "No entry selected"
+            return
+        }
+        let targets = workspace.refileTargets(openPath: session.path, document: session.document)
+        commands.ask(Prompt(key: "refile", message: "Refile to:", choices: targets.map(\.label))) { answer in
+            guard let answer, targets.contains(where: { $0.label == answer }) else { return }
+            message = eachEntry(entries) { entry, offset in
+                // Targets in the entry's own file from its text now, as earlier moves shift them.
+                let document = session.openDocuments.first { $0.path == entry.path }?.document
+                    ?? FileManager.default.contents(atPath: entry.path).map { DocumentState(bytes: [UInt8]($0)) }
+                guard let target = workspace.refileTargets(openPath: entry.path, document: document).first(where: { $0.label == answer }) else {
+                    return "Can't find \(answer) any more."
+                }
+                return session.refile(to: target, from: (entry.path, offset))
+            }
+            if bulk { marked = [] }
+            tick += 1
+        }
+        openWindow(id: "main")
+    }
+
+    /// Runs `action` on each entry, finding it again first: later entries in a file first, so
+    /// earlier ones keep their place. Returns the last message.
+    private func eachEntry(_ entries: [EntryRef], _ action: (EntryRef, Int) -> String?) -> String? {
+        var last: String?
+        var failed = 0
+        for entry in entries.sorted(by: { ($0.path, $1.offset) < ($1.path, $0.offset) }) {
+            guard let offset = session.locateHeading(path: entry.path, line: entry.line, near: entry.offset) else {
+                failed += 1
+                continue
+            }
+            last = action(entry, offset)
+        }
+        return failed > 0 ? "\(failed) marked \(failed == 1 ? "entry" : "entries") changed and \(failed == 1 ? "was" : "were") skipped" : last
+    }
+
+    private func mark(_ on: Bool) {
+        guard let entry = selectedEntry else {
+            message = "No entry selected"
+            return
+        }
+        if on {
+            if !marked.contains(entry) { marked.append(entry) }
+        } else {
+            marked.removeAll { $0 == entry }
+        }
+        message = "\(marked.count) marked"
+    }
+
+    /// `B`: an action for every marked entry.
+    private func askBulk() {
+        guard !marked.isEmpty else {
+            message = "No entries are marked"
+            return
+        }
+        textPrompt = TextPrompt(title: "Bulk action on \(marked.count): [$] archive [r] refile [t] TODO state [+] tag [-] untag [s] schedule [d] deadline") { answer in
+            switch answer.trimmingCharacters(in: .whitespaces) {
+            case "$": bulk { session.archive(from: ($0.path, $1)) }
+            case "r": refile(marked: true)
+            case "t":
+                textPrompt = TextPrompt(title: "TODO state (empty for none):") { keyword in
+                    let word = keyword.trimmingCharacters(in: .whitespaces)
+                    bulk { performAt($0, $1, SetTodo(keyword: word.isEmpty ? nil : word)) }
+                }
+            case "+", "-":
+                let on = answer.trimmingCharacters(in: .whitespaces) == "+"
+                textPrompt = TextPrompt(title: on ? "Tag to add:" : "Tag to remove:") { tag in
+                    let tag = tag.trimmingCharacters(in: .whitespaces)
+                    guard !tag.isEmpty else { return }
+                    bulk { performAt($0, $1, ToggleTag(tag: tag, on: on)) }
+                }
+            case "s", "d":
+                let deadline = answer.trimmingCharacters(in: .whitespaces) == "d"
+                textPrompt = TextPrompt(title: deadline ? "Deadline (+2d, fri, 2026-10-12):" : "Schedule (+2d, fri, 2026-10-12):") { date in
+                    bulk { performAt($0, $1, SetPlanning(deadline: deadline), answers: ["date": date]) }
+                }
+            default:
+                message = "No bulk action \(answer)"
+            }
+        }
+    }
+
+    private func bulk(_ action: (EntryRef, Int) -> String?) {
+        message = eachEntry(marked, action) ?? "Done with \(marked.count) entries"
+        marked = []
+        tick += 1
+    }
+
+    /// Runs `command` at the heading at `offset`, as `run` does for the selection.
+    private func performAt(_ entry: EntryRef, _ offset: Int, _ command: any OrgCommand, answers: [String: String] = [:]) -> String? {
+        switch session.perform(command, path: entry.path, at: offset, expect: (offset, entry.line), answers: answers) {
+        case .failed(let text): text
+        case .prompt: "\(command.title) needs an answer; run it on the entry itself"
+        default: nil
+        }
     }
 
     /// Runs `command` on the selected entry, at its heading or, with `atMarker`, at the
@@ -430,6 +623,8 @@ struct AgendaRow: View {
     var day: Int?
     /// A user `org-agenda-prefix-format`: the prefix as Emacs prints it, not the columns.
     var customPrefix = false
+    /// Marked for a bulk action.
+    var marked = false
     @Environment(\.orgTheme) private var theme
 
     var body: some View {
@@ -453,6 +648,15 @@ struct AgendaRow: View {
             .font(.caption)
             .foregroundStyle(theme.color("agenda-today") ?? .accentColor)
         default:
+            HStack(spacing: 4) {
+                if marked { Text("›").bold().foregroundStyle(theme.color("agenda-today") ?? .accentColor) }
+                entryRow
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var entryRow: some View {
             if customPrefix {
                 HStack(spacing: 0) {
                     Text(item.prefix)
@@ -495,7 +699,6 @@ struct AgendaRow: View {
                 }
             }
             }
-        }
     }
 
     static func trim(_ time: String) -> String {

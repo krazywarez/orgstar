@@ -356,16 +356,43 @@ public final class DocumentSession {
         return EditContext(revision: document.revision, text: document.text, tree: document.tree, selection: buffer.selection, now: now, options: options)
     }
 
-    /// Moves the subtree at the caret under `target`. For another file, that file is written
-    /// first, through the save path; the subtree leaves this buffer only once it has. Returns a
-    /// message for the echo area.
+    /// The file and context a subtree command works on: `from` (a file and a heading in it,
+    /// as the agenda gives them), or the current buffer at its caret.
+    private func source(_ from: (path: String, offset: Int)?, now: Date) -> (path: String, context: EditContext)? {
+        guard let from else {
+            guard let path, let context = editContext(now: now) else { return nil }
+            return (path, context)
+        }
+        let state: DocumentState
+        if let open = entry(from.path) {
+            state = open.buffer.document
+        } else {
+            guard let bytes = try? fileSystem.read(URL(fileURLWithPath: from.path)) else { return nil }
+            state = DocumentState(bytes: bytes, defaults: defaults)
+        }
+        guard state.isEditable else { return nil }
+        let context = EditContext(revision: state.revision, text: state.text, tree: state.tree, selection: [from.offset..<from.offset], now: now, options: options)
+        return (from.path, context)
+    }
+
+    /// Applies an edit computed from `source(_:now:)` to that file, open or not.
+    private func applySource(_ edit: EditResult, path: String, now: Date) -> String? {
+        if case .failed(let message) = perform(PrecomputedEdit(edit), path: path, at: 0, expect: nil, now: now) { return message }
+        return nil
+    }
+
+    /// Moves the subtree at the caret, or at `from`, under `target`. For another file, that
+    /// file is written first, through the save path; the subtree leaves its file only once it
+    /// has. Returns a message for the echo area.
     @discardableResult
-    public func refile(to target: RefileTarget, now: Date = Date()) -> String? {
-        guard let buffer, let path, let context = editContext(now: now) else { return nil }
+    public func refile(to target: RefileTarget, from: (path: String, offset: Int)? = nil, now: Date = Date()) -> String? {
+        guard let (path, context) = source(from, now: now) else { return from == nil ? nil : "Can't read the entry's file." }
         if target.path == path {
-            let step = buffer.perform(RefileWithinFile(), now: now, answers: ["refile": target.start.map(String.init) ?? ""])
-            if case .failed(let message) = step { return message }
-            bufferChanged()
+            let answers = ["refile": target.start.map(String.init) ?? ""]
+            let step = from == nil ? buffer?.perform(RefileWithinFile(), now: now, answers: answers)
+                : perform(RefileWithinFile(), path: path, at: from!.offset, expect: nil, answers: answers, now: now)
+            if case .failed(let message)? = step { return message }
+            if from == nil { bufferChanged() }
             return "Refiled to \(target.label)"
         }
         let url = URL(fileURLWithPath: target.path)
@@ -379,8 +406,7 @@ public final class DocumentSession {
             let edit = EditResult(baseRevision: state.revision, edits: [result.target])
             if case .failed(let message) = open.buffer.perform(PrecomputedEdit(edit), now: now, answers: [:]) { return message }
             changed(open)
-            if case .failed(let message) = buffer.perform(PrecomputedEdit(result.source), now: now, answers: [:]) { return message }
-            bufferChanged()
+            if let message = applySource(result.source, path: path, now: now) { return message }
             return "Refiled to \(target.label)"
         }
         do {
@@ -391,18 +417,18 @@ public final class DocumentSession {
             guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
             try state.apply([result.target], baseRevision: state.revision)
             if case .conflict = try saver.save(&state, to: url) { return "\(targetName) changed on disk; nothing was refiled." }
-            if case .failed(let message) = buffer.perform(PrecomputedEdit(result.source), now: now, answers: [:]) { return message }
-            bufferChanged()
+            if let message = applySource(result.source, path: path, now: now) { return message }
             return "Refiled to \(target.label)"
         } catch {
             return "Can't refile: \(error.localizedDescription)"
         }
     }
 
-    /// Archives the subtree at the caret where `org-archive-subtree` would. Returns a message.
+    /// Archives the subtree at the caret, or at `from`, where `org-archive-subtree` would.
+    /// Returns a message.
     @discardableResult
-    public func archive(now: Date = Date()) -> String? {
-        guard let buffer, let path, let context = editContext(now: now) else { return nil }
+    public func archive(from: (path: String, offset: Int)? = nil, now: Date = Date()) -> String? {
+        guard let (path, context) = source(from, now: now) else { return from == nil ? nil : "Can't read the entry's file." }
         let destination: Archive.Destination
         switch Archive.destination(context, sourcePath: path) {
         case .success(let value): destination = value
@@ -423,8 +449,7 @@ public final class DocumentSession {
                 if case .failed(let message) = open.buffer.perform(PrecomputedEdit(edit), now: now, answers: [:]) { return message }
                 changed(open)
             }
-            if case .failed(let message) = buffer.perform(PrecomputedEdit(edits.source), now: now, answers: [:]) { return message }
-            bufferChanged()
+            if let message = applySource(edits.source, path: path, now: now) { return message }
             return "Archived to \(name)"
         }
         do {
@@ -441,8 +466,7 @@ public final class DocumentSession {
                 try state.apply([archiveEdit], baseRevision: state.revision)
                 if case .conflict = try saver.save(&state, to: url) { return "\(url.lastPathComponent) changed on disk; nothing was archived." }
             }
-            if case .failed(let message) = buffer.perform(PrecomputedEdit(edits.source), now: now, answers: [:]) { return message }
-            bufferChanged()
+            if let message = applySource(edits.source, path: path, now: now) { return message }
             return destination.isSameFile ? "Archived under \(destination.heading ?? "the end of the file")" : "Archived to \(url.lastPathComponent)"
         } catch {
             return "Can't archive: \(error.localizedDescription)"
@@ -450,6 +474,30 @@ public final class DocumentSession {
     }
 
     // MARK: - Commands from other views
+
+    /// Where the heading line `line` is now in `path`: at `offset` if it still reads so, else
+    /// the copy of the line nearest `offset`. For acting on agenda entries after other edits
+    /// moved them.
+    public func locateHeading(path: String, line: String, near offset: Int) -> Int? {
+        guard let text = entry(path)?.buffer.document.text ?? (try? fileSystem.read(URL(fileURLWithPath: path))).flatMap({ $0.map { SourceText(bytes: $0).text } }) else { return nil }
+        let ns = text as NSString
+        let length = (line as NSString).length
+        if offset + length <= ns.length, ns.substring(with: NSRange(location: offset, length: length)) == line,
+           offset == 0 || ns.character(at: offset - 1) == 10 {
+            return offset
+        }
+        var best: Int?
+        var search = NSRange(location: 0, length: ns.length)
+        while true {
+            let found = ns.range(of: line, options: [], range: search)
+            guard found.location != NSNotFound else { break }
+            let atLineStart = found.location == 0 || ns.character(at: found.location - 1) == 10
+            let lineEnd = NSMaxRange(found) == ns.length || ns.character(at: NSMaxRange(found)) == 10
+            if atLineStart, lineEnd, best.map({ abs($0 - offset) > abs(found.location - offset) }) ?? true { best = found.location }
+            search = NSRange(location: NSMaxRange(found), length: ns.length - NSMaxRange(found))
+        }
+        return best
+    }
 
     /// Runs `command` with the caret at `offset` in the file at `path`, as the agenda does:
     /// through the buffer when the file is open, leaving its caret alone; otherwise on the

@@ -54,7 +54,12 @@ public struct SetTags: OrgCommand {
             }
             tags = Self.tags(from: answer)
         }
-        return commitBuffer(context) { buffer in
+        return Self.set(tags, in: context)
+    }
+
+    /// `org-set-tags`: the entry's tags become `tags`, realigned.
+    static func set(_ tags: [String], in context: EditContext) -> CommandStep {
+        commitBuffer(context) { buffer in
             try buffer.saveExcursion {
                 try buffer.backToHeading()
                 try buffer.saveExcursion {
@@ -77,5 +82,29 @@ public struct SetTags: OrgCommand {
             }
             if afterStars, buffer.character(at: buffer.point) == 32 { buffer.point += 1 }
         }
+    }
+}
+
+/// `org-toggle-tag` with `on` or `off`: adds or removes one tag, as the agenda's bulk tag
+/// actions do.
+public struct ToggleTag: OrgCommand {
+    public let tag: String
+    public let on: Bool
+    public init(tag: String, on: Bool) {
+        self.tag = tag
+        self.on = on
+    }
+    public var id: String { "org.tags.toggle" }
+    public var title: String { on ? "Add Tag" : "Remove Tag" }
+    public func applies(in context: EditContext) -> Bool { entryHeading(at: context.caret, in: context.tree) != nil }
+    public func run(in context: EditContext) -> CommandStep {
+        guard let heading = entryHeading(at: context.caret, in: context.tree) else { return .failed("Before first headline") }
+        var tags = HeadingLine(heading).tags.map { (context.text as NSString).substring(with: NSRange($0.range)).split(separator: ":").map(String.init) } ?? []
+        if on {
+            if !tags.contains(tag) { tags.append(tag) }
+        } else {
+            tags.removeAll { $0 == tag }
+        }
+        return SetTags.set(tags, in: context)
     }
 }

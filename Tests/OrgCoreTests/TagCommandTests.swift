@@ -47,3 +47,21 @@ struct TagCommandTests {
         #expect(mismatches == 0)
     }
 }
+
+struct ToggleTagTests {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func togglesLikeOrgToggleTag() throws {
+        let texts = ["* TODO Task\n", "* Task :a:b:\nbody\n", "* Task :x:\n", "* A longer heading title here :a:\n"]
+        var cases: [EmacsOracle.Case] = []
+        var ours: [String] = []
+        for text in texts {
+            for (tag, on) in [("x", true), ("a", false), ("x", false), ("new", true)] {
+                cases.append(EmacsOracle.Case(text: text, point: 3, form: "(org-toggle-tag \"\(tag)\" '\(on ? "on" : "off"))"))
+                ours.append(runCommand(ToggleTag(tag: tag, on: on), text, caret: 2).text)
+            }
+        }
+        for (i, (mine, theirs)) in zip(ours, try EmacsOracle.run(cases)).enumerated() {
+            #expect(mine == theirs.text, "\(cases[i].form) on \(cases[i].text.debugDescription)")
+        }
+    }
+}

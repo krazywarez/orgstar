@@ -306,6 +306,47 @@ struct MoveSubtreeTests {
 }
 
 @MainActor
+struct AgendaActionTests {
+    /// From the agenda: entries in files that aren't open move and archive on disk, and the
+    /// current buffer stays as it was.
+    @Test func refileAndArchiveFromAnEntry() async throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* one\nbody\n* two\n* three\n")
+        let other = try notes.write("b.org", "* inbox\n")
+        let shown = try notes.write("c.org", "* shown\n")
+        let workspace = try WorkspaceModel(directory: nil)
+        try await workspace.addRoot(notes.url)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.saveMode = .explicit
+        session.open(shown.path)
+
+        let inbox = try #require(workspace.refileTargets(openPath: nil, document: nil).first { $0.label == "b.org/inbox" })
+        #expect(session.refile(to: inbox, from: (file.path, 0)) == "Refiled to b.org/inbox")
+        #expect(try String(contentsOf: other, encoding: .utf8) == "* inbox\n** one\nbody\n")
+        #expect(try String(contentsOf: file, encoding: .utf8) == "* two\n* three\n")
+
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let two = try #require(workspace.refileTargets(openPath: file.path, document: DocumentState(bytes: [UInt8](text.utf8))).first { $0.label == "a.org/two" })
+        #expect(session.refile(to: two, from: (file.path, 6)) == "Refiled to a.org/two")
+        #expect(try String(contentsOf: file, encoding: .utf8) == "* two\n** three\n")
+
+        #expect(session.archive(from: (file.path, 0), now: Date(timeIntervalSince1970: 0)) == "Archived to a.org_archive")
+        #expect(try String(contentsOf: file, encoding: .utf8) == "")
+        #expect(session.path == shown.path && session.document?.text == "* shown\n")
+    }
+
+    @Test func locatesMovedHeadings() throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* new\n* task\n* other\n* task\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        #expect(session.locateHeading(path: file.path, line: "* task", near: 0) == 6)
+        #expect(session.locateHeading(path: file.path, line: "* task", near: 20) == 21)
+        #expect(session.locateHeading(path: file.path, line: "* other", near: 14) == 13)
+        #expect(session.locateHeading(path: file.path, line: "* gone", near: 0) == nil)
+    }
+}
+
+@MainActor
 struct MoveIntoOpenBufferTests {
     /// A target open with unsaved edits above its heading takes the subtree in its buffer,
     /// under the right heading, and the disk keeps the saved text.
