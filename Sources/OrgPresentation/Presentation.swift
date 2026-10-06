@@ -152,9 +152,9 @@ public enum Presentation {
         case .timestamp: .timestamp
         case .footnoteReference, .footnoteDefinition: .footnote
         case .statisticsCookie: .cookie
-        case .target: .target
+        case .target, .radioTarget: .target
         case .macro: .macro
-        case .latexFragment: .latex
+        case .latexFragment, .latexEnvironment: .latex
         case .inlineSourceBlock: .inlineSource
         case .comment: .comment
         case .keyword, .affiliatedKeyword: .keyword

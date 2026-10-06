@@ -127,7 +127,7 @@ extension EmacsBuffer {
             return point >= title.range.lowerBound && tags.map { point < $0.range.lowerBound } ?? true
         }
         let objects: Set<SyntaxKind> = [.bold, .italic, .underline, .strikeThrough, .verbatim, .code, .link, .linkDescription, .timestamp,
-                                        .footnoteReference, .statisticsCookie, .target, .macro, .inlineSourceBlock, .latexFragment, .lineBreak, .superscript]
+                                        .footnoteReference, .statisticsCookie, .target, .macro, .inlineSourceBlock, .latexFragment, .lineBreak, .superscript, .subscript, .entity, .radioTarget]
         let containers: Set<SyntaxKind> = [.document, .zerothSection, .section, .plainList, .item, .drawer]
         let element = chain.last { !objects.contains($0.kind) && !containers.contains($0.kind) }
         switch element?.kind {
@@ -160,7 +160,7 @@ extension EmacsBuffer {
         if point == object.range.lowerBound { return true }
         if chain.contains(where: { $0.kind == .link }) { return false }
         switch object.kind {
-        case .bold, .italic, .underline, .strikeThrough, .superscript:
+        case .bold, .italic, .underline, .strikeThrough, .superscript, .subscript, .radioTarget:
             return point > object.range.lowerBound && point <= object.range.upperBound - 1
         default:
             return false

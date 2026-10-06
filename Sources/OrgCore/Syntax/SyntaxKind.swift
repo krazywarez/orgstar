@@ -9,10 +9,11 @@ public enum SyntaxKind: String, Sendable {
     case planning, propertyDrawer, nodeProperty, drawer, clock
     case paragraph, plainList, item, table, tableRow, tableCell, tableFormula
     case block, dynamicBlock, keyword, affiliatedKeyword
-    case comment, fixedWidth, horizontalRule, footnoteDefinition
+    case comment, fixedWidth, horizontalRule, footnoteDefinition, latexEnvironment
 
     // Objects
     case bold, italic, underline, strikeThrough, verbatim, code
     case link, linkDescription, timestamp, footnoteReference, statisticsCookie
     case target, macro, inlineSourceBlock, latexFragment, lineBreak, superscript
+    case `subscript`, entity, radioTarget
 }

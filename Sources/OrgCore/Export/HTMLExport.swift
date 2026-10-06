@@ -235,6 +235,11 @@ final class HTMLRenderer {
             return block(node)
         case .horizontalRule:
             return "<hr>\n"
+        case .latexEnvironment:
+            // For MathJax, as ox-html leaves it with `tex:t`.
+            guard options.tex else { return "" }
+            hasMath = true
+            return Self.escape(node.text.trimmingCharacters(in: .newlines)) + "\n"
         case .fixedWidth:
             let lines = node.text.split(separator: "\n", omittingEmptySubsequences: false).map { line -> String in
                 let trimmed = line.drop { $0 == " " || $0 == "\t" }
@@ -637,7 +642,13 @@ final class HTMLRenderer {
         case .linkDescription: return inline(node)
         case .timestamp: return timestamp(node.text)
         case .footnoteReference: return footnote(node.text)
-        case .superscript:
+        case .entity:
+            let name = node.text.dropFirst().replacingOccurrences(of: "{}", with: "")
+            return Self.escape(OrgEntities.display[name] ?? node.text)
+        case .radioTarget:
+            let inner = String(node.text.dropFirst(3).dropLast(3))
+            return "<a id=\"\(Self.escape(slugOnly(inner)))\">\(Self.escape(inner))</a>"
+        case .superscript, .subscript:
             let text = node.text
             let body = text.dropFirst()
             let braced = body.hasPrefix("{") && body.hasSuffix("}")
@@ -665,6 +676,10 @@ final class HTMLRenderer {
         let path = node.tokens.first { $0.kind == .linkPath }?.text
         let description = node.firstChild(.linkDescription)
         guard let path else {
+            // A radio link goes to its target.
+            if !node.text.hasPrefix("<"), !node.text.contains(":") {
+                return "<a href=\"#\(Self.escape(slugOnly(node.text)))\">\(Self.escape(node.text))</a>"
+            }
             // A plain or angle link.
             var target = node.text
             if target.hasPrefix("<"), target.hasSuffix(">") { target = String(target.dropFirst().dropLast()) }

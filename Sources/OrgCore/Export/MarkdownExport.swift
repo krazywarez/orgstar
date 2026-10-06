@@ -239,7 +239,12 @@ final class MarkdownRenderer {
             }
             return show(stamp.start) + (stamp.end.map { "–" + show($0) } ?? "")
         case .footnoteReference: return footnote(node.text)
-        case .superscript:
+        case .entity:
+            let name = node.text.dropFirst().replacingOccurrences(of: "{}", with: "")
+            return OrgEntities.display[name] ?? node.text
+        case .radioTarget:
+            return String(node.text.dropFirst(3).dropLast(3))
+        case .superscript, .subscript:
             let body = node.text.dropFirst()
             let inner = body.hasPrefix("{") && body.hasSuffix("}") ? String(body.dropFirst().dropLast()) : String(body)
             return node.text.hasPrefix("_") ? "<sub>\(inner)</sub>" : "<sup>\(inner)</sup>"
@@ -251,6 +256,8 @@ final class MarkdownRenderer {
 
     private func link(_ node: SyntaxNode) -> String {
         guard let path = node.tokens.first(where: { $0.kind == .linkPath })?.text else {
+            // A radio link is its text.
+            if !node.text.hasPrefix("<"), !node.text.contains(":") { return node.text }
             var target = node.text
             if target.hasPrefix("<"), target.hasSuffix(">") { target = String(target.dropFirst().dropLast()) }
             return "<\(target)>"

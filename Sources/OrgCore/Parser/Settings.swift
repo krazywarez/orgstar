@@ -43,10 +43,13 @@ public struct Priorities: Sendable, Equatable {
 public struct OrgSettings: Sendable, Equatable {
     public var todoSequences: [TodoSequence]
     public var priorities: Priorities
+    /// `<<<radio target>>>` texts in the file, longest first: their words elsewhere are links.
+    public var radioTargets: [String] = []
 
-    public init(todoSequences: [TodoSequence], priorities: Priorities) {
+    public init(todoSequences: [TodoSequence], priorities: Priorities, radioTargets: [String] = []) {
         self.todoSequences = todoSequences
         self.priorities = priorities
+        self.radioTargets = radioTargets
     }
 
     public static let `default` = OrgSettings(
@@ -104,7 +107,14 @@ enum SettingsScanner {
             }
             k += 1
         }
-        return OrgSettings(todoSequences: sequences.isEmpty ? defaults.todoSequences : sequences, priorities: priorities)
+        var radio: [String] = []
+        for line in lines where line.content.contains("<<<") {
+            for m in String(line.content).matches(of: /<<<([^<>\n\r \t](?:[^<>\n\r]*[^<>\n\r \t])?)>>>/) where !radio.contains(String(m.1)) {
+                radio.append(String(m.1))
+            }
+        }
+        return OrgSettings(todoSequences: sequences.isEmpty ? defaults.todoSequences : sequences, priorities: priorities,
+                           radioTargets: radio.sorted { $0.count > $1.count })
     }
 
     static func keywordValue(_ line: Substring) -> Substring {

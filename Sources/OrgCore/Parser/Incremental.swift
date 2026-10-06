@@ -72,12 +72,16 @@ private struct ReparseContext {
         let start = lineStart(oldText, edit.range.lowerBound)
         let oldLines = classes(slice(oldText, start, lineEnd(oldText, edit.range.upperBound)))
         let newLines = classes(slice(newText, start, lineEnd(newText, edit.range.lowerBound + edit.replacement.utf16.count)))
+        // Radio targets make links all through the file.
+        if slice(oldText, start, lineEnd(oldText, edit.range.upperBound)).contains("<<<")
+            || slice(newText, start, lineEnd(newText, edit.range.lowerBound + edit.replacement.utf16.count)).contains("<<<")
+            || slice(oldText, start, lineEnd(oldText, edit.range.upperBound)).contains(">>>") { return true }
         var movesBoundary = false
         for line in oldLines + newLines {
             switch line.cls {
             case .keyword(let key) where Self.settingsKeys.contains(key):
                 return true
-            case .blockBegin, .blockEnd, .dynamicBegin, .dynamicEnd, .heading:
+            case .blockBegin, .blockEnd, .dynamicBegin, .dynamicEnd, .latexBegin, .latexEnd, .heading:
                 movesBoundary = true
             default:
                 break
@@ -276,7 +280,7 @@ private struct ReparseContext {
         var unmatched = false
         for (index, line) in parser.info.enumerated() {
             switch line.cls {
-            case .blockBegin, .dynamicBegin, .drawerBegin:
+            case .blockBegin, .dynamicBegin, .drawerBegin, .latexBegin:
                 if parser.blockEnds[index] == nil { unmatched = true }
             default:
                 break

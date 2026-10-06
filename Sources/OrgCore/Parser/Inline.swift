@@ -42,12 +42,15 @@ enum InlineMatch {
     case emphasis(SyntaxKind, open: Int, close: Int)
     case link(path: Range<Int>, description: Range<Int>?, whole: Range<Int>)
     case object(SyntaxKind, Range<Int>)
+    /// An object whose contents hold objects, between markers.
+    case container(SyntaxKind, contents: Range<Int>, whole: Range<Int>)
 
     var end: Int {
         switch self {
         case .emphasis(_, _, let close): close + 1
         case .link(_, _, let whole): whole.upperBound
         case .object(_, let range): range.upperBound
+        case .container(_, _, let whole): whole.upperBound
         }
     }
 }
@@ -57,12 +60,17 @@ enum InlineMatch {
 /// grapheme clusters never need to be formed.
 struct InlineScanner {
     let chars: [Unicode.Scalar]
+    /// Radio targets, lowercased, longest first, and the scalars they start with.
+    let radioTargets: [[Unicode.Scalar]]
+    let radioStarts: Set<Unicode.Scalar>
     /// Where each scalar starts in `source`, plus its end, so token text is sliced from the
     /// source instead of rebuilt scalar by scalar.
     let source: Substring.UnicodeScalarView
     let starts: [String.Index]
 
-    init(_ text: Substring) {
+    init(_ text: Substring, radioTargets: [String] = []) {
+        self.radioTargets = radioTargets.map { Array($0.lowercased().unicodeScalars) }
+        self.radioStarts = Set(self.radioTargets.compactMap(\.first).flatMap { [$0] + Array(String($0).uppercased().unicodeScalars) })
         source = text.unicodeScalars
         var chars: [Unicode.Scalar] = []
         var starts: [String.Index] = []
@@ -83,7 +91,7 @@ struct InlineScanner {
         var textStart = range.lowerBound
         var i = range.lowerBound
         while i < range.upperBound {
-            if Self.mayStartObject(chars[i]), let match = match(at: i, in: range, inLink: inLink) {
+            if Self.mayStartObject(chars[i]) || radioStarts.contains(chars[i]), let match = match(at: i, in: range, inLink: inLink) {
                 emitText(textStart..<i, into: &b)
                 emit(match, into: &b, inLink: inLink)
                 i = match.end
@@ -98,7 +106,7 @@ struct InlineScanner {
     /// The first characters any recognizer accepts.
     static func mayStartObject(_ c: Unicode.Scalar) -> Bool {
         switch c {
-        case "[", "<", "{", "\\", "^", "s", "h", "m", "f", "*", "/", "_", "+", "=", "~": true
+        case "[", "<", "{", "\\", "^", "s", "h", "m", "f", "*", "/", "_", "+", "=", "~", "$": true
         default: false
         }
     }
@@ -145,6 +153,12 @@ struct InlineScanner {
                 b.token(.marker, string(path.upperBound..<whole.upperBound))
             }
             b.finish()
+        case .container(let kind, let contents, let whole):
+            b.start(kind)
+            b.token(.marker, string(whole.lowerBound..<contents.lowerBound))
+            scan(contents, into: &b, inLink: inLink)
+            b.token(.marker, string(contents.upperBound..<whole.upperBound))
+            b.finish()
         case .object(let kind, let range):
             b.start(kind)
             emitText(range, into: &b)
@@ -172,6 +186,10 @@ struct InlineScanner {
         let limit = range.upperBound
         let previous: Unicode.Scalar? = i > range.lowerBound ? chars[i - 1] : nil
         let afterWord = previous.map(isWordScalar) ?? false
+        let afterNonSpace = previous.map { !isSpace($0) } ?? false
+
+        // Radio links: a radio target's words, case aside, between non-alphanumerics.
+        if !inLink, !afterWord, radioStarts.contains(chars[i]), let end = radioLink(i, limit) { return .object(.link, i..<end) }
 
         switch chars[i] {
         case "[":
@@ -181,15 +199,22 @@ struct InlineScanner {
             if let end = statisticsCookie(i, limit) { return .object(.statisticsCookie, i..<end) }
         case "<":
             if !inLink, let end = timestampEnd(chars, at: i, limit: limit) { return .object(.timestamp, i..<end) }
+            if let end = radioTarget(i, limit) { return .object(.radioTarget, i..<end) }
             if let end = target(i, limit) { return .object(.target, i..<end) }
             if !inLink, let end = angleLink(i, limit) { return .object(.link, i..<end) }
         case "{":
             if let end = macro(i, limit) { return .object(.macro, i..<end) }
         case "\\":
             if let end = lineBreak(i, limit) { return .object(.lineBreak, i..<end) }
+            if let end = entity(i, limit) { return .object(.entity, i..<end) }
             if let end = latexFragment(i, limit) { return .object(.latexFragment, i..<end) }
-        case "^":
-            if afterWord, let end = superscript(i, limit) { return .object(.superscript, i..<end) }
+        case "$":
+            if previous != "$", let end = dollarFragment(i, limit) { return .object(.latexFragment, i..<end) }
+        case "^", "_":
+            if afterNonSpace, let end = script(i, limit) {
+                let kind: SyntaxKind = chars[i] == "^" ? .superscript : .subscript
+                return chars[i + 1] == "{" ? .container(kind, contents: (i + 2)..<(end - 1), whole: i..<end) : .object(kind, i..<end)
+            }
         case "s":
             if !afterWord, let end = inlineSourceBlock(i, limit) { return .object(.inlineSourceBlock, i..<end) }
         case "h", "m", "f":
@@ -359,14 +384,143 @@ struct InlineScanner {
         return j
     }
 
-    /// `\(...\)` or `\[...\]`.
+    /// `org-element-entity-parser`: `\name`, `\name{}` or `\_` and spaces, for a name in
+    /// `org-entities`.
+    func entity(_ i: Int, _ limit: Int) -> Int? {
+        var j = i + 1
+        guard j < limit else { return nil }
+        if chars[j] == "_" {
+            j += 1
+            while j < limit, chars[j] == " " { j += 1 }
+            guard j > i + 2, OrgEntities.display[string((i + 1)..<j)] != nil else { return nil }
+            return j
+        }
+        while j < limit, chars[j].isASCII, chars[j].properties.isAlphabetic { j += 1 }
+        // `there4`, `sup1`…, `frac12`… end in digits.
+        if j < limit, chars[j].isASCII, chars[j].properties.numericType != nil {
+            var k = j
+            while k < limit, chars[k].isASCII, chars[k].properties.numericType != nil { k += 1 }
+            if OrgEntities.display[string((i + 1)..<k)] != nil { j = k }
+        }
+        guard j > i + 1, OrgEntities.display[string((i + 1)..<j)] != nil else { return nil }
+        if j < limit, chars[j].properties.isAlphabetic { return nil }
+        if hasPrefix("{}", at: j, limit) { return j + 2 }
+        return j
+    }
+
+    /// `$$...$$`, or `$...$` with no blank inside its ends and punctuation, a blank or the end
+    /// after it, as `org-element-latex-fragment-parser`.
+    func dollarFragment(_ i: Int, _ limit: Int) -> Int? {
+        guard i + 1 < limit else { return nil }
+        if chars[i + 1] == "$" {
+            var j = i + 2
+            while j + 1 < limit {
+                if chars[j] == "$", chars[j + 1] == "$" { return j + 2 }
+                j += 1
+            }
+            return nil
+        }
+        let next = chars[i + 1]
+        guard ![" ", "\t", "\n", ",", ".", ";"].contains(next) else { return nil }
+        var j = i + 1
+        while j < limit, chars[j] != "$" { j += 1 }
+        guard j < limit, ![" ", "\t", "\n", ",", "."].contains(chars[j - 1]) else { return nil }
+        if j + 1 < limit {
+            let after = chars[j + 1]
+            guard isSpace(after) || ".,;:!?'\"()[]{}<>-".unicodeScalars.contains(after) else { return nil }
+        }
+        return j + 1
+    }
+
+    /// `org-match-substring-regexp` after its first character: `{…}` or `(…)` nested up to three
+    /// deep, `*`, or `[+-]?[[:alnum:].,\\]*[[:alnum:]]`.
+    func script(_ i: Int, _ limit: Int) -> Int? {
+        let j = i + 1
+        guard j < limit else { return nil }
+        if chars[j] == "{" || chars[j] == "(" {
+            let open = chars[j], close: Unicode.Scalar = open == "{" ? "}" : ")"
+            var depth = 0
+            var k = j
+            while k < limit {
+                if chars[k] == open {
+                    depth += 1
+                    if depth > 4 { return nil }
+                } else if chars[k] == close {
+                    depth -= 1
+                    if depth == 0 { return k + 1 }
+                }
+                k += 1
+            }
+            return nil
+        }
+        if chars[j] == "*" { return j + 1 }
+        var k = j
+        if k < limit, chars[k] == "+" || chars[k] == "-" { k += 1 }
+        var lastAlnum: Int?
+        while k < limit, isWordScalar(chars[k]) || chars[k] == "." || chars[k] == "," || chars[k] == "\\" {
+            if isWordScalar(chars[k]) { lastAlnum = k }
+            k += 1
+        }
+        return lastAlnum.map { $0 + 1 }
+    }
+
+    /// `<<<target>>>`.
+    func radioTarget(_ i: Int, _ limit: Int) -> Int? {
+        guard hasPrefix("<<<", at: i, limit) else { return nil }
+        let start = i + 3
+        var j = start
+        while j < limit, chars[j] != ">", chars[j] != "<", !isNewline(chars[j]) { j += 1 }
+        guard j > start, hasPrefix(">>>", at: j, limit), !isSpace(chars[start]), !isSpace(chars[j - 1]) else { return nil }
+        return j + 3
+    }
+
+    /// A radio target's text at `i`, its blanks matching any run of blanks, not followed by a
+    /// letter or digit.
+    func radioLink(_ i: Int, _ limit: Int) -> Int? {
+        for target in radioTargets {
+            var j = i
+            var t = 0
+            var ok = true
+            while t < target.count {
+                guard j < limit else { ok = false; break }
+                if target[t] == " " {
+                    guard isSpace(chars[j]) else { ok = false; break }
+                    while j < limit, isSpace(chars[j]) { j += 1 }
+                    while t < target.count, target[t] == " " { t += 1 }
+                    continue
+                }
+                guard String(chars[j]).lowercased().unicodeScalars.first == target[t] else { ok = false; break }
+                j += 1
+                t += 1
+            }
+            if ok, j == limit || !isWordScalar(chars[j]) { return j }
+        }
+        return nil
+    }
+
+    /// `\(...\)`, `\[...\]`, or a LaTeX command with its `[options]` and `{arguments}`.
     func latexFragment(_ i: Int, _ limit: Int) -> Int? {
         guard i + 1 < limit else { return nil }
         let closer: String
         switch chars[i + 1] {
         case "(": closer = "\\)"
         case "[": closer = "\\]"
-        default: return nil
+        default:
+            var j = i + 1
+            while j < limit, chars[j].isASCII, chars[j].properties.isAlphabetic { j += 1 }
+            guard j > i + 1 else { return nil }
+            if j < limit, chars[j] == "*" { j += 1 }
+            while j < limit, chars[j] == "[" || chars[j] == "{" {
+                let close: Unicode.Scalar = chars[j] == "[" ? "]" : "}"
+                var k = j + 1
+                while k < limit, chars[k] != close {
+                    if isNewline(chars[k]) || chars[k] == "{" || chars[k] == "}" || (close == "]" && chars[k] == "[") { return j }
+                    k += 1
+                }
+                guard k < limit else { return j }
+                j = k + 1
+            }
+            return j
         }
         let closing = Array(closer.unicodeScalars)
         var j = i + 2
@@ -427,7 +581,7 @@ struct InlineScanner {
 
 extension Parser {
     mutating func inline(_ text: Substring) {
-        let scanner = InlineScanner(text)
+        let scanner = InlineScanner(text, radioTargets: settings.radioTargets)
         scanner.scan(0..<scanner.chars.count, into: &builder)
     }
 }

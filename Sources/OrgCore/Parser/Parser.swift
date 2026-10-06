@@ -21,7 +21,7 @@ struct Parser {
     init(text: String, defaults: OrgSettings) {
         let lines = splitRawLines(text)
         let info = lines.map { classifyLine($0.content) }
-        let ends = Parser.matchEnds(info)
+        let ends = Parser.matchEnds(info, lines)
         let settings = SettingsScanner.scan(lines: lines, info: info, blockEnds: ends, defaults: defaults)
         self.init(lines: lines, info: info, blockEnds: ends, settings: settings)
     }
@@ -30,7 +30,7 @@ struct Parser {
     init(text: String, settings: OrgSettings) {
         let lines = splitRawLines(text)
         let info = lines.map { classifyLine($0.content) }
-        self.init(lines: lines, info: info, blockEnds: Parser.matchEnds(info), settings: settings)
+        self.init(lines: lines, info: info, blockEnds: Parser.matchEnds(info, lines), settings: settings)
     }
 
     private init(lines: [RawLine], info: [ClassifiedLine], blockEnds: [Int: Int], settings: OrgSettings) {
@@ -40,13 +40,25 @@ struct Parser {
         self.settings = settings
     }
 
-    static func matchEnds(_ info: [ClassifiedLine]) -> [Int: Int] {
+    static func matchEnds(_ info: [ClassifiedLine], _ lines: [RawLine]) -> [Int: Int] {
         var ends: [Int: Int] = [:]
         var k = 0
         while k < info.count {
             let isEnd: ((LineClass) -> Bool)?
             switch info[k].cls {
             case .blockBegin(let name): isEnd = { $0 == .blockEnd(name: name) }
+            case .latexBegin(let name):
+                // `\end{NAME}` ending a line, the first line's own included.
+                let closer = "\\end{" + name + "}"
+                var j = k
+                while j < info.count {
+                    if j > k, case .heading = info[j].cls { break }
+                    let content = lines[j].content.trimmingTrailingWhitespace
+                    if content.hasSuffix(closer), j > k || content.count > closer.count + 7 + name.count { ends[k] = j; break }
+                    j += 1
+                }
+                k += 1
+                continue
             case .dynamicBegin: isEnd = { $0 == .dynamicEnd }
             case .drawerBegin: isEnd = { $0 == .drawerEnd }
             default: isEnd = nil
@@ -143,9 +155,14 @@ struct Parser {
         case .blank:
             line(i)
             i += 1
-        case .blockBegin, .dynamicBegin:
+        case .blockBegin, .dynamicBegin, .latexBegin:
             if let end = blockEnds[i], end < limit {
-                builder.start(info[i].cls == .dynamicBegin ? .dynamicBlock : .block)
+                let kind: SyntaxKind = switch info[i].cls {
+                case .dynamicBegin: .dynamicBlock
+                case .latexBegin: .latexEnvironment
+                default: .block
+                }
+                builder.start(kind)
                 while i <= end {
                     line(i)
                     i += 1
@@ -354,9 +371,9 @@ struct Parser {
     /// Lines that don't start an element of their own.
     func continuesParagraph(_ k: Int) -> Bool {
         switch info[k].cls {
-        case .plain, .planning, .blockEnd, .dynamicEnd, .drawerEnd:
+        case .plain, .planning, .blockEnd, .dynamicEnd, .drawerEnd, .latexEnd:
             return true
-        case .blockBegin, .dynamicBegin, .drawerBegin:
+        case .blockBegin, .dynamicBegin, .drawerBegin, .latexBegin:
             return blockEnds[k] == nil
         default:
             return false

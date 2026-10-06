@@ -41,6 +41,9 @@ enum LineClass: Equatable {
     case dynamicEnd
     case drawerBegin(name: String)
     case drawerEnd
+    /// `\begin{NAME}` and `\end{NAME}` of a LaTeX environment.
+    case latexBegin(name: String)
+    case latexEnd(name: String)
     case keyword(key: String)
     case comment
     case fixedWidth
@@ -101,6 +104,18 @@ private func lineClass(_ rest: Substring, columnZero: Bool) -> LineClass {
     }
 
     if trimmed == "#" || rest.hasPrefix("# ") || rest.hasPrefix("#\t") { return .comment }
+
+    if rest.hasPrefix("\\begin{") || rest.hasPrefix("\\end{") {
+        let begin = rest.hasPrefix("\\begin{")
+        let after = rest.dropFirst(begin ? 7 : 5)
+        let name = after.prefix { $0.isLetter || $0.isNumber || $0 == "*" }
+        if !name.isEmpty, after.dropFirst(name.count).first == "}" {
+            // The end line has nothing after it.
+            let tail = after.dropFirst(name.count + 1)
+            if begin { return .latexBegin(name: String(name)) }
+            if tail.trimmingCharacters(in: .whitespaces).isEmpty { return .latexEnd(name: String(name)) }
+        }
+    }
 
     if rest.first == ":" {
         if trimmed == ":" || rest.hasPrefix(": ") || rest.hasPrefix(":\t") { return .fixedWidth }
