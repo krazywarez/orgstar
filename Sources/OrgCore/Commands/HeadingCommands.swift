@@ -208,6 +208,14 @@ public struct TodoCycle: OrgCommand {
     /// that became done.
     public func run(in context: EditContext) -> CommandStep {
         let previous = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).todoKeyword
+        if context.options.fastTodoSelection, entryHeading(at: context.caret, in: context.tree) != nil,
+           let fast = FastSelection.todo(context.tree.settings) {
+            guard let answer = context.answers["todo"] else {
+                return .prompt(Prompt(key: "todo", message: "TODO state: [a-z..]:Set [SPC]:clear", fast: fast))
+            }
+            guard let key = answer.first, let keyword = fast.keyword(for: key, current: previous) else { return .failed("Quit") }
+            return SetTodo(keyword: keyword).run(in: context)
+        }
         return followUp(context, cycle(in: context)) { buffer in
             try buffer.saveExcursion {
                 buffer.updateParentTodoStatistics()
@@ -240,6 +248,27 @@ public struct TodoCycle: OrgCommand {
             buffer.replaceBeforeMarkers(regionStart..<regionEnd, with: next.map { " \($0) " } ?? " ")
             alignTags(&buffer, options: context.options)
         }
+    }
+}
+
+/// S-right and S-left on a heading: `org-todo` with `right` or `left`, through every keyword
+/// of every sequence.
+public struct TodoShift: OrgCommand {
+    public let right: Bool
+    public init(right: Bool) { self.right = right }
+    public var id: String { right ? "org.todo.next" : "org.todo.previous" }
+    public var title: String { right ? "Next TODO Keyword" : "Previous TODO Keyword" }
+    public func applies(in context: EditContext) -> Bool { headingOnLine(at: context.caret, in: context.tree) != nil }
+    public func run(in context: EditContext) -> CommandStep {
+        let keywords = context.tree.settings.todoSequences.flatMap { ($0.active + $0.done).map(\.name) }
+        let current = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).todoKeyword
+        let index = current.flatMap(keywords.firstIndex(of:))
+        let next: String? = if right {
+            index.map { $0 + 1 < keywords.count ? keywords[$0 + 1] : nil } ?? keywords.first
+        } else {
+            index.map { $0 > 0 ? keywords[$0 - 1] : nil } ?? keywords.last
+        }
+        return SetTodo(keyword: next).run(in: context)
     }
 }
 

@@ -147,7 +147,19 @@ struct AgendaView: View {
                 ContentUnavailableView("No agenda files", systemImage: "calendar", description: Text("The agenda reads the org files at the top of each folder you add."))
             }
         }
-        .alert(prompt?.prompt.message ?? "", isPresented: Binding(get: { prompt != nil }, set: { if !$0 { prompt = nil } })) {
+        .sheet(item: Binding(get: { prompt?.prompt.fast == nil ? nil : prompt }, set: { if $0 == nil { prompt = nil } })) { pending in
+            if let fast = pending.prompt.fast {
+                FastSelectionView(selection: fast, message: pending.prompt.message) { answer in
+                    prompt = nil
+                    guard let answer else { return }
+                    promptText = answer
+                    prompt = pending
+                    answerPrompt()
+                }
+                .frame(minWidth: 420)
+            }
+        }
+        .alert(prompt?.prompt.message ?? "", isPresented: Binding(get: { prompt != nil && prompt?.prompt.fast == nil }, set: { if !$0 { prompt = nil } })) {
             TextField("", text: $promptText)
             Button("OK") { answerPrompt() }
             Button("Cancel", role: .cancel) { prompt = nil }

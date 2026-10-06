@@ -37,7 +37,7 @@ struct EmacsImportTests {
       (setq org-tags-column 0
             org-agenda-span 10
             org-agenda-start-day "-3d"
-            org-todo-keywords '((sequence "TODO(t)" "WAIT(w)" "|" "DONE(d)") (sequence "[ ](T)" "|" "[X](D)"))))
+            org-todo-keywords '((sequence "TODO(t)" "WAIT(w)" "|" "DONE(d)") (sequence "[ ](T)" "|" "[X](D)") (sequence "BUG" "|" "FIXED"))))
     (after! org (setq org-M-RET-may-split-line nil org-list-allow-alphabetical t))
     (map! :map org-mode-map "C-c q" #'org-set-tags-command)
     """#
@@ -74,7 +74,7 @@ struct EmacsImportTests {
         #expect(s["org-agenda-span"] == .integer(10))
         #expect(s["org-agenda-start-day"] == .string("-3d"))
         #expect(s["org-M-RET-may-split-line"] == .bool(false))
-        #expect(s["org-todo-keywords"] == .string("TODO(t) WAIT(w) | DONE(d)"))
+        #expect(s["org-todo-keywords"] == .string("TODO(t) WAIT(w) | DONE(d)\nBUG | FIXED"))
         #expect(s["fill-column"] == nil)
         #expect(s["font"] == .string("JetBrains Mono") && s["font-size"] == .integer(14))
         let folders = result.items.compactMap { if case .folder(let f) = $0.change { f } else { nil } }
@@ -129,7 +129,7 @@ struct EmacsImportTests {
         #expect(defaults.string(forKey: "keymap") == "doom")
         #expect(defaults.integer(forKey: "tagsColumn") == -80)
         #expect(defaults.integer(forKey: "agendaStartOffset") == -3)
-        #expect(defaults.string(forKey: "todoKeywords") == "TODO(t) WAIT(w) | DONE(d)")
+        #expect(defaults.string(forKey: "todoKeywords") == "TODO(t) WAIT(w) | DONE(d)\nBUG | FIXED")
         let capture = try String(contentsOf: folder.appendingPathComponent("capture.toml"), encoding: .utf8)
         #expect(capture.components(separatedBy: "[[template]]").count == 3)
         #expect(CaptureTemplates.load(userFile: folder.appendingPathComponent("capture.toml")).problems.isEmpty)

@@ -38,7 +38,7 @@ struct TodoLoggingTests {
         for text in Self.texts {
             let heading = (text as NSString).range(of: "Task").location
             for (done, drawer) in Self.options {
-                let options = EditingOptions(logDone: done, logIntoDrawer: drawer)
+                let options = EditingOptions(logDone: done, logIntoDrawer: drawer, fastTodoSelection: false)
                 for (command, form) in changes {
                     let lisp = """
                         (let ((b (current-buffer)) (org-use-fast-todo-selection nil))

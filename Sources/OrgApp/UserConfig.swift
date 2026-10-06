@@ -73,7 +73,7 @@ public enum UserConfig {
         Setting(section: "", key: "org-pretty-entities", defaultsKey: "prettyEntities", kind: .bool, fallback: .bool(true),
                 comment: "\\alpha shows as α and x_{1} is lowered when markup is hidden", legacy: "editor.pretty-entities"),
         Setting(section: "", key: "org-todo-keywords", defaultsKey: "todoKeywords", kind: .string, fallback: .string("TODO PROJ LOOP STRT WAIT HOLD IDEA | DONE KILL"),
-                comment: "one sequence, in #+TODO syntax, for files without #+TODO; read at launch", legacy: "editor.todo-keywords"),
+                comment: "for files without #+TODO, in #+TODO syntax, one sequence per line (\\n); read at launch", legacy: "editor.todo-keywords"),
         Setting(section: "", key: "org-log-done", defaultsKey: "logDone", kind: .choice([("nil", "nil"), ("time", "time"), ("note", "note")]),
                 fallback: .string("nil"), comment: "nil, time (CLOSED when done) or note (CLOSED and a note)", legacy: ""),
         Setting(section: "", key: "org-log-into-drawer", defaultsKey: "logIntoDrawer", kind: .string, fallback: .string(""),

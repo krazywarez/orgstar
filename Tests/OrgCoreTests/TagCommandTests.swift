@@ -6,7 +6,7 @@ struct TagCommandTests {
     @Test func promptsWithCurrentTags() {
         let text = "* a :x:y:\n"
         let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [0..<0])
-        #expect(SetTags().run(in: context) == .prompt(Prompt(key: "tags", message: "Tags:", initial: ":x:y:")))
+        #expect(SetTags().run(in: context) == .prompt(Prompt(key: "tags", message: "Tags:", initial: ":x:y:", choices: ["x", "y"], requireMatch: false, completionSeparator: ":")))
     }
 
     @Test func setsAndClears() {

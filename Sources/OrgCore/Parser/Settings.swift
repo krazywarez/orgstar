@@ -58,12 +58,13 @@ public struct OrgSettings: Sendable, Equatable {
         Set(todoSequences.flatMap { ($0.active + $0.done).map(\.name) })
     }
 
-    /// These settings with TODO keywords from `#+TODO:` syntax (`TODO NEXT | DONE`); nil when
-    /// the line has no keywords.
-    public func withTodoKeywords(_ line: String) -> OrgSettings? {
-        guard let sequence = SettingsScanner.todoSequence(Substring(line), kind: .sequence) else { return nil }
+    /// These settings with TODO keywords from `#+TODO:` syntax (`TODO NEXT | DONE`), one
+    /// sequence per line; nil when there are no keywords.
+    public func withTodoKeywords(_ lines: String) -> OrgSettings? {
+        let sequences = lines.split(separator: "\n").compactMap { SettingsScanner.todoSequence($0, kind: .sequence) }
+        guard !sequences.isEmpty else { return nil }
         var copy = self
-        copy.todoSequences = [sequence]
+        copy.todoSequences = sequences
         return copy
     }
 

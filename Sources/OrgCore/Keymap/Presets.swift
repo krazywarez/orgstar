@@ -645,7 +645,11 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.todo.cycle"
         [[bind]]
         keys = "S-<right>"
-        command = "org.todo.cycle"
+        command = "org.todo.next"
+        when = "heading"
+        [[bind]]
+        keys = "S-<left>"
+        command = "org.todo.previous"
         when = "heading"
         [[bind]]
         keys = "S-<up>"

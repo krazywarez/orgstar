@@ -475,10 +475,14 @@ public struct EmacsImport: Sendable {
         case "org-agenda-start-day":
             if value.symbol == "nil" { add(name, .string("+0d")) } else if let s = value.string, UserConfig.dayOffset(s) != nil { add(name, .string(s)) } else { note("only day offsets such as \"-3d\" are supported") }
         case "org-todo-keywords":
-            guard let sequences = value.elements, let first = sequences.first?.elements, first.count > 1 else { return note("unexpected value") }
-            let words = first.dropFirst().compactMap(\.string)
-            add(name, .string(words.joined(separator: " ")))
-            if sequences.count > 1 { note("only the first sequence is used; the other \(sequences.count - 1) are left out") }
+            let sequences = (value.elements ?? []).compactMap { $0.elements }.filter { $0.count > 1 }.map { $0.dropFirst().compactMap(\.string) }
+            let lines = sequences.filter { !$0.contains { $0.contains(where: \.isWhitespace) } }.map { $0.joined(separator: " ") }
+            guard !lines.isEmpty else { return note("unexpected value") }
+            if lines.count < sequences.count {
+                note("\(sequences.count - lines.count) sequence(s) with spaces in a keyword left out; #+TODO syntax can't write them")
+            }
+            if (value.elements ?? []).contains(where: { $0.elements?.first?.symbol == "type" }) { note("type sequences are read as sequences") }
+            add(name, .string(lines.joined(separator: "\n")))
         case "org-directory":
             guard let path = value.string else { return note("not a folder") }
             items.append(Item(id: id(), name: name, summary: "add folder \(path)", source: source, change: .folder(path)))

@@ -31,14 +31,20 @@ struct EchoArea: View {
                 }
                 .padding(10)
             }
-            if let request = commands.prompt {
+            if let request = commands.prompt, let fast = request.prompt.fast {
+                Divider()
+                FastSelectionView(selection: fast, message: request.prompt.message) { commands.answer($0) }
+                    .id(request.id)
+            } else if let request = commands.prompt {
                 if !request.prompt.choices.isEmpty {
                     Divider()
                     let matches = filteredChoices(request.prompt.choices)
                     ScrollView {
                         VStack(alignment: .leading, spacing: 2) {
                             ForEach(matches.prefix(12), id: \.self) { choice in
-                                Button(choice) { commands.answer(choice) }
+                                Button(choice) {
+                                    if request.prompt.completionSeparator != nil { complete(choice, request.prompt) } else { commands.answer(choice) }
+                                }
                                     .buttonStyle(.plain)
                                     .font(.system(.callout, design: .monospaced))
                                     .foregroundStyle(choice == matches.first ? .primary : .secondary)
@@ -68,7 +74,7 @@ struct EchoArea: View {
                         }
                         .onKeyPress(.tab) {
                             guard let first = filteredChoices(request.prompt.choices).first else { return .ignored }
-                            answer = first
+                            complete(first, request.prompt)
                             return .handled
                         }
                         .onExitCommand { commands.answer(nil) }
@@ -132,10 +138,27 @@ struct StateTag: View {
 }
 
 extension EchoArea {
+    /// What completion matches: the text after the last separator, or all of it.
+    private func completing(_ separator: Character?) -> Substring {
+        guard let separator, let last = answer.lastIndex(of: separator) else { return answer[...] }
+        return answer[answer.index(after: last)...]
+    }
+
+    /// Puts `choice` in place of what's being completed; with a separator, adds one after it.
+    func complete(_ choice: String, _ prompt: Prompt) {
+        guard let separator = prompt.completionSeparator else {
+            answer = choice
+            return
+        }
+        let start = answer.lastIndex(of: separator).map { answer.index(after: $0) } ?? answer.startIndex
+        answer = String(answer[..<start]) + (start == answer.startIndex ? String(separator) : "") + choice + String(separator)
+    }
+
     /// Choices matching what's typed, best first.
     func filteredChoices(_ choices: [String]) -> [String] {
-        guard !answer.isEmpty else { return choices }
-        return choices.compactMap { choice in FuzzyMatch.score(answer, choice).map { (choice, $0) } }
+        let typed = String(completing(commands.prompt?.prompt.completionSeparator))
+        guard !typed.isEmpty else { return choices }
+        return choices.compactMap { choice in FuzzyMatch.score(typed, choice).map { (choice, $0) } }
             .sorted { $0.1 > $1.1 }
             .map(\.0)
     }

@@ -543,9 +543,9 @@ struct SettingsView: View {
                     .settingsFooter()
             }
             Section {
-                TextField("Default TODO keywords", text: $todoKeywords)
+                TextField("Default TODO keywords", text: $todoKeywords, axis: .vertical)
             } footer: {
-                Text("For files without #+TODO, in #+TODO syntax. Takes effect when Orgstar restarts.")
+                Text("For files without #+TODO, in #+TODO syntax, one sequence per line. Takes effect when Orgstar restarts.")
                     .settingsFooter()
             }
         }

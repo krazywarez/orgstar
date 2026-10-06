@@ -17,6 +17,8 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var logDone: LogHow?
     /// `org-log-into-drawer`: the drawer state notes go in, or nil for none.
     public var logIntoDrawer: String?
+    /// `org-use-fast-todo-selection` `auto`: with keys in the keywords, C-c C-t asks for one.
+    public var fastTodoSelection: Bool
     /// `fill-column` for M-q.
     public var fillColumn: Int
     /// `org-hide-emphasis-markers`: table alignment measures emphasis without its markers.
@@ -30,8 +32,9 @@ public struct EditingOptions: Sendable, Equatable, Codable {
         tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true,
         listAllowAlphabetical: Bool = false, logRepeat: Bool = true, fillColumn: Int = 70,
         hideEmphasisMarkers: Bool = false, prettyEntities: Bool = false, subSuperscriptsNeedBraces: Bool = false,
-        logDone: LogHow? = nil, logIntoDrawer: String? = nil
+        logDone: LogHow? = nil, logIntoDrawer: String? = nil, fastTodoSelection: Bool = true
     ) {
+        self.fastTodoSelection = fastTodoSelection
         self.logDone = logDone
         self.logIntoDrawer = logIntoDrawer
         self.tagsColumn = tagsColumn
@@ -66,12 +69,15 @@ public struct EditContext: Sendable {
     /// Ranges the view hides (folded text); motion commands skip headings inside them.
     public let hidden: [Range<Int>]
     public let options: EditingOptions
+    /// Tags used across the workspace, for completion; read when a command needs them.
+    public let knownTags: @Sendable () -> [String]
 
     public init(
         revision: Int, text: String, tree: OrgTree, selection: [Range<Int>],
         now: Date = Date(), calendar: Calendar = .current, answers: [String: String] = [:], hidden: [Range<Int>] = [],
-        options: EditingOptions = .org
+        options: EditingOptions = .org, knownTags: @escaping @Sendable () -> [String] = { [] }
     ) {
+        self.knownTags = knownTags
         self.revision = revision
         self.text = text
         self.tree = tree
@@ -95,13 +101,22 @@ public struct Prompt: Sendable, Equatable {
     /// When set, the answer is one of these, or with `requireMatch` false, these are offered.
     public let choices: [String]
     public let requireMatch: Bool
+    /// Choices complete the text after the last of these characters (`:` between tags).
+    public let completionSeparator: Character?
+    /// Single keys answer instead of text.
+    public let fast: FastSelection?
 
-    public init(key: String, message: String, initial: String = "", choices: [String] = [], requireMatch: Bool = true) {
+    public init(
+        key: String, message: String, initial: String = "", choices: [String] = [], requireMatch: Bool = true,
+        completionSeparator: Character? = nil, fast: FastSelection? = nil
+    ) {
         self.key = key
         self.message = message
         self.initial = initial
         self.choices = choices
         self.requireMatch = requireMatch
+        self.completionSeparator = completionSeparator
+        self.fast = fast
     }
 }
 
@@ -177,7 +192,7 @@ public protocol OrgCommand: Sendable {
 
 public enum Commands {
     public static let all: [any OrgCommand] = [
-        TodoCycle(), PriorityUp(), PriorityDown(), PromoteHeading(), DemoteHeading(),
+        TodoCycle(), TodoShift(right: true), TodoShift(right: false), PriorityUp(), PriorityDown(), PromoteHeading(), DemoteHeading(),
         InsertHeading(), InsertHeadingAfterSubtree(), InsertTodoHeading(),
         MoveSubtreeUp(), MoveSubtreeDown(), PromoteSubtree(), DemoteSubtree(),
         NextHeading(), PreviousHeading(), ForwardSameLevel(), BackwardSameLevel(), UpHeading(),

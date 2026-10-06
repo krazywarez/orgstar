@@ -24,6 +24,7 @@ struct EditorView: NSViewRepresentable {
     let theme: ThemeSpec
     let onAppCommand: (String) -> Void
     let onExternal: (ExternalRequest) -> Void
+    let knownTags: @Sendable () -> [String]
 
     final class Coordinator {
         var editor: OrgEditor?
@@ -94,6 +95,7 @@ struct EditorView: NSViewRepresentable {
         editor.onSelectionChange = { [weak commands] in commands?.selection = $0 }
         editor.onAppCommand = onAppCommand
         editor.onExternal = onExternal
+        editor.knownTags = knownTags
         editor.onPrompt = { [weak commands] prompt, reply in commands?.ask(prompt, reply: reply) }
         editor.onEffect = { [weak commands] effect in
             if case .storedLinkUsed(let link) = effect { commands?.storedLinks.removeAll { $0.link == link } }

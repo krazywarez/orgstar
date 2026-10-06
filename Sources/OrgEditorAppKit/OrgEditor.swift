@@ -260,6 +260,8 @@ public final class OrgEditor: NSObject {
     public var onPrompt: ((Prompt, _ reply: @escaping (String?) -> Void) -> Void)?
     /// Runs work outside the text, such as a table recalculation in Emacs.
     public var onExternal: ((ExternalRequest) -> Void)?
+    /// Tags used across the workspace, for tag completion.
+    public var knownTags: @Sendable () -> [String] = { [] }
     /// Effects other than messages, for the app to carry out.
     public var onEffect: ((Effect) -> Void)?
 
@@ -315,7 +317,7 @@ public final class OrgEditor: NSObject {
         return EditContext(
             revision: document.revision, text: document.text, tree: document.tree,
             selection: [selected.location..<NSMaxRange(selected)], now: now, calendar: .current, answers: answers,
-            hidden: hidden.all, options: options
+            hidden: hidden.all, options: options, knownTags: knownTags
         )
     }
 

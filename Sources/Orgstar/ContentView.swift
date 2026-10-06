@@ -94,7 +94,7 @@ struct ContentView: View {
         } else if session.path != nil {
             VStack(spacing: 0) {
                 if showTabBar { BufferTabs(session: session) }
-                EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme, onAppCommand: perform, onExternal: runExternal)
+                EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme, onAppCommand: perform, onExternal: runExternal, knownTags: { [index = workspace.index] in (try? index.tags()) ?? [] })
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {

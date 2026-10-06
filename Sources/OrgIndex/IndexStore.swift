@@ -291,6 +291,13 @@ public final class IndexStore: Sendable {
     }
 
     /// Headings with `:ID: id`. More than one means the ID is duplicated.
+    /// Every tag a heading has, most used first.
+    public func tags() throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: "SELECT tag FROM tags WHERE inherited = 0 GROUP BY tag ORDER BY count(*) DESC, tag")
+        }
+    }
+
     public func headings(withID id: String, overlay: [String: FileRecord] = [:]) throws -> [HeadingLocation] {
         let indexed = try database.read { db in
             try Row.fetchAll(
