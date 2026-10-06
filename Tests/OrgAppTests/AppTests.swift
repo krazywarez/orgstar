@@ -305,6 +305,55 @@ struct MoveSubtreeTests {
     }
 }
 
+@MainActor
+struct MoveIntoOpenBufferTests {
+    /// A target open with unsaved edits above its heading takes the subtree in its buffer,
+    /// under the right heading, and the disk keeps the saved text.
+    @Test func refileIntoAnOpenBuffer() async throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* task\nbody\n")
+        let other = try notes.write("b.org", "* inbox\n* projects\n")
+        let workspace = try WorkspaceModel(directory: nil)
+        try await workspace.addRoot(notes.url)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.saveMode = .explicit
+        session.open(other.path)
+        let projects = try #require(workspace.refileTargets(openPath: nil, document: nil).first { $0.label == "b.org/projects" })
+        _ = session.perform(InsertText(text: "* new\n"), path: other.path, at: 0, expect: nil)
+        session.open(file.path)
+        #expect(session.refile(to: projects) == "Refiled to b.org/projects")
+        #expect(session.document?.text == "")
+        #expect(session.openDocuments.first { $0.path == other.path }?.document.text == "* new\n* inbox\n* projects\n** task\nbody\n")
+        #expect(try String(contentsOf: other, encoding: .utf8) == "* inbox\n* projects\n")
+    }
+
+    @Test func archiveIntoAnOpenBuffer() throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* done\n* keep\n")
+        let archive = try notes.write("a.org_archive", "* old\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.saveMode = .explicit
+        session.open(archive.path)
+        session.open(file.path)
+        #expect(session.archive(now: Date(timeIntervalSince1970: 0)) == "Archived to a.org_archive")
+        #expect(session.document?.text == "* keep\n")
+        let text = try #require(session.openDocuments.first { $0.path == archive.path }?.document.text)
+        #expect(text.hasPrefix("* old\n") && text.contains("* done\n:PROPERTIES:\n:ARCHIVE_TIME:"))
+        #expect(try String(contentsOf: archive, encoding: .utf8) == "* old\n")
+    }
+}
+
+/// Inserts text at the caret, for tests.
+struct InsertText: OrgCommand {
+    let text: String
+    var id: String { "test.insert" }
+    var title: String { "Insert" }
+    func applies(in context: EditContext) -> Bool { true }
+    func run(in context: EditContext) -> CommandStep {
+        .commit(EditResult(baseRevision: context.revision, edits: [TextEdit(range: context.caret..<context.caret, replacement: text)]))
+    }
+}
+
 /// Moves the caret of a session's `StateBuffer`, as clicking in the editor would.
 @MainActor
 enum StateBufferCaret {

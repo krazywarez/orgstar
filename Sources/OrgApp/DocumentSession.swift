@@ -25,11 +25,11 @@ public struct RefileTarget: Sendable, Hashable {
         self.contentHash = contentHash
     }
 
-    /// The heading's start in `state`: its indexed offset if the file hasn't changed, else the
-    /// first heading with the same title and level. Nil for the end of the file.
+    /// The heading's start in `state`: its indexed offset if the text is what was indexed,
+    /// else the first heading with the same title and level. Nil for the end of the file.
     func locate(in state: DocumentState) -> Int?? {
         guard let start else { return .some(nil) }
-        if FileRecord.hash(state.mergeBase) == contentHash { return .some(start) }
+        if !state.isDirty, FileRecord.hash(state.mergeBase) == contentHash { return .some(start) }
         let entry = Presentation.outline(state.tree).first { $0.title == title && $0.level == level }
         return entry.map { .some($0.start) }
     }
@@ -369,14 +369,28 @@ public final class DocumentSession {
             return "Refiled to \(target.label)"
         }
         let url = URL(fileURLWithPath: target.path)
+        let targetName = (target.path as NSString).lastPathComponent
+        // A target open in a buffer takes the subtree there, with its unsaved edits.
+        if let open = entry(target.path) {
+            let state = open.buffer.document
+            guard state.isEditable else { return "\(targetName) isn't UTF-8, so it can't be changed." }
+            guard let start = target.locate(in: state) else { return "Can't find \(target.label) any more." }
+            guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
+            let edit = EditResult(baseRevision: state.revision, edits: [result.target])
+            if case .failed(let message) = open.buffer.perform(PrecomputedEdit(edit), now: now, answers: [:]) { return message }
+            changed(open)
+            if case .failed(let message) = buffer.perform(PrecomputedEdit(result.source), now: now, answers: [:]) { return message }
+            bufferChanged()
+            return "Refiled to \(target.label)"
+        }
         do {
-            guard let bytes = try fileSystem.read(url) else { return "\((target.path as NSString).lastPathComponent) no longer exists." }
+            guard let bytes = try fileSystem.read(url) else { return "\(targetName) no longer exists." }
             var state = DocumentState(bytes: bytes, defaults: defaults)
-            guard state.isEditable else { return "\((target.path as NSString).lastPathComponent) isn't UTF-8, so it can't be changed." }
+            guard state.isEditable else { return "\(targetName) isn't UTF-8, so it can't be changed." }
             guard let start = target.locate(in: state) else { return "Can't find \(target.label) any more." }
             guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
             try state.apply([result.target], baseRevision: state.revision)
-            if case .conflict = try saver.save(&state, to: url) { return "\((target.path as NSString).lastPathComponent) changed on disk; nothing was refiled." }
+            if case .conflict = try saver.save(&state, to: url) { return "\(targetName) changed on disk; nothing was refiled." }
             if case .failed(let message) = buffer.perform(PrecomputedEdit(result.source), now: now, answers: [:]) { return message }
             bufferChanged()
             return "Refiled to \(target.label)"
@@ -393,6 +407,25 @@ public final class DocumentSession {
         switch Archive.destination(context, sourcePath: path) {
         case .success(let value): destination = value
         case .failure(.message(let message)): return message
+        }
+        // An archive file open in a buffer takes the subtree there.
+        if !destination.isSameFile, let open = entry(destination.path) {
+            let state = open.buffer.document
+            let name = (destination.path as NSString).lastPathComponent
+            guard state.isEditable else { return "\(name) isn't UTF-8, so it can't be changed." }
+            let edits: Archive.Edits
+            switch Archive.run(context, sourcePath: path, destination: destination, archiveText: state.text) {
+            case .success(let value): edits = value
+            case .failure(.message(let message)): return message
+            }
+            if let archiveEdit = edits.archive {
+                let edit = EditResult(baseRevision: state.revision, edits: [archiveEdit])
+                if case .failed(let message) = open.buffer.perform(PrecomputedEdit(edit), now: now, answers: [:]) { return message }
+                changed(open)
+            }
+            if case .failed(let message) = buffer.perform(PrecomputedEdit(edits.source), now: now, answers: [:]) { return message }
+            bufferChanged()
+            return "Archived to \(name)"
         }
         do {
             let url = URL(fileURLWithPath: destination.path)
