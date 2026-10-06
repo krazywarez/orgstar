@@ -644,6 +644,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c C-x f"
         command = "org.footnote.action"
         [[bind]]
+        keys = "C-c ="
+        command = "org.table.column-formula"
+        [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"
         [[bind]]

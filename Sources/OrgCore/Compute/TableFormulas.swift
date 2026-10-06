@@ -605,3 +605,203 @@ public struct TableRecalculate: OrgCommand {
         ))
     }
 }
+
+// Formulas typed in a field (`org-table-maybe-eval-formula`) and C-c = (`org-table-eval-formula`).
+extension EmacsBuffer {
+    /// `org-table-formula-make-cmp-string`.
+    static func formulaSortKey(_ lhs: String, analysis: TableAnalysis) -> String? {
+        var a = lhs
+        if let arrow = a.firstMatch(of: /^\$([<>])/) {
+            a = (try? handleFirstLast(a, analysis: analysis)) ?? a
+            a = "$\(10000 + (arrow.1 == "<" ? -1000 : 0) + Int(stringToNumber(String(a.dropFirst()))))"
+        }
+        guard let m = a.firstMatch(of: /^(@([0-9]+))?(\$?([0-9]+))?(\$?[a-zA-Z0-9]+)?/) else { return nil }
+        var key = ""
+        if let row = m.2 { key += String(format: "@%05d", Int(row) ?? 0) }
+        if let column = m.4 { key += String(format: "$%05d", Int(column) ?? 0) }
+        if let name = m.5 { key += "@@" + name }
+        return key
+    }
+
+    /// `sort` with `org-table-formula-less-p`.
+    static func sortFormulas(_ formulas: [(lhs: String, rhs: String)], analysis: TableAnalysis) -> [(lhs: String, rhs: String)] {
+        var sorted: [(formula: (lhs: String, rhs: String), key: String?)] = []
+        // Stable insertion, as `sort` with a partial predicate.
+        for formula in formulas {
+            let key = formulaSortKey(formula.lhs, analysis: analysis)
+            var index = sorted.count
+            while index > 0, let a = key, let b = sorted[index - 1].key, a < b { index -= 1 }
+            sorted.insert((formula, key), at: index)
+        }
+        return sorted.map(\.formula)
+    }
+
+    /// `org-table-store-formulas`, sorted by `org-table-formula-less-p`.
+    func tableStoreFormulas(_ formulas: [(lhs: String, rhs: String)], analysis: TableAnalysis) {
+        let sorted = Self.sortFormulas(formulas, analysis: analysis)
+        saveExcursion {
+            point = tableEnd()
+            if let match = looking("([ \\t]*\\n)*[ \\t]*(#\\+TBLFM:)(.*\\n?)", caseInsensitive: true, setsMatch: false) {
+                deleteRegion(match[3]!.lowerBound, match[0]!.upperBound)
+                point = match[3]!.lowerBound
+            } else {
+                insert("#+TBLFM:")
+            }
+            insert(" " + sorted.map { $0.lhs + "=" + $0.rhs }.joined(separator: "::") + "\n")
+        }
+    }
+
+    /// `org-table-get-formula` with EQUATION given: stores it for the current column, or with
+    /// `named` the current field, and returns it.
+    func tableGetFormula(_ equation: String, named: Bool, analysis: TableAnalysis) throws -> String {
+        var stored = try Self.storedFormulas(firstTblfm(after: tableEnd()) ?? "")
+        let ref = "@\(tableCurrentDataLine())$\(tableCurrentColumn())"
+        let scol = named ? ref : "$\(tableCurrentColumn())"
+        let old = stored.first { $0.lhs == scol }?.rhs
+        var eq = old != nil && equation.range(of: "^ *=? *$", options: .regularExpression) != nil ? old! : equation
+        guard eq.contains(where: { !$0.isWhitespace }) else {
+            stored.removeAll { $0.lhs == scol }
+            tableStoreFormulas(stored, analysis: analysis)
+            throw UserError(message: "Formula removed")
+        }
+        eq = eq.replacingOccurrences(of: "^ *=?", with: "", options: .regularExpression)
+        eq = eq.replacingOccurrences(of: " *$", with: "", options: .regularExpression)
+        var mustSave = false
+        if !named, let index = stored.firstIndex(where: { $0.lhs == ref }) {
+            stored.remove(at: index)
+            mustSave = true
+        }
+        if let index = stored.firstIndex(where: { $0.lhs == scol }) {
+            stored[index].rhs = eq
+        } else {
+            stored.insert((scol, eq), at: 0)
+        }
+        if mustSave || old != eq { tableStoreFormulas(stored, analysis: analysis) }
+        return eq
+    }
+
+    /// `org-table-eval-formula` for the current field with EQUATION, which is stored first.
+    func tableEvalFormula(equation: String, named: Bool) throws {
+        try checkInsideDataField()
+        let analysis = try tableAnalyze()
+        let formula = try tableGetFormula(equation, named: named, analysis: analysis)
+        do {
+            try tableEvalFormula(try Self.handleFirstLast(formula, analysis: analysis), analysis: analysis)
+        } catch let error as Calc.Unsupported {
+            throw UserError(message: "The formula was stored; recalculating it needs Emacs: " + error.reason)
+        }
+        tableAlign()
+    }
+
+    /// `org-table-maybe-eval-formula`.
+    func tableMaybeEvalFormula() throws {
+        skipBackwardNot([124, 10])
+        guard !bolp, looking("[ \\t]*$", caseInsensitive: false, setsMatch: false) == nil else { return }
+        let start = point
+        var end = point
+        while let c = character(at: end), c != 124, c != 10, c != 13 { end += 1 }
+        point = min(lineEnd(point), start + 1)
+        let field = substring(start, end).trimmingCharacters(in: CharacterSet(charactersIn: " \t\n\r"))
+        guard let m = field.firstMatch(of: /^:?=(.*[^=])$/) else { return }
+        try tableEvalFormula(equation: String(m.1), named: field.hasPrefix(":"))
+    }
+}
+
+/// C-c = and C-u C-c =: `org-table-eval-formula`, asking for the column's or the field's
+/// formula, the stored one offered.
+public struct TableEvalFormula: OrgCommand {
+    let named: Bool
+    public init(named: Bool) { self.named = named }
+    public var id: String { named ? "org.table.field-formula" : "org.table.column-formula" }
+    public var title: String { named ? "Set Field Formula" : "Set Column Formula" }
+    public func applies(in context: EditContext) -> Bool { KeyContext.holds("table", in: context) }
+    public func run(in context: EditContext) -> CommandStep {
+        guard let answer = context.answers["formula"] else {
+            let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
+            guard buffer.atTable else { return .failed("Not at a table") }
+            let column = buffer.tableCurrentColumn()
+            let scol = named ? "@\(buffer.tableCurrentDataLine())$\(column)" : "$\(column)"
+            let stored = (try? EmacsBuffer.storedFormulas(buffer.firstTblfm(after: buffer.tableEnd()) ?? ""))?.first { $0.lhs == scol }?.rhs
+            return .prompt(Prompt(key: "formula", message: "\(named ? "Field" : "Column") formula \(scol)=", initial: stored ?? ""))
+        }
+        return commitBuffer(context) { try $0.tableEvalFormula(equation: answer, named: named) }
+    }
+}
+
+// The formula editor (`org-table-edit-formulas`, C-c ' in a table), in the block editor.
+extension BlockEdit {
+    static let formulasKind = "formulas"
+
+    /// The formulas of the table at `offset`, or of the `#+TBLFM` line there, one per line as
+    /// org's editor lists them. The range runs from the table (or that line) to the formulas.
+    public static func formulas(at offset: Int, text: String) -> BlockEdit? {
+        let buffer = EmacsBuffer(text, point: offset)
+        let line = buffer.substring(buffer.lineStart(offset), buffer.lineEnd(offset))
+        let atTblfm = line.range(of: EmacsBuffer.tblfmPattern, options: [.regularExpression, .caseInsensitive]) != nil
+        guard atTblfm || buffer.atTable else { return nil }
+        let start: Int
+        let end: Int
+        let formulas: [(lhs: String, rhs: String)]
+        if atTblfm {
+            start = buffer.lineStart(offset)
+            end = min(buffer.length, buffer.lineEnd(offset) + 1)
+            let tblfm = String(line[line.range(of: ":")!.upperBound...]).trimmingCharacters(in: .init(charactersIn: " "))
+            formulas = (try? EmacsBuffer.storedFormulas(tblfm)) ?? []
+            guard buffer.searchBackward("^[ \\t]*\\|", caseInsensitive: false) != nil else { return nil }
+        } else {
+            start = buffer.tableBegin()
+            let tableEnd = buffer.tableEnd()
+            end = buffer.saveExcursion {
+                buffer.point = tableEnd
+                return buffer.looking("([ \\t]*\\n)*[ \\t]*#\\+TBLFM:.*\\n?", caseInsensitive: true, setsMatch: false)?[0]?.upperBound ?? tableEnd
+            }
+            formulas = (try? EmacsBuffer.storedFormulas(buffer.firstTblfm(after: tableEnd) ?? "")) ?? []
+        }
+        guard let analysis = try? buffer.tableAnalyze() else { return nil }
+        var content = ""
+        var titles: [(type: String, title: String)] = [("column", "# Column Formulas\n"), ("field", "# Field and Range Formulas\n"), ("named", "# Named Field Formulas\n")]
+        for (lhs, rhs) in EmacsBuffer.sortFormulas(formulas, analysis: analysis) {
+            let type = lhs.range(of: "^\\$([0-9]+|[<>]+)$", options: .regularExpression) != nil ? "column" : lhs.hasPrefix("@") ? "field" : "named"
+            if let index = titles.firstIndex(where: { $0.type == type }) {
+                if !content.isEmpty { content += "\n" }
+                content += titles[index].title
+                titles.remove(at: index)
+            }
+            content += (lhs.hasPrefix("@") || lhs.hasPrefix("$") ? "" : "$") + lhs + " = " + rhs + "\n"
+        }
+        let ns = text as NSString
+        return BlockEdit(range: start..<end, original: ns.substring(with: NSRange(location: start, length: end - start)), content: content, language: nil, kind: formulasKind)
+    }
+
+    /// `org-table-fedit-finish`'s reading of the editor's text.
+    static func parseFormulas(_ content: String) throws -> [(lhs: String, rhs: String)] {
+        let regex = try! NSRegularExpression(pattern: "^(@[-+I<>0-9.$@]+|@?[0-9]+|\\$([a-zA-Z0-9]+|[<>]+)) *= *(.*(\\n[ \\t]+.*$)*)", options: .anchorsMatchLines)
+        let ns = content as NSString
+        var result: [(lhs: String, rhs: String)] = []
+        for m in regex.matches(in: content, range: NSRange(location: 0, length: ns.length)) {
+            let lhs = ns.substring(with: m.range(at: 1))
+            var rhs = ns.substring(with: m.range(at: 3)).trimmingCharacters(in: CharacterSet(charactersIn: " \t\n\r"))
+            guard !rhs.isEmpty else { continue }
+            rhs = rhs.replacingOccurrences(of: "[ \\t]*\\n[ \\t]*", with: " ", options: .regularExpression)
+            if result.contains(where: { $0.lhs == lhs }) { throw EmacsBuffer.UserError(message: "Double formulas for \(lhs)") }
+            result.insert((lhs, rhs), at: 0)
+        }
+        return result
+    }
+
+    /// Installs edited formulas, as `org-table-fedit-finish` without a prefix argument.
+    func installFormulas(_ content: String, in context: EditContext) -> CommandStep {
+        let step = commitBuffer(context) { buffer in
+            let formulas = try Self.parseFormulas(content)
+            buffer.point = range.lowerBound
+            let analysis = try buffer.saveExcursion { () throws -> EmacsBuffer.TableAnalysis in
+                if !buffer.atTable { _ = buffer.searchBackward("^[ \\t]*\\|", caseInsensitive: false) }
+                return try buffer.tableAnalyze()
+            }
+            buffer.tableStoreFormulas(formulas, analysis: analysis)
+        }
+        guard case .commit(let result) = step else { return step }
+        return .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection,
+                                  effects: result.effects + [.message("New formulas installed - press C-u C-c C-c to apply.")]))
+    }
+}

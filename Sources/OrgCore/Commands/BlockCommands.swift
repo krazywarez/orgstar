@@ -162,9 +162,14 @@ public struct EditSpecial: OrgCommand {
     public init() {}
     public var id: String { "org.edit-special" }
     public var title: String { "Edit Block" }
-    public func applies(in context: EditContext) -> Bool { BlockEdit.at(context.caret, text: context.text, tree: context.tree) != nil }
+    public func applies(in context: EditContext) -> Bool { edit(context) != nil }
+
+    private func edit(_ context: EditContext) -> BlockEdit? {
+        BlockEdit.at(context.caret, text: context.text, tree: context.tree) ?? BlockEdit.formulas(at: context.caret, text: context.text)
+    }
+
     public func run(in context: EditContext) -> CommandStep {
-        guard let edit = BlockEdit.at(context.caret, text: context.text, tree: context.tree) else {
+        guard let edit = edit(context) else {
             return .failed("No special environment to edit here")
         }
         return .external(.editBlock(edit))
@@ -187,6 +192,7 @@ public struct ReplaceBlockLines: OrgCommand {
         guard edit.range.upperBound <= ns.length, ns.substring(with: NSRange(edit.range)) == edit.original else {
             return .failed("The block changed while you edited it; its edit wasn't saved.")
         }
+        if edit.kind == BlockEdit.formulasKind { return edit.installFormulas(content, in: context) }
         let lines = edit.lines(for: content)
         return .commit(EditResult(baseRevision: context.revision, edits: [TextEdit(range: edit.range, replacement: lines)]))
     }

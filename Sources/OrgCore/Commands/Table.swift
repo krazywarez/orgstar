@@ -283,6 +283,7 @@ extension EmacsBuffer {
 
     /// `org-table-next-field`.
     func tableNextField() throws {
+        try tableMaybeEvalFormula()
         moveIntoField()
         tableAlign()
         let end = tableEnd()
@@ -327,6 +328,7 @@ extension EmacsBuffer {
 
     /// `org-table-next-row`.
     func tableNextRow() throws {
+        try tableMaybeEvalFormula()
         moveIntoField()
         tableAlign()
         let column = tableCurrentColumn()

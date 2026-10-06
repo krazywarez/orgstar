@@ -20,7 +20,10 @@ public struct CtrlCCtrlC: OrgCommand {
         if KeyContext.holds("table", in: context) || TableRecalculate.tblfmLine(in: context) != nil {
             // At the table's very start the context is the table itself, which org recalculates.
             let atStart = buffer.saveExcursion { buffer.tableBegin() } == context.caret
-            return TableRecalculate.tblfmLine(in: context) != nil || atStart ? TableRecalculate(all: true).run(in: context) : TableCommand(.align).run(in: context)
+            return TableRecalculate.tblfmLine(in: context) != nil || atStart ? TableRecalculate(all: true).run(in: context) : commitBuffer(context) { buffer in
+                try buffer.tableMaybeEvalFormula()
+                buffer.tableAlign()
+            }
         }
         if buffer.footnoteReferenceAtPoint() != nil
             || buffer.footnoteDefinitions().contains(where: { $0.begin <= context.caret && context.caret < ($0.contentsBegin ?? $0.end) }) {

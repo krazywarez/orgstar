@@ -13,7 +13,7 @@ struct BlockEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Editing \(edit.language.map { "\($0) " } ?? "")\(edit.kind) block")
+            Text(edit.kind == "formulas" ? "Editing table formulas" : "Editing \(edit.language.map { "\($0) " } ?? "")\(edit.kind) block")
                 .font(.headline)
             CodeEditor(text: edit.content, language: edit.language, box: box) { save in finish(save ? box.text : nil) }
                 .frame(minWidth: 560, minHeight: 320)
