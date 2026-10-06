@@ -161,3 +161,22 @@ struct KeymapTests {
         for preset in KeymapPreset.allCases { #expect(!preset.keymap.bindings.isEmpty) }
     }
 }
+
+struct ToggleKeyTests {
+    @Test func ctrlCStarAndMinusPreferTables() {
+        let keymap = KeymapPreset.emacs.keymap
+        let table = "| a |\n"
+        let tableContext = EditContext(revision: 0, text: table, tree: OrgParser.parse(table), selection: [2..<2])
+        let star = KeySequence.parse("C-c *")!
+        let minus = KeySequence.parse("C-c -")!
+        func first(_ keys: [KeyChord], _ context: EditContext) -> String? {
+            keymap.candidates(for: keys).first { $0.when.map { KeyContext.holds($0, in: context) } ?? true }?.command
+        }
+        #expect(first(star, tableContext) == "org.table.recalc")
+        #expect(first(minus, tableContext) == "org.table.insert-hline")
+        let text = "* a\nb\n"
+        let plain = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [5..<5])
+        #expect(first(star, plain) == "org.heading.toggle")
+        #expect(first(minus, plain) == "org.item.toggle")
+    }
+}

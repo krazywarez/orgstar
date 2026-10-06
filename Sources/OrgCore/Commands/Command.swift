@@ -210,7 +210,7 @@ public enum Commands {
         RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
         TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
-        OpenLinkAtPoint(), CreateID(),
+        OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }
