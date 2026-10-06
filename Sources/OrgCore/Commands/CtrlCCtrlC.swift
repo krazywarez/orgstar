@@ -22,6 +22,10 @@ public struct CtrlCCtrlC: OrgCommand {
             let atStart = buffer.saveExcursion { buffer.tableBegin() } == context.caret
             return TableRecalculate.tblfmLine(in: context) != nil || atStart ? TableRecalculate(all: true).run(in: context) : TableCommand(.align).run(in: context)
         }
+        if buffer.footnoteReferenceAtPoint() != nil
+            || buffer.footnoteDefinitions().contains(where: { $0.begin <= context.caret && context.caret < ($0.contentsBegin ?? $0.end) }) {
+            return FootnoteAction().run(in: context)
+        }
         if buffer.lookingAtLine("^[ \\t]*$") { return Self.nothing }
         // On a clock line, changing a timestamp updates the clock too.
         if buffer.lookingAtLine("^[ \\t]*CLOCK:") { return commitBuffer(context) { $0.clockUpdateTime() } }
