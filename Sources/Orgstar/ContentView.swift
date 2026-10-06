@@ -69,6 +69,7 @@ struct ContentView: View {
     @AppStorage("outlineShown") private var orgOutlineShown = true
     @AppStorage("outlineWidth") private var outlineWidth = 220.0
     @AppStorage("backlinksShown") private var backlinksShown = true
+    @AppStorage("inspectorShown") private var inspectorShown = false
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
     @AppStorage("showHiddenFiles") private var showHiddenFiles = true
@@ -196,6 +197,10 @@ struct ContentView: View {
                 }
                 detail
                     .frame(maxWidth: .infinity)
+                    .inspector(isPresented: $inspectorShown) {
+                        InspectorPane(session: session, commands: commands)
+                            .inspectorColumnWidth(min: 240, ideal: 340, max: 600)
+                    }
             }
         }
         .navigationTitle((previewPath ?? session.path).map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
@@ -547,6 +552,7 @@ struct ContentView: View {
             if session.isRunningBabel { session.cancelBabel() } else { commands.show("No block is running") }
         case "app.toggle-outline": toggleOutline()
         case "app.toggle-backlinks": backlinksShown.toggle()
+        case "app.toggle-inspector": inspectorShown.toggle()
         case "app.toggle-markup": showMarkup.toggle()
         case "app.toggle-line-numbers": showLineNumbers.toggle()
         case "app.import-emacs": showingImport = true

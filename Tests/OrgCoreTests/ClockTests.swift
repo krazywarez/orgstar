@@ -88,6 +88,14 @@ struct ClockReportTests {
     :END:
     """
 
+    @Test func totalsPerHeading() {
+        let entries = ClockReport.entries(Self.sample)
+        let all = ClockReport.byHeading(entries)
+        #expect(all.map(\.heading) == ["Audit work", "Meetings"] && all.map(\.minutes) == [418, 57])
+        #expect(all[1].start == (Self.sample as NSString).range(of: "* Meetings").location)
+        #expect(ClockReport.byHeading(entries, from: "2026-02-18", to: "2026-02-24").map(\.minutes) == [360, 30])
+    }
+
     /// Your own `tr/generate-report`, loaded from config.el in batch Emacs.
     static func emacsReport(_ text: String, start: String?, end: String?) throws -> String {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-tr-\(UUID().uuidString)")

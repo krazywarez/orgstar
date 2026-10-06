@@ -8,6 +8,8 @@ public enum ClockReport {
         /// The heading's title, without keyword, priority, tags or COMMENT.
         public let heading: String
         public let minutes: Int
+        /// Where the heading starts.
+        public let start: Int
     }
 
     static let clockLine = try! NSRegularExpression(pattern:
@@ -32,12 +34,23 @@ public enum ClockReport {
             var title = model.headings[low - 1].title.trimmingCharacters(in: .whitespaces)
             if title == "COMMENT" { title = "" } else if title.hasPrefix("COMMENT ") { title = String(title.dropFirst(8)) }
             let minutes = Int(ns.substring(with: m.range(at: 4)))! * 60 + Int(ns.substring(with: m.range(at: 5)))!
-            result.append(Entry(date: ns.substring(with: m.range(at: 1)), heading: title, minutes: minutes))
+            result.append(Entry(date: ns.substring(with: m.range(at: 1)), heading: title, minutes: minutes, start: starts[low - 1]))
         }
         return result
     }
 
-    static func hours(_ minutes: Int) -> String { String(format: "%d:%02d", minutes / 60, minutes % 60) }
+    /// Minutes per heading between `from` and `to` (inclusive, `YYYY-MM-DD`), in file order.
+    public static func byHeading(_ entries: [Entry], from: String? = nil, to: String? = nil) -> [(start: Int, heading: String, minutes: Int)] {
+        var totals: [Int: (heading: String, minutes: Int)] = [:]
+        for entry in entries {
+            if let from, entry.date < from { continue }
+            if let to, entry.date > to { continue }
+            totals[entry.start, default: (entry.heading, 0)].minutes += entry.minutes
+        }
+        return totals.keys.sorted().map { (start: $0, heading: totals[$0]!.heading, minutes: totals[$0]!.minutes) }
+    }
+
+    public static func hours(_ minutes: Int) -> String { String(format: "%d:%02d", minutes / 60, minutes % 60) }
 
     /// Emacs `format "%-Ns"` pads by characters.
     static func pad(_ s: String, _ width: Int) -> String {

@@ -69,6 +69,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.toggle-tab-bar", title: "Show or Hide Tab Bar", action: .app),
         EditorCommand(id: "app.toggle-outline", title: "Show or Hide Outline", action: .app),
         EditorCommand(id: "app.toggle-backlinks", title: "Show or Hide Backlinks", action: .app),
+        EditorCommand(id: "app.toggle-inspector", title: "Show or Hide Columns and Clock", action: .app),
         EditorCommand(id: "app.toggle-markup", title: "Show or Hide Markup", action: .app),
         EditorCommand(id: "app.edit-config", title: "Edit Config File", action: .app),
         EditorCommand(id: "app.import-emacs", title: "Import from Emacs…", action: .app),
