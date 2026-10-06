@@ -296,6 +296,9 @@ struct OrgstarApp: App {
                 FindMenu(commands: commands)
             }
             CommandGroup(after: .textEditing) {
+                Button("Cancel Running Block") { commands.run("app.babel.cancel") }
+                    .keyboardShortcut(".")
+                    .disabled(!session.isRunningBabel)
                 Button("Search Notes") { commands.focusSearch = true }
                     .keyboardShortcut("f", modifiers: [.command, .shift])
             }

@@ -358,8 +358,8 @@ struct ContentView: View {
             }
         case .babel(let job):
             let run = {
-                commands.show("Running \(job.language) block…")
-                Task { commands.show(await session.runBabel(job)) }
+                commands.show("Running \(job.language) block… (⌘. to cancel)")
+                session.startBabel(job) { commands.show($0) }
             }
             guard let path = session.path else { return }
             if !job.alwaysAsk, trust.isTrusted(path: path, content: job.blockText) { return run() }
@@ -461,6 +461,8 @@ struct ContentView: View {
             let all = session.openPaths
             if UnsavedChanges.resolve(session, paths: all) { all.forEach(session.kill) }
         case "app.toggle-tab-bar": showTabBar.toggle()
+        case "app.babel.cancel":
+            if session.isRunningBabel { session.cancelBabel() } else { commands.show("No block is running") }
         case "app.toggle-outline": toggleOutline()
         case "app.toggle-markup": showMarkup.toggle()
         case "app.toggle-line-numbers": showLineNumbers.toggle()

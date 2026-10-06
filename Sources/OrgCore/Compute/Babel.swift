@@ -42,9 +42,26 @@ public struct BabelJob: Sendable, Equatable {
 public struct BabelOutput: Sendable, Equatable {
     public var stdout: String
     public var resultFile: String?
-    public init(stdout: String, resultFile: String? = nil) {
+    /// What the program wrote to standard error, and its exit status: Emacs shows them in
+    /// `*Org-Babel Error Output*` and still inserts the results.
+    public var stderr: String
+    public var status: Int32
+    public init(stdout: String, resultFile: String? = nil, stderr: String = "", status: Int32 = 0) {
         self.stdout = stdout
         self.resultFile = resultFile
+        self.stderr = stderr
+        self.status = status
+    }
+
+    /// A line for the message area when the program failed or complained, else nil.
+    public var problem: String? {
+        let first = stderr.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init)
+        switch (status, first) {
+        case (0, nil): return nil
+        case (0, let line?): return line
+        case (let code, nil): return "Exited with status \(code)"
+        case (let code, let line?): return "Exited with status \(code): \(line)"
+        }
     }
 }
 

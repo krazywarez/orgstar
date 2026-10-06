@@ -550,6 +550,44 @@ struct BabelSessionTests {
     }
 }
 
+@MainActor
+struct BabelErrorTests {
+    func job(_ session: DocumentSession, _ path: String) throws -> BabelJob {
+        guard case .external(.babel(let job)) = session.perform(ExecuteSrcBlock(), path: path, at: 3, expect: nil) else {
+            throw CancellationError()
+        }
+        return job
+    }
+
+    /// Like `org-babel-eval`: the results go in, and the error output and status are shown.
+    @Test func reportsErrorsAndStillInsertsResults() async throws {
+        let notes = try Folder()
+        let file = try notes.write("e.org", "#+begin_src sh\necho out\necho oops >&2\nexit 3\n#+end_src\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        #expect(await session.runBabel(try job(session, file.path)) == "Exited with status 3: oops")
+        #expect(session.document?.text.hasSuffix("#+RESULTS:\n: out\n") == true)
+    }
+
+    @Test func cancelsARunningBlock() async throws {
+        let notes = try Folder()
+        let file = try notes.write("s.org", "#+begin_src sh\nsleep 20\necho late\n#+end_src\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        let start = ContinuousClock.now
+        var message: String?
+        session.startBabel(try job(session, file.path)) { message = $0 }
+        #expect(session.isRunningBabel)
+        try await Task.sleep(for: .milliseconds(200))
+        session.cancelBabel()
+        while message == nil, ContinuousClock.now - start < .seconds(5) { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(message == "Code block canceled.")
+        #expect(!session.isRunningBabel)
+        #expect(ContinuousClock.now - start < .seconds(5))
+        #expect(session.document?.text.contains("#+RESULTS:") == false)
+    }
+}
+
 struct EmacsExportTests {
     @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func exportsBesideTheFile() async throws {

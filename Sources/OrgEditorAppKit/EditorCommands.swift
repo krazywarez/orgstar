@@ -48,6 +48,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.buffer.next", title: "Next Buffer", action: .app),
         EditorCommand(id: "app.buffer.previous", title: "Previous Buffer", action: .app),
         EditorCommand(id: "app.buffer.last", title: "Last Buffer", action: .app),
+        EditorCommand(id: "app.babel.cancel", title: "Cancel Running Block", action: .app),
         EditorCommand(id: "app.toggle-tab-bar", title: "Show or Hide Tab Bar", action: .app),
         EditorCommand(id: "app.toggle-outline", title: "Show or Hide Outline", action: .app),
         EditorCommand(id: "app.toggle-markup", title: "Show or Hide Markup", action: .app),

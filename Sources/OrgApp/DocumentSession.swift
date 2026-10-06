@@ -536,19 +536,47 @@ public final class DocumentSession {
             guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
             let current = entry.buffer
             let document = current.document
+            let done = output.problem ?? "Code block evaluation complete."
             switch Babel.finish(job, output: output, text: document.text, settings: document.tree.settings) {
             case .failure(.message(let message)):
                 return message
             case .success(let edits):
-                guard !edits.isEmpty else { return job.finish.params.contains("silent") ? output.stdout : "Code block evaluation complete." }
+                guard !edits.isEmpty else { return job.finish.params.contains("silent") ? output.problem ?? output.stdout : done }
                 let result = EditResult(baseRevision: document.revision, edits: edits)
                 if case .failed(let message) = current.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
                 changed(entry)
-                return "Code block evaluation complete."
+                return done
             }
+        } catch is CancellationError {
+            return "Code block canceled."
         } catch {
             return "\(error)"
         }
+    }
+
+    /// The block running now, to cancel.
+    @ObservationIgnored private var babelTask: Task<String, Never>?
+    public private(set) var isRunningBabel = false
+
+    /// Runs a src block in the background; its message comes back through `report`.
+    public func startBabel(_ job: BabelJob, report: @escaping @MainActor (String) -> Void) {
+        babelTask?.cancel()
+        isRunningBabel = true
+        let task = Task { await runBabel(job) }
+        babelTask = task
+        Task {
+            let message = await task.value
+            if babelTask == task {
+                babelTask = nil
+                isRunningBabel = false
+            }
+            report(message)
+        }
+    }
+
+    /// Stops the running block; its results aren't inserted.
+    public func cancelBabel() {
+        babelTask?.cancel()
     }
 
     /// A buffer changed outside typing: the current one updates its views, another saves.

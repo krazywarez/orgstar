@@ -43,9 +43,12 @@ public enum BabelRunner {
         let stdout = folder.appendingPathComponent("stdout")
         FileManager.default.createFile(atPath: stdout.path, contents: nil)
         let out = try FileHandle(forWritingTo: stdout)
+        let stderr = folder.appendingPathComponent("stderr")
+        FileManager.default.createFile(atPath: stderr.path, contents: nil)
+        let err = try FileHandle(forWritingTo: stderr)
         process.standardInput = stdin
         process.standardOutput = out
-        process.standardError = FileHandle.nullDevice
+        process.standardError = err
         do {
             try process.run()
         } catch {
@@ -76,11 +79,13 @@ public enum BabelRunner {
             }
         }
         try out.close()
+        try err.close()
         let output = (try? String(contentsOf: stdout, encoding: .utf8)) ?? ""
+        let errors = (try? String(contentsOf: stderr, encoding: .utf8)) ?? ""
         let result = try? String(contentsOf: resultFile, encoding: .utf8)
         if case .process(let executable, _) = job.runner, process.terminationStatus == 127, output.isEmpty {
             throw Failure(description: "\(executable) isn't installed.")
         }
-        return BabelOutput(stdout: output, resultFile: result)
+        return BabelOutput(stdout: output, resultFile: result, stderr: errors, status: process.terminationStatus)
     }
 }
