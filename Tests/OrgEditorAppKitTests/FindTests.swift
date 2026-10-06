@@ -41,3 +41,18 @@ struct BodyFoldTests {
         #expect(h.editor.hidden.all.map { $0.count } == hiddenBefore.map { $0.count })
     }
 }
+
+@MainActor
+struct OpenLinkTests {
+    @Test func commandsHandTheLinkToTheApp() {
+        let h = Harness("* A\nRead [[https://orgmode.org][the manual]] now.\n")
+        var requests: [ExternalRequest] = []
+        h.editor.onExternal = { requests.append($0) }
+        let inside = (h.string as NSString).range(of: "the manual").location
+        h.caret(at: inside)
+        h.editor.run("org.link.open")
+        h.editor.run("org.dwim")
+        let link = OrgLink(type: "https", path: "//orgmode.org", raw: "https://orgmode.org")
+        #expect(requests == [.openLink(link), .openLink(link)])
+    }
+}

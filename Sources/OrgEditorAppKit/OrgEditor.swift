@@ -112,6 +112,12 @@ public final class OrgEditor: NSObject {
         dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
         super.init()
         orgTextView.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
+        orgTextView.onCommandClick = { [weak self] offset in
+            guard let self, Links.link(at: offset, text: self.document.text, tree: self.document.tree) != nil else { return false }
+            self.setCaret(offset)
+            self.run("org.link.open")
+            return true
+        }
         orgTextView.onMouseDown = { [weak self] in
             self?.markActive = false
             self?.modalMouseDown()

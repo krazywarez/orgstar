@@ -732,3 +732,40 @@ struct BufferTests {
         #expect(session.openDocuments.first { $0.path == a.path }?.document.text == "* A changed\n")
     }
 }
+
+@MainActor
+struct LinkFollowTests {
+    @Test func followsLinksOfEachKind() async throws {
+        let notes = try Folder()
+        let a = try notes.write("a.org", "* Start\nSee <<here>>.\n* Second [1/2]\n:PROPERTIES:\n:CUSTOM_ID: two\n:END:\n")
+        let b = try notes.write("sub/b.org", "* Target heading\n:PROPERTIES:\n:ID: 1234-ABCD\n:END:\nline 5\nline 6\n")
+        _ = try notes.write("pic.png", "not really")
+        let workspace = try WorkspaceModel(directory: nil)
+        try await workspace.addRoot(notes.url)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(a.path)
+        let text = { (path: String) in try? String(contentsOfFile: path, encoding: .utf8) }
+        func follow(_ raw: String) -> LinkFollow { session.follow(Links.parse(bracket: raw), workspace: workspace, isText: { $0.hasSuffix(".org") }) }
+
+        #expect(follow("here") == .shown)
+        #expect(session.revealRequest?.offset == (text(a.path)! as NSString).range(of: "<<here>>").location)
+        #expect(follow("#two") == .shown)
+        #expect(follow("Second") == .shown)
+        #expect(follow("Nowhere") == .message("No match for fuzzy expression: Nowhere"))
+
+        #expect(follow("file:sub/b.org::5") == .shown)
+        #expect(session.path == b.path)
+        #expect(session.revealRequest?.offset == (text(b.path)! as NSString).range(of: "line 5").location)
+        session.open(a.path)
+        #expect(follow("file:sub/b.org::*Target heading") == .shown && session.path == b.path)
+        session.open(a.path)
+        #expect(follow("id:1234-ABCD") == .shown && session.path == b.path)
+        #expect(follow("id:none") == .message("No heading has the ID none"))
+        // Relative to the open file (now sub/b.org); files Orgstar doesn't edit go to macOS.
+        #expect(follow("file:../pic.png") == .openExternally(URL(fileURLWithPath: (notes.url.appendingPathComponent("pic.png").path as NSString).standardizingPath)))
+        #expect(follow("file:pic.png") == .message("No file " + (notes.url.appendingPathComponent("sub/pic.png").path as NSString).standardizingPath))
+        #expect(follow("https://orgmode.org/a b") == .openExternally(URL(string: "https://orgmode.org/a%20b")!))
+        #expect(follow("doi:10.1000/182") == .openExternally(URL(string: "https://doi.org/10.1000/182")!))
+        #expect(follow("shell:rm -rf x") == .message("Orgstar doesn't run shell links"))
+    }
+}

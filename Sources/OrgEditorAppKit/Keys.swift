@@ -80,7 +80,14 @@ final class OrgTextView: NSTextView {
         return super.performKeyEquivalent(with: event)
     }
 
+    /// ⌘-click: given the clicked offset, true when it followed a link.
+    var onCommandClick: ((Int) -> Bool)?
+
     override func mouseDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.command), let onCommandClick {
+            let offset = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
+            if onCommandClick(offset) { return }
+        }
         onMouseDown?()
         super.mouseDown(with: event)
     }

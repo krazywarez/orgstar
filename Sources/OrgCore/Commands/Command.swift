@@ -148,6 +148,8 @@ public enum ExternalRequest: Sendable, Equatable {
     case emacsTable(table: Range<Int>, point: Int, form: String, reason: String, lisp: Bool)
     /// Run a src block; `Babel.finish` turns its output into the result edit.
     case babel(BabelJob)
+    /// Follow a link: the app opens URLs and files and searches headings.
+    case openLink(OrgLink)
 }
 
 /// A named operation. Keys, menus, the palette and touch controls all run commands.
@@ -175,6 +177,7 @@ public enum Commands {
         RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
         TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
+        OpenLinkAtPoint(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

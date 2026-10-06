@@ -342,6 +342,8 @@ struct ContentView: View {
     /// Work a command hands to the platform: tables recalculated in Emacs.
     private func runExternal(_ request: ExternalRequest) {
         switch request {
+        case .openLink(let link):
+            if let message = LinkOpener.open(link, session: session, workspace: workspace) { commands.show(message) }
         case .emacsTable(let table, let point, let form, let reason, let lisp):
             let run = {
                 commands.show("Recalculating in Emacs (\(reason))…")

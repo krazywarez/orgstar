@@ -100,6 +100,35 @@ enum EmacsOracle {
         return String(decoding: data, as: UTF8.self)
     }
 
+    /// Evaluates `form`, which returns a list of strings, in an org-mode buffer visiting a
+    /// file that holds `text`; `prelude` runs first (settings). The strings come back in order.
+    static func evaluate(_ text: String, _ form: String, prelude: String = "", file: String = "oracle.org") throws -> [String] {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-eval-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent(file)
+        try text.write(to: url, atomically: true, encoding: .utf8)
+        let output = folder.appendingPathComponent("out.json")
+        let script = folder.appendingPathComponent("eval.el")
+        try """
+            ;;; -*- lexical-binding: t -*-
+            (require 'org)
+            (require 'json)
+            \(prelude)
+            (with-current-buffer (find-file-noselect "\(url.path)")
+              (org-mode)
+              (let ((result \(form)))
+                (let ((coding-system-for-write 'utf-8-unix))
+                  (with-temp-file (getenv "ORACLE_OUTPUT")
+                    (insert (json-encode (vconcat result)))))))
+            """.write(to: script, atomically: true, encoding: .utf8)
+        let log = try run(["-Q", "--batch", "-l", script.path], environment: ["ORACLE_OUTPUT": output.path, "TZ": "UTC"])
+        guard let data = try? Data(contentsOf: output) else { throw EvaluateError(log: log) }
+        return try JSONDecoder().decode([String].self, from: data)
+    }
+
+    struct EvaluateError: Error { let log: String }
+
     /// UTF-16 offset to Emacs point.
     static func point(_ offset: Int, in text: String) -> Int {
         let index = String.Index(utf16Offset: offset, in: text)

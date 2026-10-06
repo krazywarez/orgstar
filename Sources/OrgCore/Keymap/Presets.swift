@@ -551,6 +551,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-x C-s"
         command = "app.save"
         [[bind]]
+        keys = "C-c C-o"
+        command = "org.link.open"
+        [[bind]]
         keys = "C-x b"
         command = "app.buffer.switch"
         [[bind]]

@@ -12,6 +12,8 @@ public struct OrgDwim: OrgCommand {
     public func applies(in context: EditContext) -> Bool { true }
 
     public func run(in context: EditContext) -> CommandStep {
+        // `+org/dwim-at-point` follows a link first.
+        if Links.link(at: context.caret, text: context.text, tree: context.tree) != nil { return OpenLinkAtPoint().run(in: context) }
         if TableRecalculate.tblfmLine(in: context) != nil { return TableRecalculate(all: true).run(in: context) }
         if KeyContext.holds("src", in: context) { return ExecuteSrcBlock().run(in: context) }
         if KeyContext.holds("table", in: context) {
