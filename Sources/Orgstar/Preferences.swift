@@ -4,7 +4,7 @@ import OrgCore
 
 /// Org preferences, stored in user defaults by the Settings window.
 enum Preferences {
-    static let defaultTodoKeywords = "TODO PROJ LOOP STRT WAIT HOLD IDEA | DONE KILL"
+    static let defaultTodoKeywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)"
 
     /// TODO keywords for files without `#+TODO`, read at launch.
     @MainActor
