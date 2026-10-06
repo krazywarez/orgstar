@@ -147,6 +147,11 @@ struct FoldingTests {
         #expect(pasteboard.string(forType: .string) == "* a\nbody\n** b\nmore\n* c\n")
     }
 
+    @Test func opensWithTheCaretAtTheStart() {
+        let h = Harness("* a\nbody\n* b\n")
+        #expect(h.textView.selectedRange() == NSRange(location: 0, length: 0))
+    }
+
     @Test func drawersFoldAtOpenAndToggleWithTab() {
         let text = "* a\n:PROPERTIES:\n:ID: x\n:END:\nbody\n#+begin_src sh\necho\n#+end_src\n* c\n"
         let h = Harness(text)

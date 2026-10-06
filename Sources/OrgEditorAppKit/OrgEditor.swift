@@ -143,6 +143,8 @@ public final class OrgEditor: NSObject {
 
         if isOrg { shaded.set(Presentation.shadedBlocks(document.tree)) }
         load(document.text)
+        // Files open at their start, as in Emacs; replacing the storage leaves it at the end.
+        textView.setSelectedRange(NSRange(location: 0, length: 0))
         if isOrg {
             var startup = Presentation.startupFoldState(document.tree) ?? FoldState()
             let wrappers = Presentation.startupWrappers(document.tree, hideDrawers: options.hideDrawerStartup, hideBlocks: options.hideBlockStartup)
