@@ -190,3 +190,17 @@ struct DynamicBlockKeyTests {
         #expect(found?.command == "org.dblock.update")
     }
 }
+
+struct CtrlCCtrlCKeyTests {
+    @Test func headingsAndItemsGoThroughOrgCtrlCCtrlC() {
+        let keymap = KeymapPreset.emacs.keymap
+        let text = "* a\n- [ ] b\n| x |\n"
+        func command(at offset: Int) -> String? {
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [offset..<offset])
+            return keymap.candidates(for: KeySequence.parse("C-c C-c")!).first { $0.when.map { KeyContext.holds($0, in: context) } ?? true }?.command
+        }
+        #expect(command(at: 1) == "org.ctrl-c-ctrl-c")
+        #expect(command(at: 5) == "org.ctrl-c-ctrl-c")
+        #expect(command(at: 13) == "org.table.align")
+    }
+}

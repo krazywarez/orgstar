@@ -635,6 +635,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c ^"
         command = "org.sort"
         [[bind]]
+        keys = "C-c C-c"
+        command = "org.ctrl-c-ctrl-c"
+        [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"
         [[bind]]
@@ -822,7 +825,7 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         when = "item"
         [[bind]]
         keys = "C-c C-c"
-        command = "org.checkbox.toggle"
+        command = "org.ctrl-c-ctrl-c"
         when = "item"
         [[bind]]
         keys = "C-c C-x C-b"
