@@ -334,7 +334,7 @@ Fidelity is checked against Emacs itself, using the same oracle pattern as orgo'
 
 Seven phases, each usable on its own. Phase 1 is read-only, so it can run next to Emacs from the first build.
 
-Status, 2026-10-05: phases 1–6 are built for macOS. Owed from phase 1: the items left open below and the gate run on the M1 Air. The gates pass on an M-series Mac except peak memory for small real files (about 20x for a 161 kB file, from fixed overhead). Phase 7 has not started.
+Status, 2026-10-06: phases 1–6 are built for macOS. Owed from phase 1: the items left open below and the gate run on the M1 Air. The gates pass on an M-series Mac except peak memory for small real files (about 20x for a 161 kB file, from fixed overhead). Phase 7 has started: the iOS app has the agenda and capture, and runs in the Simulator; device builds need signing.
 
 1. **Core and viewer:** `OrgCore` parser, workspace, index, read-only rendering, folding, search.
 2. **Editor:** text editing, structure and heading commands, timestamps, `M-q`, table alignment, command palette, Emacs and Mac keymaps, remaining tree-sitter grammars.

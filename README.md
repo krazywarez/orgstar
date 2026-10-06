@@ -1,6 +1,6 @@
 # Orgstar
 
-A native macOS editor for org-mode files. iOS later.
+A native macOS editor for org-mode files, with an iOS app for the agenda and capture.
 
 The files are the source of truth: Orgstar edits them in place and leaves
 every byte you didn't change as it was, so Emacs and sync tools can work on
@@ -8,8 +8,8 @@ the same folder.
 
 Status: macOS v1, design phases 1–6: editing with Emacs, Mac and Doom keys,
 agenda, table formulas, Babel, export, capture, clocking, board, themes and
-buffers. Owed: the M1 Air gate run and the VoiceOver check. iOS (phase 7) is
-not started.
+buffers. Owed: the M1 Air gate run and the VoiceOver check. iOS (phase 7):
+agenda and capture, Simulator builds only so far.
 
 ## Build and run
 
@@ -29,6 +29,13 @@ Finder once the app has been launched.
 `org-protocol://store-link?url=…&title=…` links work as in Emacs, so browser
 bookmarklets written for org-protocol work unchanged. Shortcuts has a
 "Capture to Orgstar" action that files text with a capture template.
+
+The iOS app (agenda and capture, iOS 26) builds for the Simulator:
+
+```sh
+scripts/build-ios-app.sh      # builds .build/ios-app/Orgstar.app
+xcrun simctl install booted .build/ios-app/Orgstar.app
+```
 
 Settings live in `~/.config/orgstar/config.toml` (Orgstar ▸ Edit Config File),
 with keys in `keymap.toml` and capture templates in `capture.toml` beside it.
