@@ -22,8 +22,8 @@ enum ClockTable {
             ":narrow": .symbol("40!"), ":indent": .symbol("t"), ":lang": .string("en"),
         ]
 
-        init(_ line: String) throws {
-            values = Self.defaults
+        init(_ line: String, defaults: [String: Sexp] = Self.defaults) throws {
+            values = defaults
             let forms = try LispReader.read("(" + line + ")")
             let items = forms.first?.sexp.elements ?? []
             var i = 0
@@ -307,14 +307,21 @@ extension EmacsBuffer {
         point = begin
         guard let start = lookingAt(Self.dblockStart) else { throw UserError(message: "Not at a dynamic block") }
         let name = start[1].map { substring($0.lowerBound, $0.upperBound) } ?? ""
-        guard name == "clocktable" else { throw UserError(message: "Dynamic blocks named \(name) aren't supported") }
         let paramText = start[3].map { substring($0.lowerBound, $0.upperBound) } ?? ""
-        let params = try ClockTable.Params(paramText)
-        let indentation = currentIndentation
         let deleteFrom = start[0]!.upperBound + 1
         point = start[0]!.upperBound
         guard let end = searchForward("^[ \\t]*#\\+(?:END|end):?", caseInsensitive: false)?[0] else { throw UserError(message: "Dynamic block not terminated") }
         let content = substring(min(deleteFrom, end.lowerBound), end.lowerBound)
+        if name == "columnview" {
+            let params = try ClockTable.Params(paramText, defaults: [:])
+            let mark = marker(begin)
+            defer { release(mark) }
+            let table = try writeColumnView(params, at: begin, content: content, tree: OrgParser.parse(string))
+            try replaceDynamicBlockContent(at: mark.position, with: table, recalculate: table.range(of: "(?mi)^[ \\t]*#\\+TBLFM:", options: .regularExpression) != nil)
+            return
+        }
+        guard name == "clocktable" else { throw UserError(message: "Dynamic blocks named \(name) aren't supported") }
+        let params = try ClockTable.Params(paramText)
         // The scope's text.
         point = begin
         let region: Range<Int>
@@ -336,6 +343,18 @@ extension EmacsBuffer {
             throw UserError(message: "Clock tables over \(scope) aren't supported yet")
         }
         let table = try ClockTable.write(self, params: params, region: region, content: content)
+        try replaceDynamicBlockContent(at: begin, with: table)
+    }
+
+    /// Puts `table` between the #+BEGIN and #+END lines of the block at `begin`, indented like
+    /// the #+BEGIN line as `org-update-dblock` does, and aligns it.
+    func replaceDynamicBlockContent(at begin: Int, with table: String, recalculate: Bool = false) throws {
+        point = begin
+        guard let start = lookingAt(Self.dblockStart) else { throw UserError(message: "Not at a dynamic block") }
+        let indentation = currentIndentation
+        let deleteFrom = start[0]!.upperBound + 1
+        point = start[0]!.upperBound
+        guard let end = searchForward("^[ \\t]*#\\+(?:END|end):?", caseInsensitive: false)?[0] else { throw UserError(message: "Dynamic block not terminated") }
         // Replace the old contents.
         let contentEnd = end.lowerBound
         deleteRegion(min(deleteFrom, contentEnd), contentEnd)
@@ -355,6 +374,14 @@ extension EmacsBuffer {
         point = deleteFrom
         if let bar = searchForward("^[ \\t]*\\|", caseInsensitive: false) {
             point = bar[0]!.upperBound
+            // A table kept with formulas is recalculated, as the column view writer does.
+            if recalculate {
+                do {
+                    try tableRecalculate(all: true)
+                } catch let error as Calc.Unsupported {
+                    throw UserError(message: TableRecalculate.emacsMessage + error.reason)
+                }
+            }
             tableAlign()
         }
         point = begin
@@ -396,17 +423,61 @@ public struct ClockReportTable: OrgCommand {
                 return
             }
             let scope = buffer.beforeFirstHeading ? "file" : "subtree"
-            // `org-create-dblock`.
-            if buffer.substring(buffer.lineStart(buffer.point), buffer.lineEnd(buffer.point)).contains(where: { !$0.isWhitespace }) {
-                buffer.point = buffer.lineEnd(buffer.point)
-                buffer.insert("\n")
-            }
-            let column = buffer.currentColumn
-            let begin = buffer.lineStart(buffer.point)
-            buffer.insert("#+BEGIN: clocktable :scope \(scope) :maxlevel 2\n\n" + String(repeating: " ", count: column) + "#+END:\n")
+            let begin = buffer.createDynamicBlock("clocktable :scope \(scope) :maxlevel 2")
             try buffer.updateDynamicBlock(at: begin)
             buffer.point = begin
         }
+    }
+}
+
+extension EmacsBuffer {
+    /// `org-create-dblock`: an empty block named by `header` on a line of its own at point.
+    func createDynamicBlock(_ header: String) -> Int {
+        if substring(lineStart(point), lineEnd(point)).contains(where: { !$0.isWhitespace }) {
+            point = lineEnd(point)
+            insert("\n")
+        }
+        let column = currentColumn
+        let begin = lineStart(point)
+        insert("#+BEGIN: \(header)\n\n" + String(repeating: " ", count: column) + "#+END:\n")
+        return begin
+    }
+}
+
+/// C-c C-x i: `org-columns-insert-dblock`, asking what to capture (this subtree, the file, or an
+/// entry by ID).
+public struct InsertColumnView: OrgCommand {
+    public init() {}
+    public var id: String { "org.columns.insert-dblock" }
+    public var title: String { "Insert Column View Table" }
+    public func applies(in context: EditContext) -> Bool { true }
+    public func run(in context: EditContext) -> CommandStep {
+        guard let answer = context.answers["capture"] else {
+            let ids = SparseTreeCommand.propertyValues("ID", in: context.text)
+            return .prompt(Prompt(key: "capture", message: "Capture columns (local, global, entry with :ID: property) [local]:",
+                                  choices: ["global", "local"] + ids, requireMatch: false))
+        }
+        let id = answer.isEmpty || answer == "local" ? "local" : answer == "global" ? "global" : answer
+        return commitBuffer(context) { buffer in
+            let begin = buffer.createDynamicBlock("columnview :hlines 1 :id \(id)")
+            try buffer.updateDynamicBlock(at: begin)
+            buffer.point = begin
+        }
+    }
+}
+
+/// C-c C-x C-c: `org-columns`, shown read-only: the entries from the column view's top level
+/// with their values and summaries.
+public struct ShowColumnView: OrgCommand {
+    let global: Bool
+    public init(global: Bool = false) { self.global = global }
+    public var id: String { global ? "org.columns.global" : "org.columns" }
+    public var title: String { global ? "Column View of File" : "Column View" }
+    public func applies(in context: EditContext) -> Bool { true }
+    public func run(in context: EditContext) -> CommandStep {
+        let view = ColumnView.capture(text: context.text, tree: context.tree, at: context.caret, global: global, now: context.now).view
+        guard !view.rows.isEmpty else { return .failed("No entries for column view") }
+        return .external(.columnView(view))
     }
 }
 

@@ -210,6 +210,8 @@ public enum ExternalRequest: Sendable, Equatable {
     case openLink(OrgLink)
     /// Edit a block's text apart (`org-edit-special`); `ReplaceBlockLines` puts it back.
     case editBlock(BlockEdit)
+    /// Show a column view.
+    case columnView(ColumnView.View)
 }
 
 /// A named operation. Keys, menus, the palette and touch controls all run commands.
@@ -239,7 +241,7 @@ public enum Commands {
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(),
-        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(), SetPriority(), SetPriority(value: "A"), SetPriority(value: "B"), SetPriority(value: "C"), SetPriority(value: " "),
+        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(), SetPriority(), SetPriority(value: "A"), SetPriority(value: "B"), SetPriority(value: "C"), SetPriority(value: " "), ReadAndSetProperty(), DeleteProperty(), DeleteProperty(globally: true), PropertyAction(), NextAllowedValue(previous: false), NextAllowedValue(previous: true), InsertColumnView(), ShowColumnView(), ShowColumnView(global: true),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

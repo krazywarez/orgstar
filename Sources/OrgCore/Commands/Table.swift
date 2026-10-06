@@ -10,7 +10,9 @@ extension EmacsBuffer {
     /// `org-at-table-p`: an org table line outside blocks.
     var atTable: Bool {
         guard lookingAtLine("^[ \\t]*\\|") else { return false }
-        return element(at: lineStart(point))?.kind == .table || element(at: lineStart(point))?.kind == .tableRow
+        // Dynamic blocks hold elements in Org; their tables count.
+        let kind = element(at: lineStart(point))?.kind
+        return kind == .table || kind == .tableRow || kind == .dynamicBlock
     }
 
     var atTableHline: Bool { lookingAtLine("^[ \\t]*\\|-") }

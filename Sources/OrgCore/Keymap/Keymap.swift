@@ -131,7 +131,7 @@ public struct Keymap: Sendable, Equatable {
 
 /// Context names a binding's `when` can use.
 public enum KeyContext {
-    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src", "fold-line", "dblock", "speed"]
+    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src", "fold-line", "dblock", "speed", "property"]
 
     public static func holds(_ name: String, in context: EditContext) -> Bool {
         switch name {
@@ -148,6 +148,8 @@ public enum KeyContext {
         case "dblock":
             let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings)
             return buffer.lookingAtLine(EmacsBuffer.dblockStart)
+        // A property line in a property drawer.
+        case "property": return EmacsBuffer(context.text, point: context.caret).propertyAtPoint() != nil
         // `org-use-speed-commands`: at the very start of a heading line.
         case "speed":
             guard context.options.useSpeedCommands, context.selection.allSatisfy(\.isEmpty) else { return false }

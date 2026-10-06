@@ -52,6 +52,7 @@ struct ContentView: View {
     }
     /// A block being edited apart (`org-edit-special`).
     @State private var blockEdit: BlockEditRequest?
+    @State private var columnView: ColumnViewRequest?
 
     @State private var selectedFile: String?
     /// A file that isn't text, shown as a preview instead of the open document.
@@ -207,6 +208,9 @@ struct ContentView: View {
         .onChange(of: options, initial: true) { _, options in session.options = options }
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
+        .sheet(item: $columnView) { request in
+            ColumnViewSheet(view: request.view) { offset in commands.editor?.reveal(offset) }
+        }
         .sheet(item: $blockEdit) { request in
             BlockEditorView(edit: request.edit) { content in
                 blockEdit = nil
@@ -373,6 +377,8 @@ struct ContentView: View {
             if let message = LinkOpener.open(link, session: session, workspace: workspace) { commands.show(message) }
         case .editBlock(let edit):
             blockEdit = BlockEditRequest(edit: edit)
+        case .columnView(let view):
+            columnView = ColumnViewRequest(view: view)
         case .emacsTable(let table, let point, let form, let reason, let lisp):
             let run = {
                 commands.show("Recalculating in Emacs (\(reason))…")

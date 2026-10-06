@@ -370,6 +370,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.priority.set"
         mode = "normal"
         [[bind]]
+        keys = "SPC m o"
+        command = "org.property.read-and-set"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m p u"
         command = "org.priority.up"
         mode = "normal"
@@ -708,6 +712,23 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-c ,"
         command = "org.priority.set"
+        [[bind]]
+        keys = "C-c C-x p"
+        command = "org.property.read-and-set"
+        [[bind]]
+        keys = "C-c C-x i"
+        command = "org.columns.insert-dblock"
+        [[bind]]
+        keys = "C-c C-x C-c"
+        command = "org.columns"
+        [[bind]]
+        keys = "S-<right>"
+        command = "org.property.next-value"
+        when = "property"
+        [[bind]]
+        keys = "S-<left>"
+        command = "org.property.previous-value"
+        when = "property"
         [[bind]]
         keys = "C-c C-x C-r"
         command = "org.clock.report"
