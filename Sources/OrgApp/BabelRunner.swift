@@ -34,7 +34,13 @@ public enum BabelRunner {
         process.environment = environment
         let stdin = Pipe()
         switch job.runner {
-        case .process(let executable, let arguments):
+        case .process(let executable, var arguments):
+            if let script = job.script {
+                let file = folder.appendingPathComponent("script")
+                try script.write(to: file, atomically: true, encoding: .utf8)
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.path)
+                arguments = arguments.map { $0.replacingOccurrences(of: Babel.scriptFileToken, with: file.path) }
+            }
             process.arguments = [executable] + arguments
         case .emacs:
             guard let emacs = EmacsRunner.executable() else { throw Failure(description: "Emacs isn't installed, so Emacs Lisp blocks can't run.") }

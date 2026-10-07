@@ -36,6 +36,8 @@ public struct BabelJob: Sendable, Equatable {
     var resolved: [String: Babel.VarValue] = [:]
     var caret = 0
     var options = Babel.Options()
+    /// A script for the runner to write to an executable file, for `Babel.scriptFileToken`.
+    public internal(set) var script: String?
     /// An Emacs Lisp block's form, for `Babel.evaluateNatively`.
     public internal(set) var lispForm: String?
 
@@ -91,6 +93,8 @@ public struct BabelOutput: Sendable, Equatable {
 
 public enum Babel {
     public static let resultFileToken = "__ORGSTAR_RESULT_FILE__"
+    /// Stands, in a job's arguments, for the executable file the runner writes `job.script` to.
+    public static let scriptFileToken = "__ORGSTAR_SCRIPT_FILE__"
     static let shells: Set<String> = ["sh", "bash", "zsh", "shell", "fish", "ksh", "dash", "ash", "csh", "mksh", "posh"]
     static let generic: [String: (String, [String])] = [
         "ruby": ("ruby", []), "js": ("node", []), "javascript": ("node", []), "R": ("Rscript", ["-"]),
@@ -253,10 +257,11 @@ public enum Babel {
         if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
             return .failure(.message("Evaluation of this \(language) code block\(block.name.map { " (\($0)) " } ?? " ")is disabled."))
         }
-        if params.single[":cmdline"] != nil, !["dot", "plantuml", "mermaid"].contains(language) {
-            return .failure(.message(":cmdline isn't supported yet; nothing was run."))
+        if params.single[":cmdline"] != nil, !["dot", "plantuml", "mermaid"].contains(language), !shells.contains(language) {
+            return .failure(.message(":cmdline isn't supported for \(language) yet; nothing was run."))
         }
-        for key in [":prologue", ":epilogue", ":post", ":stdin", ":shebang"] where params.single[key] != nil {
+        for key in [":prologue", ":epilogue", ":post", ":stdin", ":shebang"] where params.single[key] != nil
+            && !(shells.contains(language) && [":stdin", ":shebang"].contains(key)) {
             return .failure(.message("\(key) isn't supported yet; nothing was run."))
         }
         let session = params.single[":session"].flatMap { $0 == "none" ? nil : ($0.isEmpty ? "*\(language)*" : $0) }
@@ -285,8 +290,10 @@ public enum Babel {
                             file: toFile ? file : nil, fileDescription: params.single[":file-desc"])
         }
         let vars: [(String, VarValue)]
+        var stdin: VarValue?
         do {
             vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: ns, refs: refs)) }
+            stdin = try params.single[":stdin"].map { try resolve($0, model: model, text: ns, refs: refs) }
         } catch let needed as Needed {
             // Asked about once, with every block the references reach.
             let texts = [ns.substring(with: NSRange(location))] + referencedBlocks(params, model: model, text: ns, seen: []).map { ns.substring(with: NSRange($0.range)) }
@@ -314,8 +321,25 @@ public enum Babel {
                 }
                 lines.append("\(name)='" + s.replacingOccurrences(of: "'", with: "'\"'\"'") + "'")
             }
-            let full = (lines + [body]).joined(separator: "\n") + (valueIsExitStatus ? "\necho $?" : "")
             let executable = language == "shell" ? options.shell : language
+            let cmdline = params.single[":cmdline"]
+            let shebang = params.single[":shebang"].flatMap { $0.contains(where: { !$0.isWhitespace }) ? $0 : nil }
+            if session == nil, stdin != nil || cmdline != nil || shebang != nil {
+                // `org-babel-sh-evaluate`: an executable script, run by the shell with the
+                // command line after it and `:stdin` as its input; the value is its last line.
+                var script = (shebang ?? "#!/usr/bin/env \(executable)") + "\n"
+                if params.single[":padline"] != "no" { script += "\n" }
+                script += (lines + [body]).joined(separator: "\n")
+                let command = Babel.scriptFileToken + (stdin != nil || cmdline != nil ? " " + (cmdline ?? "") : "")
+                var job = BabelJob(
+                    language: language, runner: .process(executable: executable, arguments: ["-c", command]),
+                    input: stdin.map(shellString) ?? "", directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
+                    finish: finishBase(.shell(valueIsExitStatus: valueIsExitStatus))
+                )
+                job.script = script
+                return .success(job)
+            }
+            let full = (lines + [body]).joined(separator: "\n") + (valueIsExitStatus ? "\necho $?" : "")
             return .success(BabelJob(
                 language: language, runner: session.map { .session(name: $0, executable: executable, python: false) } ?? .process(executable: executable, arguments: []),
                 input: full.trimmingCharacters(in: .whitespacesAndNewlines) + "\n", directory: dir,
@@ -756,8 +780,8 @@ public enum Babel {
     static func referencedBlocks(_ params: Params, model: DocumentModel, text: NSString, seen: Set<String>) -> [SrcBlockInfo] {
         var found: [SrcBlockInfo] = []
         var seen = seen
-        for variable in params.vars {
-            guard let (block, arguments) = referencedBlock(variable.value, model: model), let name = block.name, seen.insert(name).inserted else { continue }
+        for value in params.vars.map(\.value) + [params.single[":stdin"]].compactMap({ $0 }) {
+            guard let (block, arguments) = referencedBlock(value, model: model), let name = block.name, seen.insert(name).inserted else { continue }
             found.append(block)
             let extra = arguments.map { [splitArguments($0).map { (":var", $0) }] } ?? []
             if let inner = try? Params(block: block, model: model, text: text, extra: extra) {
@@ -818,6 +842,22 @@ public enum Babel {
         if !rows.isEmpty { return .table(rows) }
         if !items.isEmpty { return .list(items) }
         throw Failure.message("\(value) isn't a table or list.")
+    }
+
+    /// `org-babel-sh-var-to-string`: a table's rows as tab-separated lines, a list's items as
+    /// lines.
+    static func shellString(_ value: VarValue) -> String {
+        func cell(_ c: Cell) -> String {
+            switch c {
+            case .number(let n): n
+            case .text(let s): s
+            }
+        }
+        switch value {
+        case .scalar(let s), .number(let s): return s
+        case .list(let items): return items.map(cell).joined(separator: "\n")
+        case .table(let rows): return rows.map { $0.map(cell).joined(separator: "\t") }.joined(separator: "\n")
+        }
     }
 
     /// `org-babel-python-var-to-python`.

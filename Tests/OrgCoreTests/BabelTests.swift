@@ -15,7 +15,13 @@ enum TestBabelRunner {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         switch job.runner {
-        case .process(let executable, let arguments):
+        case .process(let executable, var arguments):
+            if let script = job.script {
+                let file = folder.appendingPathComponent("script")
+                try script.write(to: file, atomically: true, encoding: .utf8)
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.path)
+                arguments = arguments.map { $0.replacingOccurrences(of: Babel.scriptFileToken, with: file.path) }
+            }
             process.arguments = [executable] + arguments
         case .emacs:
             let script = folder.appendingPathComponent("babel.el")
@@ -132,6 +138,14 @@ struct BabelTests {
         "#+PROPERTY: header-args :results output\n#+begin_src sh\nprintf 'a b\\nc d\\n'\n#+end_src\n",
         "* Heading\n:PROPERTIES:\n:header-args:sh: :results verbatim\n:END:\n#+begin_src sh\necho 1 2\n#+end_src\n",
         "#+HEADER: :results output\n#+begin_src sh\nprintf 'x y\\nz w\\n'\n#+end_src\n",
+        // `:cmdline`, `:stdin` and `:shebang`.
+        "#+begin_src sh :cmdline one \"two words\" :results output\nfor a in \"$@\"; do echo \"[$a]\"; done\n#+end_src\n",
+        "#+begin_src sh :cmdline 3\necho $(( $1 * 2 ))\n#+end_src\n",
+        "#+NAME: rows\n| a | 1 |\n| b | 2 |\n\n#+begin_src sh :stdin rows :results output\nwhile IFS=$(printf '\\t') read -r k v; do echo \"$k=$v\"; done\n#+end_src\n",
+        "#+NAME: items\n- x\n- y\n\n#+begin_src sh :stdin items\nwc -l | tr -d ' '\n#+end_src\n",
+        "#+begin_src bash :shebang #!/bin/bash :results output\necho ${BASH_VERSION:+bash}\n#+end_src\n",
+        "#+begin_src sh :cmdline a b :padline no :var x=5 :results output\necho $x $#\n#+end_src\n",
+        "#+begin_src sh :stdin src :results output\ntr a-z A-Z\n#+end_src\n\n#+NAME: src\n#+begin_src sh\necho hello\n#+end_src\n",
         // `:var` from other blocks' results.
         "#+begin_src sh :var x=five\necho $((x+1))\n#+end_src\n\n#+NAME: five\n#+begin_src sh\necho 5\n#+end_src\n",
         "#+begin_src python :var t=tbl\nreturn [len(t), t[1][0]]\n#+end_src\n\n#+NAME: tbl\n#+begin_src python\nreturn [[1, 2], [3, 4]]\n#+end_src\n",
@@ -231,7 +245,7 @@ struct BabelTests {
             ("#+begin_src sh :eval never\necho\n#+end_src\n", "Evaluation of this sh code block is disabled."),
             ("#+begin_src ruby :session s\nputs 1\n#+end_src\n", ":session isn't supported for ruby yet; nothing was run."),
             ("#+begin_src sh :noweb yes\n<<x()>>\n#+end_src\n", "Noweb references that run a block (x()) aren't supported yet; nothing was run."),
-            ("#+begin_src sh :cmdline -x\necho\n#+end_src\n", ":cmdline isn't supported yet; nothing was run."),
+            ("#+begin_src python :cmdline -x\nreturn 1\n#+end_src\n", ":cmdline isn't supported for python yet; nothing was run."),
             ("#+begin_src cobol\nDISPLAY\n#+end_src\n", "No way to run cobol blocks yet."),
             ("#+begin_src sh :var x=loop\necho\n#+end_src\n#+NAME: loop\n#+begin_src sh :var y=loop\necho\n#+end_src\n", "loop refers to itself through :var"),
         ] {
