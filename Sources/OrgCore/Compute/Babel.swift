@@ -138,6 +138,9 @@ public enum Babel {
             if let call = try callAt(context.caret, model: model, text: ns) {
                 return located(plan(call.block, params: call.params, model: model, text: ns, options: options, location: call.location, name: call.name, refs: refs))
             }
+            if let call = try inlineCallAt(context.caret, tree: context.tree, model: model, text: ns) {
+                return located(plan(call.block, params: call.params, model: model, text: ns, options: options, location: call.location, name: nil, inline: true, refs: refs))
+            }
             if let inline = try inlineAt(context.caret, tree: context.tree, model: model, text: ns) {
                 return located(plan(inline.block, params: inline.params, model: model, text: ns, options: options, location: inline.block.range, name: nil, inline: true, refs: refs))
             }
@@ -169,6 +172,25 @@ public enum Babel {
         }
         let location = lineRange.location..<NSMaxRange(lineRange)
         return (block, try Params(block: block, model: model, text: text, extra: extra), location, callName)
+    }
+
+    /// The inline `call_NAME[INSIDE](ARGS)[END]` at `offset`: like `#+CALL`, with the result
+    /// after the call.
+    static func inlineCallAt(_ offset: Int, tree: OrgTree, model: DocumentModel, text: NSString) throws -> (block: SrcBlockInfo, params: Params, location: Range<Int>)? {
+        var node = tree.root
+        var found: SyntaxNode?
+        while let child = node.child(containing: offset) {
+            if child.kind == .inlineBabelCall { found = child }
+            node = child
+        }
+        guard let object = found, let m = object.text.firstMatch(of: /^call_([^()\[\]\s]+)(?:\[([^\]]*)\])?\((.*?)\)(?:\[([^\]]*)\])?$/) else { return nil }
+        let name = String(m.1)
+        guard let block = model.srcBlocks.first(where: { $0.name == name }) else { throw Failure.message("Reference '\(name)' not found in this buffer") }
+        var extra: [[(String, String)]] = []
+        if let inside = m.2 { extra.append(Params.parse(String(inside))) }
+        extra.append(splitArguments(String(m.3)).map { (":var", $0) })
+        if let end = m.4 { extra.append(Params.parse(String(end))) }
+        return (block, try Params(block: block, model: model, text: text, extra: extra), object.range)
     }
 
     /// Call arguments split on commas outside quotes and parentheses.

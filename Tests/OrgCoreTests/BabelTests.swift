@@ -196,6 +196,12 @@ struct BabelCallTests {
         ("Text src_sh[:results raw]{echo raw} end.\n", "src_sh"),
         ("Text src_python{return 6*7} end.\n", "src_python"),
         ("Text src_sh[:var x=3]{echo $x} end.\n", "src_sh"),
+        (named + "Inline call_double(n=6) here.\n", "call_"),
+        (named + "Inline call_double() here.\n", "call_"),
+        (named + "Inline call_double(n=6)[:results raw] here.\n", "call_"),
+        (named + "Inline call_double[:results verbatim](n=1) here.\n", "call_"),
+        (named + "Inline call_double(n=2) {{{results(=0=)}}} here.\n", "call_"),
+        (named + "Inline call_double(n=2) and call_double(n=3) here.\n", "call_double(n=3"),
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
