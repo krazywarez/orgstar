@@ -16,7 +16,7 @@ struct EditorScreen: View {
     @State private var editor: MobileEditor?
     @State private var prompt: PromptRequest?
     @State private var message: String?
-    @State private var showingPalette = false
+    @State private var sheet: Sheet?
     @Environment(\.openURL) private var openURL
 
     struct PromptRequest: Identifiable {
@@ -25,10 +25,15 @@ struct EditorScreen: View {
         let reply: (String?) -> Void
     }
 
+    enum Sheet: String, Identifiable {
+        case palette, conflict, syncCopies, recovery
+        var id: String { rawValue }
+    }
+
     var body: some View {
         Group {
             if let editor {
-                EditorTextView(editor: editor, palette: { showingPalette = true })
+                EditorTextView(editor: editor, palette: { sheet = .palette })
                     .ignoresSafeArea(.container, edges: .bottom)
             } else {
                 ProgressView()
@@ -39,8 +44,15 @@ struct EditorScreen: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                if session.conflict != nil {
+                    Button("Conflict", systemImage: "exclamationmark.triangle") { sheet = .conflict }
+                }
                 Button("Undo", systemImage: "arrow.uturn.backward") { editor?.run("edit.undo") }
-                Button("Commands", systemImage: "command") { showingPalette = true }
+                Menu("More", systemImage: "ellipsis.circle") {
+                    Button("Commands", systemImage: "command") { sheet = .palette }
+                    Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
+                    Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
+                }
             }
         }
         .safeAreaInset(edge: .top) {
@@ -59,8 +71,19 @@ struct EditorScreen: View {
                 request.reply(answer)
             }
         }
-        .sheet(isPresented: $showingPalette) {
-            if let editor { CommandPalette(editor: editor) }
+        .sheet(item: $sheet) { sheet in
+            switch sheet {
+            case .palette: if let editor { CommandPalette(editor: editor) }
+            case .conflict: ConflictSheet(session: session)
+            case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
+            case .recovery: RecoverySheet(session: session) { message = $0 }
+            }
+        }
+        .onChange(of: session.conflict) { _, conflict in
+            if conflict != nil, session.path == path { sheet = .conflict }
+        }
+        .onChange(of: session.lastError) { _, error in
+            if let error { message = error; session.lastError = nil }
         }
         .onAppear(perform: start)
         .onChange(of: session.revealRequest?.id) {
@@ -92,6 +115,11 @@ struct EditorScreen: View {
         }
         if let editor { session.attach(editor) }
         if let offset { editor?.reveal(offset) }
+        if session.conflict != nil {
+            sheet = .conflict
+        } else if case let copies = session.syncConflictCopies().count, copies > 0 {
+            message = "\(copies) sync conflict \(copies == 1 ? "copy" : "copies") of this file; More › Sync Conflict Copies compares them."
+        }
     }
 }
 
