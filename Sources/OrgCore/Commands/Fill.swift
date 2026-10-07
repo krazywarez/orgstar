@@ -305,7 +305,7 @@ extension EmacsBuffer {
     /// `fill-region-as-paragraph` with left justification and adaptive fill.
     func fillRegionAsParagraph(_ fromOffset: Int, _ toOffset: Int, prefix fixedPrefix: String? = nil) {
         point = min(fromOffset, toOffset)
-        var to = max(fromOffset, toOffset)
+        let to = max(fromOffset, toOffset)
         skipForward(Self.whitespace)
         let fromPlusIndent = point
         point = lineStart(point)

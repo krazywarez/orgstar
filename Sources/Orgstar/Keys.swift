@@ -1,6 +1,7 @@
 import OrgApp
 import OrgCore
 import OrgEditorAppKit
+import OrgPresentation
 import SwiftUI
 
 struct KeyHint: Hashable {

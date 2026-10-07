@@ -599,7 +599,7 @@ public struct Vim: Sendable {
             }
             guard let p = find(kind, last.char, buffer, c, count: n, repeating: true) else { return .invalid }
             return .moved(p, kind == "f" || kind == "t" ? .inclusive : .exclusive)
-        case ("s", []), ("S", []) where !operatorPending:
+        case ("s", []) where !operatorPending, ("S", []) where !operatorPending:
             // evil-snipe with `evil-snipe-scope` line.
             guard keys.count >= 3 else { return .incomplete }
             let chars = keys[1].key + keys[2].key

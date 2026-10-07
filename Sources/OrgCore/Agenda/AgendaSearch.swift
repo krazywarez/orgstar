@@ -111,7 +111,7 @@ public struct TagsMatcher: Sendable {
 
         if tagsPart.contains(where: { !$0.isWhitespace }) {
             var alternatives: [[Term]] = []
-            var parts = Self.split(tagsPart)
+            let parts = Self.split(tagsPart)
             var i = 0
             while i < parts.count {
                 var part = parts[i]

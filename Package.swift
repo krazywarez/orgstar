@@ -54,7 +54,8 @@ let package = Package(
         .target(name: "TreeSitterClojure", path: "Sources/TreeSitterClojure", sources: ["src/parser.c"], cSettings: [.headerSearchPath("src")]),
         .target(
             name: "TreeSitterScanners", path: "Sources/TreeSitterScanners",
-            sources: ["javascript/scanner.c", "lua/scanner.c", "python/scanner.c", "yaml/scanner.c"]
+            sources: ["javascript/scanner.c", "lua/scanner.c", "python/scanner.c", "yaml/scanner.c"],
+            cSettings: [.unsafeFlags(["-Wno-shorten-64-to-32"])]
         ),
         .target(
             name: "OrgHighlight",
@@ -89,7 +90,7 @@ let package = Package(
         .executableTarget(name: "OrgstarSpotlight", dependencies: ["OrgCore"], linkerSettings: extensionEntry),
         // The iOS share extension, bundled into the iOS app by scripts/build-ios-app.sh.
         .executableTarget(name: "OrgstarShare", dependencies: ["OrgApp"], linkerSettings: extensionEntry),
-        .testTarget(name: "OrgCoreTests", dependencies: ["OrgCore"]),
+        .testTarget(name: "OrgCoreTests", dependencies: ["OrgCore"], exclude: ["Conformance"]),
         .testTarget(name: "OrgDocumentTests", dependencies: ["OrgDocument"]),
         .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"]),
         .testTarget(name: "OrgWorkspaceTests", dependencies: ["OrgWorkspace"]),

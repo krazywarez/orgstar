@@ -738,7 +738,8 @@ struct AgendaRow: View {
         guard let todo = item.todo, text.hasPrefix(todo + " ") else { return Text(text) }
         let rest = String(text.dropFirst(todo.count))
         let rest_ = Text(rest).foregroundColor(item.isDone ? theme.color("comment") ?? .secondary : theme.color("foreground") ?? .primary)
-        return Text(todo).foregroundColor(theme.keywordColor(todo, done: item.isDone)).bold() + rest_
+        let todo_ = Text(todo).foregroundColor(theme.keywordColor(todo, done: item.isDone)).bold()
+        return Text("\(todo_)\(rest_)")
     }
 }
 

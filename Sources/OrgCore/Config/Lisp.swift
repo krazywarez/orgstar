@@ -198,7 +198,7 @@ public enum LispReader {
             case "t": return 9
             case "s": return 32
             case "e": return 27
-            case "C", "M", "S", "s", "H", "A":
+            case "C", "M", "S", "H", "A":
                 if peek == "-" { _ = next(); return try character() }
                 return Int(e.value)
             default: return Int(e.value)

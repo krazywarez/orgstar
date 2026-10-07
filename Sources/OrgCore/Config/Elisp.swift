@@ -584,7 +584,7 @@ public final class Elisp {
             guard let last = args.last else { return .nil }
             var items: [Sexp] = []
             for arg in args.dropLast() { items += try sequence(arg) }
-            return try items.reversed().reduce(last) { cons($1, $0) }
+            return items.reversed().reduce(last) { cons($1, $0) }
         }
         lisp.define("length") { _, args in
             try arity(args, 1...1, "length")

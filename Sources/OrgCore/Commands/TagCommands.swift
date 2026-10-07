@@ -62,7 +62,7 @@ public struct SetTags: OrgCommand {
         commitBuffer(context) { buffer in
             try buffer.saveExcursion {
                 try buffer.backToHeading()
-                try buffer.saveExcursion {
+                buffer.saveExcursion {
                     let line = buffer.saveExcursion { buffer.lookingAt(Self.tagLine) }
                     let old = line.flatMap { $0[2] }.map { buffer.substring($0.lowerBound, $0.upperBound).split(separator: ":").map(String.init) } ?? []
                     if tags != old {
