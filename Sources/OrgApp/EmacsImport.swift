@@ -556,7 +556,7 @@ public struct EmacsImport: Sendable {
             unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "a template that isn't a string", source: source))
             return
         }
-        guard ["entry", "item", "checkitem", "plain"].contains(type) else {
+        guard ["entry", "item", "checkitem", "plain", "table-line"].contains(type) else {
             unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "\(type) templates aren't supported", source: source))
             return
         }
@@ -607,7 +607,8 @@ public struct EmacsImport: Sendable {
         for count in ["empty-lines", "empty-lines-before", "empty-lines-after"] {
             if let n = properties[":" + count]?.integer { toml += "\(count) = \(n)\n" }
         }
-        let ignored = properties.keys.filter { ![":prepend", ":immediate-finish", ":jump-to-captured", ":clock-in", ":clock-keep", ":clock-resume", ":empty-lines", ":empty-lines-before", ":empty-lines-after", ":tree-type"].contains($0) }
+        if let pos = properties[":table-line-pos"]?.string { toml += "table-line-pos = \(quoted(pos))\n" }
+        let ignored = properties.keys.filter { ![":prepend", ":immediate-finish", ":jump-to-captured", ":clock-in", ":clock-keep", ":clock-resume", ":empty-lines", ":empty-lines-before", ":empty-lines-after", ":tree-type", ":table-line-pos"].contains($0) }
         if !ignored.isEmpty {
             unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "\(ignored.sorted().joined(separator: ", ")) left out", source: source))
         }

@@ -28,6 +28,7 @@ struct CaptureTests {
             if let n = o.emptyLines { properties += " :empty-lines \(n)" }
             if let n = o.emptyLinesBefore { properties += " :empty-lines-before \(n)" }
             if let n = o.emptyLinesAfter { properties += " :empty-lines-after \(n)" }
+            if let pos = o.tableLinePos { properties += " :table-line-pos \(lisp(pos))" }
             switch c.template.target {
             case .file: target = "(file \(lisp(path)))"
             case .headline(_, let h): target = "(file+headline \(lisp(path)) \(lisp(h)))"
@@ -132,6 +133,46 @@ struct CaptureTests {
         for (c, expected) in zip(cases, emacs) {
             let mine = Self.ours(c, now: now)
             #expect(mine == expected, "\(c.template.template.debugDescription) \(c.template.kind) prepend \(c.template.prepend) into \(c.file.debugDescription)\nours:\n\(mine.debugDescription)\nemacs:\n\(expected.debugDescription)")
+        }
+    }
+
+    static let tableFiles = [
+        "* Inbox\n| a | b |\n|---+---|\n| 1 | 2 |\n* Later\n",
+        "* Inbox\nText first.\n\n| a | b |\n|---+---|\n| 1 | 2 |\n|---+---|\n| total | |\n\nAfter.\n* Later\n",
+        "* Inbox\nNo table here.\n* Later\n",
+        "* Inbox\n",
+        "| x |\n| 1 |\n",
+        "* Inbox\n| n | sq |\n|---+----|\n| 2 |  4 |\n| 3 | 9 |\n#+TBLFM: $2=$1^2::@2$1=@3$1-1\n* Later\n",
+    ]
+
+    static let tableTemplates: [CaptureTemplate] = [
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .headline(file: "", headline: "Inbox"), template: "| %? | new |"),
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .headline(file: "", headline: "Inbox"), template: "| %? |", prepend: true),
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .headline(file: "", headline: "Inbox"), template: "%? | plain",
+                        options: .init(tableLinePos: "II-1")),
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .headline(file: "", headline: "Inbox"), template: "| first %? |\n| second |",
+                        options: .init(tableLinePos: "I+1")),
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .file(""), template: "| %? |"),
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func tableLinesMatchEmacs() throws {
+        let seconds = 1_789_000_000
+        var cases: [Case] = []
+        for template in Self.tableTemplates {
+            for file in Self.tableFiles {
+                if case .headline = template.target, !file.contains("Inbox") { continue }
+                if template.options.tableLinePos == "II-1", !file.contains("total") { continue }
+                // Text in a computed column: Calc's symbolic result goes to Emacs.
+                if template.template.contains("first"), file.contains("TBLFM") { continue }
+                cases.append(Case(file: file, template: template, typed: "7"))
+            }
+        }
+        let emacs = try Self.emacs(cases, seconds: seconds)
+        let now = Date(timeIntervalSince1970: Double(seconds))
+        for (c, expected) in zip(cases, emacs) {
+            let mine = Self.ours(c, now: now)
+            #expect(mine == expected, "\(c.template.template.debugDescription) prepend \(c.template.prepend) pos \(c.template.options.tableLinePos ?? "-") into \(c.file.debugDescription)\nours:\n\(mine)\nemacs:\n\(expected)")
         }
     }
 

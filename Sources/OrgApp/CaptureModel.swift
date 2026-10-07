@@ -9,7 +9,7 @@ import OrgDocument
 /// [[template]]
 /// key = "t"
 /// name = "Personal todo"
-/// type = "entry"            # entry, item, checkitem or plain
+/// type = "entry"            # entry, item, checkitem, plain or table-line
 /// file = "todo.org"         # relative to the first folder, or ~/… or /…
 /// headline = "Inbox"        # or olp = "Projects/Work"; neither for the end of the file
 /// template = "* TODO %?\n%i\n%a"
@@ -19,7 +19,8 @@ import OrgDocument
 /// Other targets: `datetree = true` (under `olp` if given; `tree-type` "day", "week" or
 /// "month"), `id = "…"` without `file`, `clock = true` without `file`. Other properties, as
 /// in `org-capture-templates`: `immediate-finish`, `empty-lines`, `empty-lines-before`,
-/// `empty-lines-after`, `jump-to-captured`, `clock-in`, `clock-keep`, `clock-resume`.
+/// `empty-lines-after`, `jump-to-captured`, `clock-in`, `clock-keep`, `clock-resume`,
+/// `table-line-pos`.
 @MainActor
 public enum CaptureTemplates {
     public static var userFile: URL { UserConfig.file("capture.toml") }
@@ -79,7 +80,8 @@ public enum CaptureTemplates {
             let options = CaptureTemplate.Options(
                 prepend: flag("prepend"), immediateFinish: flag("immediate-finish"), emptyLines: lines("empty-lines"),
                 emptyLinesBefore: lines("empty-lines-before"), emptyLinesAfter: lines("empty-lines-after"),
-                jumpToCaptured: flag("jump-to-captured"), clockIn: flag("clock-in"), clockKeep: flag("clock-keep"), clockResume: flag("clock-resume")
+                jumpToCaptured: flag("jump-to-captured"), clockIn: flag("clock-in"), clockKeep: flag("clock-keep"), clockResume: flag("clock-resume"),
+                tableLinePos: values["table-line-pos"]?.string
             )
             templates.append(CaptureTemplate(key: key, name: values["name"]?.string ?? key, kind: kind, target: target, template: body, options: options))
         }

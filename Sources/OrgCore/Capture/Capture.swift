@@ -4,7 +4,7 @@ import Foundation
 // target, as `org-capture` followed by `org-capture-finalize` leaves the target file.
 
 public struct CaptureTemplate: Sendable, Equatable, Identifiable {
-    public enum Kind: String, Sendable, Equatable { case entry, item, checkitem, plain }
+    public enum Kind: String, Sendable, Equatable { case entry, item, checkitem, plain, tableLine = "table-line" }
 
     /// `:tree-type`: what a date tree groups entries by.
     public enum TreeType: String, Sendable, Equatable { case day, week, month }
@@ -46,11 +46,15 @@ public struct CaptureTemplate: Sendable, Equatable, Identifiable {
         public var clockIn = false
         public var clockKeep = false
         public var clockResume = false
+        /// `:table-line-pos`: `II-3` is the third line above the second rule.
+        public var tableLinePos: String?
 
         public init(
             prepend: Bool = false, immediateFinish: Bool = false, emptyLines: Int? = nil, emptyLinesBefore: Int? = nil,
-            emptyLinesAfter: Int? = nil, jumpToCaptured: Bool = false, clockIn: Bool = false, clockKeep: Bool = false, clockResume: Bool = false
+            emptyLinesAfter: Int? = nil, jumpToCaptured: Bool = false, clockIn: Bool = false, clockKeep: Bool = false, clockResume: Bool = false,
+            tableLinePos: String? = nil
         ) {
+            self.tableLinePos = tableLinePos
             self.prepend = prepend
             self.immediateFinish = immediateFinish
             self.emptyLines = emptyLines
@@ -474,6 +478,7 @@ public enum Capture {
             case .entry: start = try placeEntry(text, options: options, heading: entryHeading, buffer)
             case .plain: start = placePlain(text, options: options, heading: entryHeading, buffer)
             case .item, .checkitem: start = try placeItem(text, checkbox: template.kind == .checkitem, options: options, heading: entryHeading, buffer)
+            case .tableLine: start = try placeTableLine(text, options: options, heading: entryHeading, buffer)
             }
         } catch let error as Failure {
             return .failure(error)
@@ -728,6 +733,81 @@ public enum Capture {
         buffer.insert(text.hasSuffix("\n") || text.isEmpty ? text : text + "\n")
         emptyLinesAfter(buffer, options.after)
         return start
+    }
+
+    /// `org-capture-place-table-line`, then what `org-capture-finalize` does to the table: the
+    /// first table in the entry, or the file, gets the line, at its end, after its first rule
+    /// with `prepend`, or where `table-line-pos` says; a table is made when there's none.
+    static func placeTableLine(_ filled: String, options: CaptureTemplate.Options, heading: Int?, _ buffer: EmacsBuffer) throws -> Int {
+        let template = filled.trimmingCharacters(in: .whitespacesAndNewlines)
+        // `org-table-border-regexp`: a template that isn't a table line becomes one.
+        let text = template.range(of: "^[ \\t]*[^| \\t]", options: .regularExpression) != nil ? "| " + template : template + "\n"
+        var begin = 0
+        var end = buffer.length
+        if let heading {
+            begin = min(buffer.length, buffer.lineEnd(heading) + 1)
+            buffer.point = buffer.lineEnd(heading)
+            nextHeading(buffer)
+            end = buffer.point
+        }
+        var table: Range<Int>?
+        buffer.point = begin
+        while table == nil, let match = buffer.searchForward("^[ \\t]*\\|[^-]", bound: end, caseInsensitive: false) {
+            buffer.point = match[0]!.lowerBound
+            if buffer.atTable { table = buffer.tableBegin()..<buffer.tableEnd() } else { buffer.point = match[0]!.upperBound }
+        }
+        if table == nil {
+            buffer.point = end
+            if !buffer.bolp { buffer.insert("\n") }
+            let origin = buffer.point
+            buffer.insert("|   |\n|---|\n")
+            table = origin..<buffer.point
+        }
+        let rows = buffer.substring(table!.lowerBound, table!.upperBound).components(separatedBy: "\n")
+        func lineStart(_ index: Int) -> Int {
+            buffer.saveExcursion {
+                buffer.point = table!.lowerBound
+                return buffer.forwardLine(index) == 0 ? min(buffer.point, table!.upperBound) : table!.upperBound
+            }
+        }
+        if let pos = options.tableLinePos {
+            guard let m = pos.firstMatch(of: /(I+)([-+][0-9]+)/) else { throw Failure.message("Invalid table line specification \"\(pos)\"") }
+            let hlines = rows.indices.filter { rows[$0].range(of: "^[ \\t]*\\|-", options: .regularExpression) != nil }
+            guard m.1.count <= hlines.count else { throw Failure.message("Invalid table line specification \"\(pos)\"") }
+            let delta = Int(m.2.replacingOccurrences(of: "+", with: ""))!
+            buffer.point = lineStart(hlines[m.1.count - 1] + delta + (delta < 0 ? 0 : -1) + 1)
+        } else if options.prepend {
+            if let rule = rows.firstIndex(where: { $0.range(of: "^[ \\t]*\\|-", options: .regularExpression) != nil }) {
+                let data = rows.indices.first { $0 > rule && rows[$0].range(of: "^[ \\t]*\\|[^-]", options: .regularExpression) != nil }
+                buffer.point = data.map(lineStart) ?? table!.upperBound
+            } else {
+                buffer.point = table!.lowerBound
+            }
+        } else {
+            buffer.point = table!.upperBound
+        }
+        if !buffer.bolp { buffer.insert("\n") }
+        let start = buffer.point
+        let lines = text.filter { $0 == "\n" }.count
+        buffer.insert(text)
+        // `org-capture-finalize`: align, or fix the formulas' row references and recalculate.
+        buffer.point = start
+        let row = buffer.substring(0, start).filter { $0 == "\n" }.count
+        if buffer.atTable {
+            if buffer.firstTblfm(after: buffer.tableEnd()) == nil {
+                buffer.tableAlign()
+            } else {
+                buffer.fixFormulas("@", replace: [:], limit: buffer.tableCurrentDataLine() - 1, delta: lines)
+                do {
+                    try buffer.tableRecalculate(all: true)
+                } catch let unsupported as Calc.Unsupported {
+                    throw Failure.message("The table's formulas need Emacs: \(unsupported.reason)")
+                }
+            }
+        }
+        buffer.point = 0
+        buffer.forwardLine(row)
+        return buffer.point
     }
 
     /// `org-end-of-meta-data t`: past planning, drawers and the property drawer.
