@@ -166,6 +166,9 @@ public struct EmacsImport: Sendable {
                     if let name = args[i].symbol { assign(name, args[i + 1], source, priority: priority, deferred: deferred) }
                     i += 2
                 }
+            case "defvar", "defcustom":
+                // Only sets a variable nothing set, so under every assignment.
+                if args.count >= 2, let name = args[0].symbol { assign(name, args[1], source, priority: -1, deferred: false) }
             case "custom-set-variables":
                 for arg in args {
                     guard let entry = unquote(arg)?.elements, entry.count >= 2, let name = entry[0].symbol else { continue }
@@ -336,8 +339,8 @@ public struct EmacsImport: Sendable {
             switch head {
             case "quote", "function": return args.first
             case "\\`":
-                guard let inner = args.first, !inner.description.contains(",") else { return nil }
-                return inner
+                guard let inner = args.first else { return nil }
+                return backquote(inner, env)
             case "list":
                 let values = args.compactMap { evaluate($0, env) }
                 return values.count == args.count ? .list(values) : nil
@@ -360,6 +363,30 @@ public struct EmacsImport: Sendable {
                 return nil
             }
         }
+    }
+
+    /// A backquoted form with its `,` and `,@` parts evaluated.
+    static func backquote(_ sexp: Sexp, _ env: [String: Sexp]) -> Sexp? {
+        guard case .list(let items) = sexp else {
+            if case .dotted(let items, let last) = sexp {
+                let values = items.compactMap { backquote($0, env) }
+                guard values.count == items.count, let tail = backquote(last, env) else { return nil }
+                return .dotted(values, tail)
+            }
+            return sexp
+        }
+        if items.count == 2, items[0].symbol == "," { return evaluate(items[1], env) }
+        var out: [Sexp] = []
+        for item in items {
+            if case .list(let parts) = item, parts.count == 2, parts[0].symbol == ",@" {
+                guard let spliced = evaluate(parts[1], env)?.elements else { return nil }
+                out += spliced
+            } else {
+                guard let value = backquote(item, env) else { return nil }
+                out.append(value)
+            }
+        }
+        return .list(out)
     }
 
     // MARK: - Results
@@ -403,7 +430,7 @@ public struct EmacsImport: Sendable {
                 continue
             }
             let before = unsupported.count
-            convert(name, value, source: assignment.source, id: id)
+            convert(name, value, source: assignment.source, env: env, id: id)
             if assignment.rank < 2, unsupported.count > before {
                 doomDefaultsLeftOut += unsupported.count - before
                 unsupported.removeLast(unsupported.count - before)
@@ -437,7 +464,7 @@ public struct EmacsImport: Sendable {
         }
     }
 
-    mutating func convert(_ name: String, _ value: Sexp, source: String, id: () -> Int) {
+    mutating func convert(_ name: String, _ value: Sexp, source: String, env: [String: Sexp] = [:], id: () -> Int) {
         func add(_ key: String, _ toml: TOML.Value, _ summary: String? = nil) {
             items.append(Item(id: id(), name: name, summary: summary ?? "\(key) = \(UserConfig.format(toml))", source: source, change: .setting(key: key, value: toml)))
         }
@@ -507,7 +534,7 @@ public struct EmacsImport: Sendable {
                 items.append(Item(id: id(), name: name, summary: "add folder \(folder)", source: source, change: .folder(folder)))
             }
         case "org-capture-templates":
-            for entry in value.elements ?? [] { captureTemplate(entry, source: source, id: id) }
+            for entry in value.elements ?? [] { captureTemplate(entry, source: source, env: env, id: id) }
         case "doom-font":
             note("not a font-spec Orgstar can read")
         case "doom-variable-pitch-font":
@@ -519,7 +546,7 @@ public struct EmacsImport: Sendable {
         }
     }
 
-    mutating func captureTemplate(_ entry: Sexp, source: String, id: () -> Int) {
+    mutating func captureTemplate(_ entry: Sexp, source: String, env: [String: Sexp] = [:], id: () -> Int) {
         guard let parts = entry.elements, parts.count >= 2, let key = parts[0].string else { return }
         let name = parts[1].string ?? key
         guard parts.count >= 5, let type = parts[2].symbol, let target = parts[3].elements, let kind = target.first?.symbol,
@@ -535,7 +562,8 @@ public struct EmacsImport: Sendable {
         }
         func quoted(_ s: String) -> String { UserConfig.format(.string(s)) }
         var toml = "[[template]]\nkey = \(quoted(key))\nname = \(quoted(name))\ntype = \(quoted(type))\n"
-        let strings = target.dropFirst().compactMap(\.string)
+        // `org-capture-expand-file`: a variable's value, or a form evaluated.
+        let strings = target.dropFirst().compactMap { $0.string ?? Self.evaluate($0, env)?.string }
         // Property list after the template: `:prepend t :empty-lines 1 …`.
         var properties: [String: Sexp] = [:]
         let rest = Array(parts.dropFirst(5))

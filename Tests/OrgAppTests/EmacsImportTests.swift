@@ -108,6 +108,29 @@ struct EmacsImportTests {
         #expect(result.unsupported.contains { $0.name == "C-c l" && $0.reason == "bound to code, not a command" })
     }
 
+    @Test func readsCaptureTargetsFromVariablesAndForms() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try #"""
+            (defvar my-inbox "~/old.org")
+            (setq org-directory "~/org"
+                  org-default-notes-file (expand-file-name "notes.org" org-directory)
+                  my-inbox (concat org-directory "/inbox.org"))
+            (setq org-capture-templates
+                  `(("n" "Note" entry (file+headline org-default-notes-file "Notes") "* %?")
+                    ("i" "Inbox" entry (file my-inbox) "* TODO %?")
+                    ("w" "Work" entry (file ,(concat org-directory "/work.org")) "* %?")
+                    ("j" "Journal" entry (file+olp+datetree (concat org-directory "/journal.org")) "* %?")))
+            """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let result = EmacsImport.scan(EmacsImport.files(in: folder))
+        let files = result.items.compactMap { item -> String? in
+            guard case .capture(let key, let toml) = item.change else { return nil }
+            return key + " " + (toml.firstMatch(of: /file = "([^"]*)"/).map { String($0.1) } ?? "-")
+        }
+        #expect(files == ["n ~/org/notes.org", "i ~/org/inbox.org", "w ~/org/work.org", "j ~/org/journal.org"])
+    }
+
     /// The user's own Doom configuration, when there is one.
     @Test(.enabled(if: FileManager.default.fileExists(atPath: NSHomeDirectory() + "/.config/doom/config.el")))
     func readsTheInstalledDoomConfig() {
