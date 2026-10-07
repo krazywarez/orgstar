@@ -207,8 +207,52 @@ struct TangleTests {
         #expect(Self.describe(ours, root: "/oracle") == theirs.text, "ours:\n\(Self.describe(ours, root: "/oracle"))\nemacs:\n\(theirs.text)\n\(theirs.error)")
     }
 
+    static let lisp = """
+        #+begin_src sh :tangle (concat "joined" ".sh")
+        echo joined
+        #+end_src
+        #+begin_src sh :tangle (if (eq system-type 'darwin) "mac.sh" "other.sh")
+        echo mac
+        #+end_src
+        #+begin_src sh :tangle (concat (file-name-directory buffer-file-name) "beside.sh")
+        echo beside
+        #+end_src
+        #+begin_src sh :tangle (expand-file-name "sub/deep.sh") :mkdirp yes
+        echo deep
+        #+end_src
+        #+begin_src sh :tangle (file-name-sans-extension (file-name-nondirectory buffer-file-name))
+        echo named after the file
+        #+end_src
+        #+begin_src python -r -l "#(ref:%s)" :tangle refs.py
+        x = 1  #(ref:one)
+        y = 2 (ref:kept)
+        #+end_src
+        #+begin_src python -r :tangle refs.py
+        z = 3 (ref:gone)
+        #+end_src
+        """ + "\n"
+
+    @Test func evaluatesLispHeadersLikeOrg() throws {
+        let form = """
+            (let* ((dir (file-truename (make-temp-file "orgstar-tangle" t)))
+                   (src (expand-file-name "notes.org" dir))
+                   (text (buffer-string)) out)
+              (require 'ob-shell) (require 'ob-python)
+              (with-temp-file src (insert text))
+              (with-current-buffer (find-file-noselect src)
+                (let ((files (org-babel-tangle)))
+                  (setq out (mapconcat (lambda (f) (format "== %s %o\\n%s" (file-relative-name f dir) (file-modes f)
+                                                           (with-temp-buffer (insert-file-contents f) (buffer-string))))
+                                       (sort (copy-sequence files) #'string<) ""))))
+              (erase-buffer) (insert out))
+            """
+        let theirs = try EmacsOracle.run([EmacsOracle.Case(text: Self.lisp, point: 1, form: form)])[0]
+        let ours = try Tangle.run(text: Self.lisp, path: "/oracle/notes.org").get()
+        #expect(Self.describe(ours, root: "/oracle") == theirs.text, "ours:\n\(Self.describe(ours, root: "/oracle"))\nemacs:\n\(theirs.text)\n\(theirs.error)")
+    }
+
     @Test func refusesWhatItCantDo() {
-        for (language, header) in [("haskell", ":comments link"), ("sh", ":tangle (concat \"a\" \".sh\")"), ("sh", ":tangle-mode go+q")] {
+        for (language, header) in [("haskell", ":comments link"), ("sh", ":tangle (concat user-emacs-directory \"a.sh\")"), ("sh", ":tangle-mode go+q")] {
             let text = "#+begin_src \(language) :tangle yes \(header)\necho\n#+end_src\n"
             guard case .failure = Tangle.run(text: text, path: "/x/a.org") else { Issue.record("tangled with \(header)"); continue }
         }

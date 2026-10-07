@@ -3,8 +3,8 @@ import Foundation
 // `org-babel-tangle` (Org 9.8.7 ob-tangle.el): source blocks written to the files their
 // `:tangle` names, with `:noweb`, `:padline`, `:shebang`, `:mkdirp`, `:tangle-mode`,
 // `:prologue` and `:epilogue`, `:var` for shells, Python and Emacs Lisp, and `:comments` for
-// languages whose comment syntax is known. Header values Org would evaluate as Lisp aren't
-// supported.
+// languages whose comment syntax is known. Header values written as Lisp are evaluated with
+// the file's name and folder; other Lisp is refused.
 
 public enum Tangle {
     /// All blocks (C-c C-v t), the block at an offset (C-u C-c C-v t), or the blocks going to
@@ -65,15 +65,15 @@ public enum Tangle {
             switch scope {
             case .block(let offset):
                 guard let block = block(at: offset, in: model) else { throw Babel.Failure.message("Point is not in a source code block") }
-                try add(block, try params(block, model: model, text: ns), counter: 1)
+                try add(block, try params(block, model: model, text: ns, path: path), counter: 1)
             case .all, .target:
                 var target: String?
                 if case .target(let offset) = scope {
                     guard let block = block(at: offset, in: model) else { throw Babel.Failure.message("Point is not in a source code block") }
-                    target = try params(block, model: model, text: ns).single[":tangle"] ?? "no"
+                    target = try params(block, model: model, text: ns, path: path).single[":tangle"] ?? "no"
                 }
                 for block in model.srcBlocks where !excluded(block, model: model) {
-                    let params = try params(block, model: model, text: ns)
+                    let params = try params(block, model: model, text: ns, path: path)
                     let tangle = params.single[":tangle"] ?? "no"
                     if tangle == "no" || (block.language == nil && tangle == "yes") { continue }
                     if let target, target != tangle { continue }
@@ -126,12 +126,56 @@ public enum Tangle {
         }
     }
 
-    static func params(_ block: SrcBlockInfo, model: DocumentModel, text: NSString) throws -> Babel.Params {
-        let params = try Babel.Params(block: block, model: model, text: text)
+    static func params(_ block: SrcBlockInfo, model: DocumentModel, text: NSString, path: String) throws -> Babel.Params {
+        var params = try Babel.Params(block: block, model: model, text: text)
         for (key, value) in params.single where value.hasPrefix("(") && key != ":tangle-mode" {
-            throw Babel.Failure.message("\(key) \(value) is Lisp to evaluate, which tangling doesn't support yet; nothing was tangled.")
+            params.single[key] = try evaluate(value, key: key, path: path)
         }
         return params
+    }
+
+    /// `org-babel-read` of a header value written as Lisp, with what a file's buffer knows:
+    /// `buffer-file-name`, `default-directory` and `system-type`.
+    static func evaluate(_ value: String, key: String, path: String) throws -> String {
+        let refusal = Babel.Failure.message("\(key) \(value) is Lisp tangling can't evaluate yet; nothing was tangled.")
+        let lisp = Elisp()
+        let directory = (path as NSString).deletingLastPathComponent + "/"
+        lisp.set("buffer-file-name", .string(path))
+        lisp.set("default-directory", .string(directory))
+        lisp.set("system-type", .symbol("darwin"))
+        func string(_ args: [Sexp], _ i: Int) throws -> String { try Elisp.string(args[i]) }
+        lisp.define("expand-file-name") { lisp, args in
+            try Elisp.arity(args, 1...2, "expand-file-name")
+            let base = args.count > 1 && !Elisp.isNil(args[1]) ? try string(args, 1) : (try Elisp.string(lisp.value("default-directory")))
+            return .string(expand(try string(args, 0), in: (base as NSString).expandingTildeInPath))
+        }
+        lisp.define("file-name-directory") { _, args in
+            try Elisp.arity(args, 1...1, "file-name-directory")
+            let name = try string(args, 0)
+            guard let slash = name.lastIndex(of: "/") else { return .nil }
+            return .string(String(name[...slash]))
+        }
+        lisp.define("file-name-nondirectory") { _, args in
+            try Elisp.arity(args, 1...1, "file-name-nondirectory")
+            let name = try string(args, 0)
+            return .string(name.lastIndex(of: "/").map { String(name[name.index(after: $0)...]) } ?? name)
+        }
+        lisp.define("file-name-sans-extension") { _, args in
+            try Elisp.arity(args, 1...1, "file-name-sans-extension")
+            return .string((try string(args, 0) as NSString).deletingPathExtension)
+        }
+        lisp.define("file-name-as-directory") { _, args in
+            try Elisp.arity(args, 1...1, "file-name-as-directory")
+            let name = try string(args, 0)
+            return .string(name.hasSuffix("/") ? name : name + "/")
+        }
+        guard let form = try? LispReader.readFirst(value).sexp, let result = try? lisp.eval(form), !Elisp.isNil(result) else { throw refusal }
+        switch result {
+        case .string(let s): return s
+        case .symbol(let s): return s
+        case .integer, .float: return Elisp.printed(result)
+        default: throw refusal
+        }
     }
 
     /// `org-babel-effective-tangled-filename`.
@@ -172,10 +216,14 @@ public enum Tangle {
             body = try expandBody(body, language: block.language ?? "", params: params, model: model, text: text)
         }
         // `(string-match "-r" extra)`.
-        if block.switches.joined(separator: " ").contains("-r") {
-            if block.switches.contains("-l") { throw Babel.Failure.message("-l coderef formats aren't supported yet; nothing was tangled.") }
+        let switches = block.switches.joined(separator: " ")
+        if switches.contains("-r") {
+            // `org-src-coderef-regexp` of `-l "FORMAT"`, or of `org-coderef-label-format`.
+            let format = switches.firstMatch(of: /-l +"([^"\n]+)"/).map { String($0.1) } ?? "(ref:%s)"
+            let pattern = "[ \\t]*" + NSRegularExpression.escapedPattern(for: format)
+                .replacingOccurrences(of: "%s", with: "[-a-zA-Z0-9_][-a-zA-Z0-9_ ]*") + "[ \\t]*$"
             body = body.components(separatedBy: "\n")
-                .map { $0.replacingOccurrences(of: "[ \\t]*\\(ref:[-a-zA-Z0-9_][-a-zA-Z0-9_ ]*\\)[ \\t]*$", with: "", options: .regularExpression) }
+                .map { $0.replacingOccurrences(of: pattern, with: "", options: .regularExpression) }
                 .joined(separator: "\n")
         }
         let preserve = block.switches.contains("-i")
