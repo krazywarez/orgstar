@@ -66,6 +66,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var onTangle: ((Tangle.Scope) -> Void)?
     /// A source block to run (C-c C-c).
     var onBabel: ((BabelJob) -> Void)?
+    /// The file's setup files to read again (C-c C-c on a keyword line).
+    var onRefreshSetup: (() -> Void)?
     /// A block, a table's formulas or a field to edit apart (C-c ', C-c `).
     var onEditBlock: ((BlockEdit) -> Void)?
     /// A followed timestamp's agenda days: the first (a `Days` number) and how many.
@@ -119,6 +121,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     func update<T>(_ change: (inout DocumentState) throws -> T) rethrows -> T {
         let before = document.text
+        let defaultsBefore = document.defaults
         let selected = textView.selectedRange
         let result = try change(&document)
         if document.text != before {
@@ -128,6 +131,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
             textView.selectedRange = NSRange(location: min(selected.location, length), length: 0)
             textView.undoManager?.removeAllActions()
             setFolds(fold)
+        } else if document.defaults != defaultsBefore {
+            restyle(0..<(document.text as NSString).length)
         }
         return result
     }
@@ -157,6 +162,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
                     var state = fold
                     state.folds.insert(start)
                     setFolds(state)
+                case .refreshSetup: onRefreshSetup?()
                 default: break
                 }
             }

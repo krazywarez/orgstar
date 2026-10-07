@@ -194,6 +194,8 @@ public enum Effect: Sendable, Equatable {
     case sparseTree(show: [Int], highlights: [Range<Int>])
     /// Fold the subtree of the heading starting here (in the new text).
     case fold(Int)
+    /// Read the file's `#+SETUPFILE`s again (`org-mode-restart`).
+    case refreshSetup
 }
 
 public struct EditResult: Sendable, Equatable {

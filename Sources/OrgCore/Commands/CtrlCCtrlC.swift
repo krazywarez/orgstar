@@ -62,7 +62,7 @@ public struct CtrlCCtrlC: OrgCommand {
             }
         }
         if buffer.lookingAtLine("^[ \\t]*#\\+[A-Za-z_]+:") {
-            return .commit(EditResult(baseRevision: context.revision, edits: [], effects: [.message("Local setup has been refreshed")]))
+            return .commit(EditResult(baseRevision: context.revision, edits: [], effects: [.refreshSetup, .message("Local setup has been refreshed")]))
         }
         if buffer.propertyAtPoint() != nil || buffer.lookingAtLine("^[ \\t]*:(?:PROPERTIES|END):[ \\t]*$") && buffer.existingPropertyBlock() != nil {
             return PropertyAction().run(in: context)

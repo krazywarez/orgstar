@@ -27,7 +27,7 @@ public struct DocumentState: Sendable {
     public private(set) var tree: OrgTree
     /// Increases on every change to `text`.
     public private(set) var revision = 0
-    public let defaults: OrgSettings
+    public private(set) var defaults: OrgSettings
     private var undoStack: [[TextEdit]] = []
     private var redoStack: [[TextEdit]] = []
 
@@ -36,6 +36,13 @@ public struct DocumentState: Sendable {
         text = source.text
         tree = OrgParser.parse(text, defaults: defaults)
         self.defaults = defaults
+    }
+
+    /// New settings for the same text, as when setup files are read again; undo history stays.
+    public mutating func setDefaults(_ defaults: OrgSettings) {
+        self.defaults = defaults
+        tree = OrgParser.parse(text, defaults: defaults)
+        revision += 1
     }
 
     public var mergeBase: [UInt8] { source.originalBytes }

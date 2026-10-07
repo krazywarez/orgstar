@@ -199,6 +199,23 @@ struct DocumentSessionTests {
         #expect(session.document?.tree.settings.todoKeywordNames.contains("NEXT") == true)
     }
 
+    @Test func keywordCtrlCCtrlCRereadsSetupFiles() throws {
+        let notes = try Folder()
+        try notes.write("setup.org", "#+TODO: NEXT | DONE\n")
+        let file = try notes.write("a.org", "#+SETUPFILE: setup.org\n* WAIT One\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        #expect(session.document?.tree.settings.todoKeywordNames.contains("WAIT") == false)
+        try notes.write("setup.org", "#+TODO: NEXT WAIT | DONE\n")
+        let text = session.document!.text
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+        guard case .commit(let result) = CtrlCCtrlC().run(in: context) else { Issue.record("no commit"); return }
+        #expect(result.effects.contains(.refreshSetup))
+        session.refreshSetup()
+        #expect(session.document?.tree.settings.todoKeywordNames.contains("WAIT") == true)
+        #expect(session.document?.isDirty == false)
+    }
+
     @Test func missingFileReportsAnError() {
         let session = DocumentSession()
         session.open("/nonexistent/a.org")

@@ -114,6 +114,7 @@ struct EditorView: NSViewRepresentable {
             case .copy(let text):
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
+            case .refreshSetup: session.refreshSetup()
             case .message, .sparseTree, .fold: break
             }
         }

@@ -1350,6 +1350,7 @@ extension OrgEditor: DocumentBuffer {
     /// mapped through the change. Text-view undo refers to the old text, so it is cleared.
     public func update<T>(_ change: (inout DocumentState) throws -> T) rethrows -> T {
         let before = document.text
+        let defaultsBefore = document.defaults
         let selected = textView.selectedRange()
         let result = try change(&document)
         if document.text != before {
@@ -1364,6 +1365,9 @@ extension OrgEditor: DocumentBuffer {
             if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
             textView.undoManager?.removeAllActions(withTarget: textView.textStorage!)
             textView.undoManager?.removeAllActions(withTarget: textView)
+        } else if document.defaults != defaultsBefore {
+            // New settings for the same text: TODO keywords may color differently.
+            restyleEverything()
         }
         onChange?()
         return result

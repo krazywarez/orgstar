@@ -79,10 +79,21 @@ public final class DocumentSession {
 
     /// A buffer for `bytes` read from `path`, with the keywords of the setup files it names.
     func loaded(_ bytes: [UInt8], path: String) -> DocumentState {
-        let settings = defaults.resolvingSetupFiles(in: SourceText(bytes: bytes).text, path: path) { file in
-            (try? self.fileSystem.read(URL(fileURLWithPath: file))).flatMap { $0 }.flatMap { String(bytes: $0, encoding: .utf8) }
-        }
-        return DocumentState(bytes: bytes, defaults: settings)
+        DocumentState(bytes: bytes, defaults: defaults.resolvingSetupFiles(in: SourceText(bytes: bytes).text, path: path, read: readText))
+    }
+
+    /// A file's text, for setup files.
+    func readText(_ file: String) -> String? {
+        (try? fileSystem.read(URL(fileURLWithPath: file))).flatMap { $0 }.flatMap { String(bytes: $0, encoding: .utf8) }
+    }
+
+    /// C-c C-c on a keyword line: the open file's setup files read again (`org-mode-restart`).
+    public func refreshSetup() {
+        guard let entry = current else { return }
+        let settings = defaults.resolvingSetupFiles(in: entry.buffer.document.text, path: entry.path, read: readText)
+        entry.buffer.update { $0.setDefaults(settings) }
+        refresh()
+        editVersion += 1
     }
 
     /// One open file.
