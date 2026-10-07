@@ -3,8 +3,8 @@ import Foundation
 /// Citations as the `basic` processor (oc-basic.el, Org 9.8.7) exports them: author-year,
 /// author, noauthor, text, nocite and numeric styles with the bare and caps variants, from
 /// the BibTeX or CSL-JSON files `#+bibliography:` names, and the bibliography
-/// `#+print_bibliography:` asks for. Note styles, and `#+cite_export:` processors other than
-/// `basic`, leave citations as they are written.
+/// `#+print_bibliography:` asks for. Note styles become footnotes. `#+cite_export:`
+/// processors other than `basic` leave citations as they are written.
 struct CiteProcessor {
     /// What a citation or bibliography entry exports as: text, Org markup (prefixes and
     /// suffixes) and an italic title.
@@ -310,9 +310,7 @@ struct CiteProcessor {
             return authorYear({ (bare ? [] : [.text("(")]) + $0 + $1 + $2 + (bare ? [] : [.text(")")]) }) { r, _, y in org(r.prefix) + [.text(y)] + org(r.suffix) }
         case "nocite", "n":
             return []
-        case "note", "ft":
-            return nil
-        case "text", "t":
+        case "text", "t", "note", "ft":
             return authorYear({ $0 + $1 + $2 }) { r, a, y in
                 org(r.prefix) + [.text(capitalized(a) + (bare ? " " : " (") + y + (bare ? "" : ")"))] + org(r.suffix)
             }
@@ -419,6 +417,30 @@ struct CiteProcessor {
         bibliography = keys.enumerated().sorted { a, b in
             authorLess(a.element, b.element) || (!authorLess(b.element, a.element) && a.offset < b.offset)
         }.compactMap { entry($0.element, style: style, keys: keys) }
+    }
+
+    /// Note citations (`note`, `ft`) as inline footnotes holding their text-style citation, as
+    /// `org-cite-wrap-citation` does, the blanks before them gone and punctuation right after
+    /// them moved in front (`org-cite-adjust-note`).
+    mutating func inliningNotes(_ text: String) -> String {
+        let defaultStyle = Self.exportSettings(text)?.citeStyle.map { String($0.split(separator: "/").first ?? "") }
+        let regex = try! NSRegularExpression(pattern: "[ \\t]*(\\[cite[/:][^\\]]*\\])([.,;:!?]*)")
+        var out = ""
+        var at = 0
+        let ns = text as NSString
+        for m in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            let written = ns.substring(with: m.range(at: 1))
+            guard let citation = Self.parse(written), ["note", "ft"].contains(citation.style ?? defaultStyle ?? ""),
+                  let pieces = next(written) else { continue }
+            let note = pieces.map { piece in
+                switch piece {
+                case .text(let s), .org(let s), .italic(let s): s
+                }
+            }.joined()
+            out += ns.substring(with: NSRange(location: at, length: m.range.location - at)) + ns.substring(with: m.range(at: 2)) + "[fn:: " + note + "]"
+            at = NSMaxRange(m.range)
+        }
+        return out + ns.substring(from: at)
     }
 
     /// The export of the next citation written as `text`; nil leaves it as written.

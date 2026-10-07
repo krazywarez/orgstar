@@ -55,7 +55,7 @@ public enum HTMLExport {
         var header = options.title ? "<h1 class=\"title\">\(titleHTML)</h1>\n" : ""
         let byline = [options.author ? meta.author : nil, options.date ? meta.date : nil].compactMap { $0 }.filter { !$0.isEmpty }
         if !byline.isEmpty { header += "<p class=\"byline\">\(byline.map(HTMLRenderer.escape).joined(separator: " · "))</p>\n" }
-        let body = renderer.document(renderer.citations == nil ? text : CiteProcessor.removingNocite(text))
+        let body = renderer.document(renderer.citations == nil ? text : renderer.citations!.inliningNotes(CiteProcessor.removingNocite(text)))
         header += renderer.tableOfContents()
         var head = options.htmlHead.map { $0 + "\n" }.joined()
         if renderer.hasMath {

@@ -11,7 +11,7 @@ public enum MarkdownExport {
         if let title = HTMLExport.metadata(text, settings: settings).title { out = "# " + renderer.inlineString(title) + "\n\n" }
         renderer.inTitle = false
         renderer.citations = CiteProcessor(text: text, directory: path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() })
-        out += renderer.document(renderer.citations == nil ? text : CiteProcessor.removingNocite(text))
+        out += renderer.document(renderer.citations == nil ? text : renderer.citations!.inliningNotes(CiteProcessor.removingNocite(text)))
         return out.trimmingCharacters(in: .newlines) + "\n"
     }
 }

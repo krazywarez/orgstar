@@ -109,6 +109,21 @@ struct CitationTests {
         #expect(page.contains("<p>See (Doe, Jane and Roe, Richard, 2020).</p>"))
     }
 
+    /// As ox-md exports them: footnotes after the punctuation, holding text-style citations.
+    @Test func noteCitationsBecomeFootnotes() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-cite-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Self.bib.write(to: folder.appendingPathComponent("refs.bib"), atomically: true, encoding: .utf8)
+        let text = "#+bibliography: refs.bib\nFirst claim [cite/ft:@doe2020]. Second [cite/note:see @smith1999 p. 5], and third [cite/ft:@lee].\n\nEnd [cite/ft/c:@lee]\n"
+        let markdown = MarkdownExport.document(text, path: folder.appendingPathComponent("doc.org").path)
+        #expect(markdown.contains("First claim.[^1] Second,[^2] and third.[^3]"))
+        #expect(markdown.contains("End[^4]"))
+        #expect(markdown.contains("[^1]: Doe, Jane and Roe, Richard (2020)"))
+        #expect(markdown.contains("[^2]: see Smith, John (1999) p. 5"))
+        #expect(markdown.contains("[^4]: Lee, Kim And Park, Min And Choi, Su (2021)"))
+    }
+
     @Test(.enabled(if: oracle))
     func authorYearMatchesOcBasic() throws {
         try compare("#+bibliography: refs.bib\n#+bibliography: more.json\n" + Self.body)
