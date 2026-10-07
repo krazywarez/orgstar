@@ -30,6 +30,18 @@ public struct BabelJob: Sendable, Equatable {
     /// Asks every time (`:eval query`) rather than trusting by content.
     public let alwaysAsk: Bool
     public let finish: Finish
+    /// A named block a `:var` refers to: run it first, then `Babel.resume` with its output.
+    public var needs: [Need] = []
+    /// Values of the references resolved so far, and how to plan again.
+    var resolved: [String: Babel.VarValue] = [:]
+    var caret = 0
+    var options = Babel.Options()
+
+    public struct Need: Sendable, Equatable {
+        /// The `:var` value, `name` or `name(args)`.
+        public let reference: String
+        public let job: BabelJob
+    }
 
     public struct Finish: Sendable, Equatable {
         enum Kind: Sendable, Equatable { case shell(valueIsExitStatus: Bool), python, generic, emacsLisp }
@@ -94,19 +106,40 @@ public enum Babel {
 
     /// The run for the src block at the caret, or why it can't run.
     public static func plan(_ context: EditContext, options: Options = Options()) -> Result<BabelJob, Failure> {
+        plan(context, options: options, resolved: [:])
+    }
+
+    /// Plans the block again with the value of the block `job` needed: the output of
+    /// `need.job`, as `org-babel-ref-resolve` reads it.
+    public static func resume(_ job: BabelJob, need: BabelJob.Need, output: BabelOutput, text: String, tree: OrgTree) -> Result<BabelJob, Failure> {
+        var resolved = job.resolved
+        resolved[need.reference] = varValue(need.job.finish, output)
+        let context = EditContext(revision: 0, text: text, tree: tree, selection: [job.caret..<job.caret])
+        return plan(context, options: job.options, resolved: resolved)
+    }
+
+    static func plan(_ context: EditContext, options: Options, resolved: [String: VarValue]) -> Result<BabelJob, Failure> {
         let text = context.text
         let ns = text as NSString
         let model = DocumentModel(tree: context.tree)
+        let refs = References(resolved: resolved, options: options)
+        func located(_ result: Result<BabelJob, Failure>) -> Result<BabelJob, Failure> {
+            result.map { job in
+                var job = job
+                (job.caret, job.resolved, job.options) = (context.caret, resolved, options)
+                return job
+            }
+        }
         do {
             if let block = model.srcBlocks.first(where: { $0.range.contains(context.caret) || $0.range.upperBound == context.caret }) {
-                return plan(block, params: try Params(block: block, model: model, text: ns), model: model, text: ns, options: options,
-                            location: block.range, name: block.name)
+                return located(plan(block, params: try Params(block: block, model: model, text: ns), model: model, text: ns, options: options,
+                                    location: block.range, name: block.name, refs: refs))
             }
             if let call = try callAt(context.caret, model: model, text: ns) {
-                return plan(call.block, params: call.params, model: model, text: ns, options: options, location: call.location, name: call.name)
+                return located(plan(call.block, params: call.params, model: model, text: ns, options: options, location: call.location, name: call.name, refs: refs))
             }
             if let inline = try inlineAt(context.caret, tree: context.tree, model: model, text: ns) {
-                return plan(inline.block, params: inline.params, model: model, text: ns, options: options, location: inline.block.range, name: nil, inline: true)
+                return located(plan(inline.block, params: inline.params, model: model, text: ns, options: options, location: inline.block.range, name: nil, inline: true, refs: refs))
             }
         } catch let error as Failure {
             return .failure(error)
@@ -175,8 +208,22 @@ public enum Babel {
         return (block, try Params(block: block, model: model, text: text, extra: extra, inline: true))
     }
 
+    /// What `:var` references resolve to while planning.
+    struct References {
+        var resolved: [String: VarValue]
+        var options: Options
+        /// Blocks being planned for a reference, to stop cycles.
+        var visiting: Set<String> = []
+    }
+
+    /// A reference to a block that has to run first.
+    struct Needed: Error {
+        let need: BabelJob.Need
+    }
+
     static func plan(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text ns: NSString, options: Options,
-                     location: Range<Int>, name: String?, inline: Bool = false) -> Result<BabelJob, Failure> {
+                     location: Range<Int>, name: String?, inline: Bool = false, refs: References? = nil) -> Result<BabelJob, Failure> {
+        let refs = refs ?? References(resolved: [:], options: options)
         guard let language = block.language else { return .failure(.message("This block has no language")) }
         let eval = params.single[":eval"]?.lowercased()
         if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
@@ -215,7 +262,14 @@ public enum Babel {
         }
         let vars: [(String, VarValue)]
         do {
-            vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: ns)) }
+            vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: ns, refs: refs)) }
+        } catch let needed as Needed {
+            // Asked about once, with every block the references reach.
+            let texts = [ns.substring(with: NSRange(location))] + referencedBlocks(params, model: model, text: ns, seen: []).map { ns.substring(with: NSRange($0.range)) }
+            return .success(BabelJob(
+                language: language, runner: .process(executable: "", arguments: []), input: "", directory: params.single[":dir"],
+                block: location, blockText: texts.joined(separator: "\n"), alwaysAsk: eval == "query", finish: finishBase(.generic), needs: [needed.need]
+            ))
         } catch let error as Failure {
             return .failure(error)
         } catch {
@@ -604,14 +658,23 @@ public enum Babel {
 
     // MARK: - Variables
 
-    enum VarValue: Equatable {
+    /// A referenced block's result as a `:var` value.
+    static func varValue(_ finish: BabelJob.Finish, _ output: BabelOutput) -> VarValue {
+        switch value(finish, output) {
+        case .none: return .scalar("")
+        case .string(let s): return number(s).map(VarValue.number) ?? .scalar(s)
+        case .table(let rows): return .table(rows.compactMap { $0?.map(cell) })
+        }
+    }
+
+    enum VarValue: Equatable, Sendable {
         case scalar(String)
         case number(String)
         case table([[Cell]])
         case list([Cell])
     }
 
-    enum Cell: Equatable {
+    enum Cell: Equatable, Sendable {
         case text(String)
         case number(String)
     }
@@ -645,10 +708,46 @@ public enum Babel {
         return number(t).map(Cell.number) ?? .text(t)
     }
 
-    /// `org-babel-ref-resolve` for literals and named tables and lists in the file.
-    static func resolve(_ value: String, model: DocumentModel, text: NSString) throws -> VarValue {
+    /// `name` or `name(args)` naming a src block in the file: the block and its call arguments.
+    static func referencedBlock(_ value: String, model: DocumentModel) -> (block: SrcBlockInfo, arguments: String?)? {
+        guard let m = value.firstMatch(of: /^([^\s()\[\]"]+)(?:\((.*)\))?$/),
+              let block = model.srcBlocks.first(where: { $0.name == String(m.1) }) else { return nil }
+        return (block, m.2.map(String.init))
+    }
+
+    /// The blocks `params`' references run, directly or through theirs.
+    static func referencedBlocks(_ params: Params, model: DocumentModel, text: NSString, seen: Set<String>) -> [SrcBlockInfo] {
+        var found: [SrcBlockInfo] = []
+        var seen = seen
+        for variable in params.vars {
+            guard let (block, arguments) = referencedBlock(variable.value, model: model), let name = block.name, seen.insert(name).inserted else { continue }
+            found.append(block)
+            let extra = arguments.map { [splitArguments($0).map { (":var", $0) }] } ?? []
+            if let inner = try? Params(block: block, model: model, text: text, extra: extra) {
+                found += referencedBlocks(inner, model: model, text: text, seen: seen)
+            }
+        }
+        return found
+    }
+
+    /// `org-babel-ref-resolve` for literals, named tables and lists in the file, and named src
+    /// blocks, which run first (`Needed`) and give their result.
+    static func resolve(_ value: String, model: DocumentModel, text: NSString, refs: References) throws -> VarValue {
         if value.hasPrefix("\""), value.hasSuffix("\""), value.count >= 2 { return .scalar(Params.unescape(String(value.dropFirst().dropLast()))) }
         if let n = number(value) { return .number(n) }
+        if let known = refs.resolved[value] { return known }
+        if let (block, arguments) = referencedBlock(value, model: model), let name = block.name {
+            guard !refs.visiting.contains(name) else { throw Failure.message("\(name) refers to itself through :var") }
+            let extra = arguments.map { [splitArguments($0).map { (":var", $0) }] } ?? []
+            var inner = refs
+            inner.visiting.insert(name)
+            switch plan(block, params: try Params(block: block, model: model, text: text, extra: extra), model: model, text: text,
+                        options: refs.options, location: block.range, name: name, refs: inner) {
+            case .failure(let failure): throw failure
+            case .success(let job):
+                throw Needed(need: job.needs.first ?? BabelJob.Need(reference: value, job: job))
+            }
+        }
         if value.contains("(") || value.contains("[") { throw Failure.message("References like \(value) aren't supported yet.") }
         // A named element: `#+NAME: value` above a table or list.
         let pattern = "(?im)^[ \\t]*#\\+name:[ \\t]*" + NSRegularExpression.escapedPattern(for: value) + "[ \\t]*$"

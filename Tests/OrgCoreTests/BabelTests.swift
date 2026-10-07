@@ -41,7 +41,13 @@ enum TestBabelRunner {
         let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
         switch Babel.plan(context) {
         case .failure(.message(let message)): return (text, message)
-        case .success(let job):
+        case .success(var job):
+            while let need = job.needs.first {
+                switch Babel.resume(job, need: need, output: try run(need.job, directory: directory), text: text, tree: context.tree) {
+                case .failure(.message(let message)): return (text, message)
+                case .success(let next): job = next
+                }
+            }
             let output = try run(job, directory: directory)
             if let file = Babel.fileResult(job, output: output) {
                 try file.contents.write(to: directory.appendingPathComponent(file.path), atomically: true, encoding: .utf8)
@@ -112,6 +118,14 @@ struct BabelTests {
         "#+PROPERTY: header-args :results output\n#+begin_src sh\nprintf 'a b\\nc d\\n'\n#+end_src\n",
         "* Heading\n:PROPERTIES:\n:header-args:sh: :results verbatim\n:END:\n#+begin_src sh\necho 1 2\n#+end_src\n",
         "#+HEADER: :results output\n#+begin_src sh\nprintf 'x y\\nz w\\n'\n#+end_src\n",
+        // `:var` from other blocks' results.
+        "#+begin_src sh :var x=five\necho $((x+1))\n#+end_src\n\n#+NAME: five\n#+begin_src sh\necho 5\n#+end_src\n",
+        "#+begin_src python :var t=tbl\nreturn [len(t), t[1][0]]\n#+end_src\n\n#+NAME: tbl\n#+begin_src python\nreturn [[1, 2], [3, 4]]\n#+end_src\n",
+        "#+begin_src sh :var x=double(n=4)\necho $x\n#+end_src\n\n#+NAME: double\n#+begin_src sh :var n=2\necho $((n*2))\n#+end_src\n",
+        "#+begin_src python :var a=outer\nreturn a * 2\n#+end_src\n\n#+NAME: outer\n#+begin_src python :var b=inner\nreturn b + 1\n#+end_src\n\n#+NAME: inner\n#+begin_src python\nreturn 20\n#+end_src\n",
+        "#+begin_src emacs-lisp :var s=greet\n(concat s \"!\")\n#+end_src\n\n#+NAME: greet\n#+begin_src emacs-lisp\n\"hi\"\n#+end_src\n",
+        "#+begin_src python :var s=words\nreturn s.upper()\n#+end_src\n\n#+NAME: words\n#+begin_src sh :results output\nprintf 'two words'\n#+end_src\n",
+        "#+begin_src emacs-lisp :var rows=pairs\n(length rows)\n#+end_src\n\n#+NAME: pairs\n#+begin_src sh\nprintf 'a 1\\nb 2\\nc 3\\n'\n#+end_src\n",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
@@ -139,6 +153,16 @@ struct BabelTests {
         }
     }
 
+    @Test func asksOnceForEveryReferencedBlock() throws {
+        let text = BabelTests.cases.first { $0.contains(":var a=outer") }!
+        guard case .success(let job) = Babel.plan(EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])) else {
+            Issue.record("not planned")
+            return
+        }
+        #expect(job.needs.first?.reference == "inner")
+        #expect(job.blockText.contains("return a * 2") && job.blockText.contains("return b + 1") && job.blockText.contains("return 20"))
+    }
+
     @Test func refusesWhatWouldRunDifferently() {
         for (text, message) in [
             ("#+begin_src sh :eval never\necho\n#+end_src\n", "Evaluation of this sh code block is disabled."),
@@ -146,6 +170,7 @@ struct BabelTests {
             ("#+begin_src sh :noweb yes\n<<x()>>\n#+end_src\n", "Noweb references that run a block (x()) aren't supported yet; nothing was run."),
             ("#+begin_src sh :cmdline -x\necho\n#+end_src\n", ":cmdline isn't supported yet; nothing was run."),
             ("#+begin_src cobol\nDISPLAY\n#+end_src\n", "No way to run cobol blocks yet."),
+            ("#+begin_src sh :var x=loop\necho\n#+end_src\n#+NAME: loop\n#+begin_src sh :var y=loop\necho\n#+end_src\n", "loop refers to itself through :var"),
         ] {
             let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
             guard case .failure(.message(let got)) = Babel.plan(context) else {

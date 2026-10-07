@@ -186,7 +186,14 @@ public enum Tangle {
     /// `org-babel-expand-body:LANG`, or the generic expansion with the language's variable
     /// assignments.
     static func expandBody(_ body: String, language: String, params: Babel.Params, model: DocumentModel, text: NSString) throws -> String {
-        let vars = try params.vars.map { ($0.name, try Babel.resolve($0.value, model: model, text: text)) }
+        let refs = Babel.References(resolved: [:], options: Babel.Options())
+        let vars = try params.vars.map { variable in
+            do {
+                return (variable.name, try Babel.resolve(variable.value, model: model, text: text, refs: refs))
+            } catch is Babel.Needed {
+                throw Babel.Failure.message(":var \(variable.value) would run a block while tangling, which isn't supported yet; nothing was tangled.")
+            }
+        }
         let prologue = params.single[":prologue"]
         let epilogue = params.single[":epilogue"]
         if language == "emacs-lisp" || language == "elisp" {

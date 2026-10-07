@@ -692,6 +692,17 @@ public final class DocumentSession {
         guard let entry = current else { return "No file is open." }
         let directory = URL(fileURLWithPath: entry.path).deletingLastPathComponent()
         do {
+            // Blocks the `:var`s refer to run first, one at a time.
+            var job = job
+            while let need = job.needs.first {
+                let output = try await BabelRunner.run(need.job, fileDirectory: directory)
+                guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
+                let document = entry.buffer.document
+                switch Babel.resume(job, need: need, output: output, text: document.text, tree: document.tree) {
+                case .failure(.message(let message)): return message
+                case .success(let next): job = next
+                }
+            }
             let output = try await BabelRunner.run(job, fileDirectory: directory)
             guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
             if let file = Babel.fileResult(job, output: output) {
