@@ -96,6 +96,8 @@ public enum UserConfig {
                 comment: "truncate long lines instead of wrapping them (Emacs's default is t; Doom wraps)", legacy: ""),
         Setting(section: "", key: "spell-check", defaultsKey: "spellCheck", kind: .bool, fallback: .bool(false),
                 comment: "check spelling while typing, outside code, links, dates, tags and keywords", legacy: ""),
+        Setting(section: "", key: "electric-pair-mode", defaultsKey: "electricPair", kind: .bool, fallback: .bool(true),
+                comment: "type brackets, <> and quotes in pairs as electric-pair-mode does (off in plain Emacs; Doom pairs with smartparens)", legacy: ""),
         Setting(section: "", key: "org-startup-with-inline-images", defaultsKey: "startupWithInlineImages", kind: .bool, fallback: .bool(false),
                 comment: "show image links as images when a file opens; #+STARTUP: (no)inlineimages overrides", legacy: ""),
         Setting(section: "", key: "org-use-speed-commands", defaultsKey: "useSpeedCommands", kind: .bool, fallback: .bool(false),

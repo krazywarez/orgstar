@@ -36,6 +36,8 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var startupTruncated = false
     /// Spell checking while typing, outside code and markup.
     public var spellCheck = false
+    /// `electric-pair-mode`: brackets and quotes typed in pairs.
+    public var electricPair = false
     /// `org-cycle-hide-drawer-startup`: drawers are folded when a file opens.
     public var hideDrawerStartup: Bool
     /// `org-cycle-hide-block-startup`: blocks are folded when a file opens.
@@ -234,6 +236,9 @@ public enum ExternalRequest: Sendable, Equatable {
     case editBlock(BlockEdit)
     /// Show a column view.
     case columnView(ColumnView.View)
+    /// Show the agenda for `days` days from `start` (a `Days` number), as
+    /// `org-follow-timestamp-link` does.
+    case agenda(start: Int, days: Int)
 }
 
 /// A named operation. Keys, menus, the palette and touch controls all run commands.
@@ -262,7 +267,7 @@ public enum Commands {
         TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
-        CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(),
+        CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(), TableEditField(),
         UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(), SetPriority(), SetPriority(value: "A"), SetPriority(value: "B"), SetPriority(value: "C"), SetPriority(value: " "), ReadAndSetProperty(), DeleteProperty(), DeleteProperty(globally: true), PropertyAction(), NextAllowedValue(previous: false), NextAllowedValue(previous: true), InsertColumnView(), ShowColumnView(), ShowColumnView(global: true), ToggleArchiveTag(), ArchiveToSibling(),
     ]
 

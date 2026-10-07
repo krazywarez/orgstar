@@ -13,7 +13,7 @@ struct BlockEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(edit.kind == "formulas" ? "Editing table formulas" : "Editing \(edit.language.map { "\($0) " } ?? "")\(edit.kind) block")
+            Text(edit.title)
                 .font(.headline)
             CodeEditor(text: edit.content, language: edit.language, box: box) { save in finish(save ? box.text : nil) }
                 .frame(minWidth: 560, minHeight: 320)
@@ -23,7 +23,7 @@ struct BlockEditorView: View {
                 Spacer()
                 Button("Cancel", role: .cancel) { finish(nil) }
                     .keyboardShortcut(.cancelAction)
-                Button("Save Block") { finish(box.text) }
+                Button(edit.kind == "field" ? "Save Field" : "Save Block") { finish(box.text) }
                     .keyboardShortcut(.return, modifiers: .command)
             }
         }

@@ -16,12 +16,14 @@ public enum OrgPreferences {
 
     /// What commands run from the agenda and capture follow: logging and tags.
     public static func options(_ defaults: UserDefaults = .standard) -> EditingOptions {
-        EditingOptions(
+        var options = EditingOptions(
             tagsColumn: integer("tagsColumn", defaults), insertHeadingRespectContent: bool("headingAfterSubtree", defaults),
             listAllowAlphabetical: bool("alphabeticalLists", defaults), fillColumn: integer("fillColumn", defaults),
             logDone: LogHow(rawValue: string("logDone", defaults)), logIntoDrawer: string("logIntoDrawer", defaults).nonEmpty,
             logReschedule: LogHow(rawValue: string("logReschedule", defaults)), logRedeadline: LogHow(rawValue: string("logRedeadline", defaults))
         )
+        options.electricPair = bool("electricPair", defaults)
+        return options
     }
 
     public static func agendaSpan(_ defaults: UserDefaults = .standard) -> Int { integer("agendaSpan", defaults) }

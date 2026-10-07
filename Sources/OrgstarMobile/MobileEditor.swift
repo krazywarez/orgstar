@@ -60,6 +60,12 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var onMessage: ((String) -> Void)?
     var onPrompt: ((Prompt, @escaping (String?) -> Void) -> Void)?
     var onLink: ((OrgLink) -> Void)?
+    /// Edits being applied, which the typing hooks leave alone.
+    private var applyingEdits = false
+    /// A block, a table's formulas or a field to edit apart (C-c ', C-c `).
+    var onEditBlock: ((BlockEdit) -> Void)?
+    /// A followed timestamp's agenda days: the first (a `Days` number) and how many.
+    var onAgenda: ((Int, Int) -> Void)?
     /// Commands the app runs, as `app.clock.in`.
     var onAppCommand: ((String) -> Void)?
     /// Tags used across the workspace, for completion.
@@ -158,6 +164,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
                 guard let answer else { return self.onMessage?("Quit") ?? () }
                 _ = self.perform(command, now: now, answers: answers.merging([prompt.key: answer]) { $1 })
             }
+        case .external(.editBlock(let edit)) where onEditBlock != nil:
+            onEditBlock?(edit)
+        case .external(.agenda(let start, let count)) where onAgenda != nil:
+            onAgenda?(start, count)
         case .external:
             onMessage?("\(command.title) needs Emacs, which runs on the Mac.")
         }
@@ -203,7 +213,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
             return Presentation.heading(containing: context.caret, in: context.tree) != nil || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
         case "org.cycle-global", "edit.undo", "edit.redo": return true
         case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto": return onAppCommand != nil
-        case "org.link.open": return Links.link(at: context.caret, text: context.text, tree: context.tree) != nil
+        case "org.link.open": return OpenLinkAtPoint().applies(in: context)
         default: return false
         }
     }
@@ -272,10 +282,14 @@ final class MobileEditor: NSObject, DocumentBuffer {
     }
 
     private func openLinkAtCaret() {
-        guard let link = Links.link(at: textView.selectedRange.location, text: document.text, tree: document.tree)?.link else {
-            return onMessage?("No link here") ?? ()
+        let caret = textView.selectedRange.location
+        if let link = Links.link(at: caret, text: document.text, tree: document.tree)?.link {
+            onLink?(link)
+        } else if let days = Links.timestampDays(at: caret, text: document.text) {
+            onAgenda?(days.start, days.count)
+        } else {
+            onMessage?("No link here")
         }
-        onLink?(link)
     }
 
     // MARK: - Editing
@@ -283,15 +297,31 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// Applies `edits` (against the current text) through the text view as one undo step.
     func applyEdits(_ edits: [TextEdit]) {
         guard !edits.isEmpty else { return }
-        let undo = textView.undoManager
-        undo?.beginUndoGrouping()
-        for edit in edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
-            guard let start = textView.position(from: textView.beginningOfDocument, offset: edit.range.lowerBound),
-                  let end = textView.position(from: textView.beginningOfDocument, offset: edit.range.upperBound),
-                  let range = textView.textRange(from: start, to: end) else { continue }
-            textView.replace(range, withText: edit.replacement)
+        applyingEdits = true
+        defer { applyingEdits = false }
+        // Straight into the storage: replacing through text input would take the active
+        // keyboard's substitutions (smart dashes) when another view has the keyboard.
+        let storage = textView.textStorage
+        let old = storage.string as NSString
+        let ascending = edits.sorted { $0.range.lowerBound < $1.range.lowerBound }
+        var inverse: [TextEdit] = []
+        var delta = 0
+        for edit in ascending {
+            let start = edit.range.lowerBound + delta
+            let length = (edit.replacement as NSString).length
+            inverse.append(TextEdit(range: start..<start + length, replacement: old.substring(with: NSRange(edit.range))))
+            delta += length - edit.range.count
         }
-        undo?.endUndoGrouping()
+        let caret = textView.selectedRange
+        storage.beginEditing()
+        for edit in ascending.reversed() {
+            storage.replaceCharacters(in: NSRange(edit.range), with: edit.replacement)
+        }
+        storage.endEditing()
+        textView.undoManager?.registerUndo(withTarget: self) { editor in
+            editor.applyEdits(inverse)
+            editor.textView.selectedRange = caret
+        }
     }
 
     /// The storage changed (typing, a command, undo): the document takes the same edit, and
@@ -431,6 +461,26 @@ final class MobileEditor: NSObject, DocumentBuffer {
 extension MobileEditor: UITextViewDelegate {
     func textViewDidChangeSelection(_ textView: UITextView) {
         selectionChanged()
+    }
+
+    /// `electric-pair-mode` for typed brackets and quotes, DEL and RET, from either keyboard.
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        guard options.electricPair, !applyingEdits, textView.markedTextRange == nil else { return true }
+        let selected = textView.selectedRange
+        let key: String
+        if text.isEmpty, selected.length == 0, range.length == 1, NSMaxRange(range) == selected.location {
+            key = "DEL"
+        } else if range == selected, text == "\n" {
+            key = "RET"
+        } else if range == selected, ElectricPairKey.characters.contains(text) {
+            key = text
+        } else {
+            return true
+        }
+        let command = ElectricPairKey(key: key)
+        guard command.applies(in: editContext()) else { return true }
+        _ = perform(command)
+        return false
     }
 }
 

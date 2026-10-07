@@ -45,6 +45,7 @@ struct ContentView: View {
     @AppStorage("startupAlignAllTables") private var startupAlignAllTables = false
     @AppStorage("startupTruncated") private var startupTruncated = false
     @AppStorage("spellCheck") private var spellCheck = false
+    @AppStorage("electricPair") private var electricPair = true
     @AppStorage("hideDrawerStartup") private var hideDrawerStartup = true
     @AppStorage("hideBlockStartup") private var hideBlockStartup = false
 
@@ -55,7 +56,7 @@ struct ContentView: View {
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup, logReschedule: logReschedule, logRedeadline: logRedeadline,
             useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages,
             startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables,
-            startupTruncated: startupTruncated, spellCheck: spellCheck
+            startupTruncated: startupTruncated, spellCheck: spellCheck, electricPair: electricPair
         )
     }
     /// A block being edited apart (`org-edit-special`).
@@ -422,6 +423,9 @@ struct ContentView: View {
         switch request {
         case .openLink(let link):
             if let message = LinkOpener.open(link, session: session, workspace: workspace) { commands.show(message) }
+        case .agenda(let start, let days):
+            commands.agendaRequest = (start, days)
+            openWindow(id: "agenda")
         case .editBlock(let edit):
             blockEdit = BlockEditRequest(edit: edit)
         case .columnView(let view):

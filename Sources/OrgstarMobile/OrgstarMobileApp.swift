@@ -149,6 +149,14 @@ struct RootView: View {
             tab = .agenda
             agendaPath.append(route)
         }
+        .onChange(of: model.agendaRequest) {
+            guard let request = model.agendaRequest else { return }
+            model.agendaRequest = nil
+            agenda.mode = .agenda(span: request.count, startOffset: nil)
+            agenda.start = request.start
+            tab = .agenda
+            agendaPath = NavigationPath()
+        }
         .onChange(of: workspace.changedFile?.version) {
             // An open file takes in what changed on disk.
             if let path = workspace.changedFile?.path { session.fileChanged(path) }

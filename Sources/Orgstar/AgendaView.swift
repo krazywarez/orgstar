@@ -23,6 +23,8 @@ struct AgendaView: View {
     @State private var matchText = ""
     @State private var selection: String?
     @State private var tick = 0
+    /// The view picker moved to the agenda for a followed timestamp, which sets its own days.
+    @State private var keepRequestedDays = false
     @State private var message: String?
     @State private var prompt: PendingPrompt?
     @State private var promptText = ""
@@ -241,6 +243,8 @@ struct AgendaView: View {
         }
         .navigationTitle(viewName.replacingOccurrences(of: "…", with: ""))
         .onChange(of: viewName) { applyView() }
+        .onChange(of: commands.agendaRequest?.start, initial: true) { showRequestedDays() }
+        .onChange(of: commands.agendaRequest?.days) { showRequestedDays() }
         .task(id: refreshKey) {
             agenda.span = span
             agenda.startOffset = startOffset
@@ -293,7 +297,21 @@ struct AgendaView: View {
         message = loaded.problems.first
     }
 
+    /// The days of a followed timestamp, in the agenda view.
+    private func showRequestedDays() {
+        guard let request = commands.agendaRequest else { return }
+        commands.agendaRequest = nil
+        selection = nil
+        if viewName != AgendaViewLoader.builtIn[0].name {
+            keepRequestedDays = true
+            viewName = AgendaViewLoader.builtIn[0].name
+        }
+        agenda.mode = .agenda(span: request.days, startOffset: nil)
+        agenda.start = request.start
+    }
+
     private func applyView() {
+        if keepRequestedDays { return keepRequestedDays = false }
         selection = nil
         agenda.start = nil
         switch viewName {

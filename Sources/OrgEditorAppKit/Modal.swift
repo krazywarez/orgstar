@@ -48,8 +48,8 @@ extension OrgEditor {
     func feedVim(_ keys: [KeyChord]) -> Bool {
         for (index, key) in keys.enumerated() {
             if vim.mode == .insert, vim.passesThrough(key) {
-                if keys.count == 1 { return false }
-                insertTyped(key)
+                if keys.count == 1 { return electricPair(key) }
+                if !electricPair(key) { insertTyped(key) }
                 continue
             }
             let leaving = key == KeyChord("ESC") || key == KeyChord("[", .control) || key == KeyChord("g", .control)

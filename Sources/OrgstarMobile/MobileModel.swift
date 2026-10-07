@@ -27,6 +27,13 @@ final class MobileModel {
     private(set) var configProblems: [String] = []
     /// An entry to show, from a tapped reminder.
     var openRequest: ReaderRoute?
+    /// Agenda days to show, from a followed timestamp: the first (a `Days` number) and how many.
+    var agendaRequest: AgendaDays?
+
+    struct AgendaDays: Equatable {
+        let start: Int
+        let count: Int
+    }
     /// Bumped when settings apply, so views that read them update.
     private(set) var settingsVersion = 0
     @ObservationIgnored private var presenter: FolderPresenter?

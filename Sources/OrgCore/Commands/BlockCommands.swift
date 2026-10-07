@@ -111,8 +111,20 @@ public struct BlockEdit: Sendable, Equatable {
     public let content: String
     /// The src block's language, for highlighting.
     public let language: String?
-    /// `src`, `example` or `export`.
+    /// `src`, `example` or `export`; `formulas` or `field` for a table's.
     public let kind: String
+    /// A table field's point and coordinate (`@2$3`).
+    public var point: Int?
+    public var coordinate: String?
+
+    /// What the editor is editing, for its title.
+    public var title: String {
+        switch kind {
+        case Self.formulasKind: "Editing table formulas"
+        case Self.fieldKind: "Editing field \(coordinate ?? "")"
+        default: "Editing \(language.map { "\($0) " } ?? "")\(kind) block"
+        }
+    }
 
     /// `org-unescape-code-in-string`.
     public static func unescape(_ s: String) -> String {
@@ -193,6 +205,7 @@ public struct ReplaceBlockLines: OrgCommand {
             return .failed("The block changed while you edited it; its edit wasn't saved.")
         }
         if edit.kind == BlockEdit.formulasKind { return edit.installFormulas(content, in: context) }
+        if edit.kind == BlockEdit.fieldKind { return edit.installField(content, in: context) }
         let lines = edit.lines(for: content)
         return .commit(EditResult(baseRevision: context.revision, edits: [TextEdit(range: edit.range, replacement: lines)]))
     }

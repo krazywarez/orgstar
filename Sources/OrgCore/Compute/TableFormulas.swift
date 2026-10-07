@@ -832,3 +832,66 @@ extension BlockEdit {
                                   effects: result.effects + [.message("New formulas installed - press C-u C-c C-c to apply.")]))
     }
 }
+
+// `org-table-edit-field` (C-c `): a field's text edited apart, then put back.
+extension BlockEdit {
+    static let fieldKind = "field"
+
+    /// The data field at `offset`, trimmed. The range is its line, to check it's unchanged.
+    public static func field(at offset: Int, text: String) -> BlockEdit? {
+        let buffer = EmacsBuffer(text, point: offset)
+        guard buffer.insideDataField else { return nil }
+        let coordinate = "@\(buffer.tableCurrentDataLine())$\(buffer.tableCurrentColumn())"
+        let field = buffer.saveExcursion { () -> String in
+            buffer.skipBackwardNot([124, 10])
+            return buffer.substring(buffer.point, buffer.looking("[^|\\r\\n]*", caseInsensitive: false, setsMatch: false)![0]!.upperBound)
+        }
+        let start = buffer.lineStart(offset)
+        let end = buffer.lineEnd(offset)
+        return BlockEdit(range: start..<end, original: buffer.substring(start, end), content: field.trimmingCharacters(in: .whitespacesAndNewlines),
+                         language: nil, kind: fieldKind, point: offset, coordinate: coordinate)
+    }
+
+    /// `org-table-finish-edit-field`: comment lines go, line breaks become spaces, and the
+    /// table is aligned.
+    func installField(_ content: String, in context: EditContext) -> CommandStep {
+        var text = content.replacingOccurrences(of: "(?m)^#.*\n?", with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: "[ \t]*\n[ \t\n]*", with: " ", options: .regularExpression)
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return commitBuffer(context) { buffer in
+            buffer.point = point ?? range.lowerBound
+            guard buffer.insideDataField else { throw EmacsBuffer.UserError(message: "Not in table data field") }
+            buffer.skipBackwardNot([124, 10])
+            let end = buffer.looking("[^|\\r\\n]*", caseInsensitive: false, setsMatch: false)![0]!.upperBound
+            buffer.replaceRange(buffer.point, end, with: text.isEmpty ? " " : text)
+            buffer.point = min(buffer.lineEnd(buffer.point), buffer.point + 1)
+            buffer.tableAlign()
+        }
+    }
+}
+
+extension EmacsBuffer {
+    /// `org-table-check-inside-data-field` with NOERROR.
+    var insideDataField: Bool {
+        atTable && !atTableHline
+            && !saveExcursion { () -> Bool in
+                while let c = character(at: point - 1), c == 32 || c == 9 { point -= 1 }
+                return bolp
+            }
+            && looking("[ \\t]*$", caseInsensitive: false, setsMatch: false) == nil
+    }
+}
+
+/// C-c `: `org-table-edit-field`, in the block editor.
+public struct TableEditField: OrgCommand {
+    public init() {}
+    public var id: String { "org.table.edit-field" }
+    public var title: String { "Edit Table Field" }
+    public func applies(in context: EditContext) -> Bool { KeyContext.holds("table", in: context) }
+    public func run(in context: EditContext) -> CommandStep {
+        guard let edit = BlockEdit.field(at: context.caret, text: context.text) else {
+            return .failed(EmacsBuffer(context.text, point: context.caret).atTable ? "Not in table data field" : "Not at a table")
+        }
+        return .external(.editBlock(edit))
+    }
+}

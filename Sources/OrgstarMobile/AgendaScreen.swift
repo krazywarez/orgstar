@@ -65,6 +65,10 @@ struct AgendaScreen: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(viewName)
+        .onChange(of: agenda.start) {
+            // Days a followed timestamp asked for.
+            if agenda.start != nil, case .agenda = agenda.mode { viewName = "Agenda" }
+        }
         .overlay {
             if workspace.rootPaths.isEmpty {
                 ContentUnavailableView("No folders", systemImage: "folder", description: Text("Add a folder of org files under Folders."))

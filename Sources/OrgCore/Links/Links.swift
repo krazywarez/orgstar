@@ -198,16 +198,61 @@ public enum Links {
     }
 }
 
-/// `org-open-at-point` on a link (C-c C-o).
+/// `org-open-at-point` on a link or a timestamp (C-c C-o).
 public struct OpenLinkAtPoint: OrgCommand {
     public init() {}
     public var id: String { "org.link.open" }
     public var title: String { "Open Link" }
     public func applies(in context: EditContext) -> Bool {
         Links.link(at: context.caret, text: context.text, tree: context.tree) != nil
+            || Links.timestampDays(at: context.caret, text: context.text) != nil
     }
     public func run(in context: EditContext) -> CommandStep {
-        guard let found = Links.link(at: context.caret, text: context.text, tree: context.tree) else { return .failed("No link to follow here") }
-        return .external(.openLink(found.link))
+        if let found = Links.link(at: context.caret, text: context.text, tree: context.tree) {
+            return .external(.openLink(found.link))
+        }
+        if let days = Links.timestampDays(at: context.caret, text: context.text) {
+            return .external(.agenda(start: days.start, days: days.count))
+        }
+        return .failed("No link to follow here")
+    }
+}
+
+extension Links {
+    /// `org-at-date-range-p` with INACTIVE-OK: the range starting at one of the two brackets
+    /// back from `offset` that reaches it.
+    static func dateRange(at offset: Int, text ns: NSString) -> [Range<Int>?]? {
+        let stamp = "[\\[<]([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)[\\]>]"
+        let regex = try! NSRegularExpression(pattern: stamp + "--?-?" + stamp)
+        func char(_ i: Int) -> unichar? { i >= 0 && i < ns.length ? ns.character(at: i) : nil }
+        let brackets: Set<unichar> = [91, 60]
+        var p = offset
+        for _ in 0..<2 {
+            while let c = char(p - 1), !brackets.contains(c), c != 10, c != 13 { p -= 1 }
+            while let c = char(p - 1), brackets.contains(c) { p -= 1 }
+            if let m = regex.firstMatch(in: ns as String, options: .anchored, range: NSRange(location: p, length: ns.length - p)),
+               NSMaxRange(m.range) >= offset {
+                return (0..<m.numberOfRanges).map { i in m.range(at: i).location == NSNotFound ? nil : m.range(at: i).location..<NSMaxRange(m.range(at: i)) }
+            }
+        }
+        return nil
+    }
+
+    /// `org-follow-timestamp-link`: the agenda's first day and length for the date range or
+    /// timestamp at `offset`. Point just past a timestamp isn't on it.
+    public static func timestampDays(at offset: Int, text: String) -> (start: Int, count: Int)? {
+        let buffer = EmacsBuffer(text, point: offset)
+        func day(_ match: [Range<Int>?], _ group: Int) -> Int? {
+            guard let range = match[group] else { return nil }
+            let parts = buffer.substring(range.lowerBound, range.upperBound).prefix(10).split(separator: "-").compactMap { Int($0) }
+            return parts.count == 3 ? Days.absolute(year: parts[0], month: parts[1], day: parts[2]) : nil
+        }
+        if let range = dateRange(at: offset, text: text as NSString), let first = day(range, 1), let last = day(range, 2) {
+            return (first, last - first + 1)
+        }
+        if let (part, match) = buffer.atTimestamp(), part != .after, let first = day(match, 1) {
+            return (first, 1)
+        }
+        return nil
     }
 }

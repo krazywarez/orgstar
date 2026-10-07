@@ -17,6 +17,8 @@ final class AppCommands {
     /// A location another window asked the main window to show.
     private(set) var jumpRequest: (path: String, offset: Int, id: Int)?
     private var jumpID = 0
+    /// Days the agenda window should show, from a followed timestamp.
+    var agendaRequest: (start: Int, days: Int)?
     /// The editor showing the open file, for menus and the palette.
     var editor: OrgEditor?
     /// The pending key prefix, and what can follow it.

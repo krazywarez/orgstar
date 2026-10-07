@@ -123,7 +123,8 @@ public final class OrgEditor: NSObject {
         super.init()
         orgTextView.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
         orgTextView.onCommandClick = { [weak self] offset in
-            guard let self, Links.link(at: offset, text: self.document.text, tree: self.document.tree) != nil else { return false }
+            guard let self, Links.link(at: offset, text: self.document.text, tree: self.document.tree) != nil
+                || Links.timestampDays(at: offset, text: self.document.text) != nil else { return false }
             self.setCaret(offset)
             self.run("org.link.open")
             return true
@@ -395,7 +396,7 @@ public final class OrgEditor: NSObject {
             onMessage?("\(KeySequence.format(keys)) is undefined")
             return true
         case .unbound:
-            return false
+            return electricPair(chord)
         case .complete(let keys, let candidates):
             if keys.count > 1 { onKeysPending?(nil, []) }
             let context = context()
@@ -406,8 +407,19 @@ public final class OrgEditor: NSObject {
                 run(binding.command)
                 return true
             }
-            return false
+            return keys.count == 1 && electricPair(chord)
         }
+    }
+
+    /// `electric-pair-mode` for a key the keymap leaves to the text system: true when it
+    /// typed the key itself.
+    func electricPair(_ key: KeyChord) -> Bool {
+        guard isOrg, options.electricPair, key.modifiers.isEmpty, !textView.hasMarkedText(),
+              key.key == "DEL" || key.key == "RET" || ElectricPairKey.characters.contains(key.key) else { return false }
+        let command = ElectricPairKey(key: key.key)
+        guard command.applies(in: context()) else { return false }
+        _ = perform(command)
+        return true
     }
 
     private func applies(_ id: String, in context: EditContext) -> Bool {

@@ -27,9 +27,20 @@ struct EditorScreen: View {
         let reply: (String?) -> Void
     }
 
-    enum Sheet: String, Identifiable {
+    /// One sheet at a time: two presenters on this screen interfere.
+    enum Sheet: Identifiable {
         case palette, conflict, syncCopies, recovery
-        var id: String { rawValue }
+        case block(BlockEdit)
+
+        var id: String {
+            switch self {
+            case .palette: "palette"
+            case .conflict: "conflict"
+            case .syncCopies: "syncCopies"
+            case .recovery: "recovery"
+            case .block(let edit): "block \(edit.range)"
+            }
+        }
     }
 
     var body: some View {
@@ -81,6 +92,11 @@ struct EditorScreen: View {
             case .conflict: ConflictSheet(session: session)
             case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
             case .recovery: RecoverySheet(session: session) { message = $0 }
+            case .block(let edit):
+                BlockEditSheet(edit: edit) { content in
+                    self.sheet = nil
+                    if let content, let editor { _ = editor.perform(ReplaceBlockLines(edit: edit, content: content)) }
+                }
             }
         }
         .onChange(of: session.conflict) { _, conflict in
@@ -115,6 +131,8 @@ struct EditorScreen: View {
                 case .message(let text): message = text
                 }
             }
+            editor.onEditBlock = { edit in sheet = .block(edit) }
+            editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
             editor.onAppCommand = { id in
                 switch id {
                 case "app.clock.in": message = clock.clockIn(session)
@@ -311,6 +329,35 @@ struct PromptSheet: View {
     }
 }
 
+/// `org-edit-special` and `org-table-edit-field`: the text edited apart, put back with Save.
+struct BlockEditSheet: View {
+    let edit: BlockEdit
+    let finish: (String?) -> Void
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        NavigationStack {
+            TextEditor(text: $text)
+                .font(.body.monospaced())
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($focused)
+                .padding(.horizontal, 8)
+                .navigationTitle(edit.title.replacingOccurrences(of: "Editing ", with: "").capitalized(with: nil))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { finish(nil) } }
+                    ToolbarItem(placement: .confirmationAction) { Button("Save") { finish(text) } }
+                }
+        }
+        .onAppear {
+            text = edit.content
+            focused = true
+        }
+    }
+}
+
 /// Every command that applies at the caret, by name.
 struct CommandPalette: View {
     let editor: MobileEditor
@@ -318,7 +365,7 @@ struct CommandPalette: View {
     @Environment(\.dismiss) private var dismiss
 
     private static let viewCommands: [(id: String, title: String)] = [
-        ("org.cycle", "Cycle Visibility"), ("org.cycle-global", "Cycle Global Visibility"), ("org.link.open", "Open Link"),
+        ("org.cycle", "Cycle Visibility"), ("org.cycle-global", "Cycle Global Visibility"),
         ("edit.undo", "Undo"), ("edit.redo", "Redo"),
         ("app.clock.in", "Clock In"), ("app.clock.out", "Clock Out"), ("app.clock.cancel", "Cancel Clock"),
         ("app.clock.goto", "Go to Clocked Entry"),
