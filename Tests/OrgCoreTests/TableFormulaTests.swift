@@ -53,7 +53,22 @@ struct TableFormulaTests {
         "#+CONSTANTS: c=3\n| a | b | c |\n|---+---+---|\n| 2 | | |\n#+TBLFM: $2='(* $c $1);N::$3=$1*$c\n",
         "|   | a | b |\n|---+---+---|\n|   | 2 | |\n|   | 3 | |\n| $ | %=%.2f | |\n#+TBLFM: $3=$2/3;\n",
         "| a | b |\n|---+---|\n| 4 | |\n| 9 | |\n#+TBLFM: $2=vsdev(@I$1..@II$1)+fact(3)\n",
+        "| a | b |\n|---+---|\n| 1 |   |\n| 2 |   |\n#+TBLFM: @-1$2=5\n",
     ]
+
+    @Test func remoteFindsTablesByIDInOtherFiles() {
+        let other = "* Elsewhere\n:PROPERTIES:\n:ID: far\n:END:\n| v |\n|---|\n| 7 |\n"
+        RemoteTables.fileWithID = { $0 == "far" ? other : nil }
+        defer { RemoteTables.fileWithID = nil }
+        let text = "| x | y |\n|---+---|\n| 3 | |\n#+TBLFM: $2=$1*remote(far,@2$1)\n"
+        let result = runCommand(TableRecalculate(all: true), text, caret: (text as NSString).range(of: "#+TBLFM").location + 3)
+        #expect(result.text.contains("| 3 | 21 |"), "\(result)")
+        // As Emacs does in a file buffer (`org-id-find` needs one): the entry's first table.
+        let local = "* Rates\n:PROPERTIES:\n:ID: rates-id\n:END:\n| item | rate |\n|------+------|\n| a    | 2    |\n* Use\n| x | y |\n|---+---|\n| 4 | |\n#+TBLFM: $2=$1*remote(rates-id,@2$2)\n"
+        #expect(runCommand(TableRecalculate(all: true), local, caret: (local as NSString).range(of: "#+TBLFM").location + 3).text.contains("| 4 | 8 |"))
+        let missing = runCommand(TableRecalculate(all: true), text.replacingOccurrences(of: "far", with: "nowhere"), caret: 2)
+        #expect(missing.failure == "Can't find remote table \"nowhere\"")
+    }
 
     static func carets(_ text: String) -> [Int] {
         let ns = text as NSString
@@ -110,7 +125,8 @@ struct TableFormulaTests {
             }
             if !theirs.error.isEmpty {
                 // Emacs keeps the fields written before the error; nothing changes here.
-                #expect(mine.failure == theirs.error && mine.text == cases[i].text)
+                #expect(mine.failure == theirs.error && mine.text == cases[i].text,
+                        "\(cases[i].form) at \(cases[i].point): ours \(mine.failure ?? "-"), emacs \(theirs.error)\n\(cases[i].text)")
                 continue
             }
             let expected = (theirs.text, EmacsOracle.offset(theirs.point, in: theirs.text), theirs.error.isEmpty ? nil : theirs.error)

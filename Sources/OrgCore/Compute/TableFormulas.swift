@@ -5,6 +5,12 @@ import Foundation
 // features beyond `Calc`, Lisp beyond `Elisp`, remote tables found by ID and relative field
 // targets throw `Calc.Unsupported`; the caller then recalculates the table in Emacs.
 
+/// Where `remote()` finds tables by ID in other files.
+public enum RemoteTables {
+    /// The text of the file holding the entry with an ID; the app sets it, from its index.
+    nonisolated(unsafe) public static var fileWithID: ((String) -> String?)?
+}
+
 extension EmacsBuffer {
     struct TableAnalysis {
         /// Table-relative line index of each data line, from 1 (index 0 unused).
@@ -452,21 +458,40 @@ extension EmacsBuffer {
         return new
     }
 
-    /// `org-table-get-remote-range`: the table after `#+NAME: name` in this file.
+    /// `org-table-get-remote-range`: the table after `#+NAME: name` in this file, or the first
+    /// table in the entry with that ID, in this file or another.
     func remoteRange(_ name: String, _ form: String) throws -> TableRangeValue {
-        let ns = string as NSString
-        let pattern = "^[ \\t]*#\\+(tbl)?name:[ \\t]*" + NSRegularExpression.escapedPattern(for: name) + "[ \\t]*$"
-        let keyword = try! NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines, .caseInsensitive])
-        guard let found = keyword.firstMatch(in: string, range: NSRange(location: 0, length: ns.length)) else {
-            throw Calc.Unsupported("remote table \(name) by ID")
+        let escaped = NSRegularExpression.escapedPattern(for: name)
+        let keyword = try! NSRegularExpression(pattern: "^[ \\t]*#\\+(tbl)?name:[ \\t]*" + escaped + "[ \\t]*$", options: [.anchorsMatchLines, .caseInsensitive])
+        let idLine = try! NSRegularExpression(pattern: "^[ \\t]*:ID:[ \\t]+" + escaped + "[ \\t]*$", options: [.anchorsMatchLines, .caseInsensitive])
+        func first(_ regex: NSRegularExpression, in text: String) -> Int? {
+            regex.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length))?.range.location
         }
-        let after = min(ns.length, found.range.location + 1)
+        // `org-id-find`: the entry's heading, here or in the file holding the ID.
+        func heading(_ text: String, _ offset: Int) -> Int {
+            let before = try! NSRegularExpression(pattern: "^\\*+ ", options: .anchorsMatchLines)
+            return before.matches(in: text, range: NSRange(location: 0, length: offset)).last?.range.location ?? 0
+        }
+        var text = string
+        let location: Int
+        if let found = first(keyword, in: string) {
+            location = found
+        } else if let found = first(idLine, in: string) {
+            location = heading(string, found)
+        } else if let other = RemoteTables.fileWithID?(name), let found = first(idLine, in: other) {
+            text = other
+            location = heading(other, found)
+        } else {
+            throw UserError(message: "Can't find remote table \"\(name)\"")
+        }
+        let ns = text as NSString
+        let after = min(ns.length, location + 1)
         let next = try! NSRegularExpression(pattern: "^(\\*+ )|^[ \\t]*\\|", options: .anchorsMatchLines)
-        guard let m = next.firstMatch(in: string, range: NSRange(location: after, length: ns.length - after)),
+        guard let m = next.firstMatch(in: text, range: NSRange(location: after, length: ns.length - after)),
               m.range(at: 1).location == NSNotFound else {
             throw UserError(message: "Cannot find a table at NAME or ID \(name)")
         }
-        let remote = EmacsBuffer(string, point: m.range.location, settings: settings, options: options)
+        let remote = EmacsBuffer(text, point: m.range.location, settings: settings, options: options)
         let analysis = try remote.tableAnalyze()
         let resolved = try remote.substituteNames(try Self.handleFirstLast(Self.refsToRC(form), analysis: analysis), analysis: analysis)
         let range = try! NSRegularExpression(pattern: Self.rangePattern)
@@ -745,7 +770,8 @@ extension EmacsBuffer {
                 }
                 fields.append((row, location.column, rhs))
             } else if lhs.range(of: "^@[-+0-9]+\\$-?[0-9]+$", options: .regularExpression) != nil {
-                throw Calc.Unsupported("relative field formula")
+                // `org-table-goto-field` knows only absolute fields and names.
+                throw UserError(message: "Unknown field: \(lhs)")
             } else if let m = lhs.firstMatch(of: /^@([0-9]+)$/) {
                 let row = try Self.integer(String(m.1))
                 for c in 1...analysis.ncol { fields.append((row, c, rhs)) }

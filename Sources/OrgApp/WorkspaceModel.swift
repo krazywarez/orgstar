@@ -55,6 +55,12 @@ public final class WorkspaceModel {
         }
         resolveRoots()
         try reloadFiles()
+        // `remote()` in table formulas reaches tables in other files by ID.
+        let index = index
+        RemoteTables.fileWithID = { (id: String) -> String? in
+            guard let path = (try? index.headings(withID: id))?.first?.path else { return nil }
+            return FileManager.default.contents(atPath: path).map { SourceText(bytes: [UInt8]($0)).text }
+        }
     }
 
     /// `~/Library/Application Support/Orgstar`, or `ORGSTAR_DATA_DIR` when set (for development).
