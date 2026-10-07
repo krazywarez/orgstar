@@ -35,7 +35,7 @@ struct OrgExport: Transferable {
         let settings = settings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
         let content = switch format {
         case .html: HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path)
-        case .markdown: MarkdownExport.document(text, settings: settings)
+        case .markdown: MarkdownExport.document(text, settings: settings, path: path)
         }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

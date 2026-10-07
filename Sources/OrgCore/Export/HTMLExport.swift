@@ -47,11 +47,12 @@ public enum HTMLExport {
         let meta = metadata(text, settings: settings)
         let title = meta.title ?? fallbackTitle
         let renderer = HTMLRenderer(settings: settings, options: options)
+        renderer.citations = CiteProcessor(text: text, directory: directory)
         let titleHTML = renderer.inlineString(title)
         var header = options.title ? "<h1 class=\"title\">\(titleHTML)</h1>\n" : ""
         let byline = [options.author ? meta.author : nil, options.date ? meta.date : nil].compactMap { $0 }.filter { !$0.isEmpty }
         if !byline.isEmpty { header += "<p class=\"byline\">\(byline.map(HTMLRenderer.escape).joined(separator: " · "))</p>\n" }
-        let body = renderer.document(text)
+        let body = renderer.document(renderer.citations == nil ? text : CiteProcessor.removingNocite(text))
         header += renderer.tableOfContents()
         var head = options.htmlHead.map { $0 + "\n" }.joined()
         if renderer.hasMath {
@@ -104,6 +105,8 @@ final class HTMLRenderer {
     private var anonymous = 0
     private var figures = 0
     private var ids: Set<String> = []
+    /// Citations and the bibliography, as `oc-basic` exports them.
+    var citations: CiteProcessor?
 
     enum FootnoteContent {
         case definition(String)
@@ -184,6 +187,20 @@ final class HTMLRenderer {
         return inline(paragraph).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// A citation's or a bibliography entry's pieces: text escaped, prefixes and suffixes as
+    /// Org markup with their blanks kept.
+    private func render(_ pieces: [CiteProcessor.Piece]) -> String {
+        pieces.map { piece in
+            switch piece {
+            case .text(let s): Self.escape(s)
+            case .italic(let s): "<i>" + Self.escape(s) + "</i>"
+            case .org(let s) where s.allSatisfy(\.isWhitespace): s
+            case .org(let s):
+                String(s.prefix { $0.isWhitespace }) + inlineString(s) + (s.allSatisfy(\.isWhitespace) ? "" : String(s.reversed().prefix { $0.isWhitespace }))
+            }
+        }.joined()
+    }
+
     // MARK: - Elements
 
     private var affiliated: [String: String] = [:]
@@ -228,6 +245,8 @@ final class HTMLRenderer {
             return ""
         case .paragraph:
             return paragraph(node)
+        case .keyword where citations != nil && node.text.range(of: "^[ \\t]*#\\+print_bibliography:", options: [.regularExpression, .caseInsensitive]) != nil:
+            return citations!.bibliography.map { "<p>" + render($0) + "</p>\n" }.joined()
         case .plainList:
             return list(node)
         case .table:
@@ -682,7 +701,10 @@ final class HTMLRenderer {
         case .exportSnippet:
             guard node.tokens.first?.text == "@@html:" else { return "" }
             return node.tokens.filter { $0.kind != .marker }.map(\.text).joined()
-        case .citation, .inlineBabelCall: return Self.escape(node.text)
+        case .citation:
+            guard let pieces = citations?.next(node.text) else { return Self.escape(node.text) }
+            return render(pieces)
+        case .inlineBabelCall: return Self.escape(node.text)
         default: return inline(node)
         }
     }

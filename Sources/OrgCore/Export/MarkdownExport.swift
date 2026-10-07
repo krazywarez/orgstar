@@ -3,11 +3,13 @@ import Foundation
 /// Markdown export, GitHub-flavored: ATX headings, fenced code, pipe tables, task lists and
 /// `[^n]` footnotes. The title, when there is one, becomes the top heading.
 public enum MarkdownExport {
-    public static func document(_ text: String, settings: OrgSettings = .default) -> String {
+    /// `path` is the file's, for `#+bibliography:`.
+    public static func document(_ text: String, settings: OrgSettings = .default, path: String? = nil) -> String {
         let renderer = MarkdownRenderer(settings: settings)
+        renderer.citations = CiteProcessor(text: text, directory: path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() })
         var out = ""
         if let title = HTMLExport.metadata(text, settings: settings).title { out = "# " + renderer.inlineString(title) + "\n\n" }
-        out += renderer.document(text)
+        out += renderer.document(renderer.citations == nil ? text : CiteProcessor.removingNocite(text))
         return out.trimmingCharacters(in: .newlines) + "\n"
     }
 }
@@ -18,6 +20,8 @@ final class MarkdownRenderer {
     private var numbers: [String: Int] = [:]
     private var notes: [(Int, String)] = []
     private var anonymous = 0
+    /// Citations and the bibliography, as `oc-basic` exports them.
+    var citations: CiteProcessor?
 
     init(settings: OrgSettings) {
         self.settings = settings
@@ -85,6 +89,8 @@ final class MarkdownRenderer {
                 parts.append(tags.split(separator: ":").map { "`\($0)`" }.joined(separator: " "))
             }
             return String(repeating: "#", count: min(level + 1, 6)) + " " + parts.filter { !$0.isEmpty }.joined(separator: " ")
+        case .keyword where citations != nil && node.text.range(of: "^[ \\t]*#\\+print_bibliography:", options: [.regularExpression, .caseInsensitive]) != nil:
+            return citations!.bibliography.map { indent + render($0) }.joined(separator: "\n\n")
         case .paragraph:
             return indent + inline(node).trimmingCharacters(in: .whitespacesAndNewlines)
                 .components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: "\n" + indent)
@@ -220,6 +226,19 @@ final class MarkdownRenderer {
         return out
     }
 
+    /// A citation's or a bibliography entry's pieces, prefixes and suffixes as Org markup.
+    private func render(_ pieces: [CiteProcessor.Piece]) -> String {
+        pieces.map { piece in
+            switch piece {
+            case .text(let s): s
+            case .italic(let s): "*" + s + "*"
+            case .org(let s) where s.allSatisfy(\.isWhitespace): s
+            case .org(let s):
+                String(s.prefix { $0.isWhitespace }) + inlineString(s) + (s.allSatisfy(\.isWhitespace) ? "" : String(s.reversed().prefix { $0.isWhitespace }))
+            }
+        }.joined()
+    }
+
     private func code(_ text: String) -> String {
         let ticks = text.contains("`") ? "``" : "`"
         return ticks + (ticks == "``" ? " " + text + " " : text) + ticks
@@ -256,7 +275,10 @@ final class MarkdownRenderer {
         case .exportSnippet:
             guard node.tokens.first?.text == "@@html:" else { return "" }
             return node.tokens.filter { $0.kind != .marker }.map(\.text).joined()
-        case .citation, .inlineBabelCall: return node.text
+        case .citation:
+            guard let pieces = citations?.next(node.text) else { return node.text }
+            return render(pieces)
+        case .inlineBabelCall: return node.text
         default: return inline(node)
         }
     }

@@ -388,7 +388,7 @@ struct ContentView: View {
         case "html", "html-open", "markdown":
             let target = destination ?? base.appendingPathExtension(format == "markdown" ? "md" : "html")
             let content = format == "markdown"
-                ? MarkdownExport.document(text, settings: defaults)
+                ? MarkdownExport.document(text, settings: defaults, path: path)
                 : HTMLExport.page(text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path)
             do {
                 try content.write(to: target, atomically: true, encoding: .utf8)
