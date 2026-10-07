@@ -239,11 +239,9 @@ public struct SortEntries: OrgCommand {
     ]
 
     public func run(in context: EditContext) -> CommandStep {
-        // `org-sort` sorts table lines and list items there; those aren't here yet.
+        // `org-sort`: table lines in a table, the list on an item line.
         if KeyContext.holds("table", in: context) { return SortTableLines().run(in: context) }
-        if EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).inItem() != nil {
-            return .failed("Sorting list items isn't supported yet")
-        }
+        if EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).atItem { return sortList(context) }
         let probe = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings)
         guard let bounds = Self.bounds(probe, context.selection.first ?? context.caret..<context.caret) else { return .failed("Nothing to sort") }
         guard let answer = context.answers["sort"], let key = answer.first else {
@@ -265,6 +263,70 @@ public struct SortEntries: OrgCommand {
         return commitBuffer(context) { buffer in
             try Self.sort(buffer, key: kind, reverse: key.isUppercase, property: property, selection: context.selection.first ?? context.caret..<context.caret)
         }
+    }
+
+    /// `org-sort-list`: [a]lpha, [n]umeric, [t]ime, [x] checked; the capital letter reverses.
+    func sortList(_ context: EditContext) -> CommandStep {
+        guard let answer = context.answers["sort"], let key = answer.first else {
+            let keys: [(Character, String)] = [("a", "alpha"), ("n", "numeric"), ("t", "time"), ("x", "checked")]
+            var items: [FastSelection.Item] = keys.map { .option(key: $0.0, name: $0.1) }
+            items.append(.newline)
+            items += keys.map { .option(key: Character($0.0.uppercased()), name: $0.1 + " (reversed)") }
+            return .prompt(Prompt(key: "sort", message: "Sort plain list: [a]lpha  [n]umeric  [t]ime  [x]checked  A/N/T/X means reversed:",
+                                  fast: FastSelection(items: items, multiple: false)))
+        }
+        let kind = Character(key.lowercased())
+        guard "antx".contains(kind) else { return .failed("Invalid sorting type `\(key)'") }
+        return commitBuffer(context) { buffer in Self.sortList(buffer, key: kind, reverse: key.isUppercase) }
+    }
+
+    static func sortList(_ buffer: EmacsBuffer, key: Character, reverse: Bool) {
+        let line = buffer.lineStart(buffer.point)
+        var structure = buffer.saveExcursion { buffer.point = line; return buffer.listStruct() }
+        let prevs = structure.prevs
+        let siblings = structure.allItems(line, prevs)
+        let records = siblings.map { $0..<buffer.itemEndBeforeBlank($0, structure) }
+        let now = buffer.now.timeIntervalSince1970
+        let keys = records.map { record -> SortKey in
+            let first = buffer.substring(record.lowerBound, buffer.lineEnd(record.lowerBound))
+            guard let m = first.firstMatch(of: /^[ \t]*[-+*0-9.)]+([ \t]+\[[- X]\])?[ \t]+/) else { return .text("") }
+            let rest = String(first[m.range.upperBound...])
+            switch key {
+            case "n": return .number((try? Elisp.number(Elisp.stringToNumber(visibleTitle(rest))))?.double ?? 0)
+            case "a": return .text(visibleTitle(rest).lowercased())
+            case "x": return .text(m.1.map(String.init) ?? "")
+            default:
+                if let timer = rest.firstMatch(of: /^([0-9]+):([0-9]+):([0-9]+)[ \t]+::/) {
+                    return .number(Double(Int(timer.1)! * 3600 + Int(timer.2)! * 60 + Int(timer.3)!))
+                }
+                for pattern in ["<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\\n]*>", "[\\[<][0-9]{4}-[0-9]{2}-[0-9]{2}[^\\]>\\n]*[\\]>]"] {
+                    if let r = first.range(of: pattern, options: .regularExpression) {
+                        return .number(TagsMatcher.seconds(String(first[r]), now: buffer.now, calendar: buffer.calendar))
+                    }
+                }
+                return .number(now)
+            }
+        }
+        // `sort-subr`: stable, reversed before and after for the capital letters.
+        var order = Array(records.indices)
+        if reverse { order.reverse() }
+        order = order.enumerated().sorted { a, b in
+            let less = keys[a.element] < keys[b.element]
+            let greater = keys[b.element] < keys[a.element]
+            return less != greater ? less : a.offset < b.offset
+        }.map(\.element)
+        if reverse { order.reverse() }
+        let texts = records.map { buffer.substring($0.lowerBound, $0.upperBound) }
+        for (i, record) in records.enumerated().reversed() {
+            buffer.deleteRegion(record.lowerBound, record.upperBound)
+            buffer.point = record.lowerBound
+            buffer.insert(texts[order[i]])
+        }
+        // `org-list-repair`.
+        buffer.point = records[0].lowerBound
+        structure = buffer.listStruct()
+        buffer.writeStruct(&structure, structure.parents)
+        buffer.point = records[0].lowerBound
     }
 
     /// `org-buffer-property-keys`, roughly: the property names in the text.
