@@ -688,14 +688,26 @@ public final class DocumentSession {
     /// Runs a src block and writes its result under it, unless the block changed while it
     /// ran. Returns a message for the echo area.
     public func runBabel(_ job: BabelJob) async -> String {
-        #if os(macOS)
         guard let entry = current else { return "No file is open." }
         let directory = URL(fileURLWithPath: entry.path).deletingLastPathComponent()
+        /// A program on the Mac; on iOS, Emacs Lisp in `Elisp`, and nothing else.
+        func run(_ job: BabelJob) async throws -> BabelOutput {
+            #if os(macOS)
+            return try await BabelRunner.run(job, fileDirectory: directory)
+            #else
+            guard let output = try Babel.evaluateNatively(job) else {
+                throw Babel.Failure.message(job.lispForm == nil
+                    ? "\(job.language) blocks need the Mac to run."
+                    : "This block uses Emacs Lisp that runs only in Emacs, on the Mac.")
+            }
+            return output
+            #endif
+        }
         do {
             // Blocks the `:var`s refer to run first, one at a time.
             var job = job
             while let need = job.needs.first {
-                let output = try await BabelRunner.run(need.job, fileDirectory: directory)
+                let output = try await run(need.job)
                 guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
                 let document = entry.buffer.document
                 switch Babel.resume(job, need: need, output: output, text: document.text, tree: document.tree) {
@@ -703,7 +715,7 @@ public final class DocumentSession {
                 case .success(let next): job = next
                 }
             }
-            let output = try await BabelRunner.run(job, fileDirectory: directory)
+            let output = try await run(job)
             guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
             if let file = Babel.fileResult(job, output: output) {
                 let runDirectory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: directory).standardizedFileURL } ?? directory
@@ -729,12 +741,11 @@ public final class DocumentSession {
             }
         } catch is CancellationError {
             return "Code block canceled."
+        } catch Babel.Failure.message(let message) {
+            return message
         } catch {
             return "\(error)"
         }
-        #else
-        return "Source blocks don't run on iOS."
-        #endif
     }
 
     /// The block running now, to cancel.

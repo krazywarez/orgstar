@@ -64,6 +64,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     private var applyingEdits = false
     /// Source blocks to write to their files (C-c C-v t).
     var onTangle: ((Tangle.Scope) -> Void)?
+    /// A source block to run (C-c C-c).
+    var onBabel: ((BabelJob) -> Void)?
     /// A block, a table's formulas or a field to edit apart (C-c ', C-c `).
     var onEditBlock: ((BlockEdit) -> Void)?
     /// A followed timestamp's agenda days: the first (a `Days` number) and how many.
@@ -168,6 +170,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
             }
         case .external(.editBlock(let edit)) where onEditBlock != nil:
             onEditBlock?(edit)
+        case .external(.babel(let job)) where onBabel != nil:
+            onBabel?(job)
         case .external(.tangle(let scope)) where onTangle != nil:
             onTangle?(scope)
         case .external(.agenda(let start, let count)) where onAgenda != nil:

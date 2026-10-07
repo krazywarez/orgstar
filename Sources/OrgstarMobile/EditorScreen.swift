@@ -17,6 +17,9 @@ struct EditorScreen: View {
     @State private var prompt: PromptRequest?
     @State private var message: String?
     @State private var sheet: Sheet?
+    @State private var trust = TrustStore()
+    /// The command chosen in the palette, run once the palette is gone.
+    @State private var chosen: String?
     @Environment(ClockModel.self) private var clock
     @Environment(MobileModel.self) private var model
     @Environment(\.openURL) private var openURL
@@ -86,9 +89,15 @@ struct EditorScreen: View {
                 request.reply(answer)
             }
         }
-        .sheet(item: $sheet) { sheet in
+        .sheet(item: $sheet, onDismiss: {
+            // After the sheet has gone, so a command's own prompt can show.
+            if let id = chosen {
+                chosen = nil
+                editor?.run(id)
+            }
+        }) { sheet in
             switch sheet {
-            case .palette: if let editor { CommandPalette(editor: editor) }
+            case .palette: if let editor { CommandPalette(editor: editor) { chosen = $0 } }
             case .conflict: ConflictSheet(session: session)
             case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
             case .recovery: RecoverySheet(session: session) { message = $0 }
@@ -115,6 +124,25 @@ struct EditorScreen: View {
         }
     }
 
+    /// Runs a block once it's trusted, asking as `org-confirm-babel-evaluate` does.
+    private func run(_ job: BabelJob) {
+        let go = {
+            message = "Running \(job.language) block…"
+            session.startBabel(job) { message = $0 }
+        }
+        if !job.alwaysAsk, trust.isTrusted(path: path, content: job.blockText) { return go() }
+        let choices = job.alwaysAsk ? ["yes", "no"] : ["yes", "no", "always"]
+        prompt = PromptRequest(prompt: Prompt(key: "confirm", message: "Run this \(job.language) block?", choices: choices)) { answer in
+            switch answer {
+            case "always":
+                trust.trust(path: path, content: job.blockText)
+                go()
+            case "yes": go()
+            default: message = "Not run"
+            }
+        }
+    }
+
     private func start() {
         if session.path != path { session.open(path) }
         if editor == nil, let document = session.document {
@@ -133,6 +161,7 @@ struct EditorScreen: View {
             }
             editor.onEditBlock = { edit in sheet = .block(edit) }
             editor.onTangle = { scope in message = session.tangle(scope) }
+            editor.onBabel = { job in run(job) }
             editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
             editor.onAppCommand = { id in
                 switch id {
@@ -362,6 +391,8 @@ struct BlockEditSheet: View {
 /// Every command that applies at the caret, by name.
 struct CommandPalette: View {
     let editor: MobileEditor
+    /// Called with the chosen command before the palette closes.
+    let choose: (String) -> Void
     @State private var query = ""
     @Environment(\.dismiss) private var dismiss
 
@@ -379,9 +410,8 @@ struct CommandPalette: View {
         NavigationStack {
             List(shown, id: \.id) { command in
                 Button {
+                    choose(command.id)
                     dismiss()
-                    // After the sheet goes, so a command's own prompt can show.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { editor.run(command.id) }
                 } label: {
                     HStack {
                         Text(command.title).foregroundStyle(.primary)

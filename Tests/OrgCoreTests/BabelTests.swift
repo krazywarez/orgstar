@@ -3,6 +3,8 @@ import Testing
 @testable import OrgCore
 
 /// Runs a Babel job the way the app does, for tests.
+struct NativeUnsupported: Error {}
+
 enum TestBabelRunner {
     static func run(_ job: BabelJob, directory: URL) throws -> BabelOutput {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-babel-\(UUID().uuidString)")
@@ -37,7 +39,13 @@ enum TestBabelRunner {
     }
 
     /// Plans, runs and finishes the block at `caret`: the new text, or the failure.
-    static func execute(_ text: String, caret: Int, directory: URL) throws -> (text: String, failure: String?) {
+    /// `native` runs Emacs Lisp blocks with `Babel.evaluateNatively` instead of Emacs.
+    static func execute(_ text: String, caret: Int, directory: URL, native: Bool = false) throws -> (text: String, failure: String?) {
+        func run(_ job: BabelJob, directory: URL) throws -> BabelOutput {
+            guard native else { return try TestBabelRunner.run(job, directory: directory) }
+            guard let output = try Babel.evaluateNatively(job) else { throw NativeUnsupported() }
+            return output
+        }
         let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
         switch Babel.plan(context) {
         case .failure(.message(let message)): return (text, message)
@@ -48,7 +56,13 @@ enum TestBabelRunner {
                 case .success(let next): job = next
                 }
             }
-            let output = try run(job, directory: directory)
+            let output: BabelOutput
+            do {
+                output = try run(job, directory: directory)
+            } catch let failure as Babel.Failure {
+                guard case .message(let message) = failure else { return (text, nil) }
+                return (text, message)
+            }
             if let file = Babel.fileResult(job, output: output) {
                 try file.contents.write(to: directory.appendingPathComponent(file.path), atomically: true, encoding: .utf8)
             }
@@ -150,6 +164,55 @@ struct BabelTests {
         let emacs = try EmacsOracle.run(emacsCases)
         for (i, (mine, theirs)) in zip(ours, emacs).enumerated() {
             #expect(mine.text == theirs.text, "case \(i):\n\(Self.cases[i])\nours (\(mine.failure ?? "")):\n\(mine.text)\nemacs (\(theirs.error)):\n\(theirs.text)")
+        }
+    }
+
+    static let lispCases = [
+        "#+begin_src emacs-lisp\n(list 1 2.5 \"three\" 'four)\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(list '(a 1) 'hline '(b 2))\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(format \"%05.2f|%s\" 3.14159 'sym)\n#+end_src\n",
+        "#+begin_src emacs-lisp\n\"line one\\nline \\\"two\\\"\"\n#+end_src\n",
+        "#+begin_src emacs-lisp :results verbatim\n\"with \\\"quotes\\\" and \\\\ slash\"\n#+end_src\n",
+        "#+begin_src emacs-lisp\nnil\n#+end_src\n",
+        "#+begin_src emacs-lisp\nt\n#+end_src\n",
+        "#+begin_src emacs-lisp\n[1 2 3]\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(cons 1 2)\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(/ 10 4.0)\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(let ((s 0)) (dotimes (i 5) (setq s (+ s i))) s)\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(mapcar (lambda (x) (* x x)) '(1 2 3))\n#+end_src\n",
+        "#+begin_src emacs-lisp :results output\n(princ \"a\")\n(terpri)\n(prin1 \"b\")\n(print 'c)\n#+end_src\n",
+        "#+begin_src emacs-lisp :results value scalar\n'(1 2)\n#+end_src\n",
+        "#+begin_src emacs-lisp :results list\n'(\"x\" \"y\")\n#+end_src\n",
+        "#+NAME: tbl\n| 1 | 2 |\n| 3 | 4 |\n\n#+begin_src emacs-lisp :var rows=tbl\n(mapcar (lambda (r) (apply #'+ r)) rows)\n#+end_src\n",
+        "#+begin_src emacs-lisp :var n=6 :var s=\"hi\"\n(concat s (number-to-string (* n 7)))\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(car 1)\n#+end_src\n",
+        "#+begin_src emacs-lisp :results raw\n\"*bold*\"\n#+end_src\n",
+        "#+begin_src emacs-lisp :wrap example\n(upcase \"wrapped\")\n#+end_src\n",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func lispRunsNativelyLikeEmacs() throws {
+        let folder = FileManager.default.temporaryDirectory
+        let texts = Self.lispCases + Self.cases.filter { ($0.contains("emacs-lisp") || $0.contains("begin_src elisp")) && !$0.contains("begin_src sh") }
+        var emacsCases: [EmacsOracle.Case] = []
+        var ours: [(text: String, failure: String?)] = []
+        for text in texts {
+            let caret = (text as NSString).range(of: "#+begin_src").location + 2
+            do {
+                ours.append(try TestBabelRunner.execute(text, caret: caret, directory: folder, native: true))
+            } catch is NativeUnsupported {
+                Issue.record("not run natively:\n\(text)")
+                ours.append((text, "unsupported"))
+            }
+            emacsCases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: """
+            (progn
+              (setq org-confirm-babel-evaluate nil)
+              (org-babel-execute-src-block))
+            """))
+        }
+        let emacs = try EmacsOracle.run(emacsCases)
+        for (i, (mine, theirs)) in zip(ours, emacs).enumerated() {
+            #expect(mine.text == theirs.text, "case \(i):\n\(texts[i])\nours (\(mine.failure ?? "")):\n\(mine.text)\nemacs (\(theirs.error)):\n\(theirs.text)")
         }
     }
 

@@ -36,6 +36,8 @@ public struct BabelJob: Sendable, Equatable {
     var resolved: [String: Babel.VarValue] = [:]
     var caret = 0
     var options = Babel.Options()
+    /// An Emacs Lisp block's form, for `Babel.evaluateNatively`.
+    public internal(set) var lispForm: String?
 
     public struct Need: Sendable, Equatable {
         /// The `:var` value, `name` or `name(args)`.
@@ -367,10 +369,12 @@ public enum Babel {
             let bindings = vars.map { "(\($0.0) '\(lispLiteral($0.1)))" }
             let expanded = bindings.isEmpty ? body + "\n" : "(let (\(bindings.joined(separator: "\n      ")))\n\(body)\n)"
             let form = output ? "(with-output-to-string \(expanded))" : "(progn \(expanded)\n)"
-            return .success(BabelJob(
+            var job = BabelJob(
                 language: language, runner: .emacs, input: emacsScript(form: form, params: params.results),
                 directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.emacsLisp)
-            ))
+            )
+            job.lispForm = form
+            return .success(job)
         }
         if ["dot", "plantuml", "mermaid"].contains(language) {
             // ob-dot, ob-plantuml and ob-mermaid: the program draws into `:file`.
@@ -937,6 +941,46 @@ public enum Babel {
                                 (string . ,(if (stringp result) t :json-false))
                                 (rows . ,(if rows (vconcat rows) :json-null))))))
         """
+    }
+
+    /// An Emacs Lisp job run by `Elisp` instead of Emacs: the output `emacsScript` would print.
+    /// A Lisp error fails the run, as it does in Emacs; nil when the block uses what `Elisp`
+    /// doesn't have.
+    public static func evaluateNatively(_ job: BabelJob) throws(Failure) -> BabelOutput? {
+        guard let form = job.lispForm, let sexp = try? LispReader.readFirst(form).sexp else { return nil }
+        let lisp = Elisp()
+        let result: Sexp
+        do {
+            result = try lisp.eval(sexp)
+        } catch is Elisp.Unsupported {
+            return nil
+        } catch {
+            throw .message("\(error)")
+        }
+        func cell(_ c: Sexp) -> String { Elisp.printed(c) }
+        func isProper(_ v: Sexp) -> Bool {
+            if case .list = v { return true }
+            return Elisp.isNil(v)
+        }
+        func isAtom(_ v: Sexp) -> Bool {
+            switch v {
+            case .list(let items): items.isEmpty
+            case .dotted: false
+            default: true
+            }
+        }
+        var rows: [Any] = []
+        if case .list(let items) = result, items.allSatisfy({ isAtom($0) || isProper($0) }) {
+            if items.allSatisfy({ $0 == .symbol("hline") || isProper($0) }) {
+                rows = items.map { $0 == .symbol("hline") ? "hline" as Any : ((try? Elisp.elements($0)) ?? []).map(cell) as Any }
+            } else {
+                rows = [items.map(cell)]
+            }
+        }
+        var object: [String: Any] = ["s": Elisp.printed(result), "S": Elisp.printed(result, escape: true), "string": result.string != nil]
+        object["rows"] = rows.isEmpty ? NSNull() : rows
+        guard let data = try? JSONSerialization.data(withJSONObject: object), let json = String(data: data, encoding: .utf8) else { return nil }
+        return BabelOutput(stdout: lisp.standardOutput + json, stderr: lisp.messages)
     }
 
     // MARK: - Finishing

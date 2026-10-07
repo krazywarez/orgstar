@@ -20,6 +20,13 @@ public final class Elisp {
     private var functions: [String: Builtin] = [:]
     private var steps = 0
     static let stepLimit = 1_000_000
+    /// What `princ` and the other printers wrote: the innermost `with-output-to-string`, or
+    /// standard output.
+    private var outputs: [String] = [""]
+    /// What went to standard output.
+    public var standardOutput: String { outputs[0] }
+    /// What `message` wrote.
+    public private(set) var messages = ""
 
     public init() {
         Self.core(self)
@@ -135,7 +142,7 @@ public final class Elisp {
     /// `prin1-to-string` with `princ` for strings when `escape` is false.
     public static func printed(_ v: Sexp, escape: Bool = false) -> String {
         switch v {
-        case .string(let s): return escape ? v.description : s
+        case .string(let s): return escape ? "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" : s
         case .float(let d): return floatText(d)
         case .character(let c): return String(c)
         case .list(let items): return "(" + items.map { printed($0, escape: true) }.joined(separator: " ") + ")"
@@ -290,6 +297,15 @@ public final class Elisp {
                 return try eval(spec[2])
             }
             return .nil
+        case "with-output-to-string":
+            outputs.append("")
+            do {
+                _ = try progn(args)
+            } catch {
+                outputs.removeLast()
+                throw error
+            }
+            return .string(outputs.removeLast())
         case "ignore-errors":
             do { return try progn(args) } catch is Signal { return .nil }
         case "condition-case":
@@ -621,6 +637,30 @@ public final class Elisp {
         }
         lisp.define("user-error") { _, args in
             throw Signal(message: args.isEmpty ? "" : try format(args))
+        }
+
+        // Printing.
+        for (name, escape) in [("princ", false), ("prin1", true), ("print", true)] {
+            lisp.define(name) { lisp, args in
+                try arity(args, 1...2, name)
+                let text = printed(args[0], escape: escape)
+                lisp.outputs[lisp.outputs.count - 1] += name == "print" ? "\n" + text + "\n" : text
+                return args[0]
+            }
+        }
+        lisp.define("terpri") { lisp, _ in
+            lisp.outputs[lisp.outputs.count - 1] += "\n"
+            return t
+        }
+        lisp.define("message") { lisp, args in
+            guard !args.isEmpty, !isNil(args[0]) else { return .nil }
+            let text = try format(args)
+            lisp.messages += text + "\n"
+            return .string(text)
+        }
+        lisp.define("prin1-to-string") { _, args in
+            try arity(args, 1...2, "prin1-to-string")
+            return .string(printed(args[0], escape: args.count < 2 || isNil(args[1])))
         }
 
         // Strings.
