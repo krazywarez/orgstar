@@ -306,7 +306,20 @@ public enum Tangle {
         for language in ["js", "java", "cpp", "C++"] { table[language] = ("// ", "") }
         for language in ["c", "C", "css"] { table[language] = ("/* ", " */") }
         for language in ["lua", "sql", "sqlite"] { table[language] = ("-- ", "") }
-        for language in ["latex"] { table[language] = ("%% ", "") }
+        for language in ["latex", "tex", "prolog"] { table[language] = ("%% ", "") }
+        for language in ["javascript", "objc", "csharp", "idl", "pike", "antlr", "verilog"] { table[language] = ("// ", "") }
+        for language in ["html", "xml", "nxml", "mhtml", "sgml"] { table[language] = ("<!-- ", " -->") }
+        for language in ["m4", "icon", "desktop"] { table[language] = ("# ", "") }
+        for language in ["ps", "metapost"] { table[language] = ("% ", "") }
+        for language in ["f90", "dcl"] { table[language] = ("! ", "") }
+        table["asm"] = (";; ", "")
+        table["octave"] = ("## ", "")
+        table["vhdl"] = ("-- ", "")
+        table["pascal"] = ("{ ", " }")
+        table["texinfo"] = ("@c ", "")
+        table["bibtex"] = ("@Comment ", "")
+        table["nroff"] = ("\\\" ", "")
+        table["bat"] = ("rem ", "")
         return table
     }()
 

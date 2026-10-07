@@ -193,6 +193,33 @@ struct TangleTests {
         #+begin_src cpp :tangle out.cpp
         int y;
         #+end_src
+        #+begin_src html :tangle out.html
+        <p>hi</p>
+        #+end_src
+        #+begin_src octave :tangle out.m
+        x = 1
+        #+end_src
+        #+begin_src pascal :tangle out.pas
+        begin end.
+        #+end_src
+        #+begin_src tex :tangle out.tex2
+        \\relax
+        #+end_src
+        #+begin_src f90 :tangle out.f90
+        print *, 1
+        #+end_src
+        #+begin_src asm :tangle out.s
+        nop
+        #+end_src
+        #+begin_src verilog :tangle out.v
+        module m; endmodule
+        #+end_src
+        #+begin_src nroff :tangle out.1
+        .TH x
+        #+end_src
+        #+begin_src bat :tangle out.bat
+        echo hi
+        #+end_src
         #+begin_src bash :tangle out.bash
         echo b
         #+end_src
