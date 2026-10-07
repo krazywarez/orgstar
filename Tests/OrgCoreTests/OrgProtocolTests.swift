@@ -60,4 +60,15 @@ struct OrgProtocolTests {
             #expect(ours == result.text, "\(url)\nours:  \(ours.debugDescription)\nemacs: \(result.text.debugDescription) \(result.error)")
         }
     }
+
+    @Test func captureURLRoundTrips() {
+        let url = OrgProtocol.captureURL(template: "w", url: "https://example.com/a?b=1&c=2+3", title: "Tea & cake = 100% café", body: "line one\nline+two")
+        #expect(OrgProtocol.parse(url) == .capture(template: "w", properties: [
+            "link": "https://example.com/a?b=1&c=2+3", "type": "https",
+            "description": "Tea & cake = 100% café", "initial": "line one\nline+two",
+            "annotation": "[[https://example.com/a?b=1&c=2+3][Tea & cake = 100% café]]",
+        ]))
+        #expect(OrgProtocol.parse(OrgProtocol.captureURL(template: nil, url: nil, title: "", body: "just text"))
+            == .capture(template: nil, properties: ["description": "", "initial": "just text", "annotation": ""]))
+    }
 }

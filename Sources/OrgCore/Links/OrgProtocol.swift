@@ -49,6 +49,15 @@ public enum OrgProtocol {
         return nil
     }
 
+    /// An `org-protocol://capture?…` link, as bookmarklets build them, with every value
+    /// percent-encoded so `+`, `&` and `=` survive `parse`.
+    public static func captureURL(template: String?, url: String?, title: String, body: String) -> String {
+        let fields: [(String, String?)] = [("template", template), ("url", url), ("title", title), ("body", body)]
+        return "org-protocol://capture?" + fields.compactMap { key, value in
+            value.map { key + "=" + ($0.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? $0) }
+        }.joined(separator: "&")
+    }
+
     /// `org-protocol-convert-query-to-plist` and `org-link-decode`: `+` is a space; a value
     /// ends at its second `=`.
     static func query(_ info: String) -> [(String, String?)] {

@@ -9,8 +9,12 @@ version="${1:-0.1.0}"
 app=".build/ios-app/Orgstar.app"
 products=".build/ios/Build/Products/Debug-iphonesimulator"
 
-for scheme in OrgstarMobile OrgstarQuickLook; do
-    xcodebuild -scheme "$scheme" -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/ios build -quiet
+# The entitlements (the app group the share extension leaves captures in) go where the
+# Simulator reads them, into the binaries.
+entitlements=scripts/OrgstarMobile.entitlements
+for scheme in OrgstarMobile OrgstarQuickLook OrgstarShare; do
+    xcodebuild -scheme "$scheme" -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/ios build -quiet \
+        CODE_SIGN_ENTITLEMENTS="$PWD/$entitlements"
 done
 
 rm -rf "$app"
@@ -96,23 +100,35 @@ cat > "$app/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# Quick Look previews of org files, in Files and wherever else Quick Look shows them.
-appex="$app/PlugIns/OrgstarQuickLook.appex"
-mkdir -p "$appex"
-cp "$products/OrgstarQuickLook" "$appex/OrgstarQuickLook"
-cat > "$appex/Info.plist" <<PLIST
+# App Intents metadata for Shortcuts, from the constant values the build extracted; building
+# a package doesn't run this step itself.
+toolchain="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
+objects=".build/ios/Build/Intermediates.noindex/Orgstar.build/Debug-iphonesimulator/OrgstarMobile-p.build/Objects-normal/arm64"
+work="$(mktemp -d)"
+ls "$PWD/$objects"/*.swiftconstvalues > "$work/constvalues.txt"
+"$toolchain/usr/bin/appintentsmetadataprocessor" --toolchain-dir "$toolchain" --module-name OrgstarMobile \
+    --sdk-root "$(xcrun --sdk iphonesimulator --show-sdk-path)" --xcode-version "$(xcodebuild -version | awk '/Build version/ {print $3}')" \
+    --platform-family iOS --deployment-target 26.0 --bundle-identifier sh.krz.orgstar \
+    --target-triple arm64-apple-ios26.0-simulator --binary-file "$app/OrgstarMobile" --source-file-list "$objects/OrgstarMobile.SwiftFileList" \
+    --swift-const-vals-list "$work/constvalues.txt" --output "$app" --force > /dev/null 2>&1
+
+appex() { # name, bundle id suffix, extension point, principal class, attributes, entitlements
+    dir="$app/PlugIns/$1.appex"
+    mkdir -p "$dir"
+    cp "$products/$1" "$dir/$1"
+    cat > "$dir/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>sh.krz.orgstar.quicklook</string>
+    <string>sh.krz.orgstar.$2</string>
     <key>CFBundleName</key>
-    <string>OrgstarQuickLook</string>
+    <string>$1</string>
     <key>CFBundleDisplayName</key>
     <string>Orgstar</string>
     <key>CFBundleExecutable</key>
-    <string>OrgstarQuickLook</string>
+    <string>$1</string>
     <key>CFBundlePackageType</key>
     <string>XPC!</string>
     <key>CFBundleShortVersionString</key>
@@ -126,21 +142,25 @@ cat > "$appex/Info.plist" <<PLIST
     <key>NSExtension</key>
     <dict>
         <key>NSExtensionPointIdentifier</key>
-        <string>com.apple.quicklook.preview</string>
+        <string>$3</string>
         <key>NSExtensionPrincipalClass</key>
-        <string>PreviewProvider</string>
+        <string>$4</string>
         <key>NSExtensionAttributes</key>
-        <dict>
-            <key>QLSupportedContentTypes</key>
-            <array><string>org.orgmode.org</string></array>
-            <key>QLIsDataBasedPreview</key>
-            <true/>
-        </dict>
+        <dict>$5</dict>
     </dict>
 </dict>
 </plist>
 PLIST
-codesign --force --sign - "$appex"
+    codesign --force --sign - ${6:+--entitlements "$6"} "$dir"
+}
+# Quick Look previews of org files, in Files and wherever else Quick Look shows them.
+appex OrgstarQuickLook quicklook com.apple.quicklook.preview PreviewProvider \
+    "<key>QLSupportedContentTypes</key><array><string>org.orgmode.org</string></array><key>QLIsDataBasedPreview</key><true/>"
+# Capture from the share sheet: a page's link or text.
+appex OrgstarShare share com.apple.share-services ShareViewController \
+    "<key>NSExtensionActivationRule</key><dict><key>NSExtensionActivationSupportsWebURLWithMaxCount</key><integer>1</integer><key>NSExtensionActivationSupportsText</key><true/></dict>" \
+    "$entitlements"
 
-codesign --force --sign - "$app"
+codesign --force --sign - --entitlements "$entitlements" "$app"
+rm -rf "$work"
 echo "$app"

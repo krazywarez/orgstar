@@ -28,26 +28,14 @@ struct CaptureIntent: AppIntent {
         // Launched for the intent, the window sets the models up shortly.
         for _ in 0..<50 where Self.environment == nil { try? await Task.sleep(for: .milliseconds(100)) }
         guard let (workspace, session, clock, commands) = Self.environment else { throw Failure(message: "Orgstar isn't ready") }
-        let templates = CaptureTemplates.load().templates
-        let key = template.flatMap { $0.isEmpty ? nil : $0 }
-        guard let chosen = key.map({ key in templates.first { $0.key == key } }) ?? templates.first else {
-            throw Failure(message: "No capture template \"\(key ?? "")\"")
-        }
-        let context = CaptureContext(
-            initial: text, clipboard: NSPasteboard.general.string(forType: .string) ?? "", userName: NSFullUserName(),
-            allTags: (try? workspace.index.tags()) ?? []
+        let placed = session.capture(
+            text, templateKey: template, templates: CaptureTemplates.load().templates, workspace: workspace, clock: clock,
+            clipboard: NSPasteboard.general.string(forType: .string) ?? "", userName: NSFullUserName()
         )
-        let answers = Capture.questions(chosen.template, context: context).map { _ in "" }
-        guard case .success(let filled) = Capture.fill(chosen.template, context: context, answers: answers) else {
-            throw Failure(message: "Can't fill template \"\(chosen.key)\"")
-        }
-        let placed = chosen.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
-            session.capture(filled.text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file)
-        }
         switch placed {
         case .failure(let error):
             throw Failure(message: error.message)
-        case .success:
+        case .success(let chosen):
             let message = "Captured to \(CaptureView.target(chosen))"
             commands.show(message)
             return .result(value: message, dialog: "\(message)")

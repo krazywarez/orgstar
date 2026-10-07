@@ -9,7 +9,7 @@ import UserNotifications
 @main
 struct OrgstarMobileApp: App {
     @UIApplicationDelegateAdaptor private var delegate: AppDelegate
-    @State private var model = MobileModel()
+    @State private var model = MobileModel.shared
 
     var body: some Scene {
         WindowGroup {
@@ -66,11 +66,21 @@ struct CaptureRequest: Identifiable {
     var properties: [String: String] = [:]
 }
 
+extension CaptureRequest {
+    /// An `org-protocol://capture` link's request.
+    init?(link: String) {
+        guard case .capture(let template, let properties)? = OrgProtocol.parse(link) else { return nil }
+        self.init(template: template, properties: properties)
+    }
+}
+
 struct RootView: View {
     let model: MobileModel
     let workspace: WorkspaceModel
     let agenda: AgendaModel
     @State private var capture: CaptureRequest?
+    /// Captures from the share extension after the one showing.
+    @State private var waiting: [CaptureRequest] = []
     @State private var tab = AppTab.agenda
     @State private var agendaPath = NavigationPath()
     @State private var hour = 0
@@ -143,10 +153,11 @@ struct RootView: View {
             // An open file takes in what changed on disk.
             if let path = workspace.changedFile?.path { session.fileChanged(path) }
         }
-        .sheet(item: $capture) { request in
+        .sheet(item: $capture, onDismiss: showWaiting) { request in
             CaptureScreen(workspace: workspace, session: session, request: request)
         }
         .task {
+            takeShared()
             // Development: `ORGSTAR_ROOT` adds a folder at launch, as on the Mac.
             if let root = ProcessInfo.processInfo.environment["ORGSTAR_ROOT"] { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
             workspace.startWatching()
@@ -180,14 +191,23 @@ struct RootView: View {
             }
             // Files and settings synced while away; not every sync tool tells file presenters.
             guard phase == .active else { return }
+            takeShared()
             model.reloadConfig()
             Task { await workspace.refresh() }
         }
         .onOpenURL { url in
-            if case .capture(let template, let properties)? = OrgProtocol.parse(url.absoluteString) {
-                capture = CaptureRequest(template: template, properties: properties)
-            }
+            if let request = CaptureRequest(link: url.absoluteString) { capture = request }
         }
+    }
+
+    /// What the share extension left, one capture sheet at a time.
+    private func takeShared() {
+        waiting += (model.inbox?.take() ?? []).compactMap(CaptureRequest.init(link:))
+        if capture == nil { showWaiting() }
+    }
+
+    private func showWaiting() {
+        if !waiting.isEmpty { capture = waiting.removeFirst() }
     }
 
     private func clock(_ id: String) {

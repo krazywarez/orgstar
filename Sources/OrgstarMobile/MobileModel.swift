@@ -11,6 +11,9 @@ import OrgWorkspace
 @MainActor
 @Observable
 final class MobileModel {
+    /// One per process: Shortcuts runs the capture action without a window.
+    static let shared = MobileModel()
+
     let workspace: WorkspaceModel?
     let failure: String?
     let session = DocumentSession()
@@ -18,6 +21,8 @@ final class MobileModel {
     let scheduler = ReminderScheduler(center: SystemReminderCenter())
     let clock = ClockModel()
     let spotlight = SpotlightIndexer()
+    /// Captures from the share extension; nil without the app group.
+    let inbox = CaptureInbox()
     private(set) var configFolder: URL?
     private(set) var configProblems: [String] = []
     /// An entry to show, from a tapped reminder.
@@ -28,7 +33,7 @@ final class MobileModel {
 
     private static let bookmarkKey = "configFolderBookmark"
 
-    init() {
+    private init() {
         // Development: `ORGSTAR_CONFIG_DIR` stands in for a chosen folder.
         let folder = Self.resolveBookmark() ?? ProcessInfo.processInfo.environment["ORGSTAR_CONFIG_DIR"].map { URL(fileURLWithPath: $0) }
         UserConfig.directoryOverride = folder
@@ -47,6 +52,7 @@ final class MobileModel {
         configFolder = folder
         configProblems = problems
         applySettings()
+        shareTemplates()
         watchConfig()
     }
 
@@ -69,6 +75,7 @@ final class MobileModel {
         UserConfig.directoryOverride = configFolder
         configProblems = Self.readConfig(configFolder)
         applySettings()
+        shareTemplates()
     }
 
     private func applySettings() {
@@ -82,6 +89,11 @@ final class MobileModel {
             agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
         }
         settingsVersion += 1
+    }
+
+    /// The capture templates, for the share extension to offer.
+    private func shareTemplates() {
+        try? inbox?.setTemplates(CaptureTemplates.load().templates.map { CaptureInbox.Template(key: $0.key, name: $0.name) })
     }
 
     /// Edits to the folder's files, synced from the Mac, apply as they arrive.

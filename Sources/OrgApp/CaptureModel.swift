@@ -148,6 +148,29 @@ struct CapturePlacement: OrgCommand {
     }
 }
 
+extension DocumentSession {
+    /// Shortcuts' "Capture to Orgstar": `text` as `%i` in the template keyed `key` (the first
+    /// when nil or empty), its prompts taking their defaults, filed without the capture window.
+    /// The template used.
+    public func capture(
+        _ text: String, templateKey key: String?, templates: [CaptureTemplate], workspace: WorkspaceModel, clock: ClockModel,
+        clipboard: String, userName: String
+    ) -> Result<CaptureTemplate, CaptureError> {
+        let key = key.flatMap { $0.isEmpty ? nil : $0 }
+        guard let chosen = key.map({ key in templates.first { $0.key == key } }) ?? templates.first else {
+            return .failure(CaptureError(message: "No capture template \"\(key ?? "")\""))
+        }
+        let context = CaptureContext(initial: text, clipboard: clipboard, userName: userName, allTags: (try? workspace.index.tags()) ?? [])
+        let answers = Capture.questions(chosen.template, context: context).map { _ in "" }
+        guard case .success(let filled) = Capture.fill(chosen.template, context: context, answers: answers) else {
+            return .failure(CaptureError(message: "Can't fill template \"\(chosen.key)\""))
+        }
+        return chosen.resolved(workspace: workspace, session: self, clock: clock).flatMap { resolved in
+            capture(filled.text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file)
+        }.map { _ in chosen }
+    }
+}
+
 extension CaptureTemplate {
     /// `id` and `clock` targets as a file and a heading.
     @MainActor
