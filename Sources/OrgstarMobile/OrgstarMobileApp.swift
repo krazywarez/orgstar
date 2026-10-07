@@ -132,9 +132,12 @@ struct RootView: View {
             }
         }
         .clockAccessory(model.clock.running, perform: clock)
-        .overlay(alignment: .top) {
+        // Above the tab bar, clear of every screen's toolbar.
+        .overlay(alignment: .bottom) {
             if let message {
-                Text(message).font(.callout).padding(8).frame(maxWidth: .infinity).background(.bar)
+                Text(message).font(.callout).padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, 150)
                     .onTapGesture { self.message = nil }
                     .task(id: message) {
                         try? await Task.sleep(for: .seconds(4))
