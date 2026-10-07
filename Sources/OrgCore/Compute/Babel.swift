@@ -431,16 +431,27 @@ public enum Babel {
     /// each line it brings.
     /// `tangling` expands the blocks it brings in as tangling would (`:noweb tangle`), not as
     /// evaluation does.
-    static func expandNoweb(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text: NSString, tangling: Bool = false, depth: Int = 0) throws -> String {
+    /// `links` gives a block's begin and end comments, for `:comments noweb` when tangling.
+    static func expandNoweb(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text: NSString, tangling: Bool = false, depth: Int = 0,
+                            links: ((SrcBlockInfo, Params) throws -> (begin: String, end: String))? = nil) throws -> String {
         guard depth < 32 else { throw Failure.message("Noweb references nest too deeply") }
         let body = normalizedBody(block)
         let prefixing = params.single[":noweb-prefix"].map { $0 != "no" && $0 != "nil" } ?? true
+        let commenting = tangling && links != nil && params.single[":comments"] == "noweb"
         func expand(_ other: SrcBlockInfo) throws -> String {
             let otherParams = try Params(block: other, model: model, text: text)
             let expands = tangling ? nowebTangles(otherParams.single[":noweb"]) : nowebEvaluates(otherParams.single[":noweb"])
-            return expands
-                ? try expandNoweb(other, params: otherParams, model: model, text: text, tangling: tangling, depth: depth + 1)
+            let b = expands
+                ? try expandNoweb(other, params: otherParams, model: model, text: text, tangling: tangling, depth: depth + 1, links: links)
                 : normalizedBody(other)
+            guard commenting, let links else { return b }
+            guard other.name != nil else { throw Failure.message(":comments noweb with :noweb-ref blocks isn't supported yet; nothing was tangled.") }
+            // `c-wrap`: commented in this block's language, trimmed.
+            func wrap(_ s: String) throws -> String {
+                try Tangle.commentRegion(s, language: block.language ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            let (begin, end) = try links(other, otherParams)
+            return try wrap(begin) + "\n" + b + "\n" + (try wrap(end)) + "\n"
         }
         func inCommentedHeading(_ b: SrcBlockInfo) -> Bool {
             guard let h = b.heading else { return false }

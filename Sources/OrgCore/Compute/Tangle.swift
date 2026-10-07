@@ -2,8 +2,9 @@ import Foundation
 
 // `org-babel-tangle` (Org 9.8.7 ob-tangle.el): source blocks written to the files their
 // `:tangle` names, with `:noweb`, `:padline`, `:shebang`, `:mkdirp`, `:tangle-mode`,
-// `:prologue` and `:epilogue`, and `:var` for shells, Python and Emacs Lisp. Comments
-// (`:comments`) and header values Org would evaluate as Lisp aren't supported.
+// `:prologue` and `:epilogue`, `:var` for shells, Python and Emacs Lisp, and `:comments` for
+// languages whose comment syntax is known. Header values Org would evaluate as Lisp aren't
+// supported.
 
 public enum Tangle {
     /// All blocks (C-c C-v t), the block at an offset (C-u C-c C-v t), or the blocks going to
@@ -42,16 +43,29 @@ public enum Tangle {
         do {
             var order: [String] = []
             var specs: [String: [(language: String?, body: String, params: Babel.Params)]] = [:]
-            func add(_ block: SrcBlockInfo, _ params: Babel.Params) throws {
+            // `org-babel-tangle-collect-blocks`: blocks numbered from 1 under each heading.
+            var counters: [Int: Int] = [:]
+            var lastHeading: Int?? = .none
+            var counter = 0
+            for block in model.srcBlocks {
+                if lastHeading == .some(block.heading) { counter += 1 } else { (counter, lastHeading) = (1, .some(block.heading)) }
+                counters[block.range.lowerBound] = counter
+            }
+            func add(_ block: SrcBlockInfo, _ params: Babel.Params, counter: Int) throws {
                 guard let file = try fileName(path: path, language: block.language, tangle: params.single[":tangle"] ?? "no") else { return }
-                let body = try body(block, params: params, model: model, text: ns)
+                let parsed = tree ?? OrgParser.parse(text)
+                let links = { (other: SrcBlockInfo, otherParams: Babel.Params) in
+                    try Self.links(other, params: otherParams, counter: counters[other.range.lowerBound] ?? 1, path: path, model: model, tree: parsed, text: ns)
+                }
+                let body = try spec(block, body: try body(block, params: params, model: model, text: ns, links: links), params: params, counter: counter,
+                                    path: path, model: model, tree: parsed, text: ns)
                 if specs[file] == nil { order.append(file) }
                 specs[file, default: []].append((block.language, body, params))
             }
             switch scope {
             case .block(let offset):
                 guard let block = block(at: offset, in: model) else { throw Babel.Failure.message("Point is not in a source code block") }
-                try add(block, try params(block, model: model, text: ns))
+                try add(block, try params(block, model: model, text: ns), counter: 1)
             case .all, .target:
                 var target: String?
                 if case .target(let offset) = scope {
@@ -63,7 +77,7 @@ public enum Tangle {
                     let tangle = params.single[":tangle"] ?? "no"
                     if tangle == "no" || (block.language == nil && tangle == "yes") { continue }
                     if let target, target != tangle { continue }
-                    try add(block, params)
+                    try add(block, params, counter: counters[block.range.lowerBound] ?? 1)
                 }
             }
             var files: [File] = []
@@ -85,7 +99,7 @@ public enum Tangle {
                         contents += shebang + "\n"
                         sheBanged = true
                     }
-                    contents += spec.body + "\n"
+                    contents += spec.body
                     blocks += 1
                 }
                 files.append(File(path: file, contents: contents, mode: mode, makeDirectories: makeDirectories))
@@ -117,9 +131,6 @@ public enum Tangle {
         for (key, value) in params.single where value.hasPrefix("(") && key != ":tangle-mode" {
             throw Babel.Failure.message("\(key) \(value) is Lisp to evaluate, which tangling doesn't support yet; nothing was tangled.")
         }
-        if let comments = params.single[":comments"], comments != "no" {
-            throw Babel.Failure.message(":comments \(comments) isn't supported yet; nothing was tangled.")
-        }
         return params
     }
 
@@ -146,14 +157,15 @@ public enum Tangle {
     /// `org-babel-tangle-single-block`'s body: noweb references expanded or stripped, the
     /// language's expansion with `:var`, `:prologue` and `:epilogue`, `-r` coderefs taken
     /// out, and indentation and surrounding blank space trimmed.
-    static func body(_ block: SrcBlockInfo, params: Babel.Params, model: DocumentModel, text: NSString) throws -> String {
+    static func body(_ block: SrcBlockInfo, params: Babel.Params, model: DocumentModel, text: NSString,
+                     links: ((SrcBlockInfo, Babel.Params) throws -> (begin: String, end: String))? = nil) throws -> String {
         var body = Babel.normalizedBody(block)
         let noweb = params.single[":noweb"]
         if Babel.nowebTangles(noweb) {
             if noweb == "strip-tangle" {
                 body = body.replacingOccurrences(of: "<<([^ \\t\\n](?:.*?[^ \\t\\n])?)>>", with: "", options: .regularExpression)
             } else {
-                body = try Babel.expandNoweb(block, params: params, model: model, text: text, tangling: true)
+                body = try Babel.expandNoweb(block, params: params, model: model, text: text, tangling: true, links: links)
             }
         }
         if params.single[":no-expand"] == nil {
@@ -172,6 +184,91 @@ public enum Tangle {
         return preserve
             ? body.replacingOccurrences(of: "^([ \\t]*\\n)+", with: "", options: .regularExpression)
             : body.replacingOccurrences(of: "^[ \\t\\n\\r]+", with: "", options: .regularExpression)
+    }
+
+    /// `org-babel-spec-to-string`: the block's text in the file, with its `:comments`.
+    static func spec(_ block: SrcBlockInfo, body: String, params: Babel.Params, counter: Int, path: String, model: DocumentModel, tree: OrgTree, text: NSString) throws -> String {
+        let comments = params.single[":comments"] ?? "no"
+        guard comments != "no" else { return body + "\n" }
+        let language = block.language ?? ""
+        let linked = ["both", "link", "yes", "noweb"].contains(comments)
+        var out = ""
+        if comments == "org" || comments == "both" {
+            let prose = orgComment(block, model: model, text: text)
+            if prose.contains(where: { !$0.isWhitespace }) { out += try commentRegion(prose, language: language) + "\n" }
+        }
+        let link = linked ? try links(block, params: params, counter: counter, path: path, model: model, tree: tree, text: text) : nil
+        if let link { out += try commentRegion(link.begin, language: language) + "\n" }
+        out += body + "\n"
+        if let link { out += try commentRegion(link.end, language: language) + "\n" }
+        return out
+    }
+
+    /// `org-babel-tangle-comment-format-beg` and `-end` for a block: `[[LINK][NAME]]` and
+    /// `NAME ends here`, the link relative to the tangled file's folder.
+    static func links(_ block: SrcBlockInfo, params: Babel.Params, counter: Int, path: String, model: DocumentModel, tree: OrgTree, text: NSString) throws -> (begin: String, end: String) {
+        let directory = (path as NSString).deletingLastPathComponent
+        let tangle = params.single[":tangle"] ?? "no"
+        let target = tangle.contains("/") ? (expand(tangle, in: directory) as NSString).deletingLastPathComponent : directory
+        let start = beginLine(block, text: text)
+        let context = EditContext(revision: 0, text: text as String, tree: tree, selection: [start..<start])
+        let stored = Links.store(in: context, path: relativePath(path, from: target)).link
+        let name = block.name ?? ((block.heading.map { model.headings[$0].title.trimmingCharacters(in: .whitespaces) } ?? "No heading") + ":\(counter)")
+        return ("[[\(stored)][\(name)]]", "\(name) ends here")
+    }
+
+    /// `file-relative-name`.
+    static func relativePath(_ path: String, from directory: String) -> String {
+        let to = (path as NSString).standardizingPath.split(separator: "/")
+        let from = (directory as NSString).standardizingPath.split(separator: "/")
+        let common = zip(to, from).prefix { $0 == $1 }.count
+        return (Array(repeating: "..", count: from.count - common) + to.dropFirst(common).map(String.init)).joined(separator: "/")
+    }
+
+    /// The start of the block's `#+begin_src` line.
+    static func beginLine(_ block: SrcBlockInfo, text: NSString) -> Int {
+        let regex = try! NSRegularExpression(pattern: "^[ \\t]*#\\+begin_src", options: [.anchorsMatchLines, .caseInsensitive])
+        return regex.firstMatch(in: text as String, range: NSRange(block.range))?.range.location ?? block.range.lowerBound
+    }
+
+    /// The prose `:comments org` takes: from the heading's title, or the end of the block
+    /// before, to the block, without its common indentation.
+    static func orgComment(_ block: SrcBlockInfo, model: DocumentModel, text: NSString) -> String {
+        let begin = beginLine(block, text: text)
+        var start = 0
+        if let heading = block.heading {
+            let line = text.substring(with: NSRange(model.headings[heading].headingRange))
+            start = model.headings[heading].headingRange.lowerBound + (line.firstMatch(of: #/^\*+ /#).map { $0.output.utf16.count } ?? 0)
+        }
+        let end = try! NSRegularExpression(pattern: "^[ \\t]*#\\+end_src", options: [.anchorsMatchLines, .caseInsensitive])
+        for other in model.srcBlocks where other.range.lowerBound < begin {
+            if let m = end.firstMatch(in: text as String, range: NSRange(other.range)), NSMaxRange(m.range) <= begin { start = max(start, NSMaxRange(m.range)) }
+        }
+        return removeIndentation(text.substring(with: NSRange(location: start, length: max(0, begin - start))))
+    }
+
+    /// Comment syntax of the language's major mode (`org-src-get-lang-mode`), as
+    /// `comment-region` writes it.
+    static let commentSyntax: [String: (start: String, end: String)] = {
+        var table: [String: (String, String)] = [:]
+        for language in ["emacs-lisp", "elisp", "lisp", "scheme"] { table[language] = (";; ", "") }
+        for language in ["python", "ruby", "perl", "conf", "toml", "makefile", "awk", "tcl"] { table[language] = ("# ", "") }
+        for language in shells.subtracting(["fish"]) { table[language] = ("# ", "") }
+        for language in ["js", "java", "cpp", "C++"] { table[language] = ("// ", "") }
+        for language in ["c", "C", "css"] { table[language] = ("/* ", " */") }
+        for language in ["lua", "sql", "sqlite"] { table[language] = ("-- ", "") }
+        for language in ["latex"] { table[language] = ("%% ", "") }
+        return table
+    }()
+
+    /// `comment-region` over `text`: each line that isn't blank, commented.
+    static func commentRegion(_ text: String, language: String) throws -> String {
+        guard let syntax = commentSyntax[language] else {
+            throw Babel.Failure.message(":comments needs the comment syntax of \(language.isEmpty ? "the block's language" : language), which isn't known yet; nothing was tangled.")
+        }
+        return text.components(separatedBy: "\n").map { line in
+            line.contains(where: { !$0.isWhitespace }) ? syntax.start + line + syntax.end : line
+        }.joined(separator: "\n")
     }
 
     /// `org-remove-indentation`.

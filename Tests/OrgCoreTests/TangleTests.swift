@@ -111,9 +111,105 @@ struct TangleTests {
         }
     }
 
+    static let comments = """
+        #+PROPERTY: header-args :comments link
+        Before any heading.
+        #+begin_src sh :tangle top.sh
+        echo top
+        #+end_src
+        * Setup section :tag:
+        Some prose before the block.
+          Indented prose.
+        #+begin_src emacs-lisp :tangle out.el
+        (setq x 1)
+        #+end_src
+        Between text.
+        #+NAME: named-py
+        #+begin_src python :tangle out.py :comments both
+        print(1)
+        #+end_src
+        * TODO [#A] Other [1/2]
+        #+begin_src sh :tangle sub/out.sh :comments org :mkdirp yes
+        echo hi
+        #+end_src
+        C prose one.
+        C prose two.
+        #+begin_src c :tangle out.c :comments both
+        int x;
+        #+end_src
+        #+begin_src js :tangle out.js
+        let y;
+        #+end_src
+        #+begin_src conf :tangle out.conf :comments noweb :noweb yes
+        a=<<named-py>>
+        #+end_src
+        #+begin_src lua :tangle out.lua
+        x = 1
+        #+end_src
+        #+begin_src sh :tangle out.el :comments no
+        not commented
+        #+end_src
+        ** Child
+        :PROPERTIES:
+        :CUSTOM_ID: kid
+        :END:
+        #+begin_src ruby :tangle out.rb
+        puts 1
+        #+end_src
+        #+begin_src sql :tangle out.sql
+        select 1;
+        #+end_src
+        #+begin_src css :tangle out.css
+        a {}
+        #+end_src
+        #+begin_src java :tangle out.java
+        class A {}
+        #+end_src
+        #+begin_src perl :tangle out.pl
+        print 1;
+        #+end_src
+        #+begin_src latex :tangle out.tex
+        \\relax
+        #+end_src
+        #+begin_src scheme :tangle out.scm
+        (display 1)
+        #+end_src
+        #+begin_src makefile :tangle Makefile
+        all:
+        #+end_src
+        #+begin_src toml :tangle out.toml
+        a = 1
+        #+end_src
+        #+begin_src cpp :tangle out.cpp
+        int y;
+        #+end_src
+        #+begin_src bash :tangle out.bash
+        echo b
+        #+end_src
+        """ + "\n"
+
+    @Test func commentsLikeOrg() throws {
+        let form = """
+            (let* ((dir (file-truename (make-temp-file "orgstar-tangle" t)))
+                   (src (expand-file-name "notes.org" dir))
+                   (text (buffer-string)) out)
+              (require 'ob-shell) (require 'ob-python)
+              (with-temp-file src (insert text))
+              (with-current-buffer (find-file-noselect src)
+                (let ((files (org-babel-tangle)))
+                  (setq out (mapconcat (lambda (f) (format "== %s %o\\n%s" (file-relative-name f dir) (file-modes f)
+                                                           (with-temp-buffer (insert-file-contents f) (buffer-string))))
+                                       (sort (copy-sequence files) #'string<) ""))))
+              (erase-buffer) (insert out))
+            """
+        let theirs = try EmacsOracle.run([EmacsOracle.Case(text: Self.comments, point: 1, form: form)])[0]
+        let ours = try Tangle.run(text: Self.comments, path: "/oracle/notes.org").get()
+        #expect(Self.describe(ours, root: "/oracle") == theirs.text, "ours:\n\(Self.describe(ours, root: "/oracle"))\nemacs:\n\(theirs.text)\n\(theirs.error)")
+    }
+
     @Test func refusesWhatItCantDo() {
-        for header in [":comments link", ":tangle (concat \"a\" \".sh\")", ":tangle-mode go+q"] {
-            let text = "#+begin_src sh :tangle yes \(header)\necho\n#+end_src\n"
+        for (language, header) in [("haskell", ":comments link"), ("sh", ":tangle (concat \"a\" \".sh\")"), ("sh", ":tangle-mode go+q")] {
+            let text = "#+begin_src \(language) :tangle yes \(header)\necho\n#+end_src\n"
             guard case .failure = Tangle.run(text: text, path: "/x/a.org") else { Issue.record("tangled with \(header)"); continue }
         }
         let modes = ["(identity #o755)": 0o755, "o700": 0o700, "rw-r-----": 0o640, "u+x": 0o744, "a=r,u+w": 0o644, "go-r": 0o600]
