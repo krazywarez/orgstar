@@ -83,6 +83,24 @@ public final class ClockModel {
         }
     }
 
+    /// A template's `clock-in` once its entry is filed: clocked from when capture began and,
+    /// without `clock-keep`, clocked out now, the clock it interrupted resuming with
+    /// `clock-resume`. The messages, in order.
+    public func captured(
+        _ entry: (path: String, offset: Int), options: CaptureTemplate.Options, session: DocumentSession, opened: Date, now: Date = Date()
+    ) -> [String] {
+        guard options.clockIn else { return [] }
+        let previous = self.entry(session)
+        var messages = [clockIn(session, path: entry.path, at: entry.offset, now: opened)]
+        if !options.clockKeep {
+            messages.append(clockOut(session, now: now))
+            if options.clockResume, let previous {
+                messages.append(clockIn(session, path: previous.path, at: previous.offset, now: now))
+            }
+        }
+        return messages
+    }
+
     static func text(_ path: String, _ session: DocumentSession) -> String? {
         session.openDocuments.first { $0.path == path }?.document.text ?? (try? String(contentsOfFile: path, encoding: .utf8))
     }

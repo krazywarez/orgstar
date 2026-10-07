@@ -13,6 +13,7 @@ struct AgendaScreen: View {
     @Bindable var agenda: AgendaModel
     let scheduler: ReminderScheduler
     @State private var message: String?
+    @Environment(ClockModel.self) private var clock
     @State private var tick = 0
     @State private var views = AgendaViewLoader.builtIn
     @State private var viewName = "Agenda"
@@ -187,6 +188,9 @@ struct AgendaScreen: View {
                 Button("Deadline…", systemImage: "calendar.badge.exclamationmark") { run("org.deadline", on: item) }
                 Button("Tags…", systemImage: "tag") { run("org.tags.set", on: item) }
                 Button("Priority…", systemImage: "exclamationmark.circle") { run("org.priority.set", on: item) }
+                Button("Clock In", systemImage: "stopwatch") {
+                    if let (path, offset) = locate(item) { message = clock.clockIn(session, path: path, at: offset) }
+                }
                 Divider()
                 Button("Refile…", systemImage: "arrow.turn.down.right") { refiling = item }
                 Button("Archive…", systemImage: "archivebox") { archiving = item }

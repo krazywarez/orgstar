@@ -10,6 +10,8 @@ struct CaptureScreen: View {
     let session: DocumentSession
     let request: CaptureRequest
     @Environment(\.dismiss) private var dismiss
+    @Environment(ClockModel.self) private var clock
+    @Environment(MobileModel.self) private var model
     @State private var templates: [CaptureTemplate] = []
     @State private var key: String?
     @State private var context = CaptureContext()
@@ -108,23 +110,19 @@ struct CaptureScreen: View {
 
     private func file() {
         guard let template else { return }
-        var file: String?
-        switch template.target {
-        case .id(let id):
-            guard let location = try? workspace.index.headings(withID: id).first else {
-                problem = "Cannot find target ID \"\(id)\""
-                return
-            }
-            file = location.path
-        case .clock:
-            problem = "There's no running clock on iOS"
-            return
-        default:
-            break
+        let now = Date()
+        let placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
+            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: now)
         }
-        switch session.capture(text, template: template, root: workspace.rootPaths.first, file: file) {
-        case .failure(let error): problem = error.message
-        case .success: dismiss()
+        switch placed {
+        case .failure(let error):
+            problem = error.message
+            editing = true
+        case .success(let entry):
+            // Clocked from when capture began.
+            _ = clock.captured(entry, options: template.options, session: session, opened: context.now, now: now)
+            if template.options.jumpToCaptured { model.openRequest = .offset(entry.path, entry.offset) }
+            dismiss()
         }
     }
 }

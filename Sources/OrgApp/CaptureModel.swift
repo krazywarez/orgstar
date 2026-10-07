@@ -147,3 +147,24 @@ struct CapturePlacement: OrgCommand {
         }
     }
 }
+
+extension CaptureTemplate {
+    /// `id` and `clock` targets as a file and a heading.
+    @MainActor
+    public func resolved(
+        workspace: WorkspaceModel, session: DocumentSession, clock: ClockModel
+    ) -> Result<(template: CaptureTemplate, file: String?), CaptureError> {
+        switch target {
+        case .id(let id):
+            guard let location = try? workspace.index.headings(withID: id).first else {
+                return .failure(CaptureError(message: "Cannot find target ID \"\(id)\""))
+            }
+            return .success((self, location.path))
+        case .clock:
+            guard let entry = clock.entry(session) else { return .failure(CaptureError(message: "No running clock")) }
+            return .success((retargeted(.heading(file: entry.path, offset: entry.offset)), entry.path))
+        default:
+            return .success((self, nil))
+        }
+    }
+}

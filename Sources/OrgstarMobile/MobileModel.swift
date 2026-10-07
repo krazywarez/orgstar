@@ -16,6 +16,7 @@ final class MobileModel {
     let session = DocumentSession()
     let agenda: AgendaModel?
     let scheduler = ReminderScheduler(center: SystemReminderCenter())
+    let clock = ClockModel()
     private(set) var configFolder: URL?
     private(set) var configProblems: [String] = []
     /// An entry to show, from a tapped reminder.

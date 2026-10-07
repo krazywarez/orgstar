@@ -41,7 +41,7 @@ struct CaptureIntent: AppIntent {
         guard case .success(let filled) = Capture.fill(chosen.template, context: context, answers: answers) else {
             throw Failure(message: "Can't fill template \"\(chosen.key)\"")
         }
-        let placed = CaptureView.resolved(chosen, workspace: workspace, session: session, clock: clock).flatMap { resolved in
+        let placed = chosen.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
             session.capture(filled.text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file)
         }
         switch placed {

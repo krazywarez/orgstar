@@ -60,6 +60,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var onMessage: ((String) -> Void)?
     var onPrompt: ((Prompt, @escaping (String?) -> Void) -> Void)?
     var onLink: ((OrgLink) -> Void)?
+    /// Commands the app runs, as `app.clock.in`.
+    var onAppCommand: ((String) -> Void)?
     /// Tags used across the workspace, for completion.
     var knownTags: @Sendable () -> [String] = { [] }
 
@@ -183,6 +185,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.link.open": openLinkAtCaret()
         case "edit.undo": textView.undoManager?.undo()
         case "edit.redo": textView.undoManager?.redo()
+        case _ where id.hasPrefix("app."):
+            if let onAppCommand { onAppCommand(id) } else { onMessage?("Not available on iOS yet") }
         default:
             if let command = Commands.command(id) {
                 _ = perform(command)
@@ -198,6 +202,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.cycle":
             return Presentation.heading(containing: context.caret, in: context.tree) != nil || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
         case "org.cycle-global", "edit.undo", "edit.redo": return true
+        case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto": return onAppCommand != nil
         case "org.link.open": return Links.link(at: context.caret, text: context.text, tree: context.tree) != nil
         default: return false
         }

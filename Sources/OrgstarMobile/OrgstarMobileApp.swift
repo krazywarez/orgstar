@@ -14,6 +14,8 @@ struct OrgstarMobileApp: App {
         WindowGroup {
             if let workspace = model.workspace, let agenda = model.agenda {
                 RootView(model: model, workspace: workspace, agenda: agenda)
+                    .environment(model)
+                    .environment(model.clock)
                     .onAppear { delegate.model = model }
             } else {
                 ContentUnavailableView("Can't open the index", systemImage: "exclamationmark.triangle", description: Text(model.failure ?? ""))
@@ -71,6 +73,8 @@ struct RootView: View {
     @State private var tab = AppTab.agenda
     @State private var agendaPath = NavigationPath()
     @State private var hour = 0
+    @State private var showingClockReport = false
+    @State private var message: String?
     @Environment(\.scenePhase) private var scenePhase
 
     private var session: DocumentSession { model.session }
@@ -110,6 +114,18 @@ struct RootView: View {
                 }
             }
         }
+        .clockAccessory(model.clock.running, perform: clock)
+        .overlay(alignment: .top) {
+            if let message {
+                Text(message).font(.callout).padding(8).frame(maxWidth: .infinity).background(.bar)
+                    .onTapGesture { self.message = nil }
+                    .task(id: message) {
+                        try? await Task.sleep(for: .seconds(4))
+                        if self.message == message { self.message = nil }
+                    }
+            }
+        }
+        .sheet(isPresented: $showingClockReport) { ClockReportScreen(workspace: workspace) }
         .onChange(of: model.openRequest) {
             guard let route = model.openRequest else { return }
             model.openRequest = nil
@@ -157,6 +173,17 @@ struct RootView: View {
             if case .capture(let template, let properties)? = OrgProtocol.parse(url.absoluteString) {
                 capture = CaptureRequest(template: template, properties: properties)
             }
+        }
+    }
+
+    private func clock(_ id: String) {
+        switch id {
+        case "app.clock.out": message = model.clock.clockOut(session)
+        case "app.clock.cancel": message = model.clock.clockOut(session, cancel: true)
+        case "app.clock.goto":
+            if let location = model.clock.location(session) { model.openRequest = .offset(location.path, location.offset) }
+        case "app.clock.report": showingClockReport = true
+        default: break
         }
     }
 

@@ -181,29 +181,11 @@ struct CaptureView: View {
         }
     }
 
-    /// `id` and `clock` targets as a file and a heading.
-    static func resolved(
-        _ template: CaptureTemplate, workspace: WorkspaceModel, session: DocumentSession, clock: ClockModel
-    ) -> Result<(template: CaptureTemplate, file: String?), CaptureError> {
-        switch template.target {
-        case .id(let id):
-            guard let location = try? workspace.index.headings(withID: id).first else {
-                return .failure(CaptureError(message: "Cannot find target ID \"\(id)\""))
-            }
-            return .success((template, location.path))
-        case .clock:
-            guard let entry = clock.entry(session) else { return .failure(CaptureError(message: "No running clock")) }
-            return .success((template.retargeted(.heading(file: entry.path, offset: entry.offset)), entry.path))
-        default:
-            return .success((template, nil))
-        }
-    }
-
     private func finish() {
         guard let template else { return }
         let opened = context.now
         let now = Date()
-        let placed = Self.resolved(template, workspace: workspace, session: session, clock: clock).flatMap { resolved in
+        let placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
             session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: now)
         }
         switch placed {
@@ -214,17 +196,7 @@ struct CaptureView: View {
         case .success(let entry):
             commands.show("Captured to \(Self.target(template))")
             let options = template.options
-            if options.clockIn {
-                // Clocked from when capture began; the clock it interrupted resumes after.
-                let previous = clock.entry(session)
-                commands.show(clock.clockIn(session, path: entry.path, at: entry.offset, now: opened))
-                if !options.clockKeep {
-                    commands.show(clock.clockOut(session, now: now))
-                    if options.clockResume, let previous {
-                        commands.show(clock.clockIn(session, path: previous.path, at: previous.offset, now: now))
-                    }
-                }
-            }
+            for message in clock.captured(entry, options: options, session: session, opened: opened, now: now) { commands.show(message) }
             if options.jumpToCaptured { commands.jump(path: entry.path, offset: entry.offset) }
         }
         close()

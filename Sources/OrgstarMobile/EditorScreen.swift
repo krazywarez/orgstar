@@ -17,6 +17,8 @@ struct EditorScreen: View {
     @State private var prompt: PromptRequest?
     @State private var message: String?
     @State private var sheet: Sheet?
+    @Environment(ClockModel.self) private var clock
+    @Environment(MobileModel.self) private var model
     @Environment(\.openURL) private var openURL
 
     struct PromptRequest: Identifiable {
@@ -50,6 +52,7 @@ struct EditorScreen: View {
                 Button("Undo", systemImage: "arrow.uturn.backward") { editor?.run("edit.undo") }
                 Menu("More", systemImage: "ellipsis.circle") {
                     Button("Commands", systemImage: "command") { sheet = .palette }
+                    Button("Clock In", systemImage: "stopwatch") { editor?.run("app.clock.in") }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
                 }
@@ -109,6 +112,16 @@ struct EditorScreen: View {
                 case .shown: message = session.path == path ? nil : "Opened \((session.path.map { ($0 as NSString).lastPathComponent }) ?? "")"
                 case .openExternally(let url): openURL(url)
                 case .message(let text): message = text
+                }
+            }
+            editor.onAppCommand = { id in
+                switch id {
+                case "app.clock.in": message = clock.clockIn(session)
+                case "app.clock.out": message = clock.clockOut(session)
+                case "app.clock.cancel": message = clock.clockOut(session, cancel: true)
+                case "app.clock.goto":
+                    if let location = clock.location(session) { model.openRequest = .offset(location.path, location.offset) } else { message = "No active clock" }
+                default: message = "Not available on iOS yet"
                 }
             }
             self.editor = editor
@@ -306,6 +319,8 @@ struct CommandPalette: View {
     private static let viewCommands: [(id: String, title: String)] = [
         ("org.cycle", "Cycle Visibility"), ("org.cycle-global", "Cycle Global Visibility"), ("org.link.open", "Open Link"),
         ("edit.undo", "Undo"), ("edit.redo", "Redo"),
+        ("app.clock.in", "Clock In"), ("app.clock.out", "Clock Out"), ("app.clock.cancel", "Cancel Clock"),
+        ("app.clock.goto", "Go to Clocked Entry"),
     ]
 
     var body: some View {
