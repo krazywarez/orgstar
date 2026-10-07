@@ -172,6 +172,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
             onTangle?(scope)
         case .external(.agenda(let start, let count)) where onAgenda != nil:
             onAgenda?(start, count)
+        case .external(.emacsTable(_, _, _, let reason, _)):
+            onMessage?("This table needs Emacs, which runs on the Mac: \(reason).")
         case .external:
             onMessage?("\(command.title) needs Emacs, which runs on the Mac.")
         }

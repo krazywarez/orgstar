@@ -28,6 +28,33 @@ struct TableFormulaTests {
         "* Rates\n:PROPERTIES:\n:Rate:     3\n:END:\n| h | pay |\n|---+-----|\n| 2 | |\n#+TBLFM: $2=$1*$PROP_Rate\n",
     ]
 
+    /// Lisp formulas, names, parameters, marked rows, remote tables, durations, dates and
+    /// the rest that once needed Emacs: all run natively.
+    static let native = [
+        "| a | b |\n|---+---|\n| hello | |\n| x \"q\" | |\n|  | |\n#+TBLFM: $2='(concat $1 \"!\")\n",
+        "| a | b |\n|---+---|\n| 1 | |\n| 2.5 | |\n| x | |\n#+TBLFM: $2='(* 2 $1);N\n",
+        "| a | b | c |\n|---+---+---|\n| 1 | 2 | |\n| 3 | 4 | |\n#+TBLFM: $3='(+ $1 $2);L\n",
+        "| a |\n|---|\n| 1 |\n| 2 |\n|---|\n| |\n#+TBLFM: @>$1='(apply '+ '(@I..@II));N\n",
+        "| a | b |\n|---+---|\n| 1 | |\n#+TBLFM: $2='(car 1)\n",
+        "| a | b | c |\n|---+---+---|\n| 3.14159 | | |\n| 2 | | |\n#+TBLFM: $2='(format \"%05.1f\" $1);N::$3='(+ $1 1);N%.2f\n",
+        "| a | b |\n|---+---|\n| 5 | |\n| 12 | |\n#+TBLFM: $2='(if (> $1 10) \"big\" \"small\");N\n",
+        "| ! | qty | price | total |\n|---+-----+-------+-------|\n|   | 2 | 3 | |\n|   | 4 | 0.5 | |\n#+TBLFM: $4=$qty*$price\n",
+        "|   | x | y |\n|---+---+---|\n| # | 2 |   |\n|   | 3 |   |\n| * | 4 |   |\n| $ | k=10 | |\n#+TBLFM: $3=$2*$k\n",
+        "|   | a  | b  |\n|---+----+----|\n|   | 1  | 2  |\n| ^ | aa | bb |\n| _ |    | cc |\n|   |    |    |\n#+TBLFM: $cc=$aa+$bb::$2=7\n",
+        "|   | a  | b  |\n|---+----+----|\n|   | 1  | 2  |\n| _ |    | dd |\n#+TBLFM: $dd=1\n",
+        "| start | end | sum | diff | hours |\n|-------+-----+-----+------+-------|\n| 1:30 | 0:45 | | | |\n| 10:00:30 | 2:15:10 | | | |\n|-------+-----+-----+------+-------|\n| | | | | |\n#+TBLFM: $3=$1+$2;T::$4=$1-$2;U::$5=$1*2;t::@>$1=vsum(@I..@II);T\n",
+        "| d1 | d2 | days | later |\n|----+----+------+-------|\n| <2026-10-05 Mon> | <2026-10-12 Mon> | | |\n| [2026-01-31 Sat] | [2026-03-01 Sun] | | |\n| <2026-10-05 Mon 08:30> | <2026-10-05 Mon 10:00> | | |\n#+TBLFM: $3=$2-$1::$4=$1+7\n",
+        "| d | until |\n|---+-------|\n| <2026-10-05 Mon> | |\n#+TBLFM: $2=<2026-12-25 Fri>-$1\n",
+        "| a | b | c | d |\n|---+---+---+---|\n| 1 |   | | |\n| 2 | 3 | | |\n#+TBLFM: $3=$1+$2;E::$4=vcount($1..$2);E\n",
+        "| a | b | c |\n|---+---+---|\n| 5 | 3 | |\n| 2 | 9 | |\n#+TBLFM: $3=if($1>$2, $1, $2)\n",
+        "| a | b | c |\n|---+---+---|\n| 7 | 3 | |\n| -7 | 2 | |\n#+TBLFM: $3=$1%$2+$1\\$2*100\n",
+        "#+NAME: rates\n| item | rate |\n|------+------|\n| a    | 2    |\n| b    | 3    |\n\n| x | y | z | w |\n|---+---+---+---|\n| 4 | | | |\n#+TBLFM: $2=$1*remote(rates,@2$2)::$3=remote(rates, B3)::$4=vsum(remote(rates,@2$2..@>$2))\n",
+        "#+NAME: prices\n| fruit | price |\n|-------+-------|\n| apple | 1.5 |\n| pear | 2 |\n\n| item | cost |\n|------+------|\n| pear | |\n| plum | |\n#+TBLFM: $2='(org-lookup-first $1 '(remote(prices,@2$1..@>$1)) '(remote(prices,@2$2..@>$2)))\n",
+        "#+CONSTANTS: c=3\n| a | b | c |\n|---+---+---|\n| 2 | | |\n#+TBLFM: $2='(* $c $1);N::$3=$1*$c\n",
+        "|   | a | b |\n|---+---+---|\n|   | 2 | |\n|   | 3 | |\n| $ | %=%.2f | |\n#+TBLFM: $3=$2/3;\n",
+        "| a | b |\n|---+---|\n| 4 | |\n| 9 | |\n#+TBLFM: $2=vsdev(@I$1..@II$1)+fact(3)\n",
+    ]
+
     static func carets(_ text: String) -> [Int] {
         let ns = text as NSString
         var result: [Int] = []
@@ -47,9 +74,18 @@ struct TableFormulaTests {
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func matchesEmacs() throws {
+        try compare(Self.tables, fallbacksAllowed: true)
+    }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func extendedFormulasMatchEmacsNatively() throws {
+        try compare(Self.native, fallbacksAllowed: false)
+    }
+
+    func compare(_ tables: [String], fallbacksAllowed: Bool) throws {
         var cases: [EmacsOracle.Case] = []
         var ours: [(text: String, caret: Int, failure: String?)] = []
-        for text in Self.tables {
+        for text in tables {
             for caret in Self.carets(text) {
                 let onTblfm = (text as NSString).substring(with: (text as NSString).lineRange(for: NSRange(location: caret, length: 0))).uppercased().contains("#+TBLFM")
                 let commands: [(any OrgCommand, String)] = onTblfm
@@ -66,6 +102,8 @@ struct TableFormulaTests {
         for (i, (mine, theirs)) in zip(ours, emacs).enumerated() {
             if let failure = mine.failure, failure.hasPrefix("external:") {
                 fallbacks += 1
+                // Calc keeps text as symbols, which goes to Emacs.
+                #expect(fallbacksAllowed || failure.contains("non-numeric field"), "\(failure) in\n\(cases[i].text)")
                 // Emacs gives symbolic results for text and division by zero.
                 #expect(failure.contains("non-numeric field") || failure.contains("division by zero"), "\(failure)")
                 continue

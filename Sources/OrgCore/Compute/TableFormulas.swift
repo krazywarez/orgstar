@@ -1,9 +1,9 @@
 import Foundation
 
 // Table formulas (org-table.el, Org 9.8.7): `org-table-recalculate` and
-// `org-table-eval-formula` with Calc evaluated natively. Column names, constants, named
-// fields, marked rows, `remote()`, Lisp formulas, durations and Calc features beyond `Calc`
-// throw `Calc.Unsupported`; the caller then recalculates the table in Emacs.
+// `org-table-eval-formula` with Calc and Lisp evaluated natively. Symbolic results, Calc
+// features beyond `Calc`, Lisp beyond `Elisp`, remote tables found by ID and relative field
+// targets throw `Calc.Unsupported`; the caller then recalculates the table in Emacs.
 
 extension EmacsBuffer {
     struct TableAnalysis {
@@ -13,6 +13,14 @@ extension EmacsBuffer {
         var types: [Bool]
         var ncol: Int
         var begin: Int
+        /// `org-table-column-names`: from the first `!` row.
+        var columnNames: [(name: String, column: Int)] = []
+        /// `org-table-local-parameters`, in the order org pushes them; the last match wins.
+        var parameters: [(name: String, value: String)] = []
+        /// `org-table-named-field-locations`: the table-relative line and the column.
+        var namedFields: [(name: String, line: Int, column: Int)] = []
+        /// A row marked for calculation (`org-table-calculate-mark-regexp`).
+        var marked = false
     }
 
     static let tblfmPattern = "^[ \\t]*#\\+TBLFM: *(.*)"
@@ -26,13 +34,12 @@ extension EmacsBuffer {
             point = begin
             var dlines = [0]
             var types: [Bool] = []
+            var lines: [String] = []
             var line = 0
             while point < end || (point == end && false) {
                 let content = substring(lineStart(point), lineEnd(point))
                 guard content.range(of: "^[ \\t]*\\|", options: .regularExpression) != nil else { break }
-                if content.range(of: "^[ \\t]*\\| *[!$_^] *(\\||$)", options: .regularExpression) != nil {
-                    throw Calc.Unsupported("named columns, parameters or fields")
-                }
+                lines.append(content)
                 let isHline = content.range(of: "^[ \\t]*\\|-", options: .regularExpression) != nil
                 types.append(isHline)
                 if !isHline { dlines.append(line) }
@@ -45,8 +52,41 @@ extension EmacsBuffer {
             forwardLine(dlines[1])
             let first = substring(lineStart(point), lineEnd(point))
             let ncol = Self.splitFields(first, separator: "[ \\t]*\\|[ \\t]*").count
-            return TableAnalysis(dlines: dlines, types: types, ncol: ncol, begin: begin)
+            var analysis = TableAnalysis(dlines: dlines, types: types, ncol: ncol, begin: begin)
+            Self.names(lines, into: &analysis)
+            return analysis
         }
+    }
+
+    /// The names part of `org-table-analyze`.
+    static func names(_ lines: [String], into analysis: inout TableAnalysis) {
+        let identifier = "^[a-zA-Z][_a-zA-Z0-9]*$"
+        func rest(_ line: String, _ pattern: String) -> String? {
+            guard let m = try! NSRegularExpression(pattern: pattern).firstMatch(in: line, range: NSRange(location: 0, length: (line as NSString).length)) else { return nil }
+            return (line as NSString).substring(with: m.range(at: m.numberOfRanges - 1))
+        }
+        if let names = lines.lazy.compactMap({ rest($0, "^[ \\t]*\\| *! *(\\|.*)") }).first {
+            for (i, name) in splitFields(names, separator: " *\\| *").enumerated() where name.range(of: identifier, options: .regularExpression) != nil {
+                analysis.columnNames.append((name, i + 2))
+            }
+        }
+        for line in lines {
+            guard let fields = rest(line, "^[ \\t]*\\| *\\$ *(\\|.*)") else { continue }
+            for field in splitFields(fields, separator: " *\\| *") {
+                if let m = field.firstMatch(of: /^([a-zA-Z][_a-zA-Z0-9]*|%) *= *(.*)/) { analysis.parameters.append((String(m.1), String(m.2))) }
+            }
+        }
+        for (k, line) in lines.enumerated() {
+            guard let m = line.firstMatch(of: /^[ \t]*\| *([_^]) *(\|.*)/) else { continue }
+            let target = m.1 == "_" ? k + 1 : k - 1
+            guard lines.indices.contains(target), let values = rest(lines[target], "^[ \\t]*\\|[^|]*(\\|.*)") else { continue }
+            for (i, (name, value)) in zip(splitFields(String(m.2), separator: " *\\| *"), splitFields(values, separator: " *\\| *")).enumerated()
+            where name.range(of: identifier, options: .regularExpression) != nil {
+                analysis.parameters.append((name, value))
+                analysis.namedFields.append((name, target, i + 2))
+            }
+        }
+        analysis.marked = lines.contains { $0.range(of: "^[ \\t]*\\| *[!$^_#*] *(\\||$)", options: .regularExpression) != nil }
     }
 
     /// `org-split-string`: leading and trailing separators produce no empty strings.
@@ -259,28 +299,180 @@ extension EmacsBuffer {
     }
 
     static let calcNumber = "^[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?$"
+    /// `org-ts-regexp-both`.
+    static let timestampBoth = "[\\[<]([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\\]>\\n]*)?)[\\]>]"
 
-    /// `org-table-make-reference` for Calc, refusing what isn't a number.
-    static func reference(_ value: TableRangeValue) throws -> String {
-        func number(_ s: String) throws -> String {
-            guard s.range(of: calcNumber, options: .regularExpression) != nil else { throw Calc.Unsupported("non-numeric field \(s)") }
-            return s
+    /// How `org-table-make-reference` turns fields into formula text.
+    struct ReferenceMode {
+        enum Lisp { case none, lisp, literal }
+        var keepEmpty = false
+        var numbers = false
+        var lisp = Lisp.none
+    }
+
+    /// `number-to-string` of `string-to-number`.
+    static func numberText(_ s: String) -> String { Elisp.printed(Elisp.stringToNumber(s)) }
+
+    /// `org-table-make-reference`. For Calc, a field that isn't a number, a date or `nan`
+    /// would be a symbol, which isn't supported.
+    static func makeReference(_ value: TableRangeValue, _ mode: ReferenceMode) throws -> String {
+        func blank(_ s: String) -> Bool { !s.contains { !$0.isWhitespace } }
+        func lisp(_ s: String) -> String {
+            switch mode.lisp {
+            case .literal: s
+            default: mode.numbers ? numberText(s) : Elisp.printed(.string(s), escape: true)
+            }
         }
+        func calc(_ s: String) throws -> String {
+            let text = mode.numbers ? numberText(s) : s
+            guard text.range(of: calcNumber, options: .regularExpression) != nil || text == "nan"
+                || text.range(of: "^" + timestampBoth + "$", options: .regularExpression) != nil else {
+                throw Calc.Unsupported("non-numeric field \(text)")
+            }
+            return text
+        }
+        let empty = !mode.keepEmpty || mode.numbers ? "0" : "nan"
         switch value {
         case .field(let s):
-            return s.contains(where: { !$0.isWhitespace }) ? "(" + (try number(s)) + ")" : "(0)"
-        case .list(let items):
-            return "[" + (try items.filter { $0.contains(where: { !$0.isWhitespace }) }.map(number)).joined(separator: ",") + "]"
+            if mode.lisp != .none { return lisp(s) }
+            return blank(s) ? (empty == "0" ? "(0)" : "nan") : "(" + (try calc(s)) + ")"
+        case .list(var items):
+            if !mode.keepEmpty { items = items.filter { !blank($0) } }
+            if mode.lisp != .none { return items.map(lisp).joined(separator: " ") }
+            return "[" + (try items.map { blank($0) ? empty : try calc($0) }).joined(separator: ",") + "]"
         }
     }
 
-    /// `org-table-eval-formula` with the equation given, at point.
-    func tableEvalFormula(_ formula: String, analysis: TableAnalysis) throws {
+    /// `org-table-time-string-to-seconds`.
+    static func timeStringToSeconds(_ s: String) -> String {
+        guard !s.isEmpty else { return s }
+        func seconds(_ sign: Substring, _ parts: [Substring]) -> String {
+            let total = parts.enumerated().reduce(0) { sum, part in
+                sum + (Int(part.element) ?? 0) * [3600, 60, 1][part.offset]
+            }
+            return String(sign.isEmpty ? total : -total)
+        }
+        if let m = s.firstMatch(of: /(-?)([0-9]+):([0-9]+):([0-9]+)/) { return seconds(m.1, [m.2, m.3, m.4]) }
+        if s.range(of: timestampBoth, options: .regularExpression) == nil, let m = s.firstMatch(of: /(-?)([0-9]+):([0-9]+)/) {
+            return seconds(m.1, [m.2, m.3])
+        }
+        return numberText(s)
+    }
+
+    enum DurationFormat { case hms, hhmm, hours }
+
+    /// `org-table-time-seconds-to-string`, with `org-table-duration-custom-format` `hours`
+    /// and zero-padded hours.
+    static func secondsToString(_ seconds: Sexp, _ format: DurationFormat) -> String {
+        let value = (try? Elisp.number(seconds))?.double ?? 0
+        let magnitude = abs(value)
+        let result: String
+        switch format {
+        case .hours:
+            result = String(format: "%.2f", magnitude / 3600)
+        case .hms, .hhmm:
+            let total = Int(magnitude.rounded(.down))
+            let hms = String(format: "%02d:%02d:%02d", total / 3600, total / 60 % 60, total % 60)
+            result = format == .hhmm ? String(hms.dropLast(3)) : hms
+        }
+        return value < 0 ? "-" + result : result
+    }
+
+    /// `org-table-convert-refs-to-rc` for a remote reference: `B3` is `@3$2`.
+    static func refsToRC(_ s: String) -> String {
+        let regex = try! NSRegularExpression(pattern: "(?<![A-Za-z0-9_$@])([a-zA-Z]{1,2})([0-9]+)(?![A-Za-z0-9_])")
+        var out = s
+        while let m = regex.firstMatch(in: out, range: NSRange(location: 0, length: (out as NSString).length)) {
+            let ns = out as NSString
+            let column = ns.substring(with: m.range(at: 1)).uppercased().unicodeScalars.reduce(0) { $0 * 26 + Int($1.value) - 64 }
+            out = ns.replacingCharacters(in: m.range, with: "@\(ns.substring(with: m.range(at: 2)))$\(column)")
+        }
+        return out
+    }
+
+    /// `org-table-get-constant`: a parameter or named field, a `#+CONSTANTS` value, or the
+    /// entry's property for `PROP_name`.
+    func tableConstant(_ name: String, analysis: TableAnalysis) -> String {
+        if let parameter = analysis.parameters.last(where: { $0.name == name }) { return parameter.value }
+        for m in (settings.setupKeywords + string).matches(of: #/(?mi)^[ \t]*#\+CONSTANTS:(.*)$/#) {
+            for pair in m.1.split(whereSeparator: \.isWhitespace) {
+                let parts = pair.split(separator: "=", maxSplits: 1)
+                if parts.count == 2, parts[0] == name { return String(parts[1]) }
+            }
+        }
+        if name.hasPrefix("PROP_"), let value = inheritedProperty(String(name.dropFirst(5)))?.value { return value }
+        return "#UNDEFINED_NAME"
+    }
+
+    /// `org-table-formula-substitute-names`: column names become `$N`; parameters, named
+    /// fields and constants their values, in parentheses outside Lisp formulas.
+    func substituteNames(_ formula: String, analysis: TableAnalysis) -> String {
+        let parenthesize = !formula.hasPrefix("'")
+        let duration = formula.range(of: ";.*[Tt].*$", options: .regularExpression) != nil
+        var new = formula
+        if !analysis.columnNames.isEmpty {
+            let names = analysis.columnNames.map { NSRegularExpression.escapedPattern(for: $0.name) }.joined(separator: "|")
+            let regex = try! NSRegularExpression(pattern: "\\$(\(names))(?![[:alnum:]])")
+            var start = 0
+            while let m = regex.firstMatch(in: new, range: NSRange(location: start, length: (new as NSString).length - start)) {
+                let ns = new as NSString
+                let column = analysis.columnNames.first { $0.name == ns.substring(with: m.range(at: 1)) }!.column
+                new = ns.replacingCharacters(in: m.range, with: "$\(column)")
+                start = m.range.location + 1
+            }
+        }
+        let regex = try! NSRegularExpression(pattern: "\\$([a-zA-Z][_a-zA-Z0-9]*)|(\\bremote\\([^)]*\\))")
+        var start = 0
+        while let m = regex.firstMatch(in: new, range: NSRange(location: start, length: (new as NSString).length - start)) {
+            let ns = new as NSString
+            if m.range(at: 2).location != NSNotFound {
+                start = NSMaxRange(m.range(at: 2))
+                continue
+            }
+            start = m.range.location + 1
+            var value = tableConstant(ns.substring(with: m.range(at: 1)), analysis: analysis)
+            if duration, value.contains(where: { !$0.isWhitespace }) { value = Self.timeStringToSeconds(value) }
+            new = ns.replacingCharacters(in: m.range, with: parenthesize ? "(" + value + ")" : value)
+        }
+        return new
+    }
+
+    /// `org-table-get-remote-range`: the table after `#+NAME: name` in this file.
+    func remoteRange(_ name: String, _ form: String) throws -> TableRangeValue {
+        let ns = string as NSString
+        let pattern = "^[ \\t]*#\\+(tbl)?name:[ \\t]*" + NSRegularExpression.escapedPattern(for: name) + "[ \\t]*$"
+        let keyword = try! NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines, .caseInsensitive])
+        guard let found = keyword.firstMatch(in: string, range: NSRange(location: 0, length: ns.length)) else {
+            throw Calc.Unsupported("remote table \(name) by ID")
+        }
+        let after = min(ns.length, found.range.location + 1)
+        let next = try! NSRegularExpression(pattern: "^(\\*+ )|^[ \\t]*\\|", options: .anchorsMatchLines)
+        guard let m = next.firstMatch(in: string, range: NSRange(location: after, length: ns.length - after)),
+              m.range(at: 1).location == NSNotFound else {
+            throw UserError(message: "Cannot find a table at NAME or ID \(name)")
+        }
+        let remote = EmacsBuffer(string, point: m.range.location, settings: settings, options: options)
+        let analysis = try remote.tableAnalyze()
+        let resolved = remote.substituteNames(try Self.handleFirstLast(Self.refsToRC(form), analysis: analysis), analysis: analysis)
+        let range = try! NSRegularExpression(pattern: Self.rangePattern)
+        let rns = resolved as NSString
+        if let r = range.firstMatch(in: resolved, range: NSRange(location: 0, length: rns.length)), r.range.length > 1 {
+            return try remote.tableRange(rns.substring(with: r.range), thisline: 0, col: 1, analysis: analysis)
+        }
+        return .field(resolved)
+    }
+
+    /// `org-table-eval-formula` with the equation given, at point. `substituted` when names
+    /// and constants were already replaced, as `org-table-recalculate` does.
+    func tableEvalFormula(_ formula: String, analysis: TableAnalysis, substituted: Bool = true) throws {
         var formula = formula
         var modes = Calc.Modes()
+        var mode = ReferenceMode()
+        var duration: DurationFormat?
+        var literal = false
         var fmt: String?
         if let semicolon = formula.lastIndex(of: ";") {
-            var flags = String(formula[formula.index(after: semicolon)...])
+            var flags = (analysis.parameters.last { $0.name == "%" }?.value ?? "") + formula[formula.index(after: semicolon)...]
             formula = String(formula[..<semicolon])
             let numeric = try! NSRegularExpression(pattern: "([pnfse])(-?[0-9]+)")
             while let m = numeric.firstMatch(in: flags, range: NSRange(location: 0, length: (flags as NSString).length)) {
@@ -299,27 +491,32 @@ extension EmacsBuffer {
             while let m = letters.firstMatch(in: flags, range: NSRange(location: 0, length: (flags as NSString).length)) {
                 let ns = flags as NSString
                 switch ns.substring(with: m.range) {
+                case "t": (duration, mode.numbers) = (.hours, true)
+                case "T": (duration, mode.numbers) = (.hms, true)
+                case "U": (duration, mode.numbers) = (.hhmm, true)
+                case "N": mode.numbers = true
+                case "L": literal = true
+                case "E": mode.keepEmpty = true
                 case "D": modes.degrees = true
                 case "R": modes.degrees = false
                 default: throw Calc.Unsupported("format flag \(ns.substring(with: m.range))")
                 }
                 flags = ns.replacingCharacters(in: m.range, with: "")
             }
-            if flags.contains(where: { !$0.isWhitespace }) {
-                guard flags.range(of: "^%[-+ #0]*[0-9]*(\\.[0-9]+)?[fgeE]$", options: .regularExpression) != nil else {
-                    throw Calc.Unsupported("format \(flags)")
-                }
-                fmt = flags
+            if flags.contains(where: { !$0.isWhitespace }) { fmt = flags }
+        }
+        if !substituted { formula = try Self.handleFirstLast(substituteNames(formula, analysis: analysis), analysis: analysis) }
+        var fields = Self.splitFields(substring(lineStart(point), lineEnd(point)).trimmingCharacters(in: .whitespaces), separator: " *\\| *")
+        if duration != nil { fields = fields.map(Self.timeStringToSeconds) }
+        if mode.numbers { fields = fields.map { $0.contains(where: { !$0.isWhitespace }) ? Self.numberText($0) : $0 } }
+        if formula.count > 2, formula.hasPrefix("'(") { mode.lisp = literal ? .literal : .lisp }
+        func reference(_ value: TableRangeValue) throws -> String {
+            guard duration != nil else { return try Self.makeReference(value, mode) }
+            switch value {
+            case .field(let s): return try Self.makeReference(.field(Self.timeStringToSeconds(s)), mode)
+            case .list(let items): return try Self.makeReference(.list(items.map(Self.timeStringToSeconds)), mode)
             }
         }
-        if formula.hasPrefix("'(") { throw Calc.Unsupported("Lisp formula") }
-        formula = substituteConstants(formula)
-        if formula.range(of: "\\$[a-zA-Z_]", options: .regularExpression) != nil || formula.contains("remote(")
-            || formula.range(of: "[<\\[][0-9]{4}-", options: .regularExpression) != nil || formula.contains("&") {
-            throw Calc.Unsupported("names, constants, remote references or dates")
-        }
-        let line = substring(lineStart(point), lineEnd(point)).trimmingCharacters(in: .whitespaces)
-        let fields = Self.splitFields(line, separator: " *\\| *")
         let n0 = tableCurrentColumn()
         let thisline = try saveExcursion { () -> Int in
             let here = lineStart(point)
@@ -334,10 +531,31 @@ extension EmacsBuffer {
         var form = formula
         form = form.replacingOccurrences(of: "@#", with: String(tableCurrentDataLine()))
         form = form.replacingOccurrences(of: "$#", with: String(n0))
+        // `org-table-remote-reference-indirection`: `remote($1, …)` names the table in a field.
+        let indirect = try! NSRegularExpression(pattern: "\\bremote\\([ \\t]*([@$][^ \\t,]+)[ \\t]*,[ \\t]*([^\\n)]+)\\)")
+        var start = 0
+        while let m = indirect.firstMatch(in: form, range: NSRange(location: start, length: (form as NSString).length - start)) {
+            let ns = form as NSString
+            var eq = try Self.handleFirstLast(ns.substring(with: m.range(at: 1)), analysis: analysis)
+            if eq.range(of: "^\\$[0-9]+$", options: .regularExpression) != nil { eq = "@0" + eq }
+            guard case .field(let name) = try tableRange(eq, thisline: thisline, col: n0, analysis: analysis) else {
+                throw Calc.Unsupported("remote table name from a range")
+            }
+            form = ns.replacingCharacters(in: m.range(at: 1), with: name)
+            start = m.range(at: 1).location + (name as NSString).length
+        }
+        let remote = try! NSRegularExpression(pattern: "\\bremote\\([ \\t]*([^,)]+)[ \\t]*,[ \\t]*([^\\n)]+)\\)")
+        while let m = remote.firstMatch(in: form, range: NSRange(location: 0, length: (form as NSString).length)) {
+            let ns = form as NSString
+            let name = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
+            let value = try remoteRange(name, ns.substring(with: m.range(at: 2)))
+            form = ns.replacingCharacters(in: m.range, with: try reference(value))
+        }
         let range = try! NSRegularExpression(pattern: Self.rangePattern)
         while let m = range.firstMatch(in: form, range: NSRange(location: 0, length: (form as NSString).length)), m.range.length > 1 {
             let ns = form as NSString
-            let replacement = try Self.reference(try tableRange(ns.substring(with: m.range), thisline: thisline, col: n0, analysis: analysis))
+            let replacement = try reference(try tableRange(ns.substring(with: m.range), thisline: thisline, col: n0, analysis: analysis))
+            if replacement.contains(form) { throw UserError(message: "Spreadsheet error: invalid reference \"\(form)\"") }
             form = ns.replacingCharacters(in: m.range, with: replacement)
         }
         let rowRange = try! NSRegularExpression(pattern: "\\$(([-+])?[0-9]+)\\.\\.\\$(([-+])?[0-9]+)")
@@ -346,7 +564,7 @@ extension EmacsBuffer {
             let a = Int(ns.substring(with: m.range(at: 1)))! + (m.range(at: 2).location != NSNotFound ? n0 : 0)
             let b = Int(ns.substring(with: m.range(at: 3)))! + (m.range(at: 4).location != NSNotFound ? n0 : 0)
             guard a >= 1, b <= fields.count, a - 1 <= b else { throw Calc.Unsupported("range outside row") }
-            form = ns.replacingCharacters(in: m.range, with: try Self.reference(.list(Array(fields[(a - 1)..<b]))))
+            form = ns.replacingCharacters(in: m.range, with: try Self.makeReference(.list(Array(fields[(a - 1)..<b])), mode))
         }
         let single = try! NSRegularExpression(pattern: "\\$(([-+])?[0-9]+)")
         while let m = single.firstMatch(in: form, range: NSRange(location: 0, length: (form as NSString).length)) {
@@ -354,37 +572,100 @@ extension EmacsBuffer {
             let n = Int(ns.substring(with: m.range(at: 1)))! + (m.range(at: 2).location != NSNotFound ? n0 : 0)
             let index = (n == 0 ? n0 : max(n, 1)) - 1
             guard index < fields.count else { throw UserError(message: "Invalid field specifier \"\(ns.substring(with: m.range))\"") }
-            form = ns.replacingCharacters(in: m.range, with: try Self.reference(.field(fields[index])))
+            let replacement = try Self.makeReference(.field(fields[index]), mode)
+            if replacement.contains(formula) { throw UserError(message: "Invalid field specifier \"\(ns.substring(with: m.range))\"") }
+            form = ns.replacingCharacters(in: m.range, with: replacement)
         }
-        var result = try Calc.evaluate(form, modes: modes)
+
+        var result: String
+        if mode.lisp != .none {
+            result = try evalLisp(form, duration: duration)
+        } else {
+            form = form.replacingOccurrences(of: "\\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\\]>\\n]*)?)\\]", with: "<$1>", options: .regularExpression)
+            form = Self.normalizeTimestamps(form)
+            if duration != nil, form.range(of: "^[0-9]+:[0-9]+(:[0-9]+)?$", options: .regularExpression) != nil {
+                result = form
+            } else {
+                do {
+                    result = try Calc.evaluate(form, modes: modes, numeric: !mode.keepEmpty && mode.numbers)
+                } catch is Calc.Failure {
+                    (result, fmt) = ("#ERROR", nil)
+                }
+            }
+            if let duration, !result.isEmpty, result != "#ERROR" {
+                let seconds = result.range(of: "^[0-9]+:[0-9]+(:[0-9]+)?$", options: .regularExpression) != nil ? Self.timeStringToSeconds(result) : result
+                result = Self.secondsToString(Elisp.stringToNumber(seconds), duration)
+            }
+        }
         if let fmt {
-            result = String(format: fmt, Self.stringToNumber(result))
+            do {
+                result = try Elisp.format([.string(fmt), Elisp.stringToNumber(result)])
+            } catch let error as Elisp.Signal {
+                throw UserError(message: error.message)
+            }
+        } else {
+            result = result.replacingOccurrences(of: "<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\\]>\\n]*)?)>", with: "[$1]", options: .regularExpression)
         }
         tableSetField(result)
     }
 
-    /// `org-table-formula-substitute-names` for constants: `$name` from `#+CONSTANTS`, or
-    /// `$PROP_name` from the entry's property, in parentheses; unknown names become
-    /// `#UNDEFINED_NAME`.
-    func substituteConstants(_ formula: String) -> String {
-        guard formula.range(of: "\\$[a-zA-Z]", options: .regularExpression) != nil else { return formula }
-        var constants: [String: String] = [:]
-        for m in (settings.setupKeywords + string).matches(of: #/(?mi)^[ \t]*#\+CONSTANTS:(.*)$/#) {
-            for pair in m.1.split(whereSeparator: \.isWhitespace) {
-                let parts = pair.split(separator: "=", maxSplits: 1)
-                if parts.count == 2, constants[String(parts[0])] == nil { constants[String(parts[0])] = String(parts[1]) }
-            }
+    /// `(eval (eval (read form)))` for a Lisp formula; an error is `#ERROR`.
+    func evalLisp(_ form: String, duration: DurationFormat?) throws -> String {
+        let lisp = Elisp()
+        Self.defineLookups(lisp)
+        let value: Sexp
+        do {
+            value = try lisp.eval(try lisp.eval(try LispReader.readFirst(form).sexp))
+        } catch let unsupported as Elisp.Unsupported {
+            throw Calc.Unsupported("Lisp \(unsupported.what)")
+        } catch {
+            return "#ERROR"
         }
-        let regex = try! NSRegularExpression(pattern: "\\$([a-zA-Z][_a-zA-Z0-9]*)")
-        var out = formula
-        while let m = regex.firstMatch(in: out, range: NSRange(location: 0, length: (out as NSString).length)) {
-            let ns = out as NSString
-            let name = ns.substring(with: m.range(at: 1))
-            var value = constants[name]
-            if value == nil, name.hasPrefix("PROP_") {
-                value = inheritedProperty(String(name.dropFirst(5)))?.value
+        var result = Elisp.printed(value)
+        if let duration { result = Self.secondsToString(Elisp.stringToNumber(result), duration) }
+        return result
+    }
+
+    /// `org-lookup-first`, `org-lookup-last` and `org-lookup-all`.
+    static func defineLookups(_ lisp: Elisp) {
+        func matches(_ lisp: Elisp, _ args: [Sexp]) throws -> [Sexp] {
+            try Elisp.arity(args, 3...4, "org-lookup")
+            let keys = try Elisp.elements(args[1])
+            let values = Elisp.isNil(args[2]) ? keys : try Elisp.elements(args[2])
+            let predicate = args.count > 3 && !Elisp.isNil(args[3]) ? args[3] : .symbol("equal")
+            var found: [Sexp] = []
+            for (i, key) in keys.enumerated() where !Elisp.isNil(try lisp.call(predicate, [args[0], key])) {
+                found.append(i < values.count ? values[i] : .nil)
             }
-            out = ns.replacingCharacters(in: m.range, with: "(" + (value ?? "#UNDEFINED_NAME") + ")")
+            return found
+        }
+        lisp.define("org-lookup-first") { lisp, args in try matches(lisp, args).first ?? .nil }
+        lisp.define("org-lookup-last") { lisp, args in try matches(lisp, args).last ?? .nil }
+        lisp.define("org-lookup-all") { lisp, args in
+            let found = try matches(lisp, args)
+            return found.isEmpty ? .nil : .list(found)
+        }
+    }
+
+    /// Timestamps in a formula as Calc reads them: `<YYYY-MM-DD Www>`, with ` HH:MM` when
+    /// the stamp has a time, as org formats them for Calc.
+    static func normalizeTimestamps(_ form: String) -> String {
+        let regex = try! NSRegularExpression(pattern: "<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\\]>\\n]*)?)>")
+        var out = form
+        var start = 0
+        while let m = regex.firstMatch(in: out, range: NSRange(location: start, length: (out as NSString).length - start)) {
+            let ns = out as NSString
+            let stamp = ns.substring(with: m.range(at: 1))
+            let parts = stamp.firstMatch(of: /^([0-9]{4})-([0-9]{2})-([0-9]{2})/)!
+            let day = Days.absolute(year: Int(parts.1)!, month: Int(parts.2)!, day: Int(parts.3)!)
+            let date = Days.date(day)
+            var text = String(format: "<%04d-%02d-%02d %@", date.year, date.month, date.day, Calc.weekdays[Days.weekday(day)])
+            if let time = stamp.firstMatch(of: /([0-9]{1,2}):([0-9]{2})/) {
+                text += String(format: " %02d:%02d", Int(time.1)!, Int(time.2)!)
+            }
+            text += ">"
+            out = ns.replacingCharacters(in: m.range, with: text)
+            start = m.range.location + (text as NSString).length
         }
         return out
     }
@@ -429,7 +710,7 @@ extension EmacsBuffer {
         var columnEquations: [(Int, String)] = []
         var fieldEquations: [(String, String)] = []
         for (oldLHS, rawRHS) in stored {
-            let rhs = try Self.handleFirstLast(rawRHS, analysis: analysis)
+            let rhs = substituteNames(try Self.handleFirstLast(rawRHS, analysis: analysis), analysis: analysis)
             if oldLHS.range(of: "^@-?I+", options: .regularExpression) != nil { throw UserError(message: "Can't assign to hline relative reference") }
             let lhs = try Self.handleFirstLast(oldLHS, analysis: analysis)
             if lhs.range(of: "^\\$[0-9]+$", options: .regularExpression) != nil {
@@ -443,8 +724,13 @@ extension EmacsBuffer {
         for (lhs, rhs) in fieldEquations {
             if let m = lhs.firstMatch(of: /^@([0-9]+)\$([0-9]+)$/) {
                 fields.append((Int(m.1)!, Int(m.2)!, rhs))
-            } else if lhs.range(of: "^@[-+0-9]+\\$-?[0-9]+$", options: .regularExpression) != nil || lhs.range(of: "^[a-zA-Z]", options: .regularExpression) != nil {
-                throw Calc.Unsupported("relative or named field formula")
+            } else if lhs.range(of: "^[a-zA-Z][_a-zA-Z0-9]*$", options: .regularExpression) != nil {
+                guard let location = analysis.namedFields.last(where: { $0.name == lhs }), let row = Self.lineToDline(location.line, analysis) else {
+                    throw UserError(message: "Unknown field: \(lhs)")
+                }
+                fields.append((row, location.column, rhs))
+            } else if lhs.range(of: "^@[-+0-9]+\\$-?[0-9]+$", options: .regularExpression) != nil {
+                throw Calc.Unsupported("relative field formula")
             } else if let m = lhs.firstMatch(of: /^@([0-9]+)$/) {
                 for c in 1...analysis.ncol { fields.append((Int(m.1)!, c, rhs)) }
             } else {
@@ -463,7 +749,11 @@ extension EmacsBuffer {
         let endMarker = marker(end)
         defer { release(endMarker) }
         var beg: Int
-        if all {
+        var lineRegexp = "^[ \\t]*\\|[^-]"
+        if all, analysis.marked {
+            beg = analysis.begin
+            lineRegexp = "^[ \\t]*\\| *[#*] *(\\||$)"
+        } else if all {
             beg = analysis.begin
             point = beg
             if searchForward("^[ \\t]*\\|[^-]", bound: end, caseInsensitive: false) != nil,
@@ -493,7 +783,7 @@ extension EmacsBuffer {
         point = beg
         let rowMarker = marker(beg)
         defer { release(rowMarker) }
-        while let match = searchForward("^[ \\t]*\\|[^-]", bound: endMarker.position, caseInsensitive: false) {
+        while let match = searchForward(lineRegexp, bound: endMarker.position, caseInsensitive: false) {
             _ = match
             let rowStart = lineStart(point)
             rowMarker.position = rowStart
@@ -713,7 +1003,7 @@ extension EmacsBuffer {
         let analysis = try tableAnalyze()
         let formula = try tableGetFormula(equation, named: named, analysis: analysis)
         do {
-            try tableEvalFormula(try Self.handleFirstLast(formula, analysis: analysis), analysis: analysis)
+            try tableEvalFormula(formula, analysis: analysis, substituted: false)
         } catch let error as Calc.Unsupported {
             throw UserError(message: "The formula was stored; recalculating it needs Emacs: " + error.reason)
         }
