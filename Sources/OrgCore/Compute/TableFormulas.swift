@@ -343,18 +343,28 @@ extension EmacsBuffer {
         }
     }
 
+    /// A number written in a formula, small enough to work with.
+    static func integer(_ s: String) throws -> Int {
+        guard let n = Int(s.hasPrefix("+") ? String(s.dropFirst()) : s), (-999_999_999...999_999_999).contains(n) else { throw Calc.Unsupported("number size \(s)") }
+        return n
+    }
+
     /// `org-table-time-string-to-seconds`.
-    static func timeStringToSeconds(_ s: String) -> String {
+    static func timeStringToSeconds(_ s: String) throws -> String {
         guard !s.isEmpty else { return s }
-        func seconds(_ sign: Substring, _ parts: [Substring]) -> String {
-            let total = parts.enumerated().reduce(0) { sum, part in
-                sum + (Int(part.element) ?? 0) * [3600, 60, 1][part.offset]
+        func seconds(_ sign: Substring, _ parts: [Substring]) throws -> String {
+            var total = 0
+            for (i, part) in parts.enumerated() {
+                let (scaled, o1) = (Int(part) ?? Int.max).multipliedReportingOverflow(by: [3600, 60, 1][i])
+                let (sum, o2) = total.addingReportingOverflow(scaled)
+                if o1 || o2 || Int(part) == nil { throw Calc.Unsupported("duration size") }
+                total = sum
             }
             return String(sign.isEmpty ? total : -total)
         }
-        if let m = s.firstMatch(of: /(-?)([0-9]+):([0-9]+):([0-9]+)/) { return seconds(m.1, [m.2, m.3, m.4]) }
+        if let m = s.firstMatch(of: /(-?)([0-9]+):([0-9]+):([0-9]+)/) { return try seconds(m.1, [m.2, m.3, m.4]) }
         if s.range(of: timestampBoth, options: .regularExpression) == nil, let m = s.firstMatch(of: /(-?)([0-9]+):([0-9]+)/) {
-            return seconds(m.1, [m.2, m.3])
+            return try seconds(m.1, [m.2, m.3])
         }
         return numberText(s)
     }
@@ -363,9 +373,10 @@ extension EmacsBuffer {
 
     /// `org-table-time-seconds-to-string`, with `org-table-duration-custom-format` `hours`
     /// and zero-padded hours.
-    static func secondsToString(_ seconds: Sexp, _ format: DurationFormat) -> String {
+    static func secondsToString(_ seconds: Sexp, _ format: DurationFormat) throws -> String {
         let value = (try? Elisp.number(seconds))?.double ?? 0
         let magnitude = abs(value)
+        guard magnitude.isFinite, magnitude < 1e15 else { throw Calc.Unsupported("duration size") }
         let result: String
         switch format {
         case .hours:
@@ -406,7 +417,7 @@ extension EmacsBuffer {
 
     /// `org-table-formula-substitute-names`: column names become `$N`; parameters, named
     /// fields and constants their values, in parentheses outside Lisp formulas.
-    func substituteNames(_ formula: String, analysis: TableAnalysis) -> String {
+    func substituteNames(_ formula: String, analysis: TableAnalysis) throws -> String {
         let parenthesize = !formula.hasPrefix("'")
         let duration = formula.range(of: ";.*[Tt].*$", options: .regularExpression) != nil
         var new = formula
@@ -423,15 +434,19 @@ extension EmacsBuffer {
         }
         let regex = try! NSRegularExpression(pattern: "\\$([a-zA-Z][_a-zA-Z0-9]*)|(\\bremote\\([^)]*\\))")
         var start = 0
+        var substitutions = 0
         while let m = regex.firstMatch(in: new, range: NSRange(location: start, length: (new as NSString).length - start)) {
             let ns = new as NSString
+            // A constant whose value names itself would go on forever, as it does in Org.
+            substitutions += 1
+            if substitutions > 1000 { throw Calc.Unsupported("constants that refer to themselves") }
             if m.range(at: 2).location != NSNotFound {
                 start = NSMaxRange(m.range(at: 2))
                 continue
             }
             start = m.range.location + 1
             var value = tableConstant(ns.substring(with: m.range(at: 1)), analysis: analysis)
-            if duration, value.contains(where: { !$0.isWhitespace }) { value = Self.timeStringToSeconds(value) }
+            if duration, value.contains(where: { !$0.isWhitespace }) { value = try Self.timeStringToSeconds(value) }
             new = ns.replacingCharacters(in: m.range, with: parenthesize ? "(" + value + ")" : value)
         }
         return new
@@ -453,7 +468,7 @@ extension EmacsBuffer {
         }
         let remote = EmacsBuffer(string, point: m.range.location, settings: settings, options: options)
         let analysis = try remote.tableAnalyze()
-        let resolved = remote.substituteNames(try Self.handleFirstLast(Self.refsToRC(form), analysis: analysis), analysis: analysis)
+        let resolved = try remote.substituteNames(try Self.handleFirstLast(Self.refsToRC(form), analysis: analysis), analysis: analysis)
         let range = try! NSRegularExpression(pattern: Self.rangePattern)
         let rns = resolved as NSString
         if let r = range.firstMatch(in: resolved, range: NSRange(location: 0, length: rns.length)), r.range.length > 1 {
@@ -477,7 +492,7 @@ extension EmacsBuffer {
             let numeric = try! NSRegularExpression(pattern: "([pnfse])(-?[0-9]+)")
             while let m = numeric.firstMatch(in: flags, range: NSRange(location: 0, length: (flags as NSString).length)) {
                 let ns = flags as NSString
-                let n = Int(ns.substring(with: m.range(at: 2)))!
+                let n = try Self.integer(ns.substring(with: m.range(at: 2)))
                 switch ns.substring(with: m.range(at: 1)) {
                 case "p": modes.precision = n
                 case "n": modes.format = .float(n)
@@ -505,16 +520,16 @@ extension EmacsBuffer {
             }
             if flags.contains(where: { !$0.isWhitespace }) { fmt = flags }
         }
-        if !substituted { formula = try Self.handleFirstLast(substituteNames(formula, analysis: analysis), analysis: analysis) }
+        if !substituted { formula = try Self.handleFirstLast(try substituteNames(formula, analysis: analysis), analysis: analysis) }
         var fields = Self.splitFields(substring(lineStart(point), lineEnd(point)).trimmingCharacters(in: .whitespaces), separator: " *\\| *")
-        if duration != nil { fields = fields.map(Self.timeStringToSeconds) }
+        if duration != nil { fields = try fields.map(Self.timeStringToSeconds) }
         if mode.numbers { fields = fields.map { $0.contains(where: { !$0.isWhitespace }) ? Self.numberText($0) : $0 } }
         if formula.count > 2, formula.hasPrefix("'(") { mode.lisp = literal ? .literal : .lisp }
         func reference(_ value: TableRangeValue) throws -> String {
             guard duration != nil else { return try Self.makeReference(value, mode) }
             switch value {
-            case .field(let s): return try Self.makeReference(.field(Self.timeStringToSeconds(s)), mode)
-            case .list(let items): return try Self.makeReference(.list(items.map(Self.timeStringToSeconds)), mode)
+            case .field(let s): return try Self.makeReference(.field(try Self.timeStringToSeconds(s)), mode)
+            case .list(let items): return try Self.makeReference(.list(try items.map(Self.timeStringToSeconds)), mode)
             }
         }
         let n0 = tableCurrentColumn()
@@ -561,15 +576,15 @@ extension EmacsBuffer {
         let rowRange = try! NSRegularExpression(pattern: "\\$(([-+])?[0-9]+)\\.\\.\\$(([-+])?[0-9]+)")
         while let m = rowRange.firstMatch(in: form, range: NSRange(location: 0, length: (form as NSString).length)) {
             let ns = form as NSString
-            let a = Int(ns.substring(with: m.range(at: 1)))! + (m.range(at: 2).location != NSNotFound ? n0 : 0)
-            let b = Int(ns.substring(with: m.range(at: 3)))! + (m.range(at: 4).location != NSNotFound ? n0 : 0)
+            let a = try Self.integer(ns.substring(with: m.range(at: 1))) + (m.range(at: 2).location != NSNotFound ? n0 : 0)
+            let b = try Self.integer(ns.substring(with: m.range(at: 3))) + (m.range(at: 4).location != NSNotFound ? n0 : 0)
             guard a >= 1, b <= fields.count, a - 1 <= b else { throw Calc.Unsupported("range outside row") }
             form = ns.replacingCharacters(in: m.range, with: try Self.makeReference(.list(Array(fields[(a - 1)..<b])), mode))
         }
         let single = try! NSRegularExpression(pattern: "\\$(([-+])?[0-9]+)")
         while let m = single.firstMatch(in: form, range: NSRange(location: 0, length: (form as NSString).length)) {
             let ns = form as NSString
-            let n = Int(ns.substring(with: m.range(at: 1)))! + (m.range(at: 2).location != NSNotFound ? n0 : 0)
+            let n = try Self.integer(ns.substring(with: m.range(at: 1))) + (m.range(at: 2).location != NSNotFound ? n0 : 0)
             let index = (n == 0 ? n0 : max(n, 1)) - 1
             guard index < fields.count else { throw UserError(message: "Invalid field specifier \"\(ns.substring(with: m.range))\"") }
             let replacement = try Self.makeReference(.field(fields[index]), mode)
@@ -593,8 +608,8 @@ extension EmacsBuffer {
                 }
             }
             if let duration, !result.isEmpty, result != "#ERROR" {
-                let seconds = result.range(of: "^[0-9]+:[0-9]+(:[0-9]+)?$", options: .regularExpression) != nil ? Self.timeStringToSeconds(result) : result
-                result = Self.secondsToString(Elisp.stringToNumber(seconds), duration)
+                let seconds = result.range(of: "^[0-9]+:[0-9]+(:[0-9]+)?$", options: .regularExpression) != nil ? try Self.timeStringToSeconds(result) : result
+                result = try Self.secondsToString(Elisp.stringToNumber(seconds), duration)
             }
         }
         if let fmt {
@@ -622,7 +637,7 @@ extension EmacsBuffer {
             return "#ERROR"
         }
         var result = Elisp.printed(value)
-        if let duration { result = Self.secondsToString(Elisp.stringToNumber(result), duration) }
+        if let duration { result = try Self.secondsToString(Elisp.stringToNumber(result), duration) }
         return result
     }
 
@@ -710,11 +725,11 @@ extension EmacsBuffer {
         var columnEquations: [(Int, String)] = []
         var fieldEquations: [(String, String)] = []
         for (oldLHS, rawRHS) in stored {
-            let rhs = substituteNames(try Self.handleFirstLast(rawRHS, analysis: analysis), analysis: analysis)
+            let rhs = try substituteNames(try Self.handleFirstLast(rawRHS, analysis: analysis), analysis: analysis)
             if oldLHS.range(of: "^@-?I+", options: .regularExpression) != nil { throw UserError(message: "Can't assign to hline relative reference") }
             let lhs = try Self.handleFirstLast(oldLHS, analysis: analysis)
             if lhs.range(of: "^\\$[0-9]+$", options: .regularExpression) != nil {
-                columnEquations.append((Int(lhs.dropFirst())!, rhs))
+                columnEquations.append((try Self.integer(String(lhs.dropFirst())), rhs))
             } else {
                 fieldEquations.append((lhs, rhs))
             }
@@ -723,7 +738,7 @@ extension EmacsBuffer {
         var fields: [(row: Int, column: Int, rhs: String)] = []
         for (lhs, rhs) in fieldEquations {
             if let m = lhs.firstMatch(of: /^@([0-9]+)\$([0-9]+)$/) {
-                fields.append((Int(m.1)!, Int(m.2)!, rhs))
+                fields.append((try Self.integer(String(m.1)), try Self.integer(String(m.2)), rhs))
             } else if lhs.range(of: "^[a-zA-Z][_a-zA-Z0-9]*$", options: .regularExpression) != nil {
                 guard let location = analysis.namedFields.last(where: { $0.name == lhs }), let row = Self.lineToDline(location.line, analysis) else {
                     throw UserError(message: "Unknown field: \(lhs)")
@@ -732,7 +747,8 @@ extension EmacsBuffer {
             } else if lhs.range(of: "^@[-+0-9]+\\$-?[0-9]+$", options: .regularExpression) != nil {
                 throw Calc.Unsupported("relative field formula")
             } else if let m = lhs.firstMatch(of: /^@([0-9]+)$/) {
-                for c in 1...analysis.ncol { fields.append((Int(m.1)!, c, rhs)) }
+                let row = try Self.integer(String(m.1))
+                for c in 1...analysis.ncol { fields.append((row, c, rhs)) }
             } else {
                 let corners = try rangeCorners(lhs, analysis: analysis)
                 guard let r1 = Self.lineToDline(corners.r1, analysis), let r2 = Self.lineToDline(corners.r2, analysis, above: true), r1 <= r2 else {

@@ -46,3 +46,51 @@ struct ElispTests {
         }
     }
 }
+
+/// Inputs that once crashed the evaluator, the diary functions or duration formulas.
+struct HostileInputTests {
+    static let forms = [
+        "(1+ 9223372036854775807)", "(1- -9223372036854775808)", "(- -9223372036854775808)", "(abs -9223372036854775808)",
+        "(% -9223372036854775808 -1)", "(mod -9223372036854775808 -1)", "(/ -9223372036854775808 -1)",
+        "(upcase -1)", "(downcase -1)", "(concat (list -1))", "(format \"%c\" -1)", "(format \"%c\" 99999999)",
+        "(funcall (lambda (f) (funcall f f)) (lambda (f) (funcall f f)))",
+        "(dotimes (i 10000000000) nil)", "(number-sequence 1 10000000000)",
+    ]
+
+    @Test func evaluatorRefusesWithoutCrashing() {
+        for form in Self.forms { #expect(ElispTests.ours(form) == "error", "\(form)") }
+    }
+
+    /// On a stack the size of a background task's, deep recursion stops with an error.
+    @Test func deepRecursionFitsABackgroundStack() async {
+        let done = await withCheckedContinuation { continuation in
+            let thread = Thread {
+                continuation.resume(returning: ElispTests.ours("(funcall (lambda (f) (funcall f f)) (lambda (f) (funcall f f)))"))
+            }
+            thread.stackSize = 512 * 1024
+            thread.start()
+        }
+        #expect(done == "error")
+    }
+
+    @Test func diaryFunctionsRefuseWithoutCrashing() throws {
+        let day = Days.absolute(year: 2026, month: 10, day: 7)
+        for form in ["(calendar-last-day-of-month -20 2024)", "(calendar-gregorian-from-absolute 9223372036854775807)",
+                     "(calendar-nth-named-absday -9223372036854775808 1 10 2026)", "(diary-remind '(diary-date 1 1 2027) -9223372036854775808)",
+                     "(diary-float 10 3 -9223372036854775808)", "(diary-anniversary 10 7 -9223372036854775808)"] {
+            #expect(DiarySexp.entries(try LispReader.readFirst(form).sexp, entry: "E", day: day) == nil, "\(form)")
+        }
+    }
+
+    @Test func durationsAndHugeNumbersDoNotCrashFormulas() {
+        for table in [
+            "| 1e300 | |\n#+TBLFM: $2=$1*2;T\n", "| 1e300 | |\n#+TBLFM: $2='(* $1 2);T\n", "| 9999999999999999:00:00 | |\n#+TBLFM: $2=$1;T\n",
+            "| 1 | |\n#+TBLFM: $2=$1;p99999999999999999999\n", "| 1 | |\n#+TBLFM: $2=$99999999999999999999\n",
+            "| 1 | |\n#+TBLFM: @99999999999999999999$2=1\n", "#+CONSTANTS: a=$a\n| 1 | |\n#+TBLFM: $2=$a\n",
+        ] {
+            let caret = (table as NSString).range(of: "#+TBLFM").location + 3
+            let result = runCommand(TableRecalculate(all: true), table, caret: caret)
+            #expect(result.text == table, "\(table)")
+        }
+    }
+}

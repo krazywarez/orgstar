@@ -289,7 +289,7 @@ public enum Capture {
             let ns = text as NSString
             var out = text
             for m in regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).reversed() where !escaped(ns, at: m.range.location) {
-                let n = Int(ns.substring(with: m.range(at: 1)))!
+                let n = Int(ns.substring(with: m.range(at: 1))) ?? Int.max
                 out = (out as NSString).replacingCharacters(in: m.range, with: n <= values.count ? values[n - 1] : "")
             }
             text = out
@@ -774,7 +774,9 @@ public enum Capture {
             guard let m = pos.firstMatch(of: /(I+)([-+][0-9]+)/) else { throw Failure.message("Invalid table line specification \"\(pos)\"") }
             let hlines = rows.indices.filter { rows[$0].range(of: "^[ \\t]*\\|-", options: .regularExpression) != nil }
             guard m.1.count <= hlines.count else { throw Failure.message("Invalid table line specification \"\(pos)\"") }
-            let delta = Int(m.2.replacingOccurrences(of: "+", with: ""))!
+            guard let delta = Int(m.2.replacingOccurrences(of: "+", with: "")), (-999_999...999_999).contains(delta) else {
+                throw Failure.message("Invalid table line specification \"\(pos)\"")
+            }
             buffer.point = lineStart(hlines[m.1.count - 1] + delta + (delta < 0 ? 0 : -1) + 1)
         } else if options.prepend {
             if let rule = rows.firstIndex(where: { $0.range(of: "^[ \\t]*\\|-", options: .regularExpression) != nil }) {

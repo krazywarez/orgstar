@@ -37,10 +37,17 @@ public enum DiarySexp {
         return .list([.integer(date.month), .integer(date.day), .integer(date.year)])
     }
 
+    /// A number from Lisp used in date arithmetic, within what that arithmetic handles.
+    static func bounded(_ v: Sexp) throws -> Int {
+        let i = try Elisp.int(v)
+        guard (-100_000_000...100_000_000).contains(i) else { throw Elisp.Unsupported(what: "date number \(i)") }
+        return i
+    }
+
     static func parts(_ date: Sexp) throws -> (month: Int, day: Int, year: Int) {
         let items = try Elisp.elements(date)
         guard items.count == 3 else { throw Elisp.Signal(message: "Bad date \(date.description)") }
-        return (try Elisp.int(items[0]), try Elisp.int(items[1]), try Elisp.int(items[2]))
+        return (try bounded(items[0]), try bounded(items[1]), try bounded(items[2]))
     }
 
     static func absolute(_ date: Sexp) throws -> Int {
@@ -50,17 +57,18 @@ public enum DiarySexp {
 
     static func isLeap(_ year: Int) -> Bool { year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) }
 
-    static func lastDay(month: Int, year: Int) -> Int {
-        month == 2 ? (isLeap(year) ? 29 : 28) : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][(month - 1 + 12) % 12]
+    static func lastDay(month: Int, year: Int) throws -> Int {
+        guard (1...12).contains(month) else { throw Elisp.Signal(message: "Args out of range: \(month)") }
+        return month == 2 ? (isLeap(year) ? 29 : 28) : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]
     }
 
     /// `calendar-nth-named-absday`.
-    static func nthNamedAbsday(_ n: Int, _ dayname: Int, _ month: Int, _ year: Int, _ day: Int?) -> Int {
+    static func nthNamedAbsday(_ n: Int, _ dayname: Int, _ month: Int, _ year: Int, _ day: Int?) throws -> Int {
         func onOrBefore(_ date: Int) -> Int { date - (date - dayname) % 7 }
         if n > 0 {
             return 7 * (n - 1) + onOrBefore(6 + Days.absolute(year: year, month: month, day: day ?? 1))
         }
-        return 7 * (n + 1) + onOrBefore(Days.absolute(year: year, month: month, day: day ?? lastDay(month: month, year: year)))
+        return 7 * (n + 1) + onOrBefore(Days.absolute(year: year, month: month, day: try day ?? lastDay(month: month, year: year)))
     }
 
     /// `diary-ordinal-suffix`.
@@ -102,7 +110,7 @@ public enum DiarySexp {
         }
         lisp.define("calendar-gregorian-from-absolute") { _, args in
             try arity(args, 1...1, "calendar-gregorian-from-absolute")
-            return gregorian(try Elisp.int(args[0]))
+            return gregorian(try bounded(args[0]))
         }
         lisp.define("calendar-day-of-week") { _, args in
             try arity(args, 1...1, "calendar-day-of-week")
@@ -114,7 +122,7 @@ public enum DiarySexp {
         }
         lisp.define("calendar-last-day-of-month") { _, args in
             try arity(args, 2...2, "calendar-last-day-of-month")
-            return .integer(lastDay(month: try Elisp.int(args[0]), year: try Elisp.int(args[1])))
+            return .integer(try lastDay(month: try bounded(args[0]), year: try bounded(args[1])))
         }
         lisp.define("calendar-date-equal") { _, args in
             try arity(args, 2...2, "calendar-date-equal")
@@ -129,15 +137,15 @@ public enum DiarySexp {
         }
         lisp.define("calendar-nth-named-absday") { _, args in
             try arity(args, 4...5, "calendar-nth-named-absday")
-            let day = Elisp.isNil(optional(args, 4)) ? nil : try Elisp.int(args[4])
-            return .integer(nthNamedAbsday(try Elisp.int(args[0]), try Elisp.int(args[1]), try Elisp.int(args[2]), try Elisp.int(args[3]), day))
+            let day = Elisp.isNil(optional(args, 4)) ? nil : try bounded(args[4])
+            return .integer(try nthNamedAbsday(try bounded(args[0]), try bounded(args[1]), try bounded(args[2]), try bounded(args[3]), day))
         }
         lisp.define("calendar-nth-named-day") { lisp, args in
-            gregorian(try Elisp.int(try lisp.callNamed("calendar-nth-named-absday", args)))
+            gregorian(try bounded(try lisp.callNamed("calendar-nth-named-absday", args)))
         }
         lisp.define("calendar-iso-from-absolute") { _, args in
             try arity(args, 1...1, "calendar-iso-from-absolute")
-            let day = try Elisp.int(args[0])
+            let day = try bounded(args[0])
             let thursday = day - (Days.weekday(day) + 6) % 7 + 3
             return .list([.integer(Days.isoWeek(day)), .integer(Days.weekday(day)), .integer(Days.date(thursday).year)])
         }
@@ -175,13 +183,13 @@ public enum DiarySexp {
         lisp.define("diary-float") { _, args in
             try arity(args, 3...5, "diary-float")
             let month = args[0]
-            let dayname = try Elisp.int(args[1])
-            let n = try Elisp.int(args[2])
-            let day = Elisp.isNil(optional(args, 3)) ? nil : try Elisp.int(args[3])
+            let dayname = try bounded(args[1])
+            let n = try bounded(args[2])
+            let day = Elisp.isNil(optional(args, 3)) ? nil : try bounded(args[3])
             let current = try absolute(try date())
             guard dayname == Days.weekday(current) else { return .nil }
             let d = Days.date(current)
-            let limit = nthNamedAbsday(-n, dayname, d.month, d.year, d.day)
+            let limit = try nthNamedAbsday(-n, dayname, d.month, d.year, d.day)
             let lastAbs = n > 0 ? limit : limit + 6
             let firstAbs = n > 0 ? limit - 6 : limit
             let first = Days.date(firstAbs)
@@ -194,25 +202,26 @@ public enum DiarySexp {
                 default: false
                 }
             }
-            func base(_ m: Int, _ y: Int) -> Int { day ?? (n > 0 ? 1 : lastDay(month: m, year: y)) }
+            func base(_ m: Int, _ y: Int) throws -> Int { try day ?? (n > 0 ? 1 : lastDay(month: m, year: y)) }
             let applies: Bool
             if first.month == last.month {
-                let b = base(first.month, first.year)
+                let b = try base(first.month, first.year)
                 applies = monthMatches(first.month) && first.day <= b && b <= last.day
             } else {
+                let firstBase = try base(first.month, first.year)
+                let lastBase = try base(last.month, last.year)
                 applies = (first.year < last.year || (first.year == last.year && first.month < last.month))
-                    && ((monthMatches(first.month) && first.day <= base(first.month, first.year))
-                        || (monthMatches(last.month) && base(last.month, last.year) <= last.day))
+                    && ((monthMatches(first.month) && first.day <= firstBase) || (monthMatches(last.month) && lastBase <= last.day))
             }
             return applies ? Elisp.cons(optional(args, 4), try entry()) : .nil
         }
         lisp.define("diary-anniversary") { lisp, args in
             try arity(args, 2...4, "diary-anniversary")
             let made = try makeDate(lisp, args[0], args[1], optional(args, 2))
-            var dd = try Elisp.int(made[1])
-            var mm = try Elisp.int(made[0])
+            var dd = try bounded(made[1])
+            var mm = try bounded(made[0])
             let y = try parts(try date()).year
-            let diff = Elisp.isNil(made[2]) ? 100 : y - (try Elisp.int(made[2]))
+            let diff = Elisp.isNil(made[2]) ? 100 : y - (try bounded(made[2]))
             if mm == 2, dd == 29, !isLeap(y) {
                 mm = 3
                 dd = 1
@@ -233,12 +242,15 @@ public enum DiarySexp {
         lisp.define("diary-remind") { lisp, args in
             try arity(args, 2...3, "diary-remind")
             var days = args[1]
-            if case .integer(let n) = days, n < 0 { days = Elisp.list((1...(-n)).map { .integer($0) }) }
+            if case .integer(let n) = days, n < 0 {
+                guard n >= -Elisp.lengthLimit else { throw Elisp.Signal(message: "Too many days for diary-remind") }
+                days = Elisp.list((1...(-n)).map { .integer($0) })
+            }
             func remind(_ days: Sexp) throws -> Sexp {
                 let applies = try lisp.eval(args[0])
                 if !Elisp.isNil(applies) { return applies }
                 if case .integer(let n) = days {
-                    let shifted = gregorian(try absolute(try date()) + n)
+                    let shifted = gregorian(try absolute(try date()) + (try bounded(.integer(n))))
                     var found = try lisp.binding(["date": shifted]) { try lisp.eval(args[0]) }
                     guard !Elisp.isNil(found) else { return .nil }
                     if case .dotted = found { found = try Elisp.cdr(found) } else if case .list = found { found = try Elisp.cdr(found) }
@@ -258,7 +270,7 @@ public enum DiarySexp {
         lisp.define("org-date") { lisp, args in try iso(lisp) { try lisp.callNamed("diary-date", args) } }
         lisp.define("org-class") { _, args in
             try arity(args, 7...Int.max, "org-class")
-            let ints = try args.prefix(7).map(Elisp.int)
+            let ints = try args.prefix(7).map(bounded)
             let first = Days.absolute(year: ints[0], month: ints[1], day: ints[2])
             let last = Days.absolute(year: ints[3], month: ints[4], day: ints[5])
             let d = try absolute(try date())

@@ -20,6 +20,11 @@ public final class Elisp {
     private var functions: [String: Builtin] = [:]
     private var steps = 0
     static let stepLimit = 1_000_000
+    /// Nested evaluations, as `max-lisp-eval-depth` limits them.
+    private var depth = 0
+    static let depthLimit = 1600
+    /// The most elements a list built at once may have.
+    static let lengthLimit = 1_000_000
     /// What `princ` and the other printers wrote: the innermost `with-output-to-string`, or
     /// standard output.
     private var outputs: [String] = [""]
@@ -168,9 +173,21 @@ public final class Elisp {
 
     // MARK: - Evaluation
 
+    /// Less than 128 KB of this thread's stack left: background threads have only 512 KB.
+    static func stackIsLow() -> Bool {
+        var marker = 0
+        let here = withUnsafeMutablePointer(to: &marker) { UInt(bitPattern: $0) }
+        let top = UInt(bitPattern: pthread_get_stackaddr_np(pthread_self()))
+        let size = UInt(pthread_get_stacksize_np(pthread_self()))
+        return here < top - size + 128 * 1024
+    }
+
     public func eval(_ form: Sexp) throws -> Sexp {
         steps += 1
         if steps > Self.stepLimit { throw Signal(message: "Evaluation took too long") }
+        depth += 1
+        defer { depth -= 1 }
+        if depth > Self.depthLimit || Self.stackIsLow() { throw Signal(message: "Lisp nesting exceeds ‘max-lisp-eval-depth’") }
         switch form {
         case .symbol(let name):
             if name == "nil" || name == "t" || name.hasPrefix(":") { return form }
@@ -285,15 +302,18 @@ public final class Elisp {
             let spec = try args.first.map(Self.elements) ?? []
             guard case .symbol(let variable)? = spec.first, spec.count >= 2 else { throw Signal(message: "Bad \(name)") }
             let source = try eval(spec[1])
-            let items = name == "dolist" ? try Self.elements(source) : (0..<max(0, try Self.int(source))).map { Sexp.integer($0) }
+            let items = name == "dolist" ? try Self.elements(source) : []
+            let count = name == "dolist" ? items.count : max(0, try Self.int(source))
             scopes.append([:])
             defer { scopes.removeLast() }
-            for item in items {
-                scopes[scopes.count - 1][variable] = item
+            for i in 0..<count {
+                steps += 1
+                if steps > Self.stepLimit { throw Signal(message: "Evaluation took too long") }
+                scopes[scopes.count - 1][variable] = name == "dolist" ? items[i] : .integer(i)
                 _ = try progn(args.dropFirst())
             }
             if spec.count > 2 {
-                scopes[scopes.count - 1][variable] = name == "dotimes" ? .integer(items.count) : .nil
+                scopes[scopes.count - 1][variable] = name == "dotimes" ? .integer(count) : .nil
                 return try eval(spec[2])
             }
             return .nil
@@ -379,7 +399,9 @@ public final class Elisp {
                 guard var result = numbers.first else { return .integer(identity) }
                 if numbers.count == 1, name == "-" {
                     switch result {
-                    case .int(let i): return .integer(-i)
+                    case .int(let i):
+                        guard i != .min else { throw Unsupported(what: "integer size") }
+                        return .integer(-i)
                     case .float(let d): return .float(-d)
                     }
                 }
@@ -412,14 +434,17 @@ public final class Elisp {
             try arity(args, 2...2, "%")
             let b = try int(args[1])
             guard b != 0 else { throw Signal(message: "Arithmetic error") }
-            return .integer(try int(args[0]) % b)
+            let (r, overflow) = try int(args[0]).remainderReportingOverflow(dividingBy: b)
+            if overflow { throw Unsupported(what: "integer size") }
+            return .integer(r)
         }
         lisp.define("mod") { _, args in
             try arity(args, 2...2, "mod")
             switch (try number(args[0]), try number(args[1])) {
             case (.int(let a), .int(let b)):
                 guard b != 0 else { throw Signal(message: "Arithmetic error") }
-                let r = a % b
+                let (r, overflow) = a.remainderReportingOverflow(dividingBy: b)
+                if overflow { throw Unsupported(what: "integer size") }
                 return .integer(r != 0 && (r < 0) != (b < 0) ? r + b : r)
             case (let a, let b):
                 let r = fmod(a.double, b.double)
@@ -431,7 +456,9 @@ public final class Elisp {
         lisp.define("abs") { _, args in
             try arity(args, 1...1, "abs")
             switch try number(args[0]) {
-            case .int(let i): return .integer(abs(i))
+            case .int(let i):
+                guard i != .min else { throw Unsupported(what: "integer size") }
+                return .integer(abs(i))
             case .float(let d): return .float(abs(d))
             }
         }
@@ -575,6 +602,8 @@ public final class Elisp {
             let to = try int(args[1])
             let step = args.count > 2 && !isNil(args[2]) ? try int(args[2]) : 1
             guard step != 0 else { throw Signal(message: "The increment can not be zero") }
+            let span = Double(to) - Double(from)
+            guard span / Double(step) < Double(Self.lengthLimit) else { throw Signal(message: "Too many elements for number-sequence") }
             return list(Array(stride(from: from, through: to, by: step)).map { .integer($0) })
         }
         for name in ["memq", "member", "memql"] {
@@ -682,12 +711,12 @@ public final class Elisp {
         lisp.define("string-lessp") { lisp, args in try lisp.callNamed("string<", args) }
         lisp.define("upcase") { _, args in
             try arity(args, 1...1, "upcase")
-            if case .integer(let c) = args[0] { return .integer(Int(Unicode.Scalar(c).map { String($0).uppercased().unicodeScalars.first!.value } ?? UInt32(c))) }
+            if case .integer(let c) = args[0] { return .integer(Int(String(try scalar(c)).uppercased().unicodeScalars.first!.value)) }
             return .string(try string(args[0]).uppercased())
         }
         lisp.define("downcase") { _, args in
             try arity(args, 1...1, "downcase")
-            if case .integer(let c) = args[0] { return .integer(Int(Unicode.Scalar(c).map { String($0).lowercased().unicodeScalars.first!.value } ?? UInt32(c))) }
+            if case .integer(let c) = args[0] { return .integer(Int(String(try scalar(c)).lowercased().unicodeScalars.first!.value)) }
             return .string(try string(args[0]).lowercased())
         }
         lisp.define("capitalize") { _, args in
@@ -753,17 +782,30 @@ public final class Elisp {
         }
     }
 
-    static func add(_ n: Number, _ k: Int) -> Number {
+    static func add(_ n: Number, _ k: Int) throws -> Number {
         switch n {
-        case .int(let i): .int(i + k)
-        case .float(let d): .float(d + Double(k))
+        case .int(let i):
+            let (sum, overflow) = i.addingReportingOverflow(k)
+            if overflow { throw Unsupported(what: "integer size") }
+            return .int(sum)
+        case .float(let d): return .float(d + Double(k))
         }
+    }
+
+    /// A character code as a character.
+    static func scalar(_ code: Int) throws -> Unicode.Scalar {
+        guard code >= 0, code <= 0x10FFFF, let scalar = Unicode.Scalar(UInt32(code)) else {
+            throw Signal(message: "Invalid character: \(code)")
+        }
+        return scalar
     }
 
     static func divide(_ a: Number, _ b: Number, floating: Bool) throws -> Number {
         if !floating, case .int(let x) = a, case .int(let y) = b {
             guard y != 0 else { throw Signal(message: "Arithmetic error") }
-            return .int(x / y)
+            let (q, overflow) = x.dividedReportingOverflow(by: y)
+            if overflow { throw Unsupported(what: "integer size") }
+            return .int(q)
         }
         return .float(a.double / b.double)
     }
@@ -807,7 +849,7 @@ public final class Elisp {
         case .string(let s): return s
         case _ where isNil(v): return ""
         case .list, .vector:
-            return String(String.UnicodeScalarView(try sequence(v).map { Unicode.Scalar(UInt32(try int($0))) ?? " " }))
+            return String(String.UnicodeScalarView(try sequence(v).map { try scalar(try int($0)) }))
         default: throw Signal(message: "Wrong type argument: sequencep, \(v.description)")
         }
     }
@@ -887,7 +929,7 @@ public final class Elisp {
                 out += text
                 continue
             case "c":
-                text = Unicode.Scalar(UInt32(try int(try argument()))).map { String($0) } ?? ""
+                text = String(try scalar(try int(try argument())))
             case "e", "f", "g":
                 let value = try number(try argument()).double
                 out += String(format: "%" + flags + width + (precision.map { ".\($0)" } ?? "") + String(conversion), value)
