@@ -287,6 +287,20 @@ final class HTMLRenderer {
             return "<pre class=\"example\">" + Self.escape(lines.joined(separator: "\n").trimmingCharacters(in: .newlines)) + "</pre>\n"
         case .tableEl:
             let lines = node.text.components(separatedBy: "\n").filter { !$0.lowercased().contains("#+tblfm") }
+            // As `org-html-table--table.el-table`: cells with their spans, lines kept apart.
+            if let cells = TableEl.cells(lines.joined(separator: "\n")) {
+                var out = "<table class=\"table-el\">\n"
+                for row in Dictionary(grouping: cells, by: \.row).keys.sorted() {
+                    out += "<tr>"
+                    for cell in cells where cell.row == row {
+                        let spans = (cell.colspan > 1 ? " colspan=\"\(cell.colspan)\"" : "") + (cell.rowspan > 1 ? " rowspan=\"\(cell.rowspan)\"" : "")
+                        let content = cell.lines.reversed().drop { $0.isEmpty }.reversed().map(Self.escape).joined(separator: "<br>")
+                        out += "<td\(spans)>\(content)</td>"
+                    }
+                    out += "</tr>\n"
+                }
+                return out + "</table>\n"
+            }
             return "<pre class=\"example\">" + Self.escape(lines.joined(separator: "\n").trimmingCharacters(in: .newlines)) + "</pre>\n"
         case .dynamicBlock:
             let lines = node.text.components(separatedBy: "\n")
