@@ -344,18 +344,26 @@ public enum Babel {
         (value ?? "").split(whereSeparator: \.isWhitespace).contains { ["yes", "no-export", "strip-export", "eval", "strip-tangle"].contains(String($0)) }
     }
 
+    /// `org-babel-noweb-p` for `:tangle`.
+    static func nowebTangles(_ value: String?) -> Bool {
+        (value ?? "").split(whereSeparator: \.isWhitespace).contains { ["yes", "tangle", "no-export", "strip-export", "strip-tangle"].contains(String($0)) }
+    }
+
     /// `org-babel-expand-noweb-references` for evaluation: each `<<name>>` becomes the body of
     /// the block named so, or of every block with that `:noweb-ref`, joined by `:noweb-sep`, or
     /// the contents of the heading with that ID; the text before it on its line goes before
     /// each line it brings.
-    static func expandNoweb(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text: NSString, depth: Int = 0) throws -> String {
+    /// `tangling` expands the blocks it brings in as tangling would (`:noweb tangle`), not as
+    /// evaluation does.
+    static func expandNoweb(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text: NSString, tangling: Bool = false, depth: Int = 0) throws -> String {
         guard depth < 32 else { throw Failure.message("Noweb references nest too deeply") }
         let body = normalizedBody(block)
         let prefixing = params.single[":noweb-prefix"].map { $0 != "no" && $0 != "nil" } ?? true
         func expand(_ other: SrcBlockInfo) throws -> String {
             let otherParams = try Params(block: other, model: model, text: text)
-            return nowebEvaluates(otherParams.single[":noweb"])
-                ? try expandNoweb(other, params: otherParams, model: model, text: text, depth: depth + 1)
+            let expands = tangling ? nowebTangles(otherParams.single[":noweb"]) : nowebEvaluates(otherParams.single[":noweb"])
+            return expands
+                ? try expandNoweb(other, params: otherParams, model: model, text: text, tangling: tangling, depth: depth + 1)
                 : normalizedBody(other)
         }
         func inCommentedHeading(_ b: SrcBlockInfo) -> Bool {
@@ -442,17 +450,20 @@ public enum Babel {
         init(block: SrcBlockInfo, model: DocumentModel, text: NSString, extra: [[(String, String)]] = [], inline: Bool = false) throws {
             var layers: [[(String, String)]] = []
             let language = block.language ?? ""
-            func properties(_ entries: [Property]) {
-                for key in ["header-args", "header-args:\(language)"] {
+            // `org-babel-params-from-properties`: the inherited `header-args`, then the inherited
+            // `header-args:LANG`, each the nearest value with `+` additions after it.
+            var levels = [model.fileProperties]
+            if let heading = block.heading {
+                levels += (model.ancestors(of: heading).reversed() + [heading]).map { model.headings[$0].properties }
+            }
+            for key in ["header-args", "header-args:\(language)"] {
+                var value: String?
+                for entries in levels {
                     for entry in entries where entry.key.lowercased() == key {
-                        let pairs = Params.parse(entry.value)
-                        layers.append(pairs)
+                        value = entry.additive ? [value, entry.value].compactMap { $0 }.joined(separator: " ") : entry.value
                     }
                 }
-            }
-            properties(model.fileProperties)
-            if let heading = block.heading {
-                for index in model.ancestors(of: heading) + [heading] { properties(model.headings[index].properties) }
+                if let value { layers.append(Params.parse(value)) }
             }
             let firstLine = inline ? "" : text.substring(with: text.lineRange(for: NSRange(location: block.range.lowerBound, length: 0)))
             if let r = firstLine.range(of: "(?i)#\\+begin_src[ \\t]+\\S+", options: .regularExpression) {
@@ -485,11 +496,13 @@ public enum Babel {
                             results.insert(word, at: 0)
                         }
                     case ":var":
-                        guard let eq = value.firstIndex(of: "=") else { throw Failure.message(":var \(value) needs a name and a value") }
-                        let name = value[..<eq].trimmingCharacters(in: .whitespaces)
-                        let assigned = value[value.index(after: eq)...].trimmingCharacters(in: .whitespaces)
-                        vars.removeAll { $0.name == name }
-                        vars.append((name, assigned))
+                        for value in Params.splitVars(value) {
+                            guard let eq = value.firstIndex(of: "=") else { throw Failure.message(":var \(value) needs a name and a value") }
+                            let name = value[..<eq].trimmingCharacters(in: .whitespaces)
+                            let assigned = value[value.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+                            vars.removeAll { $0.name == name }
+                            vars.append((name, assigned))
+                        }
                     case ":wrap":
                         wrap = value
                     default:
@@ -501,6 +514,59 @@ public enum Babel {
 
         /// `org-babel-parse-header-arguments`: split before each `:key` outside quotes and
         /// parentheses.
+        /// A Lisp string's contents as `read` gives them.
+        static func unescape(_ s: String) -> String {
+            var out = ""
+            var escaped = false
+            for c in s {
+                if escaped {
+                    switch c {
+                    case "n": out.append("\n")
+                    case "t": out.append("\t")
+                    default: out.append(c)
+                    }
+                    escaped = false
+                } else if c == "\\" {
+                    escaped = true
+                } else {
+                    out.append(c)
+                }
+            }
+            return out
+        }
+
+        /// `org-babel-parse-multiple-vars`: one `:var` value holding several assignments split
+        /// on spaces outside quotes and brackets, pieces split beside `=` joined again.
+        static func splitVars(_ value: String) -> [String] {
+            var pieces: [String] = []
+            var current = ""
+            var depth = 0
+            var quoted = false
+            var previous: Character = " "
+            for c in value {
+                if c == "\"", previous != "\\" { quoted.toggle() }
+                previous = c
+                if !quoted, "([{".contains(c) { depth += 1 }
+                if !quoted, ")]}".contains(c) { depth = max(0, depth - 1) }
+                if c == " ", !quoted, depth == 0 {
+                    if !current.isEmpty { pieces.append(current) }
+                    current = ""
+                } else {
+                    current.append(c)
+                }
+            }
+            if !current.isEmpty { pieces.append(current) }
+            var joined: [String] = []
+            for piece in pieces {
+                if let last = joined.last, last.hasSuffix("=") || piece.hasPrefix("=") {
+                    joined[joined.count - 1] = last + piece
+                } else {
+                    joined.append(piece)
+                }
+            }
+            return joined.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
+
         static func parse(_ text: String) -> [(String, String)] {
             var parts: [String] = []
             var current = ""
@@ -508,7 +574,7 @@ public enum Babel {
             var quoted = false
             var previous: Character = " "
             for c in text {
-                if c == "\"" { quoted.toggle() }
+                if c == "\"", previous != "\\" { quoted.toggle() }
                 if !quoted {
                     if c == "(" { depth += 1 }
                     if c == ")" { depth = max(0, depth - 1) }
@@ -528,7 +594,7 @@ public enum Babel {
                 let key = String(trimmed.prefix { !$0.isWhitespace }).lowercased()
                 var value = trimmed.dropFirst(key.count).trimmingCharacters(in: .whitespaces)
                 if key != ":var", value.count >= 2, value.hasPrefix("\""), value.hasSuffix("\"") {
-                    value = String(value.dropFirst().dropLast())
+                    value = Params.unescape(String(value.dropFirst().dropLast()))
                 }
                 pairs.append((key, value))
             }
@@ -581,7 +647,7 @@ public enum Babel {
 
     /// `org-babel-ref-resolve` for literals and named tables and lists in the file.
     static func resolve(_ value: String, model: DocumentModel, text: NSString) throws -> VarValue {
-        if value.hasPrefix("\""), value.hasSuffix("\""), value.count >= 2 { return .scalar(String(value.dropFirst().dropLast())) }
+        if value.hasPrefix("\""), value.hasSuffix("\""), value.count >= 2 { return .scalar(Params.unescape(String(value.dropFirst().dropLast()))) }
         if let n = number(value) { return .number(n) }
         if value.contains("(") || value.contains("[") { throw Failure.message("References like \(value) aren't supported yet.") }
         // A named element: `#+NAME: value` above a table or list.

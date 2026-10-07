@@ -132,6 +132,7 @@ struct EditorScreen: View {
                 }
             }
             editor.onEditBlock = { edit in sheet = .block(edit) }
+            editor.onTangle = { scope in message = session.tangle(scope) }
             editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
             editor.onAppCommand = { id in
                 switch id {

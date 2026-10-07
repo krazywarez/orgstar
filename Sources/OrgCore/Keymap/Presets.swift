@@ -789,6 +789,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c '"
         command = "org.edit-special"
         [[bind]]
+        keys = "C-c C-v t"
+        command = "org.babel.tangle"
+        [[bind]]
+        keys = "C-c C-v C-t"
+        command = "org.babel.tangle"
+        [[bind]]
         keys = "C-c `"
         command = "org.table.edit-field"
         when = "table"

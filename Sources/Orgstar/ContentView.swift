@@ -423,6 +423,8 @@ struct ContentView: View {
         switch request {
         case .openLink(let link):
             if let message = LinkOpener.open(link, session: session, workspace: workspace) { commands.show(message) }
+        case .tangle(let scope):
+            commands.show(session.tangle(scope))
         case .agenda(let start, let days):
             commands.agendaRequest = (start, days)
             openWindow(id: "agenda")
