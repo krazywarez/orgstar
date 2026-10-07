@@ -174,7 +174,7 @@ struct AgendaScreen: View {
 
     private func row(_ item: AgendaItem) -> some View {
         Group {
-            if let path = item.path, let offset = item.headingOffset {
+            if let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
                 NavigationLink(value: ReaderRoute.offset(path, offset)) { entry(item) }
             } else {
                 entry(item)

@@ -8,6 +8,7 @@ public struct AgendaItem: Sendable, Equatable {
         case pastScheduled = "past-scheduled"
         case timestamp
         case block
+        case sexp
         case timeGrid
         case currentTime
         case todo
@@ -108,7 +109,16 @@ public enum Agenda {
     static func entries(_ source: AgendaSource, day: Int, today: Int, options: AgendaOptions) -> [AgendaItem] {
         let deadlines = self.deadlines(source, day: day, today: today, options: options)
         return (options.logMode ? progress(source, day: day, options: options) : []) + deadlines + scheduled(source, day: day, today: today, options: options) + blocks(source, day: day, options: options)
-            + timestamps(source, day: day, today: today, options: options)
+            + timestamps(source, day: day, today: today, options: options) + sexps(source, day: day, options: options)
+    }
+
+    /// `org-time-string-to-absolute` for a planning timestamp's text: a diary sexp counts on
+    /// `current` when it applies then, and otherwise the entry is skipped.
+    static func planningDay(_ s: String, current: Int) -> (day: Int, sexp: Bool)? {
+        guard s.hasPrefix("%%(") else { return Days.absolute(of: s).map { ($0, false) } }
+        guard let close = s.lastIndex(of: ")"), let (sexp, _) = try? LispReader.readFirst(String(s[s.index(s.startIndex, offsetBy: 2)...close])),
+              DiarySexp.matches(sexp, day: current) else { return nil }
+        return (current, true)
     }
 
     // MARK: - Collectors
@@ -117,8 +127,8 @@ public enum Agenda {
         let isToday = current == today
         var items: [AgendaItem] = []
         for heading in source.headings {
-            guard !heading.skipped, let (s, offset) = heading.deadline, let deadline = Days.absolute(of: s) else { continue }
-            let repeat_ = current <= today ? deadline : (Days.closest(s, to: current, prefer: .future) ?? deadline)
+            guard !heading.skipped, let (s, offset) = heading.deadline, let (deadline, sexp) = planningDay(s, current: current) else { continue }
+            let repeat_ = sexp || current <= today ? deadline : (Days.closest(s, to: current, prefer: .future) ?? deadline)
             let diff = deadline - current
             let warningDays = Days.warningDays(s, delay: false, defaultDays: options.deadlineWarningDays)
             if current != deadline, current != repeat_ {
@@ -152,8 +162,8 @@ public enum Agenda {
         let isToday = current == today
         var items: [AgendaItem] = []
         for heading in source.headings {
-            guard !heading.skipped, let (s, offset) = heading.scheduled, let schedule = Days.absolute(of: s) else { continue }
-            let repeat_ = current <= today ? schedule : (Days.closest(s, to: current, prefer: .future) ?? schedule)
+            guard !heading.skipped, let (s, offset) = heading.scheduled, let (schedule, sexp) = planningDay(s, current: current) else { continue }
+            let repeat_ = sexp || current <= today ? schedule : (Days.closest(s, to: current, prefer: .future) ?? schedule)
             let diff = current - schedule
             let past = schedule < today
             let delay = Days.warningDays(s, delay: true, defaultDays: 0)
@@ -236,6 +246,7 @@ public enum Agenda {
         return items
     }
 
+    static let diaryStamp = try! NSRegularExpression(pattern: "^<%%(\\([^>\\n]+\\))([^\\n>]*)>")
     static let repeating = try! NSRegularExpression(pattern: "^<[0-9]+-[0-9]+-[0-9]+[^>\\n]+?\\+[0-9]+[hdwmy]>")
     static let stampBoth = try! NSRegularExpression(pattern: "^[\\[<](\(AgendaSource.tsInternal))[\\]>]")
     static let stampActive = try! NSRegularExpression(pattern: "<(\(AgendaSource.tsInternal))>")
@@ -252,6 +263,9 @@ public enum Agenda {
             if stamp.rest.hasPrefix(literal) {
                 guard let m = stampBoth.firstMatch(in: stamp.rest, range: all) else { continue }
                 timestamp = rest.substring(with: m.range)
+            } else if let m = diaryStamp.firstMatch(in: stamp.rest, range: all) {
+                guard let (sexp, _) = try? LispReader.readFirst(rest.substring(with: m.range(at: 1))), DiarySexp.matches(sexp, day: current) else { continue }
+                timestamp = rest.substring(with: m.range)
             } else if let m = repeating.firstMatch(in: stamp.rest, range: all) {
                 let repeat_ = rest.substring(with: m.range)
                 guard let past = Days.closest(repeat_, to: current > today ? today : current, prefer: .past) else { continue }
@@ -267,6 +281,23 @@ public enum Agenda {
                 dotime: .string(timestamp), removing: stampActive, trailing: options.gridTrailing, prefix: options.prefix("agenda"),
                 urgency: { heading.isHabit ? heading.habit?.urgency(today: today) ?? $0 : $0 }
             ))
+        }
+        return items
+    }
+
+    /// `org-agenda-get-sexps`.
+    static func sexps(_ source: AgendaSource, day current: Int, options: AgendaOptions) -> [AgendaItem] {
+        var items: [AgendaItem] = []
+        for line in source.sexps {
+            guard let results = DiarySexp.entries(line.sexp, entry: line.entry, day: current) else { continue }
+            let heading = source.headings[line.heading]
+            for result in results {
+                let txt = result.contains(where: { !$0.isWhitespace }) ? result : "SEXP entry returned empty string"
+                items.append(format(
+                    source, heading, kind: .sexp, marker: line.offset, extra: "", dotime: .headline, removing: nil,
+                    trailing: options.gridTrailing, prefix: options.prefix("agenda"), head: txt, attached: false, urgency: { _ in 0 }
+                ))
+            }
         }
         return items
     }
@@ -303,7 +334,7 @@ public enum Agenda {
     static func format(
         _ source: AgendaSource, _ heading: AgendaSource.Heading, kind: AgendaItem.Kind, marker: Int,
         extra: String, dotime: Dotime?, removing: NSRegularExpression?, trailing: String, prefix prefixFormat: PrefixFormat,
-        head: String? = nil, habit: Habit? = nil, urgency: (Int) -> Int
+        head: String? = nil, habit: Habit? = nil, attached: Bool = true, urgency: (Int) -> Int
     ) -> AgendaItem {
         var txt = (head ?? heading.head).trimmingCharacters(in: .whitespaces)
         // `org-agenda-fix-displayed-tags`: the heading's tags are replaced by the full list.
@@ -340,7 +371,7 @@ public enum Agenda {
         txt = highlightTodo(txt, keywords: source.keywords)
         let priority = Self.priority(prefix + txt, source.priorities)
         return AgendaItem(
-            kind: kind, path: source.path, headingOffset: heading.start, headingLine: heading.line, markerOffset: marker, category: category,
+            kind: kind, path: source.path, headingOffset: attached ? heading.start : nil, headingLine: attached ? heading.line : nil, markerOffset: marker, category: category,
             timeOfDay: timed.timeOfDay, time: timed.time, extra: extra, text: txt, tags: tags.map(\.name),
             todo: heading.todo, isDone: heading.isDone, urgency: urgency(priority),
             warntime: heading.properties["APPT_WARNTIME"].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }, habit: habit,

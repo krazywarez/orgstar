@@ -148,7 +148,7 @@ enum AgendaOracle {
             case .timeGrid, .currentTime: "-"
             default: item.kind.rawValue
             }
-            return "\(normalize(line)) | \(type) \(item.category) \(item.timeOfDay.map(String.init) ?? "-") [\(item.extra)] \(item.urgency) \(item.path ?? "-")@\(item.headingOffset.map(String.init) ?? "-")"
+            return "\(normalize(line)) | \(type) \(item.category) \(item.timeOfDay.map(String.init) ?? "-") [\(item.extra)] \(item.urgency) \(item.headingOffset == nil ? "-" : item.path ?? "-")@\(item.headingOffset.map(String.init) ?? "-")"
         }
     }
 

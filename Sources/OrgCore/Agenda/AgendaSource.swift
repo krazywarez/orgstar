@@ -74,8 +74,20 @@ public struct AgendaSource: Sendable {
         let note: String?
     }
 
+    /// A `%%(…)` line (`org-agenda-get-sexps`).
+    struct SexpLine: Sendable {
+        /// Start of the line.
+        let offset: Int
+        /// The heading the line is under.
+        let heading: Int
+        let sexp: Sexp
+        /// The rest of the line after the sexp.
+        let entry: String
+    }
+
     let headings: [Heading]
     let stamps: [Stamp]
+    let sexps: [SexpLine]
     let blocks: [Block]
     let progress: [Progress]
     /// The file's TODO keywords, active and done.
@@ -244,11 +256,27 @@ public struct AgendaSource: Sendable {
         for offset in stampOffsets.sorted() {
             guard let owner = heading(at: offset), !skipped[owner] else { continue }
             let rest = restOfLine(offset)
-            guard rest.range(of: "^<[0-9]{4}-[0-9]{2}-[0-9]{2}", options: .regularExpression) != nil else { continue }
+            guard rest.range(of: "^<([0-9]{4}-[0-9]{2}-[0-9]{2}|%%\\()", options: .regularExpression) != nil else { continue }
             if Self.inDateRange(offset, ns) { continue }
             stamps.append(Stamp(offset: offset, heading: owner, rest: rest))
         }
         self.stamps = stamps
+
+        // Sexp lines: org searches the raw text for `%%(` at the start of a line. Before the
+        // first heading org's agenda signals an error; they're left out.
+        var sexps: [SexpLine] = []
+        let sexpLine = try! NSRegularExpression(pattern: "^&?%%\\(", options: .anchorsMatchLines)
+        for m in sexpLine.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            guard let owner = heading(at: m.range.location), !skipped[owner] else { continue }
+            let open = NSMaxRange(m.range) - 1
+            let tail = ns.substring(with: NSRange(location: open, length: min(ns.length - open, 4096)))
+            guard let (sexp, length) = try? LispReader.readFirst(tail) else { continue }
+            let afterSexp = String(tail.dropFirst(length))
+            let lineRest = afterSexp.prefix { $0 != "\n" && $0 != "\r" }
+            let entry = lineRest.trimmingCharacters(in: CharacterSet(charactersIn: " \t"))
+            sexps.append(SexpLine(offset: m.range.location, heading: owner, sexp: sexp, entry: entry))
+        }
+        self.sexps = sexps
 
         // Ranges: org scans the raw text, skipping comment lines, skipped trees and src blocks.
         var blocks: [Block] = []

@@ -243,7 +243,7 @@ struct InlineScanner {
             if !inLink, let end = timestampEnd(chars, at: i, limit: limit) { return .object(.timestamp, i..<end) }
             if let end = statisticsCookie(i, limit) { return .object(.statisticsCookie, i..<end) }
         case "<":
-            if !inLink, let end = timestampEnd(chars, at: i, limit: limit) { return .object(.timestamp, i..<end) }
+            if !inLink, let end = timestampEnd(chars, at: i, limit: limit) ?? diaryTimestamp(i, limit) { return .object(.timestamp, i..<end) }
             if let end = radioTarget(i, limit) { return .object(.radioTarget, i..<end) }
             if let end = target(i, limit) { return .object(.target, i..<end) }
             if !inLink, let end = angleLink(i, limit) { return .object(.link, i..<end) }
@@ -625,6 +625,18 @@ struct InlineScanner {
     }
 
     /// `<<<target>>>`.
+    /// A diary timestamp, `<%%(SEXP)REST>` (`org-element--timestamp-regexp`). It ends at the
+    /// first `]` or `>`, as its raw value does.
+    func diaryTimestamp(_ i: Int, _ limit: Int) -> Int? {
+        guard hasPrefix("<%%(", at: i, limit) else { return nil }
+        var close = i + 4
+        while close < limit, chars[close] != ">", chars[close] != "\n" { close += 1 }
+        guard close < limit, chars[close] == ">", close > i + 5, chars[(i + 5)..<close].contains(")") else { return nil }
+        var end = i + 1
+        while chars[end] != "]", chars[end] != ">" { end += 1 }
+        return end + 1
+    }
+
     func radioTarget(_ i: Int, _ limit: Int) -> Int? {
         guard hasPrefix("<<<", at: i, limit) else { return nil }
         let start = i + 3

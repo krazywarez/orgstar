@@ -11,6 +11,7 @@ struct ParserGapsTests {
         and on @@html:<b>bold</b>@@ or @@latex:\emph{x}@@, not @@x@@ or @@:y@@ or @@html:open.
         Calls: call_square(4) call_f[:results raw](x=1, y=(2))[:exports both] xcall_no(1) call_f[x] call_(1).
         %%(diary-float t 4 2) Thanksgiving
+        Diary <%%(diary-float t 4 2)>, <%%(x) 10:00>, <%%()>, <%%(a]b)>, <%%(open and <%%(y)
           %%(indented) is text
 
         +----+-----+
@@ -47,7 +48,7 @@ struct ParserGapsTests {
 
     static let kinds: [(lisp: String, ours: SyntaxKind)] = [
         ("citation", .citation), ("citation-reference", .citationReference), ("export-snippet", .exportSnippet),
-        ("inline-babel-call", .inlineBabelCall), ("diary-sexp", .diarySexp), ("paragraph", .paragraph), ("item", .item),
+        ("inline-babel-call", .inlineBabelCall), ("timestamp", .timestamp), ("diary-sexp", .diarySexp), ("paragraph", .paragraph), ("item", .item),
     ]
 
     @Test func objectsAndElementsMatchOrgElement() throws {
