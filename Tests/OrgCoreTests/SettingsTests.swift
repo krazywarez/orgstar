@@ -33,7 +33,7 @@ struct SettingsTests {
     @Test func severalLinesMakeSeveralSequences() {
         let settings = scan("#+TODO: A | B\n#+TYP_TODO: X | Y\n")
         #expect(settings.todoSequences.count == 2)
-        #expect(settings.todoSequences[1].kind == .type)
+        #expect(settings.todoSequences.map(\.kind) == [.type, .sequence])
     }
 
     @Test func keywordsInsideBlocksAreIgnored() {

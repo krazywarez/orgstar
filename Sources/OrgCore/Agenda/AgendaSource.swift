@@ -106,7 +106,7 @@ public struct AgendaSource: Sendable {
         collect(tree.root)
         func sectionStamps(_ index: Int) -> [String] { stampsByHeading[index] ?? [] }
 
-        var keywordCategory: String?
+        var keywordCategory = SetupFile.keywords(tree.settings.setupKeywords).last { $0.key == "CATEGORY" }?.value.trimmingCharacters(in: .whitespaces)
         var srcBodies: [Range<Int>] = []
         var planningLines: [Range<Int>] = []
         var timestampNodes: [Int] = []

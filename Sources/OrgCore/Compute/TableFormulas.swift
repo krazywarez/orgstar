@@ -369,7 +369,7 @@ extension EmacsBuffer {
     func substituteConstants(_ formula: String) -> String {
         guard formula.range(of: "\\$[a-zA-Z]", options: .regularExpression) != nil else { return formula }
         var constants: [String: String] = [:]
-        for m in string.matches(of: #/(?mi)^[ \t]*#\+CONSTANTS:(.*)$/#) {
+        for m in (settings.setupKeywords + string).matches(of: #/(?mi)^[ \t]*#\+CONSTANTS:(.*)$/#) {
             for pair in m.1.split(whereSeparator: \.isWhitespace) {
                 let parts = pair.split(separator: "=", maxSplits: 1)
                 if parts.count == 2, constants[String(parts[0])] == nil { constants[String(parts[0])] = String(parts[1]) }

@@ -113,7 +113,7 @@ public enum OrgCompletion {
             var p = caret
             while p > start, let ch = UnicodeScalar(ns.character(at: p - 1)), CharacterSet(charactersIn: "-_").union(.alphanumerics).contains(ch), ch.isASCII { p -= 1 }
             if p - 2 >= start, ns.character(at: p - 1) == 91, ns.character(at: p - 2) == 91 {
-                let abbreviations = Links.abbreviations(in: context.text).keys.map { $0 + ":" }
+                let abbreviations = Links.abbreviations(in: context.tree.settings.setupKeywords + context.text).keys.map { $0 + ":" }
                 return make(.link, from: p, abbreviations + linkTypes.map { $0 + ":" })
             }
         }
@@ -136,7 +136,7 @@ public enum OrgCompletion {
                 let from = colon + ((typed as NSString).range(of: ":", options: .backwards).toOptional.map { NSMaxRange($0) } ?? 0)
                 let heading = DocumentModel(tree: context.tree).headings.last { $0.headingRange.lowerBound <= caret }
                 let own = Set(heading?.localTags ?? [])
-                let alist = FastSelection.tagTable(context.text)?.compactMap { item -> String? in
+                let alist = FastSelection.tagTable(context.tree.settings.setupKeywords + context.text)?.compactMap { item -> String? in
                     if case .option(_, let name) = item { return name }
                     return nil
                 } ?? []

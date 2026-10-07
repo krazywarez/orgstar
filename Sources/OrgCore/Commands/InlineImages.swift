@@ -34,7 +34,7 @@ public enum InlineImages {
     /// `#+STARTUP: inlineimages` or `noinlineimages`, if the file says.
     public static func startup(_ tree: OrgTree) -> Bool? {
         var shown: Bool?
-        for m in tree.root.text.matches(of: #/(?mi)^[ \t]*#\+STARTUP:(.*)$/#) {
+        for m in (tree.settings.setupKeywords + tree.root.text).matches(of: #/(?mi)^[ \t]*#\+STARTUP:(.*)$/#) {
             for word in m.1.split(whereSeparator: \.isWhitespace) {
                 if word.lowercased() == "inlineimages" { shown = true }
                 if word.lowercased() == "noinlineimages" { shown = false }

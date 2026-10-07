@@ -220,7 +220,8 @@ extension Presentation {
     /// Words of every `#+STARTUP:` line. Only element-level keywords count, so text inside
     /// blocks and paragraphs is never read as a setting.
     public static func startupOptions(_ tree: OrgTree) -> [String] {
-        var options: [String] = []
+        var options = tree.settings.setupKeywords.split(separator: "\n").filter { $0.uppercased().hasPrefix("#+STARTUP:") }
+            .flatMap { $0.dropFirst("#+STARTUP:".count).split(whereSeparator: \.isWhitespace).map(String.init) }
         func visit(_ node: GreenNode) {
             for case .node(let child) in node.children {
                 switch child.kind {

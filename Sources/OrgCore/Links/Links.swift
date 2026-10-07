@@ -133,7 +133,7 @@ public enum Links {
         guard let node = found else { return nil }
         let whole = node.text
         if whole.hasPrefix("[["), let path = node.tokens.first(where: { $0.kind == .linkPath }) {
-            return (parse(bracket: path.text, abbreviations: abbreviations(in: text)), node.range)
+            return (parse(bracket: path.text, abbreviations: abbreviations(in: tree.settings.setupKeywords + text)), node.range)
         }
         let plain = whole.hasPrefix("<") && whole.hasSuffix(">") ? String(whole.dropFirst().dropLast()) : whole
         return (parse(plain: plain), node.range)

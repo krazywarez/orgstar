@@ -19,18 +19,19 @@ public enum HTMLExport {
     public static func metadata(_ text: String, settings: OrgSettings = .default) -> ExportMetadata {
         let tree = OrgParser.parse(text, defaults: settings)
         var meta = ExportMetadata()
-        for node in tree.root.children where node.kind == .zerothSection {
-            for child in node.children where child.kind == .keyword {
-                let line = child.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard let colon = line.firstIndex(of: ":") else { continue }
-                let key = line.dropFirst(2).prefix { $0 != ":" }.uppercased()
-                let value = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
-                switch key {
-                case "TITLE": meta.title = value
-                case "AUTHOR": meta.author = value
-                case "DATE": meta.date = value
-                default: break
-                }
+        // Setup files' keywords come first, as Org reads them where `#+SETUPFILE` is.
+        let setup = settings.setupKeywords.split(separator: "\n").map(String.init)
+        let own = tree.root.children.filter { $0.kind == .zerothSection }.flatMap { $0.children.filter { $0.kind == .keyword } }.map(\.text)
+        for text in setup + own {
+            let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let colon = line.firstIndex(of: ":") else { continue }
+            let key = line.dropFirst(2).prefix { $0 != ":" }.uppercased()
+            let value = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+            switch key {
+            case "TITLE": meta.title = value
+            case "AUTHOR": meta.author = value
+            case "DATE": meta.date = value
+            default: break
             }
         }
         return meta
@@ -41,8 +42,8 @@ public enum HTMLExport {
     /// `{{{input-file}}}`.
     public static func page(_ text: String, fallbackTitle: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date()) -> String {
         let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
-        let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now)
-        let options = ExportOptions.parse(text)
+        let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now, setup: settings.setupKeywords)
+        let options = ExportOptions.parse(settings.setupKeywords + text)
         let meta = metadata(text, settings: settings)
         let title = meta.title ?? fallbackTitle
         let renderer = HTMLRenderer(settings: settings, options: options)

@@ -190,6 +190,15 @@ struct DocumentSessionTests {
         #expect(session.revealRequest?.offset == 12)
     }
 
+    @Test func openReadsSetupFiles() throws {
+        let notes = try Folder()
+        try notes.write("setup.org", "#+TODO: NEXT | DONE\n")
+        let file = try notes.write("a.org", "#+SETUPFILE: setup.org\n* NEXT One\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        #expect(session.document?.tree.settings.todoKeywordNames.contains("NEXT") == true)
+    }
+
     @Test func missingFileReportsAnError() {
         let session = DocumentSession()
         session.open("/nonexistent/a.org")

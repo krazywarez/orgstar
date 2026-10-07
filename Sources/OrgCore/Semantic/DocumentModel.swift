@@ -22,6 +22,7 @@ public struct DocumentModel: Sendable {
     public init(tree: OrgTree, settings: SemanticSettings = .default) {
         self.settings = settings
         self.orgSettings = tree.settings
+        for (key, value) in SetupFile.keywords(tree.settings.setupKeywords) { fileKeyword(key, value.trimmingCharacters(in: .whitespaces)) }
         var pending: [PendingBlock] = []
         walk(tree.root, heading: nil, pending: &pending)
         // Header arguments depend on file and heading properties, so blocks resolve last.
@@ -205,8 +206,10 @@ public struct DocumentModel: Sendable {
     private mutating func fileKeyword(_ node: SyntaxNode) {
         let text = node.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let colon = text.firstIndex(of: ":") else { return }
-        let key = text[text.index(text.startIndex, offsetBy: 2)..<colon].uppercased()
-        let value = text[text.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+        fileKeyword(text[text.index(text.startIndex, offsetBy: 2)..<colon].uppercased(), text[text.index(after: colon)...].trimmingCharacters(in: .whitespaces))
+    }
+
+    private mutating func fileKeyword(_ key: String, _ value: String) {
         switch key {
         case "FILETAGS":
             fileTags += value.split(whereSeparator: { $0 == ":" || $0.isWhitespace }).map(String.init)

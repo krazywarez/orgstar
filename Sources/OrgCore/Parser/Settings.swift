@@ -47,6 +47,9 @@ public struct OrgSettings: Sendable, Equatable {
     public var radioTargets: [String] = []
     /// `org-list-allow-alphabetical`: `a.` and `A)` are bullets.
     public var listAllowAlphabetical = false
+    /// Keyword lines from the file's `#+SETUPFILE`s, as `#+KEY: value` lines: they count as
+    /// the file's own, before them.
+    public var setupKeywords = ""
 
     public init(todoSequences: [TodoSequence], priorities: Priorities, radioTargets: [String] = []) {
         self.todoSequences = todoSequences
@@ -80,35 +83,42 @@ public struct OrgSettings: Sendable, Equatable {
 
 enum SettingsScanner {
     /// Reads `#+TODO`, `#+SEQ_TODO`, `#+TYP_TODO` and `#+PRIORITIES` outside blocks. Any TODO
-    /// line replaces the default sequences, as in org.
+    /// line replaces the default sequences; as in org, `TYP_TODO` sequences come first, then
+    /// `TODO`, then `SEQ_TODO`.
     static func scan(lines: [RawLine], info: [ClassifiedLine], blockEnds: [Int: Int], defaults: OrgSettings) -> OrgSettings {
-        var sequences: [TodoSequence] = []
+        var types: [TodoSequence] = [], todos: [TodoSequence] = [], seqs: [TodoSequence] = []
         var priorities = defaults.priorities
+        func apply(_ key: String, _ value: Substring) {
+            switch key {
+            case "TODO":
+                if let s = todoSequence(value, kind: .sequence) { todos.append(s) }
+            case "SEQ_TODO":
+                if let s = todoSequence(value, kind: .sequence) { seqs.append(s) }
+            case "TYP_TODO":
+                if let s = todoSequence(value, kind: .type) { types.append(s) }
+            case "PRIORITIES":
+                let words = value.split(whereSeparator: \.isWhitespace)
+                if words.count == 3 {
+                    priorities = Priorities(highest: String(words[0]), lowest: String(words[1]), default: String(words[2]))
+                }
+            default:
+                break
+            }
+        }
+        for (key, value) in SetupFile.keywords(defaults.setupKeywords) { apply(key, value) }
         var k = 0
         while k < lines.count {
             switch info[k].cls {
             case .blockBegin, .dynamicBegin:
                 if let end = blockEnds[k] { k = end }
             case .keyword(let key):
-                let value = keywordValue(lines[k].content)
-                switch key {
-                case "TODO", "SEQ_TODO":
-                    if let s = todoSequence(value, kind: .sequence) { sequences.append(s) }
-                case "TYP_TODO":
-                    if let s = todoSequence(value, kind: .type) { sequences.append(s) }
-                case "PRIORITIES":
-                    let words = value.split(whereSeparator: \.isWhitespace)
-                    if words.count == 3 {
-                        priorities = Priorities(highest: String(words[0]), lowest: String(words[1]), default: String(words[2]))
-                    }
-                default:
-                    break
-                }
+                apply(key, keywordValue(lines[k].content))
             default:
                 break
             }
             k += 1
         }
+        let sequences = types + todos + seqs
         var radio: [String] = []
         for line in lines where line.content.contains("<<<") {
             for m in String(line.content).matches(of: /<<<([^<>\n\r \t](?:[^<>\n\r]*[^<>\n\r \t])?)>>>/) where !radio.contains(String(m.1)) {
@@ -118,6 +128,7 @@ enum SettingsScanner {
         var settings = OrgSettings(todoSequences: sequences.isEmpty ? defaults.todoSequences : sequences, priorities: priorities,
                                    radioTargets: radio.sorted { $0.count > $1.count })
         settings.listAllowAlphabetical = defaults.listAllowAlphabetical
+        settings.setupKeywords = defaults.setupKeywords
         return settings
     }
 

@@ -122,7 +122,9 @@ public struct FileRecord: Sendable, Equatable {
         self.hash = Self.hash(bytes)
         self.settingsVersion = settings.version
         let source = SourceText(bytes: bytes)
-        headings = kind == .conflict ? [] : Self.headings(source.text, settings: settings)
+        var resolved = settings
+        resolved.org = settings.org.resolvingSetupFiles(in: source.text, path: path, read: OrgSettings.readFile)
+        headings = kind == .conflict ? [] : Self.headings(source.text, settings: resolved)
     }
 
     /// A file the index lists without reading: `hash` stands for its size and mtime.

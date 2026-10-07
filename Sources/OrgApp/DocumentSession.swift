@@ -77,6 +77,14 @@ public final class DocumentSession {
     /// TODO keywords and priorities for files without their own settings.
     public var defaults: OrgSettings = .default
 
+    /// A buffer for `bytes` read from `path`, with the keywords of the setup files it names.
+    func loaded(_ bytes: [UInt8], path: String) -> DocumentState {
+        let settings = defaults.resolvingSetupFiles(in: SourceText(bytes: bytes).text, path: path) { file in
+            (try? self.fileSystem.read(URL(fileURLWithPath: file))).flatMap { $0 }.flatMap { String(bytes: $0, encoding: .utf8) }
+        }
+        return DocumentState(bytes: bytes, defaults: settings)
+    }
+
     /// One open file.
     @MainActor
     final class Entry {
@@ -154,7 +162,7 @@ public final class DocumentSession {
                 lastError = "\((path as NSString).lastPathComponent) no longer exists."
                 return
             }
-            let entry = Entry(path: path, buffer: StateBuffer(DocumentState(bytes: bytes, defaults: defaults)))
+            let entry = Entry(path: path, buffer: StateBuffer(loaded(bytes, path: path)))
             let index = current.flatMap { c in entries.firstIndex { $0 === c } }.map { $0 + 1 } ?? entries.count
             entries.insert(entry, at: index)
             activate(entry)
@@ -467,7 +475,7 @@ public final class DocumentSession {
             state = open.buffer.document
         } else {
             guard let bytes = try? fileSystem.read(URL(fileURLWithPath: from.path)) else { return nil }
-            state = DocumentState(bytes: bytes, defaults: defaults)
+            state = loaded(bytes, path: from.path)
         }
         guard state.isEditable else { return nil }
         let context = EditContext(revision: state.revision, text: state.text, tree: state.tree, selection: [from.offset..<from.offset], now: now, options: options)
@@ -510,7 +518,7 @@ public final class DocumentSession {
         }
         do {
             guard let bytes = try fileSystem.read(url) else { return "\(targetName) no longer exists." }
-            var state = DocumentState(bytes: bytes, defaults: defaults)
+            var state = loaded(bytes, path: url.path)
             guard state.isEditable else { return "\(targetName) isn't UTF-8, so it can't be changed." }
             guard let start = target.locate(in: state) else { return "Can't find \(target.label) any more." }
             guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
@@ -554,7 +562,7 @@ public final class DocumentSession {
         do {
             let url = URL(fileURLWithPath: destination.path)
             let existing = destination.isSameFile ? nil : try fileSystem.read(url)
-            var state = DocumentState(bytes: existing ?? [], defaults: defaults)
+            var state = loaded(existing ?? [], path: url.path)
             if !destination.isSameFile, !state.isEditable { return "\(url.lastPathComponent) isn't UTF-8, so it can't be changed." }
             let edits: Archive.Edits
             switch Archive.run(context, sourcePath: path, destination: destination, archiveText: existing.map { _ in state.text }) {
@@ -631,7 +639,7 @@ public final class DocumentSession {
         let name = url.lastPathComponent
         do {
             guard let bytes = try fileSystem.read(url) else { return .failed("\(name) no longer exists.") }
-            var state = DocumentState(bytes: bytes, defaults: defaults)
+            var state = loaded(bytes, path: path)
             guard state.isEditable else { return .failed("\(name) isn't UTF-8, so it can't be changed.") }
             guard matches(state.text) else { return stale }
             let step = try state.run(command, selection: [offset..<offset], now: now, answers: answers, options: options)

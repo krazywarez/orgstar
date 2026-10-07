@@ -247,7 +247,7 @@ public struct InsertLink: OrgCommand {
             guard let answer = context.answers["link"] else { return .prompt(Prompt(key: "link", message: "Link:", initial: initial)) }
             link = answer
         } else {
-            let prefixes = Array(Links.abbreviations(in: context.text).keys).sorted() + Links.types
+            let prefixes = Array(Links.abbreviations(in: context.tree.settings.setupKeywords + context.text).keys).sorted() + Links.types
             guard let answer = context.answers["link"] else {
                 let message = stored.first.map { "Insert link (default \($0.link)):" } ?? "Insert link:"
                 let choices = stored.map(\.link) + stored.compactMap(\.description) + prefixes.map { $0 + ":" }

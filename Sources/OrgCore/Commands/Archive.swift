@@ -9,7 +9,9 @@ extension EmacsBuffer {
     func keyword(_ name: String) -> String? {
         saveExcursion {
             point = 0
-            guard let match = searchForward("^[ \\t]*#\\+" + NSRegularExpression.escapedPattern(for: name) + ":[ \\t]*(.*?)[ \\t]*$") else { return nil }
+            guard let match = searchForward("^[ \\t]*#\\+" + NSRegularExpression.escapedPattern(for: name) + ":[ \\t]*(.*?)[ \\t]*$") else {
+                return SetupFile.keywords(settings.setupKeywords).last { $0.key == name.uppercased() }?.value.trimmingCharacters(in: .whitespaces)
+            }
             return substring(match[1]!.lowerBound, match[1]!.upperBound)
         }
     }

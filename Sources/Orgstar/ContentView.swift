@@ -382,7 +382,7 @@ struct ContentView: View {
         }
         let url = URL(fileURLWithPath: path)
         let base = url.deletingPathExtension()
-        let defaults = Preferences.orgSettings
+        let defaults = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
         let open = open || format == "html-open"
         switch format {
         case "html", "html-open", "markdown":

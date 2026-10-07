@@ -32,6 +32,7 @@ struct OrgExport: Transferable {
 
     private func write() throws -> SentTransferredFile {
         let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+        let settings = settings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
         let content = switch format {
         case .html: HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path)
         case .markdown: MarkdownExport.document(text, settings: settings)

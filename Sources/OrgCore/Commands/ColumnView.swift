@@ -239,7 +239,7 @@ public enum ColumnView {
             }
             if top == nil { top = here }
         }
-        if format == nil, let keyword = text.firstMatch(of: #/(?mi)^[ \t]*#\+COLUMNS:[ \t]+(.+?)[ \t]*$/#) { format = String(keyword.1) }
+        if format == nil, let keyword = (tree.settings.setupKeywords + text).firstMatch(of: #/(?mi)^[ \t]*#\+COLUMNS:[ \t]+(.+?)[ \t]*$/#) { format = String(keyword.1) }
         let specs = compile(format ?? defaultFormat)
         // The entries in scope, without archived or commented subtrees.
         var scope: [Int] = []

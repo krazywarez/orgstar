@@ -82,6 +82,9 @@ extension EmacsBuffer {
                 if enter != nil || leave != nil, log.states[keyword.name] == nil { log.states[keyword.name] = (enter, leave) }
             }
         }
+        for (key, value) in SetupFile.keywords(settings.setupKeywords) where key == "STARTUP" {
+            for word in value.split(whereSeparator: \.isWhitespace) { log.apply(startup: String(word)) }
+        }
         let startup = try! NSRegularExpression(pattern: "^[ \\t]*#\\+STARTUP:(.*)$", options: [.anchorsMatchLines, .caseInsensitive])
         for match in startup.matches(in: string, range: NSRange(location: 0, length: length)) {
             for word in substring(match.range(at: 1).location, NSMaxRange(match.range(at: 1))).split(whereSeparator: \.isWhitespace) {

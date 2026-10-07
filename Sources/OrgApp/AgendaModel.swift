@@ -111,10 +111,10 @@ public final class AgendaModel {
                 if let cached = read.cached {
                     sources.append((read.path, read.mtime, read.size, cached, true))
                 } else if let text = read.text {
-                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults), false))
+                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults.resolvingSetupFiles(in: text, path: read.path, read: OrgSettings.readFile)), false))
                 } else if let data = FileManager.default.contents(atPath: read.path) {
                     let text = SourceText(bytes: [UInt8](data)).text
-                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults), true))
+                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults.resolvingSetupFiles(in: text, path: read.path, read: OrgSettings.readFile)), true))
                 }
             }
             return sources

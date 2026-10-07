@@ -179,11 +179,12 @@ public enum ExportPreprocess {
     /// `{{{name(arg, …)}}}` replaced: `#+MACRO` definitions with `$1`… and the built-in title,
     /// author, date, email, input-file, keyword, property, n and time macros. Others become
     /// empty, as Lisp ones do here.
-    public static func macros(_ text: String, path: String?, now: Date = Date()) -> String {
+    /// `setup` is the setup files' keyword lines, whose definitions count too.
+    public static func macros(_ text: String, path: String?, now: Date = Date(), setup: String = "") -> String {
         guard text.contains("{{{") else { return text }
         var definitions: [String: String] = [:]
         var keywords: [String: String] = [:]
-        for m in text.matches(of: #/(?mi)^[ \t]*#\+([A-Z_]+):[ \t]*(.*?)[ \t]*$/#) {
+        for m in (setup + text).matches(of: #/(?mi)^[ \t]*#\+([A-Z_]+):[ \t]*(.*?)[ \t]*$/#) {
             let key = m.1.uppercased()
             let value = String(m.2)
             if key == "MACRO", let d = value.firstMatch(of: /^(\S+)[ \t]*(.*)$/) {
