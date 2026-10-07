@@ -537,6 +537,7 @@ extension EmacsBuffer {
                 case "N": mode.numbers = true
                 case "L": literal = true
                 case "E": mode.keepEmpty = true
+                case "F": modes.preferFractions = true
                 case "D": modes.degrees = true
                 case "R": modes.degrees = false
                 default: throw Calc.Unsupported("format flag \(ns.substring(with: m.range))")

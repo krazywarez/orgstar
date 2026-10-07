@@ -26,6 +26,8 @@ public enum Calc {
         /// A date form: the day number, with the time of day as a fraction.
         case date(Value)
         case nan
+        /// An exact fraction, reduced, the denominator above 1 (`calc-prefer-frac`).
+        case frac(Int, Int)
     }
 
     public enum FloatFormat: Equatable, Sendable {
@@ -36,6 +38,8 @@ public enum Calc {
         public var precision = 12
         public var format = FloatFormat.float(8)
         public var degrees = true
+        /// `calc-prefer-frac`: dividing integers gives a fraction.
+        public var preferFractions = false
         public init() {}
     }
 
@@ -111,15 +115,48 @@ public enum Calc {
         switch v {
         case .int(let i): return (Int128(i), 0)
         case .float(let m, let e): return (Int128(m), e)
+        case .frac(let n, let d): return try parts(try divide(.int(n), .int(d)))
         case .vector: throw Unsupported("vector arithmetic")
         case .date, .nan: throw Unsupported("date arithmetic")
         }
+    }
+
+    /// An integer or a fraction as numerator and denominator.
+    static func rational(_ v: Value) -> (Int, Int)? {
+        switch v {
+        case .int(let i): (i, 1)
+        case .frac(let n, let d): (n, d)
+        default: nil
+        }
+    }
+
+    /// `math-make-frac`: reduced, as an integer when it is one.
+    static func fraction(_ n: Int, _ d: Int) throws -> Value {
+        guard d != 0 else { throw Unsupported("division by zero") }
+        guard n != .min, d != .min else { throw Unsupported("integer size") }
+        func gcd(_ a: Int, _ b: Int) -> Int { b == 0 ? abs(a) : gcd(b, a % b) }
+        let g = gcd(n, d)
+        var (num, den) = (n / g, d / g)
+        if den < 0 { (num, den) = (-num, -den) }
+        return den == 1 ? .int(num) : .frac(num, den)
+    }
+
+    /// Two rationals, one of them a fraction, combined exactly; nil otherwise.
+    static func exact(_ a: Value, _ b: Value, _ op: (Int, Int, Int, Int) -> (Int, Int, Bool)) throws -> Value? {
+        var fraction = false
+        if case .frac = a { fraction = true }
+        if case .frac = b { fraction = true }
+        guard fraction, let (n1, d1) = rational(a), let (n2, d2) = rational(b) else { return nil }
+        let (n, d, overflow) = op(n1, d1, n2, d2)
+        if overflow { throw Unsupported("integer size") }
+        return try self.fraction(n, d)
     }
 
     static func double(_ v: Value) throws -> Double {
         switch v {
         case .int(let i): return Double(i)
         case .float(let m, let e): return Double(m) * pow(10, Double(e))
+        case .frac(let n, let d): return Double(n) / Double(d)
         case .vector: throw Unsupported("vector arithmetic")
         case .date, .nan: throw Unsupported("date arithmetic")
         }
@@ -150,6 +187,13 @@ public enum Calc {
             if overflow { throw Unsupported("integer size") }
             return .int(sum)
         }
+        if let sum = try exact(a, b, { n1, d1, n2, d2 in
+            let (p, o1) = n1.multipliedReportingOverflow(by: d2)
+            let (q, o2) = n2.multipliedReportingOverflow(by: d1)
+            let (n, o3) = p.addingReportingOverflow(q)
+            let (d, o4) = d1.multipliedReportingOverflow(by: d2)
+            return (n, d, o1 || o2 || o3 || o4)
+        }) { return sum }
         let (m1, e1) = try parts(a)
         let (m2, e2) = try parts(b)
         if m1 == 0 { return try makeFloat(m2, e2) }
@@ -169,6 +213,7 @@ public enum Calc {
             guard i != .min else { throw Unsupported("integer size") }
             return .int(-i)
         case .float(let m, let e): return .float(-m, e)
+        case .frac(let n, let d): return .frac(-n, d)
         case .vector: throw Unsupported("vector arithmetic")
         case .date: throw Unsupported("date arithmetic")
         case .nan: return .nan
@@ -195,6 +240,11 @@ public enum Calc {
             if overflow { throw Unsupported("integer size") }
             return .int(product)
         }
+        if let product = try exact(a, b, { n1, d1, n2, d2 in
+            let (n, o1) = n1.multipliedReportingOverflow(by: n2)
+            let (d, o2) = d1.multipliedReportingOverflow(by: d2)
+            return (n, d, o1 || o2)
+        }) { return product }
         let (m1, e1) = try parts(a)
         let (m2, e2) = try parts(b)
         let (product, overflow) = m1.multipliedReportingOverflow(by: m2)
@@ -202,8 +252,16 @@ public enum Calc {
         return try makeFloat(product, e1 + e2)
     }
 
-    static func divide(_ a: Value, _ b: Value) throws -> Value {
+    static func divide(_ a: Value, _ b: Value, fractions: Bool = false) throws -> Value {
         if isNaN(a, b) { return .nan }
+        if fractions || { if case .frac = a { return true }; if case .frac = b { return true }; return false }(),
+           let (n1, d1) = rational(a), let (n2, d2) = rational(b) {
+            guard n2 != 0 else { throw Unsupported("division by zero") }
+            let (n, o1) = n1.multipliedReportingOverflow(by: d2)
+            let (d, o2) = d1.multipliedReportingOverflow(by: n2)
+            if o1 || o2 { throw Unsupported("integer size") }
+            return try fraction(n, d)
+        }
         if case .int(let x) = a, case .int(let y) = b {
             guard y != 0 else { throw Unsupported("division by zero") }
             if x % y == 0 { return .int(x / y) }
@@ -223,8 +281,8 @@ public enum Calc {
     }
 
     /// `math-ipow`.
-    static func integerPower(_ a: Value, _ n: Int) throws -> Value {
-        if n < 0 { return try integerPower(try divide(.int(1), a), -n) }
+    static func integerPower(_ a: Value, _ n: Int, fractions: Bool = false) throws -> Value {
+        if n < 0 { return try integerPower(try divide(.int(1), a, fractions: fractions), -n) }
         if n == 0 { return .int(1) }
         if n == 1 { return a }
         let square = try multiply(a, a)
@@ -232,9 +290,9 @@ public enum Calc {
         return try multiply(a, try integerPower(square, n / 2))
     }
 
-    static func power(_ a: Value, _ b: Value) throws -> Value {
+    static func power(_ a: Value, _ b: Value, fractions: Bool = false) throws -> Value {
         if isNaN(a, b) { return .nan }
-        if case .int(let n) = b { return try integerPower(a, n) }
+        if case .int(let n) = b { return try integerPower(a, n, fractions: fractions) }
         let base = try double(a)
         guard base >= 0 else { throw Unsupported("complex result") }
         return try fromDouble(pow(base, try double(b)))
@@ -254,6 +312,7 @@ public enum Calc {
     static func format(_ value: Value, _ floatFormat: FloatFormat) throws -> String {
         switch value {
         case .int(let i): return String(i)
+        case .frac(let n, let d): return "\(n):\(d)"
         case .vector: throw Unsupported("vector result")
         case .nan: return "nan"
         case .date(let d): return "<" + (try formatDate(d)) + ">"
@@ -577,10 +636,10 @@ public enum Calc {
                 case "+": return try add(a, b)
                 case "-": return try subtract(a, b)
                 case "*": return try multiply(a, b)
-                case "/": return try divide(a, b)
+                case "/": return try divide(a, b, fractions: modes.preferFractions)
                 case "%": return try mod(a, b)
                 case "\\": return try idiv(a, b)
-                case "^": return try power(a, b)
+                case "^": return try power(a, b, fractions: modes.preferFractions)
                 case "|": return .int(try truth(a) || truth(b) ? 1 : 0)
                 case "&": return .int(try truth(a) && truth(b) ? 1 : 0)
                 default:
@@ -640,7 +699,7 @@ public enum Calc {
         func deviations(_ args: [Value]) throws -> (Value, Int) {
             let items = try elements(args)
             guard !items.isEmpty else { throw Unsupported("empty vector") }
-            let mean = try divide(try items.reduce(Value.int(0)) { try add($0, $1) }, .int(items.count))
+            let mean = try divide(try items.reduce(Value.int(0)) { try add($0, $1) }, .int(items.count), fractions: modes.preferFractions)
             let squares = try items.reduce(Value.int(0)) { sum, x in
                 let d = try subtract(x, mean)
                 return try add(sum, try multiply(d, d))
@@ -678,7 +737,7 @@ public enum Calc {
             case "vmean":
                 let items = try elements(args)
                 guard !items.isEmpty else { throw Unsupported("empty vector") }
-                return try divide(try items.reduce(Value.int(0)) { try add($0, $1) }, .int(items.count))
+                return try divide(try items.reduce(Value.int(0)) { try add($0, $1) }, .int(items.count), fractions: modes.preferFractions)
             case "vmax", "vmin":
                 let items = try elements(args)
                 guard var best = items.first else { throw Unsupported("empty vector") }
@@ -700,7 +759,7 @@ public enum Calc {
                 let (squares, n) = try deviations(args)
                 let population = name == "vpvar" || name == "vpsdev"
                 if !population, n < 2 { throw Unsupported("variance of one value") }
-                let variance = try divide(squares, .int(population ? n : n - 1))
+                let variance = try divide(squares, .int(population ? n : n - 1), fractions: modes.preferFractions)
                 return name.hasSuffix("sdev") ? try root(variance) : variance
             case "mod":
                 guard args.count == 2 else { throw Unsupported("arguments") }
@@ -725,7 +784,8 @@ public enum Calc {
                 let x = try one(args)
                 return try compare(x, .int(0)) < 0 ? try negate(x) : x
             case "floor", "ceil", "trunc":
-                let x = try one(args)
+                var x = try one(args)
+                if case .frac(let n, let d) = x { x = try divide(.int(n), .int(d)) }
                 if case .int = x { return x }
                 let d = try double(x)
                 let r = name == "floor" ? d.rounded(.down) : name == "ceil" ? d.rounded(.up) : d.rounded(.towardZero)
@@ -733,7 +793,8 @@ public enum Calc {
                 return .int(i)
             case "round":
                 guard args.count == 1 || args.count == 2 else { throw Unsupported("arguments") }
-                let x = args[0]
+                var x = args[0]
+                if case .frac(let n, let d) = x { x = try divide(.int(n), .int(d)) }
                 if args.count == 2 {
                     guard case .int(let places) = args[1] else { throw Unsupported("arguments") }
                     guard case .float(let m, let e) = x else { return x }
@@ -744,11 +805,16 @@ public enum Calc {
                 return .int(i)
             case "sqrt":
                 let x = try one(args)
+                func exactRoot(_ i: Int) -> Int? {
+                    guard i >= 0 else { return nil }
+                    let root = Int(Double(i).squareRoot().rounded())
+                    return root.multipliedReportingOverflow(by: root) == (i, false) ? root : nil
+                }
                 if case .int(let i) = x {
                     guard i >= 0 else { throw Unsupported("complex result") }
-                    let root = Int(Double(i).squareRoot().rounded())
-                    if root * root == i { return .int(root) }
+                    if let root = exactRoot(i) { return .int(root) }
                 }
+                if case .frac(let n, let d) = x, let rn = exactRoot(n), let rd = exactRoot(d) { return try fraction(rn, rd) }
                 let d = try double(x)
                 guard d >= 0 else { throw Unsupported("complex result") }
                 return try fromDouble(d.squareRoot())
