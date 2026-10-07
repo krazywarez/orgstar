@@ -32,6 +32,9 @@ public struct BabelJob: Sendable, Equatable {
     public let finish: Finish
     /// A named block a `:var` refers to: run it first, then `Babel.resume` with its output.
     public var needs: [Need] = []
+    /// With `needs`: the text of every block the run may execute, the one asked about and
+    /// those its references reach. A later job for a block not among them is refused.
+    public internal(set) var approved: [String] = []
     /// Values of the references resolved so far, and how to plan again.
     var resolved: [String: Babel.VarValue] = [:]
     var caret = 0
@@ -295,12 +298,17 @@ public enum Babel {
             vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: ns, refs: refs)) }
             stdin = try params.single[":stdin"].map { try resolve($0, model: model, text: ns, refs: refs) }
         } catch let needed as Needed {
-            // Asked about once, with every block the references reach.
-            let texts = [ns.substring(with: NSRange(location))] + referencedBlocks(params, model: model, text: ns, seen: []).map { ns.substring(with: NSRange($0.range)) }
-            return .success(BabelJob(
+            // Asked about once, with every block the references reach; asked every time when
+            // any of them has `:eval query`.
+            let reached = referencedBlocks(params, model: model, text: ns, seen: [])
+            let texts = [ns.substring(with: NSRange(location))] + reached.map { ns.substring(with: NSRange($0.range)) }
+            let query = eval == "query" || reached.contains { (try? Params(block: $0, model: model, text: ns))?.single[":eval"]?.lowercased() == "query" }
+            var job = BabelJob(
                 language: language, runner: .process(executable: "", arguments: []), input: "", directory: params.single[":dir"],
-                block: location, blockText: texts.joined(separator: "\n"), alwaysAsk: eval == "query", finish: finishBase(.generic), needs: [needed.need]
-            ))
+                block: location, blockText: texts.joined(separator: "\n"), alwaysAsk: query, finish: finishBase(.generic), needs: [needed.need]
+            )
+            job.approved = texts
+            return .success(job)
         } catch let error as Failure {
             return .failure(error)
         } catch {

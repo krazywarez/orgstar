@@ -716,8 +716,13 @@ public final class DocumentSession {
         }
         do {
             // Blocks the `:var`s refer to run first, one at a time.
+            // Each is one of the blocks agreed to, or the run stops: the text may have changed
+            // while a block ran.
             var job = job
+            let approved = job.approved
+            func agreed(_ block: BabelJob) -> Bool { approved.isEmpty || approved.contains(block.blockText) }
             while let need = job.needs.first {
+                guard agreed(need.job) else { return "The blocks changed while running; nothing more was run." }
                 let output = try await run(need.job)
                 guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
                 let document = entry.buffer.document
@@ -726,6 +731,7 @@ public final class DocumentSession {
                 case .success(let next): job = next
                 }
             }
+            guard agreed(job) else { return "The blocks changed while running; nothing more was run." }
             let output = try await run(job)
             guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
             if let file = Babel.fileResult(job, output: output) {

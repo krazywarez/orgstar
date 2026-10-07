@@ -230,6 +230,32 @@ struct BabelTests {
         }
     }
 
+    @Test func referencedQueryBlocksAskEveryTime() {
+        let text = "#+begin_src sh :var x=gen\necho $x\n#+end_src\n\n#+NAME: gen\n#+begin_src sh :eval query\necho 1\n#+end_src\n"
+        guard case .success(let job) = Babel.plan(EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])) else {
+            Issue.record("not planned")
+            return
+        }
+        #expect(job.alwaysAsk)
+    }
+
+    @Test func aChangedBufferLeavesTheApprovedBlocks() throws {
+        let text = "#+begin_src sh :var x=gen\necho $x\n#+end_src\n\n#+NAME: gen\n#+begin_src sh\necho 1\n#+end_src\n"
+        guard case .success(let job) = Babel.plan(EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])),
+              let need = job.needs.first else {
+            Issue.record("not planned")
+            return
+        }
+        #expect(job.approved.contains(need.job.blockText))
+        // Another block now sits where the approved one was.
+        let changed = "#+begin_src sh\nrm -rf nothing\n#+end_src\n" + text
+        guard case .success(let next) = Babel.resume(job, need: need, output: BabelOutput(stdout: "1\n"), text: changed, tree: OrgParser.parse(changed)) else {
+            Issue.record("not resumed")
+            return
+        }
+        #expect(!job.approved.contains(next.blockText))
+    }
+
     @Test func asksOnceForEveryReferencedBlock() throws {
         let text = BabelTests.cases.first { $0.contains(":var a=outer") }!
         guard case .success(let job) = Babel.plan(EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])) else {
