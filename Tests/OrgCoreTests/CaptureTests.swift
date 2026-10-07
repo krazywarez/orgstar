@@ -153,6 +153,8 @@ struct CaptureTests {
         CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .headline(file: "", headline: "Inbox"), template: "| first %? |\n| second |",
                         options: .init(tableLinePos: "I+1")),
         CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .file(""), template: "| %? |"),
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .headline(file: "", headline: "Inbox"), template: "| far %? |",
+                        options: .init(tableLinePos: "I-9")),
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))

@@ -764,8 +764,10 @@ public enum Capture {
             table = origin..<buffer.point
         }
         let rows = buffer.substring(table!.lowerBound, table!.upperBound).components(separatedBy: "\n")
+        /// The start of the table's line `index`, within the table, as Org narrows to it.
         func lineStart(_ index: Int) -> Int {
-            buffer.saveExcursion {
+            guard index > 0 else { return table!.lowerBound }
+            return buffer.saveExcursion {
                 buffer.point = table!.lowerBound
                 return buffer.forwardLine(index) == 0 ? min(buffer.point, table!.upperBound) : table!.upperBound
             }
@@ -777,7 +779,8 @@ public enum Capture {
             guard let delta = Int(m.2.replacingOccurrences(of: "+", with: "")), (-999_999...999_999).contains(delta) else {
                 throw Failure.message("Invalid table line specification \"\(pos)\"")
             }
-            buffer.point = lineStart(hlines[m.1.count - 1] + delta + (delta < 0 ? 0 : -1) + 1)
+            // `forward-line` stops at the table's start, then one more line down.
+            buffer.point = lineStart(max(0, hlines[m.1.count - 1] + delta + (delta < 0 ? 0 : -1)) + 1)
         } else if options.prepend {
             if let rule = rows.firstIndex(where: { $0.range(of: "^[ \\t]*\\|-", options: .regularExpression) != nil }) {
                 let data = rows.indices.first { $0 > rule && rows[$0].range(of: "^[ \\t]*\\|[^-]", options: .regularExpression) != nil }

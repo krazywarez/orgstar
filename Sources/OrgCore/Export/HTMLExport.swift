@@ -47,8 +47,11 @@ public enum HTMLExport {
         let meta = metadata(text, settings: settings)
         let title = meta.title ?? fallbackTitle
         let renderer = HTMLRenderer(settings: settings, options: options)
-        renderer.citations = CiteProcessor(text: text, directory: directory)
+        // The title isn't part of the document Org processes citations in: they drop out.
+        renderer.inTitle = true
         let titleHTML = renderer.inlineString(title)
+        renderer.inTitle = false
+        renderer.citations = CiteProcessor(text: text, directory: directory)
         var header = options.title ? "<h1 class=\"title\">\(titleHTML)</h1>\n" : ""
         let byline = [options.author ? meta.author : nil, options.date ? meta.date : nil].compactMap { $0 }.filter { !$0.isEmpty }
         if !byline.isEmpty { header += "<p class=\"byline\">\(byline.map(HTMLRenderer.escape).joined(separator: " · "))</p>\n" }
@@ -107,6 +110,8 @@ final class HTMLRenderer {
     private var ids: Set<String> = []
     /// Citations and the bibliography, as `oc-basic` exports them.
     var citations: CiteProcessor?
+    /// Rendering the title, where Org exports citations as nothing.
+    var inTitle = false
 
     enum FootnoteContent {
         case definition(String)
@@ -702,6 +707,7 @@ final class HTMLRenderer {
             guard node.tokens.first?.text == "@@html:" else { return "" }
             return node.tokens.filter { $0.kind != .marker }.map(\.text).joined()
         case .citation:
+            if inTitle { return "" }
             guard let pieces = citations?.next(node.text) else { return Self.escape(node.text) }
             return render(pieces)
         case .inlineBabelCall: return Self.escape(node.text)

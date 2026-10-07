@@ -98,6 +98,17 @@ struct CitationTests {
         #expect(!page.contains("[cite"))
     }
 
+    @Test func aTitleCitationLeavesTheBodysAlone() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-cite-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Self.bib.write(to: folder.appendingPathComponent("refs.bib"), atomically: true, encoding: .utf8)
+        let page = HTMLExport.page("#+bibliography: refs.bib\n#+TITLE: On [cite:@doe2020]\nSee [cite:@doe2020].\n", fallbackTitle: "t",
+                                   path: folder.appendingPathComponent("doc.org").path)
+        #expect(page.contains("<h1 class=\"title\">On</h1>"))
+        #expect(page.contains("<p>See (Doe, Jane and Roe, Richard, 2020).</p>"))
+    }
+
     @Test(.enabled(if: oracle))
     func authorYearMatchesOcBasic() throws {
         try compare("#+bibliography: refs.bib\n#+bibliography: more.json\n" + Self.body)

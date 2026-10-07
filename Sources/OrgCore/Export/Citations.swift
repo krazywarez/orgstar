@@ -399,7 +399,15 @@ struct CiteProcessor {
             }
         }
         let tree = OrgParser.parse(text)
-        let citations = tree.root.descendants().filter { $0.kind == .citation }.compactMap { Self.parse($0.text) }
+        // Keywords (`#+TITLE`) aren't part of the document Org processes citations in.
+        var nodes: [SyntaxNode] = []
+        func collect(_ node: SyntaxNode) {
+            for child in node.children where child.kind != .keyword {
+                if child.kind == .citation { nodes.append(child) } else { collect(child) }
+            }
+        }
+        collect(tree.root)
+        let citations = nodes.compactMap { Self.parse($0.text) }
         var keys: [String] = []
         for citation in citations { for r in citation.references where !keys.contains(r.key) { keys.append(r.key) } }
         for citation in citations {

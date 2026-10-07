@@ -319,7 +319,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         // keyboard's substitutions (smart dashes) when another view has the keyboard.
         let storage = textView.textStorage
         let old = storage.string as NSString
-        let ascending = edits.sorted { $0.range.lowerBound < $1.range.lowerBound }
+        // By lines, so a fold between two changes stays.
+        let ascending = edits.flatMap { splitByLines($0, in: storage.string) }.sorted { $0.range.lowerBound < $1.range.lowerBound }
         var inverse: [TextEdit] = []
         var delta = 0
         for edit in ascending {
@@ -329,11 +330,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
             delta += length - edit.range.count
         }
         let caret = textView.selectedRange
-        storage.beginEditing()
+        // One at a time, last first: each is processed alone, so folds between them stay.
         for edit in ascending.reversed() {
             storage.replaceCharacters(in: NSRange(edit.range), with: edit.replacement)
         }
-        storage.endEditing()
         textView.undoManager?.registerUndo(withTarget: self) { editor in
             editor.applyEdits(inverse)
             editor.textView.selectedRange = caret

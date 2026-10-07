@@ -964,7 +964,9 @@ public final class OrgEditor: NSObject {
         guard !edits.isEmpty, let storage = textView.textStorage else { return }
         textView.breakUndoCoalescing()
         textView.undoManager?.beginUndoGrouping()
-        for edit in edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
+        // By lines, so a fold between two changes stays.
+        let text = storage.string
+        for edit in edits.flatMap({ splitByLines($0, in: text) }).sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
             let range = NSRange(edit.range)
             guard textView.shouldChangeText(in: range, replacementString: edit.replacement) else { continue }
             storage.replaceCharacters(in: range, with: edit.replacement)

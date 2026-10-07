@@ -6,9 +6,11 @@ public enum MarkdownExport {
     /// `path` is the file's, for `#+bibliography:`.
     public static func document(_ text: String, settings: OrgSettings = .default, path: String? = nil) -> String {
         let renderer = MarkdownRenderer(settings: settings)
-        renderer.citations = CiteProcessor(text: text, directory: path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() })
         var out = ""
+        renderer.inTitle = true
         if let title = HTMLExport.metadata(text, settings: settings).title { out = "# " + renderer.inlineString(title) + "\n\n" }
+        renderer.inTitle = false
+        renderer.citations = CiteProcessor(text: text, directory: path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() })
         out += renderer.document(renderer.citations == nil ? text : CiteProcessor.removingNocite(text))
         return out.trimmingCharacters(in: .newlines) + "\n"
     }
@@ -22,6 +24,8 @@ final class MarkdownRenderer {
     private var anonymous = 0
     /// Citations and the bibliography, as `oc-basic` exports them.
     var citations: CiteProcessor?
+    /// Rendering the title, where Org exports citations as nothing.
+    var inTitle = false
 
     init(settings: OrgSettings) {
         self.settings = settings
@@ -276,6 +280,7 @@ final class MarkdownRenderer {
             guard node.tokens.first?.text == "@@html:" else { return "" }
             return node.tokens.filter { $0.kind != .marker }.map(\.text).joined()
         case .citation:
+            if inTitle { return "" }
             guard let pieces = citations?.next(node.text) else { return node.text }
             return render(pieces)
         case .inlineBabelCall: return node.text
