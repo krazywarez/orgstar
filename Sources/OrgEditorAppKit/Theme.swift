@@ -53,6 +53,10 @@ struct Theme {
 
     /// The band behind blocks, read by layout fragments off the main actor.
     nonisolated(unsafe) static var blockBackground = NSColor.clear
+    /// The selection's color, which shaded block lines draw over their band.
+    nonisolated(unsafe) static var selection = NSColor.selectedTextBackgroundColor
+    /// Layout managers whose view has focus in the key window, for the selection's color.
+    nonisolated(unsafe) static var focusedLayouts: Set<ObjectIdentifier> = []
 
     /// Markup hidden from view: no width, no color.
     var hidden: [NSAttributedString.Key: Any] {

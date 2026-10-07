@@ -69,6 +69,8 @@ public final class OrgEditor: NSObject {
     }
     private var isLoading = false
     private var previousSelection = 0
+    /// The selection shaded block lines last drew.
+    private var previousSelectionRange = NSRange(location: 0, length: 0)
     /// Text before this offset is styled; after it, only base attributes until the background
     /// passes reach it. Always at a line start.
     private(set) var styledUpTo = 0
@@ -122,6 +124,16 @@ public final class OrgEditor: NSObject {
         dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
         super.init()
         orgTextView.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
+        orgTextView.onFocusChange = { [weak self] in
+            guard let self else { return }
+            let id = ObjectIdentifier(self.textLayoutManager)
+            if let window = self.textView.window, window.isKeyWindow, window.firstResponder === self.textView {
+                Theme.focusedLayouts.insert(id)
+            } else {
+                Theme.focusedLayouts.remove(id)
+            }
+            self.redrawShaded([self.textView.selectedRange()])
+        }
         orgTextView.onCommandClick = { [weak self] offset in
             guard let self, Links.link(at: offset, text: self.document.text, tree: self.document.tree) != nil
                 || Links.timestampDays(at: offset, text: self.document.text) != nil else { return false }
@@ -219,7 +231,8 @@ public final class OrgEditor: NSObject {
         textView.drawsBackground = true
         textView.backgroundColor = theme.color("background") ?? .textBackgroundColor
         textView.insertionPointColor = theme.color("cursor") ?? .textColor
-        textView.selectedTextAttributes = [.backgroundColor: theme.color("selection") ?? .selectedTextBackgroundColor]
+        Theme.selection = theme.color("selection") ?? .selectedTextBackgroundColor
+        textView.selectedTextAttributes = [.backgroundColor: Theme.selection]
         if let view = orgTextView {
             view.lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: max(8, theme.font.pointSize - 2), weight: .regular)
             view.lineNumberColor = theme.color("line-number") ?? .tertiaryLabelColor
@@ -1309,11 +1322,33 @@ public final class OrgEditor: NSObject {
         return mapped
     }
 
+    /// Shaded block lines the old or new selection covers are drawn again, as they draw the
+    /// selection over their band.
+    private func redrawShadedSelection(_ selection: NSRange) {
+        defer { previousSelectionRange = selection }
+        redrawShaded([previousSelectionRange, selection])
+    }
+
+    private func redrawShaded(_ ranges: [NSRange]) {
+        guard let manager = textLayoutManager.textContentManager else { return }
+        for old in ranges where old.length > 0 {
+            for block in shaded.all where block.overlaps(old.location..<NSMaxRange(old)) {
+                let lower = max(block.lowerBound, old.location)
+                let upper = min(block.upperBound, NSMaxRange(old))
+                guard let start = manager.location(manager.documentRange.location, offsetBy: lower),
+                      let end = manager.location(start, offsetBy: upper - lower),
+                      let range = NSTextRange(location: start, end: end) else { continue }
+                textLayoutManager.invalidateLayout(for: range)
+            }
+        }
+    }
+
     /// Keeps the caret out of folded text: moving forward into a fold jumps past it, moving
     /// back jumps to the end of the heading line.
     func selectionChanged() {
         let selection = textView.selectedRange()
         defer { previousSelection = selection.location }
+        redrawShadedSelection(selection)
         onSelectionChange?(selection)
         revealCaretLine()
         orgTextView?.redrawLineNumbers()
@@ -1435,6 +1470,25 @@ final class ShadedFragment: NSTextLayoutFragment, @unchecked Sendable {
         context.saveGState()
         context.setFillColor(Theme.blockBackground.cgColor)
         context.fill(band.offsetBy(dx: point.x, dy: point.y))
+        // The band covers the view's selection highlight, so the selected text is drawn on it,
+        // in the color the view uses: the theme's when focused, the system's muted one when not.
+        if let manager = textLayoutManager {
+            let active = Theme.focusedLayouts.contains(ObjectIdentifier(manager))
+            context.setFillColor((active ? Theme.selection : NSColor.unemphasizedSelectedTextBackgroundColor).cgColor)
+            let single = textLineFragments.count == 1
+            for selection in manager.textSelections {
+                for range in selection.textRanges where !range.isEmpty {
+                    guard let part = range.intersection(rangeInElement), !part.isEmpty else { continue }
+                    manager.enumerateTextSegments(in: part, type: .selection, options: [.rangeNotRequired]) { _, frame, _, _ in
+                        var rect = frame.offsetBy(dx: point.x - self.layoutFragmentFrame.minX, dy: point.y - self.layoutFragmentFrame.minY)
+                        // A one-line fragment's selection covers its band, leaving no gap to the next line.
+                        if single { rect = CGRect(x: rect.minX, y: point.y, width: rect.width, height: self.band.height) }
+                        context.fill(rect)
+                        return true
+                    }
+                }
+            }
+        }
         context.restoreGState()
         super.draw(at: point, in: context)
     }

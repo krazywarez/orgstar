@@ -17,6 +17,29 @@ final class OrgTextView: NSTextView {
     /// The text as shown, for accessibility.
     var accessibleText: (() -> AccessibleText)?
     var onMouseDown: (() -> Void)?
+    /// The view gained or lost focus, or its window key status: the selection's color changes.
+    var onFocusChange: (() -> Void)?
+    private var keyObservers: [NSObjectProtocol] = []
+
+    override func becomeFirstResponder() -> Bool {
+        defer { onFocusChange?() }
+        return super.becomeFirstResponder()
+    }
+
+    override func resignFirstResponder() -> Bool {
+        defer { onFocusChange?() }
+        return super.resignFirstResponder()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        keyObservers.forEach(NotificationCenter.default.removeObserver)
+        keyObservers = [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification].map { name in
+            NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.onFocusChange?() }
+            }
+        }
+    }
     /// Each editor keeps its own undo history, not the window's.
     private let ownUndoManager = UndoManager()
     override var undoManager: UndoManager? { ownUndoManager }
