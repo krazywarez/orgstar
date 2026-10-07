@@ -53,6 +53,7 @@ struct EditorScreen: View {
                 Menu("More", systemImage: "ellipsis.circle") {
                     Button("Commands", systemImage: "command") { sheet = .palette }
                     Button("Clock In", systemImage: "stopwatch") { editor?.run("app.clock.in") }
+                    if let text = session.document?.text, session.path == path { ExportMenu(path: path, text: text) }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
                 }
