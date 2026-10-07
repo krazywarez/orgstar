@@ -52,6 +52,10 @@ enum LineClass: Equatable {
     case fixedWidth
     case horizontalRule
     case tableRow
+    /// `+--+--+`, which may start a table.el table.
+    case tableElRule
+    /// `%%(…)` at the start of a line.
+    case diarySexp
     case footnoteDefinition
     case clock
     case planning
@@ -136,6 +140,8 @@ private func lineClass(_ rest: Substring, columnZero: Bool, alphabetical: Bool) 
     }
 
     if rest.first == "|" { return .tableRow }
+    if rest.first == "+", trimmed.wholeMatch(of: /\+(?:-+\+)+/) != nil { return .tableElRule }
+    if columnZero, rest.hasPrefix("%%(") { return .diarySexp }
     if trimmed.count >= 5, trimmed.allSatisfy({ $0 == "-" }) { return .horizontalRule }
 
     if columnZero, rest.hasPrefix("[fn:"), let close = rest.firstIndex(of: "]"),

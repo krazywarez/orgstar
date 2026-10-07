@@ -260,6 +260,9 @@ final class HTMLRenderer {
                 return trimmed.hasPrefix(": ") ? String(trimmed.dropFirst(2)) : String(trimmed.dropFirst(trimmed.hasPrefix(":") ? 1 : 0))
             }
             return "<pre class=\"example\">" + Self.escape(lines.joined(separator: "\n").trimmingCharacters(in: .newlines)) + "</pre>\n"
+        case .tableEl:
+            let lines = node.text.components(separatedBy: "\n").filter { !$0.lowercased().contains("#+tblfm") }
+            return "<pre class=\"example\">" + Self.escape(lines.joined(separator: "\n").trimmingCharacters(in: .newlines)) + "</pre>\n"
         case .dynamicBlock:
             let lines = node.text.components(separatedBy: "\n")
             return blocks(lines.dropFirst().dropLast(2).joined(separator: "\n"))
@@ -434,7 +437,8 @@ final class HTMLRenderer {
     private func list(_ items: [SyntaxNode]) -> String {
         guard let first = items.first else { return "" }
         let ordered = isOrdered(first)
-        let description = !ordered && firstLine(first).contains(" :: ")
+        // `org-list-get-list-type`: descriptive when the first item has a tag.
+        let description = !ordered && first.firstChild(.itemTag) != nil
         if description {
             var out = "<dl>\n"
             for item in items {
@@ -449,32 +453,25 @@ final class HTMLRenderer {
         return out + "</\(tag)>\n"
     }
 
-    private func firstLine(_ item: SyntaxNode) -> String {
-        item.firstChild(.paragraph)?.text.components(separatedBy: "\n").first ?? ""
-    }
-
+    /// A description item's term, `(no term)` without one, and the rest of the item.
     private func descriptionParts(_ item: SyntaxNode) -> (String, String) {
-        guard let paragraph = item.firstChild(.paragraph) else { return ("", "") }
-        let text = paragraph.text
-        guard let separator = text.range(of: " :: ") ?? text.range(of: " ::\n") else { return ("", inline(paragraph)) }
-        let term = inlineString(String(text[..<separator.lowerBound]))
-        var rest = inlineParagraphText(String(text[separator.upperBound...]))
-        for child in item.children where child.kind != .paragraph || child.range != paragraph.range {
-            rest += element(child)
+        var term = item.firstChild(.itemTag).map { inline($0).trimmingCharacters(in: .whitespaces) } ?? "(no term)"
+        if let box = item.tokens.first(where: { $0.kind == .checkbox })?.text {
+            term = "<code>\(box == "[ ]" ? "[&nbsp;]" : box.uppercased())</code> " + term
+        }
+        var rest = ""
+        for (index, child) in item.children.filter({ $0.kind != .itemTag }).enumerated() {
+            rest += index == 0 && child.kind == .paragraph ? inline(child).trimmingCharacters(in: .whitespacesAndNewlines) : element(child)
         }
         return (term, rest.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    /// Paragraph text, possibly spanning lines, rendered inline.
-    private func inlineParagraphText(_ text: String) -> String {
-        let tree = OrgParser.parse(text, defaults: settings)
-        let paragraphs = tree.root.descendants().filter { $0.kind == .paragraph }
-        guard !paragraphs.isEmpty else { return Self.escape(text.trimmingCharacters(in: .whitespacesAndNewlines)) }
-        return paragraphs.map { inline($0).trimmingCharacters(in: .whitespacesAndNewlines) }.joined(separator: "\n")
-    }
-
     private func listItem(_ item: SyntaxNode) -> String {
+        // ox-html gives an ordered item's counter as its value.
         var open = "<li>"
+        if isOrdered(item), let counter = item.tokens.first(where: { $0.kind == .counter })?.text.firstMatch(of: /([0-9]+|[A-Za-z])\]/) {
+            open = "<li value=\"\(counter.1)\">"
+        }
         var prefix = ""
         if let box = item.tokens.first(where: { $0.kind == .checkbox })?.text {
             switch box {
@@ -680,6 +677,11 @@ final class HTMLRenderer {
             hasMath = true
             return Self.escape(node.text)
         case .statisticsCookie: return Self.escape(node.text)
+        // `org-html-export-snippet`: only HTML snippets.
+        case .exportSnippet:
+            guard node.tokens.first?.text == "@@html:" else { return "" }
+            return node.tokens.filter { $0.kind != .marker }.map(\.text).joined()
+        case .citation, .inlineBabelCall: return Self.escape(node.text)
         default: return inline(node)
         }
     }

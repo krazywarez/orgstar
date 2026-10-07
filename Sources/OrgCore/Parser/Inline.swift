@@ -44,6 +44,11 @@ enum InlineMatch {
     case object(SyntaxKind, Range<Int>)
     /// An object whose contents hold objects, between markers.
     case container(SyntaxKind, contents: Range<Int>, whole: Range<Int>)
+    /// `[cite/style:prefix; refs…; suffix]`: the common prefix and suffix, and each reference
+    /// with where its key is.
+    case citation(whole: Range<Int>, opener: Int, prefix: Range<Int>?, references: [(range: Range<Int>, key: Range<Int>)], suffix: Range<Int>?)
+    /// `@@backend:value@@`.
+    case exportSnippet(whole: Range<Int>, value: Range<Int>)
 
     var end: Int {
         switch self {
@@ -51,6 +56,8 @@ enum InlineMatch {
         case .link(_, _, let whole): whole.upperBound
         case .object(_, let range): range.upperBound
         case .container(_, _, let whole): whole.upperBound
+        case .citation(let whole, _, _, _, _): whole.upperBound
+        case .exportSnippet(let whole, _): whole.upperBound
         }
     }
 }
@@ -106,7 +113,7 @@ struct InlineScanner {
     /// The first characters any recognizer accepts.
     static func mayStartObject(_ c: Unicode.Scalar) -> Bool {
         switch c {
-        case "[", "<", "{", "\\", "^", "s", "h", "m", "f", "*", "/", "_", "+", "=", "~", "$": true
+        case "[", "<", "{", "\\", "^", "s", "h", "m", "f", "*", "/", "_", "+", "=", "~", "$", "@", "c": true
         default: false
         }
     }
@@ -163,6 +170,43 @@ struct InlineScanner {
             b.start(kind)
             emitText(range, into: &b)
             b.finish()
+        case .citation(let whole, let opener, let prefix, let references, let suffix):
+            b.start(.citation)
+            var at = whole.lowerBound
+            func marker(to end: Int) {
+                if at < end { b.token(.marker, string(at..<end)) }
+                at = max(at, end)
+            }
+            marker(to: opener)
+            if let prefix {
+                scan(prefix, into: &b, inLink: true)
+                at = prefix.upperBound
+            }
+            for reference in references {
+                marker(to: reference.range.lowerBound)
+                b.start(.citationReference)
+                scan(reference.range.lowerBound..<reference.key.lowerBound, into: &b, inLink: true)
+                b.token(.citationKey, string(reference.key))
+                let separator = reference.range.upperBound > reference.key.upperBound && chars[reference.range.upperBound - 1] == ";"
+                let suffixEnd = separator ? reference.range.upperBound - 1 : reference.range.upperBound
+                scan(reference.key.upperBound..<suffixEnd, into: &b, inLink: true)
+                if separator { b.token(.marker, string(suffixEnd..<reference.range.upperBound)) }
+                b.finish()
+                at = reference.range.upperBound
+            }
+            if let suffix {
+                marker(to: suffix.lowerBound)
+                scan(suffix, into: &b, inLink: true)
+                at = suffix.upperBound
+            }
+            marker(to: whole.upperBound)
+            b.finish()
+        case .exportSnippet(let whole, let value):
+            b.start(.exportSnippet)
+            b.token(.marker, string(whole.lowerBound..<value.lowerBound))
+            emitText(value, into: &b)
+            b.token(.marker, string(value.upperBound..<whole.upperBound))
+            b.finish()
         }
     }
 
@@ -194,6 +238,7 @@ struct InlineScanner {
         switch chars[i] {
         case "[":
             if !inLink, let link = bracketLink(i, limit) { return link }
+            if !inLink, let cite = citation(i, limit) { return cite }
             if let end = footnoteReference(i, limit) { return .object(.footnoteReference, i..<end) }
             if !inLink, let end = timestampEnd(chars, at: i, limit: limit) { return .object(.timestamp, i..<end) }
             if let end = statisticsCookie(i, limit) { return .object(.statisticsCookie, i..<end) }
@@ -217,6 +262,10 @@ struct InlineScanner {
             }
         case "s":
             if !afterWord, let end = inlineSourceBlock(i, limit) { return .object(.inlineSourceBlock, i..<end) }
+        case "c":
+            if !afterWord, let end = inlineBabelCall(i, limit) { return .object(.inlineBabelCall, i..<end) }
+        case "@":
+            if let snippet = exportSnippet(i, limit) { return snippet }
         case "h", "m", "f":
             if !inLink, !afterWord, let end = plainLink(i, limit) { return .object(.link, i..<end) }
         default:
@@ -316,6 +365,117 @@ struct InlineScanner {
         }
         guard j < limit, chars[j] == "]" else { return nil }
         return j + 1
+    }
+
+    /// `org-element-citation-parser`: `[cite` and an optional `/style`, `:`, then up to the
+    /// matching `]` at least one `@key`. A common prefix ends at the `;` before the first key,
+    /// a common suffix starts at the last `;` with no key after it.
+    func citation(_ i: Int, _ limit: Int) -> InlineMatch? {
+        guard hasPrefix("[cite", at: i, limit) else { return nil }
+        var k = i + 5
+        if k < limit, chars[k] == "/" {
+            let style = k + 1
+            k = style
+            while k < limit, chars[k] == "/" || chars[k] == "_" || chars[k] == "-" || isWordScalar(chars[k]) && chars[k].isASCII { k += 1 }
+            guard k > style else { return nil }
+        }
+        guard k < limit, chars[k] == ":" else { return nil }
+        k += 1
+        while k < limit, chars[k] == " " || chars[k] == "\t" || chars[k] == "\n" { k += 1 }
+        let start = k
+        // `scan-lists` with only square brackets paired.
+        var depth = 0
+        var closing: Int?
+        var j = i
+        while j < limit {
+            if chars[j] == "[" { depth += 1 }
+            if chars[j] == "]" {
+                depth -= 1
+                if depth == 0 { closing = j + 1; break }
+            }
+            j += 1
+        }
+        guard let closing, let first = citationKey(from: start, to: closing) else { return nil }
+        var prefix: Range<Int>?
+        var contentsBegin = start
+        if let semi = (start..<first.lowerBound).last(where: { chars[$0] == ";" }) {
+            if start < semi { prefix = start..<semi }
+            contentsBegin = semi + 1
+        }
+        var end = closing - 1
+        while end > first.upperBound, [" ", "\t", "\n", "\r"].contains(chars[end - 1]) { end -= 1 }
+        var suffix: Range<Int>?
+        var contentsEnd = end
+        if let semi = (first.upperBound..<end).last(where: { chars[$0] == ";" }), citationKey(from: semi, to: end) == nil {
+            if semi + 1 < end { suffix = (semi + 1)..<end }
+            contentsEnd = semi + 1
+        }
+        var references: [(range: Range<Int>, key: Range<Int>)] = []
+        var at = contentsBegin
+        while at < contentsEnd, let key = citationKey(from: at, to: contentsEnd) {
+            let separator = (key.upperBound..<contentsEnd).first { chars[$0] == ";" }
+            let referenceEnd = separator.map { $0 + 1 } ?? contentsEnd
+            references.append((at..<referenceEnd, key))
+            at = referenceEnd
+        }
+        return .citation(whole: i..<closing, opener: start, prefix: prefix, references: references, suffix: suffix)
+    }
+
+    /// `org-element-citation-key-re`: `@` and word or symbol characters.
+    func citationKey(from: Int, to limit: Int) -> Range<Int>? {
+        var k = from
+        while k < limit {
+            if chars[k] == "@" {
+                var e = k + 1
+                while e < limit, isWordScalar(chars[e]) || "-.:?!`'/*@+|(){}<>&_^$#%~".unicodeScalars.contains(chars[e]) { e += 1 }
+                if e > k + 1 { return k..<e }
+            }
+            k += 1
+        }
+        return nil
+    }
+
+    /// `org-element-export-snippet-parser`: `@@backend:value@@`.
+    func exportSnippet(_ i: Int, _ limit: Int) -> InlineMatch? {
+        guard hasPrefix("@@", at: i, limit) else { return nil }
+        var k = i + 2
+        while k < limit, chars[k] == "-" || (chars[k].isASCII && isWordScalar(chars[k])) { k += 1 }
+        guard k > i + 2, k < limit, chars[k] == ":" else { return nil }
+        let value = k + 1
+        var e = value
+        while e + 1 < limit {
+            if chars[e] == "@", chars[e + 1] == "@" { return .exportSnippet(whole: i..<(e + 2), value: value..<e) }
+            e += 1
+        }
+        return nil
+    }
+
+    /// `org-element-inline-babel-call-parser`: `call_NAME`, an optional `[inside header]`,
+    /// `(arguments)` and an optional `[end header]`, each balanced in its own brackets.
+    func inlineBabelCall(_ i: Int, _ limit: Int) -> Int? {
+        guard hasPrefix("call_", at: i, limit) else { return nil }
+        var k = i + 5
+        while k < limit, !" \t\n[(".unicodeScalars.contains(chars[k]) { k += 1 }
+        guard k > i + 5, k < limit, chars[k] == "(" || chars[k] == "[" else { return nil }
+        func paired(_ open: Unicode.Scalar, _ close: Unicode.Scalar) -> Int? {
+            guard k < limit, chars[k] == open else { return nil }
+            var depth = 0
+            var j = k
+            while j < limit {
+                if chars[j] == open { depth += 1 }
+                if chars[j] == close {
+                    depth -= 1
+                    if depth == 0 { return j + 1 }
+                }
+                j += 1
+            }
+            return nil
+        }
+        if let end = paired("[", "]") { k = end }
+        guard let arguments = paired("(", ")") else { return nil }
+        k = arguments
+        if let end = paired("[", "]") { k = end }
+        return k
     }
 
     /// `<<target>>`.

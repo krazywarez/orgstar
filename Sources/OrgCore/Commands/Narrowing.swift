@@ -32,7 +32,8 @@ public enum Narrowing {
             probe = buffer.lineStart(buffer.point)
         }
         let objects: Set<SyntaxKind> = [.bold, .italic, .underline, .strikeThrough, .verbatim, .code, .link, .linkDescription, .timestamp,
-                                        .footnoteReference, .statisticsCookie, .target, .macro, .inlineSourceBlock, .latexFragment, .lineBreak, .superscript, .subscript, .entity, .radioTarget]
+                                        .footnoteReference, .statisticsCookie, .target, .macro, .inlineSourceBlock, .latexFragment, .lineBreak, .superscript, .subscript, .entity, .radioTarget,
+                                        .citation, .citationReference, .exportSnippet, .inlineBabelCall, .itemTag]
         var chain: [SyntaxNode] = []
         var node = tree.root
         while let child = node.child(containing: probe) {

@@ -96,6 +96,9 @@ final class MarkdownRenderer {
             return block(node, indent: indent)
         case .horizontalRule:
             return indent + "---"
+        case .tableEl:
+            let lines = node.text.components(separatedBy: "\n").filter { !$0.isEmpty && !$0.lowercased().contains("#+tblfm") }
+            return fence(lines, language: "", indent: indent)
         case .fixedWidth:
             let lines = node.text.split(separator: "\n").map { line -> String in
                 let trimmed = line.drop { $0 == " " || $0 == "\t" }
@@ -126,18 +129,17 @@ final class MarkdownRenderer {
             }
             let childIndent = indent + String(repeating: " ", count: (ordered ? "\(number). " : "- ").count)
             var parts: [String] = []
-            for (index, child) in item.children.enumerated() {
+            let term = item.firstChild(.itemTag).map { "**" + inline($0).trimmingCharacters(in: .whitespaces) + "**: " }
+            for (index, child) in item.children.filter({ $0.kind != .itemTag }).enumerated() {
                 if index == 0, child.kind == .paragraph {
-                    var text = inline(child).trimmingCharacters(in: .whitespacesAndNewlines)
+                    let text = inline(child).trimmingCharacters(in: .whitespacesAndNewlines)
                         .components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: "\n" + childIndent)
-                    if let separator = text.range(of: " :: ") {
-                        text = "**" + text[..<separator.lowerBound] + "**: " + text[separator.upperBound...]
-                    }
-                    parts.append(text)
+                    parts.append((term ?? "") + text)
                 } else {
                     parts.append(element(child, indent: childIndent))
                 }
             }
+            if let term, parts.first.map({ !$0.hasPrefix(term) }) ?? true { parts.insert(term.trimmingCharacters(in: .whitespaces), at: 0) }
             let body = parts.isEmpty ? "" : parts[0].trimmingCharacters(in: .whitespaces) + parts.dropFirst().map { "\n" + $0 }.joined()
             out.append(indent + marker + " " + body)
         }
@@ -250,6 +252,11 @@ final class MarkdownRenderer {
             return node.text.hasPrefix("_") ? "<sub>\(inner)</sub>" : "<sup>\(inner)</sup>"
         case .lineBreak: return "  \n"
         case .target, .macro: return ""
+        // ox-md uses ox-html's translator: only HTML snippets.
+        case .exportSnippet:
+            guard node.tokens.first?.text == "@@html:" else { return "" }
+            return node.tokens.filter { $0.kind != .marker }.map(\.text).joined()
+        case .citation, .inlineBabelCall: return node.text
         default: return inline(node)
         }
     }

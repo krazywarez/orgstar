@@ -206,6 +206,22 @@ struct Parser {
             single(.clock)
         case .tableRow:
             table(limit: limit, floor: floor)
+        case .tableElRule:
+            if let end = tableElEnd(limit: limit, floor: floor) {
+                builder.start(.tableEl)
+                while i < end {
+                    line(i)
+                    i += 1
+                }
+                while i < limit, info[i].cls == .keyword(key: "TBLFM"), within(floor, i) {
+                    single(.tableFormula)
+                }
+                builder.finish()
+            } else {
+                paragraph(limit: limit, floor: floor)
+            }
+        case .diarySexp:
+            single(.diarySexp)
         case .footnoteDefinition:
             footnoteDefinition(limit: limit)
         case .listItem:
@@ -282,6 +298,22 @@ struct Parser {
         builder.finish()
     }
 
+    /// Where the table.el table starting at line `i` ends, as `org-element--current-element`
+    /// decides: a full rule first and last, at least two lines, every line starting with `+`
+    /// or `|`. Nil for none.
+    func tableElEnd(limit: Int, floor: Int?) -> Int? {
+        guard i + 1 < limit else { return nil }
+        func isTableLine(_ k: Int) -> Bool {
+            guard within(floor, k) else { return false }
+            let first = lines[k].content.drop { $0 == " " || $0 == "\t" }.first
+            return first == "+" || first == "|"
+        }
+        var k = i + 1
+        while k < limit, isTableLine(k) { k += 1 }
+        if k == i + 1 { return nil }
+        return info[k - 1].cls == .tableElRule ? k : nil
+    }
+
     /// A rule row (`|---+---|`) is one text token. Other rows alternate `|` markers and cells;
     /// every pair of pipes gets a cell, even an empty one, so columns line up.
     mutating func tableRow() {
@@ -350,9 +382,24 @@ struct Parser {
         let bullet = rest.prefix { $0 != " " && $0 != "\t" }
         builder.token(.bullet, bullet)
         rest = whitespace(rest.dropFirst(bullet.count))
+        if let counter = rest.prefixMatch(of: /\[@(?:start:)?(?:[0-9]+|[A-Za-z])\]/) {
+            builder.token(.counter, rest[counter.range])
+            rest = whitespace(rest[counter.range.upperBound...])
+        }
         if let box = checkbox(rest) {
             builder.token(.checkbox, box)
             rest = whitespace(rest.dropFirst(box.count))
+        }
+        // A description item's tag: up to the last ` ::` on the line, for `-`, `+` and `*`.
+        if "-+*".contains(bullet), let m = rest.prefixMatch(of: /(.*)([ \t]+::)(?:[ \t]+|$)/.anchorsMatchLineEndings()) {
+            builder.start(.itemTag)
+            inline(rest[m.1.startIndex..<m.1.endIndex])
+            builder.finish()
+            let separator = rest[m.2.startIndex..<m.2.endIndex]
+            let blank = separator.prefix { $0 == " " || $0 == "\t" }
+            builder.token(.whitespace, blank)
+            builder.token(.marker, separator.dropFirst(blank.count))
+            rest = whitespace(rest[m.2.endIndex...])
         }
         // The rest of the bullet line and its continuation lines are the item's first paragraph.
         var end = i + 1

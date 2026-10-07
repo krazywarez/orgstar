@@ -286,7 +286,7 @@ extension Vim {
             case .plainList, .table, .drawer, .propertyDrawer, .dynamicBlock, .footnoteDefinition, .inlineTask:
                 return OrgElement(begin: r.lowerBound, end: post, contents: r.lowerBound..<trimmed(r.lowerBound, r.upperBound), greater: true, node: n)
             case .item:
-                let first = n.children.first { ![.bullet, .checkbox].contains($0.kind) }?.range.lowerBound ?? r.upperBound
+                let first = n.children.first { ![.bullet, .checkbox, .itemTag].contains($0.kind) }?.range.lowerBound ?? r.upperBound
                 return OrgElement(begin: r.lowerBound, end: post, contents: min(first, r.upperBound)..<trimmed(first, r.upperBound), greater: true, node: n)
             case .block:
                 let name = buffer.substring(r.lowerBound..<buffer.lineEnd(r.lowerBound)).lowercased()
@@ -324,7 +324,8 @@ extension Vim {
         func atPoint() -> OrgElement? {
             let objects: Set<SyntaxKind> = [.title, .heading, .bold, .italic, .underline, .strikeThrough, .verbatim, .code, .link, .linkDescription,
                                             .timestamp, .footnoteReference, .statisticsCookie, .target, .radioTarget, .macro, .inlineSourceBlock,
-                                            .latexFragment, .lineBreak, .superscript, .subscript, .entity, .tableCell, .nodeProperty]
+                                            .latexFragment, .lineBreak, .superscript, .subscript, .entity, .tableCell, .nodeProperty,
+                                            .citation, .citationReference, .exportSnippet, .inlineBabelCall, .itemTag]
             var elements = chain.filter { !objects.contains($0.kind) }
             if chain.contains(where: { $0.kind == .heading }), let i = elements.lastIndex(where: { $0.kind == .section }) {
                 elements = Array(elements[...i])
@@ -365,7 +366,8 @@ extension Vim {
             return (inner ? innerRange(e) : e.begin..<e.end, !inner)
         default:
             let objects: Set<SyntaxKind> = [.bold, .italic, .underline, .strikeThrough, .verbatim, .code, .link, .timestamp, .footnoteReference,
-                                            .statisticsCookie, .target, .radioTarget, .macro, .inlineSourceBlock, .latexFragment, .entity, .superscript, .subscript]
+                                            .statisticsCookie, .target, .radioTarget, .macro, .inlineSourceBlock, .latexFragment, .entity, .superscript, .subscript,
+                                            .citation, .citationReference, .exportSnippet, .inlineBabelCall]
             guard let found = chain.last(where: { objects.contains($0.kind) }) else {
                 guard let e = atPoint() else { return nil }
                 return (inner ? innerRange(e) : e.begin..<e.end, false)

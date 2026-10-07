@@ -24,6 +24,8 @@ let fragments = [
     "<2026-10-04 Sun 10:00 +1w -2d>", "[2026-10-04]--[2026-10-05]", "<", ">", "[fn:2]", "[fn::in [x]]", "[1/3]",
     "[50%]", "<<t>>", "{{{m(a)}}}", "\\(x\\)", "a\\\\", "x^2", "^{y}", "src_sh{echo}", "https://e.com.",
     "<https://e.com>", "| *a* | b |", "||", "- [X] done", "+ [ ] todo", "-",
+    "[cite:@a; @b]", "[cite/t:see @k p. 2;]", "@@html:<b>@@", "call_f(x=1)[:results raw]", "%%(diary-float t 4 2)",
+    "+---+---+", "+-", "- term :: def", "1. [@3] three", "- [@2] [X] x :: y", " :: ", "@", "call_",
 ]
 
 func randomDocument(_ rng: inout SeededGenerator) -> String {

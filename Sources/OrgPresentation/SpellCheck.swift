@@ -12,8 +12,9 @@ public enum SpellCheck {
         }
         let whole: Set<SyntaxKind> = [.code, .verbatim, .link, .timestamp, .footnoteReference, .statisticsCookie, .target, .radioTarget,
                                       .macro, .inlineSourceBlock, .latexFragment, .entity, .latexEnvironment, .keyword, .affiliatedKeyword,
-                                      .planning, .clock, .propertyDrawer, .fixedWidth, .tableFormula, .horizontalRule]
-        let tokens: Set<SyntaxKind> = [.stars, .todoKeyword, .priority, .tags, .bullet, .checkbox]
+                                      .planning, .clock, .propertyDrawer, .fixedWidth, .tableFormula, .horizontalRule,
+                                      .citation, .exportSnippet, .inlineBabelCall, .diarySexp]
+        let tokens: Set<SyntaxKind> = [.stars, .todoKeyword, .priority, .tags, .bullet, .checkbox, .counter]
         var ranges: [Range<Int>] = []
         for node in tree.root.descendants() {
             if whole.contains(node.kind) {

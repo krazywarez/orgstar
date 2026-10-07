@@ -127,7 +127,8 @@ extension EmacsBuffer {
             return point >= title.range.lowerBound && tags.map { point < $0.range.lowerBound } ?? true
         }
         let objects: Set<SyntaxKind> = [.bold, .italic, .underline, .strikeThrough, .verbatim, .code, .link, .linkDescription, .timestamp,
-                                        .footnoteReference, .statisticsCookie, .target, .macro, .inlineSourceBlock, .latexFragment, .lineBreak, .superscript, .subscript, .entity, .radioTarget]
+                                        .footnoteReference, .statisticsCookie, .target, .macro, .inlineSourceBlock, .latexFragment, .lineBreak, .superscript, .subscript, .entity, .radioTarget,
+                                        .citation, .citationReference, .exportSnippet, .inlineBabelCall, .itemTag]
         let containers: Set<SyntaxKind> = [.document, .zerothSection, .section, .plainList, .item, .drawer]
         let element = chain.last { !objects.contains($0.kind) && !containers.contains($0.kind) }
         switch element?.kind {

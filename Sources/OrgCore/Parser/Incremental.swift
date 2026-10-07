@@ -100,6 +100,14 @@ private struct ReparseContext {
         // An element that starts mid-line (an item's paragraph) follows tokens that would absorb
         // whitespace typed at its start.
         guard start == leaf.range.lowerBound || edit.range.lowerBound > leaf.range.lowerBound else { return nil }
+        // An item's first paragraph: its line can turn into a counter, checkbox or tag.
+        if start != leaf.range.lowerBound {
+            let oldLine = slice(oldText, leaf.range.lowerBound, lineEnd(oldText, leaf.range.lowerBound))
+            let newLine = slice(newText, leaf.range.lowerBound, lineEnd(newText, leaf.range.lowerBound))
+            for line in [oldLine, newLine] where line.contains("::") || line.hasPrefix("[@") || line.hasPrefix("[") {
+                return nil
+            }
+        }
         let oldEnd = leaf.range.upperBound
         let newEnd = oldEnd + delta
         let newLength = newText.utf16.count

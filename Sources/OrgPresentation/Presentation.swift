@@ -155,12 +155,15 @@ public enum Presentation {
         case .target, .radioTarget: .target
         case .macro: .macro
         case .latexFragment, .latexEnvironment: .latex
-        case .inlineSourceBlock: .inlineSource
+        case .inlineSourceBlock, .inlineBabelCall, .exportSnippet: .inlineSource
+        case .citation: .link
+        case .itemTag: .bold
+        case .diarySexp: .timestamp
         case .comment: .comment
         case .keyword, .affiliatedKeyword: .keyword
         case .planning, .propertyDrawer, .drawer, .clock: .metadata
         case .block, .dynamicBlock, .fixedWidth: .block
-        case .table: .table
+        case .table, .tableEl: .table
         case .horizontalRule: .rule
         default: nil
         }
