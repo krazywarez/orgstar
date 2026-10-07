@@ -42,6 +42,19 @@ struct ReconcileTests {
         #expect(try reconciler.reconcile(root: folder.url).touched == [a.path])
     }
 
+    @Test func changedSetupFileReindexesTheFilesNamingIt() throws {
+        let folder = try Folder()
+        let index = try IndexStore()
+        let reconciler = Reconciler(index: index, settings: IndexSettings())
+        try folder.write("setup.txt", "#+TODO: TODO | DONE\n")
+        let a = try folder.write("a.org", "#+SETUPFILE: setup.txt\n* NEXT Alpha\n")
+        _ = try reconciler.reconcile(root: folder.url)
+        #expect(try reconciler.reconcile(root: folder.url).indexed.isEmpty)
+        try folder.write("setup.txt", "#+TODO: NEXT | DONE\n")
+        #expect(try reconciler.reconcile(root: folder.url).indexed.contains(a.path))
+        #expect(try reconciler.reconcile(root: folder.url).indexed.isEmpty)
+    }
+
     @Test func newSettingsVersionReindexes() throws {
         let folder = try Folder()
         let index = try IndexStore()

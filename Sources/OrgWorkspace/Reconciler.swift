@@ -90,7 +90,8 @@ public struct Reconciler: Sendable {
             guard let data = try? Data(contentsOf: file.url) else { continue }
             let bytes = [UInt8](data)
             let hash = FileRecord.hash(bytes)
-            if let state = known[path], state.hash == hash, state.settingsVersion == settings.version, state.kind == file.kind {
+            if let state = known[path], state.hash == hash, state.settingsVersion == FileRecord.settingsVersion(settings, bytes: bytes, path: path),
+               state.kind == file.kind {
                 change.touches.append((path, file.mtime))
                 report.touched.append(path)
             } else {
@@ -105,7 +106,8 @@ public struct Reconciler: Sendable {
             let path = candidate.file.url.path
             if known[path] == nil,
                let (oldPath, _) = missing.first(where: {
-                   $0.value.hash == candidate.hash && $0.value.settingsVersion == settings.version && $0.value.kind == candidate.file.kind
+                   $0.value.hash == candidate.hash && $0.value.kind == candidate.file.kind
+                       && $0.value.settingsVersion == (candidate.file.kind == .other ? settings.version : FileRecord.settingsVersion(settings, bytes: candidate.bytes, path: path))
                }) {
                 missing[oldPath] = nil
                 change.moves.append((oldPath, path, candidate.file.mtime))

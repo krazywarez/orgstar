@@ -4,6 +4,8 @@ import Foundation
 /// and the active timestamps and date ranges org's agenda would consider. Positions are UTF-16.
 public struct AgendaSource: Sendable {
     public let path: String
+    /// The file names `#+SETUPFILE`s.
+    public let readsSetupFiles: Bool
 
     struct Heading: Sendable {
         /// Start of the heading line.
@@ -96,6 +98,7 @@ public struct AgendaSource: Sendable {
 
     public init(path: String, text: String, defaults: OrgSettings = .default) {
         self.path = path
+        readsSetupFiles = text.range(of: "#+setupfile:", options: .caseInsensitive) != nil
         let tree = OrgParser.parse(text, defaults: defaults)
         let model = DocumentModel(tree: tree)
         let ns = text as NSString

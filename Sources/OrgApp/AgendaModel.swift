@@ -102,7 +102,8 @@ public final class AgendaModel {
             let attributes = try? FileManager.default.attributesOfItem(atPath: path)
             let mtime = attributes?[.modificationDate] as? Date ?? .distantPast
             let size = (attributes?[.size] as? NSNumber)?.intValue ?? -1
-            let cached = cache[path].flatMap { $0.mtime == mtime && $0.size == size ? $0.source : nil }
+            // A file reading setup files is read again: they may have changed.
+            let cached = cache[path].flatMap { $0.mtime == mtime && $0.size == size && !$0.source.readsSetupFiles ? $0.source : nil }
             reads.append((path, cached, mtime, size, nil))
         }
         let loaded = await Task.detached {

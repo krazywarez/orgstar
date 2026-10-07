@@ -337,7 +337,7 @@ public enum Babel {
                 // command line after it and `:stdin` as its input; the value is its last line.
                 var script = (shebang ?? "#!/usr/bin/env \(executable)") + "\n"
                 if params.single[":padline"] != "no" { script += "\n" }
-                script += (lines + [body]).joined(separator: "\n")
+                script += (lines + [body]).joined(separator: "\n") + (valueIsExitStatus ? "\necho $?" : "")
                 let command = Babel.scriptFileToken + (stdin != nil || cmdline != nil ? " " + (cmdline ?? "") : "")
                 var job = BabelJob(
                     language: language, runner: .process(executable: executable, arguments: ["-c", command]),
@@ -562,6 +562,8 @@ public enum Babel {
         var single: [String: String] = [:]
         var vars: [(name: String, value: String)] = []
         var wrap: String?
+        /// Keys whose value is Lisp to evaluate (`org-babel-read`): unquoted, starting with `(`.
+        var lisp: Set<String> = []
 
         static let resultGroups: [Set<String>] = [
             ["file", "list", "vector", "table", "scalar", "verbatim"],
@@ -610,7 +612,12 @@ public enum Babel {
             layers += extra
 
             for layer in layers {
-                for (key, value) in layer {
+                for (key, raw) in layer {
+                    let quoted = key != ":var" && raw.count >= 2 && raw.hasPrefix("\"") && raw.hasSuffix("\"")
+                    let value = quoted ? Params.unescape(String(raw.dropFirst().dropLast())) : raw
+                    if key != ":var" {
+                        if !quoted, value.hasPrefix("(") { lisp.insert(key) } else { lisp.remove(key) }
+                    }
                     switch key {
                     case ":results":
                         for word in value.split(whereSeparator: \.isWhitespace).map(String.init) {
@@ -715,11 +722,8 @@ public enum Babel {
                 let trimmed = part.trimmingCharacters(in: .whitespaces)
                 guard trimmed.hasPrefix(":") else { continue }
                 let key = String(trimmed.prefix { !$0.isWhitespace }).lowercased()
-                var value = trimmed.dropFirst(key.count).trimmingCharacters(in: .whitespaces)
-                if key != ":var", value.count >= 2, value.hasPrefix("\""), value.hasSuffix("\"") {
-                    value = Params.unescape(String(value.dropFirst().dropLast()))
-                }
-                pairs.append((key, value))
+                // Quotes stay until the value is used, so a quoted string isn't taken for Lisp.
+                pairs.append((key, trimmed.dropFirst(key.count).trimmingCharacters(in: .whitespaces)))
             }
             return pairs
         }

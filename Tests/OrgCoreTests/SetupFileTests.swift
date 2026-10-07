@@ -36,6 +36,11 @@ struct SetupFileTests {
         #expect(lines.contains("#+TYP_TODO: BUG | FIXED\n"))
         #expect(lines.components(separatedBy: "#+TODO:").count == 2)
         #expect(SetupFile.keywordLines(in: "* x\n", directory: "/w") { files[$0] } == "")
+        // A file naming itself adds nothing; a setup file naming it back adds only its own.
+        let own = "#+SETUPFILE: a.org\n#+TODO: A B | C\n"
+        #expect(SetupFile.keywordLines(in: own, directory: "/w", path: "/w/a.org") { $0 == "/w/a.org" ? own : nil } == "")
+        let back = ["/w/a.org": "#+SETUPFILE: b.org\n#+TODO: A | B\n", "/w/b.org": "#+SETUPFILE: a.org\n#+TODO: X | Y\n"]
+        #expect(SetupFile.keywordLines(in: back["/w/a.org"]!, directory: "/w", path: "/w/a.org") { back[$0] } == "#+TODO: X | Y\n")
         #expect(SetupFile.keywordLines(in: "#+SETUPFILE: https://example.com/a.org\n", directory: "/w") { _ in "#+TODO: X\n" } == "")
     }
 

@@ -5,9 +5,10 @@ import Foundation
 /// naming file's folder; URLs aren't fetched.
 public enum SetupFile {
     /// The keyword lines the setup files `text` names bring, in order, as `#+KEY: value` lines.
-    /// `read` gives a file's text, or nil when it can't be read.
-    public static func keywordLines(in text: String, directory: String, read: (String) -> String?) -> String {
-        lines(in: text, directory: directory, read: read, own: false, seen: [])
+    /// `read` gives a file's text, or nil when it can't be read. `path`, the naming file's,
+    /// counts as read already, as `buffer-file-name` does in Org.
+    public static func keywordLines(in text: String, directory: String, path: String? = nil, read: (String) -> String?) -> String {
+        lines(in: text, directory: directory, read: read, own: false, seen: path.map { [($0 as NSString).standardizingPath] } ?? [])
     }
 
     private static func lines(in text: String, directory: String, read: (String) -> String?, own: Bool, seen: Set<String>) -> String {
@@ -45,7 +46,7 @@ extension OrgSettings {
     /// These settings with the keywords of the setup files `text` names, for a file at `path`.
     public func resolvingSetupFiles(in text: String, path: String, read: (String) -> String?) -> OrgSettings {
         var copy = self
-        copy.setupKeywords = SetupFile.keywordLines(in: text, directory: (path as NSString).deletingLastPathComponent, read: read)
+        copy.setupKeywords = SetupFile.keywordLines(in: text, directory: (path as NSString).deletingLastPathComponent, path: path, read: read)
         return copy
     }
 

@@ -120,11 +120,31 @@ public struct FileRecord: Sendable, Equatable {
         self.size = bytes.count
         self.mtime = mtime
         self.hash = Self.hash(bytes)
-        self.settingsVersion = settings.version
         let source = SourceText(bytes: bytes)
         var resolved = settings
         resolved.org = settings.org.resolvingSetupFiles(in: source.text, path: path, read: OrgSettings.readFile)
+        self.settingsVersion = Self.settingsVersion(settings, text: source.text, setupKeywords: resolved.org.setupKeywords)
         headings = kind == .conflict ? [] : Self.headings(source.text, settings: resolved)
+    }
+
+    /// The settings version a file's rows are built under: the index's, with the keywords of
+    /// the setup files it names mixed in, so a changed setup file indexes it again.
+    public static func settingsVersion(_ settings: IndexSettings, text: String, setupKeywords: String) -> Int {
+        guard text.range(of: "#+setupfile:", options: .caseInsensitive) != nil else { return settings.version }
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in setupKeywords.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return settings.version + 1_000_000 * (1 + Int(hash % 1_000_000))
+    }
+
+    /// `settingsVersion` for a file's bytes, reading the setup files it names.
+    public static func settingsVersion(_ settings: IndexSettings, bytes: [UInt8], path: String) -> Int {
+        let text = SourceText(bytes: bytes).text
+        guard text.range(of: "#+setupfile:", options: .caseInsensitive) != nil else { return settings.version }
+        let keywords = settings.org.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile).setupKeywords
+        return settingsVersion(settings, text: text, setupKeywords: keywords)
     }
 
     /// A file the index lists without reading: `hash` stands for its size and mtime.

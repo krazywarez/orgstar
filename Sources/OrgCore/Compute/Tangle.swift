@@ -128,7 +128,8 @@ public enum Tangle {
 
     static func params(_ block: SrcBlockInfo, model: DocumentModel, text: NSString, path: String) throws -> Babel.Params {
         var params = try Babel.Params(block: block, model: model, text: text)
-        for (key, value) in params.single where value.hasPrefix("(") && key != ":tangle-mode" {
+        for key in params.lisp where key != ":tangle-mode" {
+            guard let value = params.single[key] else { continue }
             params.single[key] = try evaluate(value, key: key, path: path)
         }
         return params

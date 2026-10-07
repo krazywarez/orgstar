@@ -145,6 +145,9 @@ struct BabelTests {
         "#+NAME: items\n- x\n- y\n\n#+begin_src sh :stdin items\nwc -l | tr -d ' '\n#+end_src\n",
         "#+begin_src bash :shebang #!/bin/bash :results output\necho ${BASH_VERSION:+bash}\n#+end_src\n",
         "#+begin_src sh :cmdline a b :padline no :var x=5 :results output\necho $x $#\n#+end_src\n",
+        "#+NAME: in\n| hello |\n\n#+begin_src sh :results value :stdin in\ncat\nfalse\n#+end_src\n",
+        "#+begin_src sh :results value :cmdline x\necho one\n#+end_src\n",
+        "#+begin_src bash :shebang #!/bin/bash :cmdline \"a b\" c :results output\necho $#\n#+end_src\n",
         "#+begin_src sh :stdin src :results output\ntr a-z A-Z\n#+end_src\n\n#+NAME: src\n#+begin_src sh\necho hello\n#+end_src\n",
         // `:var` from other blocks' results.
         "#+begin_src sh :var x=five\necho $((x+1))\n#+end_src\n\n#+NAME: five\n#+begin_src sh\necho 5\n#+end_src\n",

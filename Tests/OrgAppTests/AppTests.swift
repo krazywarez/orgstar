@@ -216,6 +216,18 @@ struct DocumentSessionTests {
         #expect(session.document?.isDirty == false)
     }
 
+    @Test func reloadingFromDiskReadsSetupFilesAgain() throws {
+        let notes = try Folder()
+        try notes.write("setup.org", "#+TODO: NEXT | DONE\n")
+        let file = try notes.write("a.org", "* WAIT One\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        try notes.write("a.org", "#+SETUPFILE: setup.org\n* WAIT One\n")
+        try notes.write("setup.org", "#+TODO: WAIT | DONE\n")
+        session.fileChanged(file.path)
+        #expect(session.document?.tree.settings.todoKeywordNames.contains("WAIT") == true)
+    }
+
     @Test func missingFileReportsAnError() {
         let session = DocumentSession()
         session.open("/nonexistent/a.org")

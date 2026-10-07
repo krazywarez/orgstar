@@ -90,10 +90,15 @@ public final class DocumentSession {
     /// C-c C-c on a keyword line: the open file's setup files read again (`org-mode-restart`).
     public func refreshSetup() {
         guard let entry = current else { return }
-        let settings = defaults.resolvingSetupFiles(in: entry.buffer.document.text, path: entry.path, read: readText)
-        entry.buffer.update { $0.setDefaults(settings) }
+        resolveSetup(entry)
         refresh()
         editVersion += 1
+    }
+
+    /// The entry's setup files read again, as its text names them now.
+    private func resolveSetup(_ entry: Entry) {
+        let settings = defaults.resolvingSetupFiles(in: entry.buffer.document.text, path: entry.path, read: readText)
+        if settings != entry.buffer.document.defaults { entry.buffer.update { $0.setDefaults(settings) } }
     }
 
     /// One open file.
@@ -358,7 +363,8 @@ public final class DocumentSession {
         do {
             guard let bytes = try fileSystem.read(url) else { return }
             if isDirty { try recovery.keep(try buffer.document.encodedText(), for: url, label: "local") }
-            buffer.update { $0 = DocumentState(bytes: bytes, defaults: $0.defaults) }
+            let path = url.path
+            buffer.update { $0 = loaded(bytes, path: path) }
             current?.conflict = nil
         } catch {
             lastError = "Can't read \(name): \(error.localizedDescription)"
@@ -383,7 +389,7 @@ public final class DocumentSession {
             try recovery.keep(try buffer.document.encodedText(), for: url, label: "local")
             let merged = mergeWithMarkers(base: versions.base, ours: versions.mine, theirs: versions.disk, oursLabel: "yours", theirsLabel: "disk")
             try buffer.update { state in
-                state = DocumentState(bytes: disk, defaults: state.defaults)
+                state = loaded(disk, path: url.path)
                 try state.apply(lineEdits(from: versions.disk, to: merged), baseRevision: state.revision)
             }
             current?.conflict = nil
@@ -835,6 +841,7 @@ public final class DocumentSession {
             entry.conflict = "\(name) changed on disk, and the changes conflict with yours."
         case .merged, .reloaded:
             entry.conflict = nil
+            resolveSetup(entry)
             // Edits merged with the disk's still need saving.
             scheduleAutosave(entry)
         case .unchanged:

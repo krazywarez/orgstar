@@ -223,6 +223,9 @@ struct TangleTests {
         #+begin_src sh :tangle (file-name-sans-extension (file-name-nondirectory buffer-file-name))
         echo named after the file
         #+end_src
+        #+begin_src sh :tangle quoted.sh :prologue "(cd /tmp && ls)"
+        echo quoted
+        #+end_src
         #+begin_src python -r -l "#(ref:%s)" :tangle refs.py
         x = 1  #(ref:one)
         y = 2 (ref:kept)
