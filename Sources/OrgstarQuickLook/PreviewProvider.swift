@@ -1,6 +1,10 @@
 import Foundation
 import OrgCore
+#if canImport(QuickLookUI)
 import QuickLookUI
+#else
+import QuickLook
+#endif
 
 /// Quick Look's preview of an org file: the file as the HTML export renders it.
 @objc(PreviewProvider)

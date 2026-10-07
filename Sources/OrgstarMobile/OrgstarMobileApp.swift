@@ -1,4 +1,5 @@
 #if os(iOS)
+import CoreSpotlight
 import OrgApp
 import OrgCore
 import SwiftUI
@@ -79,6 +80,12 @@ struct RootView: View {
 
     private var session: DocumentSession { model.session }
 
+    private struct SpotlightKey: Equatable {
+        var files: Int
+        var changed: Int?
+        var saved: Int
+    }
+
     private struct ReminderKey: Equatable {
         var files: Int
         var changed: Int?
@@ -158,6 +165,13 @@ struct RootView: View {
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             await model.updateReminders()
+        }
+        // Spotlight follows the files and saved edits.
+        .task(id: SpotlightKey(files: workspace.files.count, changed: workspace.changedFile?.version, saved: session.dirtyPaths.count)) {
+            await model.spotlight.update(workspace.files)
+        }
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            if let path = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String { model.openRequest = .file(path) }
         }
         .onChange(of: scenePhase) { _, phase in
             // Unsaved edits are written before the app may be stopped.

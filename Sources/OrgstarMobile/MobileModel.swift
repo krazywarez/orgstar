@@ -17,6 +17,7 @@ final class MobileModel {
     let agenda: AgendaModel?
     let scheduler = ReminderScheduler(center: SystemReminderCenter())
     let clock = ClockModel()
+    let spotlight = SpotlightIndexer()
     private(set) var configFolder: URL?
     private(set) var configProblems: [String] = []
     /// An entry to show, from a tapped reminder.
