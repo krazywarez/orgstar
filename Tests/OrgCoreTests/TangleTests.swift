@@ -143,6 +143,16 @@ struct TangleTests {
         #+begin_src conf :tangle out.conf :comments noweb :noweb yes
         a=<<named-py>>
         #+end_src
+        #+begin_src sh :noweb-ref setup
+        echo one
+        #+end_src
+        #+begin_src sh :noweb-ref setup
+        echo two
+        #+end_src
+        #+begin_src sh :tangle refs.sh :noweb yes :comments noweb
+        <<setup>>
+        echo main
+        #+end_src
         #+begin_src lua :tangle out.lua
         x = 1
         #+end_src

@@ -315,8 +315,11 @@ public enum Tangle {
         guard let syntax = commentSyntax[language] else {
             throw Babel.Failure.message(":comments needs the comment syntax of \(language.isEmpty ? "the block's language" : language), which isn't known yet; nothing was tangled.")
         }
-        return text.components(separatedBy: "\n").map { line in
-            line.contains(where: { !$0.isWhitespace }) ? syntax.start + line + syntax.end : line
+        // The comment starts at the lines' least indentation, as `comment-region` puts it.
+        let lines = text.components(separatedBy: "\n")
+        let indent = lines.filter { $0.contains(where: { !$0.isWhitespace }) }.map { $0.prefix { $0 == " " || $0 == "\t" }.count }.min() ?? 0
+        return lines.map { line in
+            line.contains(where: { !$0.isWhitespace }) ? String(line.prefix(indent)) + syntax.start + line.dropFirst(indent) + syntax.end : line
         }.joined(separator: "\n")
     }
 

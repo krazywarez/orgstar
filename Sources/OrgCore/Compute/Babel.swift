@@ -481,12 +481,16 @@ public enum Babel {
                 ? try expandNoweb(other, params: otherParams, model: model, text: text, tangling: tangling, depth: depth + 1, links: links)
                 : normalizedBody(other)
             guard commenting, let links else { return b }
-            guard other.name != nil else { throw Failure.message(":comments noweb with :noweb-ref blocks isn't supported yet; nothing was tangled.") }
             // `c-wrap`: commented in this block's language, trimmed.
             func wrap(_ s: String) throws -> String {
                 try Tangle.commentRegion(s, language: block.language ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             }
-            let (begin, end) = try links(other, otherParams)
+            var (begin, end) = try links(other.name == nil ? block : other, other.name == nil ? params : otherParams)
+            // A `:noweb-ref` block without a name: the link is the including block's, the name empty.
+            if other.name == nil {
+                if let split = begin.range(of: "][") { begin = begin[..<split.lowerBound] + "][]]" }
+                end = " ends here"
+            }
             return try wrap(begin) + "\n" + b + "\n" + (try wrap(end)) + "\n"
         }
         func inCommentedHeading(_ b: SrcBlockInfo) -> Bool {
