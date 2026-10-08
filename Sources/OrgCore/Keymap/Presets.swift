@@ -1122,7 +1122,7 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "M-s-<up>"
         command = "org.heading.previous"
         [[bind]]
-        keys = "C-s-q"
+        keys = "C-s-g"
         command = "org.tags.set"
         [[bind]]
         keys = "s-RET"
@@ -1175,7 +1175,7 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-s-s"
         command = "org.schedule"
         [[bind]]
-        keys = "C-s-d"
+        keys = "C-s-e"
         command = "org.deadline"
         [[bind]]
         keys = "C-s-p"

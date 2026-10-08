@@ -115,6 +115,17 @@ struct KeymapTests {
         }
     }
 
+    /// ⌃⌘Q locks the screen, ⌃⌘D looks up a word, ⌃⌘F toggles full screen and ⌃⌘Space opens
+    /// the character viewer: the app never sees them.
+    @Test func macPresetAvoidsSystemShortcuts() {
+        let reserved = ["q", "d", "f", "SPC"].map { KeyChord($0, [.control, .command]) }
+        for binding in KeymapPreset.mac.keymap.bindings {
+            #expect(!reserved.contains(binding.keys[0]), "\(KeySequence.format(binding.keys)) is \(binding.command)")
+        }
+        #expect(KeymapPreset.mac.keymap.keys(for: "org.tags.set") == [KeyChord("g", [.control, .command])])
+        #expect(KeymapPreset.mac.keymap.keys(for: "org.deadline") == [KeyChord("e", [.control, .command])])
+    }
+
     @Test func shadowedBindingsShowNoKeys() throws {
         var problems: [String] = []
         let map = Keymap.layered([KeymapPreset.emacs.keymap, try Keymap(toml: "[[bind]]\nkeys = \"C-c C-t\"\ncommand = \"app.save\"\n", problems: &problems)])
