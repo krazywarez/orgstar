@@ -326,7 +326,7 @@ public enum Babel {
         if useCache, !inline, params.single[":cache"] == "yes" {
             do {
                 let state = try cacheState(language: language, params: params, tables: tables, body: body, location: location, name: name,
-                                           call: location != block.range, text: ns)
+                                           call: location != block.range, text: ns, options: options)
                 if state.current { return .failure(.message(cachedMessage(state.value))) }
                 // Appended or prepended results accumulate, so they carry no hash.
                 if params.results.contains("replace") { hash = state.hash }
@@ -342,16 +342,8 @@ public enum Babel {
 
         if shells.contains(language) {
             let valueIsExitStatus = params.results.contains("value")
-            var lines: [String] = []
-            for (name, value) in vars {
-                let s: String
-                switch value {
-                case .scalar(let v), .number(let v): s = v
-                default: return .failure(.message("Tables and lists in :var aren't supported for \(language) yet."))
-                }
-                lines.append("\(name)='" + s.replacingOccurrences(of: "'", with: "'\"'\"'") + "'")
-            }
             let executable = language == "shell" ? options.shell : language
+            let lines = shellAssignments(vars, shell: executable, params: params)
             let cmdline = params.single[":cmdline"]
             let shebang = params.single[":shebang"].flatMap { $0.contains(where: { !$0.isWhitespace }) ? $0 : nil }
             if session == nil, stdin != nil || cmdline != nil || shebang != nil {
@@ -363,7 +355,7 @@ public enum Babel {
                 let command = Babel.scriptFileToken + (stdin != nil || cmdline != nil ? " " + (cmdline ?? "") : "")
                 var job = BabelJob(
                     language: language, runner: .process(executable: executable, arguments: ["-c", command]),
-                    input: stdin.map(shellString) ?? "", directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
+                    input: stdin.map { shellString($0) } ?? "", directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
                     finish: finishBase(.shell(valueIsExitStatus: valueIsExitStatus))
                 )
                 job.script = script
@@ -682,9 +674,11 @@ public enum Babel {
     /// `:cache yes` (`org-babel-execute-src-block`): the block's hash, and whether its results
     /// already carry it, with their value when it can be read.
     static func cacheState(language: String, params: Params, tables: Tables, body: String, location: Range<Int>, name: String?,
-                           call: Bool, text: NSString) throws -> (hash: String, current: Bool, value: VarValue?) {
+                           call: Bool, text: NSString, options: Options) throws -> (hash: String, current: Bool, value: VarValue?) {
+        // The hash is taken outside the shell's own binding of `shell-file-name`, so its
+        // variables are written for the user's shell whatever the block's language.
         let input = try cacheInput(language: language, params: params, tables: tables,
-                                   expanded: expandedBody(language: language, vars: tables.vars, body: body), call: call)
+                                   expanded: expandedBody(language: language, vars: tables.vars, body: body, shell: options.shell, params: params), call: call)
         let hash = Insecure.SHA1.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
         guard let line = existingResults(name: name, block: location, text: text), resultsHash(at: line, text: text) == hash else {
             return (hash, false, nil)
@@ -697,10 +691,9 @@ public enum Babel {
     }
 
     /// The body with its variables, as the language's `org-babel-expand-body:` writes it.
-    static func expandedBody(language: String, vars: [(String, VarValue)], body: String) -> String {
+    static func expandedBody(language: String, vars: [(String, VarValue)], body: String, shell: String, params: Params) -> String {
         if shells.contains(language) {
-            let lines = vars.map { "\($0.0)='" + shellString($0.1).replacingOccurrences(of: "'", with: "'\"'\"'") + "'" }
-            return (lines + [body]).joined(separator: "\n")
+            return (shellAssignments(vars, shell: shell, params: params) + [body]).joined(separator: "\n")
         }
         if language == "python" {
             return (vars.map { "\($0.0)=\(pythonLiteral($0.1))" } + [body]).joined(separator: "\n")
@@ -1073,7 +1066,7 @@ public enum Babel {
             if params.single[":cache"] == "yes", let language = block.language {
                 let tables = try disassemble(params.vars.map { ($0.name, try resolve($0.value, model: model, text: text, refs: inner)) }, params: params)
                 let body = nowebEvaluates(params.single[":noweb"]) ? try expandNoweb(block, params: params, model: model, text: text) : normalizedBody(block)
-                let state = try cacheState(language: language, params: params, tables: tables, body: body, location: block.range, name: name, call: false, text: text)
+                let state = try cacheState(language: language, params: params, tables: tables, body: body, location: block.range, name: name, call: false, text: text, options: refs.options)
                 if state.current {
                     if let value = state.value { return value }
                     useCache = false
@@ -1127,17 +1120,41 @@ public enum Babel {
 
     /// `org-babel-sh-var-to-string`: a table's rows as tab-separated lines, a list's items as
     /// lines.
-    static func shellString(_ value: VarValue) -> String {
-        func cell(_ c: Cell) -> String {
-            switch c {
-            case .number(let n): n
-            case .text(let s): s
-            }
-        }
+    static func shellString(_ value: VarValue, separator: String? = nil, hline: String? = nil) -> String {
         switch value {
         case .scalar(let s), .number(let s): return s
-        case .list(let items): return items.map(cell).joined(separator: "\n")
-        case .table(let rows): return rows.compactMap { $0?.map(cell).joined(separator: "\t") }.joined(separator: "\n")
+        case .list(let items): return items.map(cellText).joined(separator: "\n")
+        case .table(let rows): return rows.compactMap { $0?.map(cellText).joined(separator: separator ?? "\t") ?? hline }.joined(separator: "\n")
+        }
+    }
+
+    /// `org-babel-variable-assignments:shell`, by the shell's name: for bash, an array for a
+    /// list and an associative array for a table of two or more columns; `set` for fish; a
+    /// quoted string otherwise.
+    static func shellAssignments(_ vars: [(String, VarValue)], shell: String, params: Params) -> [String] {
+        let separator = params.single[":separator"]
+        let hline = params.single[":hlines"] == "yes" ? params.single[":hline-string"] ?? "hline" : nil
+        func quoted(_ value: VarValue) -> String {
+            "'" + shellString(value, separator: separator, hline: hline).replacingOccurrences(of: "'", with: "'\"'\"'") + "'"
+        }
+        return vars.map { name, value in
+            if shell.hasSuffix("bash") {
+                switch value {
+                case .table(let rows) where (rows.first ?? nil).map({ $0.count >= 2 }) ?? false:
+                    let entries = rows.compactMap { $0 }.map { row in
+                        "\(name)[\(quoted(.scalar(cellText(row[0]))))]=\(quoted(.list(Array(row.dropFirst()))))"
+                    }
+                    return (["unset \(name)", "declare -A \(name)"] + entries).joined(separator: "\n")
+                case .table(let rows):
+                    let items = rows.map { $0.map { quoted(.list($0)) } ?? quoted(.scalar("hline")) }
+                    return "unset \(name)\ndeclare -a \(name)=( \(items.joined(separator: " ")) )"
+                case .list(let items):
+                    return "unset \(name)\ndeclare -a \(name)=( \(items.map { quoted(.scalar(cellText($0))) }.joined(separator: " ")) )"
+                case .scalar, .number:
+                    break
+                }
+            }
+            return (shell.hasSuffix("fish") ? "set \(name) " : "\(name)=") + quoted(value)
         }
     }
 

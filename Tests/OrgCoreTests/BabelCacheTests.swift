@@ -29,6 +29,10 @@ struct BabelCacheTests {
         Case(text: "#+PROPERTY: header-args :cache yes\n#+begin_src sh :session none\necho prop\n#+end_src\n", runs: ["#+begin_src", "#+begin_src"]),
         Case(text: "#+NAME: tbl\n| a | b |\n|---+---|\n| 1 | x |\n\n#+begin_src python :cache yes :var t=tbl :colnames yes :rownames yes\nreturn t\n#+end_src\n",
              runs: ["#+begin_src", "#+begin_src"]),
+        Case(text: "#+NAME: kv\n| a | 1 |\n| b | 2 |\n\n#+begin_src bash :cache yes :var t=kv :var l='(1 2)\necho ${t[a]} ${l[1]}\n#+end_src\n",
+             runs: ["#+begin_src", "#+begin_src"]),
+        Case(text: "#+NAME: kv\n| a | 1 |\n| b | 2 |\n\n#+begin_src sh :cache yes :var t=kv :separator ,\necho $t\n#+end_src\n",
+             runs: ["#+begin_src", "#+begin_src"]),
         // Edited after the first run, so it runs again.
         Case(text: "#+begin_src sh :cache yes\necho one\n#+end_src\n", runs: ["#+begin_src", "#+begin_src"], edits: [("echo one", "echo two")]),
         // A reference to a cached block takes its result without running it.

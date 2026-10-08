@@ -177,6 +177,18 @@ struct BabelTests {
         "MULTI#+begin_src emacs-lisp :var tb=multi :hlines yes\ntb\n#+end_src\n",
         "MULTI#+begin_src sh :stdin multi :results output\ncat\n#+end_src\n",
         "#+begin_src python :var t=tb2 :colnames yes\nreturn t\n#+end_src\n\n#+NAME: tb2\n#+begin_src python\nreturn [['h1', 'h2'], None, [1, 2]]\n#+end_src\n",
+        // Tables and lists in shell variables.
+        "TBL#+begin_src sh :var t=tbl :results output\necho \"$t\"\n#+end_src\n",
+        "MULTI#+begin_src sh :var t=multi :hlines yes :separator , :results output\necho \"$t\"\n#+end_src\n",
+        "MULTI#+begin_src sh :var t=multi :hlines yes :hline-string -- :results output\necho \"$t\"\n#+end_src\n",
+        "#+NAME: items\n- one\n- it's\n\n#+begin_src sh :var l=items :results output\necho \"$l\"\n#+end_src\n",
+        "#+NAME: items\n- one\n- it's\n\n#+begin_src bash :var l=items :results output\necho ${#l[@]} \"${l[1]}\"\n#+end_src\n",
+        "#+NAME: kv\n| a | 1 |\n| b | 2 |\n\n#+begin_src bash :var t=kv :results output\necho ${t[a]} ${t[b]} ${#t[@]}\n#+end_src\n",
+        "#+NAME: kv3\n| a | 1 | x |\n| b | 2 | y |\n\n#+begin_src bash :var t=kv3 :results output\necho \"${t[b]}\"\n#+end_src\n",
+        "#+NAME: col\n| 5 |\n| 6 |\n\n#+begin_src bash :var t=col :results output\necho ${t[@]}\n#+end_src\n",
+        "#+begin_src bash :var l='(1 \"two\" 3) :results output\necho ${l[2]} ${l[1]}\n#+end_src\n",
+        "#+NAME: items\n- one\n- two\n\n#+begin_src zsh :var l=items :results output\necho \"$l\"\n#+end_src\n",
+        "TBL#+begin_src shell :var t=tbl :results output\necho \"$t\"\n#+end_src\n",
         // Lisp values.
         "#+begin_src python :var l='(1 2) m='((1 2) (3 4)) n=(+ 1 2) s='(\"a\" \"b\")\nreturn [l, m, n, s]\n#+end_src\n",
         "#+begin_src emacs-lisp :var l='(1 2) h='((1 2) hline (3 4)) s=(concat \"a\" \"b\")\n(list l h s)\n#+end_src\n",
