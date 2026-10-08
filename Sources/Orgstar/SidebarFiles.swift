@@ -35,8 +35,8 @@ extension Sidebar {
         session.openPaths.filter { $0 == path || $0.hasPrefix(path + "/") }
     }
 
-    /// Whether `path` is an open file or a folder holding one.
-    func holdsOpenFile(_ path: String) -> Bool { !openFiles(under: path).isEmpty }
+    /// Whether `path` is an open file with unsaved edits or a folder holding one.
+    func holdsUnsavedFile(_ path: String) -> Bool { openFiles(under: path).contains(where: session.dirtyPaths.contains) }
 
     func finish() {
         guard let operation = pending else { return }
@@ -90,7 +90,7 @@ extension View {
             .confirmationDialog(title(sidebar.pending), isPresented: Binding { sidebar.pending?.needsName == false } set: { if !$0 { sidebar.pending = nil } }) {
                 Button("Move to Trash", role: .destructive) { sidebar.finish() }
             } message: {
-                if case .trash(let path) = sidebar.pending, sidebar.holdsOpenFile(path), sidebar.session.isDirty {
+                if case .trash(let path) = sidebar.pending, sidebar.holdsUnsavedFile(path) {
                     Text("Unsaved changes to the open file will be lost.")
                 } else {
                     Text("You can put it back from the Trash in Finder.")

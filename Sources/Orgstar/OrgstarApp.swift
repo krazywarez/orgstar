@@ -351,10 +351,10 @@ struct OrgstarApp: App {
             }
             CommandGroup(after: .sidebar) {
                 Button("Show or Hide Outline") { commands.run("app.toggle-outline") }
+                    .keyboardShortcut("o", modifiers: [.command, .option])
                 Button("Show or Hide Backlinks") { commands.run("app.toggle-backlinks") }
                 Button("Show or Hide Columns and Clock") { commands.run("app.toggle-inspector") }
                     .keyboardShortcut("i", modifiers: [.command, .option])
-                    .keyboardShortcut("o", modifiers: [.command, .option])
                 MarkupToggle()
             }
             CommandGroup(after: .pasteboard) {
@@ -629,7 +629,7 @@ struct SettingsView: View {
     private var agenda: some View {
         Form {
             Section {
-                Stepper("Agenda shows \(agendaSpan) days", value: $agendaSpan, in: 1...31)
+                Stepper("Agenda shows \(agendaSpan) days", value: $agendaSpan, in: 1...366)
                 Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
                 Toggle("Include files in subfolders", isOn: $agendaSubfolders)
             }

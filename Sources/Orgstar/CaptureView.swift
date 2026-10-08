@@ -20,6 +20,8 @@ struct CaptureView: View {
     @State private var selection: TextSelection?
     @State private var context = CaptureContext()
     @State private var editing = false
+    /// The template keys typed so far, for multi-key templates such as "wb".
+    @State private var keys = ""
     @FocusState private var focused: Bool
     @Environment(\.dismissWindow) private var dismissWindow
 
@@ -57,8 +59,8 @@ struct CaptureView: View {
                         .keyboardShortcut(.defaultAction)
                 }
             } else {
-                Text("Capture").font(.headline)
-                ForEach(templates) { template in
+                Text(keys.isEmpty ? "Capture" : "Capture: \(keys)").font(.headline)
+                ForEach(templates.filter { $0.key.hasPrefix(keys) }) { template in
                     Button {
                         choose(template)
                     } label: {
@@ -71,14 +73,26 @@ struct CaptureView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                if let problem { Text(problem).font(.caption).foregroundStyle(.red) }
             }
+            if let problem { Text(problem).font(.caption).foregroundStyle(.red) }
         }
         .padding(16)
         .frame(width: 520)
         .onKeyPress(phases: .down) { press in
-            guard template == nil, let match = templates.first(where: { $0.key == press.characters }) else { return .ignored }
-            choose(match)
+            guard template == nil else { return .ignored }
+            if press.key == .delete, !keys.isEmpty {
+                keys.removeLast()
+                return .handled
+            }
+            // Keys narrow the list until they name a template, as `org-capture` selects one.
+            let typed = keys + press.characters
+            if let match = templates.first(where: { $0.key == typed }) {
+                choose(match)
+            } else if !press.characters.isEmpty, templates.contains(where: { $0.key.hasPrefix(typed) }) {
+                keys = typed
+            } else {
+                return .ignored
+            }
             return .handled
         }
         .onAppear {
@@ -119,6 +133,7 @@ struct CaptureView: View {
         problem = loaded.problems.first
         template = nil
         editing = false
+        keys = ""
         let clocked = clock.running
         let clockFile = clocked.map { Links.abbreviate($0.path, home: NSHomeDirectory()) }
         context = CaptureContext(
@@ -149,6 +164,7 @@ struct CaptureView: View {
 
     private func choose(_ chosen: CaptureTemplate) {
         template = chosen
+        keys = ""
         // `%^g` offers the target file's tags.
         let path = DocumentSession.resolve(chosen.target.file, root: workspace.rootPaths.first)
         if !chosen.target.file.isEmpty, let text = session.openDocuments.first(where: { $0.path == path })?.document.text ?? (try? String(contentsOfFile: path, encoding: .utf8)) {
