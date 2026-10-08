@@ -143,6 +143,7 @@ struct BabelTests {
         "#+begin_src emacs-lisp :var x=4\n(* x x)\n#+end_src\n",
         "#+PROPERTY: header-args :results output\n#+begin_src sh\nprintf 'a b\\nc d\\n'\n#+end_src\n",
         "* Heading\n:PROPERTIES:\n:header-args:sh: :results verbatim\n:END:\n#+begin_src sh\necho 1 2\n#+end_src\n",
+        "* Heading\n:PROPERTIES:\n:header-args:sh: :results verbatim\n:END:\n#+begin_src python\nreturn [[1, 2]]\n#+end_src\n",
         "#+HEADER: :results output\n#+begin_src sh\nprintf 'x y\\nz w\\n'\n#+end_src\n",
         // `:cmdline`, `:stdin` and `:shebang`.
         "#+begin_src sh :cmdline one \"two words\" :results output\nfor a in \"$@\"; do echo \"[$a]\"; done\n#+end_src\n",

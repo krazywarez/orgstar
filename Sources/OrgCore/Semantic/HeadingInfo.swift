@@ -17,7 +17,10 @@ public struct Property: Sendable, Equatable {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix(":") else { return nil }
         let rest = trimmed.dropFirst()
-        guard let colon = rest.firstIndex(of: ":") else { return nil }
+        // `org-property-re`: the key ends at the first colon followed by a blank or the end,
+        // so `:header-args:sh:` is one key.
+        guard let colon = rest.indices.first(where: { rest[$0] == ":" && (rest.index(after: $0) == rest.endIndex || rest[rest.index(after: $0)].isWhitespace) })
+        else { return nil }
         var key = rest[..<colon]
         guard !key.isEmpty else { return nil }
         let additive = key.hasSuffix("+")
