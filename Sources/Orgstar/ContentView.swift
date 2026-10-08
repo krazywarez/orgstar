@@ -498,7 +498,7 @@ struct ContentView: View {
     }
 
     private func loadKeymap() {
-        let loaded = KeymapLoader.load(preset)
+        let loaded = KeymapLoader.load(preset, commands: Set(EditorCommands.all.map(\.id)))
         keymap = loaded.keymap
         commands.keymap = loaded.keymap
         commands.modal = preset.isModal

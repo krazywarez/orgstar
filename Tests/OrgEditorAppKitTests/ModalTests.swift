@@ -160,3 +160,15 @@ struct ModalTests {
         #expect(h.textView.selectedRange().location == 23)
     }
 }
+
+struct PresetCommandTests {
+    /// Every command a preset binds is one the editor runs, and every mode is a state.
+    @Test func presetsBindKnownCommands() throws {
+        let known = Set(EditorCommands.all.map(\.id))
+        for preset in KeymapPreset.allCases {
+            var problems: [String] = []
+            _ = try Keymap(toml: preset.toml, problems: &problems, commands: known)
+            #expect(problems.isEmpty, "\(preset): \(problems)")
+        }
+    }
+}

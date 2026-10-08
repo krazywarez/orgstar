@@ -71,6 +71,33 @@ struct KeymapTests {
         #expect(problems.count == 3)
     }
 
+    @Test func reportsUnknownModesAndCommands() throws {
+        var problems: [String] = []
+        let keymap = try Keymap(toml: """
+            [[bind]]
+            keys = "g x"
+            command = "org.todo.cycle"
+            mode = "visual-line"
+            [[bind]]
+            keys = "g y"
+            command = "org.todo.cycel"
+            mode = "normal"
+            [[bind]]
+            keys = "g z"
+            command = "none"
+            mode = "visual"
+            [[bind]]
+            keys = "C-c x"
+            command = "org.todo.cycle"
+            """, problems: &problems, commands: ["org.todo.cycle"])
+        #expect(problems == ["line 1: unknown mode visual-line", "line 5: unknown command org.todo.cycel"])
+        #expect(keymap.bindings.map(\.command) == ["none", "org.todo.cycle"])
+        // Without a command list, ids aren't checked.
+        problems = []
+        _ = try Keymap(toml: "[[bind]]\nkeys = \"x\"\ncommand = \"anything\"\nmode = \"insert\"\n", problems: &problems)
+        #expect(problems.isEmpty)
+    }
+
     @Test func laterLayersWinAndCanUnbind() throws {
         let preset = KeymapPreset.emacs.keymap
         let (user, _) = try map("""

@@ -17,6 +17,9 @@ public struct KeyBinding: Sendable, Equatable {
     }
 
     public var unbinds: Bool { command == "none" }
+
+    /// Modal states a binding's `mode` can name.
+    public static let modes: Set<String> = ["normal", "insert", "visual"]
 }
 
 /// Bindings in priority order: later bindings win over earlier ones for the same keys.
@@ -29,8 +32,9 @@ public struct Keymap: Sendable, Equatable {
     }
 
     /// Reads `[[bind]]` tables. Entries that can't be used are skipped and reported in
-    /// `problems`; a file that isn't valid TOML throws.
-    public init(toml: String, problems: inout [String]) throws {
+    /// `problems`; a file that isn't valid TOML throws. With `commands`, a command id outside
+    /// it (other than `none`) is such an entry.
+    public init(toml: String, problems: inout [String], commands: Set<String>? = nil) throws {
         bindings = []
         for table in try TOML.parse(toml) where !(table.name.isEmpty && table.values.isEmpty) {
             guard table.name == "bind", table.isArrayElement else {
@@ -45,12 +49,21 @@ public struct Keymap: Sendable, Equatable {
                 problems.append("line \(table.line): missing command")
                 continue
             }
+            if let commands, command != "none", !commands.contains(command) {
+                problems.append("line \(table.line): unknown command \(command)")
+                continue
+            }
             let when = table.values["when"]?.string
             if let when, !KeyContext.names.contains(when) {
                 problems.append("line \(table.line): unknown context \(when)")
                 continue
             }
-            bindings.append(KeyBinding(keys: keys, command: command, when: when, mode: table.values["mode"]?.string))
+            let mode = table.values["mode"]?.string
+            if let mode, !KeyBinding.modes.contains(mode) {
+                problems.append("line \(table.line): unknown mode \(mode)")
+                continue
+            }
+            bindings.append(KeyBinding(keys: keys, command: command, when: when, mode: mode))
         }
     }
 
