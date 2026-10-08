@@ -156,6 +156,10 @@ struct BabelTests {
         "#+begin_src sh :results value :cmdline x\necho one\n#+end_src\n",
         "#+begin_src bash :shebang #!/bin/bash :cmdline \"a b\" c :results output\necho $#\n#+end_src\n",
         "#+begin_src sh :stdin src :results output\ntr a-z A-Z\n#+end_src\n\n#+NAME: src\n#+begin_src sh\necho hello\n#+end_src\n",
+        // `:stdin` and `:cmdline` run a script rather than the session.
+        "#+begin_src sh :session s1 :cmdline a b :results output\necho $# $1\n#+end_src\n",
+        "#+NAME: in\n| hello |\n\n#+begin_src sh :session s2 :stdin in :results output\ncat\n#+end_src\n",
+        "#+begin_src bash :session s3 :shebang #!/bin/bash :cmdline x :var v=3\necho $v $1 ${BASH_VERSION:+bash}\n#+end_src\n",
         // `:var` from other blocks' results.
         "#+begin_src sh :var x=five\necho $((x+1))\n#+end_src\n\n#+NAME: five\n#+begin_src sh\necho 5\n#+end_src\n",
         "#+begin_src python :var t=tbl\nreturn [len(t), t[1][0]]\n#+end_src\n\n#+NAME: tbl\n#+begin_src python\nreturn [[1, 2], [3, 4]]\n#+end_src\n",
@@ -218,6 +222,8 @@ struct BabelTests {
               (setq org-confirm-babel-evaluate nil
                     org-babel-python-command "python3"
                     default-directory temporary-file-directory)
+              ;; No shell session in batch; the cases with one don't use it.
+              (advice-add 'org-babel-sh-initiate-session :override (lambda (s &rest _) (unless (member s '(nil "none")) s)))
               (org-babel-execute-src-block))
             """))
         }
