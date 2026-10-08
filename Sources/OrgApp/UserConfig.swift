@@ -243,6 +243,54 @@ public enum UserConfig {
         return values(in: text).keys.contains { names.contains($0) }
     }
 
+    /// `text` with settings under their old names moved to their current names and places,
+    /// keeping comments and everything else. A section the move leaves empty is removed.
+    public static func migratingLegacyNames(_ text: String) -> String {
+        let values = values(in: text)
+        var blocks: [[String]] = [[]]
+        for line in text.components(separatedBy: "\n") {
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("[") { blocks.append([]) }
+            blocks[blocks.count - 1].append(line)
+        }
+        var moves: [(setting: Setting, value: TOML.Value, comment: String)] = []
+        var kept: [String] = []
+        for block in blocks {
+            let header = block.first.map { $0.trimmingCharacters(in: .whitespaces) }.flatMap { $0.hasPrefix("[") ? $0 : nil }
+            let section = header.map { String($0.dropFirst().prefix { $0 != "]" }).trimmingCharacters(in: .whitespaces) } ?? ""
+            var remaining: [String] = []
+            for (index, line) in block.enumerated() {
+                guard header == nil || index > 0, let equals = line.firstIndex(of: "=") else {
+                    remaining.append(line)
+                    continue
+                }
+                let name = path(section, line[..<equals].trimmingCharacters(in: .whitespaces))
+                guard let setting = settings.first(where: { !$0.legacy.isEmpty && $0.legacy == name }), let value = values[name] else {
+                    remaining.append(line)
+                    continue
+                }
+                // A setting also under its new name keeps that one.
+                if values[setting.path] == nil {
+                    moves.append((setting, value, commentStart(line, after: equals).map { String(line[$0...]) } ?? ""))
+                }
+            }
+            let emptied = header != nil && remaining.count < block.count
+                && remaining.dropFirst().allSatisfy { $0.trimmingCharacters(in: .whitespaces).isEmpty }
+            if !emptied { kept += remaining }
+        }
+        var out = kept.joined(separator: "\n")
+        if text.hasSuffix("\n"), !out.isEmpty, !out.hasSuffix("\n") { out += "\n" }
+        for move in moves {
+            out = setting(out, section: move.setting.section, key: move.setting.key, to: move.value)
+            guard !move.comment.isEmpty else { continue }
+            var lines = out.components(separatedBy: "\n")
+            if let index = lines.firstIndex(of: "\(move.setting.key) = \(format(move.value))") {
+                lines[index] += "  " + move.comment
+                out = lines.joined(separator: "\n")
+            }
+        }
+        return out
+    }
+
     private static func currentValue(_ setting: Setting, in defaults: UserDefaults) -> TOML.Value? {
         defaults.object(forKey: setting.defaultsKey) == nil ? nil : value(setting, in: defaults)
     }

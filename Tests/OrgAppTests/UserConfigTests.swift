@@ -77,6 +77,18 @@ struct UserConfigTests {
         #expect(text.contains("\nfill-column = 64") && text.contains("keymap = \"doom\"") && !text.contains("[editor]"))
     }
 
+    @Test func legacyNamesMoveInPlace() {
+        let text = "# mine\n[editor]\n# my editor\nfill-column = 64  # narrow\n\n[agenda]\nspan = 7\n\n[theme]\nfont-size = 15\n"
+        let migrated = UserConfig.migratingLegacyNames(text)
+        #expect(migrated == "# mine\nfill-column = 64  # narrow\norg-agenda-span = 7\n[editor]\n# my editor\n\n[theme]\nfont-size = 15\n")
+        #expect(!UserConfig.usesLegacyNames(migrated))
+        let store = defaults()
+        #expect(UserConfig.apply(migrated, to: store).isEmpty)
+        #expect(store.integer(forKey: "fillColumn") == 64 && store.integer(forKey: "agendaSpan") == 7 && store.integer(forKey: "themeFontSize") == 15)
+        // The new name wins over the old one.
+        #expect(UserConfig.migratingLegacyNames("fill-column = 70\n[editor]\nfill-column = 64\n") == "fill-column = 70\n")
+    }
+
     @Test func syncsBothWays() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-config-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -121,5 +133,21 @@ struct ThemeConfigTests {
         #expect(sync.theme.light["link"]?.hex == "#000003")
         #expect(sync.theme.light["todo"]?.hex == "#000002")
         #expect(FileManager.default.fileExists(atPath: folder.appendingPathComponent("default-theme.toml").path))
+    }
+
+    @Test func themeFileInASubfolderIsRecognized() throws {
+        let name = "orgstar-theme-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-theme-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("themes"), withIntermediateDirectories: true)
+        try "[theme]\ntheme-file = \"themes/x.toml\"\n".write(to: folder.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+        let sync = ConfigSync(url: folder.appendingPathComponent("config.toml"), defaults: defaults)
+        sync.start(watch: false)
+        // The watcher reports paths under the folder with symlinks resolved (/private/var/…).
+        let reported = folder.resolvingSymlinksInPath().appendingPathComponent("themes/x.toml")
+        #expect(sync.isThemeFile(reported))
+        #expect(!sync.isThemeFile(folder.appendingPathComponent("x.toml")))
     }
 }

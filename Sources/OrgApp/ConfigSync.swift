@@ -43,14 +43,11 @@ public final class ConfigSync {
         }
         if FileManager.default.fileExists(atPath: url.path) {
             reload()
-            // A file from before settings took Emacs's names is written again with them; one
-            // from before a section existed gets the section.
-            if let text, UserConfig.usesLegacyNames(text) {
-                let template = UserConfig.template(from: defaults)
-                try? template.write(to: url, atomically: true, encoding: .utf8)
-                self.text = template
-            } else if let text {
-                let completed = UserConfig.addingMissingSections(text, from: defaults)
+            // A file from before settings took Emacs's names gets them in place; one from
+            // before a section existed gets the section.
+            if let text {
+                let migrated = UserConfig.usesLegacyNames(text) ? UserConfig.migratingLegacyNames(text) : text
+                let completed = UserConfig.addingMissingSections(migrated, from: defaults)
                 if completed != text {
                     try? completed.write(to: url, atomically: true, encoding: .utf8)
                     self.text = completed
@@ -67,15 +64,16 @@ public final class ConfigSync {
         guard watch else { return }
         let directory = url.deletingLastPathComponent()
         watcher = FSEventsWatcher(roots: [directory.resolvingSymlinksInPath()]) { [weak self] events in
-            let names = Set(events.compactMap { event -> String? in
-                if case .changed(let url) = event { return url.lastPathComponent }
+            let changed = Set(events.compactMap { event -> URL? in
+                if case .changed(let url) = event { return url }
                 return nil
             })
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                for name in names.sorted() {
+                for file in changed.sorted(by: { $0.path < $1.path }) {
+                    let name = file.lastPathComponent
                     if name == self.url.lastPathComponent { self.reload() }
-                    if name == self.defaults.string(forKey: "themeFile") { self.readTheme() }
+                    if self.isThemeFile(file) { self.readTheme() }
                     self.serial += 1
                     self.changedFile = (name, self.serial)
                 }
@@ -94,13 +92,23 @@ public final class ConfigSync {
         readTheme()
     }
 
+    /// `theme-file`, relative to the configuration folder.
+    private var themeFile: URL? {
+        guard let name = defaults.string(forKey: "themeFile"), !name.isEmpty else { return nil }
+        return url.deletingLastPathComponent().appendingPathComponent(name)
+    }
+
+    /// Whether `file`, as the watcher reports it, is `theme-file`, which may be in a subfolder.
+    func isThemeFile(_ file: URL) -> Bool {
+        themeFile?.resolvingSymlinksInPath().path == file.resolvingSymlinksInPath().path
+    }
+
     /// The theme from the file read last and its theme file.
     func readTheme() {
         guard let text, let tables = try? TOML.parse(text) else { return }
         var spec = ThemeSpec.default
         var themeProblems: [String] = []
-        if let name = defaults.string(forKey: "themeFile"), !name.isEmpty {
-            let file = url.deletingLastPathComponent().appendingPathComponent(name)
+        if let name = defaults.string(forKey: "themeFile"), let file = themeFile {
             if let themeText = try? String(contentsOf: file, encoding: .utf8) {
                 do {
                     (spec, themeProblems) = ThemeSpec.reading(try TOML.parse(themeText), file: name)
