@@ -292,6 +292,8 @@ Line numbers show in a margin left of the text, as =display-line-numbers-mode= s
 
 The editor's font, size, line spacing and heading sizes are in Settings ▸ Appearance. Colours for the editor, the sidebar, the modeline, line numbers, the selection and the caret come from =config.toml=, under =[theme]= for both appearances, =[theme.light]= and =[theme.dark]= for one, and =[theme.todo]= for colours of TODO keywords. Settings ▸ Appearance ▸ Show Default Theme opens =default-theme.toml=, which lists every colour with its default value. Changes apply while Orgstar runs. See [[file:13-configuration.org][Configuration]].
 
+The iOS editor uses the same theme and display settings, read from the synced =config.toml=; see [[file:14-ios.org][iPhone and iPad]].
+
 * Undo
 
 Each buffer has its own undo history, kept while other buffers show.

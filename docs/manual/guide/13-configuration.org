@@ -106,8 +106,13 @@ See Themes and Fonts below.
 | Include files in subfolders         | On or off              | Off          | =agenda-include-subfolders= |
 | Notify before timed agenda entries  | On or off              | On           | =reminders=                 |
 | N minutes before                    | 0 to 120               | 12           | =appt-message-warning-time= |
+| Ask what to do with idle time while clocked in | On or off   | Off          | =org-clock-idle-time=       |
+| After N minutes without keyboard or mouse input | 1 to 240   | 15 when turned on | =org-clock-idle-time=  |
+| Remember N recently clocked entries | 1 to 35                | 5            | =org-clock-history-length=  |
 
 An entry's =APPT_WARNTIME= property overrides the lead time. The agenda is covered in [[file:07-agenda.org][The agenda]].
+
+Turning on the idle question sets =org-clock-idle-time= to 15 minutes; turning it off sets it to =0=. The minutes stepper is disabled while the question is off. Idle time and the clock history are covered in [[file:06-dates-and-clocking.org][Dates and clocking]].
 
 ** Capture
 
@@ -179,6 +184,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
 | =org-agenda-start-day=               | string  | ="-3d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
 | =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
+| =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before Orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
+| =org-clock-history-length=           | integer | =5=     | How many recently clocked entries Orgstar remembers. Mirrors =org-clock-history-length=.                     |
 
 The default =org-todo-keywords= is the first sequence of Doom Emacs's default:
 
@@ -423,7 +430,7 @@ Any other =org-= or =appt-= variable is listed as having no equivalent.
 
 Capture templates are imported when their type is =entry=, =item=, =checkitem=, =plain= or =table-line=, their template is a string, and their target is =file=, =file+headline=, =file+olp=, =file+olp+datetree=, =file+datetree=, =file+weektree=, =id= or =clock=. The properties =:prepend=, =:immediate-finish=, =:jump-to-captured=, =:clock-in=, =:clock-keep=, =:clock-resume=, =:empty-lines=, =:empty-lines-before=, =:empty-lines-after=, =:tree-type= (=day=, =week=, =month=) and =:table-line-pos= carry over; others are listed as left out. Template groups (a key and a name only) are skipped.
 
-Key bindings are imported when the command is one Orgstar has a counterpart for, such as =org-todo=, =org-schedule=, =org-refile=, =org-capture= or =save-buffer=. Keys must be a string or =(kbd "…")=; bindings with key vectors such as =[f5]= are skipped. In a Doom configuration, bindings without a state go to the =normal= state.
+Key bindings are imported when the command is one Orgstar has a counterpart for, such as =org-todo=, =org-schedule=, =org-refile=, =org-capture= or =save-buffer=. The clock commands =org-clock-in=, =org-clock-out=, =org-clock-cancel=, =org-clock-goto=, =org-clock-in-last=, =org-resolve-clocks= and =org-clock-mark-default-task= map to Clock In, Clock Out, Cancel Clock, Go to Clocked Entry, Clock In to Last Entry, Resolve Open Clocks… and Mark as Default Clock Task. Keys must be a string or =(kbd "…")=; bindings with key vectors such as =[f5]= are skipped. In a Doom configuration, bindings without a state go to the =normal= state.
 
 ** Limits of the Lisp reader
 
@@ -550,4 +557,4 @@ The editor uses one font for everything: body text, headings, code and tables. C
 - Headings are bold. Level 1 is =font-size= plus three times =heading-size-step=, level 2 plus two times, level 3 plus one time; level 4 and deeper are body size. Set =heading-size-step = 0= for one size throughout.
 - =line-spacing= adds space between lines, in points.
 
-On iPhone and iPad, the theme and font settings don't apply; see [[file:14-ios.org][iPhone and iPad]].
+On iPhone and iPad, the editor and reader use the same theme, read from the synced configuration folder. =font= applies when the family is installed on the device, otherwise the system's monospaced font is used, and =font-size= is the size at the default Dynamic Type setting, scaled with the size chosen on the device. The =selection= color and the =syntax-*= colors aren't used there. See [[file:14-ios.org][iPhone and iPad]].

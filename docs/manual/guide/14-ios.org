@@ -33,8 +33,9 @@ There is no way to open a single file from the Files app. Add the folder that co
 Tap a file in Folders, Search or the agenda to read it.
 
 - Tap a heading to fold or unfold it, as =TAB= cycles it on the Mac. A chevron marks headings with content.
-- The file opens with the visibility its =#+STARTUP= line and =VISIBILITY= properties ask for; drawers are folded.
-- Text is styled as in the editor: TODO keywords, priorities, tags, emphasis, code, timestamps and links. Text can be selected and copied.
+- The file opens with the visibility its =#+STARTUP= line and =VISIBILITY= properties ask for. Drawers and blocks are folded as =org-cycle-hide-drawer-startup= and =org-cycle-hide-block-startup= say, or as the file's =#+STARTUP= says (=hidedrawers=, =nohideblocks= and the like).
+- Text is styled as in the editor, in the theme's colours, font, size, line spacing and heading sizes, on the theme's background: TODO keywords, priorities, tags, emphasis, code, timestamps and links. Text can be selected and copied.
+- The reader doesn't apply =show-markup=, =org-pretty-entities=, =org-startup-indented=, inline images or truncated lines. Markup shows as typed, and bodies are indented by their heading's level.
 - Tap a link to follow it. Links to headings and files in your folders open in the reader; web links open in the browser.
 - The toolbar has Outline (a list of headings to jump to), Export, and Edit.
 
@@ -42,13 +43,13 @@ Tap a file in Folders, Search or the agenda to read it.
 
 Tap Edit in the reader. The title shows the buffer name, with =•= while there are unsaved changes. The tab bar is hidden while you edit.
 
-The editor folds headings, drawers and blocks, styles text with the default theme, and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows =spell-check= in =config.toml= and is off by default.
+The editor folds headings, drawers and blocks, styles text with the theme from the configuration folder (see Themes and display below), and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows =spell-check= in =config.toml= and is off by default.
 
 The toolbar has:
 
 - Conflict :: shown while the file and your edits conflict; opens the conflict sheet.
 - Undo
-- More :: Commands, Clock In, Export, Sync Conflict Copies, and Recovered Versions.
+- More :: Commands, Clock In, Show Markup, Recent Entries, Export, Sync Conflict Copies, and Recovered Versions.
 
 Messages from commands show at the top of the editor for a few seconds; tap one to dismiss it.
 
@@ -57,6 +58,38 @@ Messages from commands show at the top of the editor for a few seconds; tap one 
 The iOS app always saves automatically: one second after you stop typing, when you leave the editor, and when the app goes to the background. The =save= setting doesn't apply on iOS.
 
 Files that aren't valid UTF-8 open read-only; commands that would change them say so.
+
+** Themes and display
+
+The editor and the reader use the theme set in the configuration folder's =config.toml=, stacked as on the Mac: the default theme, then the theme file named by =theme-file=, then the colours in =[theme]=, =[theme.light]=, =[theme.dark]= and =[theme.todo]=. Colours follow the system's light or dark appearance. Problems in the theme show in the Settings tab with the other problems. A change to =config.toml= or the theme file applies as it syncs, to open editors too. See [[file:13-configuration.org][Configuration]] for the colour keys.
+
+- Font :: =font= when that family is installed on the device, otherwise the system's monospaced font.
+- Size :: =font-size= is the size at the default Dynamic Type setting, 13 pt by default. Text grows and shrinks with the text size chosen in the system Settings app.
+- Line spacing and headings :: =line-spacing= and =heading-size-step= apply as on the Mac.
+- Caret and selection :: the caret and the selection highlight take the theme's =cursor= colour; =selection= isn't used.
+
+The editor applies these display settings; the reader applies only the drawer and block folding. The startup settings (=org-cycle-hide-*-startup=, =org-startup-*=, =org-hide-leading-stars=) apply when a file opens, and a =#+STARTUP= keyword in the file overrides them, as on the Mac.
+
+| Setting                          | In the iOS editor                                                              | =#+STARTUP=                      |
+|----------------------------------+--------------------------------------------------------------------------------+----------------------------------|
+| =show-markup=                    | Link brackets and targets, and emphasis markers, show                          |                                  |
+| =org-hide-emphasis-markers=      | Emphasis markers hide while markup is hidden                                   |                                  |
+| =org-pretty-entities=            | Entities and sub- and superscripts show as characters while markup is hidden   |                                  |
+| =org-cycle-hide-drawer-startup=  | Drawers start folded                                                           | =hidedrawers=, =nohidedrawers=   |
+| =org-cycle-hide-block-startup=   | Blocks start folded                                                            | =hideblocks=, =nohideblocks=     |
+| =org-startup-indented=           | Bodies are indented under their headings                                       | =indent=, =noindent=             |
+| =org-hide-leading-stars=         | Without indentation, only a heading's last star shows                          | =hidestars=, =showstars=         |
+| =org-startup-with-inline-images= | Image links show as images                                                     | =inlineimages=, =noinlineimages= |
+| =org-startup-align-all-tables=   | Every table is aligned                                                         | =align=, =noalign=               |
+| =org-startup-truncated=          | Long lines run off the right edge, and the editor scrolls sideways             |                                  |
+
+While markup is hidden, the line with the caret shows its markup, so you can edit it. More ▸ Show Markup, or Show or Hide Markup in Commands, switches markup in every editor. The switch lasts until =show-markup= in =config.toml= changes; then the file's value applies.
+
+The visibility from =#+STARTUP= applies first, then each heading's =VISIBILITY= property. As on the Mac, =VISIBILITY= properties apply only when =#+STARTUP= sets a visibility (=overview=, =content=, =showall= and the like).
+
+An image line shows its image, and the link text is hidden except on the caret's line. =#+ATTR_ORG: :width N= sets the width in points; images are never wider than the editor. Show or Hide Inline Images in Commands, or =C-c C-x C-v= on a hardware keyboard, switches images in the open file. Truncate or Wrap Long Lines in Commands, or =C-x x t=, switches long lines. See [[file:02-the-editor.org][The editor]] for which lines show as images.
+
+The Mac editor's code highlighting in src blocks (the =syntax-*= colours) and =#+STARTUP: shrink= aren't on iOS.
 
 ** The key bar
 
@@ -170,7 +203,14 @@ Clock in from the editor (More ▸ Clock In, or Clock In in Commands) or from an
 - Clock Out
 - Cancel Clock
 - Go to Clocked Entry
+- Recent Entries
 - Clock Report
+
+Recent Entries, in the bar and in the editor's More menu, lists the recently clocked entries; tap one to clock in to it. It also has Clock In to Recent Entry… and Go to Recent Clocked Entry…, and is disabled until you have clocked in once. Commands has Clock In to Recent Entry…, Clock In to Last Entry, Go to Recent Clocked Entry…, Mark as Default Clock Task and Resolve Open Clocks….
+
+Clock questions open in a sheet: the task selection and the resolution keys as lists to tap, and minutes or a date and time as a field. Cancel answers nothing, as =q= does. Clocking in with no clock running first asks about open clocks in your folders, except from the agenda or a capture template; Resolve Open Clocks… asks about every open clock. Both work as on the Mac.
+
+The iOS app has no idle detection, so =org-clock-idle-time= doesn't apply. =org-clock-history-length= does.
 
 Clock Report shows the time per day and heading for the files you choose. It starts with the files that contain clock lines. Turn on Limit dates to choose a range. The share button sends the report as text.
 
@@ -231,20 +271,23 @@ Changes to the files apply as they sync, and again each time you return to the a
 
 Stop Using This Folder returns every setting to its default.
 
-The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting 3 days before today=), the reminder lead time, and the capture template keys in effect.
+The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting 3 days before today=), the reminder lead time, the capture template keys, the theme (=Default=, or the theme file's name), and the font with its size. When =font= names a family that isn't installed on the device, Font shows the system's font with a note, as =System monospaced, 13 pt (JetBrains Mono isn't installed)=.
 
 These settings from =config.toml= apply on iOS:
 
 - =org-todo-keywords=, =org-list-allow-alphabetical=
 - =org-tags-column=, =org-insert-heading-respect-content=, =org-M-RET-may-split-line=, =fill-column=
-- =org-hide-emphasis-markers= and =org-pretty-entities=, for how tag and table alignment and filling measure text, as on the Mac
+- =org-hide-emphasis-markers= and =org-pretty-entities=, for what hidden markup shows and for how tag and table alignment and filling measure text, as on the Mac
+- =show-markup=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-with-inline-images=, =org-startup-align-all-tables=, =org-startup-truncated=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=
+- =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
 - =org-use-speed-commands=, with a hardware keyboard
 - =electric-pair-mode=, =spell-check=
 - =org-agenda-span=, =org-agenda-start-day=, =agenda-include-subfolders=
 - =reminders=, =appt-message-warning-time=
+- =org-clock-history-length=
 
-=capture.toml= and =views.toml= in the folder apply too. Other settings, including =keymap=, =save=, the theme and font, and the startup settings (=org-startup-*=, =org-hide-leading-stars=, =org-cycle-hide-*-startup=), don't change what the iOS reader and editor show. See [[file:13-configuration.org][Configuration]].
+=capture.toml= and =views.toml= in the folder apply too. Other settings, including =keymap=, =save= and =org-clock-idle-time=, don't apply on iOS. See [[file:13-configuration.org][Configuration]].
 
 * Spotlight and Quick Look
 
@@ -257,7 +300,8 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 - Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond Orgstar's interpreter, and tables that need Emacs.
 - PDF, ODT, LaTeX and plain-text export.
 - The Mac and Doom keymaps, Vim keys, and =keymap.toml=.
-- Themes, fonts and font sizes. The iOS editor uses the default theme and the system's monospaced font at the Dynamic Type size.
+- The =selection= colour, code highlighting in src blocks, and =#+STARTUP: shrink=.
+- Idle detection while a clock runs.
 - Import from Emacs.
 - The board, column view, the backlinks pane, and the buffer list and tab bar.
 - The global capture hotkey and the Settings window.

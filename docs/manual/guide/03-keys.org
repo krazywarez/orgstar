@@ -96,7 +96,7 @@ Type part of a title; matching is fuzzy and the best matches come first. =Return
 
 The palette leaves out text-system movement and editing commands (Forward Character, Kill Line, Set Mark and the like), which only make sense from keys. Every other command is in it, including the ones no preset binds, such as Show or Hide Backlinks, Import Table from File…, Recovery Versions… and Delete Property…. Commands that cannot run at the caret show a message instead.
 
-The Org menu in the menu bar lists every =org.= command with its keys in the current keymap, and is a way to find a key without the palette.
+The Org menu in the menu bar lists every =org.= command with its keys in the current keymap, and is a way to find a key without the palette. Its Clock submenu lists the clock commands the same way, followed by the recently clocked entries.
 
 * Menu shortcuts
 
@@ -578,11 +578,15 @@ Besides the leader, the preset binds these evil-org and Doom keys in normal stat
 | =SPC m b i r= | Insert Table Row (=org.table.insert-row=) |
 | =SPC m b r= | Recalculate Table (=org.table.recalc-all=) |
 | =SPC m c E= | Set Effort (=org.effort.set=) |
+| =SPC m c G= | Go to Recent Clocked Entry… (=app.clock.goto-recent=) |
+| =SPC m c I= | Clock In to Last Entry (=app.clock.in-last=) |
 | =SPC m c R= | Clock Report (=app.clock.report=) |
 | =SPC m c c= | Cancel Clock (=app.clock.cancel=) |
+| =SPC m c d= | Mark as Default Clock Task (=app.clock.default=) |
 | =SPC m c g= | Go to Clocked Entry (=app.clock.goto=) |
 | =SPC m c i= | Clock In (=app.clock.in=) |
 | =SPC m c o= | Clock Out (=app.clock.out=) |
+| =SPC m c r= | Resolve Open Clocks… (=app.clock.resolve=) |
 | =SPC m d T= | Insert Inactive Timestamp (=org.timestamp.inactive=) |
 | =SPC m d d= | Set Deadline (=org.deadline=) |
 | =SPC m d s= | Schedule (=org.schedule=) |
@@ -686,7 +690,7 @@ With a hardware keyboard, the iOS app runs the Emacs preset's bindings, whatever
 - Option acts as Meta when the key starts a binding (=M-RET=, =M-<left>=); otherwise Option types characters as usual.
 - Keys with =⌘= are left to iOS.
 - Movement and editing keys bound to =edit.= commands (=C-a=, =C-e=, =C-k= and so on) are left to the iOS text system, except undo.
-- Of the =app.= commands only clock in, clock out, cancel clock and go to clocked entry run from keys. Other =app.= keys, and editor commands such as narrowing, show =Not available on iOS yet=.
+- Of the =app.= commands only the clock commands run from keys: =C-c C-x C-i=, =C-c C-x C-o=, =C-c C-x C-q=, =C-c C-x C-j=, =C-c C-x C-x= and =C-c C-x C-z=. Other =app.= keys, and editor commands such as narrowing, show =Not available on iOS yet=.
 - A sequence of two or more keys whose command cannot run at the caret runs it anyway and shows its message, as on the Mac (for example =Not on a heading=).
 - A pending prefix shows as a message, without key hints.
 
@@ -849,9 +853,14 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Timestamp One Day Earlier (=org.timestamp.day-earlier=) | =S-<left>= | =⌃⌘←= | =C-S-h= (N, I) | On a timestamp, moves it one day earlier (=org-timestamp-down-day=). |
 | Evaluate Time Range (=org.timestamp.evaluate-range=) | =C-c C-y= | — | — | Shows how long the time range lasts, or updates a clock line (=org-evaluate-time-range=). |
 | Clock In (=app.clock.in=) | =C-c C-x C-i= | =⌃⌘I= | =SPC m c i= (N) | Starts the clock on the current entry (=org-clock-in=). |
+| Clock In to Recent Entry… (=app.clock.in-recent=) | — | =⌃⌥⌘I= | — | Asks for an entry from the clock history and clocks in to it (=org-clock-in= with =C-u=). |
+| Clock In to Last Entry (=app.clock.in-last=) | =C-c C-x C-x= | — | =SPC m c I= (N) | Clocks in to the most recently clocked entry (=org-clock-in-last=). |
 | Clock Out (=app.clock.out=) | =C-c C-x C-o= | =⌃⇧⌘I= | =SPC m c o= (N) | Stops the clock (=org-clock-out=). |
 | Cancel Clock (=app.clock.cancel=) | =C-c C-x C-q= | — | =SPC m c c= (N) | Stops the clock and removes the running clock line (=org-clock-cancel=). |
-| Go to Clocked Entry (=app.clock.goto=) | =C-c C-x C-j= | =⌃⌘J= | =SPC m c g= (N) | Opens the entry the clock is running on (=org-clock-goto=). |
+| Go to Clocked Entry (=app.clock.goto=) | =C-c C-x C-j= | =⌃⌘J= | =SPC m c g= (N) | Opens the entry the clock is running on, or the most recently clocked one (=org-clock-goto=). |
+| Go to Recent Clocked Entry… (=app.clock.goto-recent=) | — | =⌃⌥⌘J= | =SPC m c G= (N) | Asks for an entry from the clock history and opens it (=org-clock-goto= with =C-u=). |
+| Mark as Default Clock Task (=app.clock.default=) | — | — | =SPC m c d= (N) | Makes the current entry the default task, =d= in the clock selection (=org-clock-mark-default-task=). |
+| Resolve Open Clocks… (=app.clock.resolve=) | =C-c C-x C-z= | — | =SPC m c r= (N) | Asks what to do with each open =CLOCK:= line in your folders (=org-resolve-clocks=). |
 | Clock Report (=app.clock.report=) | — | — | =SPC z t= (N), =SPC m c R= (N) | Opens the Clock Report window. |
 | Insert or Update Clock Table (=org.clock.report=) | =C-c C-x C-r= | — | — | Inserts a clock table, or updates the one at point (=org-clock-report=). |
 

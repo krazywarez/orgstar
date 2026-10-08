@@ -208,14 +208,21 @@ Effort appears in column view and in clock tables with =:properties ("Effort")=.
 
 Clocking records the time you work on an entry as =CLOCK:= lines in its =LOGBOOK= drawer.
 
-| Command              | Org command        | Emacs, Doom     | Mac    | Doom leader | Speed key |
-|----------------------+--------------------+-----------------+--------+-------------+-----------|
-| Clock In             | =org-clock-in=     | =C-c C-x C-i=   | =⌃⌘I=  | =SPC m c i= | =I=       |
-| Clock Out            | =org-clock-out=    | =C-c C-x C-o=   | =⌃⇧⌘I= | =SPC m c o= | =O=       |
-| Cancel Clock         | =org-clock-cancel= | =C-c C-x C-q=   |        | =SPC m c c= |           |
-| Go to Clocked Entry  | =org-clock-goto=   | =C-c C-x C-j=   | =⌃⌘J=  | =SPC m c g= |           |
+| Command                     | Org command                   | Emacs, Doom     | Mac     | Doom leader | Speed key |
+|-----------------------------+-------------------------------+-----------------+---------+-------------+-----------|
+| Clock In                    | =org-clock-in=                | =C-c C-x C-i=   | =⌃⌘I=   | =SPC m c i= | =I=       |
+| Clock In to Recent Entry…   | =org-clock-in= with =C-u=     |                 | =⌃⌥⌘I=  |             |           |
+| Clock In to Last Entry      | =org-clock-in-last=           | =C-c C-x C-x=   |         | =SPC m c I= |           |
+| Clock Out                   | =org-clock-out=               | =C-c C-x C-o=   | =⌃⇧⌘I=  | =SPC m c o= | =O=       |
+| Cancel Clock                | =org-clock-cancel=            | =C-c C-x C-q=   |         | =SPC m c c= |           |
+| Go to Clocked Entry         | =org-clock-goto=              | =C-c C-x C-j=   | =⌃⌘J=   | =SPC m c g= |           |
+| Go to Recent Clocked Entry… | =org-clock-goto= with =C-u=   |                 | =⌃⌥⌘J=  | =SPC m c G= |           |
+| Mark as Default Clock Task  | =org-clock-mark-default-task= |                 |         | =SPC m c d= |           |
+| Resolve Open Clocks…        | =org-resolve-clocks=          | =C-c C-x C-z=   |         | =SPC m c r= |           |
 
-The Mac preset has no key for Cancel Clock; run it from the command palette, or the clock menus described below. In the agenda, =I=, =O= and =X= clock in, out and cancel for the entry at the line ([[file:07-agenda.org][The agenda]]). Capture templates can clock in too ([[file:08-capture.org][Capture]]).
+The Emacs keys are Org's own, and work in the Doom preset too, as every =C-c= key does. Commands without a key in your preset are in the command palette and in Org ▸ Clock, which lists every clock command with its keys, followed by the recent entries. In the agenda, =I=, =O= and =X= clock in, out and cancel for the entry at the line ([[file:07-agenda.org][The agenda]]). Capture templates can clock in too ([[file:08-capture.org][Capture]]).
+
+Orgstar has no =C-u= forms of these commands. Clock In to Recent Entry… and Go to Recent Clocked Entry… stand for =C-u C-c C-x C-i= and =C-u C-c C-x C-j=.
 
 ** Clocking in and out
 
@@ -229,18 +236,19 @@ CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 15:30] =>  1:30
 :END:
 #+END_SRC
 
-- Only one clock runs at a time. Clocking in while another clock runs clocks that one out first.
+- Only one clock runs at a time. Clocking in while another clock runs clocks that one out first, and remembers it as the interrupted task (=i= in the selection below).
+- Clocking in on the entry whose clock is running changes nothing and says =Clock continues in "Write the report"=.
 - =CLOCK:= lines outside a drawer move into the new drawer the first time you clock in on that entry.
 - Clock Out completes the line with the end time and the duration in hours and minutes. Clocks of zero minutes are kept.
 - Cancel Clock removes the running clock's line, and the drawer if it is left empty.
-- Go to Clocked Entry opens the file and moves the caret to the running clock's line.
+- Go to Clocked Entry opens the file and moves the caret to the running clock's line. With no clock running, it goes to the most recently clocked entry and says "No running clock, this is the most recently clocked task".
 
-Orgstar remembers the running clock across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
+With no clock running, Clock In first asks about open clocks; see Open clocks below.
+
+Orgstar remembers the running clock and the clock history across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
 
 These parts of Org's clocking are not implemented:
 
-- clock history and the =C-u C-c C-x C-i= selection of recent tasks;
-- idle detection and resolving dangling clocks (=org-clock-idle-time=, =org-resolve-clocks=);
 - sharing the running clock with Emacs: Orgstar does not read or write Emacs's =org-clock-persist= file, so a clock started in one is not known to the other, although both see the open =CLOCK:= line;
 - rounding, changing the TODO state on clock-in (=org-clock-in-switch-to-state=), and clocking out when the entry is marked done (=org-clock-out-when-done=): the clock keeps running;
 - a =CLOCK_INTO_DRAWER= property or another drawer name: clocks always go into =LOGBOOK=.
@@ -253,7 +261,85 @@ While a clock runs, Orgstar shows it in three places, refreshed every 30 seconds
 - the window's toolbar;
 - the macOS menu bar, with the elapsed time.
 
-The time shown is the time since you clocked in, not the entry's total. Each of them opens a menu with Clock Out, Cancel Clock and Go to Clocked Entry; the menu bar item also has Clock Report.
+The time shown is the time since you clocked in, not the entry's total. Each of them opens a menu with Clock Out, Cancel Clock and Go to Clocked Entry. The toolbar's menu also has Clock In to Recent Entry…, Go to Recent Clocked Entry… and the recent entries. The menu bar item also has Clock In to Recent Entry…, Clock Report and a Recent Entries section. Choosing a recent entry clocks in to it.
+
+** Recent entries
+
+Orgstar keeps a clock history, as =org-clock-history=. Every clock-in, including one from the agenda or a capture template, puts the entry first in the history and removes its other entries there. The history holds =org-clock-history-length= entries (5 by default); the oldest go first.
+
+Entries are found again after edits by their =ID= property, else by the heading's position among the file's headings together with its title, else by the title alone. An entry that can't be found is dropped from the history the next time an entry is added, and left out of the selection.
+
+Clock In to Recent Entry… and Go to Recent Clocked Entry… ask for an entry in the echo area, as =org-clock-select-task= does. Each line shows its key, the entry's category padded to 12 characters, and the heading with its TODO keyword and priority, under these sections:
+
+| Key                  | Section                                         |
+|----------------------+-------------------------------------------------|
+| =d=                  | Default Task: the entry marked with Mark as Default Clock Task |
+| =i=                  | The task interrupted by starting the last one   |
+| =c=                  | Current Clocking Task                           |
+| =1= … =9=, =A=, =B=, … | Recent Tasks, most recent first               |
+
+Type a key to choose. =q=, =x= or =Esc= leave the question. With an empty history the commands say "No recent clock"; a key that isn't listed says "Invalid task choice X".
+
+Clock In to Last Entry clocks in to the first entry of the history, the same as =1=. With no clock running it says "Clocking back: Write the report (in work.org)"; with an empty history, "No last clock".
+
+Mark as Default Clock Task makes the heading at the caret the =d= entry and says "Default clock task: Write the report"; Org sets it without a message. As in Org, the default task lasts until you quit Orgstar.
+
+** Open clocks
+
+An open clock is a =CLOCK:= line with a start and no end. Org calls one that isn't the running clock dangling, for example after Orgstar or Emacs quit while it ran, or a line synced from another machine.
+
+When you clock in with no clock running, Orgstar first looks for open clocks in the org files of your folders and in the open buffers (=org-clock-auto-clock-resolution= set to =when-no-clock-is-running=), and asks about each one:
+
+#+BEGIN_EXAMPLE
+Dangling clock started 95 mins ago [jkKtTgGSscCiq]?
+#+END_EXAMPLE
+
+Resolve Open Clocks… asks the same about every open clock, the running one included, and says "No open clocks" when there are none. Clocking in from the agenda or a capture template doesn't look for open clocks first.
+
+Unlike Org, Orgstar doesn't show the clock's line while it asks; =j= opens it afterwards, except while clocking in.
+
+The answer is a key, as in =org-clock-resolve=. The idle time is the time since the clock started, for an open clock, or since you stopped using the Mac, for an idle one (see Idle time below).
+
+| Key            | What happens to the =CLOCK:= line                                                                   |
+|----------------+-----------------------------------------------------------------------------------------------------|
+| =j=            | Nothing; after Resolve Open Clocks… or the idle question, the line opens in the editor to adjust by hand. |
+| =k=            | Asks how many minutes of the idle time to keep, all of them by default. With all, the clock keeps running. With fewer, the line ends that many minutes after the idle time began, and a new clock starts now. |
+| =K=            | Asks the same, then ends the line after the minutes kept and leaves you clocked out.               |
+| =t=            | Like =k=, but asks for the date and time you got distracted; the line ends then.                    |
+| =T=            | Like =t=, then leaves you clocked out.                                                              |
+| =g=            | Asks how many minutes ago you got back, all of the idle time by default. The line ends when the idle time began, and a new clock starts that many minutes ago. |
+| =G=            | Like =g=, but leaves you clocked out: the line ends when the idle time began.                       |
+| =s=            | Subtracts the idle time: the line ends when the idle time began, and a new clock starts now.        |
+| =S=            | Subtracts the idle time and leaves you clocked out.                                                 |
+| =C=            | Removes the line, as though you never clocked in.                                                   |
+| =c=, =i=, =q=, =Esc= | Leaves the line as it is, keeping all the idle time.                                          |
+
+- =k=, =K=, =g= and =G= ask for minutes with the default in the question, as =Keep how many minutes (default 95):=; Return with an empty field takes the default.
+- =t= and =T= ask =Date+time:= with Org's date syntax, as =14:00= or =-1h=.
+- If the clock ran less than 45 seconds before the idle time began, =s= removes the line and starts a new clock now, and =S= removes it. For an open clock all its time is idle time, so =s= and =S= remove its line.
+- Any other key asks again.
+
+While clocking in, an answer never restarts the clock it resolves: where a key would start a new clock or keep one running, the line ends instead, and the clock you asked for starts. Resolving an open clock that isn't running with =k= and all the minutes, outside a clock-in, makes it the running clock.
+
+When =K=, =T= or =S= ends a clock outside a clock-in, the next clock-in asks:
+
+#+BEGIN_EXAMPLE
+You stopped another clock 12 mins ago; start this one from then? (y or n)
+#+END_EXAMPLE
+
+=y= starts the new clock when the old one ended.
+
+** Idle time
+
+On the Mac, set =org-clock-idle-time= to a number of minutes, or turn on Settings ▸ Agenda ▸ "Ask what to do with idle time while clocked in", to be asked about time away from the Mac. The default, =0=, never asks, as =nil= does in Emacs.
+
+While a clock runs, Orgstar checks every minute how long the Mac has had no keyboard or mouse input, in any app. Past the limit, it requests your attention, which bounces its Dock icon while another app is active, and asks in the echo area:
+
+#+BEGIN_EXAMPLE
+Clocked in & idle for 17.3 mins [jkKtTgGSscCiq]?
+#+END_EXAMPLE
+
+The keys are those in the table above, with the idle time starting when input stopped. The iOS app has no idle detection.
 
 ** Editing clock lines
 
