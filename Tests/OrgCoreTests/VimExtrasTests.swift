@@ -165,6 +165,8 @@ struct VimExtrasTests {
             ("a\nb\nc\nd\n", 2, "g q j"),
             ("a\nb\nc\n", 0, "V j g q"),
             ("a\nb\n\nc\nd\n", 0, "g q j j ."),
+            ("one  two   three\nfour  five \nsix\n", 0, "g q G"),
+            ("End.  Next  word, " + long + "  \nmore\n", 3, "g w j"),
         ]
     }()
 
@@ -201,6 +203,12 @@ struct VimExtrasTests {
               (dolist (d '("evil" "goto-chg" "evil-surround" "evil-org-mode")) (add-to-list 'load-path (concat \(lispString(repos.path)) "/" d)))
               (require 'evil)
               (require 'evil-surround)
+              (defun oracle-no-squeeze (fn &rest args)
+                (cl-letf* ((fill (symbol-function 'fill-region))
+                           ((symbol-function 'fill-region) (lambda (from to &optional justify _nosqueeze to-eop) (funcall fill from to justify t to-eop))))
+                  (apply fn args)))
+              (advice-add 'evil-fill :around #'oracle-no-squeeze)
+              (advice-add 'evil-fill-and-move :around #'oracle-no-squeeze)
               (setq kill-ring nil)
               (switch-to-buffer (current-buffer))
               \(org ? "(org-mode) (require 'evil-org) (evil-org-set-key-theme '(textobjects navigation)) (evil-org-mode 1)" : "")

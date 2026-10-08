@@ -302,8 +302,9 @@ extension EmacsBuffer {
         }
     }
 
-    /// `fill-region-as-paragraph` with left justification and adaptive fill.
-    func fillRegionAsParagraph(_ fromOffset: Int, _ toOffset: Int, prefix fixedPrefix: String? = nil) {
+    /// `fill-region-as-paragraph` with left justification and adaptive fill. With `nosqueeze`,
+    /// spaces between words and at the end stay.
+    func fillRegionAsParagraph(_ fromOffset: Int, _ toOffset: Int, prefix fixedPrefix: String? = nil, nosqueeze: Bool = false) {
         point = min(fromOffset, toOffset)
         let to = max(fromOffset, toOffset)
         skipForward(Self.whitespace)
@@ -349,13 +350,15 @@ extension EmacsBuffer {
             if character(at: at) == 10 { replace(at..<(at + 1), with: " ") }
             at += 1
         }
-        point = from
-        skipForward(Self.blanks)
-        canonicallySpace(point, toMarker.position)
-        point = toMarker.position
-        let end = point
-        skipBackward(Self.blanks)
-        if point < end { deleteRegion(point, end) }
+        if !nosqueeze {
+            point = from
+            skipForward(Self.blanks)
+            canonicallySpace(point, toMarker.position)
+            point = toMarker.position
+            let end = point
+            skipBackward(Self.blanks)
+            if point < end { deleteRegion(point, end) }
+        }
         point = from
         while point < toMarker.position {
             let lineBegin = point
@@ -469,7 +472,7 @@ extension EmacsBuffer {
 
     /// `fill-region` over whole lines: each paragraph's part of `from..<to` filled as a
     /// paragraph. Other elements stay.
-    func fillRegion(_ from: Int, _ to: Int) {
+    func fillRegion(_ from: Int, _ to: Int, nosqueeze: Bool = false) {
         var spans: [Range<Int>] = []
         var line = lineStart(from)
         while line < to, line < length {
@@ -486,7 +489,7 @@ extension EmacsBuffer {
             line = next
         }
         // Back to front, so the spans before stay where they are.
-        for span in spans.reversed() { fillRegionAsParagraph(span.lowerBound, span.upperBound) }
+        for span in spans.reversed() { fillRegionAsParagraph(span.lowerBound, span.upperBound, nosqueeze: nosqueeze) }
     }
 
     /// Where a paragraph's text starts: past affiliated keywords, and for a paragraph that
@@ -507,7 +510,8 @@ public struct FillParagraph: OrgCommand {
 
 /// evil's `gq` and `gw` operators: the paragraphs in `range`'s lines filled, as `fill-region`.
 /// With `keep` (`gw`) the caret stays there; without (`gq`) it goes to the first non-blank
-/// of the range's last line.
+/// of the range's last line. Spaces are not squeezed, as Doom's `+evil--no-squeeze-on-fill-a`
+/// has it.
 public struct FillRegion: OrgCommand {
     public let range: Range<Int>
     public let keep: Int?
@@ -524,7 +528,7 @@ public struct FillRegion: OrgCommand {
         commitBuffer(context) { buffer in
             let target = buffer.marker(keep ?? max(range.lowerBound, range.upperBound - 1))
             defer { buffer.release(target) }
-            buffer.fillRegion(range.lowerBound, range.upperBound)
+            buffer.fillRegion(range.lowerBound, range.upperBound, nosqueeze: true)
             buffer.point = target.position
             if keep == nil {
                 buffer.beginningOfLine()
