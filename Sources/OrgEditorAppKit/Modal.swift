@@ -3,6 +3,11 @@ import AppKit
 import OrgCore
 import OrgDocument
 
+/// An editor a file mark is in, gone when its buffer closes.
+struct WeakEditor {
+    weak var editor: OrgEditor?
+}
+
 /// Modal editing: keys go to the keymap for the current evil state first (leader keys,
 /// evil-org's org keys), then to `Vim`.
 extension OrgEditor {
@@ -67,10 +72,16 @@ extension OrgEditor {
             let wasInsert = vim.mode == .insert
             let visual = vim.mode == .visual || vim.mode == .visualLine
             let caret = visual ? (visualCaret ?? textView.selectedRange().location) : textView.selectedRange().location
+            if jumpToFileMark(key) { continue }
             let clipboard = NSPasteboard.general.string(forType: .string)
             var marks = vimMarks
+            for (name, mark) in Self.fileMarks where mark.owner.editor === self { marks[name] = mark.offset }
             if jumpIndex > 0, jumpIndex <= jumpList.count { marks["'"] = jumpList[jumpIndex - 1] }
+            vim.registers = Self.vimRegisters
+            vim.clipboardRecord = Self.vimClipboardRecord
             let actions = vim.feed(key, Vim.Context(text: document.text, caret: caret, clipboard: clipboard, halfPage: halfPage, marks: marks, visible: visibleText))
+            Self.vimRegisters = vim.registers
+            Self.vimClipboardRecord = vim.clipboardRecord
             apply(actions)
             if !wasInsert, vim.mode == .insert {
                 insertSnapshot = (document.text, textView.selectedRange().location)
@@ -83,13 +94,35 @@ extension OrgEditor {
         return true
     }
 
+    /// `'A` or `` `A `` for a file mark in another editor: that editor's buffer shows at the
+    /// mark. True when the key went there.
+    private func jumpToFileMark(_ key: KeyChord) -> Bool {
+        guard vim.mode == .normal, vim.pending.count == 1, let quote = vim.pending.first, quote == KeyChord("'") || quote == KeyChord("`"),
+              key.modifiers.isEmpty, key.key.count == 1, let name = key.key.first, name.isUppercase,
+              let mark = Self.fileMarks[name], let owner = mark.owner.editor, owner !== self else { return false }
+        vim.reset()
+        let ns = owner.document.text as NSString
+        var target = min(mark.offset, ns.length)
+        if quote == KeyChord("'") {
+            // The line's first non-blank.
+            target = ns.lineRange(for: NSRange(location: target, length: 0)).location
+            while target < ns.length, ns.character(at: target) == 32 || ns.character(at: target) == 9 { target += 1 }
+        }
+        onJumpToEditor?(owner, target)
+        return true
+    }
+
     /// Moves marks and jump positions through an edit.
     func mapVimPositions(through edit: TextEdit) {
-        guard !vimMarks.isEmpty || !jumpList.isEmpty else { return }
+        let owned = Self.fileMarks.filter { $0.value.owner.editor === self }
+        guard !vimMarks.isEmpty || !jumpList.isEmpty || !owned.isEmpty else { return }
         let names = Array(vimMarks.keys)
-        let mapped = ViewState(selection: names.map { vimMarks[$0]!..<vimMarks[$0]! } + jumpList.map { $0..<$0 }).mapped(through: [edit]).selection
+        let fileNames = Array(owned.keys)
+        let positions = names.map { vimMarks[$0]! } + fileNames.map { owned[$0]!.offset } + jumpList
+        let mapped = ViewState(selection: positions.map { $0..<$0 }).mapped(through: [edit]).selection
         for (i, name) in names.enumerated() { vimMarks[name] = mapped[i].lowerBound }
-        jumpList = mapped.dropFirst(names.count).map { $0.lowerBound }
+        for (i, name) in fileNames.enumerated() { Self.fileMarks[name]?.offset = mapped[names.count + i].lowerBound }
+        jumpList = mapped.dropFirst(names.count + fileNames.count).map { $0.lowerBound }
     }
 
     func insertTyped(_ key: KeyChord) {
@@ -175,7 +208,7 @@ extension OrgEditor {
             case .message(let text):
                 onMessage?(text)
             case .setMark(let name, let offset):
-                vimMarks[name] = offset
+                if name.isUppercase { Self.fileMarks[name] = (WeakEditor(editor: self), offset) } else { vimMarks[name] = offset }
             case .jumped(let from):
                 // A new jump drops the ones C-o went back past.
                 jumpList = Array(jumpList.prefix(jumpIndex))
@@ -202,12 +235,12 @@ extension OrgEditor {
                     onMessage?("Defining keyboard macro…")
                 } else if let register = recordingRegister {
                     // Without the `q` that ended it.
-                    macros[register] = Array(recordedKeys.dropLast())
+                    Self.macros[register] = Array(recordedKeys.dropLast())
                     recordingRegister = nil
                     onMessage?("Keyboard macro defined")
                 }
             case .playMacro(let name, let count):
-                guard let keys = macros[name], !keys.isEmpty else {
+                guard let keys = Self.macros[name], !keys.isEmpty else {
                     onMessage?("No macro in register \(name)")
                     continue
                 }

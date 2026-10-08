@@ -72,6 +72,41 @@ struct ModalTests {
         #expect(h.editor.vim.mode == .normal)
     }
 
+    @Test func registersAndMacrosAreShared() {
+        let a = doom("alpha beta\n")
+        let b = doom("one\ntwo\n")
+        a.caret(at: 0)
+        type(a, "\" r y w")
+        b.caret(at: 0)
+        type(b, "\" r P")
+        #expect(b.editor.document.text == "alpha one\ntwo\n")
+        type(a, "q m A ! ESC q")
+        type(b, "j @ m")
+        #expect(b.editor.document.text == "alpha one\ntwo!\n")
+    }
+
+    @Test func uppercaseMarksAreGlobal() {
+        let a = doom("first\n  second\n")
+        let b = doom("other\ntext\n")
+        var jumps: [(OrgEditor, Int)] = []
+        b.editor.onJumpToEditor = { jumps.append(($0, $1)) }
+        a.caret(at: 10)
+        type(a, "m Q m q")
+        b.caret(at: 0)
+        type(b, "' Q")
+        #expect(jumps.count == 1 && jumps.first?.0 === a.editor && jumps.first?.1 == 8)
+        type(b, "` Q")
+        #expect(jumps.last?.1 == 10)
+        // Lowercase marks stay in their buffer.
+        type(b, "j ' q")
+        #expect(b.textView.selectedRange().location == 6)
+        // In its own buffer the mark is an ordinary jump, and follows edits.
+        type(a, "g g O")
+        a.textView.insertText("new", replacementRange: a.textView.selectedRange())
+        type(a, "ESC ` Q")
+        #expect(a.textView.selectedRange().location == 14)
+    }
+
     @Test func zzSavesAndClosesAsWq() {
         let h = doom("text\n")
         var app: [String] = []

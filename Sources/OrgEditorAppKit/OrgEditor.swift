@@ -365,15 +365,23 @@ public final class OrgEditor: NSObject {
     var insertSnapshot: (text: String, caret: Int)?
     /// The evil cursor in visual states, where the selection's start isn't it.
     var visualCaret: Int?
-    /// Vim marks, mapped through edits.
+    /// Vim's lowercase marks, mapped through edits.
     var vimMarks: [Character: Int] = [:]
+    /// Uppercase marks, with the editor each is in: global, as evil's file marks are.
+    static var fileMarks: [Character: (owner: WeakEditor, offset: Int)] = [:]
+    /// Registers and keyboard macros, shared by every editor as evil's are global.
+    static var vimRegisters: [Character: (text: String, linewise: Bool)] = [:]
+    static var vimClipboardRecord: (text: String, linewise: Bool)?
+    static var macros: [Character: [KeyChord]] = [:]
+    /// Shows `editor`'s buffer with the caret at the offset, for a jump to a file mark set
+    /// there.
+    public var onJumpToEditor: ((OrgEditor, Int) -> Void)?
     /// Jump positions, oldest first, mapped through edits; `jumpIndex` is where C-o and C-i are.
     var jumpList: [Int] = []
     var jumpIndex = 0
     /// The register keys go into while `q` records, and its keys so far.
     var recordingRegister: Character?
     var recordedKeys: [KeyChord] = []
-    var macros: [Character: [KeyChord]] = [:]
     var replayingMacro = 0
     /// A region is active: movement extends the selection, as after C-SPC in Emacs.
     private(set) var markActive = false

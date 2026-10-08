@@ -51,7 +51,7 @@ struct EditorView: NSViewRepresentable {
             coordinator.path = session.path
             container.subviews.forEach { $0.removeFromSuperview() }
             coordinator.editor = nil
-            if let path = session.path, let shown = coordinator.editors[path] ?? makeEditor(container) {
+            if let path = session.path, let shown = coordinator.editors[path] ?? makeEditor(container, coordinator) {
                 coordinator.editors[path] = shown
                 shown.scroll.frame = container.bounds
                 container.addSubview(shown.scroll)
@@ -80,7 +80,7 @@ struct EditorView: NSViewRepresentable {
     }
 
     /// An editor for the current buffer, which becomes the buffer's live state.
-    private func makeEditor(_ container: NSView) -> (editor: OrgEditor, scroll: NSScrollView)? {
+    private func makeEditor(_ container: NSView, _ coordinator: Coordinator) -> (editor: OrgEditor, scroll: NSScrollView)? {
         guard let document = session.document else { return nil }
         let mode: OrgEditor.Mode = session.isOrg ? .org : .plain(language: session.path.flatMap(FileTypes.language))
         let editor = OrgEditor(document: document, frame: container.bounds, editable: document.isEditable, highlighter: Self.highlighter, mode: mode, options: options)
@@ -104,6 +104,11 @@ struct EditorView: NSViewRepresentable {
                 return
             }
             session?.open(target)
+        }
+        editor.onJumpToEditor = { [weak session, weak coordinator] other, offset in
+            guard let session, let path = coordinator?.editors.first(where: { $0.value.editor === other })?.key else { return }
+            session.open(path)
+            session.reveal(offset)
         }
         editor.onExternal = onExternal
         editor.knownTags = knownTags

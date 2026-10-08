@@ -76,9 +76,10 @@ public struct Vim: Sendable {
     public internal(set) var mode: Mode = .normal
     /// Keys of the command being typed.
     public private(set) var pending: [KeyChord] = []
-    var registers: [Character: (text: String, linewise: Bool)] = [:]
+    /// Named registers. Evil's are global: an editor with several engines shares them.
+    public var registers: [Character: (text: String, linewise: Bool)] = [:]
     /// What the clipboard held when this engine last wrote it, and whether that was whole lines.
-    var clipboardRecord: (text: String, linewise: Bool)?
+    public var clipboardRecord: (text: String, linewise: Bool)?
     var anchor = 0
     var goalColumn: Int?
     var lastFind: (kind: Character, char: String)?
