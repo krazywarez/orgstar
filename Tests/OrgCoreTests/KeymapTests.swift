@@ -153,6 +153,22 @@ struct KeymapTests {
         #expect(KeymapPreset.mac.keymap.keys(for: "org.deadline") == [KeyChord("e", [.control, .command])])
     }
 
+    /// The Mac preset reaches links, clocking, export and act-at-point without the palette.
+    @Test func macPresetCoversOrgAreas() {
+        let mac = KeymapPreset.mac.keymap
+        let expected: [(String, String)] = [
+            ("org.ctrl-c-ctrl-c", "C-s-x"), ("org.link.insert", "s-k"), ("org.link.open", "C-s-o"), ("org.link.store", "C-s-l"),
+            ("app.clock.in", "C-s-i"), ("app.clock.out", "C-s-I"), ("app.clock.goto", "C-s-j"), ("app.export-dialog", "s-E"),
+            ("org.narrow.toggle", "C-s-n"), ("org.sort", "C-s-S"), ("org.property.read-and-set", "C-s-P"),
+            ("org.footnote.action", "C-s-F"), ("org.edit-special", "C-s-'"), ("org.todo.next", "C-S-s-<right>"),
+            ("org.heading.forward-same-level", "M-S-s-<down>"), ("org.effort.set", "C-s-E"), ("org.priority.set", "C-s-,"),
+            ("org.babel.tangle", "C-s-v"),
+        ]
+        for (command, keys) in expected {
+            #expect(mac.keys(for: command).map(KeySequence.format) == keys, "\(command)")
+        }
+    }
+
     /// A binding whose keys start a longer live binding never runs: the dispatcher waits for more.
     @Test func presetsBindNoPrefixes() {
         for preset in KeymapPreset.allCases {

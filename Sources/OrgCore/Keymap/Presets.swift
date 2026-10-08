@@ -1225,5 +1225,89 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.timestamp.day-earlier"
         when = "timestamp"
 
+        # Act at point, links, clocking, export and the rest of C-c.
+        [[bind]]
+        keys = "C-s-x"
+        command = "org.ctrl-c-ctrl-c"
+        [[bind]]
+        keys = "C-s-x"
+        command = "org.dblock.update"
+        when = "dblock"
+        [[bind]]
+        keys = "C-s-x"
+        command = "org.table.recalc-all"
+        when = "tblfm"
+        [[bind]]
+        keys = "C-s-x"
+        command = "org.babel.execute"
+        when = "src"
+        [[bind]]
+        keys = "s-k"
+        command = "org.link.insert"
+        [[bind]]
+        keys = "C-s-o"
+        command = "org.link.open"
+        [[bind]]
+        keys = "C-s-l"
+        command = "org.link.store"
+        [[bind]]
+        keys = "C-s-i"
+        command = "app.clock.in"
+        [[bind]]
+        keys = "C-S-s-i"
+        command = "app.clock.out"
+        [[bind]]
+        keys = "C-s-j"
+        command = "app.clock.goto"
+        [[bind]]
+        keys = "s-S-e"
+        command = "app.export-dialog"
+        [[bind]]
+        keys = "C-s-n"
+        command = "org.narrow.toggle"
+        [[bind]]
+        keys = "C-S-s-s"
+        command = "org.sort"
+        [[bind]]
+        keys = "C-S-s-p"
+        command = "org.property.read-and-set"
+        [[bind]]
+        keys = "C-S-s-f"
+        command = "org.footnote.action"
+        [[bind]]
+        keys = "C-s-'"
+        command = "org.edit-special"
+        [[bind]]
+        keys = "C-S-s-<right>"
+        command = "org.todo.next"
+        when = "heading"
+        [[bind]]
+        keys = "C-S-s-<left>"
+        command = "org.todo.previous"
+        when = "heading"
+        [[bind]]
+        keys = "C-S-s-<right>"
+        command = "org.property.next-value"
+        when = "property"
+        [[bind]]
+        keys = "C-S-s-<left>"
+        command = "org.property.previous-value"
+        when = "property"
+        [[bind]]
+        keys = "M-S-s-<down>"
+        command = "org.heading.forward-same-level"
+        [[bind]]
+        keys = "M-S-s-<up>"
+        command = "org.heading.backward-same-level"
+        [[bind]]
+        keys = "C-S-s-e"
+        command = "org.effort.set"
+        [[bind]]
+        keys = "C-s-,"
+        command = "org.priority.set"
+        [[bind]]
+        keys = "C-s-v"
+        command = "org.babel.tangle"
+
         """
 }
