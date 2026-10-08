@@ -111,7 +111,7 @@ public struct PasteSubtree: OrgCommand {
 /// them.
 public struct CloneSubtree: OrgCommand {
     let newID: @Sendable () -> String
-    public init(newID: @escaping @Sendable () -> String = { UUID().uuidString }) { self.newID = newID }
+    public init(newID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() }) { self.newID = newID }
     public var id: String { "org.subtree.clone" }
     public var title: String { "Clone Subtree with Time Shift" }
     public func applies(in context: EditContext) -> Bool { entryHeading(at: context.caret, in: context.tree) != nil }

@@ -282,7 +282,7 @@ public struct InsertLink: OrgCommand {
 public struct CreateID: OrgCommand {
     let newID: @Sendable () -> String
 
-    public init(newID: @escaping @Sendable () -> String = { UUID().uuidString }) {
+    public init(newID: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() }) {
         self.newID = newID
     }
 

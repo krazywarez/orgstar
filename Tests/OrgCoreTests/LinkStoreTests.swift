@@ -209,4 +209,14 @@ struct LinkStoreTests {
         }
         #expect(ours == emacs)
     }
+
+    @Test(.enabled(if: oracle))
+    func createdIDsAreLowercaseUUIDsLikeOrgID() throws {
+        let uuid = "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        let emacs = try EmacsOracle.evaluate("* A\n", "(list (progn (require 'org-id) (org-id-uuid)))")
+        #expect(emacs.first?.range(of: uuid, options: .regularExpression) != nil, "\(emacs)")
+        let text = runCommand(CreateID(), "* A\n", caret: 0).text
+        let id = try #require(text.firstMatch(of: /:ID: +(\S+)/)?.1)
+        #expect(String(id).range(of: uuid, options: .regularExpression) != nil, "\(text)")
+    }
 }
