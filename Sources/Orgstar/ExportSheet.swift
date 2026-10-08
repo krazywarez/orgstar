@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// C-c C-e: the format, where the file goes, and whether to open it after.
+/// Export… (`app.export-dialog`): the format, where the file goes, and whether to open it after.
 struct ExportSheet: View {
     let source: URL
     let export: (_ format: String, _ destination: URL, _ open: Bool) -> Void

@@ -126,6 +126,17 @@ struct KeymapTests {
         #expect(KeymapPreset.mac.keymap.keys(for: "org.deadline") == [KeyChord("e", [.control, .command])])
     }
 
+    /// A binding whose keys start a longer live binding never runs: the dispatcher waits for more.
+    @Test func presetsBindNoPrefixes() {
+        for preset in KeymapPreset.allCases {
+            let keymap = preset.keymap
+            for binding in keymap.bindings where !binding.unbinds && keymap.isLive(binding) {
+                #expect(!keymap.isPrefix(binding.keys, mode: binding.mode),
+                        "\(preset): \(KeySequence.format(binding.keys)) (\(binding.command)) is also a prefix")
+            }
+        }
+    }
+
     @Test func shadowedBindingsShowNoKeys() throws {
         var problems: [String] = []
         let map = Keymap.layered([KeymapPreset.emacs.keymap, try Keymap(toml: "[[bind]]\nkeys = \"C-c C-t\"\ncommand = \"app.save\"\n", problems: &problems)])
