@@ -17,12 +17,56 @@ final class LockedRanges: @unchecked Sendable {
     func containing(_ offset: Int) -> Range<Int>? { lock.withLock { ranges.first { $0.contains(offset) } } }
 }
 
+/// What layout fragments draw beyond the text, read by TextKit's delegate callbacks.
+final class FragmentStyle: @unchecked Sendable {
+    private let lock = NSLock()
+    private var band: (color: UIColor, width: CGFloat) = (.clear, 0)
+
+    func set(blockBackground color: UIColor, width: CGFloat) { lock.withLock { band = (color, width) } }
+    var blockBand: (color: UIColor, width: CGFloat) { lock.withLock { band } }
+}
+
 /// A text view that offers hardware-keyboard presses to the editor's keymap first.
 final class KeyedTextView: UITextView {
     var keyHandler: ((UIKey) -> Bool)?
     /// Keys the editor took, whose release the text system doesn't see. Optional: made by
     /// UIKit's `init(usingTextLayoutManager:)`, the view skips Swift's default values.
     private var handled: Set<UIKeyboardHIDUsage>?
+    /// Called after each layout pass, as the view's size settles.
+    var onLayout: (() -> Void)?
+    /// The text container's width while lines are truncated.
+    static let truncatedWidth: CGFloat = 100_000
+
+    /// Long lines run off the right edge and the view scrolls sideways.
+    var truncates: Bool {
+        get { !textContainer.widthTracksTextView }
+        set {
+            textContainer.widthTracksTextView = !newValue
+            if newValue {
+                textContainer.size = CGSize(width: Self.truncatedWidth, height: CGFloat.greatestFiniteMagnitude)
+            } else {
+                textContainer.size = CGSize(width: bounds.width - textContainerInset.left - textContainerInset.right, height: CGFloat.greatestFiniteMagnitude)
+                contentOffset.x = 0
+            }
+            showsHorizontalScrollIndicator = newValue
+            setNeedsLayout()
+        }
+    }
+
+    override func layoutSubviews() {
+        // The text view sets its container's width to its own when it lays out.
+        if truncates, textContainer.size.width != Self.truncatedWidth {
+            textContainer.size = CGSize(width: Self.truncatedWidth, height: CGFloat.greatestFiniteMagnitude)
+        }
+        super.layoutSubviews()
+        // The text view sizes its content to its own width; truncated lines need the widest
+        // laid-out line's.
+        if truncates, let manager = textLayoutManager {
+            let width = ceil(manager.usageBoundsForTextContainer.maxX + textContainerInset.left + textContainerInset.right)
+            if contentSize.width < width { contentSize.width = width }
+        }
+        onLayout?()
+    }
 
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         var rest: Set<UIPress> = []
@@ -55,7 +99,29 @@ final class MobileEditor: NSObject, DocumentBuffer {
     private(set) var document: DocumentState
     let textView: UITextView
     var options: EditingOptions = .org {
-        didSet { textView.spellCheckingType = options.spellCheck ? .yes : .no }
+        didSet {
+            textView.spellCheckingType = options.spellCheck ? .yes : .no
+            if !showMarkup, options.hideEmphasisMarkers != oldValue.hideEmphasisMarkers || options.prettyEntities != oldValue.prettyEntities {
+                restyleAll()
+            }
+        }
+    }
+    /// Colors and type; a change, or a new Dynamic Type size, restyles the file.
+    var themeSpec: ThemeSpec {
+        get { theme.spec }
+        set {
+            let new = MobileTheme(newValue)
+            guard new.spec != theme.spec || new.font != theme.font else { return }
+            theme = new
+            paragraphStyles = [:]
+            applyThemeToView()
+            restyleAll()
+        }
+    }
+    /// Link brackets and targets, and emphasis markers when `org-hide-emphasis-markers` hides
+    /// them, shown. Hidden markup shows on the caret's line, so it can be edited.
+    var showMarkup = true {
+        didSet { if showMarkup != oldValue { restyleAll() } }
     }
     var keymap = KeymapPreset.emacs.keymap
     var onChange: (() -> Void)?
@@ -79,19 +145,44 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// Tags used across the workspace, for completion.
     var knownTags: @Sendable () -> [String] = { [] }
 
-    private let theme = MobileTheme()
+    private var theme: MobileTheme
     private(set) var fold = FoldState()
     private var globalVisibility: GlobalVisibility?
     let hidden = LockedRanges()
+    /// Blocks drawn on a band.
+    let shaded = LockedRanges()
+    let fragmentStyle = FragmentStyle()
+    /// `org-indent-mode` and `org-hide-leading-stars`, from the settings and `#+STARTUP`.
+    private var indented = true
+    private var hideStars = false
+    /// One paragraph style per indent pair.
+    private var paragraphStyles: [[Int]: NSParagraphStyle] = [:]
+    /// The line last revealed while markup is hidden, to hide again when the caret leaves.
+    private var revealedLine: NSRange?
+    /// `org-toggle-inline-images`: lines that are only an image link show the image.
+    private(set) var showsImages = false
+    /// The view width images were last sized for.
+    private var imageWidth: CGFloat = 0
+    /// The file's folder, for relative image paths.
+    let baseDirectory: URL?
+    private static let imageCache = NSCache<NSString, UIImage>()
     private var loading = false
     private var restyleScheduled: Range<Int>?
 
-    init(document: DocumentState, editable: Bool) {
+    init(
+        document: DocumentState, editable: Bool, options: EditingOptions = .org, theme spec: ThemeSpec = .default,
+        showMarkup: Bool = true, baseDirectory: URL? = nil
+    ) {
         self.document = document
+        self.options = options
+        self.showMarkup = showMarkup
+        self.baseDirectory = baseDirectory
+        theme = MobileTheme(spec)
         let keyed = KeyedTextView(usingTextLayoutManager: true)
         textView = keyed
         super.init()
         keyed.keyHandler = { [weak self] key in self?.handleKey(key) ?? false }
+        keyed.onLayout = { [weak self] in self?.viewResized() }
         textView.isEditable = editable
         textView.autocorrectionType = .no
         textView.autocapitalizationType = .none
@@ -106,11 +197,15 @@ final class MobileEditor: NSObject, DocumentBuffer {
         textView.textStorage.delegate = self
         textView.textLayoutManager?.delegate = self
         (textView.textLayoutManager?.textContentManager as? NSTextContentStorage)?.delegate = self
+        let startup = Presentation.startupDisplay(document.tree, options: options)
+        indented = startup.indented
+        hideStars = startup.hideStars
+        showsImages = startup.inlineImages
+        applyThemeToView()
         load(document.text)
-        let tree = document.tree
-        var state = Presentation.applyVisibilityProperties(Presentation.startupFoldState(tree) ?? FoldState(), in: tree)
-        state.wrapperFolds = Presentation.startupWrapperFolds(tree)
-        setFolds(state)
+        setFolds(startup.folds)
+        if startup.alignTables { _ = perform(AlignAllTables()) }
+        truncatesLines = startup.truncated
         textView.selectedRange = NSRange(location: 0, length: 0)
     }
 
@@ -215,6 +310,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
             if !cycleAtCaret() { onMessage?("Not on a heading, drawer or block") }
         case "org.cycle-global": cycleGlobal()
         case "org.link.open": openLinkAtCaret()
+        case "org.toggle-inline-images": toggleImages()
+        case "editor.toggle-truncate-lines":
+            truncatesLines.toggle()
+            onMessage?(truncatesLines ? "Truncate long lines enabled" : "Truncate long lines disabled")
         case "edit.undo": textView.undoManager?.undo()
         case "edit.redo": textView.undoManager?.redo()
         case _ where id.hasPrefix("app."):
@@ -233,8 +332,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         switch id {
         case "org.cycle":
             return Presentation.heading(containing: context.caret, in: context.tree) != nil || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
-        case "org.cycle-global", "edit.undo", "edit.redo": return true
-        case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto": return onAppCommand != nil
+        case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "editor.toggle-truncate-lines": return true
+        case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.toggle-markup": return onAppCommand != nil
         case "org.link.open": return OpenLinkAtPoint().applies(in: context)
         default: return false
         }
@@ -382,8 +481,36 @@ final class MobileEditor: NSObject, DocumentBuffer {
         loading = true
         textView.textStorage.setAttributedString(NSAttributedString(string: text, attributes: theme.base))
         loading = false
+        shaded.set(Presentation.shadedBlocks(document.tree), folded: [])
         restyle(0..<(text as NSString).length)
         textView.typingAttributes = theme.base
+    }
+
+    /// The text view's own colors, and the block band's.
+    private func applyThemeToView() {
+        textView.backgroundColor = theme.color("background") ?? .systemBackground
+        textView.tintColor = theme.color("cursor")
+        textView.typingAttributes = theme.base
+        fragmentStyle.set(blockBackground: theme.color("block-background") ?? .clear, width: textView.bounds.width)
+    }
+
+    /// The band behind blocks spans the view's width, or the widest line's when truncated;
+    /// images are as wide as the view allows.
+    private func viewResized() {
+        let band = fragmentStyle.blockBand
+        let width = max(textView.bounds.width, truncatesLines ? textView.contentSize.width : 0)
+        let resized = imageWidth != textView.bounds.width
+        guard band.width != width || resized else { return }
+        fragmentStyle.set(blockBackground: band.color, width: width)
+        imageWidth = textView.bounds.width
+        if showsImages, resized { restyle(0..<textView.textStorage.length) }
+        if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+    }
+
+    /// Styles the whole file again.
+    private func restyleAll() {
+        restyle(0..<textView.textStorage.length)
+        if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
     }
 
     /// Styles are set after the edit has been processed, as TextKit asks.
@@ -396,6 +523,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         DispatchQueue.main.async { [weak self] in
             guard let self, let range = self.restyleScheduled else { return }
             self.restyleScheduled = nil
+            self.shaded.set(Presentation.shadedBlocks(self.document.tree), folded: [])
             // Small files are restyled whole: a heading or block line changes what follows it.
             let length = self.textView.textStorage.length
             self.restyle(length < 60_000 ? 0..<length : range)
@@ -404,19 +532,169 @@ final class MobileEditor: NSObject, DocumentBuffer {
         }
     }
 
+    private var caretLine: NSRange {
+        let text = textView.textStorage.string as NSString
+        return text.lineRange(for: NSRange(location: min(textView.selectedRange.location, text.length), length: 0))
+    }
+
+    /// Sets attributes for the whole lines in `range`, as the Mac editor does.
     private func restyle(_ range: Range<Int>) {
         let storage = textView.textStorage
         let ns = storage.string as NSString
         guard ns.length > 0 else { return }
         let lower = min(range.lowerBound, ns.length)
         let lines = ns.lineRange(for: NSRange(location: lower, length: min(range.count, ns.length - lower)))
+        let whole = lines.location..<NSMaxRange(lines)
         storage.beginEditing()
         storage.setAttributes(theme.base, range: lines)
-        for run in Presentation.styles(document.tree, in: lines.location..<NSMaxRange(lines)) {
-            let clipped = NSIntersectionRange(NSRange(location: run.range.lowerBound, length: run.range.count), lines)
-            if clipped.length > 0 { theme.apply(run.role, to: storage, range: clipped) }
+        if indented {
+            for line in Presentation.lineIndents(document.tree, in: whole) {
+                storage.addAttribute(.paragraphStyle, value: paragraphStyle(line.firstLine, line.wrapped), range: NSRange(line.range))
+            }
         }
+        let revealed = caretLine
+        var scriptExclusions: [Range<Int>] = []
+        for run in Presentation.styles(document.tree, in: whole) {
+            let clipped = NSIntersectionRange(NSRange(run.range), lines)
+            guard clipped.length > 0 else { continue }
+            if Presentation.skipsLeadingStars(run.role, indented: indented, hideStars: hideStars) { continue }
+            if !showMarkup, Presentation.hidesWithMarkup(run.role, options: options), NSIntersectionRange(clipped, revealed).length == 0 {
+                storage.addAttributes(theme.hidden, range: clipped)
+            } else {
+                theme.apply(run.role, to: storage, range: clipped)
+            }
+            if Presentation.excludesScripts(run.role) { scriptExclusions.append(run.range) }
+        }
+        if !showMarkup, options.prettyEntities { prettify(whole, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
+        applyImages(whole, in: storage, revealed: revealed)
         storage.endEditing()
+    }
+
+    private func paragraphStyle(_ firstLine: Int, _ wrapped: Int) -> NSParagraphStyle {
+        if let style = paragraphStyles[[firstLine, wrapped]] { return style }
+        let style = theme.paragraphStyle(firstLine: firstLine, wrapped: wrapped)
+        paragraphStyles[[firstLine, wrapped]] = style
+        return style
+    }
+
+    /// `org-pretty-entities`: entities drawn as their character over the entity's last
+    /// character (the rest hidden), sub/superscripts raised without their markers.
+    private func prettify(_ range: Range<Int>, in storage: NSTextStorage, revealed: NSRange, scriptExclusions: [Range<Int>]) {
+        let runs = Presentation.prettyRuns(
+            storage.string as NSString, in: range, revealedLine: revealed.location, inBlock: { shaded.containing($0) != nil },
+            scriptExclusions: scriptExclusions, subSuperscriptsNeedBraces: options.subSuperscriptsNeedBraces
+        )
+        for (lineStart, run) in runs {
+            switch run {
+            case .entity(let r, let display):
+                let start = lineStart + r.lowerBound
+                let last = lineStart + r.upperBound - 1
+                let color = storage.attribute(.foregroundColor, at: last, effectiveRange: nil) as? UIColor ?? theme.foreground
+                if last > start { storage.addAttributes(theme.hidden, range: NSRange(location: start, length: last - start)) }
+                storage.addAttributes([.foregroundColor: UIColor.clear, .orgEntityDisplay: display, .orgEntityColor: color], range: NSRange(location: last, length: 1))
+            case .script(let markers, let body, let superscript):
+                for marker in markers {
+                    storage.addAttributes(theme.hidden, range: NSRange(location: lineStart + marker.lowerBound, length: marker.count))
+                }
+                let size = theme.font.pointSize
+                storage.addAttributes([
+                    .font: theme.font.withSize(size * 0.7),
+                    .baselineOffset: (superscript ? 0.3 : -0.3) * size,
+                ], range: NSRange(location: lineStart + body.lowerBound, length: body.count))
+            }
+        }
+    }
+
+    /// Moving to another line shows its markup and hides the last one's.
+    private func revealCaretLine() {
+        guard !showMarkup else { return }
+        let line = caretLine
+        guard line != revealedLine else { return }
+        let text = textView.textStorage.string as NSString
+        // The old line may have moved with edits since; restyle the line now at its start.
+        let old = revealedLine.flatMap { $0.location <= text.length ? text.lineRange(for: NSRange(location: $0.location, length: 0)) : nil }
+        revealedLine = line
+        for range in [old, line].compactMap({ $0 }) {
+            restyle(range.location..<NSMaxRange(range))
+        }
+    }
+
+    // MARK: - Inline images
+
+    private func toggleImages() {
+        showsImages.toggle()
+        restyleAll()
+        if showsImages {
+            let ns = textView.textStorage.string as NSString
+            var count = 0
+            var offset = 0
+            while offset < ns.length {
+                let line = ns.lineRange(for: NSRange(location: offset, length: 0))
+                if let image = InlineImages.image(atLine: line.location, in: ns), loadImage(image.path) != nil { count += 1 }
+                offset = NSMaxRange(line)
+            }
+            onMessage?("\(count) images displayed inline")
+        } else {
+            onMessage?("Inline image display turned off")
+        }
+    }
+
+    private func loadImage(_ path: String) -> UIImage? {
+        let expanded = (path as NSString).expandingTildeInPath
+        let url: URL
+        if expanded.hasPrefix("/") {
+            url = URL(fileURLWithPath: expanded)
+        } else if let baseDirectory {
+            url = baseDirectory.appendingPathComponent(expanded)
+        } else {
+            return nil
+        }
+        let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?.timeIntervalSince1970 ?? 0
+        let key = "\(url.path)|\(modified)" as NSString
+        if let cached = Self.imageCache.object(forKey: key) { return cached }
+        guard let image = UIImage(contentsOfFile: url.path) else { return nil }
+        Self.imageCache.setObject(image, forKey: key)
+        return image
+    }
+
+    /// Image lines in `range` show the image over the link, which is hidden unless the caret is
+    /// on the line.
+    private func applyImages(_ range: Range<Int>, in storage: NSTextStorage, revealed: NSRange) {
+        guard showsImages else { return }
+        let text = storage.string as NSString
+        let inset = textView.textContainerInset
+        let maxWidth = max(80, textView.bounds.width - inset.left - inset.right - 40)
+        var location = range.lowerBound
+        while location < range.upperBound, location < text.length {
+            let line = text.lineRange(for: NSRange(location: location, length: 0))
+            location = NSMaxRange(line)
+            guard let image = InlineImages.image(atLine: line.location, in: text), let picture = loadImage(image.path) else { continue }
+            let width = min(image.width.map(CGFloat.init) ?? picture.size.width, maxWidth)
+            let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0
+            let content = NSRange(location: line.location, length: line.length - (text.substring(with: line).hasSuffix("\n") ? 1 : 0))
+            // Invisible, keeping the line's height.
+            if line.location != revealed.location, content.length > 0 {
+                storage.addAttributes([.foregroundColor: UIColor.clear, .underlineStyle: 0], range: content)
+            }
+            storage.addAttribute(.orgImage, value: InlineImageBox(image: picture, size: CGSize(width: width, height: height)), range: NSRange(location: line.location, length: max(1, content.length)))
+            let style = (storage.attribute(.paragraphStyle, at: line.location, effectiveRange: nil) as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+            // The image sits where the line is; the spacing makes room for the rest of it.
+            style.paragraphSpacing = max(0, height + 4 - theme.font.lineHeight)
+            storage.addAttribute(.paragraphStyle, value: style, range: line)
+        }
+    }
+
+    // MARK: - Truncation
+
+    /// `toggle-truncate-lines`: long lines run off the right edge, scrolling sideways, instead
+    /// of wrapping.
+    var truncatesLines: Bool {
+        get { (textView as? KeyedTextView)?.truncates ?? false }
+        set {
+            guard newValue != truncatesLines, let view = textView as? KeyedTextView else { return }
+            view.truncates = newValue
+            if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+        }
     }
 
     // MARK: - Folding
@@ -478,6 +756,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
     fileprivate func selectionChanged() {
         let caret = textView.selectedRange.location
         if hidden.containing(caret) != nil { unfold(around: caret) }
+        revealCaretLine()
     }
 }
 
@@ -530,36 +809,124 @@ extension MobileEditor: NSTextContentStorageDelegate {
 }
 
 extension MobileEditor: NSTextLayoutManagerDelegate {
-    /// Folded headings, drawers and blocks end with `…`.
+    /// Folded headings, drawers and blocks end with `…`; blocks are on a band; image lines
+    /// show their image; pretty entities draw their character.
     nonisolated func textLayoutManager(
         _ textLayoutManager: NSTextLayoutManager, textLayoutFragmentFor location: NSTextLocation, in textElement: NSTextElement
     ) -> NSTextLayoutFragment {
         let range = textElement.elementRange
-        if let range, let manager = textLayoutManager.textContentManager {
-            let offset = manager.offset(from: manager.documentRange.location, to: range.location)
-            if hidden.isFolded(offset) { return FoldedLineFragment(textElement: textElement, range: range) }
-        }
-        return NSTextLayoutFragment(textElement: textElement, range: range)
+        guard let range, let manager = textLayoutManager.textContentManager else { return NSTextLayoutFragment(textElement: textElement, range: range) }
+        let offset = manager.offset(from: manager.documentRange.location, to: range.location)
+        let folded = hidden.isFolded(offset)
+        let band = shaded.containing(offset) != nil ? fragmentStyle.blockBand : nil
+        let string = (textElement as? NSTextParagraph)?.attributedString
+        let image = string.flatMap(OrgLineFragment.image)
+        let entities = string.map(OrgLineFragment.hasEntities) ?? false
+        guard folded || band != nil || image != nil || entities else { return NSTextLayoutFragment(textElement: textElement, range: range) }
+        let fragment = OrgLineFragment(textElement: textElement, range: range)
+        fragment.folded = folded
+        fragment.band = band
+        fragment.image = image
+        return fragment
     }
 }
 
-/// A folded line drawn with an ellipsis after it, like org's folded headings.
-final class FoldedLineFragment: NSTextLayoutFragment, @unchecked Sendable {
-    override func draw(at point: CGPoint, in context: CGContext) {
-        super.draw(at: point, in: context)
-        guard let line = textLineFragments.first(where: { $0.characterRange.length > 0 }) ?? textLineFragments.first else { return }
-        let bounds = line.typographicBounds
-        let ellipsis = NSAttributedString(string: " …", attributes: [
-            .font: UIFont.monospacedSystemFont(ofSize: UIFont.systemFontSize, weight: .regular),
-            .foregroundColor: UIColor.secondaryLabel,
-        ])
-        UIGraphicsPushContext(context)
-        ellipsis.draw(at: CGPoint(x: point.x + bounds.maxX, y: point.y + bounds.minY))
-        UIGraphicsPopContext()
+extension NSAttributedString.Key {
+    /// The character an entity shows as, on the entity's last character.
+    static let orgEntityDisplay = NSAttributedString.Key("OrgEntityDisplay")
+    /// The color the entity's character is drawn in.
+    static let orgEntityColor = NSAttributedString.Key("OrgEntityColor")
+    /// The image an image link's line shows under it.
+    static let orgImage = NSAttributedString.Key("OrgImage")
+}
+
+final class InlineImageBox: NSObject, @unchecked Sendable {
+    let image: UIImage
+    let size: CGSize
+    init(image: UIImage, size: CGSize) {
+        self.image = image
+        self.size = size
+    }
+}
+
+/// A line drawn with more than its text, as the Mac editor's fragments draw them: a folded
+/// line's ellipsis, a block's band across the view, an image under an image link, and pretty
+/// entities' characters where the entities' last (invisible) characters sit.
+final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
+    var folded = false
+    var band: (color: UIColor, width: CGFloat)?
+    var image: InlineImageBox?
+
+    static func image(_ string: NSAttributedString) -> InlineImageBox? {
+        var found: InlineImageBox?
+        string.enumerateAttribute(.orgImage, in: NSRange(location: 0, length: string.length)) { value, _, stop in
+            if let box = value as? InlineImageBox { found = box; stop.pointee = true }
+        }
+        return found
+    }
+
+    static func hasEntities(_ string: NSAttributedString) -> Bool {
+        var found = false
+        string.enumerateAttribute(.orgEntityDisplay, in: NSRange(location: 0, length: string.length)) { value, _, stop in
+            if value != nil { found = true; stop.pointee = true }
+        }
+        return found
+    }
+
+    private var bandRect: CGRect? {
+        guard let band else { return nil }
+        // Not under the empty line TextKit adds after a final newline.
+        let height = textLineFragments.last { $0.characterRange.length > 0 }?.typographicBounds.maxY ?? layoutFragmentFrame.height
+        return CGRect(x: -layoutFragmentFrame.minX, y: 0, width: max(band.width, layoutFragmentFrame.maxX), height: height)
+    }
+
+    private var imageRect: CGRect? {
+        guard let image, let line = textLineFragments.first else { return nil }
+        return CGRect(x: line.typographicBounds.minX, y: line.typographicBounds.minY + 2, width: image.size.width, height: image.size.height)
     }
 
     override var renderingSurfaceBounds: CGRect {
-        super.renderingSurfaceBounds.insetBy(dx: -40, dy: 0).offsetBy(dx: 40, dy: 0)
+        var bounds = super.renderingSurfaceBounds
+        if folded { bounds = bounds.insetBy(dx: -40, dy: 0).offsetBy(dx: 40, dy: 0) }
+        for rect in [bandRect, imageRect].compactMap({ $0 }) { bounds = bounds.union(rect) }
+        return bounds
+    }
+
+    override func draw(at point: CGPoint, in context: CGContext) {
+        if let band, let rect = bandRect {
+            context.saveGState()
+            context.setFillColor(band.color.cgColor)
+            context.fill(rect.offsetBy(dx: point.x, dy: point.y))
+            context.restoreGState()
+        }
+        super.draw(at: point, in: context)
+        UIGraphicsPushContext(context)
+        defer { UIGraphicsPopContext() }
+        drawEntities(at: point)
+        if let image, let rect = imageRect { image.image.draw(in: rect.offsetBy(dx: point.x, dy: point.y)) }
+        if folded, let line = textLineFragments.first(where: { $0.characterRange.length > 0 }) ?? textLineFragments.first {
+            let bounds = line.typographicBounds
+            let ellipsis = NSAttributedString(string: " …", attributes: [
+                .font: UIFont.monospacedSystemFont(ofSize: UIFont.systemFontSize, weight: .regular),
+                .foregroundColor: UIColor.secondaryLabel,
+            ])
+            ellipsis.draw(at: CGPoint(x: point.x + bounds.maxX, y: point.y + bounds.minY))
+        }
+    }
+
+    private func drawEntities(at point: CGPoint) {
+        guard let string = (textElement as? NSTextParagraph)?.attributedString else { return }
+        string.enumerateAttribute(.orgEntityDisplay, in: NSRange(location: 0, length: string.length)) { value, range, _ in
+            guard let display = value as? String,
+                  let line = textLineFragments.first(where: { NSLocationInRange(range.location, $0.characterRange) }) else { return }
+            var attributes = string.attributes(at: range.location, effectiveRange: nil)
+            attributes[.foregroundColor] = attributes[.orgEntityColor] ?? UIColor.label
+            attributes[.orgEntityDisplay] = nil
+            attributes[.orgEntityColor] = nil
+            let x = line.locationForCharacter(at: range.location).x
+            let bounds = line.typographicBounds
+            NSAttributedString(string: display, attributes: attributes).draw(at: CGPoint(x: point.x + bounds.minX + x, y: point.y + bounds.minY))
+        }
     }
 }
 #endif

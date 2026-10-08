@@ -4,7 +4,9 @@ import Observation
 import OrgApp
 import OrgCore
 import OrgIndex
+import OrgPresentation
 import OrgWorkspace
+import UIKit
 
 /// The app's models, and the settings from the configuration folder: a folder you choose
 /// (a synced copy of the Mac's `~/.config/orgstar`) with `config.toml` and `capture.toml`.
@@ -36,7 +38,13 @@ final class MobileModel {
     }
     /// Bumped when settings apply, so views that read them update.
     private(set) var settingsVersion = 0
+    /// The theme from `config.toml` and its theme file, with the type settings.
+    private(set) var theme = ThemeSpec.default
+    /// `show-markup`, toggled in the editor; the folder's value applies when it changes.
+    var showMarkup = false
+    @ObservationIgnored private var configShowMarkup: Bool?
     @ObservationIgnored private var presenter: FolderPresenter?
+    @ObservationIgnored private var sizeObserver: NSObjectProtocol?
 
     private static let bookmarkKey = "configFolderBookmark"
 
@@ -44,7 +52,7 @@ final class MobileModel {
         // Development: `ORGSTAR_CONFIG_DIR` stands in for a chosen folder.
         let folder = Self.resolveBookmark() ?? ProcessInfo.processInfo.environment["ORGSTAR_CONFIG_DIR"].map { URL(fileURLWithPath: $0) }
         UserConfig.directoryOverride = folder
-        let problems = Self.readConfig(folder)
+        let (problems, colors) = Self.readConfig(folder)
         let settings = OrgPreferences.orgSettings()
         do {
             let workspace = try WorkspaceModel(directory: WorkspaceModel.defaultDirectory, settings: .with(todoKeywords: settings))
@@ -58,9 +66,13 @@ final class MobileModel {
         }
         configFolder = folder
         configProblems = problems
-        applySettings()
+        applySettings(colors)
         shareTemplates()
         watchConfig()
+        // A new Dynamic Type size restyles editors and the reader.
+        sizeObserver = NotificationCenter.default.addObserver(forName: UIContentSizeCategory.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.settingsVersion += 1 }
+        }
     }
 
     /// Chooses the configuration folder, or with nil stops using one; its settings apply now.
@@ -80,12 +92,19 @@ final class MobileModel {
 
     func reloadConfig() {
         UserConfig.directoryOverride = configFolder
-        configProblems = Self.readConfig(configFolder)
-        applySettings()
+        let (problems, colors) = Self.readConfig(configFolder)
+        configProblems = problems
+        applySettings(colors)
         shareTemplates()
     }
 
-    private func applySettings() {
+    private func applySettings(_ colors: ThemeSpec) {
+        theme = OrgPreferences.theme(colors)
+        let markup = OrgPreferences.showMarkup()
+        if markup != configShowMarkup {
+            configShowMarkup = markup
+            showMarkup = markup
+        }
         let settings = OrgPreferences.orgSettings()
         session.defaults = settings
         session.options = OrgPreferences.options()
@@ -124,17 +143,28 @@ final class MobileModel {
         return url
     }
 
-    /// Applies the folder's `config.toml` to the settings; returns its problems.
-    private static func readConfig(_ folder: URL?) -> [String] {
-        guard let folder else { return [] }
-        let file = folder.appendingPathComponent("config.toml")
+    /// Applies the folder's `config.toml` to the settings; returns its problems and the theme's
+    /// colors.
+    private static func readConfig(_ folder: URL?) -> ([String], ThemeSpec) {
+        guard let folder else { return ([], .default) }
+        guard let text = read(folder.appendingPathComponent("config.toml")) else {
+            return (["No config.toml in \(folder.lastPathComponent); the defaults apply."], .default)
+        }
+        let problems = UserConfig.apply(text, to: .standard)
+        guard let theme = UserConfig.theme(config: text, themeFile: UserDefaults.standard.string(forKey: "themeFile"), in: folder, read: read) else {
+            return (problems, .default)
+        }
+        return (problems + theme.problems, theme.theme)
+    }
+
+    /// A file of the folder, read in coordination with the app that syncs it.
+    private static func read(_ file: URL) -> String? {
         var text: String?
         var error: NSError?
         NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: file, options: [], error: &error) { url in
             text = try? String(contentsOf: url, encoding: .utf8)
         }
-        guard let text else { return ["No config.toml in \(folder.lastPathComponent); the defaults apply."] }
-        return UserConfig.apply(text, to: .standard)
+        return text
     }
 
     /// Notifications for the next week's timed entries, at most 64, as iOS allows.

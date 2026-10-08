@@ -67,6 +67,9 @@ struct EditorScreen: View {
                 Menu("More", systemImage: "ellipsis.circle") {
                     Button("Commands", systemImage: "command") { sheet = .palette }
                     Button("Clock In", systemImage: "stopwatch") { editor?.run("app.clock.in") }
+                    Toggle(isOn: Binding(get: { model.showMarkup }, set: { model.showMarkup = $0 })) {
+                        Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
                     if let text = session.document?.text, session.path == path { ExportMenu(path: path, text: text) }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
@@ -118,6 +121,11 @@ struct EditorScreen: View {
         .onChange(of: session.revealRequest?.id) {
             if let offset = session.revealRequest?.offset, session.path == path { editor?.reveal(offset) }
         }
+        .onChange(of: model.settingsVersion) {
+            editor?.options = session.options
+            editor?.themeSpec = model.theme
+        }
+        .onChange(of: model.showMarkup) { editor?.showMarkup = model.showMarkup }
         .onDisappear {
             // Typing the reader shows next, and a save, don't wait for the autosave delay.
             if session.dirtyPaths.contains(path) { _ = session.save(path) }
@@ -146,8 +154,10 @@ struct EditorScreen: View {
     private func start() {
         if session.path != path { session.open(path) }
         if editor == nil, let document = session.document {
-            let editor = MobileEditor(document: document, editable: document.isEditable)
-            editor.options = session.options
+            let editor = MobileEditor(
+                document: document, editable: document.isEditable, options: session.options, theme: model.theme,
+                showMarkup: model.showMarkup, baseDirectory: URL(fileURLWithPath: path).deletingLastPathComponent()
+            )
             editor.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
             editor.onChange = { [weak session] in session?.bufferChanged(path) }
             editor.onMessage = { message = $0 }
@@ -171,6 +181,7 @@ struct EditorScreen: View {
                 case "app.clock.cancel": message = clock.clockOut(session, cancel: true)
                 case "app.clock.goto":
                     if let location = clock.location(session) { model.openRequest = .offset(location.path, location.offset) } else { message = "No active clock" }
+                case "app.toggle-markup": model.showMarkup.toggle()
                 default: message = "Not available on iOS yet"
                 }
             }
@@ -401,7 +412,8 @@ struct CommandPalette: View {
         ("org.cycle", "Cycle Visibility"), ("org.cycle-global", "Cycle Global Visibility"),
         ("edit.undo", "Undo"), ("edit.redo", "Redo"),
         ("app.clock.in", "Clock In"), ("app.clock.out", "Clock Out"), ("app.clock.cancel", "Cancel Clock"),
-        ("app.clock.goto", "Go to Clocked Entry"),
+        ("app.clock.goto", "Go to Clocked Entry"), ("app.toggle-markup", "Show or Hide Markup"),
+        ("org.toggle-inline-images", "Show or Hide Inline Images"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
     ]
 
     var body: some View {
