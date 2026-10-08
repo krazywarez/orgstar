@@ -133,7 +133,8 @@ public enum Tangle {
 
     static func params(_ block: SrcBlockInfo, model: DocumentModel, text: NSString, path: String) throws -> Babel.Params {
         var params = try Babel.Params(block: block, model: model, text: text)
-        for key in params.lisp where key != ":tangle-mode" {
+        // Lists for ob-C, ob-java and ob-fortran are read by the language's expansion.
+        for key in params.lisp where ![":tangle-mode", ":includes", ":defines", ":namespaces", ":imports"].contains(key) {
             guard let value = params.single[key] else { continue }
             params.single[key] = try evaluate(value, key: key, path: path)
         }
@@ -357,16 +358,18 @@ public enum Tangle {
     }
 
     /// `org-babel-expand-body:LANG`, or the generic expansion with the language's variable
-    /// assignments.
+    /// assignments; tables in `:var` taken apart by `org-babel-disassemble-tables`.
     static func expandBody(_ body: String, language: String, params: Babel.Params, model: DocumentModel, text: NSString) throws -> String {
         let refs = Babel.References(resolved: [:], options: Babel.Options())
-        let vars = try params.vars.map { variable in
+        let tables = try Babel.disassemble(try params.vars.map { variable in
             do {
                 return (variable.name, try Babel.resolve(variable.value, model: model, text: text, refs: refs))
             } catch is Babel.Needed {
                 throw Babel.Failure.message(":var \(variable.value) would run a block while tangling, which isn't supported yet; nothing was tangled.")
             }
-        }
+        }, params: params)
+        let vars = tables.vars
+        if let expanded = try Babel.languageExpansion(body, language: language, tables: tables, params: params) { return expanded }
         let prologue = params.single[":prologue"]
         let epilogue = params.single[":epilogue"]
         if language == "emacs-lisp" || language == "elisp" {

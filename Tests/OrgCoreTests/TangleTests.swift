@@ -230,7 +230,7 @@ struct TangleTests {
             (let* ((dir (file-truename (make-temp-file "orgstar-tangle" t)))
                    (src (expand-file-name "notes.org" dir))
                    (text (buffer-string)) out)
-              (require 'ob-shell) (require 'ob-python)
+              (require 'ob-shell) (require 'ob-python) (require 'ob-C) (require 'ob-java)
               (with-temp-file src (insert text))
               (with-current-buffer (find-file-noselect src)
                 (let ((files (org-babel-tangle)))
@@ -291,7 +291,7 @@ struct TangleTests {
         #expect(Self.describe(ours, root: "/oracle") == theirs.text, "ours:\n\(Self.describe(ours, root: "/oracle"))\nemacs:\n\(theirs.text)\n\(theirs.error)")
     }
 
-    /// The file names only: Emacs also wraps C, D, Java, Fortran and Clojure bodies with org-babel-expand-body:LANG.
+    /// The file names only; `expandsBodiesLikeOrg` checks the bodies.
     @Test func extensionsLikeOrg() throws {
         let languages = ["python", "ruby", "perl", "C", "C++", "D", "awk", "sed", "lua", "haskell", "java", "latex", "LilyPond",
                          "fortran", "clojure", "ocaml", "julia", "sh", "text"]
@@ -313,6 +313,134 @@ struct TangleTests {
         let ours = try Tangle.run(text: text, path: "/oracle/notes.org").get()
         let names = ours.files.map { ($0.path as NSString).lastPathComponent + "\n" }.sorted().joined()
         #expect(names == theirs.text, "ours:\n\(names)\nemacs:\n\(theirs.text)\n\(theirs.error)")
+    }
+
+    static let expanded = #"""
+        #+NAME: tbl
+        | a | b   |
+        |---+-----|
+        | 1 | 2.5 |
+        | 3 | 4   |
+
+        #+NAME: items
+        - x
+        - y
+
+        #+NAME: ints
+        | 1 | 2 |
+        | 3 | 4 |
+
+        * C
+        :PROPERTIES:
+        :includes: <never.h>
+        :imports: never.d
+        :END:
+        #+begin_src C :tangle out.c
+        printf("hi\n");
+        #+end_src
+        #+begin_src C :tangle out.c :includes <stdio.h> <math.h> :defines N 5 M 6 :var n=3 x=2.5 s="str" l=items
+        printf("%d\n", n);
+        #+end_src
+        #+begin_src C :tangle out.c :includes '(<stdio.h> "local.h") :defines '("A 1") :var t=tbl
+        int main() { return t_h(0, "a"); }
+        #+end_src
+        #+begin_src C :tangle out.c :main no :prologue "// pro" :epilogue "// epi" :var m=ints
+        int f(void) { return 1; }
+        #+end_src
+        #+begin_src C++ :tangle out.cpp :namespaces std :includes <iostream>
+        cout << 1;
+        #+end_src
+        #+begin_src cpp :tangle out.cpp
+          INT main(void) {}
+        #+end_src
+        #+begin_src D :tangle out.d :imports std.math :var n=3 s="d" l=items t=tbl
+        writeln(n);
+        #+end_src
+        #+begin_src D :tangle out.d :main no
+        void f() {}
+        #+end_src
+        * Java
+        #+begin_src java :tangle Main.java
+        System.out.println(1);
+            if (true) {
+                System.out.println(2);
+            }
+        #+end_src
+        #+begin_src java :tangle Foo.java :classname com.x.Foo :imports java.util.List java.util.Map :var n=3 x=2.5 s="s" l=items t=ints
+        System.out.println(n);
+        #+end_src
+        #+begin_src java :tangle Pkg.java
+        package org.y;
+        import java.util.List;
+
+        public class Pkg {
+            public static void main(String[] args) {
+                System.out.println(1);
+            }
+        }
+        #+end_src
+        #+begin_src java :tangle Methods.java :var n=1
+        static int twice(int x) {
+            return 2 * x;
+        }
+        #+end_src
+        #+begin_src java :tangle Pro.java :prologue "int a = 1;" :epilogue "int b = 2;"
+        int c = 3;
+        #+end_src
+        * Fortran
+        #+begin_src fortran :tangle out.F90
+        print *, 1
+        #+end_src
+        #+begin_src fortran :tangle out.F90 :var n=3 x=2.5 s="str" l='(1 2) m=ints :includes "a.h" :defines N 5 :prologue "! pro"
+        print *, n
+        #+end_src
+        #+begin_src fortran :tangle out.F90
+        PROGRAM hello
+        print *, 2
+        end program hello
+        #+end_src
+        #+begin_src fortran :tangle out.F90 :main no :prologue "! pro" :epilogue "! epi" :var n=1
+        subroutine s
+        end subroutine s
+        #+end_src
+        * Clojure
+        #+begin_src clojure :tangle out.clj
+        (+ 1 2)
+        #+end_src
+        #+begin_src clojure :tangle out.clj :var n=3 s="a\"b" l=items t=tbl
+        ;; a comment
+        (+ n 1)
+        #+end_src
+        #+begin_src clojure :tangle out.clj :ns my.ns :results output
+          (println 1)
+        #+end_src
+        #+begin_src clojure :tangle out.clj :results pp
+        {:a 1}
+        #+end_src
+        * Python
+        #+begin_src python :tangle out.py :var t=tbl
+        print(t)
+        #+end_src
+        """# + "\n"
+
+    @Test func expandsBodiesLikeOrg() throws {
+        let form = """
+            (let* ((dir (file-truename (make-temp-file "orgstar-tangle" t)))
+                   (src (expand-file-name "notes.org" dir))
+                   (text (buffer-string)) out)
+              (require 'ob-C) (require 'ob-java) (require 'ob-fortran) (require 'ob-clojure) (require 'ob-python)
+              (setq org-babel-clojure-backend 'babashka)
+              (with-temp-file src (insert text))
+              (with-current-buffer (find-file-noselect src)
+                (let ((files (org-babel-tangle)))
+                  (setq out (mapconcat (lambda (f) (format "== %s %o\\n%s" (file-relative-name f dir) (file-modes f)
+                                                           (with-temp-buffer (insert-file-contents f) (buffer-string))))
+                                       (sort (copy-sequence files) #'string<) ""))))
+              (erase-buffer) (insert out))
+            """
+        let theirs = try EmacsOracle.run([EmacsOracle.Case(text: Self.expanded, point: 1, form: form)])[0]
+        let ours = try Tangle.run(text: Self.expanded, path: "/oracle/notes.org").get()
+        #expect(Self.describe(ours, root: "/oracle") == theirs.text, "ours:\n\(Self.describe(ours, root: "/oracle"))\nemacs:\n\(theirs.text)\n\(theirs.error)")
     }
 
     @Test func refusesWhatItCantDo() {

@@ -756,8 +756,9 @@ public enum Babel {
                            call: Bool, text: NSString, options: Options) throws -> (hash: String, current: Bool, value: VarValue?) {
         // The hash is taken outside the shell's own binding of `shell-file-name`, so its
         // variables are written for the user's shell whatever the block's language.
-        let input = try cacheInput(language: language, params: params, tables: tables,
-                                   expanded: expandedBody(language: language, vars: tables.vars, body: body, shell: options.shell, params: params), call: call)
+        let expanded = try languageExpansion(body, language: language, tables: tables, params: params)
+            ?? expandedBody(language: language, vars: tables.vars, body: body, shell: options.shell, params: params)
+        let input = try cacheInput(language: language, params: params, tables: tables, expanded: expanded, call: call)
         let hash = Insecure.SHA1.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
         guard let line = existingResults(name: name, block: location, text: text), resultsHash(at: line, text: text) == hash else {
             return (hash, false, nil)
