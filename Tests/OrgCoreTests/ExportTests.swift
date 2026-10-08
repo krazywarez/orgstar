@@ -168,6 +168,48 @@ struct MarkdownExportTests {
         let ours = MarkdownExport.document(org)
         #expect(ours == expected)
     }
+
+    /// Words that ox-md keeps or drops for `#+OPTIONS`, the tags, COMMENT, `#+INCLUDE` and
+    /// macros, and where links to Org files point.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func documentLevelLikeOrgMd() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-md-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try "* Included\nwordincluded\n".write(to: folder.appendingPathComponent("part.org"), atomically: true, encoding: .utf8)
+        let text = """
+            #+TITLE: wordtitle
+            #+OPTIONS: todo:nil tags:nil ^:nil toc:nil num:nil
+            #+EXCLUDE_TAGS: private
+            #+MACRO: greet wordmacro $1
+            {{{greet(wordarg)}}} a_wordsub
+            * TODO wordtodo :wordtag:
+            * Kept :noexport:
+            wordnoexport
+            * Private :private:
+            wordprivate
+            * COMMENT Hidden
+            wordcomment
+            * Links
+            [[file:x.org]] [[file:x.org][X]] [[./y.org]] [[file:sub/z.ORG::*Head][Z]]
+            #+INCLUDE: "part.org"
+            """ + "\n"
+        let path = folder.appendingPathComponent("main.org").path
+        try text.write(toFile: path, atomically: true, encoding: .utf8)
+        let emacs = try EmacsOracle.evaluate(text, """
+            (with-current-buffer (find-file-noselect \(Babel.lispString(path)))
+              (require 'ox-md)
+              (list (org-export-as 'md)))
+            """)[0]
+        let ours = MarkdownExport.document(text, path: path)
+        // ox-md writes no title; this export makes it the top heading.
+        for word in text.matches(of: /\bword[a-z]+\b|\bTODO\b/).map({ String($0.0) }) where word != "wordtitle" {
+            #expect(ours.contains(word) == emacs.contains(word), "\(word)\nours:\n\(ours)\nemacs:\n\(emacs)")
+        }
+        #expect(ours.contains("<sub>") == emacs.contains("<sub>"))
+        let targets = { (s: String) in Set(s.matches(of: /[\w.\/]+\.(?:md|org|ORG)\b/).map { String($0.0) }) }
+        #expect(targets(ours) == targets(emacs), "ours:\n\(ours)\nemacs:\n\(emacs)")
+    }
 }
 
 struct ExportCorpusTests {

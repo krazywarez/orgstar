@@ -267,13 +267,11 @@ final class HTMLRenderer {
         switch node.kind {
         case .section:
             guard let heading = node.firstChild(.heading) else { fallthrough }
-            let tags = heading.tokens.first { $0.kind == .tags }?.text.split(separator: ":").map(String.init) ?? []
-            let title = heading.firstChild(.title)?.text.trimmingCharacters(in: .whitespaces) ?? ""
-            // `org-export--skip-p`: excluded tags, COMMENT, unselected trees.
-            if tags.contains(where: options.excludeTags.contains) || title == "COMMENT" || title.hasPrefix("COMMENT ") { return "" }
-            if let selected, !selected.contains(heading.range.lowerBound) { return "" }
-            // Archived trees export their heading only.
-            if tags.contains("ARCHIVE") { return self.heading(heading) }
+            switch Self.sectionExport(heading, options: options, selected: selected) {
+            case .nothing: return ""
+            case .heading: return self.heading(heading)
+            case .all: break
+            }
             var out = ""
             for child in node.children { out += element(child) }
             return out
@@ -377,6 +375,20 @@ final class HTMLRenderer {
 
     /// `org-export--selected-trees`: headings with a select tag, everything below them and
     /// their ancestors; nil when no heading has one.
+    enum SectionExport {
+        case all, heading, nothing
+    }
+
+    /// `org-export--skip-p` for the section under `heading`: excluded tags, COMMENT and
+    /// unselected trees export nothing, archived trees their heading only.
+    static func sectionExport(_ heading: SyntaxNode, options: ExportOptions, selected: Set<Int>?) -> SectionExport {
+        let tags = heading.tokens.first { $0.kind == .tags }?.text.split(separator: ":").map(String.init) ?? []
+        let title = heading.firstChild(.title)?.text.trimmingCharacters(in: .whitespaces) ?? ""
+        if tags.contains(where: options.excludeTags.contains) || title == "COMMENT" || title.hasPrefix("COMMENT ") { return .nothing }
+        if let selected, !selected.contains(heading.range.lowerBound) { return .nothing }
+        return tags.contains("ARCHIVE") ? .heading : .all
+    }
+
     static func selection(_ tree: OrgTree, tags: [String]) -> Set<Int>? {
         let model = DocumentModel(tree: tree)
         let picked = model.headings.indices.filter { model.headings[$0].localTags.contains(where: tags.contains) }

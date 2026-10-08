@@ -3,14 +3,18 @@ import Foundation
 /// Markdown export, GitHub-flavored: ATX headings, fenced code, pipe tables, task lists and
 /// `[^n]` footnotes. The title, when there is one, becomes the top heading.
 public enum MarkdownExport {
-    /// `path` is the file's, for `#+bibliography:`.
-    public static func document(_ text: String, settings: OrgSettings = .default, path: String? = nil) -> String {
-        let renderer = MarkdownRenderer(settings: settings)
+    /// As the HTML page: `#+INCLUDE`, macros, `#+OPTIONS` and the select and exclude tags.
+    /// `path` is the file's, for `#+INCLUDE`, `{{{input-file}}}` and `#+bibliography:`.
+    public static func document(_ text: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date()) -> String {
+        let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
+        let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now, setup: settings.setupKeywords)
+        let options = ExportOptions.parse(settings.setupKeywords + text)
+        let renderer = MarkdownRenderer(settings: settings, options: options)
         var out = ""
         renderer.inTitle = true
-        if let title = HTMLExport.metadata(text, settings: settings).title { out = "# " + renderer.inlineString(title) + "\n\n" }
+        if options.title, let title = HTMLExport.metadata(text, settings: settings).title { out = "# " + renderer.inlineString(title) + "\n\n" }
         renderer.inTitle = false
-        renderer.citations = CiteProcessor(text: text, directory: path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() })
+        renderer.citations = CiteProcessor(text: text, directory: directory)
         out += renderer.document(renderer.citations == nil ? text : renderer.citations!.inliningNotes(CiteProcessor.removingNocite(text)))
         return out.trimmingCharacters(in: .newlines) + "\n"
     }
@@ -18,6 +22,9 @@ public enum MarkdownExport {
 
 final class MarkdownRenderer {
     let settings: OrgSettings
+    let options: ExportOptions
+    /// With select tags in the document: the sections to export, by heading start.
+    private var selected: Set<Int>?
     private var definitions: [String: String] = [:]
     private var numbers: [String: Int] = [:]
     private var notes: [(Int, String)] = []
@@ -27,8 +34,9 @@ final class MarkdownRenderer {
     /// Rendering the title, where Org exports citations as nothing.
     var inTitle = false
 
-    init(settings: OrgSettings) {
+    init(settings: OrgSettings, options: ExportOptions) {
         self.settings = settings
+        self.options = options
     }
 
     func document(_ text: String) -> String {
@@ -38,6 +46,7 @@ final class MarkdownRenderer {
                 definitions[String(m.1)] = String(node.text[m.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
+        selected = HTMLRenderer.selection(tree, tags: options.selectTags)
         var out = rendering(tree, text) { blocks(tree.root) }
         if !notes.isEmpty {
             out += notes.map { "[^\($0.0)]: " + $0.1 }.joined(separator: "\n") + "\n"
@@ -93,14 +102,21 @@ final class MarkdownRenderer {
     private func element(_ node: SyntaxNode, indent: String) -> String {
         switch node.kind {
         case .zerothSection, .section:
+            if node.kind == .section, let heading = node.firstChild(.heading) {
+                switch HTMLRenderer.sectionExport(heading, options: options, selected: selected) {
+                case .nothing: return ""
+                case .heading: return element(heading, indent: indent)
+                case .all: break
+                }
+            }
             return blocks(node, indent: indent).trimmingCharacters(in: .newlines)
         case .heading:
             let level = node.tokens.first { $0.kind == .stars }?.text.count ?? 1
             var parts: [String] = []
-            if let todo = node.tokens.first(where: { $0.kind == .todoKeyword })?.text { parts.append(todo) }
-            if let priority = node.tokens.first(where: { $0.kind == .priority })?.text { parts.append(priority) }
+            if options.todo, let todo = node.tokens.first(where: { $0.kind == .todoKeyword })?.text { parts.append(todo) }
+            if options.priority, let priority = node.tokens.first(where: { $0.kind == .priority })?.text { parts.append(priority) }
             if let title = node.firstChild(.title) { parts.append(inline(title).trimmingCharacters(in: .whitespaces)) }
-            if let tags = node.tokens.first(where: { $0.kind == .tags })?.text {
+            if options.tags, let tags = node.tokens.first(where: { $0.kind == .tags })?.text {
                 parts.append(tags.split(separator: ":").map { "`\($0)`" }.joined(separator: " "))
             }
             return String(repeating: "#", count: min(level + 1, 6)) + " " + parts.filter { !$0.isEmpty }.joined(separator: " ")
@@ -282,7 +298,9 @@ final class MarkdownRenderer {
             return String(node.text.dropFirst(3).dropLast(3))
         case .superscript, .subscript:
             let body = node.text.dropFirst()
-            let inner = body.hasPrefix("{") && body.hasSuffix("}") ? String(body.dropFirst().dropLast()) : String(body)
+            let braced = body.hasPrefix("{") && body.hasSuffix("}")
+            if options.scripts == .off || (options.scripts == .braces && !braced) { return node.text }
+            let inner = braced ? String(body.dropFirst().dropLast()) : String(body)
             return node.text.hasPrefix("_") ? "<sub>\(inner)</sub>" : "<sup>\(inner)</sup>"
         case .lineBreak: return "  \n"
         case .macro:
@@ -319,9 +337,13 @@ final class MarkdownRenderer {
             return "<\(target)>"
         }
         var href = path
-        if path.hasPrefix("file:") { href = String(path.dropFirst(5)) }
+        if path.hasPrefix("file:") {
+            // ox-md drops the search option and, as `org-md-link-org-files-as-md`, writes .org as .md.
+            href = String(path.dropFirst(5))
+            if let search = href.range(of: "::") { href = String(href[..<search.lowerBound]) }
+        }
         if path.hasPrefix("id:") { href = "#" + path.dropFirst(3) }
-        if !path.contains(":"), href.lowercased().hasSuffix(".org") { href = String(href.dropLast(4)) + ".md" }
+        if !path.contains(":") || path.hasPrefix("file:"), href.lowercased().hasSuffix(".org") { href = String(href.dropLast(4)) + ".md" }
         if let description = node.firstChild(.linkDescription) { return "[\(inline(description))](\(href))" }
         let ext = href.split(separator: ".").last.map { $0.lowercased() } ?? ""
         if HTMLRenderer.imageExtensions.contains(ext) { return "![](\(href))" }
