@@ -287,6 +287,9 @@ struct AgendaTests {
         "CATEGORY=\"cat\"", "DUE<\"<2026-10-15>\"", "DUE>\"<today>\"", "SCHEDULED<\"<today>\"", "TIMESTAMP=\"<2026-10-03 Sat>\"",
         "ITEM={lph}", "work/TODO", "/!", "+work/!TODO|WAIT", "EFFORT>\"1:00\"", "ALLTAGS={proj}", "TAGS=\":work:urgent:\"",
         "x@y", "/-TODO", "/!{^[HW]}", "work&urgent", "SIZE>=3+SIZE<=3", "LEVEL<>1",
+        // `org-time<>` is `=` in Org 9.8.7.
+        "DUE<>\"<2026-10-10>\"", "DUE<>\"<2026-10-11>\"", "SCHEDULED<>\"<2026-09-30>\"", "TIMESTAMP!=\"<2026-10-03 Sat>\"",
+        "DEADLINE/=\"<2026-10-05>\"", "DEADLINE<>\"<2026-10-07>\"",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))

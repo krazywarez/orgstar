@@ -231,7 +231,9 @@ public struct TagsMatcher: Sendable {
                     let a = Self.seconds(actual, now: now, calendar: calendar)
                     let b = Self.matcherTime(time, now: now, calendar: calendar)
                     guard a > 0, b > 0 else { return false }
-                    // `org-time<>` compares with `=`.
+                    // `org-time<>` in Org 9.8.7 (org-macs.el) is `(\= a b)`, which reads as `=`:
+                    // `DEADLINE<>"<2026-10-07>"` keeps the entries due that day.
+                    // AgendaTests.listsMatchEmacs checks this against Emacs.
                     return op == "<>" || op == "!=" || op == "/=" ? a == b : Self.compare(op, a, b)
                 }
             }
