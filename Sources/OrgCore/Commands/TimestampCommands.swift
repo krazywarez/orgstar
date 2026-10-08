@@ -14,12 +14,17 @@ extension EmacsBuffer {
 
     /// `org-timestamp`: replaces the timestamp at point, keeping its repeater, or inserts one.
     func timestampCommand(_ answer: String, inactive: Bool) {
-        let existing = atTimestamp()
-        let stamp = existing.map { substring($0.match[0]!.lowerBound, $0.match[0]!.upperBound) }
+        let stamp = timestampForUpdate()
         let defaultDate = stamp.flatMap(Self.parseTimeString).map(date)
         let repeater = stamp.flatMap { $0.firstMatch(of: try! Regex("([.+-]+[0-9]+[hdwmy] ?)+")).map { String($0.output[0].substring!) } }
         let result = readDate(answer, default: defaultDate)
         let components = result.components(calendar)
+        // Between a range's dashes, the end is replaced.
+        var existing = atTimestamp()
+        if stamp != nil, existing == nil {
+            skipForward([45])
+            existing = atTimestamp()
+        }
         if let existing {
             replace(existing.match[0]!, with: "")
             insertTimestamp(components, withTime: result.timeGiven, inactive: inactive, endTime: result.endTime)
@@ -95,8 +100,8 @@ private func atTimestamp(_ context: EditContext) -> Bool {
 /// The prompt's starting text: the time of the timestamp at the caret, as org pre-fills it.
 private func timeOfDayAtCaret(_ context: EditContext) -> String {
     let buffer = EmacsBuffer(context.text, point: context.caret)
-    guard let match = buffer.atTimestamp()?.match[0] else { return "" }
-    return EmacsBuffer.compactTimeOfDay(buffer.substring(match.lowerBound, match.upperBound)) ?? ""
+    guard let stamp = buffer.timestampForUpdate() else { return "" }
+    return EmacsBuffer.compactTimeOfDay(stamp) ?? ""
 }
 
 /// C-c . and C-c !: `org-timestamp`.
@@ -110,16 +115,14 @@ public struct InsertTimestamp: OrgCommand {
         guard let answer = context.answers["date"] else {
             let buffer = EmacsBuffer(context.text, point: context.caret)
             buffer.calendar = context.calendar
-            let stamp = buffer.atTimestamp().map { buffer.substring($0.match[0]!.lowerBound, $0.match[0]!.upperBound) }
-            let repeated = context.lastCommand == "org.timestamp.active" || context.lastCommand == "org.timestamp.inactive"
             return .prompt(Prompt(key: "date", message: "Date+time:", initial: timeOfDayAtCaret(context),
-                                  date: .init(defaultDate: repeated ? nil : buffer.dateDefault(stamp), inactive: inactive)))
+                                  date: .init(defaultDate: buffer.dateDefault(buffer.timestampForUpdate()), inactive: inactive)))
         }
         // Twice in a row on a timestamp: a range to a second one.
         let repeated = context.lastCommand == "org.timestamp.active" || context.lastCommand == "org.timestamp.inactive"
-        if repeated, EmacsBuffer(context.text, point: context.caret).atTimestamp() != nil {
+        if repeated, EmacsBuffer(context.text, point: context.caret).timestampForUpdate() != nil {
             return timestampCommand(context) { buffer in
-                let result = buffer.readDate(answer, default: nil)
+                let result = buffer.readDate(answer, default: buffer.dateDefault(buffer.timestampForUpdate()))
                 buffer.insert("--")
                 buffer.insertTimestamp(result.components(buffer.calendar), withTime: result.timeGiven, inactive: inactive)
             }

@@ -66,6 +66,31 @@ extension EmacsBuffer {
         return (part, match)
     }
 
+    /// `org-at-date-range-p` with INACTIVE-OK: the range around point, groups 1 and 2 the insides
+    /// of its two timestamps.
+    func atDateRange() -> [Range<Int>?]? {
+        let pattern = "[\\[<](" + AgendaSource.tsInternal + ")[\\]>]--?-?[\\[<](" + AgendaSource.tsInternal + ")[\\]>]"
+        return saveExcursion {
+            let pos = point
+            for _ in 0..<2 {
+                while let c = character(at: point - 1), ![91, 60, 13, 10].contains(c) { point -= 1 }
+                skipBackward([60, 91])
+                if let match = lookingAt(pattern), match[0]!.upperBound >= pos { return match }
+            }
+            return nil
+        }
+    }
+
+    /// The timestamp `org-timestamp` takes its defaults from: in a date range the start before
+    /// the dashes and the end from the second-to-last dash on, otherwise the one at point.
+    func timestampForUpdate() -> String? {
+        if let range = atDateRange() {
+            let stamp = point < range[2]!.lowerBound - 2 ? range[1]! : range[2]!
+            return substring(stamp.lowerBound, stamp.upperBound)
+        }
+        return atTimestamp().map { substring($0.match[0]!.lowerBound, $0.match[0]!.upperBound) }
+    }
+
     /// `org-parse-time-string`: date and time of an Org time string, time 0:00 if absent.
     static func parseTimeString(_ text: String) -> DateComponents? {
         guard let match = text.firstMatch(of: try! Regex(timeStringPattern)) else { return nil }

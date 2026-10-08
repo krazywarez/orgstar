@@ -6,10 +6,10 @@ struct TimestampCommandTests {
     static let now = ReadDateTests.now
     static let calendar = ReadDateTests.utc
 
-    func run(_ command: any OrgCommand, _ text: String, caret: Int, answer: String? = nil) -> (text: String, caret: Int, failure: String?) {
+    func run(_ command: any OrgCommand, _ text: String, caret: Int, answer: String? = nil, lastCommand: String? = nil) -> (text: String, caret: Int, failure: String?) {
         let context = EditContext(
             revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret],
-            now: Self.now, calendar: Self.calendar, answers: answer.map { ["date": $0] } ?? [:]
+            now: Self.now, calendar: Self.calendar, answers: answer.map { ["date": $0] } ?? [:], lastCommand: lastCommand
         )
         switch command.run(in: context) {
         case .commit(let result):
@@ -83,6 +83,50 @@ struct TimestampCommandTests {
                         cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: wrapped))
                         let result = run(command, text, caret: caret, answer: prompts ? answer : nil)
                         ours.append(("\(command.id) \(answer.debugDescription) at \(caret) in \(text.debugDescription)", result.text, result.caret, result.failure != nil))
+                    }
+                }
+            }
+        }
+        var mismatches = 0
+        for (mine, emacs) in zip(ours, try EmacsOracle.run(cases)) {
+            let failed = !emacs.error.isEmpty
+            let caret = EmacsOracle.offset(emacs.point, in: emacs.text)
+            guard mine.failed != failed || (!failed && (mine.text != emacs.text || mine.caret != caret)) else { continue }
+            mismatches += 1
+            if mismatches <= 12 {
+                Issue.record("\(mine.label)\n  ours:  \(mine.failed ? "failed" : "\(mine.text.debugDescription) @\(mine.caret)")\n  emacs: \(failed ? emacs.error : "\(emacs.text.debugDescription) @\(caret)")")
+            }
+        }
+        #expect(mismatches == 0, "\(mismatches) of \(ours.count) differ")
+    }
+
+    /// `org-timestamp` in and around date ranges: the start before the dashes, the end from the
+    /// second dash on, and twice in a row a new range wherever there is a stamp to default from.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func timestampsInRangesMatchEmacs() throws {
+        try #require(EmacsOracle.isAvailable)
+        let texts = [
+            "* a\n:LOGBOOK:\nCLOCK: [2026-09-01 Tue 10:00]--[2026-09-01 Tue 11:30] =>  1:30\n:END:\n",
+            "x <2026-09-01 Tue>--<2026-09-03 Thu> y\n",
+            "[2026-09-01 Tue]-[2026-09-02 Wed]\n",
+            "<2026-09-01 Tue 10:00>---<2026-09-01 Tue 12:00 +1w>\n",
+        ]
+        var cases: [EmacsOracle.Case] = []
+        var ours: [(label: String, text: String, caret: Int, failed: Bool)] = []
+        for text in texts {
+            for caret in EmacsOracle.positions(text) {
+                for (command, form) in [(InsertTimestamp(), "(org-timestamp nil)"), (InsertTimestamp(inactive: true), "(org-timestamp nil t)")] {
+                    for answer in ["", "+1", "10:00", "++2d"] {
+                        for repeated in [false, true] {
+                            let commands = repeated ? "(last-command 'org-timestamp) (this-command 'org-timestamp)" : ""
+                            let wrapped = frozenClock(1_789_000_000, """
+                                (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "\(answer)")))
+                                  (let ((org-read-date-popup-calendar nil) \(commands)) \(form)))
+                                """)
+                            cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: wrapped))
+                            let result = run(command, text, caret: caret, answer: answer, lastCommand: repeated ? "org.timestamp.active" : nil)
+                            ours.append(("\(command.id) \(answer.debugDescription)\(repeated ? " repeated" : "") at \(caret) in \(text.debugDescription)", result.text, result.caret, result.failure != nil))
+                        }
                     }
                 }
             }
