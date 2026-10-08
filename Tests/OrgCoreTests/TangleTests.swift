@@ -291,6 +291,30 @@ struct TangleTests {
         #expect(Self.describe(ours, root: "/oracle") == theirs.text, "ours:\n\(Self.describe(ours, root: "/oracle"))\nemacs:\n\(theirs.text)\n\(theirs.error)")
     }
 
+    /// The file names only: Emacs also wraps C, D, Java, Fortran and Clojure bodies with org-babel-expand-body:LANG.
+    @Test func extensionsLikeOrg() throws {
+        let languages = ["python", "ruby", "perl", "C", "C++", "D", "awk", "sed", "lua", "haskell", "java", "latex", "LilyPond",
+                         "fortran", "clojure", "ocaml", "julia", "sh", "text"]
+        let text = languages.map { "#+begin_src \($0) :tangle yes\n\($0)\n#+end_src\n" }.joined()
+        let features = ["ob-python", "ob-ruby", "ob-perl", "ob-C", "ob-awk", "ob-sed", "ob-lua", "ob-haskell", "ob-java", "ob-latex",
+                        "ob-lilypond", "ob-fortran", "ob-clojure", "ob-ocaml", "ob-julia", "ob-shell"]
+        let form = """
+            (let* ((dir (file-truename (make-temp-file "orgstar-tangle" t)))
+                   (src (expand-file-name "notes.org" dir))
+                   (text (buffer-string)) out)
+              \(features.map { "(require '\($0))" }.joined(separator: " ")) (setq org-babel-clojure-backend 'babashka)
+              (with-temp-file src (insert text))
+              (with-current-buffer (find-file-noselect src)
+                (let ((files (org-babel-tangle)))
+                  (setq out (mapconcat (lambda (f) (concat (file-relative-name f dir) "\\n")) (sort (copy-sequence files) #'string<) ""))))
+              (erase-buffer) (insert out))
+            """
+        let theirs = try EmacsOracle.run([EmacsOracle.Case(text: text, point: 1, form: form)])[0]
+        let ours = try Tangle.run(text: text, path: "/oracle/notes.org").get()
+        let names = ours.files.map { ($0.path as NSString).lastPathComponent + "\n" }.sorted().joined()
+        #expect(names == theirs.text, "ours:\n\(names)\nemacs:\n\(theirs.text)\n\(theirs.error)")
+    }
+
     @Test func refusesWhatItCantDo() {
         for (language, header) in [("haskell", ":comments link"), ("sh", ":tangle (concat user-emacs-directory \"a.sh\")"), ("sh", ":tangle-mode go+q")] {
             let text = "#+begin_src \(language) :tangle yes \(header)\necho\n#+end_src\n"

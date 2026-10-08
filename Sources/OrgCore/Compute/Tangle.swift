@@ -31,8 +31,13 @@ public enum Tangle {
         public var blocks: Int
     }
 
-    /// `org-babel-tangle-lang-exts`.
-    static let extensions = ["emacs-lisp": "el", "elisp": "el", "bibtex": "bib"]
+    /// `org-babel-tangle-lang-exts`, with what Org 9.8.7's ob-LANG files add to it.
+    static let extensions = [
+        "emacs-lisp": "el", "elisp": "el", "bibtex": "bib",
+        "C++": "cpp", "D": "d", "awk": "awk", "clojure": "clj", "clojurescript": "cljs", "csharp": "cs", "fortran": "F90",
+        "groovy": "groovy", "haskell": "hs", "java": "java", "julia": "jl", "latex": "tex", "LilyPond": "ly", "lisp": "lisp",
+        "lua": "lua", "maxima": "max", "ocaml": "ml", "perl": "pl", "processing": "pde", "python": "py", "ruby": "rb", "sed": "sed",
+    ]
     /// `org-babel-shell-names`, and `shell` itself.
     static let shells: Set<String> = ["sh", "bash", "zsh", "fish", "csh", "ash", "dash", "ksh", "mksh", "posh", "shell"]
 
