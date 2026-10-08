@@ -950,19 +950,24 @@ public struct TableRecalculate: OrgCommand {
                 throw EmacsBuffer.UserError(message: Self.emacsMessage + error.reason)
             }
         }
-        guard case .failed(let message) = step, message.hasPrefix(Self.emacsMessage) else { return step }
-        // Emacs recalculates the table; its text replaces the table here.
+        let form = Self.tblfmLine(in: context) != nil ? "(org-table-calc-current-TBLFM)" : all ? "(org-table-recalculate t)" : "(org-table-recalculate nil)"
+        return Self.inEmacs(step, form: form, in: context)
+    }
+
+    /// A step that failed with `emacsMessage` as a request to run `form` on the table in
+    /// Emacs, whose text then replaces the table here; other steps unchanged.
+    static func inEmacs(_ step: CommandStep, form: String, in context: EditContext) -> CommandStep {
+        guard case .failed(let message) = step, message.hasPrefix(emacsMessage) else { return step }
         let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
-        let onTblfm = Self.tblfmLine(in: context) != nil
+        let onTblfm = tblfmLine(in: context) != nil
         if onTblfm {
             while buffer.forwardLine(-1) == 0, !buffer.lookingAtLine("^[ \\t]*\\|") {}
         }
         let table = buffer.tableBegin()..<buffer.tableEnd()
-        let tblfm = onTblfm ? Self.tblfmLine(in: context) ?? "" : buffer.firstTblfm(after: table.upperBound) ?? ""
-        let form = onTblfm ? "(org-table-calc-current-TBLFM)" : all ? "(org-table-recalculate t)" : "(org-table-recalculate nil)"
+        let tblfm = onTblfm ? tblfmLine(in: context) ?? "" : buffer.firstTblfm(after: table.upperBound) ?? ""
         return .external(.emacsTable(
             table: table, point: context.caret, form: form,
-            reason: String(message.dropFirst(Self.emacsMessage.count)), lisp: tblfm.contains("'(")
+            reason: String(message.dropFirst(emacsMessage.count)), lisp: tblfm.contains("'(")
         ))
     }
 }

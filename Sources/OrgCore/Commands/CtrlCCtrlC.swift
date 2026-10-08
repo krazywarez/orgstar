@@ -3,7 +3,8 @@ import Foundation
 // C-c C-c (`org-ctrl-c-ctrl-c`, Org 9.8.7) for the contexts no more specific binding takes:
 // headings set tags, clock lines get their duration again, timestamps their weekday, cookies
 // update, items toggle their checkbox, or without one have their list repaired, setup keywords
-// refresh, and elsewhere there's nothing to do.
+// refresh, tables evaluate a typed formula, then align or recalculate a row marked `#`, and
+// elsewhere there's nothing to do.
 
 /// `org-ctrl-c-ctrl-c`.
 public struct CtrlCCtrlC: OrgCommand {
@@ -20,10 +21,19 @@ public struct CtrlCCtrlC: OrgCommand {
         if KeyContext.holds("table", in: context) || TableRecalculate.tblfmLine(in: context) != nil {
             // At the table's very start the context is the table itself, which org recalculates.
             let atStart = buffer.saveExcursion { buffer.tableBegin() } == context.caret
-            return TableRecalculate.tblfmLine(in: context) != nil || atStart ? TableRecalculate(all: true).run(in: context) : commitBuffer(context) { buffer in
+            if TableRecalculate.tblfmLine(in: context) != nil || atStart { return TableRecalculate(all: true).run(in: context) }
+            // `org-table-maybe-eval-formula`, then `org-table-maybe-recalculate-line` on a row
+            // marked `#`, which aligns, or else `org-table-align`.
+            let step = commitBuffer(context) { buffer in
                 try buffer.tableMaybeEvalFormula()
-                buffer.tableAlign()
+                guard buffer.lookingAtLine("^[ \\t]*\\| *# *(\\||$)") else { return buffer.tableAlign() }
+                do {
+                    try buffer.tableRecalculate(all: false)
+                } catch let error as Calc.Unsupported {
+                    throw EmacsBuffer.UserError(message: TableRecalculate.emacsMessage + error.reason)
+                }
             }
+            return TableRecalculate.inEmacs(step, form: "(org-ctrl-c-ctrl-c)", in: context)
         }
         if buffer.footnoteReferenceAtPoint() != nil
             || buffer.footnoteDefinitions().contains(where: { $0.begin <= context.caret && context.caret < ($0.contentsBegin ?? $0.end) }) {

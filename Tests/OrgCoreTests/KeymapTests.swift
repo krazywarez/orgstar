@@ -212,6 +212,6 @@ struct CtrlCCtrlCKeyTests {
         }
         #expect(command(at: 1) == "org.ctrl-c-ctrl-c")
         #expect(command(at: 5) == "org.ctrl-c-ctrl-c")
-        #expect(command(at: 13) == "org.table.align")
+        #expect(command(at: 13) == "org.ctrl-c-ctrl-c")
     }
 }

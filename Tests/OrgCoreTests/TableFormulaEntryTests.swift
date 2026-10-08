@@ -13,6 +13,8 @@ struct TableFormulaEntryTests {
         let replaced = "| a | b |\n| 1 | =$1*5 |\n#+TBLFM: $2=$1*2::@1$2=x\n"
         let reuse = "| a | b |\n| 2 | = |\n#+TBLFM: $2=$1*2\n\nText\n"
         let last = "| 1 | =$1+1 |\n"
+        let marked = "|   | x | y |\n|---+---+---|\n| # | 2 |   |\n|   | 3 |   |\n#+TBLFM: $3=$2*10\n"
+        let markedTyped = "| # | 2 | =$2+1 | |\n| # | 5 | | |\n#+TBLFM: $4=$2*2\n"
         let prompt = { (arg: String) in "(cl-letf (((symbol-function 'read-string) (lambda (&rest _) \"\"))) (org-table-eval-formula \(arg)))" }
         let cases: [(String, String, any OrgCommand, [String: String], String)] = [
             (plain, "*2", TableCommand(.nextField), [:], "(org-table-next-field)"),
@@ -26,6 +28,9 @@ struct TableFormulaEntryTests {
             (stored, "| 3", TableEvalFormula(named: false), ["formula": "$1*3"], "(org-table-eval-formula nil \"$1*3\")"),
             (stored, "| 3", TableEvalFormula(named: true), ["formula": "99"], "(org-table-eval-formula '(4) \"99\")"),
             (stored, "| 1 | 2", CtrlCCtrlC(), [:], "(org-ctrl-c-ctrl-c)"),
+            (marked, "| 2", CtrlCCtrlC(), [:], "(org-ctrl-c-ctrl-c)"),
+            (marked, "| 3", CtrlCCtrlC(), [:], "(org-ctrl-c-ctrl-c)"),
+            (markedTyped, "+1", CtrlCCtrlC(), [:], "(org-ctrl-c-ctrl-c)"),
             (stored, "| 3 | 4", TableEvalFormula(named: false), ["formula": ""], prompt("nil")),
             (stored, "| 1", TableEvalFormula(named: true), ["formula": ""], prompt("'(4)")),
         ]

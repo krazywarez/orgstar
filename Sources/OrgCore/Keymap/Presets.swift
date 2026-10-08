@@ -998,7 +998,7 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.fill-paragraph"
         [[bind]]
         keys = "C-c C-c"
-        command = "org.table.align"
+        command = "org.ctrl-c-ctrl-c"
         when = "table"
         [[bind]]
         keys = "C-c C-c"
