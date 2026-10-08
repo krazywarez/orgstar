@@ -54,7 +54,9 @@ final class KeyedTextView: UITextView {
 final class MobileEditor: NSObject, DocumentBuffer {
     private(set) var document: DocumentState
     let textView: UITextView
-    var options: EditingOptions = .org
+    var options: EditingOptions = .org {
+        didSet { textView.spellCheckingType = options.spellCheck ? .yes : .no }
+    }
     var keymap = KeymapPreset.emacs.keymap
     var onChange: (() -> Void)?
     var onMessage: ((String) -> Void)?
@@ -96,7 +98,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         textView.smartQuotesType = .no
         textView.smartDashesType = .no
         textView.smartInsertDeleteType = .no
-        textView.spellCheckingType = .yes
+        textView.spellCheckingType = options.spellCheck ? .yes : .no
         textView.keyboardDismissMode = .interactive
         textView.alwaysBounceVertical = true
         textView.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 24, right: 8)

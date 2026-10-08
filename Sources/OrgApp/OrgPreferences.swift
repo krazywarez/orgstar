@@ -14,13 +14,20 @@ public enum OrgPreferences {
         return settings
     }
 
-    /// What commands run from the agenda and capture follow: logging and tags.
+    /// The editing options, as the Mac's Settings apply them.
     public static func options(_ defaults: UserDefaults = .standard) -> EditingOptions {
         var options = EditingOptions(
             tagsColumn: integer("tagsColumn", defaults), insertHeadingRespectContent: bool("headingAfterSubtree", defaults),
+            metaReturnMaySplitLine: bool("splitLine", defaults),
             listAllowAlphabetical: bool("alphabeticalLists", defaults), fillColumn: integer("fillColumn", defaults),
+            hideEmphasisMarkers: bool("hiddenMarkers", defaults), prettyEntities: bool("prettyEntities", defaults), subSuperscriptsNeedBraces: true,
             logDone: LogHow(rawValue: string("logDone", defaults)), logIntoDrawer: string("logIntoDrawer", defaults).nonEmpty,
-            logReschedule: LogHow(rawValue: string("logReschedule", defaults)), logRedeadline: LogHow(rawValue: string("logRedeadline", defaults))
+            hideDrawerStartup: bool("hideDrawerStartup", defaults), hideBlockStartup: bool("hideBlockStartup", defaults),
+            logReschedule: LogHow(rawValue: string("logReschedule", defaults)), logRedeadline: LogHow(rawValue: string("logRedeadline", defaults)),
+            useSpeedCommands: bool("useSpeedCommands", defaults), startupWithInlineImages: bool("startupWithInlineImages", defaults),
+            startupIndented: bool("startupIndented", defaults), hideLeadingStars: bool("hideLeadingStars", defaults),
+            startupAlignAllTables: bool("startupAlignAllTables", defaults), startupTruncated: bool("startupTruncated", defaults),
+            spellCheck: bool("spellCheck", defaults)
         )
         options.electricPair = bool("electricPair", defaults)
         return options
