@@ -27,6 +27,8 @@ struct BabelCacheTests {
         Case(text: "#+begin_src emacs-lisp :cache yes :lexical yes :results output\n(princ 7)\n#+end_src\n", runs: ["#+begin_src", "#+begin_src"]),
         Case(text: "#+NAME: a\n#+begin_src sh\necho hi\n#+end_src\n\n#+CALL: a() :cache yes\n", runs: ["#+CALL", "#+CALL"]),
         Case(text: "#+PROPERTY: header-args :cache yes\n#+begin_src sh :session none\necho prop\n#+end_src\n", runs: ["#+begin_src", "#+begin_src"]),
+        Case(text: "#+NAME: tbl\n| a | b |\n|---+---|\n| 1 | x |\n\n#+begin_src python :cache yes :var t=tbl :colnames yes :rownames yes\nreturn t\n#+end_src\n",
+             runs: ["#+begin_src", "#+begin_src"]),
         // Edited after the first run, so it runs again.
         Case(text: "#+begin_src sh :cache yes\necho one\n#+end_src\n", runs: ["#+begin_src", "#+begin_src"], edits: [("echo one", "echo two")]),
         // A reference to a cached block takes its result without running it.

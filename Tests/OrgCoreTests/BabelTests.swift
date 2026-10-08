@@ -84,7 +84,12 @@ enum TestBabelRunner {
 }
 
 struct BabelTests {
-    static let cases: [String] = [
+    static let cases: [String] = rawCases.map {
+        $0.replacingOccurrences(of: "TBL#+begin_src", with: "#+NAME: tbl\n| a | b |\n|---+---|\n| 1 | x |\n| 2 | y |\n\n#+begin_src")
+            .replacingOccurrences(of: "MULTI#+begin_src", with: "#+NAME: multi\n|---+---|\n| a | b |\n|---+---|\n| 1 | x |\n|---+---|\n| 2 | y |\n\n#+begin_src")
+    }
+
+    static let rawCases: [String] = [
         "#+begin_src sh\necho hello\n#+end_src\n",
         "#+begin_src sh\necho hello\n#+end_src\nNext paragraph.\n",
         "#+begin_src sh\necho hello\n#+end_src\n\nNext paragraph.\n",
@@ -157,6 +162,25 @@ struct BabelTests {
         "#+begin_src emacs-lisp :var s=greet\n(concat s \"!\")\n#+end_src\n\n#+NAME: greet\n#+begin_src emacs-lisp\n\"hi\"\n#+end_src\n",
         "#+begin_src python :var s=words\nreturn s.upper()\n#+end_src\n\n#+NAME: words\n#+begin_src sh :results output\nprintf 'two words'\n#+end_src\n",
         "#+begin_src emacs-lisp :var rows=pairs\n(length rows)\n#+end_src\n\n#+NAME: pairs\n#+begin_src sh\nprintf 'a 1\\nb 2\\nc 3\\n'\n#+end_src\n",
+        // Tables with rules, `:colnames`, `:rownames` and `:hlines`.
+        "TBL#+begin_src python :var t=tbl\nreturn t\n#+end_src\n",
+        "TBL#+begin_src python :var t=tbl :colnames yes\nreturn t\n#+end_src\n",
+        "TBL#+begin_src python :var t=tbl :colnames no\nreturn t\n#+end_src\n",
+        "TBL#+begin_src python :var t=tbl :rownames yes\nreturn t\n#+end_src\n",
+        "TBL#+begin_src python :var t=tbl :rownames yes :colnames yes\nreturn [[c * 2 for c in r] for r in t]\n#+end_src\n",
+        "TBL#+begin_src python :var t=tbl :colnames yes\nreturn [r + [9] for r in t]\n#+end_src\n",
+        "MULTI#+begin_src python :var t=multi :hlines yes\nreturn t\n#+end_src\n",
+        "MULTI#+begin_src python :var t=multi\nreturn t\n#+end_src\n",
+        "MULTI#+begin_src python :var t=multi :colnames yes\nreturn t\n#+end_src\n",
+        "TBL#+begin_src emacs-lisp :var tb=tbl\ntb\n#+end_src\n",
+        "TBL#+begin_src emacs-lisp :var tb=tbl :colnames yes\n(mapcar #'reverse tb)\n#+end_src\n",
+        "MULTI#+begin_src emacs-lisp :var tb=multi :hlines yes\ntb\n#+end_src\n",
+        "MULTI#+begin_src sh :stdin multi :results output\ncat\n#+end_src\n",
+        "#+begin_src python :var t=tb2 :colnames yes\nreturn t\n#+end_src\n\n#+NAME: tb2\n#+begin_src python\nreturn [['h1', 'h2'], None, [1, 2]]\n#+end_src\n",
+        // Lisp values.
+        "#+begin_src python :var l='(1 2) m='((1 2) (3 4)) n=(+ 1 2) s='(\"a\" \"b\")\nreturn [l, m, n, s]\n#+end_src\n",
+        "#+begin_src emacs-lisp :var l='(1 2) h='((1 2) hline (3 4)) s=(concat \"a\" \"b\")\n(list l h s)\n#+end_src\n",
+        "#+begin_src sh :var n=(* 6 7)\necho $n\n#+end_src\n",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))

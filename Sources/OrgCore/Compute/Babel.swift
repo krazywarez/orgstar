@@ -68,6 +68,10 @@ public struct BabelJob: Sendable, Equatable {
         var writesFile = false
         /// `:cache yes`: the hash for the `#+RESULTS[…]:` line.
         var hash: String?
+        /// Column and row names a table `:var` gave up, put back on a table result
+        /// (`org-babel-reassemble-table`).
+        var colnames: [String]?
+        var rownames: [String]?
     }
 }
 
@@ -290,14 +294,17 @@ public enum Babel {
         }
         let toFile = params.results.contains("file")
         var hash: String?
+        var tables = Tables()
         let finishBase = { (kind: BabelJob.Finish.Kind) in
             BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: name, inline: inline,
-                            file: toFile ? file : nil, fileDescription: params.single[":file-desc"], hash: hash)
+                            file: toFile ? file : nil, fileDescription: params.single[":file-desc"], hash: hash,
+                            colnames: tables.picked(tables.colnames, params.single[":colnames"]), rownames: tables.picked(tables.rownames, params.single[":rownames"]))
         }
         let vars: [(String, VarValue)]
         var stdin: VarValue?
         do {
-            vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: ns, refs: refs)) }
+            tables = try disassemble(params.vars.map { ($0.name, try resolve($0.value, model: model, text: ns, refs: refs)) }, params: params)
+            vars = tables.vars
             stdin = try params.single[":stdin"].map { try resolve($0, model: model, text: ns, refs: refs) }
         } catch let needed as Needed {
             // Asked about once, with every block the references reach; asked every time when
@@ -318,7 +325,7 @@ public enum Babel {
         }
         if useCache, !inline, params.single[":cache"] == "yes" {
             do {
-                let state = try cacheState(language: language, params: params, vars: vars, body: body, location: location, name: name,
+                let state = try cacheState(language: language, params: params, tables: tables, body: body, location: location, name: name,
                                            call: location != block.range, text: ns)
                 if state.current { return .failure(.message(cachedMessage(state.value))) }
                 // Appended or prepended results accumulate, so they carry no hash.
@@ -574,13 +581,110 @@ public enum Babel {
         return lines.joined(separator: "\n")
     }
 
+    // MARK: - Tables in variables
+
+    /// Variables after `org-babel-disassemble-tables`, with the names taken off their tables.
+    struct Tables {
+        var vars: [(String, VarValue)] = []
+        var colnames: [(name: String, names: [Cell])] = []
+        var rownames: [(name: String, names: [Cell])] = []
+
+        /// `org-babel-pick-name`: the last variable's names, unless the header argument is
+        /// absent, whose `nil` selects none.
+        func picked(_ names: [(name: String, names: [Cell])], _ selector: String?) -> [String]? {
+            guard selector != nil, let last = names.last else { return nil }
+            return last.names.map(Babel.cellText)
+        }
+    }
+
+    static func cellText(_ c: Cell) -> String {
+        switch c {
+        case .number(let n): n
+        case .text(let s): s
+        }
+    }
+
+    /// `org-babel-disassemble-tables`: a table's header row comes off when `:colnames` asks, or
+    /// by default when only its second row is a rule; its first column with `:rownames`; its
+    /// rules unless `:hlines yes`.
+    static func disassemble(_ vars: [(String, VarValue)], params: Params) throws -> Tables {
+        for key in [":colnames", ":rownames"] where params.lisp.contains(key) {
+            throw Failure.message("\(key) with a Lisp value isn't supported yet; nothing was run.")
+        }
+        let colnames = params.single[":colnames"]
+        let rownames = params.single[":rownames"]
+        let hlines = params.single[":hlines"] ?? "no"
+        var tables = Tables()
+        for (name, value) in vars {
+            guard case .table(var rows) = value else {
+                tables.vars.append((name, value))
+                continue
+            }
+            let auto = rows.count > 1 && rows[0] != nil && rows[1] == nil && !rows.dropFirst(2).contains(where: { $0 == nil })
+            if colnames != "no", colnames != nil || auto {
+                while let first = rows.first, first == nil { rows.removeFirst() }
+                if let header = rows.first ?? nil {
+                    rows.removeFirst(rows.count > 1 && rows[1] == nil ? 2 : 1)
+                    tables.colnames.append((name, header))
+                }
+            }
+            if let rownames, rownames != "no" {
+                let kept = rows.compactMap { $0 }
+                tables.rownames.append((name, kept.map { $0.first ?? .text("") }))
+                rows = kept.map { Array($0.dropFirst()) }
+            }
+            if hlines != "yes" { rows = rows.filter { $0 != nil } }
+            tables.vars.append((name, .table(rows)))
+        }
+        return tables
+    }
+
+    /// `org-babel-reassemble-table` on a result.
+    static func reassemble(_ value: Value, _ finish: BabelJob.Finish) -> Value {
+        guard case .table(var rows) = value else { return value }
+        if let names = finish.rownames, names.count == rows.count {
+            var next = names.makeIterator()
+            rows = rows.map { row in row.map { [next.next() ?? ""] + $0 } }
+        }
+        if let names = finish.colnames, let first = rows.first ?? nil, first.count == names.count {
+            rows = [names, nil] + rows
+        }
+        return .table(rows)
+    }
+
+    /// A `:var` value that is Lisp (`org-babel-read`): evaluated, as a number, string, list or
+    /// table.
+    static func lispValue(_ value: String) throws -> VarValue {
+        let refusal = Failure.message(":var value \(value) is Lisp that only Emacs can evaluate.")
+        guard let form = try? LispReader.readFirst(value).sexp, let result = try? Elisp().eval(form) else { throw refusal }
+        func cell(_ v: Sexp) throws -> Cell {
+            if let s = v.string { return .text(s) }
+            if let n = number(Elisp.printed(v)), Elisp.printed(v) == n { return .number(n) }
+            throw refusal
+        }
+        if let s = result.string { return .scalar(s) }
+        if case .list(let items) = result, !items.isEmpty {
+            if items.allSatisfy({ if case .list = $0 { return true }; return $0 == .symbol("hline") }) {
+                return .table(try items.map { item in
+                    if item == .symbol("hline") { return nil }
+                    guard case .list(let cells) = item else { throw refusal }
+                    return try cells.map(cell)
+                })
+            }
+            return .list(try items.map(cell))
+        }
+        if case .number(let n) = try? cell(result) { return .number(n) }
+        throw refusal
+    }
+
     // MARK: - Cache
 
     /// `:cache yes` (`org-babel-execute-src-block`): the block's hash, and whether its results
     /// already carry it, with their value when it can be read.
-    static func cacheState(language: String, params: Params, vars: [(String, VarValue)], body: String, location: Range<Int>, name: String?,
+    static func cacheState(language: String, params: Params, tables: Tables, body: String, location: Range<Int>, name: String?,
                            call: Bool, text: NSString) throws -> (hash: String, current: Bool, value: VarValue?) {
-        let input = try cacheInput(language: language, params: params, vars: vars, expanded: expandedBody(language: language, vars: vars, body: body), call: call)
+        let input = try cacheInput(language: language, params: params, tables: tables,
+                                   expanded: expandedBody(language: language, vars: tables.vars, body: body), call: call)
         let hash = Insecure.SHA1.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
         guard let line = existingResults(name: name, block: location, text: text), resultsHash(at: line, text: text) == hash else {
             return (hash, false, nil)
@@ -610,9 +714,9 @@ public enum Babel {
 
     /// What `org-babel-sha1-hash` hashes: the header arguments after `org-babel-process-params`,
     /// sorted by key and printed with `%S`, then the expanded body.
-    static func cacheInput(language: String, params: Params, vars: [(String, VarValue)], expanded: String, call: Bool) throws -> String {
-        if !params.lisp.isEmpty || params.single[":colnames"] != nil || params.single[":rownames"] != nil {
-            throw Failure.message(":cache with Lisp header values, :colnames or :rownames isn't supported yet; nothing was run.")
+    static func cacheInput(language: String, params: Params, tables: Tables, expanded: String, call: Bool) throws -> String {
+        if !params.lisp.isEmpty {
+            throw Failure.message(":cache with Lisp header values isn't supported yet; nothing was run.")
         }
         let ignored: Set<String> = ["replace", "silent", "none", "discard", "append", "prepend"]
         let drawsFile = language == "dot" || language == "plantuml"
@@ -640,7 +744,10 @@ public enum Babel {
         entries.append((":result-type", words.contains("output") ? "output" : "value"))
         entries.append((":results", lispString(kept.joined(separator: " "))))
         if let wrap = params.wrap, !wrap.isEmpty { entries.append((":wrap", lispString(wrap))) }
-        for (name, value) in vars {
+        for (key, names) in [(":colname-names", tables.colnames), (":rowname-names", tables.rownames)] where !names.isEmpty {
+            entries.append((key, "(" + names.map { "(\($0.name) " + lispLiteral(.list($0.names)).dropFirst() }.joined(separator: " ") + ")"))
+        }
+        for (name, value) in tables.vars {
             switch value {
             case .scalar, .number: entries.append((":var", "(\(name) . \(lispLiteral(value)))"))
             case .list, .table: entries.append((":var", "(\(name) " + lispLiteral(value).dropFirst()))
@@ -650,8 +757,8 @@ public enum Babel {
         return sorted.joined(separator: ":") + "-" + expanded
     }
 
-    /// `org-babel-read-result` for fixed-width lines, a table without rules or a plain list after
-    /// the `#+RESULTS` line at `line`; nil for anything else.
+    /// `org-babel-read-result` for fixed-width lines, a table or a plain list after the
+    /// `#+RESULTS` line at `line`; nil for anything else.
     static func readResult(after line: Int, text ns: NSString) -> VarValue? {
         var location = NSMaxRange(ns.lineRange(for: NSRange(location: line, length: 0)))
         var lines: [String] = []
@@ -673,10 +780,13 @@ public enum Babel {
             return number(value).map(VarValue.number) ?? .scalar(value)
         }
         if first.hasPrefix("|") {
-            var rows: [[Cell]] = []
+            var rows: [[Cell]?] = []
             for l in lines {
                 guard l.hasPrefix("|") else { break }
-                if l.hasPrefix("|-") { return nil }
+                if l.hasPrefix("|-") {
+                    rows.append(nil)
+                    continue
+                }
                 let cells = l.dropFirst().split(separator: "|", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
                 rows.append((l.hasSuffix("|") ? Array(cells.dropLast()) : cells).map(cell))
             }
@@ -877,14 +987,15 @@ public enum Babel {
         switch value(finish, output) {
         case .none: return .scalar("")
         case .string(let s): return number(s).map(VarValue.number) ?? .scalar(s)
-        case .table(let rows): return .table(rows.compactMap { $0?.map(cell) })
+        case .table(let rows): return .table(rows.map { $0?.map(cell) })
         }
     }
 
     enum VarValue: Equatable, Sendable {
         case scalar(String)
         case number(String)
-        case table([[Cell]])
+        /// Rows; nil is a rule (`hline`).
+        case table([[Cell]?])
         case list([Cell])
     }
 
@@ -949,6 +1060,7 @@ public enum Babel {
     static func resolve(_ value: String, model: DocumentModel, text: NSString, refs: References) throws -> VarValue {
         if value.hasPrefix("\""), value.hasSuffix("\""), value.count >= 2 { return .scalar(Params.unescape(String(value.dropFirst().dropLast()))) }
         if let n = number(value) { return .number(n) }
+        if let first = value.first, "('`[".contains(first) { return try lispValue(value) }
         if let known = refs.resolved[value] { return known }
         if let (block, arguments) = referencedBlock(value, model: model), let name = block.name {
             guard !refs.visiting.contains(name) else { throw Failure.message("\(name) refers to itself through :var") }
@@ -959,9 +1071,9 @@ public enum Babel {
             // A cached block gives its result without running, as `org-babel-execute-src-block` does.
             var useCache = true
             if params.single[":cache"] == "yes", let language = block.language {
-                let vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: text, refs: inner)) }
+                let tables = try disassemble(params.vars.map { ($0.name, try resolve($0.value, model: model, text: text, refs: inner)) }, params: params)
                 let body = nowebEvaluates(params.single[":noweb"]) ? try expandNoweb(block, params: params, model: model, text: text) : normalizedBody(block)
-                let state = try cacheState(language: language, params: params, vars: vars, body: body, location: block.range, name: name, call: false, text: text)
+                let state = try cacheState(language: language, params: params, tables: tables, body: body, location: block.range, name: name, call: false, text: text)
                 if state.current {
                     if let value = state.value { return value }
                     useCache = false
@@ -982,14 +1094,18 @@ public enum Babel {
         }
         let start = NSMaxRange(text.lineRange(for: NSRange(r, in: text as String)))
         var location = start
-        var rows: [[Cell]] = []
+        var rows: [[Cell]?] = []
         var items: [Cell] = []
         while location < text.length {
             let lineRange = text.lineRange(for: NSRange(location: location, length: 0))
             let line = text.substring(with: lineRange).trimmingCharacters(in: .newlines)
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.hasPrefix("|") {
-                if trimmed.hasPrefix("|-") { throw Failure.message("Tables with rules in :var aren't supported yet.") }
+                if trimmed.hasPrefix("|-") {
+                    rows.append(nil)
+                    location = NSMaxRange(lineRange)
+                    continue
+                }
                 let cells = trimmed.dropFirst().split(separator: "|", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
                 rows.append((trimmed.hasSuffix("|") ? Array(cells.dropLast()) : cells).map(cell))
             } else if let m = trimmed.firstMatch(of: /^[-+*] (.*)$/), rows.isEmpty {
@@ -1021,7 +1137,7 @@ public enum Babel {
         switch value {
         case .scalar(let s), .number(let s): return s
         case .list(let items): return items.map(cell).joined(separator: "\n")
-        case .table(let rows): return rows.map { $0.map(cell).joined(separator: "\t") }.joined(separator: "\n")
+        case .table(let rows): return rows.compactMap { $0?.map(cell).joined(separator: "\t") }.joined(separator: "\n")
         }
     }
 
@@ -1037,7 +1153,7 @@ public enum Babel {
         case .scalar(let s): return lispString(s, triple: s.contains("\n") || s.contains("\r"))
         case .number(let n): return n
         case .list(let items): return "[" + items.map(cell).joined(separator: ", ") + "]"
-        case .table(let rows): return "[" + rows.map { "[" + $0.map(cell).joined(separator: ", ") + "]" }.joined(separator: ", ") + "]"
+        case .table(let rows): return "[" + rows.map { $0.map { "[" + $0.map(cell).joined(separator: ", ") + "]" } ?? "None" }.joined(separator: ", ") + "]"
         }
     }
 
@@ -1058,7 +1174,7 @@ public enum Babel {
         case .scalar(let s): return lispString(s)
         case .number(let n): return n
         case .list(let items): return "(" + items.map(cell).joined(separator: " ") + ")"
-        case .table(let rows): return "(" + rows.map { "(" + $0.map(cell).joined(separator: " ") + ")" }.joined(separator: " ") + ")"
+        case .table(let rows): return "(" + rows.map { $0.map { "(" + $0.map(cell).joined(separator: " ") + ")" } ?? "hline" }.joined(separator: " ") + ")"
         }
     }
 
@@ -1229,6 +1345,10 @@ public enum Babel {
 
     /// The language's result handling: `org-babel-result-cond` and the table import.
     static func value(_ finish: BabelJob.Finish, _ output: BabelOutput) -> Value {
+        reassemble(rawValue(finish, output), finish)
+    }
+
+    static func rawValue(_ finish: BabelJob.Finish, _ output: BabelOutput) -> Value {
         let params = finish.params
         if params.contains("file") {
             // `org-babel-result-to-file`: a link to `:file`, or to the result as a path.
