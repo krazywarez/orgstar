@@ -87,6 +87,42 @@ extension Presentation {
         return next
     }
 
+    /// Doom's `za` (`+org/toggle-fold`) on a heading: folded, it opens one level (its body and
+    /// child headings, folded); otherwise it folds.
+    public static func toggleFold(_ heading: Int, in tree: OrgTree, _ state: FoldState) -> FoldState {
+        isFolded(heading, state) ? showChildren(heading, in: tree, state) : hideSubtree(heading, state)
+    }
+
+    /// Doom's `zo` (`+org/open-fold`): a folded heading opens one level; an open one stays.
+    public static func openFold(_ heading: Int, in tree: OrgTree, _ state: FoldState) -> FoldState {
+        isFolded(heading, state) ? showChildren(heading, in: tree, state) : state
+    }
+
+    /// `zc` (`outline-hide-subtree`): the heading's subtree folded.
+    public static func hideSubtree(_ heading: Int, _ state: FoldState) -> FoldState {
+        var next = state
+        next.folds.insert(heading)
+        return next
+    }
+
+    /// Whether the heading's body is hidden.
+    private static func isFolded(_ heading: Int, _ state: FoldState) -> Bool {
+        state.folds.contains(heading) || state.bodyFolds.contains(heading)
+    }
+
+    /// org's children view of a heading: its body and child headings show, their subtrees folded.
+    private static func showChildren(_ heading: Int, in tree: OrgTree, _ state: FoldState) -> FoldState {
+        let outline = outline(tree)
+        guard let index = outline.firstIndex(where: { $0.start == heading }) else { return state }
+        let entry = outline[index]
+        let subtree = outline.filter { $0.start >= entry.start && $0.start < entry.end }.map(\.start)
+        var next = state
+        next.folds.subtract(subtree)
+        next.bodyFolds.subtract(subtree)
+        next.folds.formUnion(outline.enumerated().filter { $0.element.parent == index }.map(\.element.start))
+        return next
+    }
+
     /// TAB at `offset` (`org-cycle`): on the first or last line of a drawer or block, folds or
     /// unfolds it; on a heading, cycles it. Nil elsewhere.
     public static func cycle(at offset: Int, in tree: OrgTree, _ state: FoldState) -> FoldState? {

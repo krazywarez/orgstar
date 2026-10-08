@@ -486,6 +486,7 @@ public final class OrgEditor: NSObject {
             switch id {
             case "org.cycle": cycleAtCaret()
             case "org.cycle-global": cycleGlobal()
+            case "org.fold.toggle", "org.fold.open", "org.fold.close": fold(id)
             case "org.narrow.subtree", "org.narrow.block", "org.narrow.toggle", "org.widen": narrow(id)
             case "org.toggle-inline-images": toggleImages()
             case "editor.toggle-spell-check": toggleSpellCheck()
@@ -950,6 +951,23 @@ public final class OrgEditor: NSObject {
         // Off a closing line that folding hid, to the opening line, as org does.
         if let wrapper = Wrappers.toggleable(at: caret, in: document.tree), hidden.containing(caret) != nil { setCaret(wrapper.start) }
         return true
+    }
+
+    /// Doom's `za`, `zo` (on a heading line) and `zc` (anywhere in a subtree).
+    func fold(_ id: String) {
+        leaveSparseTree()
+        let caret = textView.selectedRange().location
+        let tree = document.tree
+        let next: FoldState?
+        if id == "org.fold.close" {
+            next = Presentation.outline(tree).last { $0.start <= caret && (caret < $0.end || $0.end == utf16Length) }
+                .map { Presentation.hideSubtree($0.start, foldState) }
+        } else {
+            next = Presentation.heading(containing: caret, in: tree).map {
+                id == "org.fold.open" ? Presentation.openFold($0, in: tree, foldState) : Presentation.toggleFold($0, in: tree, foldState)
+            }
+        }
+        if let next, next != foldState { setFolds(next) }
     }
 
     /// Shift-TAB: overview, contents, show all.

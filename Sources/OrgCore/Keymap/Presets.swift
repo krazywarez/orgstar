@@ -441,15 +441,15 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         mode = "normal"
         [[bind]]
         keys = "z a"
-        command = "org.cycle"
+        command = "org.fold.toggle"
         mode = "normal"
         [[bind]]
         keys = "z c"
-        command = "org.cycle"
+        command = "org.fold.close"
         mode = "normal"
         [[bind]]
         keys = "z o"
-        command = "org.cycle"
+        command = "org.fold.open"
         mode = "normal"
         [[bind]]
         keys = "z A"

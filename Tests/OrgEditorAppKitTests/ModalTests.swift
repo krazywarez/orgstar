@@ -1,5 +1,6 @@
 import AppKit
 import OrgCore
+import OrgPresentation
 import Testing
 @testable import OrgEditorAppKit
 
@@ -105,6 +106,30 @@ struct ModalTests {
         a.textView.insertText("new", replacementRange: a.textView.selectedRange())
         type(a, "ESC ` Q")
         #expect(a.textView.selectedRange().location == 14)
+    }
+
+    @Test func foldKeysToggleOpenAndClose() {
+        let h = doom("* A\nbody\n** B\nb body\n* C\n")
+        h.caret(at: 0)
+        type(h, "z c")
+        #expect(h.editor.foldState.folds == [0])
+        type(h, "z o")
+        #expect(h.editor.foldState.folds == [9])
+        type(h, "z o")
+        #expect(h.editor.foldState.folds == [9])
+        type(h, "z a")
+        #expect(h.editor.foldState.folds.contains(0))
+        type(h, "z a")
+        #expect(h.editor.foldState.folds == [9])
+        // za and zo act on a heading line; zc closes the subtree around the caret.
+        h.editor.setFolds(FoldState())
+        h.caret(at: 5)
+        type(h, "z a")
+        type(h, "z o")
+        #expect(h.editor.foldState.folds.isEmpty)
+        h.caret(at: 15)
+        type(h, "z c")
+        #expect(h.editor.foldState.folds == [9])
     }
 
     @Test func zzSavesAndClosesAsWq() {

@@ -37,6 +37,9 @@ public enum EditorCommands {
     public static let all: [EditorCommand] = Commands.everything.map { EditorCommand(id: $0.id, title: $0.title, action: .text($0)) } + [
         EditorCommand(id: "org.cycle", title: "Cycle Visibility", action: .view),
         EditorCommand(id: "org.cycle-global", title: "Cycle Global Visibility", action: .view),
+        EditorCommand(id: "org.fold.toggle", title: "Toggle Fold", action: .view),
+        EditorCommand(id: "org.fold.open", title: "Open Fold", action: .view),
+        EditorCommand(id: "org.fold.close", title: "Close Fold", action: .view),
         EditorCommand(id: "org.narrow.subtree", title: "Narrow to Subtree", action: .view),
         EditorCommand(id: "org.narrow.block", title: "Narrow to Block", action: .view),
         EditorCommand(id: "org.widen", title: "Widen", action: .view),
