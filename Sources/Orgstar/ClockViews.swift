@@ -62,8 +62,7 @@ final class ClockStatusItem: NSObject {
     }
 }
 
-/// Time per day and heading, as your `tr/generate-report` writes it, for chosen files and
-/// dates.
+/// Clocked time per day and heading (`ClockReport.timeReport`) for chosen files and dates.
 struct ClockReportView: View {
     let workspace: WorkspaceModel
     @State private var start = Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date()

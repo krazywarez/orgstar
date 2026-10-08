@@ -133,7 +133,9 @@ struct ClockReportTests {
         for text in texts {
             for (start, end) in [(nil, nil), ("2026-02-18", nil), (nil, "2026-02-20"), ("2026-02-17", "2026-02-17")] as [(String?, String?)] {
                 let ours = ClockReport.timeReport(ClockReport.entries(text), start: start, end: end)
+                // The config titles the heading column "Code".
                 let theirs = try Self.emacsReport(text, start: start, end: end)
+                    .replacingOccurrences(of: "| Code                                          |", with: "| Heading                                       |")
                 #expect(ours == theirs, "\(start ?? "-")..\(end ?? "-")\nours:\n\(ours)\ntheirs:\n\(theirs)")
             }
         }
