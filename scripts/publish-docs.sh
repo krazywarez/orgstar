@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds the user manual in docs/manual with orgo and force-pushes it to the `pages`
-# branch, which gitbay serves at https://krz.gitbay.page/orgstar/.
+# branch, which gitbay serves at https://krz.gitbay.site/orgstar/.
 # Usage: scripts/publish-docs.sh [--dry-run]
 set -eu
 
