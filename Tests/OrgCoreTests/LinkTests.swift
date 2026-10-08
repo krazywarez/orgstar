@@ -88,4 +88,80 @@ struct LinkTests {
             #expect(ours == expected, "\(s)")
         }
     }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func followsRadioLinksLikeOrg() throws {
+        let text = "* A\nSome <<<Radio  Target>>> here.\n* B\nThen radio\ntarget again, and RADIO TARGET.\n"
+        let tree = OrgParser.parse(text)
+        let ns = text as NSString
+        let offsets = [ns.range(of: "radio\ntarget").location + 1, ns.range(of: "RADIO TARGET").location + 2]
+        let emacs = try EmacsOracle.run(offsets.map { EmacsOracle.Case(text: text, point: EmacsOracle.point($0, in: text), form: "(org-open-at-point)") })
+        for (offset, theirs) in zip(offsets, emacs) {
+            let link = try #require(Links.link(at: offset, text: text, tree: tree)?.link)
+            #expect(link.type == "radio")
+            #expect(Links.searchRadio(link.path, tree: tree) == .found(EmacsOracle.offset(theirs.point, in: theirs.text)), "\(theirs)")
+        }
+        #expect(Links.searchRadio("elsewhere", tree: tree) == .failed("No match for radio target: elsewhere"))
+    }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func findsAttachmentsLikeOrgAttach() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-attach-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        for dir in ["top", "files", "data/3f/2a77c0-1111", "data/202601/05T101010"] {
+            try FileManager.default.createDirectory(at: folder.appendingPathComponent(dir), withIntermediateDirectories: true)
+        }
+        let text = """
+            :PROPERTIES:
+            :DIR: top
+            :END:
+            [[attachment:t.txt]]
+            * Dir
+            :PROPERTIES:
+            :DIR: files
+            :END:
+            [[attachment:a.txt::3]]
+            * By ID
+            :PROPERTIES:
+            :ID: 3f2a77c0-1111
+            :END:
+            [[attachment:b.txt]]
+            ** Child without its own
+            [[attachment:inherit.txt]]
+            * Missing
+            :PROPERTIES:
+            :ID: zz99-none
+            :END:
+            [[attachment:c.txt]]
+            * Timestamp ID
+            :PROPERTIES:
+            :ID: 20260105T101010
+            :END:
+            [[attachment:sub/d.txt]]
+
+            """
+        let file = folder.appendingPathComponent("notes.org").path
+        try text.write(toFile: file, atomically: true, encoding: .utf8)
+        let ns = text as NSString
+        let offsets = ["t.txt", "a.txt", "b.txt", "inherit.txt", "c.txt", "d.txt"].map { ns.range(of: $0).location }
+        let points = offsets.map { String(EmacsOracle.point($0, in: text)) }.joined(separator: " ")
+        let output = try EmacsOracle.run(["-Q", "--batch", "--eval", """
+            (progn (require 'org) (require 'org-attach)
+              (with-current-buffer (find-file-noselect "\(file)")
+                (dolist (p '(\(points)))
+                  (goto-char p)
+                  (princ (format "%s\\n" (org-attach-expand (org-element-property :path (org-element-context))))))))
+            """])
+        let emacs = output.split(separator: "\n").map(String.init).filter { $0.hasPrefix("/") }
+        let tree = OrgParser.parse(text)
+        let ours = offsets.map { offset -> String in
+            guard let link = Links.link(at: offset, text: text, tree: tree)?.link,
+                  let target = Links.attachmentFile(link, tree: tree, path: file, isDirectory: { path in
+                      var directory: ObjCBool = false
+                      return FileManager.default.fileExists(atPath: path, isDirectory: &directory) && directory.boolValue
+                  }) else { return "none" }
+            return target.path + (target.searchOption.map { "::" + $0 } ?? "")
+        }
+        #expect(ours == emacs, "\(output)")
+    }
 }

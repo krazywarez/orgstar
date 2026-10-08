@@ -9,19 +9,22 @@ public struct OrgLink: Sendable, Equatable {
     public let searchOption: String?
     /// The link as written, unescaped and with abbreviations expanded.
     public let raw: String
+    /// Where an `attachment` link starts in its file, whose entry holds the attachments.
+    public var position: Int?
 
-    public init(type: String, path: String, searchOption: String? = nil, raw: String) {
+    public init(type: String, path: String, searchOption: String? = nil, raw: String, position: Int? = nil) {
         self.type = type
         self.path = path
         self.searchOption = searchOption
         self.raw = raw
+        self.position = position
     }
 }
 
 public enum Links {
-    /// `org-link-parameters` in Emacs with Org's default modules.
+    /// `org-link-parameters` in Emacs with Org's default modules, and org-attach's.
     static let types = [
-        "id", "eww", "rmail", "mhe", "irc", "info", "gnus", "docview", "bibtex", "bbdb", "w3m", "doi", "file+sys", "file+emacs",
+        "attachment", "id", "eww", "rmail", "mhe", "irc", "info", "gnus", "docview", "bibtex", "bbdb", "w3m", "doi", "file+sys", "file+emacs",
         "shell", "news", "mailto", "https", "http", "ftp", "shortdoc", "help", "file", "elisp",
     ]
 
@@ -132,11 +135,70 @@ public enum Links {
         walk(tree.root)
         guard let node = found else { return nil }
         let whole = node.text
+        var link: OrgLink
         if whole.hasPrefix("[["), let path = node.tokens.first(where: { $0.kind == .linkPath }) {
-            return (parse(bracket: path.text, abbreviations: abbreviations(in: tree.settings.setupKeywords + text)), node.range)
+            link = parse(bracket: path.text, abbreviations: abbreviations(in: tree.settings.setupKeywords + text))
+        } else if whole.hasPrefix("<") && whole.hasSuffix(">") {
+            link = parse(plain: String(whole.dropFirst().dropLast()))
+        } else if tree.settings.radioTargets.contains(where: { words($0) == words(whole) }) {
+            link = OrgLink(type: "radio", path: whole, raw: whole)
+        } else {
+            link = parse(plain: whole)
         }
-        let plain = whole.hasPrefix("<") && whole.hasSuffix(">") ? String(whole.dropFirst().dropLast()) : whole
-        return (parse(plain: plain), node.range)
+        if link.type == "attachment" { link.position = node.range.lowerBound }
+        return (link, node.range)
+    }
+
+    /// Words without case, as radio links match their targets.
+    static func words(_ s: String) -> [String] { s.lowercased().split(whereSeparator: \.isWhitespace).map(String.init) }
+
+    /// `org-link--search-radio-target`: the `<<<target>>>` a radio link's text names.
+    public static func searchRadio(_ target: String, tree: OrgTree) -> SearchResult {
+        var found: Int?
+        func walk(_ node: SyntaxNode) {
+            for child in node.children where found == nil {
+                if child.kind == .radioTarget, words(String(child.text.dropFirst(3).dropLast(3))) == words(target) {
+                    found = child.range.lowerBound
+                }
+                walk(child)
+            }
+        }
+        walk(tree.root)
+        return found.map { .found($0) } ?? .failed("No match for radio target: \(target)")
+    }
+
+    /// The file `org-attach-follow` opens for an `attachment` link, with org-attach's
+    /// defaults: in the entry's DIR property (or the older ATTACH_DIR), else in the folder for
+    /// its ID under `data/` that exists (`org-attach-id-to-path-function-list`), both relative
+    /// to the file's folder. Without an existing folder the file is relative to the file's
+    /// folder, as `org-attach-expand` has it. Nil without a folder to start from.
+    public static func attachmentFile(_ link: OrgLink, tree: OrgTree, path: String?, isDirectory: (String) -> Bool) -> OrgLink? {
+        let model = DocumentModel(tree: tree)
+        let offset = link.position ?? 0
+        let heading = model.headings.lastIndex { $0.sectionRange.contains(offset) }
+        let folder = path.map { ($0 as NSString).deletingLastPathComponent }
+        func absolute(_ p: String, in folder: String?) -> String? {
+            let expanded = (p as NSString).expandingTildeInPath
+            if expanded.hasPrefix("/") { return (expanded as NSString).standardizingPath }
+            return folder.map { (($0 as NSString).appendingPathComponent(expanded) as NSString).standardizingPath }
+        }
+        var candidates: [String] = []
+        if let dir = model.property("DIR", of: heading) ?? model.property("ATTACH_DIR", of: heading) {
+            candidates = [dir.value]
+        } else if let id = model.property("ID", of: heading)?.value, let first = id.first {
+            let chars = Array(id)
+            if chars.count > 2 { candidates.append("data/" + String(chars[..<2]) + "/" + String(chars[2...])) }
+            if chars.count > 6 { candidates.append("data/" + String(chars[..<6]) + "/" + String(chars[6...])) }
+            candidates.append("data/__/\(first)/\(id)")
+        }
+        let dir = candidates.lazy.compactMap { absolute($0, in: folder) }.first(where: isDirectory) ?? folder
+        var file = link.path
+        var search: String?
+        if let range = file.range(of: "::") {
+            search = String(file[range.upperBound...])
+            file = String(file[..<range.lowerBound])
+        }
+        return absolute(file, in: dir).map { OrgLink(type: "file", path: $0, searchOption: search, raw: link.raw) }
     }
 
     // MARK: - Searching a file

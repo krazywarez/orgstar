@@ -12,8 +12,9 @@ public enum LinkFollow: Equatable, Sendable {
 
 extension DocumentSession {
     /// Follows a link as `org-link-open` does: files open as buffers (with a `::` search),
-    /// `id:` links through the index, internal links in the current file, and web and mail
-    /// links go to their apps.
+    /// `id:` links through the index, internal and radio links in the current file,
+    /// `attachment:` links in their entry's attachment folder, and web and mail links go to
+    /// their apps.
     public func follow(_ link: OrgLink, workspace: WorkspaceModel?, isText: (String) -> Bool) -> LinkFollow {
         switch link.type {
         case "http", "https", "ftp", "mailto", "news":
@@ -32,6 +33,15 @@ extension DocumentSession {
             return searchCurrent("#" + link.path)
         case "fuzzy":
             return searchCurrent(link.path)
+        case "radio":
+            guard let document else { return .message("No file is open") }
+            return shown(Links.searchRadio(link.path, tree: document.tree))
+        case "attachment":
+            guard let tree = document?.tree,
+                  let file = Links.attachmentFile(link, tree: tree, path: path, isDirectory: Self.isDirectory) else {
+                return .message("Need absolute `org-attach-id-dir' to attach in buffers without filename")
+            }
+            return followFile(file, isText: isText)
         case "coderef":
             return .message("Coderef links aren't supported")
         case "shell", "elisp":
@@ -73,9 +83,18 @@ extension DocumentSession {
         return searchCurrent(option)
     }
 
+    static func isDirectory(_ path: String) -> Bool {
+        var directory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: path, isDirectory: &directory) && directory.boolValue
+    }
+
     private func searchCurrent(_ s: String) -> LinkFollow {
         guard let document else { return .message("No file is open") }
-        switch Links.search(s, text: document.text, tree: document.tree) {
+        return shown(Links.search(s, text: document.text, tree: document.tree))
+    }
+
+    private func shown(_ result: Links.SearchResult) -> LinkFollow {
+        switch result {
         case .found(let offset):
             reveal(offset)
             return .shown

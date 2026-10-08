@@ -1019,4 +1019,21 @@ struct LinkFollowTests {
         #expect(follow("doi:10.1000/182") == .openExternally(URL(string: "https://doi.org/10.1000/182")!))
         #expect(follow("shell:rm -rf x") == .message("Orgstar doesn't run shell links"))
     }
+
+    @Test func followsAttachmentAndRadioLinks() throws {
+        let notes = try Folder()
+        let text = "* Task\n:PROPERTIES:\n:ID: ab12-cd\n:END:\nSee [[attachment:scan.pdf]] and <<<the plan>>>.\n* Later\nAs in The Plan.\n"
+        let a = try notes.write("a.org", text)
+        let scan = try notes.write("data/ab/12-cd/scan.pdf", "pdf")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(a.path)
+        let tree = try #require(session.document?.tree)
+        func follow(_ needle: String) throws -> LinkFollow {
+            let link = try #require(Links.link(at: (text as NSString).range(of: needle).location + 1, text: text, tree: tree)?.link)
+            return session.follow(link, workspace: nil, isText: { $0.hasSuffix(".org") })
+        }
+        #expect(try follow("attachment:") == .openExternally(URL(fileURLWithPath: (scan.path as NSString).standardizingPath)))
+        #expect(try follow("The Plan") == .shown)
+        #expect(session.revealRequest?.offset == (text as NSString).range(of: "<<<the plan>>>").location)
+    }
 }
