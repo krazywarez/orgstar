@@ -15,6 +15,8 @@ public struct FastSelection: Sendable, Equatable {
         /// `[`, `]` and `:` of a group tag; shown, without effect on selection.
         case startTagGroup, endTagGroup, groupTags
         case newline
+        /// A line of text above the options that follow (`org-clock-select-task`'s sections).
+        case label(String)
     }
 
     public let items: [Item]

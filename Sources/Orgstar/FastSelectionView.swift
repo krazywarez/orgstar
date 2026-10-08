@@ -28,6 +28,8 @@ struct FastSelectionView: View {
                         switch cell {
                         case .text(let text):
                             Text(text).foregroundStyle(.secondary)
+                        case .label(let text):
+                            Text(text).bold()
                         case .option(let key, let name):
                             HStack(spacing: 4) {
                                 Text("[\(String(key))]").foregroundStyle(.tint)
@@ -106,6 +108,7 @@ struct FastSelectionView: View {
 
     private enum Cell {
         case text(String)
+        case label(String)
         case option(Character, String)
     }
 
@@ -121,6 +124,7 @@ struct FastSelectionView: View {
             case .endTagGroup: rows[rows.count - 1].append(.text("]")); newRow()
             case .groupTags: rows[rows.count - 1].append(.text(":"))
             case .newline: newRow()
+            case .label(let text): newRow(); rows[rows.count - 1].append(.label(text)); newRow()
             case .option(let key, let name): rows[rows.count - 1].append(.option(key, name))
             }
         }
