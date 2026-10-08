@@ -189,11 +189,12 @@ extension EmacsBuffer {
         return i == l - 1 ? i - 1 : i
     }
 
-    /// `org-table--descriptor-line`.
+    /// `org-table--descriptor-line`, with `org-table-get-range`'s fallback to the current
+    /// line for `@0`, whose `org-table-dlines` entry is nil.
     static func descriptorLine(_ desc: String, _ cline: Int, analysis: TableAnalysis) throws -> Int {
         if let n = Int(desc), desc.allSatisfy(\.isNumber) {
             guard n < analysis.dlines.count else { throw Calc.Unsupported("row out of range") }
-            return analysis.dlines[n]
+            return n == 0 ? cline : analysis.dlines[n]
         }
         let ns = desc as NSString
         let regex = try! NSRegularExpression(pattern: "^(([-+])?(I+))?(([-+])?([0-9]+))?")

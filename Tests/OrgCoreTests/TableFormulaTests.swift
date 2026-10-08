@@ -56,6 +56,8 @@ struct TableFormulaTests {
         "| a | b |\n|---+---|\n| 1 |   |\n| 2 |   |\n#+TBLFM: @-1$2=5\n",
         "| a | b | f |\n|---+---+---|\n| 1 | 3 |  |\n| 7 | 2 |  |\n| -7 | 2 |  |\n| 6 | 3 |  |\n| 1 | 0.5 |  |\n| 4 | 6 |  |\n#+TBLFM: $3=$1/$2;F\n",
         "| a |\n|---|\n|  |\n|  |\n|  |\n|  |\n|  |\n|  |\n|  |\n|  |\n|  |\n#+TBLFM: @2$1=1/3+1/6;F::@3$1=(1/3)^2;F::@4$1=vsum([1/2,1/3]);F::@5$1=1/3*3;F::@6$1=sqrt(1/4);F::@7$1=vmean([1,2]);F::@8$1=2^-2;F::@9$1=abs(-1/3)+max(1/3,1/4);F::@10$1=round(7/2)+floor(7/2);F\n",
+        "| 10 | 20 | |\n| 1 | 2 | |\n| 3 | 4 | |\n#+TBLFM: $3=@0$1+@0$2*10\n",
+        "#+NAME: t1\n| 5 | 6 |\n| 1 | 2 |\n\n#+NAME: t2\n| 7 | 8 |\n\n| name | val | sum |\n|------+-----+-----|\n| t1 | | |\n| t2 | | |\n#+TBLFM: $2=remote($1,@1$1)::$3=vsum(remote(t1,$1..$2))+vsum($1..$2)\n",
     ]
 
     @Test func remoteFindsTablesByIDInOtherFiles() {
