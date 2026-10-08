@@ -2,8 +2,9 @@ import Foundation
 
 // Table formulas (org-table.el, Org 9.8.7): `org-table-recalculate` and
 // `org-table-eval-formula` with Calc and Lisp evaluated natively. Symbolic results, Calc
-// features beyond `Calc`, Lisp beyond `Elisp`, remote tables found by ID and relative field
-// targets throw `Calc.Unsupported`; the caller then recalculates the table in Emacs.
+// features beyond `Calc` and Lisp beyond `Elisp` throw `Calc.Unsupported`; the caller then
+// recalculates the table in Emacs. `remote()` finds tables by name in the file, and by ID
+// here or, through `RemoteTables`, in other files.
 
 /// Where `remote()` finds tables by ID in other files.
 public enum RemoteTables {

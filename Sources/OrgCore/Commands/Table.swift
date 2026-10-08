@@ -1,8 +1,9 @@
 import Foundation
 
 // Org tables (org-table.el, Org 9.8.7): alignment and the editing commands, with
-// `org-table-automatic-realign` t, `org-table-tab-jumps-over-hlines` t, no shrunk columns,
-// `org-table-fix-formulas-confirm` nil (formulas are fixed silently).
+// `org-table-automatic-realign` t, `org-table-tab-jumps-over-hlines` t,
+// `org-table-fix-formulas-confirm` nil (formulas are fixed silently). Shrunk columns are only
+// drawn (`TableShrink`); these commands see the full text.
 
 extension EmacsBuffer {
     static let numberPattern = "^([<>]?[-+^.0-9]*[0-9][-+^.0-9eEdDx()%:]*|[<>]?[-+]?0[xX][0-9a-fA-F.]+|[<>]?[-+]?[0-9]+#[0-9a-zA-Z.]+|nan|[-+u]?inf)$"
