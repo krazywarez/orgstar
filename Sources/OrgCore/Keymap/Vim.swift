@@ -88,10 +88,11 @@ public struct Vim: Sendable {
     public var clipboardRecord: (text: String, linewise: Bool)?
     var anchor = 0
     var goalColumn: Int?
-    var lastFind: (kind: Character, char: String)?
-    var lastSnipe: (forward: Bool, chars: String, count: Int)?
-    /// `;` and `,` repeat a snipe when one came after the last f, F, t or T.
-    var lastWasSnipe = false
+    /// The last snipe: s, S, f, F, t or T. `consume` lands on the match (s, f, F) rather
+    /// than next to it (t, T); `keys` repeat it right after it, forward and back.
+    var lastSnipe: (forward: Bool, chars: String, count: Int, consume: Bool, keys: (forward: KeyChord, backward: KeyChord))?
+    /// Set after a snipe: its keys repeat it as the next key, as evil-snipe's transient map has it.
+    var snipeRepeatKeys: (forward: KeyChord, backward: KeyChord)?
     var lastSearch: (pattern: String, forward: Bool)?
     /// The keys and inserted text of the last change, for `.`.
     var lastChange: (keys: [KeyChord], inserted: String?)?
@@ -129,6 +130,11 @@ public struct Vim: Sendable {
         case .insert:
             return insertKey(key, context)
         case .normal, .visual, .visualLine, .visualBlock:
+            var key = key
+            if pending.isEmpty, let repeatKeys = snipeRepeatKeys {
+                if key == repeatKeys.forward { key = KeyChord(";") } else if key == repeatKeys.backward { key = KeyChord(",") }
+            }
+            if pending.isEmpty { snipeRepeatKeys = nil }
             pending.append(key)
             let keys = pending
             caretForApply = context.caret
@@ -611,36 +617,23 @@ public struct Vim: Sendable {
                 return .invalid
             }
         case ("f", []), ("F", []), ("t", []), ("T", []):
+            // evil-snipe-override-mode: one-character snipes.
             guard keys.count >= 2 else { return .incomplete }
-            let char = keys[1].key == "SPC" ? " " : keys[1].key
+            let char = keys[1].key == "SPC" ? " " : keys[1].key == "TAB" ? "\t" : keys[1].key
             guard char.count == 1 else { return .invalid }
-            lastFind = (Character(key.key), char)
-            lastWasSnipe = false
-            guard let p = find(Character(key.key), char, buffer, c, count: n) else { return .invalid }
-            return .moved(p, key.key == "f" || key.key == "t" ? .inclusive : .exclusive)
-        case (";", []) where lastWasSnipe, (",", []) where lastWasSnipe:
+            let forward = key.key == "f" || key.key == "t"
+            lastSnipe = (forward, char, n, key.key == "f" || key.key == "F", (KeyChord(key.key.lowercased()), KeyChord(key.key.uppercased())))
+            return snipe(forward: forward, count: n, buffer, c, operatorPending: operatorPending, repeating: false)
+        case (";", []), (",", []):
             // evil-snipe-repeat, with Doom's `evil-snipe-repeat-scope` visible.
             guard let last = lastSnipe else { return .invalid }
             let forward = key.key == ";" ? last.forward : !last.forward
-            let scope = contextVisible.map { min($0.lowerBound, buffer.length)..<min($0.upperBound, buffer.length) }
-            guard let p = snipe(forward: forward, last.chars, buffer, c, count: n * last.count, scope: scope) else { return .invalid }
-            return .moved(p, .exclusive)
-        case (";", []), (",", []):
-            guard let last = lastFind else { return .invalid }
-            var kind = last.kind
-            if key.key == "," {
-                kind = ["f": "F", "F": "f", "t": "T", "T": "t"][kind]!
-            }
-            guard let p = find(kind, last.char, buffer, c, count: n, repeating: true) else { return .invalid }
-            return .moved(p, kind == "f" || kind == "t" ? .inclusive : .exclusive)
+            return snipe(forward: forward, count: n * last.count, buffer, c, operatorPending: operatorPending, repeating: true)
         case ("s", []) where !operatorPending, ("S", []) where !operatorPending:
-            // evil-snipe with `evil-snipe-scope` line.
             guard keys.count >= 3 else { return .incomplete }
             let chars = keys[1].key + keys[2].key
-            lastSnipe = (key.key == "s", chars, n)
-            lastWasSnipe = true
-            guard let p = snipe(forward: key.key == "s", chars, buffer, c, count: n) else { return .invalid }
-            return .moved(p, .exclusive)
+            lastSnipe = (key.key == "s", chars, n, true, (KeyChord("s"), KeyChord("S")))
+            return snipe(forward: key.key == "s", count: n, buffer, c, operatorPending: operatorPending, repeating: false)
         case ("%", []):
             guard let p = buffer.matchingBracket(c) else { return .invalid }
             return .moved(p, .inclusive)
@@ -686,51 +679,68 @@ public struct Vim: Sendable {
         }
     }
 
-    func find(_ kind: Character, _ char: String, _ buffer: Buffer, _ c: Int, count n: Int, repeating: Bool = false) -> Int? {
-        let target = char.utf16.first!
-        let forward = kind == "f" || kind == "t"
-        var p = c
-        for i in 0..<n {
-            var q = p
-            // Repeating t/T starts past the character it stopped before.
-            let skip = repeating && i == 0 && (kind == "t" || kind == "T") ? 1 : 0
-            if forward {
-                q += 1 + skip
-                while q < buffer.lineEnd(c), buffer.char(q) != target { q += 1 }
-                guard q < buffer.lineEnd(c) else { return nil }
-            } else {
-                q -= 1 + skip
-                while q >= buffer.lineStart(c), buffer.char(q) != target { q -= 1 }
-                guard q >= buffer.lineStart(c) else { return nil }
-            }
-            p = q
+    /// `evil-snipe--seek` for the last snipe: the `n`th match from `c` in the line after (or
+    /// before) the search start, or for a repeat in the visible text, with smart case and
+    /// `evil-snipe-skip-leading-whitespace`.
+    mutating func snipe(forward: Bool, count n: Int, _ buffer: Buffer, _ c: Int, operatorPending: Bool, repeating: Bool) -> MotionResult {
+        guard let last = lastSnipe else { return .invalid }
+        // f, s and F search from the next or this character, t and T one further.
+        let start = forward ? c + (last.consume ? 1 : 2) : c - (last.consume ? 0 : 1)
+        guard start >= 0, start <= buffer.length else { return .invalid }
+        var bound = forward ? buffer.lineEnd(start) : buffer.lineStart(start)
+        if repeating, let visible = contextVisible {
+            bound = forward ? min(visible.upperBound, buffer.length) - 1 : min(visible.lowerBound, start)
         }
-        if kind == "t" { return p - 1 }
-        if kind == "T" { return p + 1 }
-        return p
-    }
-
-    /// Searches the caret's line, or `scope` when given.
-    func snipe(forward: Bool, _ chars: String, _ buffer: Buffer, _ c: Int, count n: Int, scope: Range<Int>? = nil) -> Int? {
-        let range = scope ?? buffer.lineStart(c)..<buffer.lineEnd(c)
-        let line = buffer.substring(range) as NSString
-        let start = range.lowerBound
-        guard range.lowerBound <= c, c <= range.upperBound else { return nil }
-        let smart = chars == chars.lowercased()
-        var p = c - start
-        for _ in 0..<n {
-            let range: NSRange
-            if forward {
-                guard p + 1 < line.length else { return nil }
-                range = line.range(of: chars, options: smart ? .caseInsensitive : [], range: NSRange(location: p + 1, length: line.length - p - 1))
-            } else {
-                guard p > 0 else { return nil }
-                range = line.range(of: chars, options: smart ? [.caseInsensitive, .backwards] : .backwards, range: NSRange(location: 0, length: p))
+        let blankKeys = last.chars.first == " " || last.chars.first == "\t"
+        var pattern = NSRegularExpression.escapedPattern(for: last.chars)
+        if blankKeys, let ch = buffer.char(start), Buffer.isBlank(ch) { pattern += "[^ \t]" }
+        let regex = try! NSRegularExpression(pattern: pattern, options: last.chars == last.chars.lowercased() ? .caseInsensitive : [])
+        var match: NSRange?
+        if forward, start <= bound {
+            var from = start
+            for _ in 0..<n {
+                match = regex.firstMatch(in: buffer.ns as String, range: NSRange(location: from, length: bound - from))?.range
+                guard let found = match else { break }
+                from = NSMaxRange(found)
             }
-            guard range.location != NSNotFound else { return nil }
-            p = range.location
+        } else if !forward {
+            var from = start
+            for _ in 0..<n {
+                match = nil
+                var p = from - 1
+                while p >= bound, match == nil {
+                    match = regex.firstMatch(in: buffer.ns as String, options: .anchored, range: NSRange(location: p, length: from - p))?.range
+                    p -= 1
+                }
+                guard let found = match else { break }
+                from = found.location
+            }
         }
-        return start + p
+        guard let found = match else {
+            if repeating { snipeRepeatKeys = last.keys }
+            return .invalid
+        }
+        if !operatorPending { snipeRepeatKeys = last.keys }
+        var end = NSMaxRange(found)
+        var length = found.length
+        if blankKeys {
+            end -= 1
+            length -= 1
+        }
+        let visual = mode == .visual || mode == .visualLine || mode == .visualBlock
+        var p: Int
+        if !forward {
+            p = last.consume ? found.location : end
+        } else {
+            p = visual ? (last.consume ? end : found.location) : operatorPending ? end : found.location
+            if last.consume {
+                if visual { p -= 1 }
+            } else {
+                p -= length
+                if length > 1, !operatorPending { p += 1 }
+            }
+        }
+        return .moved(p, .exclusive)
     }
 
     // MARK: - Text objects

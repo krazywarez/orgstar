@@ -11,7 +11,7 @@ extension Vim {
     /// Motions evil records in the jump list.
     static func isJump(_ keys: [KeyChord]) -> Bool {
         guard let key = keys.first, key.modifiers.isEmpty else { return false }
-        if ["G", "%", "{", "}", "n", "N", "*", "#", "'", "`", "H", "M", "L"].contains(key.key) { return true }
+        if ["G", "%", "{", "}", "n", "N", "*", "#", "'", "`", "H", "M", "L", "s", "S", "f", "F", "t", "T"].contains(key.key) { return true }
         return key.key == "g" && keys.count > 1 && keys[1].key == "g"
     }
 

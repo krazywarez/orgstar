@@ -193,6 +193,36 @@ struct VimTests {
         ("one two three\n", 0, "3 l v l d"),
         ("one two three\n", 8, "v b d"),
         ("one two three\n", 0, "v 2 e c X ESC"),
+        // evil-snipe-override-mode: f, F, t and T snipe one character, ; and , repeat over
+        // the visible text, and the snipe's own keys repeat it right after.
+        ("abc abc\nxbz abc\n", 0, "f c ; ; x"),
+        ("abc abc\nxbz abc\n", 0, "f c f f x"),
+        ("abc abc\nxbz abc\n", 0, "f c f F x"),
+        ("abc abc abc\n", 10, "F b f x"),
+        ("abc abc abc abc\n", 10, "F b F x"),
+        ("abc abc\nxbz abc\n", 14, "T a ; x"),
+        ("abc abc\nxbz abc\n", 0, "t c t x"),
+        ("abc abc\nxbz abc\n", 0, "f c l f c x"),
+        ("aAa\n", 0, "f a x"),
+        ("aAa\n", 0, "f A x"),
+        ("abab\n", 0, "t b x"),
+        ("ab ab\n", 4, "T a x"),
+        ("abc\nxbz\n", 2, "t z x"),
+        ("a  b c\n", 0, "f SPC x"),
+        ("a b\n", 0, "d f SPC"),
+        ("a b c\n", 0, "t SPC x"),
+        ("one two three\n", 0, "d t e"),
+        ("one two three\n", 0, "c f o X ESC"),
+        ("one two three\n", 12, "d F o"),
+        ("one two three\n", 12, "d T o"),
+        ("one two three\n", 0, "v f e d"),
+        ("one two three\n", 0, "v t e d"),
+        ("one two three\n", 0, "d f e ."),
+        ("a1a2a3a4a5a6\n", 0, "2 f a ; x"),
+        ("ab ab ab\n", 0, "s a b s S x"),
+        ("ab ab ab\n", 0, "s a b d ;"),
+        ("ab ab ab\n", 0, "v s a b d"),
+        ("ab x\ncd ab\nab\n", 5, "s a b ; , x"),
     ]
 
     /// Thirty lines of seven characters: line `i` starts at `7 * i`.
@@ -272,11 +302,12 @@ struct VimTests {
               (add-to-list 'load-path "\(evil.path)/evil-snipe")
               (require 'evil)
               (require 'evil-snipe)
-              (setq evil-snipe-smart-case t evil-snipe-scope 'line)
+              (setq evil-snipe-smart-case t evil-snipe-scope 'line evil-snipe-repeat-scope 'visible evil-snipe-char-fold t)
               (setq kill-ring nil)
               (switch-to-buffer (current-buffer))
               (evil-local-mode 1)
               (evil-snipe-local-mode 1)
+              (evil-snipe-override-local-mode 1)
               (evil-normal-state)
               (execute-kbd-macro (kbd "\(keys.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"").replacingOccurrences(of: "ESC", with: "<escape>").replacingOccurrences(of: "DEL", with: "DEL"))"))
               (let ((p (point)) (s evil-state))
@@ -288,6 +319,8 @@ struct VimTests {
         let results = try EmacsOracle.run(forms)
         for ((text, point, keys), result) in zip(Self.cases, results) {
             var driver = VimDriver(text, caret: point)
+            // A batch Emacs window shows the whole buffer.
+            driver.visible = 0..<text.utf16.count
             driver.type(Self.keys(keys))
             guard let marker = result.text.range(of: "\n@@STATE ") else {
                 Issue.record("\(keys): \(result.error)")
