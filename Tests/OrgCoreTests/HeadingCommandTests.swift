@@ -13,6 +13,35 @@ struct HeadingCommandTests {
         #expect(runCommand(cycle, "text\n", caret: 1).failure != nil)
     }
 
+    /// `#+TYP_TODO`: a first C-c C-t goes to the done keyword, a repeated one to the next type.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func typeKeywordsMatchEmacs() throws {
+        let texts = [
+            "#+TYP_TODO: Fred Sara Lucy | DONE\n* Fred a\n", "#+TYP_TODO: Fred Sara Lucy | DONE\n* Sara a\n",
+            "#+TYP_TODO: Fred Sara Lucy | DONE\n* Lucy a\n", "#+TYP_TODO: Fred Sara Lucy | DONE\n* DONE a\n",
+            "#+TYP_TODO: Fred Sara | DONE GONE\n* Sara a\n", "#+TYP_TODO: Fred Sara | DONE GONE\n* DONE a\n",
+            "#+TYP_TODO: Fred Sara | DONE\n* a\n", "#+TODO: TODO | DONE\n#+TYP_TODO: Fred Sara | OK\n* Fred a\n",
+        ]
+        var cases: [EmacsOracle.Case] = []
+        var ours: [String] = []
+        for text in texts {
+            let caret = (text as NSString).range(of: "\n*").location + 2
+            for repeated in [false, true] {
+                let last = repeated ? "'org-todo" : "'other"
+                cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: "(let ((this-command 'org-todo) (last-command \(last))) (org-todo))"))
+                let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], lastCommand: repeated ? TodoCycle().id : "org.other")
+                guard case .commit(let result) = TodoCycle().run(in: context) else { ours.append("failed"); continue }
+                ours.append(result.edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(text) { $1.apply(to: $0) })
+            }
+        }
+        let emacs = try EmacsOracle.run(cases)
+        #expect(emacs.count == ours.count)
+        for (mine, emacs) in zip(ours, emacs) {
+            #expect(mine == emacs.text)
+        }
+        #expect(ours[0].hasSuffix("* DONE a\n") && ours[1].hasSuffix("* Sara a\n"))
+    }
+
     @Test func caretMovesToTheTitleWhenBeforeIt() {
         #expect(runCommand(TodoCycle(), "* a\n", caret: 2).caret == 7)
         #expect(runCommand(TodoCycle(), "* TODO abc\nbody\n", caret: 13).caret == 13)

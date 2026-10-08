@@ -186,8 +186,10 @@ public struct TodoCycle: OrgCommand {
         entryHeading(at: context.caret, in: context.tree) != nil
     }
 
-    /// No keyword, then each keyword of its sequence in order, then no keyword again.
-    static func next(after current: String?, in settings: OrgSettings) -> String? {
+    /// No keyword, then each keyword of its sequence in order, then no keyword again. A
+    /// `#+TYP_TODO` keyword goes to the sequence's first done keyword unless `repeated` (the
+    /// previous command was also this one, `this-command` eq `last-command` in `org-todo`).
+    static func next(after current: String?, in settings: OrgSettings, repeated: Bool) -> String? {
         guard let current else {
             guard let first = settings.todoSequences.first else { return nil }
             return (first.active + first.done).first?.name
@@ -195,7 +197,8 @@ public struct TodoCycle: OrgCommand {
         for sequence in settings.todoSequences {
             let names = (sequence.active + sequence.done).map(\.name)
             if let index = names.firstIndex(of: current) {
-                return index + 1 < names.count ? names[index + 1] : nil
+                guard index + 1 < names.count else { return nil }
+                return sequence.kind == .type && !repeated ? sequence.done.first?.name : names[index + 1]
             }
         }
         return nil
@@ -229,7 +232,7 @@ public struct TodoCycle: OrgCommand {
             return .failed("Before first headline")
         }
         let line = HeadingLine(heading)
-        let next = Self.next(after: line.todo?.text, in: context.tree.settings)
+        let next = Self.next(after: line.todo?.text, in: context.tree.settings, repeated: context.lastCommand == id)
         return line.commit(context) { buffer in
             let text = buffer.string as NSString
             let regionStart = line.stars.upperBound - line.start
