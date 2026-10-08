@@ -72,6 +72,17 @@ struct ModalTests {
         #expect(h.editor.vim.mode == .normal)
     }
 
+    @Test func windowLinesInTheEditor() {
+        let h = doom("one\ntwo\nthree\nfour\nfive\n")
+        h.caret(at: 0)
+        type(h, "L")
+        #expect(h.textView.selectedRange().location == 19)
+        type(h, "M")
+        #expect(h.textView.selectedRange().location == 8)
+        type(h, "H")
+        #expect(h.textView.selectedRange().location == 0)
+    }
+
     @Test func undefinedLeaderSequencesDoNothing() {
         let h = doom("* Task\nbody text\n")
         var messages: [String] = []

@@ -70,7 +70,7 @@ extension OrgEditor {
             let clipboard = NSPasteboard.general.string(forType: .string)
             var marks = vimMarks
             if jumpIndex > 0, jumpIndex <= jumpList.count { marks["'"] = jumpList[jumpIndex - 1] }
-            let actions = vim.feed(key, Vim.Context(text: document.text, caret: caret, clipboard: clipboard, halfPage: halfPage, marks: marks))
+            let actions = vim.feed(key, Vim.Context(text: document.text, caret: caret, clipboard: clipboard, halfPage: halfPage, marks: marks, visible: visibleText))
             apply(actions)
             if !wasInsert, vim.mode == .insert {
                 insertSnapshot = (document.text, textView.selectedRange().location)
@@ -102,6 +102,19 @@ extension OrgEditor {
         guard let scroll = textView.enclosingScrollView, let font = textView.font else { return 15 }
         let lineHeight = max(1, font.ascender - font.descender + font.leading)
         return max(1, Int(scroll.contentView.bounds.height / lineHeight / 2))
+    }
+
+    /// The text the window shows, from the line at its top to the line at its bottom.
+    var visibleText: Range<Int>? {
+        guard let layout = textView.textLayoutManager, let content = layout.textContentManager, let scroll = textView.enclosingScrollView else { return nil }
+        let bounds = scroll.contentView.bounds
+        let origin = textView.textContainerOrigin
+        let start = content.documentRange.location
+        guard let top = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, bounds.minY - origin.y))) else { return nil }
+        let lower = content.offset(from: start, to: top.rangeInElement.location)
+        let bottom = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, bounds.maxY - origin.y - 1)))
+        let upper = bottom.map { content.offset(from: start, to: $0.rangeInElement.endLocation) } ?? utf16Length
+        return lower..<max(lower, upper)
     }
 
     private func editContext() -> EditContext {

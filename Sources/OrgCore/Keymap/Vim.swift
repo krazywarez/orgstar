@@ -58,13 +58,16 @@ public struct Vim: Sendable {
         public var halfPage: Int
         /// Marks where the editor keeps them now; `'` and `` ` `` are the last jump's start.
         public var marks: [Character: Int]
+        /// The text the window shows, for H, M and L; nil when unknown.
+        public var visible: Range<Int>?
 
-        public init(text: String, caret: Int, clipboard: String? = nil, halfPage: Int = 15, marks: [Character: Int] = [:]) {
+        public init(text: String, caret: Int, clipboard: String? = nil, halfPage: Int = 15, marks: [Character: Int] = [:], visible: Range<Int>? = nil) {
             self.text = text
             self.caret = caret
             self.clipboard = clipboard
             self.halfPage = halfPage
             self.marks = marks
+            self.visible = visible
         }
     }
 
@@ -96,6 +99,9 @@ public struct Vim: Sendable {
     var blockInsert: (lines: [Int], column: Int, pad: Bool)?
     /// The editor's marks for this key.
     var contextMarks: [Character: Int] = [:]
+    /// The context's half page and visible text for this key.
+    var contextHalfPage = 15
+    var contextVisible: Range<Int>?
     /// Keys are going into a macro register.
     public internal(set) var recording = false
     var lastMacro: Character?
@@ -115,6 +121,8 @@ public struct Vim: Sendable {
             let keys = pending
             caretForApply = context.caret
             contextMarks = context.marks
+            contextHalfPage = context.halfPage
+            contextVisible = context.visible
             var buffer = Buffer(context)
             switch parse(keys, &buffer, context) {
             case .incomplete:
@@ -505,7 +513,7 @@ public struct Vim: Sendable {
             return .moved(min(limit, c + n), .exclusive)
         case ("j", []), ("k", []), ("<down>", []), ("<up>", []), ("d", [.control]), ("u", [.control]), ("+", []), ("-", []), ("RET", []):
             let down = ["j", "<down>", "+", "RET"].contains(key.key) || key == KeyChord("d", .control)
-            let lines = key.modifiers.contains(.control) ? (n == 1 ? 15 : n) : n
+            let lines = key.modifiers.contains(.control) ? (n == 1 ? contextHalfPage : n) : n
             let goal = goalColumn ?? column(c)
             var line = buffer.lineStart(c)
             var moved = 0
@@ -631,6 +639,21 @@ public struct Vim: Sendable {
             lastSearch = (pattern, key.key == "*")
             guard let p = buffer.search(pattern, from: buffer.wordStart(c), forward: key.key == "*", count: n) else { return .invalid }
             return .moved(p, .exclusive)
+        case ("H", []), ("M", []), ("L", []):
+            // The visible lines: H the count-th from the top, L from the bottom, M the middle.
+            guard let visible = contextVisible else { return .invalid }
+            goalColumn = nil
+            let lower = min(visible.lowerBound, buffer.length)
+            let last = buffer.lineStart(max(lower, min(visible.upperBound, buffer.length) - 1))
+            var lines: [Int] = []
+            var line = buffer.lineStart(lower)
+            while true {
+                lines.append(line)
+                guard line < last, buffer.lineEnd(line) < buffer.length else { break }
+                line = buffer.lineEnd(line) + 1
+            }
+            let index = key.key == "H" ? min(n, lines.count) - 1 : key.key == "L" ? max(0, lines.count - n) : (lines.count - 1) / 2
+            return .moved(buffer.firstNonBlank(lines[index]), .linewise)
         default:
             return .invalid
         }
@@ -914,7 +937,7 @@ public struct Vim: Sendable {
                     caret += inserted.utf16.count
                 }
             }
-            let produced = copy.feed(key, Context(text: text, caret: caret, clipboard: context.clipboard, halfPage: context.halfPage))
+            let produced = copy.feed(key, Context(text: text, caret: caret, clipboard: context.clipboard, halfPage: context.halfPage, visible: context.visible))
             for action in produced {
                 switch action {
                 case .edit(let edits, let to):

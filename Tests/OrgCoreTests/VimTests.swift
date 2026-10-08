@@ -10,6 +10,8 @@ struct VimDriver {
     var caret: Int
     var clipboard: String?
     var commands: [String] = []
+    var halfPage = 15
+    var visible: Range<Int>?
 
     init(_ text: String, caret: Int) {
         self.text = text
@@ -36,7 +38,7 @@ struct VimDriver {
                 }
                 continue
             }
-            let actions = vim.feed(key, Vim.Context(text: text, caret: caret, clipboard: clipboard))
+            let actions = vim.feed(key, Vim.Context(text: text, caret: caret, clipboard: clipboard, halfPage: halfPage, visible: visible))
             for action in actions {
                 switch action {
                 case .edit(let edits, let to):
@@ -182,6 +184,43 @@ struct VimTests {
         ("one two three\n", 8, "v b d"),
         ("one two three\n", 0, "v 2 e c X ESC"),
     ]
+
+    /// Thirty lines of seven characters: line `i` starts at `7 * i`.
+    static let lines = (0..<30).map { String(format: "line%02d\n", $0) }.joined()
+
+    func driven(_ caret: Int, _ keys: String, halfPage: Int? = nil, visible: Range<Int>? = nil) -> Int {
+        var driver = VimDriver(Self.lines, caret: caret)
+        if let halfPage { driver.halfPage = halfPage }
+        driver.visible = visible
+        driver.type(Self.keys(keys))
+        return driver.caret
+    }
+
+    @Test func halfPageScrollsFollowTheWindow() {
+        #expect(driven(0, "C-d", halfPage: 5) == 35)
+        #expect(driven(70, "C-u", halfPage: 5) == 35)
+        #expect(driven(0, "C-d") == 105)
+        #expect(driven(0, "3 C-d", halfPage: 5) == 21)
+    }
+
+    @Test func windowLines() {
+        let shown = 70..<140
+        #expect(driven(0, "H", visible: shown) == 70)
+        #expect(driven(0, "3 H", visible: shown) == 84)
+        #expect(driven(0, "2 0 H", visible: shown) == 133)
+        #expect(driven(0, "L", visible: shown) == 133)
+        #expect(driven(0, "2 L", visible: shown) == 126)
+        #expect(driven(0, "M", visible: shown) == 98)
+        #expect(driven(3, "H") == 3)
+        // Linewise with an operator, and a jump.
+        var driver = VimDriver(Self.lines, caret: 70)
+        driver.visible = shown
+        driver.type(Self.keys("d L"))
+        #expect(driver.text == Self.lines.replacingOccurrences(of: (10..<20).map { String(format: "line%02d\n", $0) }.joined(), with: ""))
+        var vim = Vim()
+        let actions = vim.feed(KeyChord("L"), Vim.Context(text: Self.lines, caret: 70, visible: shown))
+        #expect(actions == [.jumped(from: 70), .move(caret: 133)])
+    }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func matchesEvil() throws {
