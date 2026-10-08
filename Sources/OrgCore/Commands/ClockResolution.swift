@@ -58,6 +58,7 @@ public enum ClockResolution {
     /// Org's error, for the echo area.
     public struct Failure: Error, Equatable {
         public let message: String
+        public init(message: String) { self.message = message }
     }
 
     public enum Step: Equatable, Sendable {
@@ -83,9 +84,10 @@ public enum ClockResolution {
     /// What `key` does to a clock that started at `start`, idle since `lastValid`.
     /// `minutes` is the answer to `input(for:)` (for `t`, `minutes(from:to:)`). `active`: the
     /// clock is the running one. `clockingIn`: resolving before a clock-in
-    /// (`org-clock-clocking-in`), which never restarts or resumes.
+    /// (`org-clock-clocking-in`), which never restarts or resumes. `defaultMinutes` is the
+    /// default the minutes prompt offered, when there was one.
     public static func plan(
-        key: Character, minutes: Int?, start: Date, lastValid: Date, now: Date, active: Bool, clockingIn: Bool
+        key: Character, minutes: Int?, start: Date, lastValid: Date, now: Date, active: Bool, clockingIn: Bool, defaultMinutes: Int? = nil
     ) throws -> Plan {
         var plan = Plan()
         if key == "j" || key == "J" {
@@ -94,7 +96,7 @@ public enum ClockResolution {
             return plan
         }
         guard "kKgGsSCtT".contains(key) else { return plan }
-        let defaultMinutes = defaultMinutes(lastValid: lastValid, now: now)
+        let defaultMinutes = defaultMinutes ?? Self.defaultMinutes(lastValid: lastValid, now: now)
         let keep = "kKtT".contains(key) ? minutes : nil
         let gotback = "gG".contains(key) ? minutes : nil
         let subtract = key == "s" || key == "S"

@@ -53,6 +53,10 @@ public enum OrgPreferences {
     public static func reminders(_ defaults: UserDefaults = .standard) -> Bool { bool("reminders", defaults) }
     /// `appt-message-warning-time`, in minutes.
     public static func reminderLead(_ defaults: UserDefaults = .standard) -> Int { integer("reminderLead", defaults) }
+    /// `org-clock-idle-time` in minutes; 0 is nil (never).
+    public static func clockIdleTime(_ defaults: UserDefaults = .standard) -> Int { integer("clockIdleTime", defaults) }
+    /// `org-clock-history-length`.
+    public static func clockHistoryLength(_ defaults: UserDefaults = .standard) -> Int { integer("clockHistoryLength", defaults) }
 
     private static func fallback(_ key: String) -> TOML.Value? {
         UserConfig.settings.first { $0.defaultsKey == key }?.fallback
