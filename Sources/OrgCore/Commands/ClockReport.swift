@@ -71,7 +71,8 @@ public enum ClockReport {
     }
 
     /// An Org table of clocked time per date and heading between `start` and `end`
-    /// (inclusive, `YYYY-MM-DD`), with a total after each ISO week.
+    /// (inclusive, `YYYY-MM-DD`), with a total after each ISO week. The heading column is
+    /// titled Code, for headings named by charge code.
     public static func timeReport(_ entries: [Entry], start: String? = nil, end: String? = nil) -> String {
         var totals: [String: [String: Int]] = [:]
         for entry in entries {
@@ -89,7 +90,7 @@ public enum ClockReport {
         let dashes7 = String(repeating: "-", count: 7)
         let rule: String = "|" + dashes14 + "+" + dashes47 + "+" + dashes7 + "|\n"
         func row(_ a: String, _ b: String, _ c: String) -> String { "| \(pad(a, 12)) | \(pad(b, 45)) | \(padLeft(c, 5)) |\n" }
-        var out = "#+title: Time Report\n\n" + row("Date", "Heading", "Hours") + rule
+        var out = "#+title: Time Report\n\n" + row("Date", "Code", "Hours") + rule
         var currentWeek: String?
         var weekMinutes = 0
         for (date, heading) in keys {
