@@ -23,6 +23,31 @@ public enum UserConfig {
         return URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".config/orgstar")
     }
 
+    /// The theme `config.toml` (`text`) sets: its `[theme]` tables' colors over those of
+    /// `theme-file` (a path relative to `folder`), over the default theme; with problems in
+    /// both. Nil when `text` isn't TOML.
+    public static func theme(
+        config text: String, themeFile name: String?, in folder: URL,
+        read: (URL) -> String? = { try? String(contentsOf: $0, encoding: .utf8) }
+    ) -> (theme: ThemeSpec, problems: [String])? {
+        guard let tables = try? TOML.parse(text) else { return nil }
+        var spec = ThemeSpec.default
+        var problems: [String] = []
+        if let name, !name.isEmpty {
+            if let themeText = read(folder.appendingPathComponent(name)) {
+                do {
+                    (spec, problems) = ThemeSpec.reading(try TOML.parse(themeText), file: name)
+                } catch {
+                    problems.append("\(name): \(error)")
+                }
+            } else {
+                problems.append("config.toml: theme-file \(name) can't be read")
+            }
+        }
+        let (merged, more) = ThemeSpec.reading(tables, over: spec)
+        return (merged, problems + more)
+    }
+
     /// Where earlier versions kept the configuration files.
     public static var legacyDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Orgstar")

@@ -151,3 +151,39 @@ struct ThemeConfigTests {
         #expect(!sync.isThemeFile(folder.appendingPathComponent("x.toml")))
     }
 }
+
+struct ThemeReadingTests {
+    let folder = URL(fileURLWithPath: "/config")
+
+    @Test func configColorsOverThemeFileOverDefault() throws {
+        var read: [String] = []
+        let config = "[theme]\ntheme-file = \"themes/mine.toml\"\nlink = \"#000003\"\n[theme.dark]\nbackground = \"#000004\"\n"
+        let result = try #require(UserConfig.theme(config: config, themeFile: "themes/mine.toml", in: folder) { url in
+            read.append(url.path)
+            return "[theme.light]\nlink = \"#000001\"\ntodo = \"#000002\"\n[theme.todo]\nWAIT = \"#000005\"\n"
+        })
+        #expect(read == ["/config/themes/mine.toml"])
+        #expect(result.problems.isEmpty, "\(result.problems)")
+        #expect(result.theme.light["link"]?.hex == "#000003" && result.theme.dark["link"]?.hex == "#000003")
+        #expect(result.theme.light["todo"]?.hex == "#000002")
+        #expect(result.theme.dark["todo"] == ThemeSpec.default.dark["todo"])
+        #expect(result.theme.dark["background"]?.hex == "#000004" && result.theme.light["background"] == ThemeSpec.default.light["background"])
+        #expect(result.theme.todo["WAIT"]?.hex == "#000005")
+    }
+
+    @Test func noThemeFileIsTheDefaultWithConfigColors() throws {
+        let result = try #require(UserConfig.theme(config: "[theme]\nfont-size = 15\n", themeFile: "", in: folder) { _ in
+            Issue.record("read a theme file")
+            return nil
+        })
+        #expect(result.theme == ThemeSpec.default && result.problems.isEmpty)
+    }
+
+    @Test func problems() throws {
+        let missing = try #require(UserConfig.theme(config: "", themeFile: "gone.toml", in: folder) { _ in nil })
+        #expect(missing.problems == ["config.toml: theme-file gone.toml can't be read"])
+        let bad = try #require(UserConfig.theme(config: "[theme]\nlink = \"blue\"\n", themeFile: "t.toml", in: folder) { _ in "[theme]\nnope = \"#000000\"\n" })
+        #expect(bad.problems == ["t.toml: unknown theme color nope", "config.toml: theme.link must be a color such as \"#1f2328\""])
+        #expect(UserConfig.theme(config: "[theme", themeFile: nil, in: folder)?.theme == nil)
+    }
+}

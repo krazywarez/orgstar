@@ -110,23 +110,11 @@ public final class ConfigSync {
 
     /// The theme from the file read last and its theme file.
     func readTheme() {
-        guard let text, let tables = try? TOML.parse(text) else { return }
-        var spec = ThemeSpec.default
-        var themeProblems: [String] = []
-        if let name = defaults.string(forKey: "themeFile"), let file = themeFile {
-            if let themeText = try? String(contentsOf: file, encoding: .utf8) {
-                do {
-                    (spec, themeProblems) = ThemeSpec.reading(try TOML.parse(themeText), file: name)
-                } catch {
-                    themeProblems.append("\(name): \(error)")
-                }
-            } else {
-                themeProblems.append("config.toml: theme-file \(name) can't be read")
-            }
-        }
-        let (merged, more) = ThemeSpec.reading(tables, over: spec)
-        if merged != theme { theme = merged }
-        problems = configProblems + themeProblems + more
+        guard let text, let read = UserConfig.theme(
+            config: text, themeFile: defaults.string(forKey: "themeFile"), in: url.deletingLastPathComponent()
+        ) else { return }
+        if read.theme != theme { theme = read.theme }
+        problems = configProblems + read.problems
     }
 
     /// Writes settings that differ from the file into it.

@@ -1,5 +1,6 @@
 import Foundation
 import OrgCore
+import OrgPresentation
 
 /// The Org settings `config.toml` holds, read from user defaults with the file's fallbacks, for
 /// both apps.
@@ -32,6 +33,19 @@ public enum OrgPreferences {
         options.electricPair = bool("electricPair", defaults)
         return options
     }
+
+    /// `colors` with the type settings of `[theme]`: font, size, line spacing, heading step.
+    public static func theme(_ colors: ThemeSpec, _ defaults: UserDefaults = .standard) -> ThemeSpec {
+        var spec = colors
+        spec.font = string("themeFont", defaults)
+        spec.fontSize = integer("themeFontSize", defaults)
+        spec.lineSpacing = integer("themeLineSpacing", defaults)
+        spec.headingSizeStep = integer("themeHeadingStep", defaults)
+        return spec
+    }
+
+    /// `show-markup`: link brackets and emphasis markers shown.
+    public static func showMarkup(_ defaults: UserDefaults = .standard) -> Bool { bool("showMarkup", defaults) }
 
     public static func agendaSpan(_ defaults: UserDefaults = .standard) -> Int { integer("agendaSpan", defaults) }
     public static func agendaStartOffset(_ defaults: UserDefaults = .standard) -> Int { integer("agendaStartOffset", defaults) }
