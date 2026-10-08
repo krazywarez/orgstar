@@ -12,7 +12,7 @@ public enum BabelRunner {
     /// PATH with the usual install locations, which an app launched from the Dock lacks.
     public static var environment: [String: String] {
         var environment = ProcessInfo.processInfo.environment
-        let extra = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+        let extra = ["/opt/homebrew/bin", "/usr/local/bin", "/Library/TeX/texbin", "/usr/bin", "/bin"]
         let path = (environment["PATH"] ?? "").split(separator: ":").map(String.init)
         environment["PATH"] = (path + extra.filter { !path.contains($0) }).joined(separator: ":")
         return environment

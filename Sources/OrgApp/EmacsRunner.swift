@@ -67,7 +67,7 @@ public enum EmacsRunner {
                 process.terminate()
                 throw Failure(description: "Emacs took too long to recalculate the table.")
             }
-            try await Task.sleep(for: .milliseconds(50))
+            try? await Task.sleep(for: .milliseconds(50))
             if Task.isCancelled {
                 process.terminate()
                 throw CancellationError()
@@ -113,6 +113,8 @@ public enum EmacsRunner {
         process.executableURL = emacs
         process.arguments = ["-Q", "--batch", "-l", script.path]
         process.currentDirectoryURL = URL(fileURLWithPath: path).deletingLastPathComponent()
+        // Babel's PATH, so a Dock-launched app's Emacs finds latexmk and pdflatex.
+        process.environment = BabelRunner.environment
         let errors = Pipe()
         process.standardError = errors
         process.standardOutput = FileHandle.nullDevice
@@ -123,7 +125,11 @@ public enum EmacsRunner {
                 process.terminate()
                 throw Failure(description: "Emacs took too long to export.")
             }
-            try await Task.sleep(for: .milliseconds(100))
+            try? await Task.sleep(for: .milliseconds(100))
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
         }
         guard let written = try? String(contentsOf: output, encoding: .utf8) else {
             let log = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)

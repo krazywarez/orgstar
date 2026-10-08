@@ -783,6 +783,38 @@ struct EmacsExportTests {
         #expect(text.uppercased().contains("IN THE BUFFER") && text.contains("Body."), "\(text)")
         #expect(try String(contentsOf: file, encoding: .utf8) == "#+TITLE: On disk\n")
     }
+
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func exportUsesBabelPath() async throws {
+        let notes = try Folder()
+        let file = try notes.write("doc.org", "")
+        let function = #"(lambda () (with-temp-file "path.txt" (insert (getenv "PATH"))) "path.txt")"#
+        let written = try await EmacsRunner.export(text: "", path: file.path, function: function)
+        #expect(try String(contentsOfFile: written, encoding: .utf8) == BabelRunner.environment["PATH"])
+    }
+
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func cancellingStopsTheExport() async throws {
+        let notes = try Folder()
+        let file = try notes.write("doc.org", "")
+        let pidFile = notes.url.appendingPathComponent("pid")
+        let function = #"(lambda () (with-temp-file "pid" (insert (number-to-string (emacs-pid)))) (sleep-for 60) "x")"#
+        let export = Task { try await EmacsRunner.export(text: "", path: file.path, function: function) }
+        var pid: pid_t?
+        for _ in 0..<200 where pid == nil {
+            try await Task.sleep(for: .milliseconds(50))
+            pid = (try? String(contentsOf: pidFile, encoding: .utf8)).flatMap { pid_t($0) }
+        }
+        let started = try #require(pid)
+        export.cancel()
+        await #expect(throws: CancellationError.self) { try await export.value }
+        var alive = true
+        for _ in 0..<100 where alive {
+            alive = kill(started, 0) == 0
+            if alive { try await Task.sleep(for: .milliseconds(50)) }
+        }
+        #expect(!alive)
+    }
 }
 
 @MainActor
