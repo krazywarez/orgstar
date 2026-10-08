@@ -1,12 +1,65 @@
 import AppKit
+import CoreGraphics
 import OrgApp
 import OrgCore
+import OrgEditorAppKit
 import SwiftUI
 
 /// Elapsed time of the running clock, `H:MM`.
 func clockElapsed(_ running: ClockModel.Running, now: Date) -> String {
     let minutes = max(0, Int(now.timeIntervalSince(running.startedAt) / 60))
     return String(format: "%d:%02d", minutes / 60, minutes % 60)
+}
+
+/// What the menu bar item shows.
+struct ClockMenuState: Equatable {
+    let running: ClockModel.Running?
+    let history: [ClockTask]
+}
+
+/// `org-user-idle-seconds` on macOS: time since the last keyboard or mouse input anywhere.
+enum ClockIdle {
+    static func seconds() -> Double {
+        // `kCGAnyInputEventType`.
+        CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)
+    }
+}
+
+/// The clock history in a menu: clocking in to an entry runs `app.clock.history.N`.
+struct RecentClocks: View {
+    let clock: ClockModel
+    let run: (String) -> Void
+
+    var body: some View {
+        if !clock.history.isEmpty {
+            Section("Recent Entries") {
+                ForEach(Array(clock.history.enumerated()), id: \.offset) { index, task in
+                    Button(task.title) { run("app.clock.history.\(index)") }
+                        .help("Clock in to \(task.title) in \((task.path as NSString).lastPathComponent)")
+                }
+            }
+        }
+    }
+}
+
+/// Org ▸ Clock: the clock commands, with their keys, and the recent entries.
+struct ClockMenu: View {
+    let commands: AppCommands
+    let clock: ClockModel
+
+    var body: some View {
+        Menu("Clock") {
+            ForEach(EditorCommands.all.filter { $0.id.hasPrefix("app.clock.") }, id: \.id) { command in
+                Button {
+                    commands.run(command.id)
+                } label: {
+                    Text(command.title)
+                    if let keys = commands.keyLabel(for: command.id) { Text(keys) }
+                }
+            }
+            RecentClocks(clock: clock) { commands.run($0) }
+        }
+    }
 }
 
 /// The menu bar item while a clock runs: elapsed time, and clock out, cancel and go to.
@@ -21,7 +74,7 @@ final class ClockStatusItem: NSObject {
         self.run = run
     }
 
-    func update(_ running: ClockModel.Running?) {
+    func update(_ running: ClockModel.Running?, recent: [String] = []) {
         self.running = running
         guard let running else {
             timer?.invalidate()
@@ -39,14 +92,26 @@ final class ClockStatusItem: NSObject {
         let menu = NSMenu()
         menu.addItem(withTitle: running.heading, action: nil, keyEquivalent: "")
         menu.addItem(.separator())
-        for (title, id) in [("Clock Out", "app.clock.out"), ("Cancel Clock", "app.clock.cancel"), ("Go to Clocked Entry", "app.clock.goto"), ("Clock Report", "app.clock.report")] {
-            let entry = NSMenuItem(title: title, action: #selector(choose(_:)), keyEquivalent: "")
-            entry.target = self
-            entry.representedObject = id
-            menu.addItem(entry)
+        for (title, id) in [
+            ("Clock Out", "app.clock.out"), ("Cancel Clock", "app.clock.cancel"), ("Go to Clocked Entry", "app.clock.goto"),
+            ("Clock In to Recent Entry…", "app.clock.in-recent"), ("Clock Report", "app.clock.report"),
+        ] {
+            add(title, id, to: menu)
+        }
+        if !recent.isEmpty {
+            menu.addItem(.separator())
+            menu.addItem(NSMenuItem.sectionHeader(title: "Recent Entries"))
+            for (index, title) in recent.enumerated() { add(title, "app.clock.history.\(index)", to: menu) }
         }
         item?.menu = menu
         refresh()
+    }
+
+    private func add(_ title: String, _ id: String, to menu: NSMenu) {
+        let entry = NSMenuItem(title: title, action: #selector(choose(_:)), keyEquivalent: "")
+        entry.target = self
+        entry.representedObject = id
+        menu.addItem(entry)
     }
 
     private func refresh() {

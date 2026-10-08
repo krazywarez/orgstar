@@ -401,6 +401,8 @@ struct OrgstarApp: App {
         }
         .commands {
             CommandMenu("Org") {
+                ClockMenu(commands: commands, clock: clock)
+                Divider()
                 OrgMenuItems(commands: commands)
             }
         }
@@ -503,6 +505,8 @@ struct SettingsView: View {
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @AppStorage("reminders") private var reminders = true
     @AppStorage("reminderLead") private var reminderLead = 12
+    @AppStorage("clockIdleTime") private var clockIdleTime = 0
+    @AppStorage("clockHistoryLength") private var clockHistoryLength = 5
     @AppStorage("globalCapture") private var globalCapture = true
     @AppStorage("settingsTab") private var tab = "general"
     @AppStorage("showHiddenFiles") private var showHiddenFiles = true
@@ -664,9 +668,22 @@ struct SettingsView: View {
                 Text("An entry's APPT_WARNTIME property overrides the lead time.")
                     .settingsFooter()
             }
+            Section {
+                Toggle("Ask what to do with idle time while clocked in", isOn: Binding {
+                    clockIdleTime > 0
+                } set: { on in
+                    clockIdleTime = on ? 15 : 0
+                })
+                Stepper("After \(max(clockIdleTime, 1)) minutes without keyboard or mouse input", value: $clockIdleTime, in: 1...240)
+                    .disabled(clockIdleTime == 0)
+                Stepper("Remember \(clockHistoryLength) recently clocked entries", value: $clockHistoryLength, in: 1...35)
+            } footer: {
+                Text("org-clock-idle-time and org-clock-history-length. Org ▸ Clock lists the recent entries.")
+                    .settingsFooter()
+            }
         }
         .formStyle(.grouped)
-        .frame(height: 290)
+        .frame(height: 430)
     }
 
     private var capture: some View {

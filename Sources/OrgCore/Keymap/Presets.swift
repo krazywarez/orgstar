@@ -370,6 +370,22 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "app.clock.goto"
         mode = "normal"
         [[bind]]
+        keys = "SPC m c G"
+        command = "app.clock.goto-recent"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c I"
+        command = "app.clock.in-last"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c d"
+        command = "app.clock.default"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m c r"
+        command = "app.clock.resolve"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m c R"
         command = "app.clock.report"
         mode = "normal"
@@ -830,6 +846,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c C-x C-j"
         command = "app.clock.goto"
         [[bind]]
+        keys = "C-c C-x C-x"
+        command = "app.clock.in-last"
+        [[bind]]
+        keys = "C-c C-x C-z"
+        command = "app.clock.resolve"
+        [[bind]]
         keys = "C-c C-e h h"
         command = "app.export.html"
         [[bind]]
@@ -1259,6 +1281,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-j"
         command = "app.clock.goto"
+        [[bind]]
+        keys = "C-M-s-i"
+        command = "app.clock.in-recent"
+        [[bind]]
+        keys = "C-M-s-j"
+        command = "app.clock.goto-recent"
         [[bind]]
         keys = "s-S-e"
         command = "app.export-dialog"

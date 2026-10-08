@@ -16,6 +16,7 @@ struct ContentView: View {
     let clock: ClockModel
     @AppStorage("reminders") private var remindersEnabled = true
     @AppStorage("reminderLead") private var reminderLead = 12
+    @AppStorage("clockIdleTime") private var clockIdleTime = 0
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @State private var reminderAgenda: AgendaModel?
     @State private var trust = TrustStore()
@@ -150,6 +151,10 @@ struct ContentView: View {
                     Button("Clock Out") { perform("app.clock.out") }
                     Button("Cancel Clock") { perform("app.clock.cancel") }
                     Button("Go to Clocked Entry") { perform("app.clock.goto") }
+                    Divider()
+                    Button("Clock In to Recent Entry…") { perform("app.clock.in-recent") }
+                    Button("Go to Recent Clocked Entry…") { perform("app.clock.goto-recent") }
+                    RecentClocks(clock: clock) { perform($0) }
                 } label: {
                     TimelineView(.periodic(from: .now, by: 30)) { context in
                         Text("⏱ \(running.heading) \(clockElapsed(running, now: context.date))").lineLimit(1)
@@ -280,9 +285,9 @@ struct ContentView: View {
 
     var body: some View {
         main
-        .onChange(of: clock.running, initial: true) { _, running in
+        .onChange(of: ClockMenuState(running: clock.running, history: clock.history), initial: true) { _, state in
             if statusItem == nil { statusItem = ClockStatusItem { commands.run($0) } }
-            statusItem?.update(running)
+            statusItem?.update(state.running, recent: state.history.map(\.title))
         }
         .onChange(of: globalCapture, initial: true) { _, enabled in
             hotKey?.unregister()
@@ -343,6 +348,18 @@ struct ContentView: View {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(3600))
                 hour += 1
+            }
+        }
+        // `org-resolve-clocks-if-idle`, checked every minute while a clock runs.
+        .task(id: "\(clock.running?.start ?? "") \(clockIdleTime)") {
+            guard clock.running != nil, clockIdleTime > 0 else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                guard !Task.isCancelled, clock.running != nil, !clock.isResolving else { continue }
+                let idle = ClockIdle.seconds()
+                guard idle > Double(clockIdleTime * 60) else { continue }
+                NSApp.requestUserAttention(.informationalRequest)
+                report(await clock.resolveIdle(session, idleSince: Date().addingTimeInterval(-idle), ask: askClock))
             }
         }
         .task {
@@ -523,7 +540,7 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
-        let orgOnly = ["app.refile", "app.archive", "app.clock.in"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
+        let orgOnly = ["app.refile", "app.archive", "app.clock.in", "app.clock.default"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
         if orgOnly, !session.isOrg {
             commands.show("Not an org file")
             return
@@ -620,13 +637,31 @@ struct ContentView: View {
         case "app.agenda":
             openWindow(id: "agenda")
         case "app.clock.in":
-            commands.show(clock.clockIn(session))
+            clockIn(.caret)
+        case "app.clock.in-recent":
+            clockIn(.select)
+        case "app.clock.in-last":
+            clockIn(.last)
+        case let id where id.hasPrefix("app.clock.history."):
+            if let index = Int(id.dropFirst("app.clock.history.".count)), index < clock.history.count { clockIn(.task(clock.history[index])) }
         case "app.clock.out":
             commands.show(clock.clockOut(session))
         case "app.clock.cancel":
             commands.show(clock.clockOut(session, cancel: true))
         case "app.clock.goto":
-            if let location = clock.location(session) { commands.jump(path: location.path, offset: location.offset) } else { commands.show("No active clock") }
+            let found = clock.goto(session)
+            if let location = found.location { commands.jump(path: location.path, offset: location.offset) }
+            if let message = found.message { commands.show(message) }
+        case "app.clock.goto-recent":
+            Task {
+                let found = await clock.gotoRecent(session, ask: askClock)
+                if let location = found.location { commands.jump(path: location.path, offset: location.offset) }
+                if let message = found.message { commands.show(message) }
+            }
+        case "app.clock.default":
+            commands.show(clock.markDefault(session))
+        case "app.clock.resolve":
+            Task { report(await clock.resolveOpenClocks(session, paths: orgFiles, ask: askClock)) }
         case "app.clock.report":
             openWindow(id: "clock-report")
         case "app.board":
@@ -653,6 +688,28 @@ struct ContentView: View {
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }
+    }
+
+    /// Clock questions in the echo area.
+    private var askClock: ClockModel.Ask {
+        { [commands] prompt in
+            await withCheckedContinuation { continuation in
+                commands.ask(prompt) { continuation.resume(returning: $0) }
+            }
+        }
+    }
+
+    /// The files `org-resolve-clocks` looks through: the workspace's org files.
+    private var orgFiles: [String] { workspace.files.filter { $0.kind == .org }.map(\.path) }
+
+    private func clockIn(_ target: ClockModel.Target) {
+        Task { report(await clock.clockIn(session, target: target, paths: orgFiles, ask: askClock)) }
+    }
+
+    /// The last message of a clock command, and the clock to show for `j`.
+    private func report(_ outcome: ClockModel.Outcome) {
+        if let jump = outcome.jump { commands.jump(path: jump.path, offset: jump.offset) }
+        if let message = outcome.messages.last(where: { !$0.isEmpty }) { commands.show(message) }
     }
 
     private var errorShown: Binding<Bool> {
