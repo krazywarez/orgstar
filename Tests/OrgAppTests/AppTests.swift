@@ -190,6 +190,33 @@ struct DocumentSessionTests {
         #expect(session.revealRequest?.offset == 12)
     }
 
+    @Test func sameFileByAnotherPathSharesItsBuffer() throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* One\n")
+        let link = notes.url.appendingPathComponent("link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: notes.url)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        session.open(link.appendingPathComponent("a.org").path)
+        #expect(session.openPaths == [file.path])
+        #expect(session.path == file.path)
+    }
+
+    @Test func buffersOfTheSameNameShowTheirFolders() throws {
+        let notes = try Folder()
+        let a = try notes.write("x/blog/index.org", "a\n")
+        let b = try notes.write("y/blog/index.org", "b\n")
+        let c = try notes.write("y/other.org", "c\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(a.path)
+        #expect(session.bufferName(a.path) == "index.org")
+        session.open(b.path)
+        session.open(c.path)
+        #expect(session.bufferName(a.path) == "index.org<x/blog>")
+        #expect(session.bufferName(b.path) == "index.org<y/blog>")
+        #expect(session.bufferName(c.path) == "other.org")
+    }
+
     @Test func openReadsSetupFiles() throws {
         let notes = try Folder()
         try notes.write("setup.org", "#+TODO: NEXT | DONE\n")

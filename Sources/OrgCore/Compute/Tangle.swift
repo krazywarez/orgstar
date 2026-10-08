@@ -135,10 +135,9 @@ public enum Tangle {
         return params
     }
 
-    /// `org-babel-read` of a header value written as Lisp, with what a file's buffer knows:
-    /// `buffer-file-name`, `default-directory` and `system-type`.
-    static func evaluate(_ value: String, key: String, path: String) throws -> String {
-        let refusal = Babel.Failure.message("\(key) \(value) is Lisp tangling can't evaluate yet; nothing was tangled.")
+    /// An interpreter with what a file's buffer knows: `buffer-file-name`, `default-directory`,
+    /// `system-type` and the file name functions.
+    static func fileLisp(path: String) -> Elisp {
         let lisp = Elisp()
         let directory = (path as NSString).deletingLastPathComponent + "/"
         lisp.set("buffer-file-name", .string(path))
@@ -170,6 +169,13 @@ public enum Tangle {
             let name = try string(args, 0)
             return .string(name.hasSuffix("/") ? name : name + "/")
         }
+        return lisp
+    }
+
+    /// `org-babel-read` of a header value written as Lisp, in `fileLisp`.
+    static func evaluate(_ value: String, key: String, path: String) throws -> String {
+        let refusal = Babel.Failure.message("\(key) \(value) is Lisp tangling can't evaluate yet; nothing was tangled.")
+        let lisp = fileLisp(path: path)
         guard let form = try? LispReader.readFirst(value).sexp, let result = try? lisp.eval(form), !Elisp.isNil(result) else { throw refusal }
         switch result {
         case .string(let s): return s

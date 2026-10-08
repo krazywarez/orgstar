@@ -30,7 +30,8 @@ enum TestBabelRunner {
         case .session:
             return BabelOutput(stdout: "")
         }
-        process.currentDirectoryURL = job.directory.map { URL(fileURLWithPath: $0, relativeTo: directory) } ?? directory
+        process.currentDirectoryURL = job.directory.map { URL(fileURLWithPath: $0, relativeTo: directory).standardizedFileURL } ?? directory
+        process.environment = ProcessInfo.processInfo.environment.merging(["PWD": process.currentDirectoryURL!.path]) { $1 }
         let stdin = Pipe()
         let stdout = Pipe()
         process.standardInput = stdin
@@ -192,6 +193,7 @@ struct BabelTests {
         "TBL#+begin_src python :var t=tbl :colnames '(\"x\" \"y\")\nreturn t\n#+end_src\n",
         "TBL#+begin_src python :var t=tbl :rownames '(\"r1\" \"r2\")\nreturn t\n#+end_src\n",
         "#+begin_src sh :dir (concat \"/\" \"usr\") :results output\npwd\n#+end_src\n",
+        "#+begin_src sh :dir /tmp :results output\npwd\n#+end_src\n",
         "#+NAME: items\n- one\n- two\n\n#+begin_src shell :var l=items :results output\necho \"$l\"\n#+end_src\n",
         // Lisp values.
         "#+begin_src python :var l='(1 2) m='((1 2) (3 4)) n=(+ 1 2) s='(\"a\" \"b\")\nreturn [l, m, n, s]\n#+end_src\n",

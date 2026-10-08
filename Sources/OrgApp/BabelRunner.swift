@@ -53,6 +53,8 @@ public enum BabelRunner {
         let directory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: fileDirectory).standardizedFileURL } ?? fileDirectory
         guard FileManager.default.fileExists(atPath: directory.path) else { throw Failure(description: "No folder \(directory.path) for :dir.") }
         process.currentDirectoryURL = directory
+        // As Emacs's `call-process` does, so `pwd` prints the folder as written, not resolved.
+        process.environment?["PWD"] = directory.path
         let stdout = folder.appendingPathComponent("stdout")
         FileManager.default.createFile(atPath: stdout.path, contents: nil)
         let out = try FileHandle(forWritingTo: stdout)

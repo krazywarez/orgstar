@@ -204,7 +204,7 @@ struct ContentView: View {
                     }
             }
         }
-        .navigationTitle((previewPath ?? session.path).map { ($0 as NSString).lastPathComponent } ?? "Orgstar")
+        .navigationTitle(previewPath.map { ($0 as NSString).lastPathComponent } ?? session.path.map(session.bufferName) ?? "Orgstar")
         .navigationSubtitle(session.isReadOnly ? "Read-only: not UTF-8" : "")
         .searchable(text: $query, placement: .toolbar, prompt: "Search notes")
         .searchFocused($searchFocused)
@@ -511,12 +511,7 @@ struct ContentView: View {
     /// `SPC b b`: open buffers, most recent first, by name (with the folder when names repeat).
     private func switchBuffer() {
         let paths = session.recentPaths.dropFirst() + session.recentPaths.prefix(1)
-        let names = paths.map { ($0 as NSString).lastPathComponent }
-        let labels = paths.map { path in
-            let name = (path as NSString).lastPathComponent
-            guard names.filter({ $0 == name }).count > 1 else { return name }
-            return name + " — " + ((path as NSString).deletingLastPathComponent as NSString).lastPathComponent
-        }
+        let labels = paths.map(session.bufferName)
         guard !labels.isEmpty else { return commands.show("No buffers are open") }
         commands.ask(Prompt(key: "buffer", message: "Switch to buffer:", choices: labels)) { answer in
             guard let answer, let index = labels.firstIndex(of: answer) else { return }
@@ -896,7 +891,7 @@ struct BufferTabs: View {
     private func tab(_ path: String) -> some View {
         let current = path == session.path
         return HStack(spacing: 6) {
-            Text((path as NSString).lastPathComponent)
+            Text(session.bufferName(path))
                 .lineLimit(1)
                 .foregroundStyle(current ? .primary : .secondary)
                 .accessibilityAddTraits(current ? [.isButton, .isSelected] : .isButton)
@@ -914,7 +909,7 @@ struct BufferTabs: View {
             }
             .buttonStyle(.borderless)
             .help("Close")
-            .accessibilityLabel("Close \((path as NSString).lastPathComponent)" + (session.dirtyPaths.contains(path) ? ", unsaved" : ""))
+            .accessibilityLabel("Close \(session.bufferName(path))" + (session.dirtyPaths.contains(path) ? ", unsaved" : ""))
         }
         .font(.callout)
         .padding(.horizontal, 12)

@@ -96,13 +96,40 @@ struct BabelCacheTests {
         #expect(second.failure == "Cached: \"hi\"")
     }
 
-    @Test func lispHeadersAreRefused() {
-        let text = "#+begin_src sh :cache yes :dir (expand-file-name \"x\")\necho hi\n#+end_src\n"
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func fileLispMatchesEmacs() throws {
+        let text = "#+begin_src sh :cache yes :dir (file-name-directory buffer-file-name) :foo (file-name-nondirectory buffer-file-name)\npwd\n#+end_src\n"
+        let emacs = try EmacsOracle.evaluate(text, """
+            (progn (require 'ob-shell) (goto-char (point-min))
+              (let ((info (org-babel-get-src-block-info)))
+                (setf (nth 2 info) (org-babel-process-params (nth 2 info)))
+                (list buffer-file-name (org-babel-sha1-hash info :eval))))
+            """)
         let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
-        guard case .failure(.message(let message)) = Babel.plan(context) else {
+        guard case .success(let first) = Babel.plan(context) else {
+            Issue.record("not planned")
+            return
+        }
+        #expect(first.needsFile)
+        #expect(first.finish.hash == nil)
+        guard case .success(let job) = Babel.replan(first, file: emacs[0], text: text, tree: context.tree) else {
+            Issue.record("not replanned")
+            return
+        }
+        #expect(!job.needsFile)
+        #expect(job.finish.hash == emacs[1])
+        #expect(job.directory == (emacs[0] as NSString).deletingLastPathComponent + "/")
+    }
+
+    @Test func lispHeadersAreRefused() {
+        let text = "#+begin_src sh :cache yes :dir (user-full-name)\necho hi\n#+end_src\n"
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+        var options = Babel.Options()
+        options.file = "/tmp/a.org"
+        guard case .failure(.message(let message)) = Babel.plan(context, options: options) else {
             Issue.record("planned")
             return
         }
-        #expect(message.hasPrefix(":cache with :dir (expand-file-name"))
+        #expect(message.hasPrefix(":cache with :dir (user-full-name)"))
     }
 }

@@ -44,6 +44,9 @@ public struct BabelJob: Sendable, Equatable {
     public internal(set) var script: String?
     /// An Emacs Lisp block's form, for `Babel.evaluateNatively`.
     public internal(set) var lispForm: String?
+    /// A Lisp header value couldn't be evaluated without the file's path: plan again with
+    /// `Babel.replan` before running.
+    public internal(set) var needsFile = false
 
     public struct Need: Sendable, Equatable {
         /// The `:var` value, `name` or `name(args)`.
@@ -116,6 +119,8 @@ public enum Babel {
         /// `shell-file-name`, from `SHELL` as Emacs sets it: runs blocks in the `shell` language
         /// and chooses how variables are written in the `:cache` hash.
         public var shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/sh"
+        /// The file the block is in, for Lisp header values that use it.
+        public var file: String?
         public init() {}
     }
 
@@ -133,6 +138,14 @@ public enum Babel {
         resolved[need.reference] = varValue(need.job.finish, output)
         let context = EditContext(revision: 0, text: text, tree: tree, selection: [job.caret..<job.caret])
         return plan(context, options: job.options, resolved: resolved)
+    }
+
+    /// Plans `job`'s block again knowing the file it is in.
+    public static func replan(_ job: BabelJob, file: String, text: String, tree: OrgTree) -> Result<BabelJob, Failure> {
+        var options = job.options
+        options.file = file
+        let context = EditContext(revision: 0, text: text, tree: tree, selection: [job.caret..<job.caret])
+        return plan(context, options: options, resolved: job.resolved)
     }
 
     static func plan(_ context: EditContext, options: Options, resolved: [String: VarValue]) -> Result<BabelJob, Failure> {
@@ -262,9 +275,23 @@ public enum Babel {
 
     static func plan(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text ns: NSString, options: Options,
                      location: Range<Int>, name: String?, inline: Bool = false, refs: References? = nil, useCache: Bool = true) -> Result<BabelJob, Failure> {
+        var evaluated = params
+        evaluated.evaluateLisp(file: options.file)
+        let needsFile = options.file == nil && evaluated.lisp.contains { evaluated.evaluated[$0] == nil }
+        return planBlock(block, params: params, model: model, text: ns, options: options, location: location, name: name, inline: inline,
+                         refs: refs, useCache: useCache).map { job in
+            var job = job
+            job.needsFile = needsFile
+            return job
+        }
+    }
+
+    static func planBlock(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text ns: NSString, options: Options,
+                          location: Range<Int>, name: String?, inline: Bool, refs: References?, useCache: Bool) -> Result<BabelJob, Failure> {
         let refs = refs ?? References(resolved: [:], options: options)
         var params = params
-        params.evaluateLisp()
+        params.evaluateLisp(file: options.file)
+        let needsFile = options.file == nil && params.lisp.contains { params.evaluated[$0] == nil }
         guard let language = block.language else { return .failure(.message("This block has no language")) }
         let eval = params.single[":eval"]?.lowercased()
         if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
@@ -326,7 +353,7 @@ public enum Babel {
         } catch {
             return .failure(.message("\(error)"))
         }
-        if useCache, !inline, params.single[":cache"] == "yes" {
+        if useCache, !inline, !needsFile, params.single[":cache"] == "yes" {
             do {
                 let state = try cacheState(language: language, params: params, tables: tables, body: body, location: location, name: name,
                                            call: location != block.range, text: ns, options: options)
@@ -830,9 +857,10 @@ public enum Babel {
 
         /// `org-babel-read` on the Lisp values the interpreter can evaluate: a string or number
         /// takes the form's place; other values are kept in `evaluated`.
-        mutating func evaluateLisp() {
+        mutating func evaluateLisp(file: String?) {
             for key in lisp {
-                guard let form = try? LispReader.readFirst(single[key] ?? "").sexp, let value = try? Elisp().eval(form) else { continue }
+                guard let form = try? LispReader.readFirst(single[key] ?? "").sexp,
+                      let value = try? (file.map { Tangle.fileLisp(path: $0) } ?? Elisp()).eval(form) else { continue }
                 let printed = Elisp.printed(value)
                 if let s = value.string {
                     single[key] = s
@@ -1100,7 +1128,7 @@ public enum Babel {
             var inner = refs
             inner.visiting.insert(name)
             var params = try Params(block: block, model: model, text: text, extra: extra)
-            params.evaluateLisp()
+            params.evaluateLisp(file: refs.options.file)
             // A cached block gives its result without running, as `org-babel-execute-src-block` does.
             var useCache = true
             if params.single[":cache"] == "yes", let language = block.language {

@@ -147,7 +147,26 @@ public final class DocumentSession {
     public var caret: Int { buffer?.selection.first?.lowerBound ?? 0 }
     private var name: String { path.map { ($0 as NSString).lastPathComponent } ?? "" }
 
-    private func entry(_ path: String) -> Entry? { entries.first { $0.path == path } }
+    /// The open buffer of `path`, or of the same file by another path (`find-buffer-visiting`
+    /// by truename).
+    private func entry(_ path: String) -> Entry? {
+        if let exact = entries.first(where: { $0.path == path }) { return exact }
+        let truename = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+        return entries.first { URL(fileURLWithPath: $0.path).resolvingSymlinksInPath().path == truename }
+    }
+
+    /// The buffer's name as uniquify writes it (`post-forward-angle-brackets`): the file name,
+    /// with as many of its folders as tell it apart from other open files of the same name.
+    public func bufferName(_ path: String) -> String {
+        let name = (path as NSString).lastPathComponent
+        let others = openPaths.filter { $0 != path && ($0 as NSString).lastPathComponent == name }
+        guard !others.isEmpty else { return name }
+        func folders(_ p: String) -> [String] { (p as NSString).deletingLastPathComponent.split(separator: "/").map(String.init).reversed() }
+        let mine = folders(path)
+        var count = 1
+        while count < mine.count, others.contains(where: { folders($0).prefix(count) == mine.prefix(count) }) { count += 1 }
+        return name + "<" + mine.prefix(count).reversed().joined(separator: "/") + ">"
+    }
 
     public func isOpen(_ path: String) -> Bool { entry(path) != nil }
 
@@ -727,6 +746,13 @@ public final class DocumentSession {
             var job = job
             let approved = job.approved
             func agreed(_ block: BabelJob) -> Bool { approved.isEmpty || approved.contains(block.blockText) }
+            if job.needsFile {
+                let document = entry.buffer.document
+                switch Babel.replan(job, file: entry.path, text: document.text, tree: document.tree) {
+                case .failure(.message(let message)): return message
+                case .success(let next): job = next
+                }
+            }
             while let need = job.needs.first {
                 guard agreed(need.job) else { return "The blocks changed while running; nothing more was run." }
                 let output = try await run(need.job)

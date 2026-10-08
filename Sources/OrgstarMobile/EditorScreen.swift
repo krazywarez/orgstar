@@ -55,7 +55,7 @@ struct EditorScreen: View {
                 ProgressView()
             }
         }
-        .navigationTitle((path as NSString).lastPathComponent + (session.dirtyPaths.contains(path) ? " •" : ""))
+        .navigationTitle(session.bufferName(path) + (session.dirtyPaths.contains(path) ? " •" : ""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
