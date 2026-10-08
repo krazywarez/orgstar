@@ -128,6 +128,7 @@ struct CyclingTests {
         let state = Presentation.startupFoldState(levels)
         #expect(state?.folds.count == 1 && state?.bodyFolds.count == 2)
         #expect(Presentation.startupOptions(OrgParser.parse("#+begin_example\n#+STARTUP: overview\n#+end_example\n")).isEmpty)
+        #expect(Presentation.startupOptions(OrgParser.parse("#+STARTUP: content\n* a\n:LOGBOOK:\n#+startup: hideblocks\n:END:\n")) == ["content", "hideblocks"])
     }
 }
 

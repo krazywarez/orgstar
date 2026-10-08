@@ -9,6 +9,7 @@ struct TodoLoggingTests {
         "* TODO Task\n:LOGBOOK:\n- State \"TODO\"       from              [2026-01-01 Thu 10:00]\n:END:\n",
         "* DONE Task\nCLOSED: [2026-01-01 Thu 10:00]\n",
         "#+STARTUP: lognotedone logdrawer\n* TODO Task\n",
+        "#+begin_example\n#+STARTUP: lognotedone logdrawer\n#+end_example\n* TODO Task\n",
         "* TODO Task\n:PROPERTIES:\n:LOGGING: DONE(!) logrepeat\n:LOG_INTO_DRAWER: NOTES\n:END:\n",
         "* TODO Task\nSCHEDULED: <2026-10-05 Mon +1w>\n",
         "* TODO Task\n- item one\n",

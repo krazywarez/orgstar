@@ -50,6 +50,8 @@ public struct OrgSettings: Sendable, Equatable {
     /// Keyword lines from the file's `#+SETUPFILE`s, as `#+KEY: value` lines: they count as
     /// the file's own, before them.
     public var setupKeywords = ""
+    /// Words of the `#+STARTUP` keyword lines outside blocks, setup files' first.
+    public var startup: [String] = []
 
     public init(todoSequences: [TodoSequence], priorities: Priorities, radioTargets: [String] = []) {
         self.todoSequences = todoSequences
@@ -82,12 +84,13 @@ public struct OrgSettings: Sendable, Equatable {
 }
 
 enum SettingsScanner {
-    /// Reads `#+TODO`, `#+SEQ_TODO`, `#+TYP_TODO` and `#+PRIORITIES` outside blocks. Any TODO
+    /// Reads `#+TODO`, `#+SEQ_TODO`, `#+TYP_TODO`, `#+PRIORITIES` and `#+STARTUP` outside blocks. Any TODO
     /// line replaces the default sequences; as in org, `TYP_TODO` sequences come first, then
     /// `TODO`, then `SEQ_TODO`.
     static func scan(lines: [RawLine], info: [ClassifiedLine], blockEnds: [Int: Int], defaults: OrgSettings) -> OrgSettings {
         var types: [TodoSequence] = [], todos: [TodoSequence] = [], seqs: [TodoSequence] = []
         var priorities = defaults.priorities
+        var startup: [String] = []
         func apply(_ key: String, _ value: Substring) {
             switch key {
             case "TODO":
@@ -96,6 +99,8 @@ enum SettingsScanner {
                 if let s = todoSequence(value, kind: .sequence) { seqs.append(s) }
             case "TYP_TODO":
                 if let s = todoSequence(value, kind: .type) { types.append(s) }
+            case "STARTUP":
+                startup += value.split(whereSeparator: \.isWhitespace).map(String.init)
             case "PRIORITIES":
                 let words = value.split(whereSeparator: \.isWhitespace)
                 if words.count == 3 {
@@ -129,6 +134,7 @@ enum SettingsScanner {
                                    radioTargets: radio.sorted { $0.count > $1.count })
         settings.listAllowAlphabetical = defaults.listAllowAlphabetical
         settings.setupKeywords = defaults.setupKeywords
+        settings.startup = startup
         return settings
     }
 

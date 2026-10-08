@@ -58,7 +58,7 @@ private struct ReparseContext {
     /// Change in UTF-16 length.
     var delta: Int { edit.replacement.utf16.count - edit.range.count }
 
-    static let settingsKeys: Set<String> = ["TODO", "SEQ_TODO", "TYP_TODO", "PRIORITIES"]
+    static let settingsKeys: Set<String> = ["TODO", "SEQ_TODO", "TYP_TODO", "PRIORITIES", "STARTUP"]
 
     /// Elements that parse the same in isolation as in place, as long as their lines keep
     /// their classes.

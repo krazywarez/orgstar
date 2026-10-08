@@ -217,28 +217,9 @@ extension Presentation {
         return result
     }
 
-    /// Words of every `#+STARTUP:` line. Only element-level keywords count, so text inside
-    /// blocks and paragraphs is never read as a setting.
+    /// Words of every `#+STARTUP:` keyword line (`OrgSettings.startup`); lines inside blocks
+    /// are not settings.
     public static func startupOptions(_ tree: OrgTree) -> [String] {
-        var options = tree.settings.setupKeywords.split(separator: "\n").filter { $0.uppercased().hasPrefix("#+STARTUP:") }
-            .flatMap { $0.dropFirst("#+STARTUP:".count).split(whereSeparator: \.isWhitespace).map(String.init) }
-        func visit(_ node: GreenNode) {
-            for case .node(let child) in node.children {
-                switch child.kind {
-                case .keyword:
-                    let text = child.text
-                    if text.uppercased().drop(while: { $0 == " " || $0 == "\t" }).hasPrefix("#+STARTUP:"),
-                       let colon = text.firstIndex(of: ":") {
-                        options += text[text.index(after: colon)...].split(whereSeparator: \.isWhitespace).map(String.init)
-                    }
-                case .document, .zerothSection, .section, .drawer:
-                    visit(child)
-                default:
-                    break
-                }
-            }
-        }
-        visit(tree.green)
-        return options
+        tree.settings.startup
     }
 }

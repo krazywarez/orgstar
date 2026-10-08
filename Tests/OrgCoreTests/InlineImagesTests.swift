@@ -12,5 +12,6 @@ struct InlineImagesTests {
         #expect(InlineImages.startup(OrgParser.parse(text as String)) == true)
         #expect(InlineImages.startup(OrgParser.parse("#+STARTUP: overview noinlineimages\n")) == false)
         #expect(InlineImages.startup(OrgParser.parse("* x\n")) == nil)
+        #expect(InlineImages.startup(OrgParser.parse("#+begin_src org\n#+STARTUP: inlineimages\n#+end_src\n")) == nil)
     }
 }
