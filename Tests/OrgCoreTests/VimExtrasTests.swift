@@ -38,6 +38,16 @@ struct VimExtrasTests {
         #expect(run("abcdef\n", 1, "v l l ESC 0 g v d").text == "aef\n")
     }
 
+    @Test func fillOperators() {
+        let text = "short\nlines\njoin here\n\nnext para\n"
+        #expect(run(text, 0, "g q a p").text == "short lines join here\n\nnext para\n")
+        #expect(run(text, 8, "g w a p") == ("short lines join here\n\nnext para\n", 8))
+        #expect(run("a\nb\nc\n", 2, "g q q").text == "a\nb\nc\n")
+        #expect(run("a\nb\nc\n", 0, "V j g q") == ("a b\nc\n", 0))
+        let doom = KeymapPreset.doom.keymap
+        #expect(Set(["normal", "insert", "visual"]).allSatisfy { doom.candidates(for: [KeyChord("q", .meta)], mode: $0).first?.command == "org.fill-paragraph" })
+    }
+
     @Test func elementMotionsStop() {
         let text = "intro\n\n* H\npara one\n* Next\nend\n"
         func moved(_ caret: Int, _ keys: String, org: Bool = true) -> Int {
@@ -136,7 +146,26 @@ struct VimExtrasTests {
             ("a =code= b\n", 3, "d i e"),
             ("a =code= b\n", 3, "d a e"),
             ("a [[https://x.org]] b\n", 5, "d i e"),
-        ] + elementCases
+        ] + elementCases + fillCases
+    }()
+
+    /// gq and gw: evil-fill-and-move and evil-fill.
+    static let fillCases: [(String, Int, String)] = {
+        let long = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        return [
+            (long + "\n", 0, "g q q"),
+            (long + "\n", 10, "g w w"),
+            ("short\nlines\njoin here\n\nnext para\n", 0, "g q a p"),
+            ("short\nlines\njoin here\n\nnext para\n", 2, "g w a p"),
+            ("one\ntwo\n\nthree\nfour\n", 0, "g q G"),
+            ("- item " + long + "\n- b\n", 0, "g q q"),
+            ("* H\n" + long + "\n", 4, "g q q"),
+            ("* H\n" + long + "\n", 0, "g q j"),
+            ("a\nb\nc\n", 2, "g q q"),
+            ("a\nb\nc\nd\n", 2, "g q j"),
+            ("a\nb\nc\n", 0, "V j g q"),
+            ("a\nb\n\nc\nd\n", 0, "g q j j ."),
+        ]
     }()
 
     /// evil-org's gj and gk: org-forward-element and org-backward-element.

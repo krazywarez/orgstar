@@ -132,6 +132,16 @@ struct ModalTests {
         #expect(h.editor.foldState.folds == [9])
     }
 
+    @Test func fillOperatorsInTheEditor() {
+        let h = doom("short\nlines\n\nnext\n")
+        h.caret(at: 7)
+        type(h, "g w a p")
+        #expect(h.editor.document.text == "short lines\n\nnext\n")
+        #expect(h.textView.selectedRange().location == 7)
+        type(h, "u")
+        #expect(h.editor.document.text == "short\nlines\n\nnext\n")
+    }
+
     @Test func zzSavesAndClosesAsWq() {
         let h = doom("text\n")
         var app: [String] = []

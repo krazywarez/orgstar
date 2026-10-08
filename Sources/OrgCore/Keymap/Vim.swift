@@ -32,6 +32,9 @@ public struct Vim: Sendable {
         case setClipboard(String)
         /// Ask for a search pattern (`/`, `?`) or an ex command (`:`).
         case prompt(String)
+        /// `gq` and `gw`: fill these lines' paragraphs (`FillRegion`); the caret stays at
+        /// `keep`, or without it goes to the last line's first non-blank.
+        case fill(Range<Int>, keep: Int?)
         /// An ex command to run, as if typed after `:` (`ZZ` is `:wq`, `ZQ` is `:q!`).
         case ex(String)
         case message(String)
@@ -271,7 +274,7 @@ public struct Vim: Sendable {
             op = o
         } else if first.key == "g", first.modifiers.isEmpty {
             guard let second = rest.dropFirst().first else { return .incomplete }
-            if ["~", "u", "U", "c"].contains(second.key), second.modifiers.isEmpty {
+            if ["~", "u", "U", "c", "q", "w"].contains(second.key), second.modifiers.isEmpty {
                 op = "g" + second.key
                 afterOp = rest.dropFirst(2)
             }
@@ -876,6 +879,12 @@ public struct Vim: Sendable {
         case "gc":
             lastChange = (wasVisual ? [] : keys, nil)
             return [.edit(Self.toggleComments(buffer, range), caret: buffer.lineStart(range.lowerBound))]
+        case "gq", "gw":
+            // Whole lines, as evil's fill operators take them.
+            lastChange = (wasVisual ? [] : keys, nil)
+            let end = buffer.lineEnd(max(range.lowerBound, range.upperBound - 1))
+            let lines = buffer.lineStart(range.lowerBound)..<min(buffer.length, end + 1)
+            return [.fill(lines, keep: op == "gw" ? caretForApply : nil)]
         default:
             let transformed: String
             switch op {

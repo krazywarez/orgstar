@@ -467,6 +467,28 @@ extension EmacsBuffer {
         }
     }
 
+    /// `fill-region` over whole lines: each paragraph's part of `from..<to` filled as a
+    /// paragraph. Other elements stay.
+    func fillRegion(_ from: Int, _ to: Int) {
+        var spans: [Range<Int>] = []
+        var line = lineStart(from)
+        while line < to, line < length {
+            var next = lineEnd(line) + 1
+            let blank = substring(line, lineEnd(line)).allSatisfy { $0 == " " || $0 == "\t" }
+            if !blank, let element = element(at: lineEnd(line)) {
+                if element.kind == .paragraph {
+                    let span = max(paragraphContentsBegin(element), from)..<min(contentsEnd(element), to)
+                    if !span.isEmpty { spans.append(span) }
+                }
+                next = max(next, lineStart(min(length, max(element.range.lowerBound, contentsEnd(element)))))
+                if next <= line { next = lineEnd(line) + 1 }
+            }
+            line = next
+        }
+        // Back to front, so the spans before stay where they are.
+        for span in spans.reversed() { fillRegionAsParagraph(span.lowerBound, span.upperBound) }
+    }
+
     /// Where a paragraph's text starts: past affiliated keywords, and for a paragraph that
     /// opens an item, past the bullet.
     func paragraphContentsBegin(_ node: Element) -> Int {
@@ -481,4 +503,33 @@ public struct FillParagraph: OrgCommand {
     public var title: String { "Fill Paragraph" }
     public func applies(in context: EditContext) -> Bool { true }
     public func run(in context: EditContext) -> CommandStep { commitBuffer(context) { $0.fillParagraph() } }
+}
+
+/// evil's `gq` and `gw` operators: the paragraphs in `range`'s lines filled, as `fill-region`.
+/// With `keep` (`gw`) the caret stays there; without (`gq`) it goes to the first non-blank
+/// of the range's last line.
+public struct FillRegion: OrgCommand {
+    public let range: Range<Int>
+    public let keep: Int?
+
+    public init(range: Range<Int>, keep: Int?) {
+        self.range = range
+        self.keep = keep
+    }
+
+    public var id: String { "org.fill-region" }
+    public var title: String { "Fill Region" }
+    public func applies(in context: EditContext) -> Bool { true }
+    public func run(in context: EditContext) -> CommandStep {
+        commitBuffer(context) { buffer in
+            let target = buffer.marker(keep ?? max(range.lowerBound, range.upperBound - 1))
+            defer { buffer.release(target) }
+            buffer.fillRegion(range.lowerBound, range.upperBound)
+            buffer.point = target.position
+            if keep == nil {
+                buffer.beginningOfLine()
+                buffer.skipForward(EmacsBuffer.blanks)
+            }
+        }
+    }
 }

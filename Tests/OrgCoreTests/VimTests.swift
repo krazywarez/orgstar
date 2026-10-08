@@ -48,6 +48,10 @@ struct VimDriver {
                 case .move(let to): caret = to
                 case .setClipboard(let s): clipboard = s
                 case .command(let id): commands.append(id)
+                case .fill(let range, let keep):
+                    let result = runCommand(FillRegion(range: range, keep: keep), text, caret: caret)
+                    text = result.text
+                    caret = result.caret
                 default: break
                 }
             }

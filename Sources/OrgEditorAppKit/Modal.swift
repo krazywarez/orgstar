@@ -205,6 +205,11 @@ extension OrgEditor {
                 prompt(kind)
             case .ex(let command):
                 ex(command)
+            case .fill(let range, let keep):
+                visualCaret = nil
+                textView.setSelectedRange(NSRange(location: textView.selectedRange().location, length: 0))
+                _ = perform(FillRegion(range: range, keep: keep))
+                clampCaret()
             case .message(let text):
                 onMessage?(text)
             case .setMark(let name, let offset):
