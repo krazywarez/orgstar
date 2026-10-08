@@ -294,7 +294,7 @@ public enum Babel {
         let needsFile = options.file == nil && params.lisp.contains { params.evaluated[$0] == nil }
         guard let language = block.language else { return .failure(.message("This block has no language")) }
         let eval = params.single[":eval"]?.lowercased()
-        if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
+        if eval == "never" || eval == "no" {
             return .failure(.message("Evaluation of this \(language) code block\(block.name.map { " (\($0)) " } ?? " ")is disabled."))
         }
         if params.single[":cmdline"] != nil, !["dot", "plantuml", "mermaid"].contains(language), !shells.contains(language) {
@@ -1903,14 +1903,14 @@ public struct ExecuteSrcBlock: OrgCommand {
     public var title: String { "Run Source Block" }
     public func applies(in context: EditContext) -> Bool { KeyContext.holds("src", in: context) || Self.atCallOrInline(context) }
 
-    /// On a `#+CALL:` line or an inline `src_` block.
+    /// On a `#+CALL:` line, an inline `call_` or an inline `src_` block.
     static func atCallOrInline(_ context: EditContext) -> Bool {
         let ns = context.text as NSString
         let line = ns.substring(with: ns.lineRange(for: NSRange(location: min(context.caret, ns.length), length: 0)))
         if line.range(of: "(?i)^[ \\t]*#\\+CALL:", options: .regularExpression) != nil { return true }
         var node = context.tree.root
         while let child = node.child(containing: context.caret) {
-            if child.kind == .inlineSourceBlock { return true }
+            if child.kind == .inlineSourceBlock || child.kind == .inlineBabelCall { return true }
             node = child
         }
         return false

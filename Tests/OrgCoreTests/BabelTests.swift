@@ -328,6 +328,17 @@ struct BabelTests {
             #expect(got == message)
         }
     }
+
+    @Test func noExportStillRunsInteractively() {
+        for eval in ["never-export", "no-export"] {
+            let text = "#+begin_src sh :eval \(eval)\necho 1\n#+end_src\n"
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+            guard case .success = Babel.plan(context) else {
+                Issue.record("refused :eval \(eval)")
+                continue
+            }
+        }
+    }
 }
 
 struct BabelCallTests {
@@ -375,6 +386,20 @@ struct BabelCallTests {
             #expect(mine.text == theirs.text && (mine.failure != nil) == !theirs.error.isEmpty,
                     "case \(i):\n\(Self.cases[i].0)\nours (\(mine.failure ?? "")):\n\(mine.text)\nemacs (\(theirs.error)):\n\(theirs.text)")
         }
+    }
+}
+
+extension BabelCallTests {
+    @Test func ctrlCCtrlCRunsInlineCalls() {
+        let text = Self.named + "Inline call_double(n=6) here.\n"
+        let caret = (text as NSString).range(of: "call_").location + 2
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+        #expect(ExecuteSrcBlock().applies(in: context))
+        guard case .external(.babel(let job)) = CtrlCCtrlC().run(in: context) else {
+            Issue.record("inline call not run")
+            return
+        }
+        #expect((job.script ?? job.input).contains("echo $((n*2))"))
     }
 }
 
