@@ -347,8 +347,13 @@ public final class ClockModel {
 
     /// `org-find-open-clocks` over `paths` and the open org buffers.
     public func openClocks(_ session: DocumentSession, paths: [String]) -> [OpenClock] {
+        // A file open under another spelling of its path is read from its buffer.
+        func resolved(_ path: String) -> String { URL(fileURLWithPath: path).resolvingSymlinksInPath().path }
+        var open: [String: String] = [:]
+        for document in session.openDocuments { open[resolved(document.path)] = document.path }
         var seen = Set<String>()
-        let all = (paths + session.openDocuments.map(\.path).filter { $0.hasSuffix(".org") }).filter { seen.insert($0).inserted }
+        let all = (session.openDocuments.map(\.path).filter { $0.hasSuffix(".org") } + paths.map { open[resolved($0)] ?? $0 })
+            .filter { seen.insert(resolved($0)).inserted }
         var clocks: [OpenClock] = []
         for path in all {
             guard let text = Self.text(path, session), text.contains("CLOCK: [") else { continue }
@@ -401,9 +406,13 @@ public final class ClockModel {
     func resolve(
         _ clock: OpenClock, description: String, lastValid: Date, clockingIn: Bool, _ session: DocumentSession, ask: Ask, now: () -> Date
     ) async -> Outcome {
+        var outcome = Outcome()
+        // An earlier answer may have closed it.
+        guard let text = Self.text(clock.path, session), ClockResolution.openClocks(in: text).contains(where: { $0.start == clock.start }) else {
+            return outcome
+        }
         isResolving = true
         defer { isResolving = false }
-        var outcome = Outcome()
         var key: Character = "q"
         while true {
             guard let answer = await ask(Prompt(key: "clock-resolve", message: description + ClockResolution.keyHint, fast: ClockResolution.menu)) else {
