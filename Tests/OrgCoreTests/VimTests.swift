@@ -134,6 +134,11 @@ struct VimTests {
         ("long line here\nab\nlonger line\n", 10, "j j x"),
         ("one two three\n", 0, "s t h x"),
         ("one two three\n", 12, "S t w x"),
+        ("ab ab ab ab\n", 0, "s a b ; ; x"),
+        ("ab ab ab ab\n", 0, "s a b ; ; , x"),
+        ("ab ab ab ab\n", 10, "S a b ; x"),
+        ("ab ab ab ab ab ab\n", 0, "2 s a b ; x"),
+        ("one tw tw tw\n", 0, "f w s t w ; x"),
         ("one two three\n", 0, "\" a y w w \" a P"),
         ("one two three\n", 0, "\" _ d w"),
         ("  one\n", 2, "o x ESC"),
@@ -204,6 +209,23 @@ struct VimTests {
         #expect(vim.feed(KeyChord("Z"), context) == [.ex("wq")])
         _ = vim.feed(KeyChord("Z"), context)
         #expect(vim.feed(KeyChord("Q"), context) == [.ex("q!")])
+    }
+
+    @Test func snipeRepeatsOverTheVisibleText() {
+        let text = "ab x\ncd ab\nab\n"
+        func caret(_ keys: String, visible: Range<Int>?) -> Int {
+            var driver = VimDriver(text, caret: 0)
+            driver.visible = visible
+            driver.type(Self.keys(keys))
+            return driver.caret
+        }
+        // The snipe itself keeps to the line; repeats search what the window shows.
+        #expect(caret("s a b ;", visible: nil) == 0)
+        #expect(caret("s a b ;", visible: 0..<14) == 8)
+        #expect(caret("s a b ; ;", visible: 0..<14) == 11)
+        #expect(caret("s a b ; ; ,", visible: 0..<14) == 8)
+        // After f, ; repeats the f.
+        #expect(caret("s a b f x ;", visible: 0..<14) == 3)
     }
 
     @Test func halfPageScrollsFollowTheWindow() {

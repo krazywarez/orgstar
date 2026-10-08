@@ -86,7 +86,9 @@ public struct Vim: Sendable {
     var anchor = 0
     var goalColumn: Int?
     var lastFind: (kind: Character, char: String)?
-    var lastSnipe: (forward: Bool, chars: String)?
+    var lastSnipe: (forward: Bool, chars: String, count: Int)?
+    /// `;` and `,` repeat a snipe when one came after the last f, F, t or T.
+    var lastWasSnipe = false
     var lastSearch: (pattern: String, forward: Bool)?
     /// The keys and inserted text of the last change, for `.`.
     var lastChange: (keys: [KeyChord], inserted: String?)?
@@ -610,8 +612,16 @@ public struct Vim: Sendable {
             let char = keys[1].key == "SPC" ? " " : keys[1].key
             guard char.count == 1 else { return .invalid }
             lastFind = (Character(key.key), char)
+            lastWasSnipe = false
             guard let p = find(Character(key.key), char, buffer, c, count: n) else { return .invalid }
             return .moved(p, key.key == "f" || key.key == "t" ? .inclusive : .exclusive)
+        case (";", []) where lastWasSnipe, (",", []) where lastWasSnipe:
+            // evil-snipe-repeat, with Doom's `evil-snipe-repeat-scope` visible.
+            guard let last = lastSnipe else { return .invalid }
+            let forward = key.key == ";" ? last.forward : !last.forward
+            let scope = contextVisible.map { min($0.lowerBound, buffer.length)..<min($0.upperBound, buffer.length) }
+            guard let p = snipe(forward: forward, last.chars, buffer, c, count: n * last.count, scope: scope) else { return .invalid }
+            return .moved(p, .exclusive)
         case (";", []), (",", []):
             guard let last = lastFind else { return .invalid }
             var kind = last.kind
@@ -624,7 +634,8 @@ public struct Vim: Sendable {
             // evil-snipe with `evil-snipe-scope` line.
             guard keys.count >= 3 else { return .incomplete }
             let chars = keys[1].key + keys[2].key
-            lastSnipe = (key.key == "s", chars)
+            lastSnipe = (key.key == "s", chars, n)
+            lastWasSnipe = true
             guard let p = snipe(forward: key.key == "s", chars, buffer, c, count: n) else { return .invalid }
             return .moved(p, .exclusive)
         case ("%", []):
@@ -696,9 +707,12 @@ public struct Vim: Sendable {
         return p
     }
 
-    func snipe(forward: Bool, _ chars: String, _ buffer: Buffer, _ c: Int, count n: Int) -> Int? {
-        let line = buffer.substring(buffer.lineStart(c)..<buffer.lineEnd(c)) as NSString
-        let start = buffer.lineStart(c)
+    /// Searches the caret's line, or `scope` when given.
+    func snipe(forward: Bool, _ chars: String, _ buffer: Buffer, _ c: Int, count n: Int, scope: Range<Int>? = nil) -> Int? {
+        let range = scope ?? buffer.lineStart(c)..<buffer.lineEnd(c)
+        let line = buffer.substring(range) as NSString
+        let start = range.lowerBound
+        guard range.lowerBound <= c, c <= range.upperBound else { return nil }
         let smart = chars == chars.lowercased()
         var p = c - start
         for _ in 0..<n {
