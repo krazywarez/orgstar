@@ -1,0 +1,884 @@
+#+TITLE: Outlines and structure
+#+DESCRIPTION: Headings, subtrees, plain lists, checkboxes, blocks, drawers, properties, column view, footnotes, refiling and archiving.
+#+LEDE: An org file is an outline of headings with text, lists and drawers under them; this chapter covers the commands that build and rearrange it.
+
+Every command in this chapter is in the Org menu and the command palette (=⇧⌘P=),
+under the title given in the tables, whatever keymap you use. The Org menu shows the
+keys that run each command in your current keymap.
+
+Keys are listed for the three presets. The Emacs and Doom presets use Emacs notation
+(=M-RET= is Meta-Return, =C-c C-w= is Control-c then Control-w). The Mac preset uses
+macOS symbols. The Doom preset has every Emacs-preset key that starts with =C-c= or
+=C-x=, and the =M-=, =S-= arrow and =RET= chords, in normal, insert and visual
+state, plus the Doom keys listed. Where the Mac column says "menu", the Mac preset has
+no key for the command; run it from the Org menu or the palette, or bind one in
+=keymap.toml= (see [[file:03-keys.org][Keys]]).
+
+* Headings
+
+A heading is a line that starts with one or more stars and a space. The number of stars
+is its level. A heading and everything under it, down to the next heading at the same
+or a higher level, is a subtree.
+
+#+BEGIN_SRC org
+,* Project
+Notes about the project.
+,** TODO Write the plan
+,** Meetings
+,*** Kickoff
+#+END_SRC
+
+** Inserting headings
+
+| Command                      | Org command                              | Emacs     | Mac   | Doom      |
+|------------------------------+------------------------------------------+-----------+-------+-----------|
+| Insert Heading               | =org-insert-heading=                     | =M-RET=   | =⌘↩=  | =M-RET=   |
+| Insert Heading After Subtree | =org-insert-heading-respect-content=     | =C-RET=   | =⌃⌘↩= | =C-RET=   |
+| Insert TODO Heading          | =org-insert-todo-heading=                | =M-S-RET= | =⇧⌘↩= | =M-S-RET= |
+
+The new heading has the level of the heading the caret is under, or level 1 before the
+first heading. In a plain list the same keys insert an item instead (see [[*Plain lists][Plain lists]]).
+
+Insert TODO Heading gives the new heading the keyword of the previous heading at the
+same level when that keyword is not a done state, and otherwise the first keyword of
+the file's TODO sequence. If the parent has a statistics cookie, it is updated.
+
+Two settings change where Insert Heading puts the heading. Both are in Settings ▸
+Editing and in =config.toml= under the Emacs variable names:
+
+| Setting (=config.toml=)              | Settings ▸ Editing                            | Orgstar default | Org default |
+|--------------------------------------+-----------------------------------------------+-----------------+-------------|
+| =org-insert-heading-respect-content= | M-RET adds the new heading after the subtree  | =true=          | =nil=       |
+| =org-M-RET-may-split-line=           | M-RET splits the line at the caret            | =false=         | =t=         |
+
+With =org-insert-heading-respect-content= on (the Orgstar default), Insert Heading
+behaves as Insert Heading After Subtree: the new heading goes after the end of the
+current subtree, at the current level. Insert Heading also does this when the caret is
+in folded text.
+
+With it off, Insert Heading works where the caret is:
+
+- At the start of a heading line, the new heading is inserted above it.
+- Elsewhere on a heading line, the new heading goes below that line. With
+  =org-M-RET-may-split-line= on and the caret inside the title, the text after the caret
+  moves to the new heading. Tags stay on the original line and are realigned.
+- In body text, a new heading line is started below. With =org-M-RET-may-split-line=
+  on, the line is split at the caret first.
+
+Orgstar follows Org's =org-blank-before-new-entry= default of =auto= for headings: if
+the heading the caret is in is preceded by a blank line, the new heading is too.
+
+Insert Heading After Subtree always inserts after the subtree:
+
+#+BEGIN_SRC org
+,* a
+body
+,** b
+,* c
+#+END_SRC
+
+With the caret on =* a=, =C-RET= gives:
+
+#+BEGIN_SRC org
+,* a
+body
+,** b
+,*
+,* c
+#+END_SRC
+
+** Promoting and demoting
+
+| Command         | Org command          | Emacs         | Mac    | Doom                                      |
+|-----------------+----------------------+---------------+--------+-------------------------------------------|
+| Promote Heading | =org-promote=        | =M-<left>=    | =⌃⌘←=  | =M-h=; in insert state =S-TAB= or =C-d=   |
+| Demote Heading  | =org-demote=         | =M-<right>=   | =⌃⌘→=  | =M-l=; in insert state =TAB= or =C-t=     |
+| Promote Subtree | =org-promote-subtree= | =M-S-<left>=  | =⌃⌥⌘←= | =M-H=, =SPC m s h=                        |
+| Demote Subtree  | =org-demote-subtree= | =M-S-<right>= | =⌃⌥⌘→= | =M-L=, =SPC m s l=                        |
+
+These run with the caret on a heading line. Promote and Demote Heading change only that
+line's stars; its children keep their level. The subtree commands change the heading and
+every heading under it. Tags are realigned after each change. A level 1 heading can't be
+promoted ("Cannot promote to level 0").
+
+On a list item the same keys indent and outdent the item instead.
+
+** Moving subtrees
+
+| Command           | Org command              | Emacs      | Mac    | Doom              |
+|-------------------+--------------------------+------------+--------+-------------------|
+| Move Subtree Up   | =org-move-subtree-up=    | =M-<up>=   | =⌃⌥⌘↑= | =M-k=, =SPC m s k= |
+| Move Subtree Down | =org-move-subtree-down=  | =M-<down>= | =⌃⌥⌘↓= | =M-j=, =SPC m s j= |
+
+The subtree at the caret swaps places with the previous or next sibling subtree. It
+can't move past its parent or the start or end of the file. The caret keeps its column.
+
+On a list item the same keys move the item; in a table they move the row. On other
+lines they do nothing. Orgstar has no =org-drag-element= for paragraphs.
+
+** Moving between headings
+
+| Command                        | Org command                       | Emacs     | Mac    | Doom              |
+|--------------------------------+-----------------------------------+-----------+--------+-------------------|
+| Next Heading                   | =org-next-visible-heading=        | =C-c C-n= | =⌥⌘↓=  | =C-c C-n=         |
+| Previous Heading               | =org-previous-visible-heading=    | =C-c C-p= | =⌥⌘↑=  | =C-c C-p=         |
+| Next Heading at Same Level     | =org-forward-heading-same-level=  | =C-c C-f= | menu   | =g j=, =] h=      |
+| Previous Heading at Same Level | =org-backward-heading-same-level= | =C-c C-b= | menu   | =g k=, =[ h=      |
+| Up to Parent Heading           | =outline-up-heading=              | =C-c C-u= | menu   | =g h=             |
+| Go to Heading…                 | =org-goto=                        | =C-c C-j= | menu   | =SPC m .=         |
+
+Next and Previous Heading skip headings that are folded out of sight. The same-level
+commands stop at the parent's boundary. Go to Heading asks for a heading by its outline
+path (=Project/Meetings/Kickoff=) with completion, as =org-goto= does with
+=outline-path-completion=.
+
+** Toggling headings, items and comments
+
+| Command         | Org command                                | Emacs   | Mac  | Doom              |
+|-----------------+--------------------------------------------+---------+------+-------------------|
+| Toggle Heading  | =org-toggle-heading=                       | =C-c *= | menu | =SPC m h=         |
+| Toggle Item     | =org-ctrl-c-minus=, =org-toggle-item=      | =C-c -= | menu | =SPC m i=         |
+| Toggle COMMENT  | =org-toggle-comment=                       | =C-c ;= | menu | =C-c ;=           |
+
+These work on the caret's line, or on every line of the selection.
+
+Toggle Heading:
+
+- On headings, removes their stars, so they become text.
+- On list items, turns them into headings one level below the entry they are in. A
+  checkbox becomes a keyword: =[ ]= the first TODO keyword, =[X]= the first done
+  keyword. Nested items become deeper headings.
+- On other lines, makes each non-blank line a heading one level below the current entry.
+  Comment lines are skipped.
+
+#+BEGIN_SRC org
+,* Shopping
+- [ ] milk
+- [X] bread
+#+END_SRC
+
+Selecting both items and pressing =C-c *= gives:
+
+#+BEGIN_SRC org
+,* Shopping
+,** TODO milk
+,** DONE bread
+#+END_SRC
+
+Toggle Item:
+
+- On a list item, with no selection, cycles the list's bullets (see [[*Bullets and numbering][Bullets and numbering]]).
+- On items in a selection, removes their bullets.
+- On headings, turns them into items. The tags, planning line and property drawer are
+  removed. A TODO keyword becomes a checkbox, =[X]= for a done state and =[ ]= otherwise.
+  The section's text is indented under the item.
+- On other lines, puts a =-= bullet and a space in front of each non-blank line.
+
+In a table, =C-c *= recalculates and =C-c -= inserts a horizontal line instead (see
+[[file:10-tables.org][Tables]]).
+
+Toggle COMMENT adds or removes the =COMMENT= keyword after the stars and TODO keyword.
+Commented subtrees are left out of export and column view.
+
+** Selecting a subtree
+
+Mark Subtree (=org-mark-subtree=, =C-c @= in the Emacs and Doom presets) selects the
+subtree at the caret, from its heading line to the end of its last line.
+
+* Subtrees as text
+
+** Cut, copy and paste
+
+| Command       | Org command          | Emacs         | Mac  | Doom                      |
+|---------------+----------------------+---------------+------+---------------------------|
+| Cut Subtree   | =org-cut-subtree=    | =C-c C-x C-w= | menu | =C-c C-x C-w=, =SPC m s d= |
+| Copy Subtree  | =org-copy-subtree=   | =C-c C-x M-w= | menu | =C-c C-x M-w=             |
+| Paste Subtree | =org-paste-subtree=  | =C-c C-x C-y= | menu | =C-c C-x C-y=             |
+
+The kill ring is the system clipboard. Cut Subtree and Copy Subtree put the subtree at
+the caret, with the blank lines after it, on the clipboard and report its length.
+
+Paste Subtree takes the clipboard's text and adjusts its levels to fit where it lands.
+The text has to start with a heading and contain no heading above its first one's
+level; otherwise the command refuses. The level comes from:
+
+- an empty heading line, such as =***= followed by a space, at the caret: that level, and the empty line is
+  replaced;
+- the caret at the start of a heading: that heading's level, pasted before it;
+- otherwise the deeper of the heading above the caret and the heading below it, pasted
+  before the next heading.
+
+** Cloning with a time shift
+
+Clone Subtree with Time Shift (=org-clone-subtree-with-time-shift=, =C-c C-x c=, Doom
+=SPC m s c=) asks for a number of clones, then, if the subtree has timestamps, for a
+shift per clone such as =+1d=, =+1w=, =+2m= or =+1y= (units =h=, =d=, =w=, =m=, =y=).
+Leave the shift empty to copy the dates unchanged.
+
+The clones are inserted after the subtree. The nth clone has its dates moved by n times
+the shift. Clones lose their =CLOCK:= lines, and drawers left empty by that are removed.
+An entry with an =:ID:= property gets a new ID in each clone. When the subtree has a
+repeating timestamp and a shift is given, the repeater is removed from the clones, and
+the original, with its repeater, moves after them with its dates shifted past the last
+clone, as Org does.
+
+** Sorting
+
+Sort Entries (=org-sort=, =C-c ^=, Doom =SPC m s S=) sorts what the caret is in:
+
+- In a table, the table's lines (=org-table-sort-lines=, see [[file:10-tables.org][Tables]]).
+- On a list item, the items of that list (=org-sort-list=).
+- Otherwise headings (=org-sort-entries=): with a selection, the headings in it;
+  on a heading, its children; before the first heading, the top-level headings.
+
+It then asks for a sort key, one keystroke. A capital letter sorts in reverse.
+
+| Key | Headings                                         | List items                           |
+|-----+--------------------------------------------------+--------------------------------------|
+| =a= | alphabetically by title                          | alphabetically by text               |
+| =n= | numerically by the title's leading number        | numerically by the text              |
+| =p= | priority                                         |                                      |
+| =r= | a property's value (asks which property)         |                                      |
+| =o= | TODO keyword, in sequence order                  |                                      |
+| =t= | first active timestamp, else first timestamp     | first timestamp, or a timer          |
+| =s= | =SCHEDULED= date                                 |                                      |
+| =d= | =DEADLINE= date                                  |                                      |
+| =c= | creation time: the first inactive timestamp at the start of a line |                    |
+| =k= | clocked time in the subtree                      |                                      |
+| =x= |                                                  | checkbox state                       |
+
+Alphabetical and numeric sorts ignore a leading =COMMENT=, link brackets and emphasis
+markers. Sorting is stable, so entries with equal keys keep their order. Entries
+without a date sort as if dated now. After sorting a list, its numbering is repaired.
+Org's =f= (custom function) key is not available.
+
+* Narrowing
+
+| Command                    | Org command                      | Emacs     | Mac  | Doom       |
+|----------------------------+----------------------------------+-----------+------+------------|
+| Narrow to Subtree          | =org-narrow-to-subtree=          | =C-x n s= | menu | =SPC m s n= |
+| Narrow to Block            | =org-narrow-to-block=            | =C-x n b= | menu | =C-x n b=  |
+| Widen                      | =widen=                          | =C-x n w= | menu | =SPC m s N= |
+| Narrow to Subtree or Widen | =org-toggle-narrow-to-subtree=   | speed key =s= | speed key =s= | speed key =s= |
+
+Narrowing hides everything outside the current subtree or block, so the editor shows
+only that part of the file. Narrow to Block works on src, example, export, comment and
+verse blocks (with the blank lines after them) and, for other blocks, on the lines
+between the opening and closing lines. Edits inside the narrowed text move its bounds
+as you type. Jumping to a position outside it, from a link, search or the outline pane,
+widens first.
+
+Narrowing is a view. Commands still see the whole file: for example, a new footnote's
+definition still goes into the =Footnotes= section at the end of the file, and a sparse
+tree searches the whole file.
+
+* Sparse trees
+
+Sparse Tree… (=org-sparse-tree=, =C-c /=, Doom =SPC m s s=) folds the file to an
+overview and then shows only the matches and the headings above them. It asks what to
+match, one keystroke:
+
+| Key  | Shows                                                                 | Org function           |
+|------+-----------------------------------------------------------------------+------------------------|
+| =r=  | text matching a regular expression (asks for it); case-insensitive    | =org-occur=            |
+| =t=  | headings with a TODO keyword that is not a done state                 | =org-show-todo-tree=   |
+| =T=  | headings with the keywords you give (several separated by a vertical bar) | =org-show-todo-tree=   |
+| =m=  | headings matching a tags and properties match                         | =org-match-sparse-tree= |
+| =p=  | headings where a property has a value (asks for both, with completion) | =org-match-sparse-tree= |
+| =d=  | deadlines past due or due within 14 days (fixed), in entries not done | =org-check-deadlines=  |
+| =b=  | entries with a =SCHEDULED= or =DEADLINE= before a date                | =org-check-before-date= |
+| =a=  | entries with a =SCHEDULED= or =DEADLINE= on or after a date           | =org-check-after-date= |
+| =D=  | entries with a =SCHEDULED= or =DEADLINE= in a date range              | =org-check-dates-range= |
+
+The regular expression uses Emacs syntax. The match syntax for =m= is the one the
+agenda's tags search uses (see [[file:07-agenda.org][Agenda]]). Dates are read as Org reads them (see
+[[file:06-dates-and-clocking.org][Dates and clocking]]).
+
+For a text match, the whole entry around each match is shown; for heading matches,
+the heading line. The matched text is highlighted, and the echo area reports the number
+of matches. Subtrees tagged =ARCHIVE= stay folded. The highlights go away at the next
+edit or with =C-c C-c=. =TAB= and =S-TAB= work as usual afterwards; cycling leaves the
+sparse view.
+
+* Plain lists
+
+Orgstar's list commands are ports of =org-list.el=. A list item starts with a bullet:
+=-=, =+=, =*= (not at the left margin, where it would be a heading), or a number
+followed by =.= or =)=. With alphabetical lists on, =a.=, =A.=, =a)= and =A)= are bullets
+too. A description item has =::= after its term:
+
+#+BEGIN_SRC org
+- milk
+- eggs
+  1. free range
+  2. brown
+- Orgstar :: an org editor for macOS and iOS
+#+END_SRC
+
+| Setting (=config.toml=)       | Settings ▸ Editing               | Orgstar default | Org default |
+|-------------------------------+----------------------------------+-----------------+-------------|
+| =org-list-allow-alphabetical= | Lists can use letters (a. b. c.) | =true=          | =nil=       |
+
+** List commands
+
+| Command                   | Org command              | Emacs         | Mac    | Doom                              |
+|---------------------------+--------------------------+---------------+--------+-----------------------------------|
+| Insert Item               | =org-insert-item=        | =M-RET=       | =⌘↩=   | =M-RET=                           |
+| Insert Checkbox Item      | =org-insert-item= with a checkbox | =M-S-RET= | =⇧⌘↩= | =M-S-RET=                       |
+| Indent Item               | =org-indent-item=        | =M-<right>=   | =⌃⌘→=  | =M-l=; =C-t= in insert state      |
+| Outdent Item              | =org-outdent-item=       | =M-<left>=    | =⌃⌘←=  | =M-h=; =C-d= in insert state      |
+| Indent Item and Children  | =org-indent-item-tree=   | =M-S-<right>= | =⌃⌥⌘→= | =M-L=; =TAB= in insert state      |
+| Outdent Item and Children | =org-outdent-item-tree=  | =M-S-<left>=  | =⌃⌥⌘←= | =M-H=; =S-TAB= in insert state    |
+| Move Item Up              | =org-move-item-up=       | =M-<up>=      | =⌃⌥⌘↑= | =M-k=                             |
+| Move Item Down            | =org-move-item-down=     | =M-<down>=    | =⌃⌥⌘↓= | =M-j=                             |
+| Toggle Checkbox           | =org-toggle-checkbox=    | =C-c C-x C-b= | =⌃⌘C=  | =SPC m x=, =RET= in normal state  |
+| Toggle Item               | =org-ctrl-c-minus=       | =C-c -=       | menu   | =SPC m i=                         |
+
+Insert Item works anywhere inside an item. The new item gets the next bullet: the same
+symbol, the next number or the next letter. In a description list the new item has an
+empty term followed by =::=, with the caret on the term. With =org-M-RET-may-split-line= on, text after the caret moves
+to the new item; with it off (the Orgstar default), the new item goes after the current
+one. At the start of an item, the new item is inserted before it. If the list's items
+are separated by blank lines, so is the new one.
+
+The indent, outdent and move commands need the caret on an item's first line.
+
+- Indent Item and Outdent Item move one item; its children stay where they are, and an
+  item with children can't be outdented alone ("Cannot outdent an item without its
+  children").
+- The "and Children" variants move the item with its sub-items.
+- On the first item of a list, Indent Item refuses; Indent Item and Children and
+  Outdent Item and Children move the whole list. A list moved to the left margin
+  changes =*= bullets to =-=.
+- Move Item Up and Down swap the item, with its children, with the previous or next
+  item at the same level.
+
+After every list command the list is repaired as Org repairs it: bullets are renumbered,
+indentation is fixed and checkboxes of parent items are updated.
+
+** Bullets and numbering
+
+Toggle Item (=C-c -=) on an item, with no selection, cycles the bullet of the whole
+list (=org-cycle-list-bullet=) through:
+
+=-=, =+=, =*=, =1.=, =1)=, then with alphabetical lists =a.=, =A.=, =a)=, =A)=.
+
+=*= is skipped for a list at the left margin. Description lists skip the numbered and
+lettered bullets. Lettered bullets are offered only when the list has 26 items or
+fewer. Org also cycles bullets with =S-<left>= and =S-<right>= on an item; Orgstar
+does not bind those on items.
+
+Numbered and lettered lists are renumbered whenever a list command changes them, and
+by =C-c C-c= on any item. To start a list at a given number, put a counter after the
+bullet, as in Org:
+
+#+BEGIN_SRC org
+5. [@5] fifth
+6. sixth
+#+END_SRC
+
+* Checkboxes and statistics
+
+** Checkboxes
+
+An item with =[ ]= after its bullet has a checkbox. =[X]= is checked, and =[-]= marks a
+parent item whose children are partly checked.
+
+#+BEGIN_SRC org
+- [-] packing
+  - [X] passport
+  - [ ] charger
+#+END_SRC
+
+Toggle Checkbox (=C-c C-x C-b=) checks or unchecks the item on the caret's line, or
+every item in the selection. =C-c C-c= on an item toggles its checkbox too, and on an
+item without one, repairs the list. A parent item's checkbox follows its children: it
+can't be checked while children are unchecked ("Cannot toggle this checkbox: unchecked
+subitems").
+
+Toggle Checkbox works only on item lines. Org's behaviour on a heading, toggling the
+checkboxes of the region or subtree, is not available.
+
+** Statistics cookies
+
+A cookie =[/]= or =[%]= on a heading or an item shows progress:
+
+- On an item, it counts that item's direct child checkboxes.
+- On a heading, it counts the checkboxes of the top-level items in the heading's own
+  section. If the section has none, it counts the TODO children: direct child headings
+  with a keyword, and how many of them are in a done state.
+
+#+BEGIN_SRC org
+,* Groceries [1/3]
+- [X] milk
+- [ ] eggs
+- [ ] bread
+
+,* Release [50%]
+,** DONE Tag the build
+,** TODO Write the notes
+#+END_SRC
+
+Cookies update when you toggle or insert a checkbox, when a child heading's TODO state
+changes, when you archive an entry, and when you press =C-c C-c= with the caret on the
+cookie. A cookie with nothing to count shows =[0/0]= or =[100%]=. Tags are realigned when
+the cookie's width changes.
+
+The =COOKIE_DATA= property changes what a heading's cookie counts, as in Org:
+
+| Value       | Effect                                                         |
+|-------------+----------------------------------------------------------------|
+| =todo=      | count TODO children, not checkboxes                            |
+| =checkbox=  | count checkboxes, not TODO children                            |
+| =recursive= | count all descendants, not only direct children                |
+
+For TODO statistics, =COOKIE_DATA= is read with inheritance, from the parent or an
+ancestor. Orgstar counts TODO children hierarchically, as Org does with
+=org-hierarchical-todo-statistics= at its default.
+
+* Blocks
+
+Blocks are lines between =#+BEGIN_name= and =#+END_name=:
+
+#+BEGIN_SRC org
+,#+BEGIN_QUOTE
+Text to quote.
+,#+END_QUOTE
+#+END_SRC
+
+** Structure templates
+
+Insert Structure Template (=org-insert-structure-template=, =C-c C-,= in the Emacs and
+Doom presets) asks for a block type, one keystroke:
+
+| Key | Block           |
+|-----+-----------------|
+| =a= | =export ascii=  |
+| =c= | =center=        |
+| =C= | =comment=       |
+| =e= | =example=       |
+| =E= | =export=        |
+| =h= | =export html=   |
+| =l= | =export latex=  |
+| =q= | =quote=         |
+| =s= | =src=           |
+| =v= | =verse=         |
+
+Press =TAB= to type any other type. These are Org's default
+=org-structure-template-alist=; Orgstar does not read a custom one. The block is
+inserted at the caret's indentation. With a selection, the block wraps the selected
+lines, and for =src=, =example=, =export= and =comment= blocks, lines that would read as
+headings or keywords are protected with a leading comma. For =src= and =export=, the
+caret ends on the opening line after a space, ready for the language; otherwise it ends
+inside the block. The case of =BEGIN= and =END= follows the case of the type you typed.
+
+** org-tempo templates
+
+Typing =<= and a key at the start of a line (after blanks only) and then completing
+expands it as =org-tempo= does. =<s= becomes:
+
+#+BEGIN_SRC org
+,#+begin_src
+,#+end_src
+#+END_SRC
+
+with the caret after =begin_src=. The keys are those of the table above, plus =<L=,
+=<H=, =<A= and =<i=, which insert =#+latex:=, =#+html:=, =#+ascii:= and =#+index:=
+keyword lines.
+
+Completion runs with Complete at Point (=C-M-i= in the Emacs preset, =C-SPC= in Doom's
+insert state; in the Mac preset, from the palette). In the Doom preset the completion
+list also opens by itself after a short pause once you have typed =<= and a letter, and
+=TAB= or =RET= takes the selected candidate. =TAB= alone does not expand =<s= in the
+Emacs or Mac preset.
+
+** Folding and editing blocks
+
+=TAB= on a block's first or last line folds or unfolds it. Blocks are open when a file
+opens unless =org-cycle-hide-block-startup= is on in =config.toml= or the file has
+=#+STARTUP: hideblocks= (=nohideblocks= overrides the setting the other way). See
+[[file:02-the-editor.org][The editor]] for folding in general.
+
+Edit Block (=org-edit-special=, =C-c '=) edits a src, example or export block in a
+separate editor. See [[file:11-code-blocks.org][Code blocks]].
+
+* Drawers
+
+A drawer is a named group of lines between =:NAME:= and =:END:=. Orgstar writes the
+=PROPERTIES= drawer for properties and, depending on =org-log-into-drawer=, a =LOGBOOK=
+drawer for state notes and clock lines (see [[file:05-todos-and-tags.org][TODOs and tags]] and
+[[file:06-dates-and-clocking.org][Dates and clocking]]). You can write any other drawer by hand:
+
+#+BEGIN_SRC org
+,* Meeting
+:NOTES:
+Private notes, folded away.
+:END:
+#+END_SRC
+
+=TAB= on a drawer's first or last line folds or unfolds it. Drawers are folded when a
+file opens, as with Org's =org-cycle-hide-drawer-startup= (=true= by default in
+=config.toml=). =#+STARTUP: nohidedrawers= keeps them open in one file, and
+=#+STARTUP: hidedrawers= folds them when the setting is off.
+
+Org's =org-insert-drawer= (=C-c C-x d=) is not available; type the two lines yourself.
+
+* Properties
+
+Properties are key-value pairs in an entry's =PROPERTIES= drawer, right after the
+heading and its planning line:
+
+#+BEGIN_SRC org
+,* Laptop
+:PROPERTIES:
+:VENDOR:   Apple
+:Effort:   1:00
+:END:
+#+END_SRC
+
+File-wide properties come from =#+PROPERTY:= lines and from a =PROPERTIES= drawer before
+the first heading. A key written =KEY+= appends its value to the inherited one with a
+space between.
+
+** Setting and deleting
+
+| Command                     | Org command                     | Emacs       | Mac  | Doom       |
+|-----------------------------+---------------------------------+-------------+------+------------|
+| Set Property…               | =org-set-property=              | =C-c C-x p= | menu | =SPC m o=  |
+| Delete Property…            | =org-delete-property=           | none        | menu | none       |
+| Delete Property Everywhere… | =org-delete-property-globally=  | none        | menu | none       |
+| Property Action…            | =org-property-action=           | =C-c C-c= in a property drawer | menu | =C-c C-c= |
+| Next Allowed Value          | =org-property-next-allowed-value= | =S-<right>= on a property line | menu | =S-<right>=, =C-S-l= |
+| Previous Allowed Value      | =org-property-previous-allowed-value= | =S-<left>= on a property line | menu | =S-<left>=, =C-S-h= |
+
+Set Property asks for the key, offering the keys used in the file, Org's standard keys
+and the properties named in =COLUMNS= formats; on a property line, Return takes that
+line's key. It then asks for the value. If the key has allowed values, those are
+offered and required unless the list includes =:ETC=; otherwise the values the key has
+elsewhere in the file are offered. An empty answer keeps the current value. The drawer
+is created if the entry has none, and lines are aligned as Org's
+=org-property-format= (="%-10s %s"=) aligns them. Setting =TODO= sets the entry's TODO
+keyword instead.
+
+Delete Property asks which of the entry's properties to remove, when it has more than
+one, and removes the drawer if it becomes empty. Delete Property Everywhere removes a key
+from every entry in the file and reports how many it changed. Property Action, run by
+=C-c C-c= in a property drawer, asks =s= (set), =d= (delete) or =D= (delete everywhere).
+
+** Allowed values
+
+A property =KEY_ALL= lists the values =KEY= may take, separated by spaces, with quotes
+around values that contain spaces. Orgstar looks for it on the entry, then its
+ancestors, then the file:
+
+#+BEGIN_SRC org
+,#+PROPERTY: Status_ALL open blocked done
+#+END_SRC
+
+Next and Previous Allowed Value step through the list on a property line. =TODO= and
+=PRIORITY= take their values from the file's keywords and priority range. A property
+whose value is =[ ]= or =[X]= toggles between them.
+
+** Inheritance
+
+Orgstar inherits properties as Org does with =org-use-property-inheritance= at its
+default of =nil=: a property applies only to the entry that has it, with these
+exceptions:
+
+- =CATEGORY=, =ARCHIVE=, =COLUMNS=, =LOGGING= and the =header-args= properties are
+  always inherited from ancestors and =#+PROPERTY:= lines.
+- =ID= and =CUSTOM_ID= are never inherited.
+- =KEY_ALL= allowed values and =COOKIE_DATA= for TODO statistics are looked up through
+  the ancestors.
+
+Orgstar has no setting for =org-use-property-inheritance=.
+
+** Special properties
+
+Org computes some properties instead of reading them from a drawer. Orgstar treats
+these as special and doesn't offer them as allowed-value lists: =ALLTAGS=, =BLOCKED=,
+=CLOCKSUM=, =CLOCKSUM_T=, =CLOSED=, =DEADLINE=, =FILE=, =ITEM=, =PRIORITY=, =SCHEDULED=,
+=TAGS=, =TIMESTAMP=, =TIMESTAMP_IA= and =TODO=. Column view computes =ITEM=, =TODO=,
+=PRIORITY=, =TAGS=, =ALLTAGS=, =DEADLINE=, =SCHEDULED=, =CLOSED= and =CLOCKSUM=; the
+others show as empty there.
+
+* Column view
+
+Column view shows entries as rows and properties as columns. The columns come from a
+=COLUMNS= format, found in this order:
+
+1. a =COLUMNS= property on the entry at the caret or one of its ancestors (the nearest
+   one wins, and that entry becomes the top of the view);
+2. a =#+COLUMNS:= line in the file;
+3. Org's default, =%25ITEM %TODO %3PRIORITY %TAGS=.
+
+#+BEGIN_SRC org
+,#+COLUMNS: %40ITEM %TODO %Effort(Estimate){:} %CLOCKSUM
+#+END_SRC
+
+Each column is =%[width]PROPERTY[(title)][{summary}]=, as in Org. The width limits the
+column, the title replaces the property name in the header, and the summary is computed
+for parent entries from their children. The summary operators are =+=, =$=, =min=,
+=max=, =mean=, =X=, =X/=, =X%=, =:=, =:min=, =:max=, =:mean= and =est+=. Org's age
+operators (=@min=, =@max=, =@mean=) are not supported. The numeric operators take a
+format after a semicolon, as in ={+;%.1f}=.
+
+Subtrees tagged =ARCHIVE= and commented subtrees are left out.
+
+** The column view sheet
+
+| Command             | Org command               | Emacs         | Mac  | Doom          |
+|---------------------+---------------------------+---------------+------+---------------|
+| Column View         | =org-columns=             | =C-c C-x C-c= | menu | =C-c C-x C-c= |
+| Column View of File | =org-columns= with a prefix | none        | menu | none          |
+
+Column View opens a sheet with the entries from the view's top (the entry with the
+=COLUMNS= property, or the entry at the caret; the whole file before the first
+heading). Column View of File shows every entry in the file. Click a row to go to its
+heading. Done (or Escape) closes the sheet.
+
+The sheet is read-only. Org's column view lets you edit values in place and writes
+parent summaries back into the file; Orgstar's does neither. Change values with Set
+Property, or edit the drawer.
+
+** The Columns inspector
+
+View ▸ Show or Hide Columns and Clock opens an inspector beside the editor. Its Columns
+tab shows the same table for the open file, kept current as you type. Choose File for
+every entry or Subtree for the entry at the caret. The row of the heading at the caret
+is shown in bold, and clicking a row goes to it. The Clock tab is described in
+[[file:06-dates-and-clocking.org][Dates and clocking]].
+
+** Column view tables
+
+Insert Column View Table (=org-columns-insert-dblock=, =C-c C-x i=) asks what to
+capture: =local= (the default, the entry at the caret), =global= (the whole file) or an
+=ID= of an entry. It inserts a =columnview= dynamic block and fills it:
+
+#+BEGIN_SRC org
+,#+BEGIN: columnview :hlines 1 :id local
+| ITEM | TODO | PRIORITY | TAGS |
+|------+------+----------+------|
+| ...  |      |          |      |
+,#+END:
+#+END_SRC
+
+=C-c C-c= on the =#+BEGIN:= line, or =C-c C-x C-u= anywhere in the block, updates it.
+Updating writes summary values into the parents' properties, as Org does. The block
+takes these parameters:
+
+| Parameter          | Meaning                                                           |
+|--------------------+-------------------------------------------------------------------|
+| =:id=              | =local=, =global=, or an entry's =ID=                             |
+| =:format=          | a column format to use instead of the entry's or file's           |
+| =:hlines=          | =t= for a line between all rows, or N for one before each level N or higher row |
+| =:maxlevel=        | leave out deeper headings                                         |
+| =:skip-empty-rows= | leave out rows whose columns other than =ITEM= are empty          |
+| =:exclude-tags=    | leave out entries with these tags, as a list                      |
+| =:indent=          | indent =ITEM= by level                                            |
+
+Existing =#+TBLFM:= lines after the table are kept. An =:id= of the form =file:path=
+(another file) is not supported.
+
+* Footnotes
+
+| Command         | Org command          | Emacs       | Mac  | Doom        |
+|-----------------+----------------------+-------------+------+-------------|
+| Footnote Action | =org-footnote-action= | =C-c C-x f= | menu | =C-c C-x f= |
+| Footnote Menu   | =org-footnote-action= with a prefix | none | menu | none |
+
+Footnote Action depends on where the caret is:
+
+- On a reference such as =[fn:1]=, it goes to the definition. If there is none, it asks
+  whether to create one.
+- On a definition's label, it goes back to a reference.
+- Elsewhere, where a footnote is allowed, it inserts a new reference with the next free
+  number and creates its definition.
+- Where a footnote can't go, it shows the footnote menu.
+
+=C-c C-c= on a reference or a definition's label does the same jumps.
+
+New definitions go in a level 1 heading named =Footnotes= at the end of the file, which
+is created when needed (Org's =org-footnote-section=):
+
+#+BEGIN_SRC org
+,* Notes
+Orgstar reads org files.[fn:1]
+
+,* Footnotes
+
+[fn:1] And writes them.
+#+END_SRC
+
+The footnote menu asks, one keystroke:
+
+| Key | Action                                                                     | Org function                 |
+|-----+----------------------------------------------------------------------------+------------------------------|
+| =s= | sort definitions into the order of their first reference                   | =org-footnote-sort=          |
+| =r= | renumber numeric labels =fn:N= in order of appearance                     | =org-footnote-renumber-fn:N= |
+| =S= | renumber, then sort                                                        |                              |
+| =n= | normalize: number every footnote, labeled, anonymous and inline, and collect all definitions in the footnote section | =org-footnote-normalize= |
+| =d= | delete the footnote at the caret: its references and definition           | =org-footnote-delete=        |
+
+A reference with no definition gets the text =DEFINITION NOT FOUND.= when sorted or
+normalized.
+
+* Refiling
+
+Refile… (=org-refile=, =C-c C-w=, Mac =⌃⌘W=, Doom =SPC m r r= or =SPC m s r=) moves the
+subtree at the caret under another heading, in this file or another one.
+
+It asks for the target with completion. The targets are every org file in your folders
+and every heading down to level 3 in those files, written as the file's path relative
+to its folder followed by the outline path:
+
+#+BEGIN_EXAMPLE
+projects.org
+projects.org/Work
+projects.org/Work/Website
+notes/inbox.org/Someday
+#+END_EXAMPLE
+
+Choosing a heading makes the subtree its last child, at one level below it. Choosing a
+file adds the subtree at the end of that file as a level 1 heading. Levels inside the
+subtree are shifted to match, and tags are realigned. A subtree can't be refiled into
+itself.
+
+For the open file, targets come from the buffer, including unsaved edits. When the
+target is another file, Orgstar writes that file first, into its open buffer if it has
+one, otherwise through the normal save path, and removes the subtree from the source
+only after that succeeds. If the target file changed on disk in the meantime, nothing
+is refiled.
+
+This matches Org with =org-refile-targets= set to headings of maximum level 3 in all
+files, =org-refile-use-outline-path= set to =file=, =org-reverse-note-order= =nil= (new
+entries go last), =org-log-refile= =nil= and =org-refile-keep= =nil=. None of these is
+configurable in Orgstar. Refiling from the agenda is covered in [[file:07-agenda.org][Agenda]].
+
+* Archiving
+
+** Archive Subtree
+
+Archive Subtree (=org-archive-subtree=, =C-c C-x C-s= or =C-c $=, Mac =⌃⌘A=, Doom
+=SPC m A= or =SPC m s A=) moves the subtree at the caret to an archive.
+
+The archive location is read from, in order: the =ARCHIVE= property of the entry or an
+ancestor, a =#+ARCHIVE:= line in the file, and Org's default =%s_archive::=. A location
+is =file::heading=, where =%s= stands for the current file's name:
+
+| Location               | Where the subtree goes                                                     |
+|------------------------+----------------------------------------------------------------------------|
+| =%s_archive::=         | the end of =notes.org_archive= next to =notes.org=, at level 1             |
+| =archive.org::* Old=   | under the heading =* Old= in =archive.org=, created if missing             |
+| =::* Archived=         | under =* Archived= in the same file                                        |
+| =%s_archive::datetree/= | under year, month and day headings in the archive file, for the entry's =CLOSED= date or today |
+
+Relative paths are relative to the current file's folder, and =~= is your home folder. A
+new archive file starts with a line =Archived entries from file= followed by the
+source's path.
+
+The archived entry gets these properties, as with Org's default
+=org-archive-save-context-info=: =ARCHIVE_TIME=, =ARCHIVE_FILE=, =ARCHIVE_OLPATH=,
+=ARCHIVE_CATEGORY=, =ARCHIVE_TODO= and =ARCHIVE_ITAGS= (empty ones are left out).
+Within the same file, tags it inherited are added to its heading. After the subtree
+leaves, the parent's statistics cookies are updated. The entry's TODO state is not
+changed.
+
+If the archive file is open, the subtree goes into its buffer. Otherwise Orgstar writes
+the archive file first and removes the subtree from the source only after that
+succeeds. Org's option =org-archive-location= in Emacs is not read; use the =ARCHIVE=
+property or =#+ARCHIVE:=. Archiving from the agenda is covered in [[file:07-agenda.org][Agenda]].
+
+** The ARCHIVE tag
+
+Toggle ARCHIVE Tag (=org-toggle-archive-tag=, =C-c C-x a=, Doom =SPC m s a=) adds or
+removes the =ARCHIVE= tag on the entry at the caret. Adding it folds the subtree.
+
+Subtrees tagged =ARCHIVE= stay where they are, but are folded when a file opens and in
+sparse trees, and are left out of column view. =TAB= opens an archived subtree like
+any other; Org's =org-cycle-open-archived-trees= behaviour, which keeps them closed, is
+not reproduced. See [[file:05-todos-and-tags.org][TODOs and tags]] for tags in general.
+
+** Archive sibling
+
+Archive to Archive Sibling (=org-archive-to-archive-sibling=, =C-c C-x A=) moves the
+subtree at the caret under a sibling heading named =Archive= with the =ARCHIVE= tag,
+creating it at the end of the parent's children if needed. The moved entry gets an
+=ARCHIVE_TIME= property, and the =Archive= sibling is folded.
+
+* The outline pane
+
+The outline pane, to the left of the editor, lists the headings of the open org file,
+indented by level. Click a heading to go to it; folded text around it opens. A heading
+with no title is shown as =(untitled)=.
+
+Show or hide it with the toolbar button or View ▸ Show or Hide Outline. Orgstar
+remembers the choice for org files; for other files the pane starts hidden and shows
+"Only org files have an outline." Drag the divider to resize it. While the search field
+has text, the pane shows search results instead. The backlinks pane, when shown, sits
+below the outline (see [[file:09-links.org][Links]]).
+
+* C-c C-c
+
+=C-c C-c= (=org-ctrl-c-ctrl-c=) does what fits the caret's position. In the Emacs and
+Doom presets it is =C-c C-c=; in the Mac preset, run Act at Point (C-c C-c) from the Org
+menu or the palette. In order, it:
+
+| Caret on                                   | Effect                                                     |
+|--------------------------------------------+------------------------------------------------------------|
+| anywhere, while sparse tree highlights show | removes the highlights, and nothing else (not in a table or src block) |
+| a src block, a =#+CALL= line or inline code | runs it (see [[file:11-code-blocks.org][Code blocks]])                            |
+| a table or =#+TBLFM= line                  | aligns the table, or recalculates it (see [[file:10-tables.org][Tables]])          |
+| a footnote reference or definition label   | jumps between them                                         |
+| a blank line                               | nothing                                                    |
+| a =CLOCK:= line                            | fixes the weekdays and writes the duration again           |
+| a dynamic block's =#+BEGIN:= line          | updates the block                                          |
+| a statistics cookie                        | updates it                                                 |
+| a timestamp                                | fixes its weekday                                          |
+| a heading                                  | sets tags (see [[file:05-todos-and-tags.org][TODOs and tags]])                       |
+| a list item                                | toggles its checkbox, repairs the list and updates cookies |
+| a =#+KEYWORD:= line                        | rereads the file's settings and =#+SETUPFILE=              |
+| a property drawer                          | runs Property Action                                       |
+
+Elsewhere it reports that it can do nothing useful.
+
+In the Doom preset, =RET= in normal state runs Doom's =+org/dwim-at-point= instead. It
+follows a link, recalculates a table with formulas or aligns one without, runs a src
+block, toggles an item's checkbox, or on a heading switches between the first TODO and
+first done keyword of its sequence.
+
+* Speed keys
+
+With =org-use-speed-commands= set to =true= in =config.toml=, single keys run commands when the
+caret is at the very start of a heading line, before the stars. These are Org's
+=org-speed-commands=; the structure ones are:
+
+| Key | Command                       | Key | Command                    |
+|-----+-------------------------------+-----+----------------------------|
+| =n= | Next Heading                  | =U= | Move Subtree Up            |
+| =p= | Previous Heading              | =D= | Move Subtree Down          |
+| =f= | Next Heading at Same Level    | =r= | Demote Heading             |
+| =b= | Previous Heading at Same Level | =l= | Promote Heading           |
+| =u= | Up to Parent Heading          | =R= | Demote Subtree             |
+| =j= | Go to Heading…                | =L= | Promote Subtree            |
+| =s= | Narrow to Subtree or Widen    | =i= | Insert Heading After Subtree |
+| =k= | Cut Subtree                   | =^= | Sort Entries               |
+| =@= | Mark Subtree                  | =w= | Refile…                    |
+| =#= | Toggle COMMENT                | =a= | Archive Subtree            |
+| =/= | Sparse Tree…                  | =c=, =C= | cycle visibility, cycle global visibility |
+
+The full list is in [[file:03-keys.org][Keys]].
+
+* Not supported
+
+These Org structure features are not in Orgstar:
+
+- =org-insert-drawer=, =org-copy= (refile a copy) and =org-refile= with a prefix
+  (jump to a target).
+- Editing values in column view, and writing summaries from it; the
+  =columnview= dynamic block does write summaries.
+- The =ORDERED= property, radio lists and timer list items in the list commands.
+- =S-<left>= and =S-<right>= to cycle bullets on an item; use =C-c -=.
+- =org-drag-element= (=M-<up>= and =M-<down>= on paragraphs).
+- Custom =org-structure-template-alist=, =org-refile-targets=, =org-archive-location=
+  and =org-use-property-inheritance=.

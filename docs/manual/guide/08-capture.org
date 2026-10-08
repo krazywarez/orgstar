@@ -1,0 +1,332 @@
+#+TITLE: Capture
+#+DESCRIPTION: Capture templates, the capture window, date trees, org-protocol, Shortcuts and the iOS share sheet.
+#+LEDE: Capture files a note, task or link into the right place in your org files without leaving what you are doing.
+
+* Starting a capture
+
+Capture mirrors =org-capture=. Start it from anywhere in the app:
+
+| Preset | Key                                    |
+|--------+----------------------------------------|
+| Mac    | =⇧⌘N= (File ▸ Capture…)                |
+| Emacs  | =C-c c= or =⇧⌘N=                       |
+| Doom   | =SPC X= (normal state), =C-c c= or =⇧⌘N= |
+
+=⌃⌥Space= opens the capture window from any app, with Orgstar in the background. Turn it off in Settings ▸ Capture, or in =config.toml=:
+
+#+BEGIN_SRC toml
+[orgstar]
+global-capture-hotkey = false
+#+END_SRC
+
+The shortcut is registered as a system hot key and needs no accessibility permission.
+
+Captures can also arrive from a browser through org-protocol, from Shortcuts, and on iOS from the share sheet; see the sections below.
+
+* The capture window
+
+A capture goes through up to three steps.
+
+1. *Choose a template.* The window lists your templates with their keys and targets. Press a template's key, or click it.
+2. *Answer its questions.* If the template has prompts (=%^{…}=, =%^g=, =%^t= and the others below), they appear as a form. Leave a field empty for its default. Press Return (Continue) to go on.
+3. *Edit and file.* The filled template appears in an editor, headed with the template's name and target, with the cursor where =%?= was. Press =⌘Return= (File It) to file it.
+
+Press Esc (Cancel) at any step to close the window without filing anything, as =org-capture-kill= does.
+
+Filing, the equivalent of =org-capture-finalize=, places the text in its target and saves it through the open buffer if the file is open, or into the file otherwise. A target file that doesn't exist is created, with its folders. The status line in the main window then says where the entry went.
+
+If filing fails, for example because a heading on an =olp= path is missing, the window stays open with your text, so you can try again after fixing the file or cancel.
+
+Limits compared with Emacs:
+
+- The editor is a plain text editor. Org editing commands and keys such as =C-c C-c= and =C-c C-k= don't work in it; use =⌘Return= and Esc.
+- There is no refile from the capture window (=C-c C-w= in an Emacs capture buffer). Capture to an inbox heading and refile from the agenda or the editor.
+- The target is not shown while you edit (the capture buffer in Emacs is narrowed to the new entry in the target file).
+
+* Capture templates
+
+Templates live in =capture.toml= in the configuration folder (=~/.config/orgstar/capture.toml= by default; see [[file:13-configuration.org][Configuration]]). Settings ▸ Capture shows its path. Each template is a =[[template]]= table:
+
+#+BEGIN_SRC toml
+[[template]]
+key = "t"
+name = "Personal todo"
+type = "entry"
+file = "todo.org"
+headline = "Inbox"
+template = "* TODO %?\n%i\n%a"
+prepend = false
+#+END_SRC
+
+The file is read each time the capture window opens. If it doesn't exist, or none of its templates is valid, these two built-in templates are used:
+
+| Key | Name           | Target                      | Template              |
+|-----+----------------+-----------------------------+-----------------------|
+| =t= | Personal todo  | =todo.org=, heading =Inbox= | =* TODO %?\n%i\n%a=   |
+| =n= | Personal notes | =notes.org=, heading =Inbox= | =* %u %?\n%i\n%a=   |
+
+A problem in the file, such as a table without a key, shows in red under the template list; the other templates still load.
+
+Templates are a flat list. A key is matched against a single key press, so a key longer than one character can only be chosen by clicking. Emacs's template groups (an entry with only a key and a description) have no equivalent.
+
+** Keys
+
+| Key                  | Value             | Meaning                                                                                       | Org property            |
+|----------------------+-------------------+-----------------------------------------------------------------------------------------------+-------------------------|
+| =key=                | string, required  | What you press to choose the template                                                         | key                     |
+| =name=               | string            | The name in the list; the key when omitted                                                    | description             |
+| =type=               | string            | =entry= (the default), =item=, =checkitem=, =plain= or =table-line=                           | type                    |
+| =template=           | string, required  | The text to fill; see [[*Template escapes][Template escapes]]                                 | template                |
+| =file=               | string            | The target file; required except with =id= or =clock=                                         | target                  |
+| =headline=           | string            | A heading in =file=                                                                           | =file+headline=         |
+| =olp=                | string            | An outline path in =file=, titles separated by =/=                                            | =file+olp=              |
+| =datetree=           | boolean           | Today's entry in a date tree in =file=, under =olp= if given                                  | =file+olp+datetree=     |
+| =tree-type=          | string            | =day= (the default), =week= or =month=, for =datetree=                                        | =:tree-type=            |
+| =id=                 | string            | The heading with this =ID= property, in any file                                              | =id=                    |
+| =clock=              | boolean           | The entry the clock is running in                                                             | =clock=                 |
+| =prepend=            | boolean           | Put the text first rather than last                                                           | =:prepend=              |
+| =immediate-finish=   | boolean           | File without showing the editor                                                               | =:immediate-finish=     |
+| =empty-lines=        | integer           | Blank lines before and after the captured text                                                | =:empty-lines=          |
+| =empty-lines-before= | integer           | Blank lines before; overrides =empty-lines=                                                   | =:empty-lines-before=   |
+| =empty-lines-after=  | integer           | Blank lines after; overrides =empty-lines=                                                    | =:empty-lines-after=    |
+| =jump-to-captured=   | boolean           | Show the new entry in the editor after filing                                                 | =:jump-to-captured=     |
+| =clock-in=           | boolean           | Clock in to the captured entry                                                                | =:clock-in=             |
+| =clock-keep=         | boolean           | With =clock-in=, keep the clock running after filing                                          | =:clock-keep=           |
+| =clock-resume=       | boolean           | With =clock-in=, restart the clock that was running before                                    | =:clock-resume=         |
+| =table-line-pos=     | string            | Where a =table-line= goes, such as ="II-3"=                                                   | =:table-line-pos=       |
+
+=capture.toml= uses a subset of TOML: basic strings in double quotes, literal strings in single quotes, booleans and integers. Multi-line strings (="""…"""=) are not supported, so write a newline in a template as =\n= inside a double-quoted string. A double-quoted string accepts only the escapes =\"=, =\\=, =\n=, =\t=, =\uXXXX= and =\UXXXXXXXX=; any other backslash is an error. A template backslash, as in =%\1= or =\%=, is therefore written =%\\1= or =\\%= in double quotes, or as it is in a single-quoted string, which has no escapes and no =\n=.
+
+#+BEGIN_SRC toml
+[[template]]
+key = "m"
+name = "Meeting"
+file = "work.org"
+olp = "Meetings"
+template = "* %^{Topic} :meeting:\n%U\n- Attendees: %^{Attendees}\n- Topic again: %\\1\n%?"
+#+END_SRC
+
+** Targets
+
+The target keys are checked in this order: =id=, =clock=, =datetree=, =headline=, =olp=; with none of them the target is =file= itself.
+
+| Target                    | Where the text goes                                                                                             |
+|---------------------------+-----------------------------------------------------------------------------------------------------------------|
+| =file= alone              | The file's top level: an =entry= becomes a top-level heading at the end (or start, with =prepend=)              |
+| =headline = "Inbox"=      | Under the first heading with that exact title, at any level. If there is none, =* Inbox= is added at the end of the file |
+| =olp = "Projects/Work"=   | Under =Work=, a child of =Projects=. Every heading on the path must exist; otherwise filing fails with =Heading not found on outline path= |
+| =datetree = true=         | Under today's heading in a date tree; see [[*Date trees][Date trees]]                                           |
+| =id = "…"=                | Under the heading with that =ID=, found through the workspace index. Fails with =Cannot find target ID= if no heading has it |
+| =clock = true=            | Under the heading the running clock is in. Fails with =No running clock= when no clock runs                    |
+
+=file= may be absolute (=/Users/me/org/todo.org=), start with =~/=, or be relative. A relative path is relative to the first folder in the sidebar (your home folder if you have none). Heading titles match the title text without its TODO keyword, priority or tags. Because =olp= uses =/= as its separator, a heading whose title contains =/= can't be on an outline path; use =headline= or =id= for it.
+
+Emacs's =file+regexp=, =file+function= and =function= targets, and templates read from a file (=(file "…")=), are not supported.
+
+** Template types
+
+| Type         | What is inserted                                                                                                                                         |
+|--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| =entry=      | An Org entry. If the text has no heading, =* = is added. Its level is adjusted to be one below the target heading, or 1 at the top level. Placed as the last child (first with =prepend=). Text whose first heading isn't its highest is refused: =Template is not a valid Org entry or tree= |
+| =item=       | A list item. A =- = bullet is added if the text has none. Goes after the last item of the first list in the target entry (or the file), with that list's indentation; if there is no list, at the end of the entry's text |
+| =checkitem=  | As =item=, with a =[ ]= checkbox added if there is none                                                                                                   |
+| =plain=      | The text as it is, at the end of the entry's body (with =prepend=, right after the heading line)                                                          |
+| =table-line= | A table row, in the first table in the target entry (or the file); a new table is made if there is none |
+
+For =table-line=, a text that doesn't start with a vertical bar gets one. The row goes at the end of the table. With =prepend= it goes before the first data row after the first rule. With =table-line-pos=, =II-3= means three lines above the second horizontal rule and =I+1= the first line below the first rule; an impossible position fails with =Invalid table line specification=. After the row is placed, the table is aligned and its formulas recomputed; a table whose formulas need Emacs makes the capture fail with a message that says so (see [[file:10-tables.org][Tables]]).
+
+Placement follows =org-capture-place-entry= and its siblings, including how blank lines are kept: without =empty-lines= options, a new heading gets a blank line before it when its neighbors have one (=org-blank-before-new-entry= =(heading . auto)=). Within an existing list, at most one blank line goes between items.
+
+** Clocking while capturing
+
+With =clock-in = true=, the captured entry gets a clock entry from when the template was filled to when you filed it, as Emacs clocks in while the capture buffer is open and out on finalize. With =clock-keep = true= as well, the clock keeps running in the new entry. With =clock-resume = true=, the clock that was running before the capture starts again after filing. See [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]].
+
+* Template escapes
+
+These follow =org-capture-fill-template=. Escapes that need no answer are filled first; prompts are then asked in order.
+
+** Inserted values
+
+| Escape     | Inserts                                                                                                         |
+|------------+-----------------------------------------------------------------------------------------------------------------|
+| =%?=       | Nothing; the cursor goes here                                                                                   |
+| =%i=       | The initial text: the selection in the editor, or the body from org-protocol, Shortcuts or the share sheet. Later lines get the indentation of the line =%i= is on |
+| =%a=       | A link to where capture started, =[[target][description]]=                                                      |
+| =%A=       | The same link, asking for its description                                                                       |
+| =%l=       | The link as =[[target]]=, without description                                                                   |
+| =%L=       | The link target alone                                                                                           |
+| =%c=, =%x= | The clipboard's text                                                                                            |
+| =%f=       | The name of the file capture started from                                                                       |
+| =%F=       | The full path of that file                                                                                      |
+| =%n=       | Your full name from macOS                                                                                       |
+| =%k=       | The title of the entry the clock is running in                                                                  |
+| =%K=       | A link to that entry                                                                                            |
+| =%t=       | Today's date as an active timestamp, =<2026-10-07 Wed>=                                                         |
+| =%T=       | Active timestamp with the current time                                                                          |
+| =%u=       | Inactive timestamp, =[2026-10-07 Wed]=                                                                          |
+| =%U=       | Inactive timestamp with the current time                                                                        |
+| =%<…>=     | The current time formatted with a =format-time-string= pattern, such as =%<%Y-%m-%d %H:%M>=                     |
+| =%:name=   | A link property; see below                                                                                      |
+
+From the Mac capture window, =%a= links to the heading at the cursor in the open file, as =[[file:~/org/work.org::*Heading][Heading]]=, or to the file itself before the first heading. It is empty with no file open.
+
+=%<…>= understands =%Y=, =%m=, =%d=, =%e=, =%H=, =%M=, =%S=, =%a=, =%A=, =%b=, =%B=, =%F=, =%R= and =%%=, with English day and month names. Other =format-time-string= codes are left in the text as they are.
+
+=%:name= inserts a property of the link being captured. From org-protocol these are =%:link=, =%:description= (the page title), =%:type= (the link's scheme, such as =https=), =%:annotation= (the same as =%a=) and =%:initial= (the same as =%i=). Without org-protocol, =%:annotation= and =%:initial= still work and other names insert nothing.
+
+** Prompts
+
+| Escape                         | Asks for                                                                                   |
+|--------------------------------+--------------------------------------------------------------------------------------------|
+| =%^{Prompt}=                   | A line of text                                                                             |
+| =%^g=                          | Tags, offering the tags used in the target file                                            |
+| =%^G=                          | Tags, offering every tag in your folders                                                   |
+| =%^t=, =%^T=                   | A date, inserted as an active timestamp; =%^T= always includes a time                      |
+| =%^u=, =%^U=                   | The same as an inactive timestamp                                                          |
+| =%^C=                          | Text, offering the initial text and the clipboard                                          |
+| =%^L=                          | As =%^C=, inserted as a link                                                               |
+| =%^{NAME}p=                    | A value for the property =NAME=, set in the entry's property drawer                        |
+
+=%^{Prompt|default|a|b}= asks for text with a default and suggested choices, separated by vertical bars.
+
+A name in braces before any of the keyed forms becomes its prompt: =%^{Start}T=, =%^{Context}g=. Leave a text answer empty for the default. Tags are typed separated by colons (=work:urgent=); on a heading line they are aligned to =org-tags-column=. A date takes the same input as the editor's date prompt, such as =+2d=, =fri= or =fri 14:00= (see [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]]); an empty answer is today, or now for =%^T= and =%^U=. A time in the answer makes =%^t= include it.
+
+After the prompts are answered, =%\1=, =%\2= and so on insert the answer to the first, second, … text prompt (=%^{…}= only), and =%\*1=, =%\*2= the answer to the first, second, … prompt of any kind.
+
+** Escaping and unsupported escapes
+
+Put a backslash before =%= to keep it literally: =\%t= inserts =%t= (in a double-quoted TOML string, write =\\%t=). Two backslashes insert one backslash followed by the escape's value.
+
+=%(…)= runs Emacs Lisp in Org and is not supported; a template that contains it fails with a message saying so. =%[file]= (insert a file's contents) is not supported either. Any other =%= sequence is left as it is.
+
+* Date trees
+
+With =datetree = true=, the entry goes under today's date in a tree of headings, as =org-datetree-find-create-entry= builds it. Missing levels are created in date order among their siblings.
+
+| =tree-type= | Levels                                                    |
+|-------------+-----------------------------------------------------------|
+| =day=       | =* 2026=, =** 2026-10 October=, =*** 2026-10-07 Wednesday= |
+| =week=      | =* 2026=, =** 2026-W41=, =*** 2026-10-07 Wednesday= (ISO week and its year) |
+| =month=     | =* 2026=, =** 2026-10 October=                            |
+
+#+BEGIN_SRC toml
+[[template]]
+key = "j"
+name = "Journal"
+file = "journal.org"
+datetree = true
+template = "* %<%H:%M> %?\n%i"
+#+END_SRC
+
+With =olp=, the tree goes under that outline path, one level down, instead of at the top of the file. The date is the day you file the capture. There is no =:time-prompt= to choose another day.
+
+* org-protocol
+
+Orgstar registers the =org-protocol:= URL scheme and handles the two handlers browser bookmarklets use, as =org-protocol.el= does in Org 9.8.7. Both the =?key=value= form and the older =:/a/b/c= form work.
+
+** capture
+
+#+BEGIN_SRC text
+org-protocol://capture?template=w&url=https%3A%2F%2Fexample.com&title=Example&body=Selected%20text
+#+END_SRC
+
+This opens the capture window with:
+
+- =template= chosen. Without =template=, the template list shows. A key with no template reports =No capture template "w"=.
+- =%a= and =%:annotation= set to =[[url][title]]= (the URL as its own description when the title is blank; the title alone when there is no URL).
+- =%i= and =%:initial= set to =body=.
+- =%:link= set to the URL, =%:description= to the title, and =%:type= to the URL's scheme.
+
+In the query form, =+= stands for a space, as in Org; encode a literal =+= as =%2B=.
+
+** store-link
+
+#+BEGIN_SRC text
+org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=Example
+#+END_SRC
+
+This stores the link, so =C-c C-l= in the editor offers it (see [[file:09-links.org][Links]]), and puts the URL on the clipboard.
+
+Other handlers, such as =open-source=, report that Orgstar handles only capture and store-link. On iOS only =capture= links are handled.
+
+** Bookmarklets
+
+Bookmarklets written for Emacs's org-protocol work unchanged. Add a bookmark with one of these as its address:
+
+#+BEGIN_SRC js
+javascript:location.href='org-protocol://capture?template=w&url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
+#+END_SRC
+
+#+BEGIN_SRC js
+javascript:location.href='org-protocol://store-link?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)
+#+END_SRC
+
+A matching web capture template:
+
+#+BEGIN_SRC toml
+[[template]]
+key = "w"
+name = "Web page"
+file = "inbox.org"
+headline = "Web"
+template = "* %:description\n:PROPERTIES:\n:URL: %:link\n:END:\n%U\n%i\n%?"
+#+END_SRC
+
+* Shortcuts
+
+The Shortcuts action Capture to Orgstar files text with a template, without the capture window. It has two parameters:
+
+| Parameter    | Meaning                                                                 |
+|--------------+-------------------------------------------------------------------------|
+| Text         | The text, inserted as =%i=                                              |
+| Template Key | A template's =key= in =capture.toml=; the first template when empty     |
+
+Every prompt in the template takes its default (an empty answer: today for dates, no tags), and =%?= is ignored. =%a= is empty. On the Mac, =%c= is the clipboard and =%n= your name; on iOS both are empty, because reading the pasteboard would ask for permission on every run. The action returns a message, =Captured to …= with the target on the Mac and =Captured with …= with the template name on iOS, or fails with the same messages as the capture window. You can also say "Capture to Orgstar" to Siri.
+
+On the Mac, the action opens Orgstar if it isn't running and waits up to five seconds for it to be ready.
+
+* Capture on iOS
+
+The Capture button (a square with a pencil) at the top of the Agenda and Folders tabs opens the capture sheet. The templates come from the =capture.toml= in your synced configuration folder (see [[file:14-ios.org][iOS]]).
+
+The sheet works as on the Mac, in a form:
+
+- The Template picker chooses the template; it starts on the first one.
+- Prompts appear as fields. Date prompts have a date picker; choices and tags appear as buttons, and tapping a tag adds it.
+- Continue fills the template and shows the text to edit; File files it; Cancel discards it.
+
+Differences from the Mac: there is no selection, clipboard, current file, user name or clock link to insert, so =%i= and =%a= are empty unless the capture came from a link or the share sheet, and =%c=, =%x=, =%f=, =%F=, =%n=, =%k= and =%K= are empty. An org-protocol link naming a template key that doesn't exist opens the sheet on the first template instead of reporting an error.
+
+** The share sheet
+
+In another app, share a web page or text and choose Orgstar. The share form has:
+
+- a Template picker, with the templates the app read the last time it ran;
+- for a link, its title (editable) and address;
+- a Text field, filled with shared text.
+
+Capture saves the item in the app group's capture inbox. The next time you open Orgstar, it opens the capture sheet with the item as an org-protocol capture: the link becomes =%a= and =%:link=, the title =%:description=, and the text =%i=. Several waiting items open one after another, oldest first. If the extension says Orgstar's shared folder isn't available, the app group is missing from the build and nothing can be saved.
+
+The share form lists no templates until Orgstar has run once with your configuration folder; the capture sheet then starts on the first template.
+
+* Importing templates from Emacs
+
+Import from Emacs (see [[file:13-configuration.org][Configuration]] and [[file:15-alongside-emacs.org][Alongside Emacs]]) reads =org-capture-templates= and appends a =[[template]]= table to =capture.toml= for each template whose key isn't there already.
+
+| Emacs                                        | Imported as                              |
+|----------------------------------------------+------------------------------------------|
+| types =entry=, =item=, =checkitem=, =plain=, =table-line= | =type=                      |
+| =(file "f")=                                 | =file=                                   |
+| =(file+headline "f" "H")=                    | =file=, =headline=                       |
+| =(file+olp "f" "A" "B")=                     | =file=, =olp = "A/B"=                    |
+| =(file+olp+datetree "f" …)=                  | =file=, =datetree=, =olp= if a path is given |
+| =(file+datetree "f")=                        | =file=, =datetree=                       |
+| =(file+weektree "f")=                        | =file=, =datetree=, =tree-type = "week"= |
+| =(id "…")=                                   | =id=                                     |
+| =(clock)=                                    | =clock=                                  |
+| =:prepend=, =:immediate-finish=, =:jump-to-captured=, =:clock-in=, =:clock-keep=, =:clock-resume= | the boolean of the same name |
+| =:empty-lines=, =:empty-lines-before=, =:empty-lines-after=, =:table-line-pos=, =:tree-type= | the key of the same name |
+
+A file name given as a variable or a simple form is evaluated where the importer can. The import report lists what it left out: other targets, templates that aren't strings, unknown =:tree-type= values, and other properties such as =:time-prompt=, =:kill-buffer= or =:unnarrowed=. Template groups are skipped.
+
+Emacs resolves relative target files against =org-directory=; Orgstar resolves them against the first folder in the sidebar. If =org-directory= isn't your first folder, edit the imported =file= values or make them absolute.

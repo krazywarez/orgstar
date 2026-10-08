@@ -1,0 +1,553 @@
+#+TITLE: Tables
+#+DESCRIPTION: Creating and editing Org tables, column widths, import and export, and spreadsheet formulas.
+#+LEDE: Org tables are plain text that Orgstar keeps aligned, edits by row and column, and recalculates with the same formulas Emacs uses.
+
+* Tables in Org
+
+A table is a run of lines that start with =|=. Fields are separated by =|=, and a line
+that starts with =|-= is a horizontal rule:
+
+#+BEGIN_SRC org
+| Name  | Qty | Price |
+|-------+-----+-------|
+| Apple |   3 |  0.50 |
+| Pear  |  12 |  0.75 |
+#+END_SRC
+
+Orgstar follows =org-table.el= from Org 9.8.7, with =org-table-automatic-realign= on,
+=org-table-tab-jumps-over-hlines= on, and formulas adjusted without asking when rows
+and columns move (=org-table-fix-formulas-confirm= nil). Tables inside dynamic blocks
+count as tables; tables inside other blocks don't.
+
+* Creating a table
+
+Type =|=, a few field names separated by =|=, and press =TAB=: Orgstar aligns the line
+as a table and moves to the next field, adding a row after the last one. Type =|-= on
+the line below a row and press =TAB= to turn it into a full-width rule.
+
+=org-table-create-or-convert-from-region= builds one for you: ~C-c |~ in the Emacs
+and Doom presets, =⌃⌘\= in the Mac preset.
+
+With no selection it asks =Table size Columns x Rows [e.g. 5x2]:=. An empty answer
+makes a 5 × 2 table. When there is more than one row, a rule follows the first row.
+
+With text selected, the command converts the selected lines to a table instead
+(=org-table-convert-region=). The separator is guessed:
+
+- tabs, when every line has a tab;
+- otherwise commas, when every line has a comma, read as CSV: a field in double quotes
+  can hold commas, and a line break in it becomes a space;
+- otherwise runs of spaces.
+
+* Moving around and alignment
+
+| Key     | Org command                | Action                                                                     |
+|---------+----------------------------+----------------------------------------------------------------------------|
+| =TAB=   | =org-table-next-field=     | Aligns the table and moves to the next field, skipping rules. In the last field it adds a row. |
+| =S-TAB= | =org-table-previous-field= | Aligns the table and moves to the previous field.                         |
+| =RET=   | =org-table-next-row=       | Aligns the table and moves down a row in the same column. Before a rule or at the end of the table it inserts a row. |
+
+These keys work the same in the Emacs and Mac presets. In Doom they apply in insert
+state; in normal state =RET= is Doom's "act at point" (see /Recalculating/).
+
+Alignment (=org-table-align=) pads every field to its column's width and redraws
+rules to match. A column is right-aligned when at least half of its non-empty fields
+are numbers, and left-aligned otherwise. A field that holds only a cookie =<l>=, =<c>=
+or =<r>= (optionally with a width, such as =<r10>=) fixes the column's alignment.
+Widths count display columns, so wide characters and hidden link markup are measured
+as they appear.
+
+Alignment happens when you press =TAB=, =S-TAB= or =RET= in a table and after every
+table command, not while you type. To align without moving, use Org ▸ Align Table:
+
+| Preset | Key                          |
+|--------+------------------------------|
+| Emacs  | =C-c C-c= in a table         |
+| Mac    | Org ▸ Align Table            |
+| Doom   | =C-c C-c=, or =SPC m b a=    |
+
+To align every table when a file opens, set =org-startup-align-all-tables= to =true=
+in the config file (default =false=), or put =#+STARTUP: align= in the file;
+=#+STARTUP: noalign= turns it off for that file. See
+[[file:13-configuration.org][Configuration]].
+
+* Editing rows and columns
+
+| Action                            | Org command                | Emacs          | Mac         | Doom                          |
+|-----------------------------------+----------------------------+----------------+-------------+-------------------------------|
+| Move row up                       | =org-table-move-row-up=    | =M-<up>=       | =⌃⌘↑=       | =M-<up>=, =M-k=               |
+| Move row down                     | =org-table-move-row-down=  | =M-<down>=     | =⌃⌘↓=       | =M-<down>=, =M-j=             |
+| Move column left                  | =org-table-move-column-left= | =M-<left>=   | =⌃⌘←=       | =M-<left>=, =M-h=             |
+| Move column right                 | =org-table-move-column-right= | =M-<right>= | =⌃⌘→=       | =M-<right>=, =M-l=            |
+| Insert column                     | =org-table-insert-column=  | =M-S-<right>=  | =⌃⌥⌘→=      | =M-S-<right>=, =SPC m b i c=  |
+| Delete column                     | =org-table-delete-column=  | =M-S-<left>=   | =⌃⌥⌘←=      | =M-S-<left>=, =SPC m b d c=   |
+| Insert row above                  | =org-table-insert-row=     | =M-S-<down>=   | =⌃⌥⌘↓=      | =M-S-<down>=, =SPC m b i r=   |
+| Delete row                        | =org-table-kill-row=       | =M-S-<up>=     | =⌃⌥⌘↑=      | =M-S-<up>=, =SPC m b d r=     |
+| Insert rule below                 | =org-table-insert-hline=   | =C-c -=        | =⌃⌘-=       | =C-c -=, =SPC m b -=, =SPC m b i h= |
+| Sort rows                         | =org-table-sort-lines=     | =C-c ^=        | Org ▸ Sort Table Lines | =C-c ^=            |
+| Transpose                         | =org-table-transpose-table-at-point= | Org ▸ Transpose Table | Org ▸ Transpose Table | Org ▸ Transpose Table |
+| Edit field in its own editor      | =org-table-edit-field=     | =C-c `=        | Org ▸ Edit Table Field | =C-c `=            |
+
+The new column goes to the left of the caret's column, empty. Deleting a row deletes
+the line; it doesn't go to the clipboard. When rows and columns move, are inserted or
+are deleted, the =#+TBLFM= line is updated to match: references are renumbered, and
+formulas for a deleted row or column are removed.
+
+The Mac preset uses the same keys for headings and list items; in a table they act on
+the table.
+
+** Sorting
+
+=C-c ^= in a table asks =Sort Table: [a]lphabetic, [n]umeric, [t]ime.  A/N/T means
+reversed:= and sorts the rows between the rules around the caret by the caret's
+column. If the caret isn't in a field, it asks for the column first. Sorting is stable.
+
+- *a* compares text without case.
+- *n* compares the number at the start of each field.
+- *t* compares a timestamp in the field, else a duration such as =1:30= or =2h 15min=,
+  else a clock time =H:MM=. Fields with none of these sort as 0.
+
+** Transposing
+
+Org ▸ Transpose Table swaps rows and columns. Rules are dropped.
+
+** The field editor
+
+=C-c `= opens the field at the caret in an editor of its own, which is easier for long
+text. =C-c '= or =⌘Return= puts it back; =Escape= or =C-c C-k= leaves it unchanged.
+Line breaks become single spaces and lines that start with =#= are dropped, as
+=org-table-finish-edit-field= does.
+
+* Narrow columns
+
+A field that holds a width cookie =<N>=, optionally with an alignment letter
+(=<l10>=, =<c8>=, =<r12>=), marks the column for narrowing. Narrowed fields show their
+first /N/ display columns followed by =…=. The text itself is unchanged.
+
+| Command                                  | Org command                       | Keys                                     |
+|------------------------------------------+-----------------------------------+------------------------------------------|
+| Org ▸ Shrink or Expand Table Column      | =org-table-toggle-column-width=   | Emacs and Doom =C-c TAB=                 |
+| Org ▸ Shrink Table Columns with Widths   | =org-table-shrink=                | No default key                           |
+| Org ▸ Expand Table Columns               | =org-table-expand=                | No default key                           |
+
+=C-c TAB= in a field toggles that column. Outside a column, for example on the leading
+=|=, it asks for =Column ranges (e.g. 2-4 6-):=, where =6-= means column 6 to the end.
+A column without a width cookie shrinks to a bare =…= when toggled. Typing in a narrowed
+field widens its column again, as editing Org's overlays does. =#+STARTUP: shrink=
+narrows every column with a width cookie when the file opens.
+
+* Importing and exporting
+
+| Command                                | Org command        |
+|----------------------------------------+--------------------|
+| Import Table from File… (command palette) | =org-table-import= |
+| Export Table to File… (command palette)   | =org-table-export= |
+
+Open the command palette with =⇧⌘P= (=M-x= in the Emacs preset, =SPC := in Doom).
+
+Import asks for a CSV, TSV or plain text file, inserts its contents at the caret on a
+line of its own, and converts them to a table with the separator guessed as for a
+region (see /Creating a table/).
+
+Export writes the table at the caret. A file name ending in =.csv= gets CSV: fields
+separated by commas, with fields that contain a comma or a double quote quoted and
+inner quotes doubled. Any other name gets TSV. Rules are left out.
+
+Import and export are Mac only.
+
+* Formulas
+
+Orgstar evaluates Org's spreadsheet formulas, =org-table-recalculate= and
+=org-table-eval-formula=, natively: Calc expressions in a reimplementation of the part
+of Emacs Calc that tables use, and Lisp formulas in a small Emacs Lisp evaluator. What
+falls outside them is handed to Emacs on the Mac (see /When Emacs is needed/).
+
+Formulas live in a =#+TBLFM:= line right after the table, separated by =::=:
+
+#+BEGIN_SRC org
+| Item  | Qty | Price | Total |
+|-------+-----+-------+-------|
+| Apple |   3 |  0.50 |  1.50 |
+| Pear  |  12 |  0.75 |  9.00 |
+|-------+-----+-------+-------|
+| Sum   |     |       | 10.50 |
+,#+TBLFM: $4=$2*$3;%.2f::@>$4=vsum(@I..@II);%.2f
+#+END_SRC
+
+Blank lines between the table and =#+TBLFM:= are allowed. If there are several
+=#+TBLFM:= lines, recalculating the table uses the first; =C-c C-c= on another applies
+that line instead (=org-table-calc-current-TBLFM=).
+
+** Kinds of formula
+
+| Left side               | Kind                 | Applies to                                                       |
+|-------------------------+----------------------+------------------------------------------------------------------|
+| =$3=                    | Column formula       | Every data row of column 3, except rows marked =!=, =^=, =_=, =$= or =/= in the first column. |
+| =$<=, =$>=              | Column formula       | The first or last column.                                        |
+| =@2$3=, =@>$3=          | Field formula        | One field. Field formulas override column formulas.               |
+| =@2$2..@4$3=            | Range formula        | Every field in the rectangle.                                    |
+| =@4=                    | Row formula          | Every field of data row 4.                                       |
+| =$name=                 | Named field formula  | The field named by a =^= or =_= row (see /Names, parameters and constants/). |
+
+A left side relative to the current row, such as =@-1$2=, is an error
+(=Unknown field=), and so is one relative to a rule, such as =@I$2=, as in Org. Two
+formulas for the same field are an error.
+
+** References
+
+Rows count data lines from 1; rules don't count. Columns count from 1.
+
+| Reference            | Meaning                                                              |
+|----------------------+----------------------------------------------------------------------|
+| =$2=                 | Column 2 in the current row.                                         |
+| =$-1=, =$+1=         | The column before or after the current one.                          |
+| =$<=, =$>=, =$>>=    | The first column, the last, the one before last.                     |
+| =@3=                 | Row 3 in the current column.                                         |
+| =@-1=, =@+1=         | The row above or below.                                              |
+| =@<=, =@>=           | The first or last data row.                                          |
+| =@I=, =@II=, =@III=  | The first, second, third rule; as a row, the line after it.          |
+| =@-I=                | The rule above the current row.                                      |
+| =@I+2=               | Two data rows after the first rule.                                  |
+| =@2$3=               | Row 2, column 3.                                                     |
+| =$0=                 | The current column.                                                  |
+| =@#=, =$#=           | The current row's or column's number, as a value.                    |
+| =@2$1..@4$3=         | A range: the fields of the rectangle, as a vector.                   |
+| =$1..$3=             | Columns 1 to 3 of the current row.                                   |
+| =@I..@II=            | The current column from the first rule to the second.                |
+
+In a Calc formula a single field becomes a number in parentheses, and a range becomes
+a vector such as =[1,2,3]=. Without the =E= flag, empty fields count as 0 on their own
+and are left out of ranges.
+
+Fields in a Calc formula must hold numbers, timestamps or =nan=, unless the =N= flag
+reads every field as a number. A reference to a field with other text needs Emacs,
+because Calc would treat the text as a symbol.
+
+** Names, parameters and constants
+
+The first column can mark special rows, as in Org's spreadsheet:
+
+| Mark  | Row                                                                                   |
+|-------+---------------------------------------------------------------------------------------|
+| =!=   | Column names: =$qty= in a formula means the column whose =!= row field is =qty=.      |
+| =^=   | Names for the fields in the row above, usable as =$name=.                            |
+| =_=   | Names for the fields in the row below.                                               |
+| =$=   | Parameters: fields like ~rate=0.2~, usable as =$rate=.                               |
+| =#=   | Marked for recalculation.                                                            |
+| =*=   | Marked for recalculation.                                                            |
+| =/=   | Not recalculated.                                                                    |
+
+When any row's first field is one of =!=, =^=, =_=, =$=, =#= or =*=, column formulas
+in a whole-table recalculation apply only to the rows marked =#= or =*=, as
+=org-table-calculate-mark-regexp= decides in Org. So a table with a =!= names row and
+no =#= rows gets no column formulas applied; mark the rows to calculate. Field
+formulas apply either way. Rows marked =!=, =^=, =_=, =$= or =/= are never changed by
+column formulas.
+
+#+BEGIN_SRC org
+| ! | qty | price | total |
+|---+-----+-------+-------|
+| # |   2 |     3 |     6 |
+| # |   4 |   0.5 |     2 |
+,#+TBLFM: $4=$qty*$price
+#+END_SRC
+
+A =$name= that isn't a column name, parameter or named field is looked up as
+=org-table-get-constant= does:
+
+- in =#+CONSTANTS:= lines of the file or its setup file, written ~name=value~ and
+  separated by spaces (~#+CONSTANTS: c=299792458 g=9.81~);
+- =$PROP_xyz= reads the =xyz= property of the entry holding the table, with
+  inheritance.
+
+A name that isn't found becomes =#UNDEFINED_NAME=. A parameter named =%= in a =$= row,
+for example ~%=%.2f~, is put in front of the flags of every formula that has a =;=,
+so ~$3=$2/3;~ is formatted with =%.2f=.
+
+** Remote references
+
+=remote(NAME, REF)= reads a field or range from another table:
+
+#+BEGIN_SRC org
+,#+NAME: rates
+| item | rate |
+|------+------|
+| a    |    2 |
+| b    |    3 |
+
+| x | y | z |
+|---+---+---|
+| 4 | 8 | 5 |
+,#+TBLFM: $2=$1*remote(rates,@2$2)::$3=vsum(remote(rates,@2$2..@>$2))
+#+END_SRC
+
+=NAME= is found in this order:
+
+1. a table after =#+NAME: NAME= or =#+TBLNAME: NAME= in the same file;
+2. the first table in the entry whose =ID= property is =NAME=, in the same file;
+3. the first table in the entry with that =ID= in any indexed file in your sidebar
+   folders, read from the file on disk.
+
+=REF= may use spreadsheet-style references such as =B3= (column B, row 3), which
+become =@3$2=.
+
+** Calc expressions
+
+Calc formulas use Calc's number rules: integers are exact, and decimal numbers are
+rounded to 12 significant digits after every operation. Results are shown with up to
+8 significant digits unless a format flag says otherwise (=org-calc-default-modes=).
+
+Operators, from lowest to highest precedence (the lowest, ~||~, is logical or, giving
+1 or 0):
+
+| Operator                           | Meaning                                                   |
+|------------------------------------+-----------------------------------------------------------|
+| =&&=                               | Logical and.                                              |
+| =!=                                | Logical not.                                              |
+| ~==~, ~!=~, =<=, =>=, ~<=~, ~>=~    | Comparisons, giving 1 or 0. They can't be chained.        |
+| =+=, =-=                           | Addition and subtraction.                                 |
+| =/=, =%=, =\=                      | Division, modulo (sign of the divisor), integer division rounding down. |
+| =*=                                | Multiplication.                                           |
+| unary =-=                          | Negation.                                                 |
+| =^=                                | Power.                                                    |
+
+Parentheses group, =[a, b, c]= writes a vector, =<2026-10-05 Mon>= writes a date, and
+=nan= is "not a number".
+
+Functions:
+
+| Function                                   | Result                                                        |
+|--------------------------------------------+---------------------------------------------------------------|
+| =vsum=, =vprod=                            | Sum or product of a vector.                                   |
+| =vcount=                                   | Number of elements.                                           |
+| =vmean=, =vmedian=                         | Mean, median.                                                 |
+| =vmax=, =vmin=                             | Largest, smallest element.                                    |
+| =vvar=, =vsdev=                            | Sample variance, sample standard deviation.                   |
+| =vpvar=, =vpsdev=                          | Population variance, population standard deviation.           |
+| =max(a, b, …)=, =min(a, b, …)=             | Largest, smallest argument.                                   |
+| =if(c, a, b)=                              | =a= if =c= is nonzero, else =b=.                              |
+| =abs=                                      | Absolute value.                                               |
+| =floor=, =ceil=, =trunc=                   | Round down, up, toward zero, to an integer.                   |
+| =round(x)=, =round(x, n)=                  | Round to an integer, or to /n/ decimal places.                |
+| =mod(a, b)=, =idiv(a, b)=                  | As =%= and =\=.                                               |
+| =fact=                                     | Factorial of a non-negative integer.                          |
+| =sqrt=, =exp=, =ln=, =log10=               | Square root, exponential, natural and base-10 logarithm.      |
+| =sin=, =cos=, =tan=                        | Trigonometry, in degrees unless the =R= flag is set.          |
+| =arcsin=, =arccos=, =arctan=               | Inverse trigonometry, in degrees unless =R=.                  |
+
+Other Calc functions, variables such as =pi= or =e=, symbolic results, complex results
+and division by zero need Emacs.
+
+** Mode flags and formats
+
+After the formula, a =;= starts its flags, as in ~$3=$1/$2;%.2f~ or ~$4=$1*2;f2~:
+
+| Flag      | Meaning                                                                                   |
+|-----------+-------------------------------------------------------------------------------------------|
+| =nN=      | Float format with /N/ significant digits.                                                 |
+| =fN=      | Fixed format with /N/ decimal places.                                                     |
+| =sN=      | Scientific format with /N/ digits.                                                        |
+| =eN=      | Engineering format with /N/ digits.                                                       |
+| =pN=      | Calc precision. Only =p12=, the default, is evaluated natively; others need Emacs.        |
+| =D=, =R=  | Angles in degrees (the default) or radians.                                               |
+| =F=       | Prefer fractions: =1/3= stays =1:3=.                                                      |
+| =N=       | Treat every field as a number; text counts as 0.                                          |
+| =E=       | Keep empty fields: in ranges they stay in, and count as =nan= in Calc.                    |
+| =L=       | Literal: in Lisp formulas, insert fields as they are written.                             |
+| =T=       | Durations: read =H:MM= and =H:MM:SS= fields as times, show the result as =HH:MM:SS=.      |
+| =U=       | As =T=, showing =HH:MM=.                                                                  |
+| =t=       | As =T=, showing decimal hours with two places, such as =1.50=.                            |
+
+The flags =S= (symbolic) and =u= need Emacs. Any other text after the flags is a
+=format= string applied to the result, such as =%.2f= or =%d=; =format= supports
+=%s=, =%S=, =%d=, =%o=, =%x=, =%X=, =%c=, =%e=, =%f= and =%g=.
+
+** Durations
+
+With =T=, =U= or =t=, fields like =1:30= or =10:00:30= are read as hours, minutes and
+seconds:
+
+#+BEGIN_SRC org
+| start    | end     | sum      | diff  | hours |
+|----------+---------+----------+-------+-------|
+| 1:30     | 0:45    | 02:15:00 | 00:45 |  3.00 |
+| 10:00:30 | 2:15:10 | 12:15:40 | 07:45 | 20.02 |
+,#+TBLFM: $3=$1+$2;T::$4=$1-$2;U::$5=$1*2;t
+#+END_SRC
+
+** Dates
+
+Timestamps in fields, active or inactive, take part in Calc arithmetic as dates. The
+difference of two dates is a number of days, with a fraction when the timestamps have
+times. A date plus a number is a date, written back as an inactive timestamp:
+
+#+BEGIN_SRC org
+| start            | end              | days | later            |
+|------------------+------------------+------+------------------|
+| <2026-10-05 Mon> | <2026-10-12 Mon> |    7 | [2026-10-12 Mon] |
+,#+TBLFM: $3=$2-$1::$4=$1+7
+#+END_SRC
+
+** Lisp formulas
+
+A formula that starts with ='(= is Emacs Lisp. Each reference becomes a Lisp string,
+or a number with =N=, or the field's text inserted as is with =L=. A range becomes the
+values separated by spaces, so wrap it in a quoted list:
+
+#+BEGIN_SRC org
+| name  | greeting |
+|-------+----------|
+| Ada   | Ada!     |
+| Grace | Grace!   |
+,#+TBLFM: $2='(concat $1 "!")
+
+| n |
+|---|
+| 1 |
+| 2 |
+|---|
+| 3 |
+,#+TBLFM: @>$1='(apply '+ '(@I..@II));N
+#+END_SRC
+
+The evaluator supports:
+
+- special forms: =quote=, =function=, =lambda=, =progn=, =prog1=, =if=, =when=,
+  =unless=, =cond=, =and=, =or=, =let=, =let*=, =setq=, =push=, =pop=, =while=,
+  =dolist=, =dotimes=, =with-output-to-string=, =ignore-errors=, =condition-case=;
+- arithmetic: =+=, =-=, =*=, =/=, =%=, =mod=, =1+=, =1-=, =abs=, =max=, =min=, =float=,
+  =floor=, =ceiling=, =round=, =truncate=, ~=~, =<=, =>=, ~<=~, ~>=~, ~/=~, =zerop=;
+- predicates: =not=, =null=, =eq=, =eql=, =equal=, =numberp=, =integerp=, =floatp=,
+  =stringp=, =listp=, =consp=, =symbolp=;
+- lists: =car=, =cdr=, =cadr=, =cddr=, =cons=, =list=, =nth=, =nthcdr=, =elt=, =aref=,
+  =append=, =length=, =reverse=, =number-sequence=, =memq=, =member=, =memql=, =assoc=,
+  =assq=, =delq=, =delete=, =mapcar=, =mapc=, =mapconcat=, =funcall=, =apply=,
+  =identity=, =ignore=;
+- strings: =concat=, =format=, =format-message=, ~string=~, =string-equal=, =string<=,
+  =string-lessp=, =upcase=, =downcase=, =capitalize=, =substring=, =string-to-number=,
+  =number-to-string=, =int-to-string=, =string-prefix-p=, =string-suffix-p=,
+  =string-empty-p=, =string-trim=, =split-string=, =prin1-to-string=;
+- output and errors: =princ=, =prin1=, =print=, =terpri=, =message=, =error=,
+  =user-error=;
+- Org's lookup functions =org-lookup-first=, =org-lookup-last= and =org-lookup-all=.
+
+Any other function needs Emacs. An error inside a Lisp formula writes =#ERROR= in the
+field, as does a Calc error.
+
+* Entering formulas
+
+There are three ways to set a formula.
+
+*In the field.* Type ~=expr~ in a field and press =TAB= or =RET=: Orgstar stores
+~$N=expr~ as the column's formula and evaluates it, as
+=org-table-maybe-eval-formula= does. Type ~:=expr~ instead to store a field formula
+~@R$C=expr~.
+
+*With a prompt.* =org-table-eval-formula= asks for the formula (~Column formula $N=~
+or ~Field formula @R$C=~) with the stored one filled in, stores it and evaluates it in
+the current field. An empty answer keeps the stored formula and evaluates it again,
+unlike Emacs, where an empty answer removes it. To remove a formula, delete it in the
+formula editor below or from the =#+TBLFM:= line.
+
+| Command                       | Emacs    | Mac                         | Doom     |
+|-------------------------------+----------+-----------------------------+----------|
+| Org ▸ Set Column Formula      | ~C-c =~  | Org ▸ Set Column Formula    | ~C-c =~  |
+| Org ▸ Set Field Formula       | none     | Org ▸ Set Field Formula     | none     |
+
+Org's ~C-u C-c =~ for field formulas has no equivalent key, because Orgstar has no
+prefix argument; use the menu item or type ~:=~ in the field.
+
+*In the formula editor.* =C-c '= in a table or on its =#+TBLFM:= line
+(=org-table-edit-formulas=) opens the formulas in an editor of their own, one per line,
+grouped under =# Column Formulas=, =# Field and Range Formulas= and
+=# Named Field Formulas=. A formula can continue on indented lines. =C-c '= or
+=⌘Return= installs the formulas; =Escape= or =C-c C-k= leaves them unchanged.
+Installing doesn't recalculate; do that next with =C-c C-c= on the =#+TBLFM:= line, or
+Org ▸ Recalculate Table in the Mac preset.
+
+The formulas are stored sorted the way =org-table-formula-less-p= sorts them.
+
+* Recalculating
+
+| Command                          | Org command                       | Emacs                         | Mac                         | Doom                                |
+|----------------------------------+-----------------------------------+-------------------------------+-----------------------------+-------------------------------------|
+| Recalculate Table                | =org-table-recalculate= with =C-u= | =C-c C-c= on =#+TBLFM:=      | Org ▸ Recalculate Table     | =SPC m b r=, =C-c C-c= on =#+TBLFM:= |
+| Recalculate Table Row            | =org-table-recalculate=           | =C-c *=                       | Org ▸ Recalculate Table Row | =C-c *=                             |
+
+In Doom's normal state, =RET= in a table recalculates it when it has a =#+TBLFM:=
+line and aligns it otherwise; on a =#+TBLFM:= line it recalculates.
+
+When the table has a rule below its first data row, recalculating the whole table
+leaves the rows above that rule, the header, alone. With marked rows, the marks decide
+instead (see /Names, parameters and constants/). Each
+command evaluates the column formulas row by row, then the field formulas, then aligns
+the table. Formulas are evaluated once; Org's iterate-until-stable recalculation
+(=C-u C-u C-c *=) isn't available.
+
+Tables are not recalculated automatically. Rows marked =#= are not recalculated when
+you press =TAB= or =RET= in them, as =org-table-maybe-recalculate-line= would do in
+Emacs; recalculate with one of the commands above.
+
+* When Emacs is needed
+
+When a formula uses something the native evaluator doesn't have, the command reports
+what it was and the Mac recalculates the table in Emacs instead. This happens for:
+
+- references to fields holding text in a Calc formula, and symbolic results;
+- Calc functions and variables not listed above, precision other than =p12=, and the
+  =S= and =u= flags;
+- division by zero, complex results, vector results, and numbers too large for
+  64-bit integers;
+- Lisp functions not listed above.
+
+The echo area shows =Recalculating in Emacs (reason)…=, then =Recalculated in Emacs=.
+Orgstar runs =emacs -Q --batch= on a copy of the file, so your Emacs init file,
+packages and customizations are not loaded, then replaces the table with Emacs's
+result. It looks for Emacs at the path in the =ORGSTAR_EMACS= environment variable,
+then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=,
+=/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and
+=/usr/bin/emacs=. If none is found, the echo area says Emacs isn't installed and the
+table is unchanged. The run stops after 60 seconds. If you edit the table while Emacs
+is working, its result is discarded.
+
+If the table's formulas contain Lisp, Orgstar asks first:
+=This table's formulas run Lisp. Run them? (yes, no, always)=. =always= trusts this
+table's text in this file, so the question isn't asked again until the text changes.
+
+Entering a formula that needs Emacs with ~C-c =~, Set Field Formula or ~=~ in a field
+is not handed to Emacs. The echo area shows =The formula was stored; recalculating it
+needs Emacs= and the reason, but the table and its =#+TBLFM:= line stay unchanged.
+Add such a formula in the formula editor or by editing the =#+TBLFM:= line, then
+recalculate the table, which runs it in Emacs.
+
+For how Orgstar and Emacs share files, see
+[[file:15-alongside-emacs.org][Using Orgstar alongside Emacs]].
+
+* table.el tables
+
+Tables drawn with =+= corners and =-= and =|= borders, as the =table.el= package makes
+them, are recognized and kept as written:
+
+#+BEGIN_SRC org
++-------+-------+
+| Name  | Value |
++-------+-------+
+| a     | 1     |
++-------+-------+
+#+END_SRC
+
+Orgstar doesn't edit them as tables: =TAB=, alignment and formulas don't apply. HTML
+export renders them as tables, with cells that span rows and columns, and Markdown
+export writes them as a code block. See [[file:12-export.org][Export]].
+
+* Plotting
+
+=#+PLOT:= lines are recognized and completed as keywords, but Orgstar doesn't draw
+plots (=org-plot/gnuplot= is not available).
+
+* On iOS
+
+The iOS app evaluates formulas natively with the same engine. Tables that need Emacs
+are not recalculated there; the app reports =This table needs Emacs, which runs on the
+Mac= with the reason. Table import and export are Mac only. See
+[[file:14-ios.org][iOS]].

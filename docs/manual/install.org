@@ -1,0 +1,57 @@
+#+TITLE: Install
+#+DESCRIPTION: Building Orgstar for the Mac and the iOS Simulator from source.
+#+LEDE: Orgstar is built from source; there are no prebuilt downloads yet.
+
+* Requirements
+
+- macOS 26 or later.
+- Xcode 27 (the Swift 6.2 toolchain).
+- Optional: GNU Emacs, for the features that hand work to it on the Mac
+  (Emacs Lisp code blocks that need full Emacs, Lisp table formulas the built-in
+  interpreter can't run, and export to PDF, LaTeX, ODT and other formats). See
+  [[file:guide/15-alongside-emacs.org][Working alongside Emacs and other tools]].
+
+* The Mac app
+
+#+BEGIN_SRC sh
+git clone https://gitbay.org/krz/orgstar.git
+cd orgstar
+scripts/build-app.sh
+open .build/app/Orgstar.app
+#+END_SRC
+
+=scripts/build-app.sh= builds a release binary and assembles
+=.build/app/Orgstar.app= with its Quick Look and Spotlight extensions, signed ad hoc
+for use on your own Mac. Move it to =/Applications= to keep it. Pass a version number
+as the first argument to stamp the bundle (=scripts/build-app.sh 1.0.0=); the default
+is =0.1.0=.
+
+Once the app has been launched, Finder opens =.org= files with it, Quick Look shows
+them formatted, and Spotlight indexes their headings and text.
+
+* The iOS app
+
+The iOS app (iOS 26 or later) currently builds for the Simulator:
+
+#+BEGIN_SRC sh
+scripts/build-ios-app.sh
+xcrun simctl install booted .build/ios-app/Orgstar.app
+#+END_SRC
+
+See [[file:guide/14-ios.org][iPhone and iPad]] for what it does.
+
+* Updating
+
+Pull and build again:
+
+#+BEGIN_SRC sh
+git pull
+scripts/build-app.sh
+#+END_SRC
+
+Your settings live in =~/.config/orgstar/= and survive rebuilds.
+
+* Uninstalling
+
+Delete =Orgstar.app=. To remove your settings as well, delete =~/.config/orgstar/=.
+Your org files are never stored inside the app.

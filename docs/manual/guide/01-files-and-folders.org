@@ -1,0 +1,313 @@
+#+TITLE: Files, folders and buffers
+#+DESCRIPTION: Adding folders, opening files, working with buffers, searching, saving, and how Orgstar handles changes made outside it.
+#+LEDE: Orgstar works on folders of files you add to its sidebar, keeps each open file in a buffer, saves on its own, and merges changes other programs make to the same files.
+
+* The window
+
+Orgstar has one main window, titled with the name of the buffer it shows. From left to right it holds:
+
+- the *sidebar*, listing the folders you added and the files in them;
+- the *outline pane*, listing the headings of the open file, with the *backlinks pane* under it;
+- the *editor*, with the optional tab bar above it and the modeline and echo area below it;
+- the *inspector*, hidden by default, showing column view and clocked time.
+
+The toolbar holds a button that shows or hides the outline pane, a progress indicator while Orgstar indexes your folders, the running clock (see [[file:06-dates-and-clocking.org][Dates and clocking]]), a =Conflict= button when the open file has a conflict (see /Conflicts/ below), and the search field.
+
+The window title is the buffer name (see /Buffer names/ below). When the open file is not UTF-8, the subtitle reads =Read-only: not UTF-8=. The close button shows the unsaved-changes dot while any open buffer has unsaved edits.
+
+With no folders added, the editor area reads "Add a folder of org files". With folders but no open file, it reads "Choose a file" and suggests =⌘P=.
+
+The Agenda, Board, Clock Report and Capture windows are separate; they are covered in [[file:07-agenda.org][Agenda]], [[file:06-dates-and-clocking.org][Dates and clocking]] and [[file:08-capture.org][Capture]]. Closing the main window quits Orgstar when no other window is open.
+
+** Menus and the command palette
+
+Most commands are in the menu bar. The =Org= menu lists every org command, each with the keys that run it in the current keymap; it is disabled when no file is open.
+
+File ▸ Command Palette… (=⇧⌘P=; =M-x= in the Emacs and Doom presets; =SPC := in Doom normal state) lists every command by title with its keys. Type to filter (characters match in order, as in Quick Open), then press =Return= to run the top match or click one. =Escape= closes it. Text movement and editing commands (forward character, kill line and so on) are not listed; they are only on keys.
+
+Several commands in this chapter are only in the palette, not in a menu: Close Other Buffers, Close All Buffers, Last Buffer, Show or Hide Tab Bar, Revert to File on Disk, Resolve Sync Conflicts… and Recovery Versions….
+
+** Showing and hiding panes
+
+| Menu item                                | Shortcut | Palette title                    |
+|------------------------------------------+----------+----------------------------------|
+| View ▸ Show or Hide Outline              |          | Show or Hide Outline             |
+| View ▸ Show or Hide Backlinks            |          | Show or Hide Backlinks           |
+| View ▸ Show or Hide Columns and Clock    | =⌥⌘I=    | Show or Hide Columns and Clock   |
+| View ▸ Show Tab Bar                      |          | Show or Hide Tab Bar             |
+
+The toolbar's outline button does the same as View ▸ Show or Hide Outline. The sidebar is shown and hidden with the standard View menu command.
+
+Orgstar remembers whether the outline, backlinks and inspector are shown. The outline pane's visibility is remembered for org files only: for other files it starts hidden each time you open one. Drag the divider on the outline pane's right edge to resize it (160 to 400 points; 220 by default).
+
+* Folders
+
+Orgstar does not open a single folder like a project. You add any number of folders, called roots, and each appears as a section of the sidebar. Orgstar indexes every org file in them for search, the agenda, refiling, backlinks and IDs.
+
+** Adding a folder
+
+Choose File ▸ Add Folder… (=⇧⌘O=), or click =+= at the bottom of the sidebar, and pick a folder. Orgstar indexes it in the background; the toolbar shows a progress indicator while it works.
+
+Orgstar keeps a bookmark to each folder, so a folder you move or rename in Finder is followed. If a folder can't be found at launch, Orgstar reports =Can't find the folder PATH.= Adding a folder that is already in the sidebar does nothing.
+
+Orgstar keeps the list of folders, the index and recovery versions in =~/Library/Application Support/Orgstar=.
+
+** Removing a folder
+
+Click =−= at the bottom of the sidebar and choose the folder, or right-click the folder's header and choose Remove from Sidebar…. Confirm with =Remove=. The folder and its files stay on disk; only Orgstar's index entries for them are removed.
+
+** What the sidebar lists
+
+Each root is a collapsible section headed by the folder's name; hover over the name to see its full path. Roots are sorted by path. Inside a root, subfolders come first, then files, each sorted by name the way Finder sorts them. Orgstar remembers which roots you collapsed.
+
+The sidebar lists every file in the folder, not only org files, with an icon for its kind:
+
+| Icon                  | File                                                       |
+|-----------------------+------------------------------------------------------------|
+| document              | =.org=                                                     |
+| archive box           | =.org_archive=                                             |
+| orange warning sign   | a Syncthing conflict copy (see /Syncthing conflict copies/ below) |
+| photo                 | an image                                                   |
+| rich document         | a PDF                                                      |
+| play button           | audio or video                                             |
+| =</>=                 | source code or a script                                    |
+| plain document        | other text                                                 |
+| cloud with arrow      | an iCloud file still downloading (see /iCloud/ below)       |
+
+Some files are never listed or indexed:
+
+- Emacs backups (names ending in =~=), auto-save files (names starting with =#=) and lock files (=.#name=);
+- Syncthing's temporary files (=.syncthing.*=);
+- Orgstar's own temporary files (names containing =.orgstar-=);
+- =.DS_Store= and =.localized=;
+- anything inside these folders: =.git=, =.hg=, =.svn=, =.jj=, =.bzr=, =.stfolder=, =.stversions=, =.Trash=, =.Spotlight-V100=, =.fseventsd=, =.build=, =.venv=, =.cache=, =.tox=, =.mypy_cache=, =.pytest_cache=, =.gradle=, =.next=, =.terraform= and =node_modules=.
+
+Other dotfiles and dot folders are listed unless you turn off Settings ▸ General ▸ Show hidden files and folders (on by default). To change the list of ignored folders, set =ignored-folders= in =config.toml= to folder names separated by spaces; there is no control for it in Settings. See [[file:13-configuration.org][Configuration]].
+
+#+BEGIN_SRC toml
+[orgstar]
+show-hidden-files = true
+ignored-folders = ".git .hg node_modules build"
+#+END_SRC
+
+Only org files (=.org= and =.org_archive=) are read by the index. Other files are listed and can be opened, but their contents are not searched.
+
+** Creating, renaming and trashing files
+
+Right-click a file or folder in the sidebar for:
+
+- New File… — creates a file in that folder (for a file, in the folder holding it). A name without an extension gets =.org=. A name like =projects/house= creates the =projects= folder too. Names can't start with =/= or contain =..=. The new file opens.
+- Rename… — renames the file or folder in place. The new name can't contain =/=. Open buffers of the file, or of files inside the folder, are saved first (in explicit save mode you are asked) and reopened under the new path.
+- Show in Finder.
+- Move to Trash… — moves the file or folder to the Trash after you confirm. Open buffers of it close without saving. You can put it back from the Trash in Finder.
+
+Right-click a root's header for New File…, Expand or Collapse, Show in Finder and Remove from Sidebar….
+
+* Opening files
+
+Click a file in the sidebar to open it. Other ways:
+
+- *Quick Open*: File ▸ Quick Open… (=⌘P=; =C-x C-f= in the Emacs and Doom presets; =SPC SPC=, =SPC .= or =SPC f f= in Doom normal state). Type part of a file's path below its root. Characters match in order, not necessarily next to each other; matches at the start of a word and runs of consecutive characters rank higher, and shorter paths win ties. Up to 50 matches show, with each file's name and path. Press =Return= to open the top match or click any match; =Escape= closes the list. Syncthing conflict copies are left out.
+- *Finder*: open an org file from Finder, with =open file.org= in Terminal, or by dropping it on Orgstar's Dock icon. Orgstar registers as the default app for org files and as an alternative editor for plain text. Each file opens as a buffer.
+- *Links*: following a =file:= link or an ID link opens the target file; see [[file:09-links.org][Links]].
+- *Doom ex command*: =:e FILE= opens =FILE=, relative to the current file's folder; =~= is expanded. A file that doesn't exist is reported as =No file FILE=.
+
+A file opened from Finder or by a link does not have to be inside one of your folders. Such a file is edited and saved normally, but it isn't listed in the sidebar, isn't indexed for search or the agenda, and isn't watched for outside changes (Orgstar still merges outside changes when it saves; see /Saving/ below).
+
+Orgstar has no Open Recent menu. Instead, it reopens the buffers that were open when you quit, in the same order, with the same file showing and each caret where you left it. Files that no longer exist are skipped.
+
+** Files that aren't org
+
+How a file opens depends on what it is:
+
+- *Org files* (=.org=, =.org_archive=) open in the editor with org editing.
+- *Text files* open in the same editor as plain text. A file counts as text when macOS knows its type as text, or, for unknown types, when its first 8 KB are valid UTF-8 with no NUL bytes. Org commands report =Not an org file=, and the outline pane shows "No outline" when you turn it on. Files in these languages get syntax highlighting: shell (=.sh=, =.bash=, =.zsh=, =.zshrc=, =.bashrc=, =.profile=), Python, Emacs Lisp, C, C++, R, JavaScript, Java, Scheme, Clojure, Haskell, Rust, Go, Ruby, JSON, YAML, TOML and Lua.
+- *Everything else* (images, PDFs, audio, video, archives, binary files) shows a Quick Look preview in place of the editor, with =Open with Default App= and =Show in Finder= buttons below it. The preview is not a buffer.
+
+Text files from Finder use Orgstar only if you choose it with Open With, since Orgstar is not their default app.
+
+* Buffers
+
+Each open file is a buffer, as in Emacs. A buffer keeps its text, caret, folds, undo history and unsaved edits while another buffer is showing. Opening a file that already has a buffer shows that buffer. Two paths to the same file (through a symbolic link, for example) share one buffer, as =find-buffer-visiting= does.
+
+A new buffer is placed after the current one in the buffer order. Next and Previous Buffer follow that order and wrap around. Switch to Buffer and Last Buffer follow the order in which you last showed buffers.
+
+** Buffer commands
+
+| Command             | Menu, or palette                 | Mac               | Emacs preset                 | Doom (normal state)                       |
+|---------------------+----------------------------------+-------------------+------------------------------+-------------------------------------------|
+| Switch to Buffer…   | Window ▸ Switch to Buffer…       |                   | =C-x b=, =C-x C-b=           | =SPC b b=, =SPC b B=, =SPC ,=, =:b=, =:ls= |
+| Next Buffer         | Window ▸ Next Buffer             | =⇧⌘]=, =⌃Tab=     | =⇧⌘]=, =C-x <right>=          | =SPC b n=, =SPC b ]=, =] b=, =:bn=          |
+| Previous Buffer     | Window ▸ Previous Buffer         | =⇧⌘[=, =⌃⇧Tab=    | =⇧⌘[=, =C-x <left>=           | =SPC b p=, =SPC b [=, =[ b=, =:bp=          |
+| Last Buffer         | palette                          |                   |                              | =SPC `=                                   |
+| Close Buffer        | File ▸ Close Buffer              | =⌘W=              | =⌘W=, =C-x k=                 | =SPC b k=, =SPC b d=, =:bd=                 |
+| Close Other Buffers | palette                          |                   |                              | =SPC b O=                                 |
+| Close All Buffers   | palette                          |                   |                              | =SPC b K=                                 |
+
+Menu shortcuts (=⇧⌘]=, =⌘W= and the others) work in every preset. The Doom preset also has the Emacs preset's =C-x= keys in every state. The Mac preset's =⌃Tab= and =⌃⇧Tab= are in addition to the menu shortcuts.
+
+Switch to Buffer asks in the echo area. The choices are the open buffers, most recently shown first, with the current buffer last. Type to narrow them, =Tab= to complete the top choice, =Return= to switch, =Escape= to cancel.
+
+Close Buffer closes the current buffer and shows the buffer you showed before it. With no buffer open, =⌘W= closes the window. In other windows (Agenda, Board and so on) =⌘W= closes that window. File ▸ Close Window (=⇧⌘W=) closes the window in front.
+
+When you close buffers with unsaved edits, what happens depends on the save mode (see /Saving/ below): in automatic mode they are saved first; in explicit mode Orgstar asks =Save=, =Don't Save= or =Cancel= (=Save All= for several files). A buffer whose save fails or conflicts stays open.
+
+** Buffer names
+
+A buffer is named after its file. When two open files have the same name, each name gets as many of its folders as it takes to tell them apart, in angle brackets, as Emacs's uniquify does with =post-forward-angle-brackets=:
+
+#+BEGIN_SRC text
+notes.org<work>
+notes.org<home>
+notes.org<archive/2024>
+#+END_SRC
+
+These names show in the window title, the tab bar and Switch to Buffer.
+
+** The tab bar
+
+View ▸ Show Tab Bar shows a row of tabs above the editor, one per open buffer, in buffer order. It is off by default; the setting is =tab-bar= in =config.toml=.
+
+- Click a tab to show its buffer. Hover to see the file's full path.
+- Click =×= to close a buffer. A dot replaces the =×= while the buffer has unsaved edits; clicking it also closes the buffer, with the same unsaved-changes handling as Close Buffer.
+
+* Searching your notes
+
+The search field in the toolbar searches every org file in your folders. Click it or choose Edit ▸ Search Notes (=⇧⌘F=; =SPC /= or =SPC s p= in Doom normal state) and type.
+
+While the field holds text, the outline pane shows the results in place of the outline. Each result is a heading, with its file's name below it. Click a result to open the file at that heading. Clear the field to get the outline back.
+
+How matching works:
+
+- Orgstar searches heading titles and the text under each heading, in =.org= and =.org_archive= files. Text before the first heading and files that aren't org are not searched. Syncthing conflict copies are not searched.
+- Each word you type matches words that start with it: =proj= finds =project= and =projection=.
+- Every word must match within the same heading.
+- Up to 50 results show, best matches first.
+- Open buffers with unsaved edits are searched as they are in the buffer, not as they are on disk.
+
+To find text inside the open file, use Edit ▸ Find (see [[file:02-the-editor.org][The editor]]).
+
+* The outline pane
+
+The outline pane lists the headings of the open org file, indented by level. Headings without a title show as =(untitled)=. Click a heading to move the caret to it; folded headings around it unfold. A file without headings shows "No headings"; a file that isn't org shows "No outline".
+
+The outline follows your edits after a short pause in typing.
+
+** Backlinks
+
+Under the outline, the backlinks pane lists headings in your folders that link to the current file (=Links to this file=) and to the heading at the caret (=Links to= followed by the heading's title). It updates as you move the caret. Click an entry to open it. Turn the pane off with View ▸ Show or Hide Backlinks. Which links count is covered in [[file:09-links.org][Links]].
+
+** Inspector
+
+View ▸ Show or Hide Columns and Clock (=⌥⌘I=) opens a pane on the right with column view and clocked time for the file or the current subtree. See [[file:04-outlines.org][Outlines]] and [[file:06-dates-and-clocking.org][Dates and clocking]].
+
+* Saving
+
+Settings ▸ General ▸ Save files has two modes; the =config.toml= setting is =save= in =[orgstar]=.
+
+- *Automatically, when typing stops* (=automatic=, the default). Each buffer saves one second after its last change, including buffers that are not showing. Quitting and closing buffers save without asking.
+- *Only with File ▸ Save (⌘S)* (=explicit=). Nothing is written until you save. Closing a buffer or quitting with unsaved edits asks first.
+
+| Command  | Menu                 | Shortcut | Emacs preset | Doom                                 |
+|----------+----------------------+----------+--------------+--------------------------------------|
+| Save     | File ▸ Save          | =⌘S=     | =C-x C-s=    | =SPC f s=, =SPC b s=, =:w=; =:wq= and =:x= save and close the window |
+| Save All | File ▸ Save All      | =⌥⌘S=    | =C-x s=      | =SPC b S=                            |
+
+Save is disabled for a read-only file. Save All is disabled when nothing is unsaved.
+
+The modeline shows a dot while the current buffer has unsaved edits. Buffers with unsaved edits show a dot in the tab bar.
+
+** How a save works
+
+Orgstar does not assume it is the only program writing your files. Emacs, Syncthing, iCloud and Git may change them too. Each save:
+
+1. Reads the file on disk. If it has changed since Orgstar last read or wrote it, Orgstar merges those changes into the buffer first (see /External changes/ below). If they conflict with yours, nothing is written and the buffer has a conflict.
+2. Checks the file again, then writes the buffer to a temporary file in the same folder and replaces the original with it, so the file is never half-written.
+3. Reads the file back. If another program wrote it at the same moment, the version that lost goes to recovery and the other program's changes are merged where possible.
+
+Every version a save displaces goes to recovery first (see /Recovery versions/ below). Reads and writes go through macOS file coordination, so iCloud and other coordinating programs see a consistent file.
+
+A save keeps the file's encoding details: a UTF-8 byte order mark stays, and text you didn't change keeps its exact bytes, including CRLF line endings. Lines you add end in LF.
+
+* External changes
+
+Orgstar watches the files in your folders. When a file with an open buffer changes on disk:
+
+- If the buffer has no unsaved edits, it reloads. The caret and folds stay where they were, mapped through the change.
+- If the buffer has unsaved edits, Orgstar merges the change into the buffer line by line, against the version both started from. Lines changed on one side take that side; lines changed the same way on both sides are taken once. The merged buffer still has unsaved edits and saves as usual.
+- If both sides changed the same lines differently, the buffer has a conflict.
+
+Reloading or merging clears the buffer's undo history.
+
+If an open file is deleted on disk, its buffer stays open with its text. Saving it writes the file again.
+
+To throw away your unsaved edits and load the file as it is on disk, run Revert to File on Disk from the palette (=:e= in Doom). Your edits go to recovery.
+
+** Conflicts
+
+When a buffer conflicts with its file, automatic saving stops for that buffer, the =Conflict= button appears in the toolbar, and the conflict sheet opens. The sheet shows the differences: lines marked =-= are on disk, lines marked =+= are in your version, with three lines of context around each change. Choose:
+
+| Button             | What it does                                                                                                     |
+|--------------------+------------------------------------------------------------------------------------------------------------------|
+| Keep Mine          | Writes your version over the file. The disk version goes to recovery. This is the default button.               |
+| Use Disk Version   | Loads the file as it is on disk. Your version goes to recovery.                                                  |
+| Merge with Markers | Puts both sets of changes in the buffer, as =git merge= leaves a conflict: non-conflicting changes merged, conflicting lines between markers. Your version as it was goes to recovery. |
+| Decide Later       | Closes the sheet. The conflict stays; click =Conflict= in the toolbar to reopen it.                              |
+
+After Merge with Markers the buffer holds blocks like this, which you edit and save:
+
+#+BEGIN_SRC text
+<<<<<<< yours
+- [ ] Call the plumber on Monday
+=======
+- [X] Call the plumber
+>>>>>>> disk
+#+END_SRC
+
+While a conflict is unresolved, saving that buffer does nothing except reopen the sheet.
+
+** Syncthing conflict copies
+
+When two devices change a file before Syncthing syncs them, Syncthing keeps one version as a conflict copy beside the file, named like =notes.sync-conflict-20260301-142233-ABCDEF7.org=. Orgstar lists these in the sidebar in orange with a warning icon, and leaves them out of search, the agenda, ID lookup and Quick Open.
+
+When you open a file that has conflict copies, the echo area says how many there are. Run Resolve Sync Conflicts… from the palette to compare them. Pick a copy from the menu at the top; lines marked =-= are in the file (as the buffer holds it) and lines marked =+= are in the copy. Then choose:
+
+| Button             | What it does                                                                       |
+|--------------------+------------------------------------------------------------------------------------|
+| Keep File          | Leaves the buffer as it is.                                                        |
+| Use Copy           | Replaces the buffer's text with the copy's.                                        |
+| Merge with Markers | Puts every difference between the buffer and the copy between conflict markers, labelled with the two file names. There is no common base to merge against, so every difference is marked. |
+
+Each choice moves the copy to recovery and deletes it from the folder. The buffer changes as an edit you can undo, and is saved according to your save mode. When no copies are left the sheet closes.
+
+** Recovery versions
+
+Whenever Orgstar replaces a version of a file, it keeps a copy: your buffer when you take the disk version, the disk version when you keep yours, a version another program wrote while Orgstar saved, and resolved Syncthing copies. Orgstar keeps the last 20 versions per file in =~/Library/Application Support/Orgstar/Recovery=.
+
+Run Recovery Versions… from the palette to see the open file's versions, newest first, each with its date and why it was kept:
+
+| Label                   | Meaning                                         |
+|-------------------------+-------------------------------------------------|
+| Your version, replaced  | Your buffer, before it was replaced             |
+| Disk version, replaced  | The file on disk, before Orgstar wrote over it  |
+| Sync conflict copy      | A Syncthing conflict copy you resolved          |
+
+Select a version to see how it differs from the buffer (=-= in the buffer, =+= in the kept version). =Restore= puts the kept version's text in the buffer as one edit, which undo reverses; the buffer as it was goes to recovery first. =Show in Finder= reveals the kept file.
+
+** iCloud
+
+Files in iCloud Drive that aren't downloaded to the Mac show in the sidebar with a cloud icon and grey text, with the tooltip "Downloading from iCloud". Orgstar asks iCloud to download them, and indexes them and lets you open them when they arrive. Files iCloud removes from the Mac to save space keep their index entries until they are back, so search and the agenda still find them.
+
+* Encodings and line endings
+
+Orgstar edits UTF-8 files, with or without a byte order mark.
+
+- A file that is not valid UTF-8 opens read-only. Its text shows with replacement characters where bytes don't decode, the window subtitle reads =Read-only: not UTF-8=, the modeline shows =Read-only=, and commands that would change it report =This file is read-only.= Orgstar never writes such a file, and refiling or archiving into it is refused.
+- A file with a UTF-8 byte order mark keeps it when saved; the modeline shows =BOM=.
+- A file containing CRLF line endings shows =CRLF= in the modeline. Existing line endings are kept.
+
+Orgstar does not convert between encodings or line endings.
+
+* On iOS
+
+The iOS app adds folders from its Folders screen and lists only org files there. Conflicts, Syncthing copies and recovery versions are in the editor's menu. Files are watched through file presenters rather than FSEvents. See [[file:14-ios.org][iOS]].

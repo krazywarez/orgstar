@@ -1,0 +1,48 @@
+#+TITLE: Orgstar
+#+DESCRIPTION: A native macOS and iOS editor for org-mode files.
+#+LEDE: Orgstar edits org files in place, alongside Emacs and the sync tools you already use.
+#+OPTIONS: toc:nil
+
+Orgstar is an editor for [[https://orgmode.org][Org mode]] files on the Mac, with an app for
+iPhone and iPad. It reads and writes the same plain-text files Emacs does, behaves the
+way Org does where the two overlap, and leaves every byte you didn't change as it was.
+
+On the Mac you get the editor with Emacs, Mac or Doom (Vim) keys, the agenda and a
+board view, capture templates, clocking, tables with formulas, code blocks and
+tangling, and export to HTML and Markdown (and to other formats through Emacs, if
+it is installed). The iOS app has the editor, agenda, capture, search, clocking,
+reminders, export and tangling.
+
+* Start here
+
+- [[file:install.org][Install]]: build the app from source.
+- [[file:quickstart.org][Quick start]]: add a folder, open a file, and the first keys to learn.
+- The manual, below: every feature, chapter by chapter.
+
+* The manual
+
+1. [[file:guide/01-files-and-folders.org][Files, folders and buffers]]
+2. [[file:guide/02-the-editor.org][The editor]]
+3. [[file:guide/03-keys.org][Keys and commands]]
+4. [[file:guide/04-outlines.org][Outlines and structure]]
+5. [[file:guide/05-todos-and-tags.org][TODOs and tags]]
+6. [[file:guide/06-dates-and-clocking.org][Dates, scheduling and clocking]]
+7. [[file:guide/07-agenda.org][The agenda]]
+8. [[file:guide/08-capture.org][Capture]]
+9. [[file:guide/09-links.org][Links]]
+10. [[file:guide/10-tables.org][Tables]]
+11. [[file:guide/11-code-blocks.org][Code blocks]]
+12. [[file:guide/12-export.org][Export]]
+13. [[file:guide/13-configuration.org][Configuration]]
+14. [[file:guide/14-ios.org][iPhone and iPad]]
+15. [[file:guide/15-alongside-emacs.org][Working alongside Emacs and other tools]]
+
+* Principles
+
+- *The files are the source of truth.* There is no database of your notes. Orgstar
+  keeps an index for search and the agenda, rebuilt from the files whenever they change.
+- *Only your edits are written.* Saving rewrites the bytes you changed and nothing
+  else: indentation, line endings, encoding marks and unusual spacing elsewhere stay.
+- *Org's behaviour, not a lookalike.* Commands follow what Org 9.8 does, and are
+  checked against Emacs in the test suite. Where Orgstar can't do something the way
+  Org would, it says so and leaves the file alone rather than guessing.

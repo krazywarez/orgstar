@@ -1,0 +1,263 @@
+#+TITLE: iPhone and iPad
+#+DESCRIPTION: The iOS app: folders, reading and editing, search, the agenda, capture, clocking, reminders, export and settings.
+#+LEDE: Orgstar for iPhone and iPad reads and edits the same org files as the Mac, with the agenda, capture and search.
+
+* Overview
+
+The app has four tabs:
+
+- Agenda :: the agenda over your folders, with capture.
+- Folders :: the folders of org files you added, and their files.
+- Settings :: where the app's settings come from.
+- Search :: file names and the words of headings.
+
+Files open in a reader first. The Edit button in the reader opens the editor. Both use the same open file, so an edit in the editor shows in the reader when you go back.
+
+* Folders and file access
+
+Orgstar on iOS works on folders you choose, in iCloud Drive or in another app's storage (for example a folder kept by a Syncthing client).
+
+1. Open the Folders tab and tap Add Folder (the folder icon with a plus).
+2. Choose a folder in the picker.
+
+Orgstar keeps access to the folder across launches. Each folder appears as a section listing its =.org= files by their path inside the folder. Remove Folder at the end of a section removes it from Orgstar; the files stay where they are.
+
+Files that iCloud hasn't downloaded to the device yet appear in grey with a cloud icon. Orgstar asks iCloud to download them and lists them as files once they arrive.
+
+Orgstar sees changes made by iCloud and by apps that use the system's file coordination, and reads every folder again each time you return to the app, since not every sync app reports its changes. An open file takes in changes from disk as described in [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]].
+
+There is no way to open a single file from the Files app. Add the folder that contains it.
+
+* The reader
+
+Tap a file in Folders, Search or the agenda to read it.
+
+- Tap a heading to fold or unfold it, as =TAB= cycles it on the Mac. A chevron marks headings with content.
+- The file opens with the visibility its =#+STARTUP= line and =VISIBILITY= properties ask for; drawers are folded.
+- Text is styled as in the editor: TODO keywords, priorities, tags, emphasis, code, timestamps and links. Text can be selected and copied.
+- Tap a link to follow it. Links to headings and files in your folders open in the reader; web links open in the browser.
+- The toolbar has Outline (a list of headings to jump to), Export, and Edit.
+
+* The editor
+
+Tap Edit in the reader. The title shows the buffer name, with =•= while there are unsaved changes. The tab bar is hidden while you edit.
+
+The editor folds headings, drawers and blocks, styles text with the default theme, and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking is on.
+
+The toolbar has:
+
+- Conflict :: shown while the file and your edits conflict; opens the conflict sheet.
+- Undo
+- More :: Commands, Clock In, Export, Sync Conflict Copies, and Recovered Versions.
+
+Messages from commands show at the top of the editor for a few seconds; tap one to dismiss it.
+
+** Saving
+
+The iOS app always saves automatically: one second after you stop typing, when you leave the editor, and when the app goes to the background. The =save= setting doesn't apply on iOS.
+
+Files that aren't valid UTF-8 open read-only; commands that would change them say so.
+
+** The key bar
+
+A bar above the on-screen keyboard has buttons for Org's keys. Each does what its Emacs key does at the caret, so the arrows promote and demote headings, indent list items, or move table columns, depending on where the caret is. Scroll the bar sideways for more.
+
+| Button               | Key         |
+|----------------------+-------------|
+| Commands             | the command list |
+| Fold                 | =TAB=       |
+| Overview             | =S-TAB=     |
+| Promote              | =M-<left>=  |
+| Demote               | =M-<right>= |
+| Move up              | =M-<up>=    |
+| Move down            | =M-<down>=  |
+| New heading or item  | =M-RET=     |
+| TODO                 | =C-c C-t=   |
+| Act at point         | =C-c C-c=   |
+| Schedule             | =C-c C-s=   |
+| Deadline             | =C-c C-d=   |
+| Tags                 | =C-c C-q=   |
+| Open link            | =C-c C-o=   |
+| Hide keyboard        |             |
+
+** Commands
+
+Commands (in the key bar or More) lists every command that applies at the caret, with its Emacs key. Type to narrow the list. The command runs once the list closes.
+
+When a command asks a question, a sheet opens:
+
+- Text questions have a field, and a list of choices that narrows as you type. For tags, choosing a tag adds it to what you typed.
+- Date questions have a calendar as well as the field; Org's date syntax (=+2d=, =fri=, =14:00=) works in the field.
+- Fast selection (TODO keywords and tags with keys) lists each option with its key. For tags, tap several and then Done; inherited tags are listed below.
+
+Cancel answers nothing, as =C-g= does.
+
+=C-c '= on a block, and =C-c `= on a table field, open the text in a sheet of its own; Save puts it back.
+
+** Hardware keyboard
+
+With a hardware keyboard, the editor uses the Emacs keymap, whatever =keymap= is set to on the Mac. =keymap.toml= isn't read on iOS.
+
+- Option works as Meta when it begins a binding (=M-RET=, =M-<left>=). Otherwise Option types characters as usual.
+- Command shortcuts are the system's.
+- Keys the keymap leaves to the text system stay with iOS. These include the editing keys =C-a=, =C-e=, =C-k= and similar, which iOS handles itself.
+- After a prefix such as =C-c=, the message line shows =C-c-= while it waits for the next key. An unbound sequence shows =… is undefined=.
+
+See [[file:03-keys.org][Keys and commands]] for the Emacs bindings.
+
+* Search
+
+The Search tab finds:
+
+- Files :: up to eight org files whose path matches what you type, ranked as Quick Open ranks them on the Mac.
+- Headings :: headings whose title or text contains your words, including unsaved edits in the open file.
+
+Tap a result to open it in the reader. A heading result opens at that heading.
+
+* The agenda
+
+The Agenda tab shows the agenda over all your folders, with the span and start day from the settings (10 days from 3 days ago by default). Pull down to refresh it.
+
+- Views (the calendar icon) :: the built-in views and those in =views.toml=, Tags and Properties… (a match such as =+work-home= or =TODO="WAIT"=), and in the day view, Today, Earlier and Later.
+- Filter :: keep or leave out tags and categories of the entries shown, or type a filter as Org's =/= takes it: =+keep= and =-drop= tags or categories, =<0:30= for effort, =/regexp/=. The status line shows the filter in use.
+- Tap an entry to read it, at its heading.
+- Swipe a TODO entry to the left to mark it done with the first done keyword of its sequence.
+- Touch and hold an entry for TODO State…, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive….
+
+Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.
+
+See [[file:07-agenda.org][The agenda]] for the views and matches.
+
+* Capture
+
+Tap Capture (the pencil icon) in the Agenda or Folders tab.
+
+1. Choose a template. The first template is selected.
+2. Answer the template's questions (=%^{…}=, =%^g=, =%^t= and the like), then tap Continue. A template without questions skips this step.
+3. Edit the text. The caret is where =%?= was.
+4. Tap File.
+
+Templates come from =capture.toml= in the configuration folder (see Settings below). Without one, the two default templates apply. A template with =immediate-finish= files as soon as its questions are answered, and one with =jump-to-captured= opens the captured entry. =%^g= offers the target file's tags as choices.
+
+=org-protocol://capture= links opened on the device open the capture sheet with the link's template, URL, title and text.
+
+** From the share sheet
+
+Orgstar appears in the share sheet of other apps for a web link or text.
+
+1. Share a page or text and choose Orgstar.
+2. Choose a template, edit the link's title, and add text.
+3. Tap Capture.
+
+The share extension doesn't file the entry itself. It leaves it for the app, which opens its capture sheet with the link and text the next time it becomes active. Several shared items open one after another. If the extension shows "Orgstar's shared folder isn't available", the app and its extension can't share data, and Capture is disabled.
+
+** From Shortcuts
+
+Shortcuts has a Capture to Orgstar action, and Siri responds to "Capture to Orgstar". The action takes:
+
+- Text :: the text to capture, available to the template as =%i=.
+- Template Key :: a key from =capture.toml=; empty uses the first template.
+
+The action files the entry without showing the capture sheet, and saves the file at once. Questions in the template take their default answers, and =%c= (the clipboard) is empty, because reading the clipboard would ask for permission on every run. The action returns "Captured with" and the template's name.
+
+See [[file:08-capture.org][Capture]] for the template format.
+
+* Clocking
+
+Clock in from the editor (More ▸ Clock In, or Clock In in Commands) or from an agenda entry's menu. While a clock runs, a bar above the tab bar shows the entry and the time so far as =H:MM=, updated every 30 seconds. Tap the bar for:
+
+- Clock Out
+- Cancel Clock
+- Go to Clocked Entry
+- Clock Report
+
+Clock Report shows the time per day and heading for the files you choose. It starts with the files that contain clock lines. Turn on Limit dates to choose a range. The share button sends the report as text.
+
+See [[file:06-dates-and-clocking.org][Dates and clocking]].
+
+* Reminders
+
+With =reminders= on, Orgstar schedules a notification before each timed agenda entry in the next week, =appt-message-warning-time= minutes ahead (or the entry's =APPT_WARNTIME=). Tap a notification to open its entry. Notifications show while the app is open too.
+
+iOS lets an app schedule at most 64 notifications, and Orgstar schedules more only while it runs. It updates them when files or settings change, when you return to the app, and every hour while it is open. The agenda's status line says how far ahead reminders are set ("Reminders are set through …"), or that notifications are off for Orgstar in the system Settings app.
+
+* Export
+
+Export (in the reader's toolbar and the editor's More menu) offers HTML and Markdown. Either opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's HTML and Markdown export does.
+
+PDF, ODT, LaTeX and plain-text export need Emacs and aren't available on iOS. See [[file:12-export.org][Export]].
+
+* Code blocks and tables
+
+=C-c C-c= on a source block asks whether to run it (yes, no, or always for this block), as on the Mac.
+
+On iOS, only Emacs Lisp blocks run. Orgstar evaluates them with its own Emacs Lisp interpreter, which covers a subset of the language. Other results:
+
+- A block in another language: "/language/ blocks need the Mac to run."
+- Emacs Lisp the interpreter doesn't have: "This block uses Emacs Lisp that runs only in Emacs, on the Mac."
+
+Table formulas that Orgstar computes itself work on iOS. A table whose formulas need Emacs reports "This table needs Emacs, which runs on the Mac", with the reason, and isn't changed.
+
+Tangling (=C-c C-v t=, in Commands) works on iOS and writes the tangled files next to the org file, or where =:tangle= says.
+
+See [[file:11-code-blocks.org][Code blocks]] and [[file:10-tables.org][Tables]].
+
+* Conflicts and versions
+
+When a file changes on disk while you have unsaved edits, Orgstar merges the change into your edits. When the changes overlap, the conflict sheet opens. It shows the difference (lines marked - are on disk, + in your version) and offers:
+
+- Keep Mine :: write your version over the disk version.
+- Use Disk Version :: replace your edits with the disk version.
+- Merge with Markers :: put both versions in the editor, with conflicting lines between =<<<<<<<= and =>>>>>>>= markers, to fix and save.
+- Later :: decide later. The Conflict button in the toolbar opens the sheet again. Nothing is saved until you decide.
+
+The version you don't keep goes to the recovery folder.
+
+More ▸ Sync Conflict Copies lists Syncthing's conflict copies of the file (=name.sync-conflict-…=), each compared with the file, with Keep File, Merge and Use Copy. The copy goes to the recovery folder and is removed. When a file with conflict copies opens in the editor, a message says how many there are.
+
+More ▸ Recovered Versions lists the versions of the file kept in the recovery folder, newest first, each compared with the editor's text. Restore puts a version's text in the editor as an edit you can undo.
+
+See [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]] for how merging and recovery work.
+
+* Settings
+
+The iOS app has no settings of its own. It reads them from a configuration folder: a folder holding =config.toml= and =capture.toml=, such as a copy of the Mac's =~/.config/orgstar= synced through iCloud Drive or another app.
+
+1. Open the Settings tab.
+2. Tap Choose Folder… and choose the folder.
+
+Changes to the files apply as they sync, and again each time you return to the app. Problems in the files show in red under the folder. "No config.toml in /folder/; the defaults apply" means the folder has no =config.toml=.
+
+Stop Using This Folder returns every setting to its default.
+
+The In use section shows the TODO keywords, the agenda span and start, the reminder lead time, and the capture template keys in effect.
+
+These settings from =config.toml= apply on iOS:
+
+- =org-todo-keywords=, =org-list-allow-alphabetical=
+- =org-tags-column=, =org-insert-heading-respect-content=, =fill-column=
+- =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
+- =electric-pair-mode=
+- =org-agenda-span=, =org-agenda-start-day=, =agenda-include-subfolders=
+- =reminders=, =appt-message-warning-time=
+
+=capture.toml= and =views.toml= in the folder apply too. Other settings, including =keymap=, =save=, the theme and font, and the startup settings, don't apply on iOS. See [[file:13-configuration.org][Configuration]].
+
+* Spotlight and Quick Look
+
+Orgstar adds the org files in your folders to Spotlight with their title (=#+TITLE=, else the file name), author, description, tags, headings and text. A file is indexed again when it changes. Tap a Spotlight result to open the file in Orgstar's reader.
+
+Quick Look in the Files app shows org files as the HTML export renders them.
+
+* What the Mac has that iOS doesn't
+
+- Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond Orgstar's interpreter, and tables that need Emacs.
+- PDF, ODT, LaTeX and plain-text export.
+- The Mac and Doom keymaps, Vim keys, and =keymap.toml=.
+- Themes, fonts and font sizes. The iOS editor uses the default theme and the system's monospaced font at the Dynamic Type size.
+- Import from Emacs.
+- The board, column view, the backlinks pane, and the buffer list and tab bar.
+- The global capture hotkey and the Settings window.
+- Explicit saving.
+
+Commands the iOS app can't carry out show a message instead, such as "Not available on iOS yet". Commands that only appear on the Mac, such as Refile from the editor, aren't listed in Commands; refile and archive from the agenda instead.

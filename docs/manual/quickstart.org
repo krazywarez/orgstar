@@ -1,0 +1,84 @@
+#+TITLE: Quick start
+#+DESCRIPTION: From a fresh install to editing, scheduling and seeing your agenda.
+#+LEDE: Add a folder of org files, open one, and learn the handful of keys you need first.
+
+* Add a folder
+
+Choose File ▸ Add Folder… (=⇧⌘O=) and pick the folder that holds your org files.
+It appears in the sidebar, and Orgstar indexes every org file under it for search,
+the agenda and links. You can add several folders. Nothing is copied or moved.
+
+If you don't have org files yet, add an empty folder and create =notes.org= in it from
+Finder or the sidebar.
+
+* Choose your keys
+
+Open Orgstar ▸ Settings… (=⌘,=) and pick *Keys* under General:
+
+- *Emacs*: Org's own bindings, =C-c C-t= and friends. The default.
+- *Mac*: standard Mac editing keys, with Org commands on =⌃⌘= combinations.
+- *Doom (Vim keys)*: modal editing as in Doom Emacs, with =SPC= as the leader.
+
+[[file:guide/03-keys.org][Keys and commands]] lists every binding in each preset. If you
+already use Emacs, Settings ▸ General ▸ Import from Emacs… reads your configuration:
+TODO keywords, agenda files, capture templates and more (see
+[[file:guide/13-configuration.org][Configuration]]).
+
+* Open a file
+
+=⌘P= (Quick Open) finds a file by name; the sidebar works too. Open files become
+buffers: the tab bar and Switch to Buffer move between them.
+
+* Write an outline
+
+Type a heading and some text:
+
+#+BEGIN_SRC org
+,* Projects
+,** TODO Write the report
+SCHEDULED: <2026-10-09 Fri>
+Draft the summary first.
+,** Reading list
+- [ ] The Org manual
+- [ ] This manual
+#+END_SRC
+
+With the Emacs keys:
+
+| Key | What it does |
+|-----+--------------|
+| =TAB= on a heading | Fold or unfold it (cycles through folded, children, everything). |
+| =S-TAB= | Cycle the whole file the same way. |
+| =M-RET= | New heading (or list item) at the same level. |
+| =M-<left>= / =M-<right>= | Promote or demote the heading. |
+| =C-c C-t= | Cycle the TODO state. |
+| =C-c C-s= / =C-c C-d= | Schedule, or set a deadline, with the date picker. |
+| =C-c C-c= | Context action: toggle a checkbox, align a table, run a code block. |
+
+With the Mac preset, the Org commands are on =⌃⌘= keys (=⌃⌘T= cycles TODO, =⌃⌘S=
+schedules); with Doom, they're under =SPC m= (=SPC m t=, =SPC m d s=).
+
+The [[file:guide/02-the-editor.org][editor chapter]] covers how Org markup is shown and
+hidden, and [[file:guide/04-outlines.org][Outlines and structure]] covers headings and lists.
+
+* See your agenda
+
+Window ▸ Agenda (=⇧⌘A=) shows what is scheduled or due across every indexed file,
+day by day, and the TODO list. Select an item to jump to it. See
+[[file:guide/07-agenda.org][The agenda]].
+
+* Capture a thought
+
+=⇧⌘N= opens capture from anywhere in the app. Until you define your own templates
+(in =~/.config/orgstar/capture.toml=, or imported from Emacs), there are two: =t= files a
+TODO and =n= a note, each under an =Inbox= heading in =todo.org= or =notes.org= in your
+first folder. See [[file:guide/08-capture.org][Capture]].
+
+* Search
+
+=⇧⌘F= searches the text of every indexed file. Results open at the matching line.
+
+* Next
+
+- The command palette (=⇧⌘P=) lists every command with its key.
+- The [[file:index.org][chapter list]] goes through every feature.

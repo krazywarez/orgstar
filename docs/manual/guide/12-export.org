@@ -1,0 +1,305 @@
+#+TITLE: Export
+#+DESCRIPTION: Exporting Org files from Orgstar to HTML and Markdown, and to PDF, LaTeX, ODT and plain text through Emacs.
+#+LEDE: Orgstar exports HTML and Markdown itself, and hands PDF, LaTeX, ODT and plain text to Emacs on the Mac.
+
+* Exporting a file
+
+Export works on the file in the current editor, using its text as it is now, saved or not. It applies to Org files only; in any other file the command says "Not an org file". Source blocks are never run during export. Results already in the file are exported as they are; see [[file:11-code-blocks.org][Code blocks]].
+
+** On the Mac
+
+| Format             | Command                          | Emacs preset  | Doom                          | Needs Emacs |
+|--------------------+----------------------------------+---------------+-------------------------------+-------------|
+| HTML               | Export to HTML                   | =C-c C-e h h= | =SPC m e h h=, =C-c C-e h h= | no          |
+| HTML, then open it | Export to HTML and Open          | =C-c C-e h o= | =SPC m e h o=, =C-c C-e h o= | no          |
+| Markdown           | Export to Markdown               | =C-c C-e m m= | =SPC m e m m=, =C-c C-e m m= | no          |
+| PDF                | Export to PDF with Emacs         | =C-c C-e l p= | =SPC m e l p=, =C-c C-e l p= | yes         |
+| LaTeX              | Export to LaTeX with Emacs       | =C-c C-e l l= | =C-c C-e l l=                 | yes         |
+| ODT                | Export to ODT with Emacs         | =C-c C-e o o= | =C-c C-e o o=                 | yes         |
+| Plain text         | Export to Plain Text with Emacs  | =C-c C-e t u= | =C-c C-e t u=                 | yes         |
+
+The keys follow Emacs's export dispatcher (=org-export-dispatch=). The =SPC m e= keys work in normal state; the =C-c C-e= keys work in every Doom state. The Mac preset has no export keys.
+
+All seven commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.tex=, =.odt= or =.txt=. A file already there is replaced. The message area shows "Exported to /name/".
+
+** The export dialog
+
+The command palette's *Export…* opens a dialog with:
+
+- *Format*: HTML, Markdown, PDF (Emacs), ODT (Emacs), LaTeX (Emacs) or Plain text (Emacs).
+- *Destination*: beside the Org file by default. *Choose…* picks another place and name. Changing the format changes the extension.
+- *Open after export*: opens the file in its default app when the export finishes.
+
+The dialog remembers the format and the *Open after export* setting.
+
+** On iOS
+
+The Export menu offers HTML and Markdown. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac. PDF, LaTeX, ODT and plain text are not available on iOS.
+
+* HTML export
+
+Orgstar writes a complete HTML page: a small built-in stylesheet that follows the system's light or dark appearance, the title, an author and date line, the table of contents, then the document. It does not use Emacs, and its output is close to, but not the same as, =ox-html=.
+
+** Title, author and date
+
+| Keyword    | Effect                                                                   |
+|------------+--------------------------------------------------------------------------|
+| =#+TITLE:= | The page title and a top heading. Without one, the file's name is used.  |
+| =#+AUTHOR:=| Shown under the title.                                                   |
+| =#+DATE:=  | Shown under the title, after the author, as written.                     |
+
+Keywords in files named by =#+SETUPFILE:= count, as they do in Org.
+
+** =#+OPTIONS=
+
+| Option  | Values                                | Default | Effect                                                                 |
+|---------+---------------------------------------+---------+------------------------------------------------------------------------|
+| =toc=   | =t=, =nil=, a number                  | =t=     | Table of contents, to the given depth. =t= goes to =H=.                |
+| =num=   | =t=, =nil=, a number                  | =t=     | Section numbers, to the given depth. =t= goes to =H=.                  |
+| =H=     | a number                              | =3=     | The deepest heading level the table of contents and numbering count.   |
+| =tags=  | =t=, =nil=, =not-in-toc=              | =t=     | Heading tags; =not-in-toc= leaves them out of the table of contents.   |
+| =todo=  | =t=, =nil=                            | =t=     | TODO keywords in headings.                                             |
+| =pri=   | =t=, =nil=                            | =nil=   | Priority cookies in headings.                                          |
+| =^=     | =t=, =nil=, ={}=                      | =t=     | =_= and =^= as subscripts and superscripts; ={}= only when braced, as in =x_{1}=. |
+| =tex=   | =t=, =nil=                            | =t=     | LaTeX fragments and environments; =nil= drops them.                    |
+| =title= | =t=, =nil=                            | =t=     | The title heading.                                                     |
+| =author=| =t=, =nil=                            | =t=     | The author.                                                            |
+| =date=  | =t=, =nil=                            | =t=     | The date.                                                              |
+
+A depth for =toc= or =num= larger than =H= is cut to =H=. Any value other than =nil= turns an option on. Other =#+OPTIONS= keys are ignored.
+
+#+BEGIN_SRC org
+,#+TITLE: Field notes
+,#+AUTHOR: Sam
+,#+OPTIONS: toc:2 num:nil pri:t ^:{}
+#+END_SRC
+
+** Which headings are exported
+
+- A heading tagged with one of =#+EXCLUDE_TAGS= (=noexport= by default) is left out, with everything under it.
+- A heading whose title starts with =COMMENT= is left out.
+- A heading tagged =ARCHIVE= is exported as the heading alone, without its contents.
+- If any heading has one of =#+SELECT_TAGS= (=export= by default), only those headings, their ancestors and everything under them are exported.
+
+Each heading gets an =id= for links: its =CUSTOM_ID= property, or a slug made from its title. Headings are one level down from Org's: a top-level heading is an =<h2>=, since the title is the =<h1>=.
+
+** The page head
+
+Each =#+HTML_HEAD:= and =#+HTML_HEAD_EXTRA:= line goes into the page's =<head>= as written, in order. Use them for stylesheets and scripts:
+
+#+BEGIN_SRC org
+,#+HTML_HEAD: <link rel="stylesheet" href="notes.css">
+#+END_SRC
+
+The built-in stylesheet is always included first. Other =#+HTML_…= keywords are not used.
+
+** Math
+
+LaTeX fragments (=\(…\)=, =\[…\]=, =$…$=, =$$…$$=) and LaTeX environments are left in the page for MathJax. When the page has any, Orgstar adds MathJax 3 from =cdn.jsdelivr.net=, so the page needs a network connection to show math. Entities such as =\alpha= become their characters.
+
+** Includes
+
+=#+INCLUDE:= inserts another file before export, as =org-export-expand-include-keyword= does. Paths are relative to the Org file.
+
+| Form                                          | Effect                                                    |
+|-----------------------------------------------+-----------------------------------------------------------|
+| =#+INCLUDE: "part.org"=                       | The file's contents, read as Org; its includes are expanded too, up to eight levels. |
+| =#+INCLUDE: "part.org::*Heading"=             | Only the subtree with that heading.                        |
+| =#+INCLUDE: "part.org::#custom-id"=           | Only the subtree with that =CUSTOM_ID=.                    |
+| =#+INCLUDE: "code.sh" src sh=                 | The file in a source block.                                |
+| =#+INCLUDE: "log.txt" example=                | The file in an example block.                              |
+| =#+INCLUDE: "page.html" export html=          | The file in an export block.                               |
+| =quote=, =verse=, =center=, =comment=         | The file in a block of that kind.                          |
+| =:lines "5-10"=                               | Only those lines; either end may be left out.              |
+| =:minlevel 2=                                 | Shift the included headings so the shallowest is at that level. |
+
+A file that cannot be read is replaced by an empty line.
+
+** Macros
+
+={{{name(arguments)}}}= is replaced before export (=org-macro-replace-all=).
+
+| Macro                        | Replaced by                                                          |
+|------------------------------+----------------------------------------------------------------------|
+| =#+MACRO: name text=         | =text=, with =$1=, =$2=… replaced by the arguments.                   |
+| ={{{title}}}=, ={{{author}}}=, ={{{date}}}=, ={{{email}}}= | That keyword's value.                     |
+| ={{{keyword(NAME)}}}=        | The value of =#+NAME:=.                                               |
+| ={{{input-file}}}=           | The Org file's name.                                                  |
+| ={{{n}}}=, ={{{n(name)}}}=   | A counter, increased at each use. =n(name,-)= repeats the current value; =n(name,5)= sets it to 5. |
+| ={{{time(format)}}}=         | The current time, formatted as =format-time-string= does.             |
+
+Arguments are separated by commas; write =\,= for a literal comma. Macros defined with =(eval …)=, and macros Orgstar does not know, become empty. =#+MACRO:= definitions in setup files count.
+
+** Footnotes
+
+Footnote references, named or inline (=[fn:: text]=), become numbered superscript links. The notes are collected in a Footnotes section at the end, numbered in the order they are first referenced, each with a link back. A reference without a definition is exported as written.
+
+** Tables
+
+An Org table becomes an HTML =<table>=. If it has rules, the rows before the first rule are the header (=<thead>=) and the rest the body. =#+CAPTION:= gives the table a caption. =#+TBLFM:= lines are not exported.
+
+A table.el table (one drawn with =+=, =-= and =|=) becomes a table with each cell's =colspan= and =rowspan=, and the lines in a cell joined with line breaks. If its drawing is not a well-formed table, it is exported as preformatted text.
+
+** Images and links
+
+A link to an image file without a description becomes an =<img>=. The image types are =png=, =jpg=, =jpeg=, =gif=, =svg=, =webp=, =bmp=, =tif=, =tiff= and =avif=. =#+ATTR_HTML:= before the paragraph adds attributes (=:width 300 :alt "Map"=); without an =:alt=, the file name is used.
+
+An image paragraph with =#+CAPTION:= or =#+ATTR_HTML:= becomes a =<figure>=; a caption is numbered "Figure 1:", "Figure 2:" and so on.
+
+Links to =.org= files point to the =.html= file of the same name. Links to headings (=[[*Heading]]=), to =CUSTOM_ID= targets and to radio targets point to the heading's or target's =id= on the page. =id:= links point to =#= and the ID. Other links are written as they are.
+
+** Source blocks and their results
+
+A source block is exported as =<pre><code class="language-LANG">=, with the code escaped and its common indentation removed. Orgstar does not color the code; the class lets a script or stylesheet in =#+HTML_HEAD= highlight it. Noweb references are shown as written. Line-number switches are ignored.
+
+The block's =:exports= argument decides what appears. Orgstar reads it from the =#+begin_src= line only.
+
+| =:exports=       | Exported                                  |
+|------------------+-------------------------------------------|
+| =code= (default) | The code.                                 |
+| =results=        | The block's existing =#+RESULTS:=.        |
+| =both=           | The code, then the results.               |
+| =none=           | Nothing.                                  |
+
+An inline =src_= block is exported as its code in =<code>=. Results of =#+CALL:= lines and inline blocks are not exported.
+
+** Other blocks and elements
+
+| Org                              | HTML                                            |
+|----------------------------------+-------------------------------------------------|
+| =#+begin_example=                | =<pre>=                                         |
+| =: = lines                       | =<pre class="example">=                         |
+| =#+begin_quote=                  | =<blockquote>=                                  |
+| =#+begin_center=                 | =<div class="center">=                          |
+| =#+begin_verse=                  | =<p class="verse">=, lines and indentation kept |
+| =#+begin_export html=            | Its contents, as they are                       |
+| =#+begin_export= other formats   | Nothing                                         |
+| =#+begin_comment=                | Nothing                                         |
+| =#+begin_NAME=, any other name   | =<div class="NAME">= (a special block)          |
+| =@@html:…@@=                     | Its contents, as they are; other back-ends' snippets are dropped |
+| Plain, numbered and description lists | =<ul>=, =<ol>=, =<dl>=; checkboxes as =[X]=, =[-]=, =[ ]= |
+| Timestamps                       | =<time datetime="…">=                           |
+| Inline tasks                     | =<div class="inlinetask">= with the title in bold |
+| Dynamic blocks                   | Their contents                                  |
+| =-----=                          | =<hr>=                                          |
+
+Comments, drawers, property drawers, planning lines, clock lines and keywords are not exported.
+
+** Citations
+
+HTML and Markdown export handle citations the same way; see Citations below.
+
+* Markdown export
+
+Markdown export writes GitHub-flavored Markdown:
+
+- =#+TITLE:= becomes a top =#= heading. Org headings are one level down: =*= is =##=. TODO keywords and priorities stay in the heading text, and tags are shown as inline code.
+- Source blocks become fenced code blocks with the language; example blocks, =: = lines and table.el tables become fenced blocks without one.
+- Tables become pipe tables. A rule after the first row makes it the header; otherwise the header row is empty.
+- Checkboxes become task-list items (=- [x]=, =- [ ]=).
+- Footnotes become =[^1]= references with the notes at the end.
+- Quotes become =>= blocks. Verse lines end with two spaces.
+- Images become =![](path)=. Links to =.org= files written without =file:= point to the =.md= file of the same name.
+- =#+begin_export= blocks for =markdown=, =md= or =html=, and =@@html:…@@= snippets, are copied as they are.
+- Underline, subscripts and superscripts are written as HTML tags.
+- =:exports= is handled as in HTML export.
+- Citations are handled as in HTML export.
+
+Markdown export is simpler than HTML export. It does not read =#+OPTIONS=, =#+EXCLUDE_TAGS= or =#+SELECT_TAGS=, does not leave out =noexport= or =COMMENT= headings, does not expand =#+INCLUDE:=, and drops macros. It writes no author or date.
+
+* Exporting through Emacs
+
+On the Mac, PDF, LaTeX, ODT and plain text exports are done by Emacs, with the =ox= functions Emacs's dispatcher uses:
+
+| Format     | Function                    |
+|------------+-----------------------------|
+| PDF        | =org-latex-export-to-pdf=   |
+| LaTeX      | =org-latex-export-to-latex= |
+| ODT        | =org-odt-export-to-odt=     |
+| Plain text | =org-ascii-export-to-ascii= |
+
+Orgstar runs =emacs -Q --batch= in the Org file's folder. It opens the file, replaces its contents with the editor's current text without saving, and calls the function. Emacs writes the result beside the file, as it would itself; with a destination chosen in the export dialog, Orgstar then moves it there. The message area shows "Exporting with Emacs…" and then "Exported to /name/".
+
+What you need:
+
+- Emacs, at =ORGSTAR_EMACS= or one of =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= or =/usr/bin/emacs=. Without it the export fails with "Emacs isn't installed, so this format can't be exported."
+- For PDF, a TeX installation that Emacs's LaTeX export can run.
+
+Things to know:
+
+- =-Q= means Emacs does not load your init file. Your LaTeX classes, export settings and packages from it are not used; the export uses Org's defaults and what the file itself sets.
+- File-local variables are applied only when Emacs considers them safe.
+- =org-export-use-babel= is off, so no source blocks run.
+- An export that takes more than two minutes is stopped with "Emacs took too long to export."
+- If Emacs fails, the message area shows the last line of its error output.
+
+To use your own Emacs configuration, or formats Orgstar does not list, export from Emacs itself; see [[file:15-alongside-emacs.org][Alongside Emacs]].
+
+* Citations
+
+HTML and Markdown export process citations as Org's =basic= citation processor does (=oc-basic=).
+
+#+BEGIN_SRC org
+,#+bibliography: refs.bib
+,#+cite_export: basic author-year
+
+As shown in [cite:@smith2020], and again [cite/t:@smith2020; see @lee2019 p. 4].
+
+,#+print_bibliography:
+#+END_SRC
+
+** Bibliography files
+
+Each =#+bibliography:= line names one file, relative to the Org file, optionally in quotes. A file ending in =.json= is read as CSL-JSON; anything else is read as BibTeX, with =@string= abbreviations expanded and =@comment= and =@preamble= skipped. You can have several =#+bibliography:= lines; for a key in more than one file, the first file wins.
+
+** =#+cite_export:=
+
+=#+cite_export: PROCESSOR [BIBLIOGRAPHY-STYLE [CITATION-STYLE]]=.
+
+- With no =#+cite_export:=, or with =basic=, citations are processed.
+- With any other processor, such as =csl= or =biblatex=, Orgstar leaves citations as they are written.
+- The citation style, which may include a variant (=text/bare=), is the default for citations that do not name one.
+
+** Citation styles
+
+A citation is =[cite:…]= or =[cite/style:…]= or =[cite/style/variant:…]=, holding one or more =@key= references separated by =;=. Each reference may have its own prefix and suffix, and the whole citation a common prefix and suffix.
+
+| Style                         | Output                                                                  |
+|-------------------------------+-------------------------------------------------------------------------|
+| default (none given)          | =(Author, Year)=                                                        |
+| =author=, =a=                 | =Author=                                                                |
+| =noauthor=, =na=              | =(Year)=                                                                |
+| =text=, =t=                   | =Author (Year)=                                                         |
+| =note=, =ft=                  | A footnote holding the =text= form                                      |
+| =numeric=, =nb=               | =(1)=, numbered by the cited works sorted by author; three or more in a row as =1-3= |
+| =nocite=, =n=                 | Nothing; the work is still listed in the bibliography                   |
+
+| Variant              | Effect                                     |
+|----------------------+--------------------------------------------|
+| =bare=, =b=          | No parentheses                             |
+| =caps=, =c=          | Capitalized author                         |
+| =bare-caps=, =bc=    | Both                                       |
+
+Works by the same author in the same year get =a=, =b=, … after the year. A key not found in any bibliography file shows as =??= and =????=. Citations in the title are dropped.
+
+For =note= citations, the blank before the citation is removed and punctuation right after it moves in front of the footnote mark, as =org-cite-adjust-note= does.
+
+** The bibliography
+
+=#+print_bibliography:= is replaced by an entry for every cited work, sorted by author. The bibliography style from =#+cite_export:= sets the form:
+
+| Bibliography style     | Entry                                                    |
+|------------------------+----------------------------------------------------------|
+| default                | =Author (Year). /Title/, Publisher.=                     |
+| =plain=                | =Surnames. Title, Publisher, Year.=                      |
+| =numeric=              | =[1] Author, /Title/, Publisher, Year.=                  |
+
+The publisher part comes from the =publisher=, =journal=, =institution= or =school= field. Without =#+print_bibliography:= no bibliography is written.
+
+* What export does not do
+
+- There is no subtree export, body-only export, or asynchronous export; each command exports the whole file.
+- =#+EXPORT_FILE_NAME:= is not used by HTML and Markdown export.
+- Source blocks are not run, and noweb references are not expanded.
+- HTML export does not color source code.
+- Export settings in the dialog are not per file.

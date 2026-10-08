@@ -1,0 +1,317 @@
+#+TITLE: TODOs and tags
+#+DESCRIPTION: TODO keywords, state logging, priorities, tags and progress cookies in Orgstar.
+#+LEDE: Mark headings as tasks, record when their state changes, rank them, and label them with tags.
+
+* TODO keywords
+
+A heading becomes a task when its first word after the stars is a TODO keyword:
+
+#+BEGIN_SRC org
+,* TODO Write the quarterly report
+,* DONE Book the venue
+#+END_SRC
+
+Keywords come in sequences. Each sequence has active keywords, a =|=, and done keywords. A keyword after the =|= counts as done for logging, statistics cookies, repeating tasks and the agenda.
+
+** The default keywords
+
+Files without a =#+TODO= line use the keywords in Settings ▸ Editing ▸ Default TODO keywords, which is the =org-todo-keywords= key in =config.toml=. The default is:
+
+#+BEGIN_SRC org
+TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)
+#+END_SRC
+
+The value uses =#+TODO= syntax. To define more than one sequence, put one per line (=\n= in =config.toml=). Orgstar reads this setting at launch, so a change takes effect after you restart the app. See [[file:13-configuration.org][Configuration]] for the file itself and for keyword colors under =[theme.todo]=.
+
+** Keywords in the file
+
+A file can set its own keywords, which replace the default ones for that file:
+
+#+BEGIN_SRC org
+,#+TODO: TODO NEXT WAIT | DONE CANCELED
+,#+TODO: BUG(b) | FIXED(f)
+,#+SEQ_TODO: DRAFT REVIEW | PUBLISHED
+,#+TYP_TODO: ALICE BOB | DONE
+#+END_SRC
+
+- Each line is one sequence. =#+SEQ_TODO= means the same as =#+TODO=.
+- Without a =|=, the last word is the done keyword.
+- =#+TYP_TODO= marks a sequence of types (=org-todo-interpretation= =type=). The only difference Orgstar makes is in repeating tasks: a repeating entry returns to the keyword it had before it was done, instead of to the first keyword of the sequence.
+- The order of sequences is the order Org uses: =#+TYP_TODO= lines first, then =#+TODO=, then =#+SEQ_TODO=.
+- Lines inside blocks are ignored. Lines from a =#+SETUPFILE= count as if they came first in the file.
+
+Edits to these lines take effect as you type. If the keywords come from a setup file you changed, press =C-c C-c= on any =#+= keyword line to read the setup files again (=org-mode-restart=).
+
+** Keyword options
+
+The parentheses after a keyword hold a fast-selection key and logging flags, as in Org:
+
+| Form           | Meaning                                                   |
+|----------------+-----------------------------------------------------------|
+| =WAIT(w)=      | Fast-selection key =w=                                    |
+| =WAIT(w!)=     | Key =w=, record the time when entering the state          |
+| =WAIT(w@)=     | Key =w=, ask for a note when entering the state           |
+| =WAIT(w@/!)=   | Note when entering, time when leaving to a state that logs nothing |
+| =WAIT(@/!)=    | No key, same logging                                      |
+
+Logging is described under "Logging state changes" below.
+
+* Changing the state
+
+| Command                | Org command      | Emacs, Doom    | Mac  | Doom leader |
+|------------------------+------------------+----------------+------+-------------|
+| Cycle TODO State       | =org-todo=       | =C-c C-t=      | ⌃⌘T  | =SPC m t=   |
+| Next TODO Keyword      | =org-shiftright= | =S-<right>=    |      |             |
+| Previous TODO Keyword  | =org-shiftleft=  | =S-<left>=     |      |             |
+
+=S-<right>= and =S-<left>= act on the TODO keyword when the caret is on a heading line and not on a timestamp. In the Doom preset they also work in normal and insert state, and =C-S-l= and =C-S-h= do the same. The Mac preset has no key for them; use the Org menu or the command palette.
+
+With speed commands on (=org-use-speed-commands=), =t= at the start of a heading line runs Cycle TODO State.
+
+** Cycling
+
+=C-c C-t= behaves in one of two ways:
+
+- If any keyword in the file has a fast-selection key, it opens fast selection (=org-use-fast-todo-selection= =auto=). The default keywords all have keys, so this is what you get unless you define keywords without keys.
+- Otherwise it cycles: no keyword, then each keyword of the first sequence in order, then no keyword again. From a keyword in another sequence it moves through that sequence and then to no keyword.
+
+=S-<right>= and =S-<left>= never use fast selection. They step through every keyword of every sequence in order, then to no keyword, and wrap around.
+
+** Fast selection
+
+Fast selection appears in the echo area under the editor. Each sequence is shown on its own row in braces, with the key in brackets before each keyword.
+
+| Key        | Effect                                            |
+|------------+---------------------------------------------------|
+| a keyword's key | Set that keyword                             |
+| =SPC=      | Remove the keyword                                |
+| =Esc=, =C-g=, any other key | Quit without changing anything   |
+
+Keywords without a key in parentheses get one: the first letter of the keyword not already taken (a leading =@= is skipped), and failing that a digit counting up from =0=. When two sequences use the same key, the key picks the keyword from the current keyword's sequence.
+
+** Inserting a TODO heading
+
+Insert TODO Heading (=org-insert-todo-heading=, =M-S-RET= in Emacs and Doom, ⌘⇧↩ on Mac) adds a heading with the current entry's keyword when that keyword is active, and with the first keyword otherwise. See [[file:04-outlines.org][Outlines]].
+
+** Dependencies
+
+Orgstar does not enforce TODO dependencies. =org-enforce-todo-dependencies= and the =ORDERED= and =NOBLOCKING= properties have no effect: a parent can be marked done while its children are open. The property names are offered in completion only so that files written for Emacs keep working there.
+
+* Logging state changes
+
+Orgstar logs state changes as =org-todo= does in Org 9.8.
+
+** CLOSED
+
+When =org-log-done= is =time= and an entry moves from an active keyword to a done one, Orgstar adds a =CLOSED= stamp to its planning line:
+
+#+BEGIN_SRC org
+,* DONE Book the venue
+CLOSED: [2026-10-07 Wed 14:32]
+#+END_SRC
+
+With =note=, it also asks for a closing note. Moving the entry back to an active keyword, or removing the keyword, removes =CLOSED=. This happens only while some logging is on (=org-log-done= or a keyword with =!= or =@=); with no logging at all, an existing =CLOSED= stamp stays.
+
+** State notes
+
+A keyword with =!= or =@= records a note when the entry enters it, and the part after =/= records one when the entry leaves it for a state that logs nothing on entry. =!= records the time; =@= asks for a note in the echo area:
+
+#+BEGIN_SRC org
+,#+TODO: TODO(t) WAIT(w@/!) | DONE(d!) CANCELED(c@)
+
+,* WAIT Call the supplier
+- State "WAIT"       from "TODO"       [2026-10-07 Wed 09:15] \\
+  Left a message, waiting for a reply.
+#+END_SRC
+
+Notes go first in the entry, after the planning line and property drawer, newest first (=org-log-states-order-reversed= =t=). The note text is indented under the item; lines starting with =#= and a space are dropped. If the keyword's own flag and =org-log-done= both apply, the keyword's flag wins.
+
+The headings are Org's default =org-log-note-headings=:
+
+| Event                 | Note heading                                         |
+|-----------------------+------------------------------------------------------|
+| State change          | =State "DONE"       from "TODO"       [timestamp]=   |
+| Closing note          | =CLOSING NOTE [timestamp]=                           |
+| Rescheduled           | =Rescheduled from "[old date]" on [timestamp]=       |
+| Schedule removed      | =Not scheduled, was "[old date]" on [timestamp]=     |
+| New deadline          | =New deadline from "[old date]" on [timestamp]=      |
+| Deadline removed      | =Removed deadline, was "[old date]" on [timestamp]=  |
+
+Rescheduling and deadline notes are covered in [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]]. Orgstar has no command to add a free note to an entry (=org-add-note=).
+
+** The LOGBOOK drawer
+
+With =org-log-into-drawer= set to a drawer name, notes go at the top of that drawer, which Orgstar creates when it is missing:
+
+#+BEGIN_SRC org
+,* DONE Book the venue
+CLOSED: [2026-10-07 Wed 14:32]
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-10-07 Wed 14:32]
+:END:
+#+END_SRC
+
+In =config.toml=, ="LOGBOOK"= is the equivalent of Emacs's =t=, and =""= (the default) means no drawer. Clock lines always go into a =LOGBOOK= drawer, whatever this setting says.
+
+** Where the settings come from
+
+Later sources override earlier ones:
+
+1. =config.toml=: =org-log-done=, =org-log-reschedule=, =org-log-redeadline= (each =nil=, =time= or =note=, default =nil=) and =org-log-into-drawer= (default =""=). These have no control in the Settings window. =org-log-repeat= is always =time= unless the file changes it.
+2. Keyword flags such as =DONE(d!)=.
+3. =#+STARTUP= words in the file or its setup files.
+4. The =LOGGING= property, inherited from ancestors.
+5. The =LOG_INTO_DRAWER= property, inherited from ancestors: =t= for =LOGBOOK=, =nil= for none, or a drawer name.
+
+| =#+STARTUP= word                                       | Effect                                   |
+|--------------------------------------------------------+------------------------------------------|
+| =logdone=, =lognotedone=, =nologdone=                  | =org-log-done= =time=, =note=, =nil=     |
+| =logrepeat=, =lognoterepeat=, =nologrepeat=            | =org-log-repeat= =time=, =note=, =nil=   |
+| =logreschedule=, =lognotereschedule=, =nologreschedule= | =org-log-reschedule=                    |
+| =logredeadline=, =lognoteredeadline=, =nologredeadline= | =org-log-redeadline=                    |
+| =logdrawer=, =nologdrawer=                             | =org-log-into-drawer= =LOGBOOK= or none  |
+
+A =LOGGING= property (=org-local-logging=) replaces the done, repeat and per-keyword settings for its subtree. It takes the =logdone= and =logrepeat= words above and keyword specifications such as =WAIT(@)=; =nil= turns them all off:
+
+#+BEGIN_SRC org
+,* Errands
+:PROPERTIES:
+:LOGGING:  DONE(!) WAIT(@) logrepeat
+:LOG_INTO_DRAWER: NOTES
+:END:
+#+END_SRC
+
+* Priorities
+
+A priority cookie goes after the keyword:
+
+#+BEGIN_SRC org
+,* TODO [#A] Renew the passport
+#+END_SRC
+
+The range is =A= (highest) to =C= (lowest), with =B= as the default. A file can change it with =#+PRIORITIES: highest lowest default=, using letters or numbers:
+
+#+BEGIN_SRC org
+,#+PRIORITIES: A E C
+,#+PRIORITIES: 1 10 5
+#+END_SRC
+
+| Command                       | Org command     | Emacs, Doom     | Mac   | Doom leader |
+|-------------------------------+-----------------+-----------------+-------+-------------|
+| Set Priority…                 | =org-priority=  | =C-c ,=         |       | =SPC m p p= |
+| Raise Priority                | =org-priority-up= | =S-<up>=      | ⌃⌘↑   | =SPC m p u= |
+| Lower Priority                | =org-priority-down= | =S-<down>=  | ⌃⌘↓   | =SPC m p d= |
+
+=S-<up>= and =S-<down>= act on the priority when the caret is on a heading line and not on a timestamp; Doom also binds =C-S-k= and =C-S-j=.
+
+- Set Priority shows the priorities with their keys (lowercase letters, or the digits of a numeric range) and =SPC= to remove the cookie. When the lowest numeric priority is 10 or more, it asks you to type the number instead.
+- Raise and Lower start at the default priority when the heading has none (=org-priority-start-cycle-with-default=). Going past the highest or lowest priority removes the cookie.
+- With speed commands on, =,= runs Set Priority, =1=, =2= and =3= set =A=, =B= and =C=, and =0= removes the priority.
+
+The agenda sorts by priority; see [[file:07-agenda.org][The agenda]].
+
+* Tags
+
+Tags go at the end of a heading, between colons:
+
+#+BEGIN_SRC org
+,* TODO Order parts                                             :work:urgent:
+#+END_SRC
+
+A tag consists of letters, digits, =_=, =@=, =#= and =%=.
+
+** Setting tags
+
+| Command   | Org command               | Emacs, Doom   | Mac   | Doom leader |
+|-----------+---------------------------+---------------+-------+-------------|
+| Set Tags  | =org-set-tags-command=    | =C-c C-q=     | ⌃⌘Q   | =SPC m q=   |
+
+=C-c C-c= on a heading line also runs Set Tags, and so does =:= as a speed command.
+
+Without fast selection (see below), Set Tags asks for the tags in the echo area, starting with the current ones. Completion offers the tags in the file's =#+TAGS= lines, or, without those, every tag used in the file and its =#+FILETAGS=, and in both cases the tags used across your folders. You can type tags that are not offered. Spaces, commas and colons all separate tags; an empty answer removes all tags.
+
+Setting tags on the text before the first heading (file tags) is not supported; edit the =#+FILETAGS= line directly.
+
+Typing =:= at the end of a heading line also completes tags: from the =#+TAGS= lines when the file has any, and otherwise from the file's tags and those used across your folders. Tags the heading already has are left out. See [[file:02-the-editor.org][The editor]] for how completion works.
+
+** Fast tag selection
+
+When a =#+TAGS= line gives at least one tag a key, Set Tags opens fast selection (=org-fast-tag-selection=):
+
+#+BEGIN_SRC org
+,#+TAGS: { @office(o) @home(h) @errand(e) } laptop(l) phone(p)
+,#+TAGS: [ Project : alpha beta ]
+#+END_SRC
+
+| Key            | Effect                                                    |
+|----------------+-----------------------------------------------------------|
+| a tag's key    | Toggle that tag                                           |
+| =SPC=          | Remove all tags                                           |
+| =TAB=          | Type a tag by name, then =RET=                            |
+| =!=            | Turn the exclusion of ={ }= groups off or back on         |
+| =RET=          | Apply the selection                                       |
+| =q=            | Quit, unless a tag uses =q= as its key                    |
+| =Esc=, =C-g=   | Quit                                                      |
+
+The view shows the inherited tags, the current selection, and each tag with its key, in the rows and groups of the =#+TAGS= lines.
+
+- Tags between ={= and =}= exclude each other: selecting one removes the others in the group.
+- Tags between =[= and =]=, with =:= after the first, form a group tag. The selection shows them as written; they do not change how keys act. Searching by group tag is part of [[file:07-agenda.org][The agenda]].
+- Tags without a key get one: their first letter if it is free, otherwise the next free character from =a–z=, =A–Z= and ={|}~=.
+- The selected tags are written in the order of the =#+TAGS= lines, followed by any others.
+
+=#+TAGS= lines come only from the file and its setup files. Orgstar has no global tag list (=org-tag-alist=); the workspace's tags are used for completion only.
+
+** Inheritance
+
+An entry inherits the tags of its ancestors and the file's =#+FILETAGS= (=org-use-tag-inheritance= =t=). Fast selection lists inherited tags separately. Agenda matches and clock tables with =:tags t= use the inherited tags too. Orgstar has no setting to limit inheritance (=org-tags-exclude-from-inheritance=).
+
+#+BEGIN_SRC org
+,#+FILETAGS: :home:
+
+,* Garden                                                          :outdoor:
+,** TODO Prune the roses
+#+END_SRC
+
+Here "Prune the roses" has the tags =home= and =outdoor= through inheritance.
+
+** Alignment
+
+Orgstar aligns tags whenever it changes a heading line: setting tags, changing the TODO keyword or the priority, and updating a statistics cookie. The column is =org-tags-column=, under Settings ▸ Editing ▸ Tags:
+
+| Value      | Placement                                          |
+|------------+----------------------------------------------------|
+| =-77=      | Tags end at column 77 (the default)                |
+| =0=        | One space after the title                          |
+| negative N | Tags end at column N                               |
+| positive N | Tags start at column N                             |
+
+The Settings window offers =-77= and =0=; other values go in =config.toml=. Columns are counted as Emacs displays the line, so links count as their description and, when =org-hide-emphasis-markers= is on, emphasis markers do not count. A heading always keeps at least one space before its tags.
+
+* Progress on child tasks
+
+A =[/]= or =[%]= cookie in a heading shows how many of its children are done:
+
+#+BEGIN_SRC org
+,* Move house [1/3]
+,** DONE Hire a van
+,** TODO Pack the kitchen
+,** TODO Forward the mail
+#+END_SRC
+
+Orgstar updates the cookie whenever a child's TODO keyword changes (=org-update-parent-todo-statistics=, with =org-hierarchical-todo-statistics= =t=). Only direct children with a TODO keyword count; children without one are ignored. =C-c C-c= on a cookie updates it by hand.
+
+The =COOKIE_DATA= property changes what the parent's cookie counts:
+
+- =recursive= counts every descendant with a keyword, and a change updates the cookies of every ancestor up to the heading that sets the property. Without it, only the direct parent's cookie is updated.
+- =checkbox= makes the cookie count checkboxes in the entry's lists instead of child tasks. Checkbox cookies are described in [[file:04-outlines.org][Outlines]].
+
+* Related settings
+
+| Setting                 | Where                                     | Default                    |
+|-------------------------+-------------------------------------------+----------------------------|
+| =org-todo-keywords=     | Settings ▸ Editing, =config.toml=         | See "The default keywords" above |
+| =org-log-done=          | =config.toml=                             | =nil=                      |
+| =org-log-into-drawer=   | =config.toml=                             | =""= (no drawer)           |
+| =org-tags-column=       | Settings ▸ Editing, =config.toml=         | =-77=                      |
+| =org-use-speed-commands= | =config.toml=                            | =false=                    |

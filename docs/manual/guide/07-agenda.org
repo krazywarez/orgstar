@@ -1,0 +1,445 @@
+#+TITLE: The agenda
+#+DESCRIPTION: The agenda window, the TODO list, tag and property matches, saved views, filters, reminders and the board.
+#+LEDE: The agenda collects dated entries and TODO items from your agenda files into one list you can act on.
+
+* Opening the agenda
+
+On the Mac the agenda is its own window. Open it with Window ▸ Agenda, or with the key for your preset:
+
+| Preset | Key                                  |
+|--------+--------------------------------------|
+| Mac    | =⇧⌘A=                                |
+| Emacs  | =C-c a= or =⇧⌘A=                     |
+| Doom   | =SPC o a= (normal state), =C-c a= or =⇧⌘A= |
+
+With =org-use-speed-commands= on, =v= at the start of a heading line opens it too (see [[file:03-keys.org][Keys]]).
+
+The key opens the window directly. There is no =org-agenda= dispatcher; you choose what the window shows from the view menu at the left of its toolbar (see [[*Views][Views]]).
+
+Opening a timestamp with =org-open-at-point= (=C-c C-o= in the Emacs preset) opens the agenda on that timestamp's day, or on every day of a date range.
+
+On iOS the agenda is the first tab. See [[*The agenda on iOS][The agenda on iOS]].
+
+* Agenda files
+
+Orgstar has no =org-agenda-files= list. The agenda reads every =.org= file at the top level of each folder you have added (see [[file:01-files-and-folders.org][Files and folders]]). Files whose names start with a dot are left out, as =org-agenda-file-regexp= leaves them out.
+
+To include files in subfolders as well, turn on Settings ▸ Agenda ▸ Include files in subfolders, or set this in =config.toml=:
+
+#+BEGIN_SRC toml
+[orgstar]
+agenda-include-subfolders = true
+#+END_SRC
+
+When a file is open in the editor, the agenda reads the buffer, so unsaved edits show. Other files are read from disk and cached until their modification date or size changes. A file that uses =#+SETUPFILE= is read again on every refresh, because its setup file may have changed.
+
+Within a file, the agenda skips:
+
+- trees tagged =ARCHIVE=, and every entry in a file whose =#+FILETAGS= include =ARCHIVE=;
+- commented trees (a heading whose title starts with =COMMENT=);
+- everything below a skipped heading.
+
+An entry's category is the nearest =CATEGORY= property on it or an ancestor, else the file's =#+CATEGORY=, else the file name without =.org=.
+
+If no agenda file exists, the window says so.
+
+* The day and week view
+
+The default view is =org-agenda-list=: a run of days, each with a header such as =Monday      5 October 2026 W41= (the ISO week number appears on Mondays).
+
+| Setting                      | Default | =config.toml=                     | Range in Settings |
+|------------------------------+---------+-----------------------------------+-------------------|
+| Days shown                   | 10      | =org-agenda-span = 10=            | 1 to 31           |
+| First day, relative to today | 3 days before | =org-agenda-start-day = "-3d"= | 0 to 14 days before |
+
+Both mirror the Emacs variables of the same name. The defaults are Doom's values, not plain Emacs's (a week starting today). =org-agenda-start-day= takes only day offsets such as ="-3d"= or ="+0d"=. There are no day, week or month view keys (=d=, =w=, =m= in Emacs) and no =org-agenda-start-on-weekday=: the span is a number of days and always begins at the configured offset.
+
+** Moving through days
+
+| Key | Toolbar   | Does                              | Org command              |
+|-----+-----------+-----------------------------------+--------------------------|
+| =f= | Later (›) | Moves forward by a whole span     | =org-agenda-later=       |
+| =b= | Earlier (‹) | Moves back by a whole span      | =org-agenda-earlier=     |
+| =.= | Today     | Returns to the span around today  | =org-agenda-goto-today=  |
+| =g=, =r= |      | Refreshes, and reloads =views.toml= | =org-agenda-redo=      |
+
+The agenda also refreshes on its own when files change, when you edit an open buffer, and once a minute so the time grid and the current day stay correct.
+
+** What appears on each day
+
+The entries follow =org-agenda-get-day-entries= with Org's default entry types, in the formats Org prints.
+
+| Entry                                   | Where it appears                                                                                      | Leader                         |
+|-----------------------------------------+-------------------------------------------------------------------------------------------------------+--------------------------------|
+| =DEADLINE= on that day                  | On its day                                                                                            | =Deadline:=                    |
+| =DEADLINE= in the future                | On today, from the warning period before it                                                           | =In   3 d.:=                   |
+| =DEADLINE= in the past, not done        | On today                                                                                              | =2 d. ago:=                    |
+| =SCHEDULED= on that day                 | On its day                                                                                            | =Scheduled:=                   |
+| =SCHEDULED= in the past, not done       | On today                                                                                              | =Sched. 3x:=                   |
+| Active timestamp =<2026-10-05 Mon>=     | On its day; also in property drawers                                                                  | none                           |
+| Repeating timestamp =<… +1w>=           | On each occurrence within the span                                                                    | none                           |
+| Date range =<…>--<…>=                   | On every day of the range                                                                             | =(2/5):= (day 2 of 5)          |
+| Diary sexp =%%(…)= line or =<%%(…)>=    | On each day the sexp applies; see [[*Diary sexps][Diary sexps]]                                       | none                           |
+| Habit (=STYLE: habit=)                  | On today only, while not done; see [[*Habits][Habits]]                                               | none, with a consistency graph |
+
+Details:
+
+- Deadline warnings use =org-deadline-warning-days=, fixed at 14 days. A =-Nd= cookie in the timestamp (=<2026-10-20 Tue -3d>=) changes the warning for that deadline; =w=, =m= and =y= units work too.
+- A =-Nd= cookie on a =SCHEDULED= timestamp delays it: the entry first shows N days after the scheduled date.
+- Repeaters on =SCHEDULED= and =DEADLINE= timestamps (=+1w=, =++1w=, =.+1d=) make the entry show on the next occurrence on future days, as in Org.
+- A done entry shows only on the day of its deadline or scheduled date, not as overdue.
+- Inactive timestamps (=[…]=) never appear, except in log mode.
+- Ranges in comment lines and inside source blocks are ignored, as in Org.
+
+Entries with a time of day sort into the day by time. On today, and on any day when the span is one day, a time grid is added when at least one entry has a time: lines at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00 and 20:00, and on today a "now" line at the current time. The grid times are not configurable.
+
+A time can come from the timestamp (=<2026-10-05 Mon 14:00-15:30>=) or from the heading text (=Call Ada 9:30am=), as =org-agenda-search-headline-for-time= allows. Times past 24:00, such as =25:30=, show as =+1:30=.
+
+** Sorting
+
+Days are sorted as =org-agenda-sorting-strategy= sorts them by default for the agenda: =(habit-down time-up urgency-down category-keep)=. Habits go last; timed entries come first, earliest first; the rest by urgency, which combines priority with how overdue an entry is; ties keep file order. The TODO list and match views sort by urgency, then file order. The sorting is not configurable.
+
+** Log mode
+
+Press =l= to turn log mode (=org-agenda-log-mode=) on or off. Each day then also shows:
+
+- =Closed:= entries whose =CLOSED:= timestamp is on that day;
+- =Clocked: (1:30)= for each =CLOCK:= line that starts on that day, with the clock's range and duration.
+
+A note under a clock line (a list item directly below it) is added to the line after a =-=. These are the default =org-agenda-log-mode-items=, =(closed clock)=; state changes are not shown and there is no setting for that.
+
+* Diary sexps
+
+The agenda evaluates diary sexps as =org-diary-sexp-entry= does. They can appear as a line starting with =%%(= under a heading, as an active timestamp =<%%(…)>=, or as a =SCHEDULED= or =DEADLINE= value.
+
+#+BEGIN_SRC org
+,* Birthdays
+%%(diary-anniversary 10 7 1990) Ada is %d years old
+%%(org-anniversary 1985 3 14) Bob turns %d
+
+,* Teaching
+,** Algebra lecture
+<%%(org-class 2026 9 7 2026 12 18 1 41)>
+#+END_SRC
+
+Lines before the first heading are ignored. A sexp that uses a function Orgstar doesn't have, or signals an error, doesn't apply on any day, as Emacs reports a bad sexp and moves on.
+
+| Function                                   | Applies                                                            | Date order        |
+|--------------------------------------------+--------------------------------------------------------------------+-------------------|
+| =diary-date= /month day year/              | On matching dates; =t= or a list matches any or several           | month day year    |
+| =diary-block= /m1 d1 y1 m2 d2 y2/          | Every day from the first date to the second                        | month day year    |
+| =diary-float= /month dayname n/ [/day/]    | The nth /dayname/ (0 is Sunday) of the month; negative n counts from the end | month         |
+| =diary-anniversary= /month day/ [/year/]   | Each year on the date; =%d= is the count, =%s= its ordinal suffix  | month day year    |
+| =diary-cyclic= /n month day year/          | Every n days from the date                                         | month day year    |
+| =diary-remind= /sexp days/                 | On the days before another sexp applies: =Reminder: Only 3 days until …= | n/a         |
+| =org-anniversary= /year month day/         | As =diary-anniversary=                                             | year month day    |
+| =org-cyclic= /n year month day/            | As =diary-cyclic=                                                  | year month day    |
+| =org-block= /y1 m1 d1 y2 m2 d2/            | As =diary-block=                                                   | year month day    |
+| =org-date= /year month day/                | As =diary-date=                                                    | year month day    |
+| =org-class= /y1 m1 d1 y2 m2 d2 dayname/ [/skip-weeks…/] | On /dayname/ between the dates, except the ISO weeks listed | year month day |
+
+The =diary-= functions read dates in =calendar-date-style= =american= (month, day, year); the =org-= functions use ISO order. =org-class= skip lists take ISO week numbers only; holiday names and =holidays= need the Emacs calendar's holiday lists and make the sexp fail.
+
+For your own expressions, the variables =date= (as =(month day year)=) and =entry= are bound, and these calendar functions are available: =calendar-extract-month=, =calendar-extract-day=, =calendar-extract-year=, =calendar-absolute-from-gregorian=, =calendar-gregorian-from-absolute=, =calendar-day-of-week=, =calendar-leap-year-p=, =calendar-last-day-of-month=, =calendar-date-equal=, =calendar-day-number=, =calendar-nth-named-absday=, =calendar-nth-named-day=, =calendar-iso-from-absolute=, =diary-ordinal-suffix= and =diary-make-date=. The evaluator also has the common special forms (=if=, =when=, =cond=, =and=, =or=, =let=, =progn= and others) and arithmetic. It is a small subset of Emacs Lisp, not Emacs.
+
+A sexp line that returns a string shows that string; one that returns a list of strings shows one line per string; otherwise the line's text after the sexp shows.
+
+* Habits
+
+An entry with the property =STYLE: habit= and a =SCHEDULED= timestamp with a repeater is a habit, as in =org-habit=:
+
+#+BEGIN_SRC org
+,* TODO Run
+SCHEDULED: <2026-10-05 Mon .+2d/4d>
+:PROPERTIES:
+:STYLE:    habit
+:END:
+- State "DONE"       from "TODO"       [2026-10-03 Sat 07:10]
+- State "DONE"       from "TODO"       [2026-10-01 Thu 07:05]
+#+END_SRC
+
+The repeater can be =+=, =++= or =.+=, with an optional =/Nd= maximum interval. Days the habit was done are read from =- State "DONE" … [date]= lines (for any done keyword) and =CLOSING NOTE [date]= lines in the entry.
+
+A habit appears only on today's agenda and not once it is done for the day. Its line carries the consistency graph: one cell per day for the 21 days before today and the 7 after (=org-habit-preceding-days= and =org-habit-following-days=), with =*= on days it was done and =!= on today. Cell colors follow org-habit's faces:
+
+| Color  | Meaning                                    | Theme key       |
+|--------+--------------------------------------------+-----------------|
+| Blue   | Not yet due                                | =habit-clear=   |
+| Green  | Due, within the allowed interval           | =habit-ready=   |
+| Yellow | Last day of the interval                   | =habit-alert=   |
+| Red    | Overdue                                    | =habit-overdue= |
+
+Future days use lighter shades. Hover a cell to see its date. Habits sort after other entries.
+
+* The TODO list
+
+The built-in view TODO List is =org-todo-list=: every heading with a TODO keyword that is not a done keyword, sorted by urgency (priority first). The time-based skipping options (=org-agenda-todo-ignore-scheduled= and its relatives) are not supported; every open TODO appears, as with Org's defaults.
+
+A saved view can list specific keywords instead, done ones included, with =keywords = "WAIT|HOLD"= (see [[*Views][Views]]). This mirrors =C-u M-x org-todo-list= with a keyword argument.
+
+* Tag and property matches
+
+Choose Match… from the view menu to list entries matching a match string, as =org-tags-view= (=m=) does, or TODO Match… to list only entries with an open TODO keyword (=M=). Type the match in the toolbar field and press Return.
+
+The syntax is =org-make-tags-matcher='s:
+
+#+BEGIN_SRC text
++work-boss|LEVEL>2+TODO="WAIT"/!NEXT
+#+END_SRC
+
+** Tags
+
+| Form           | Matches                                                   |
+|----------------+-----------------------------------------------------------|
+| =work=, =+work= | Entries with the tag                                     |
+| =-boss=        | Entries without the tag                                   |
+| =+work-boss=   | Both conditions (and)                                     |
+| =a&b=          | =&= between terms is the same as =+=                      |
+| ={^proj}=      | Any tag matching the regular expression                   |
+
+=work|home= matches either side: the vertical bar separates alternatives, and within an alternative, terms are joined by =+=, =-= or =&=. Tags include inherited tags and =#+FILETAGS=. Tag names compare exactly; regular expressions in braces are Emacs regexps, matched without case.
+
+** Properties
+
+A term can compare a property: =NAME op value=.
+
+| Operator              | Meaning               |
+|-----------------------+-----------------------|
+| ===, ====             | Equal                 |
+| =<>=, =!==, =/==      | Not equal             |
+| =<=, =<==             | Less, less or equal   |
+| =>=, =>==             | Greater, greater or equal |
+
+The value decides how the comparison works:
+
+| Value              | Compared as                                                                 |
+|--------------------+-----------------------------------------------------------------------------|
+| =3=, =-1.5=        | Numbers; a missing or non-numeric property is 0                             |
+| ="WAIT"=           | Strings                                                                     |
+| ={regexp}=         | Regular expression match; with =<>=, =!== or =/== it must not match         |
+| ="<2026-10-01>"=   | Dates. Also ="<now>"=, ="<today>"=, ="<tomorrow>"=, ="<yesterday>"=, and offsets such as ="<-1w>"= or ="<+3d>"= (units =h= =d= =w= =m= =y=). Brackets may be =[…]=. |
+
+Follow the operator with =*= (=Effort>*1=) to require that the property exists; without it, a missing property compares as an empty string or 0.
+
+Names are case-insensitive. Prefix a character in a name with =\= to use it literally (=MY\-PROP="x"=). Besides the entry's own property drawer, these special properties work:
+
+| Name           | Value                                                    |
+|----------------+----------------------------------------------------------|
+| =LEVEL=        | The heading's level                                      |
+| =TODO=         | The TODO keyword                                         |
+| =ITEM=         | The heading title                                        |
+| =PRIORITY=     | The priority letter, or the default priority             |
+| =CATEGORY=     | The entry's category                                     |
+| =FILE=         | The file's path                                          |
+| =TAGS=         | The heading's own tags, as =:a:b:=                       |
+| =ALLTAGS=      | All tags including inherited ones                        |
+| =SCHEDULED=, =DEADLINE=, =CLOSED= | The planning timestamp                |
+| =TIMESTAMP=, =TIMESTAMP_IA= | The entry's first active or inactive timestamp |
+
+Properties are not inherited in matches (=org-use-property-inheritance= is nil). With a date value, =<>= and its synonyms match dates that are equal, as Orgstar's comparison mirrors =org-time<>= in Org 9.8.7; use =<= and =>= for date ranges.
+
+** TODO keywords
+
+After the last =/= (one not followed by a quote), the match restricts TODO keywords:
+
+| Form               | Matches                                                  |
+|--------------------+----------------------------------------------------------|
+| =/NEXT=            | Entries whose keyword is =NEXT=                          |
+| =/-WAIT=           | Any keyword but =WAIT=, and entries with none            |
+| =/{^W}=            | Keywords matching the regexp                             |
+| =/!=               | Only entries with an open (not done) TODO keyword        |
+| =/!-WAIT-HOLD=     | Open TODO entries except those two                       |
+
+=/TODO|NEXT= matches either keyword, and =/!NEXT|WAIT= either one while open. =/!= has the same effect as choosing TODO Match….
+
+* Text search
+
+The agenda has no =org-search-view= (=s=). To search the text of your files, use Search Notes (=⇧⌘F=).
+
+* Views
+
+The view menu lists the built-in views, Agenda and TODO List, then the views in =views.toml=, then Match… and TODO Match…. Saved views mirror =org-agenda-custom-commands=, with fewer options.
+
+=views.toml= lives in the configuration folder beside =config.toml= (=~/.config/orgstar/= by default; see [[file:13-configuration.org][Configuration]]). Each view is a =[[view]]= table:
+
+#+BEGIN_SRC toml
+[[view]]
+name = "Fortnight"
+type = "agenda"
+span = 14
+start = 0
+
+[[view]]
+name = "Waiting"
+type = "todo"
+keywords = "WAIT|HOLD"
+
+[[view]]
+name = "Work"
+type = "match"
+match = "+work-boss"
+
+[[view]]
+name = "Next at work"
+type = "todo-match"
+match = "+work/NEXT"
+#+END_SRC
+
+| Key        | Applies to         | Meaning                                                                    |
+|------------+--------------------+----------------------------------------------------------------------------|
+| =name=     | all, required      | The name in the view menu                                                  |
+| =type=     | all                | =agenda= (the default), =todo=, =match= or =todo-match=                    |
+| =span=     | =agenda=           | Days shown; the setting when omitted                                       |
+| =start=    | =agenda=           | First day as an integer number of days from today (=-3=, =0=); the setting when omitted |
+| =keywords= | =todo=             | Keywords separated by the vertical bar; all open TODOs when omitted        |
+| =match=    | =match=, =todo-match=, required | A match string as in [[*Tag and property matches][Tag and property matches]]; =todo-match= keeps only open TODO entries |
+
+Note that =start= is a plain integer here, while =org-agenda-start-day= in =config.toml= is a string such as ="-3d"=.
+
+Not supported: block agendas (several views in one), per-view settings such as =org-agenda-skip-function= or a different prefix format, =stuck= projects, and search views. The views load when the window opens and again on =g= or =r=. A problem in the file, such as a missing =name= or an unknown =type=, shows in the status line at the bottom of the window, and the remaining views still load.
+
+* Filters
+
+Filters hide lines without changing the view, as =org-agenda-filter= does. Time grid lines always stay. The active filter shows in the status line at the bottom of the window as =Filter: …=.
+
+| Key  | Does                                                          | Org command                       |
+|------+---------------------------------------------------------------+-----------------------------------|
+| =/=  | Asks for a combined filter, starting from the current one     | =org-agenda-filter=               |
+| =\=  | Asks for a tag filter                                          | =org-agenda-filter-by-tag=        |
+| =<=  | Keeps only the selected line's category; again removes it      | =org-agenda-filter-by-category=   |
+| ===  | Asks for a regexp filter                                       | =org-agenda-filter-by-regexp=     |
+| =_=  | Asks for an effort filter                                      | =org-agenda-filter-by-effort=     |
+
+The vertical bar key, =|=, removes every filter (=org-agenda-filter-remove-all=).
+
+The combined filter =/= reads terms such as:
+
+#+BEGIN_SRC text
++work-phone<2:00/report/
+#+END_SRC
+
+- =+word= keeps and =-word= drops lines. A word without a sign keeps.
+- A word is a tag if a line in the view has that tag, else a category if a line has that category; otherwise it is ignored and the status line says so. Quote a category that contains =-=: ="my-cat"=.
+- =<0:30=, =>1:00= and ==1:00= compare the entry's =Effort= property. Entries without an effort count as longer than any effort, as with =org-agenda-sort-noeffort-is-high= t. Durations can be =H:MM=, minutes, or units such as =1h 30min= or =2d=.
+- =/regexp/= keeps lines whose text matches; =-/regexp/= drops them. Matching ignores case.
+- Starting the input with =+= followed by another sign (=++urgent=) adds to the current filter instead of replacing it.
+
+With two or more =+= categories, a line may have any of them. Tag terms all have to hold.
+
+The =\= prompt reads every word as a tag, whether or not a line has it; there, ={regexp}= matches any tag that matches the regexp. The === prompt takes one regexp, with a leading =-= to drop matches. The =_= prompt takes one comparison such as =<0:30=.
+
+* The prefix and line layout
+
+Each line shows the category, the time, the leader (=Deadline:=, =In   3 d.:=, =(2/5):=), the heading with its TODO keyword colored, the habit graph if any, and the tags.
+
+To change what comes before the heading, set =org-agenda-prefix-format= in =config.toml=:
+
+#+BEGIN_SRC toml
+[org-agenda-prefix-format]
+agenda = " %i %-12:c%?-12t% s"
+todo = " %i %-12:c"
+tags = " %i %-12:c"
+#+END_SRC
+
+These are the defaults. =agenda= applies to the day view, =todo= to the TODO list, and =tags= to match views. When a format differs from its default, the agenda shows the prefix as Emacs prints it, in a monospaced font, instead of its own columns.
+
+| Field | Shows                                                                 |
+|-------+-----------------------------------------------------------------------|
+| =%c=  | The category                                                          |
+| =%t=  | The time of day, or the time range                                    |
+| =%s=  | The leader: =Scheduled:=, =Deadline:=, =In 3 d.:= and so on           |
+| =%e=  | The =Effort= property                                                 |
+| =%l=  | One space per heading level                                           |
+| =%b=  | The outline path above the heading, each title followed by =->=       |
+| =%i=  | The category icon; always empty in Orgstar                            |
+
+Each field takes Org's modifiers: =%-12c= pads to 12 columns on the right (=%12c= on the left); =%-12.6c= limits a category to 5 characters; =%?t= leaves the field out entirely when empty; a punctuation character after the width (=%-12:c=) is added after a non-empty value. When the format contains =%t=, times move out of the heading text into the prefix, as =org-agenda-remove-times-when-in-prefix= does. =%(…)= Lisp forms are accepted but always empty.
+
+Colors come from the theme keys =agenda-background=, =agenda-date=, =agenda-today=, =agenda-time=, =agenda-category=, =agenda-deadline=, =agenda-upcoming=, =agenda-scheduled= and =agenda-scheduled-past= (see [[file:13-configuration.org][Configuration]]).
+
+* Acting on entries
+
+Select a line with the arrow keys or the mouse. These keys work in the agenda window in every keymap preset; they are fixed and are not read from =keymap.toml=.
+
+| Key                     | Does                                                         | Org command                  |
+|-------------------------+--------------------------------------------------------------+------------------------------|
+| =RET= or double click   | Shows the entry in the main window                           | =org-agenda-switch-to=       |
+| =t= or =C-c C-t=        | Changes the TODO state, as in the editor                     | =org-agenda-todo=            |
+| =+=, =-=                | Raises or lowers the priority                                | =org-agenda-priority-up=/=-down= |
+| =:= or =C-c C-q=        | Sets tags                                                    | =org-agenda-set-tags=        |
+| =C-c C-s=               | Schedules                                                    | =org-agenda-schedule=        |
+| =C-c C-d=               | Sets a deadline                                              | =org-agenda-deadline=        |
+| =S-<right>=, =S-<left>= (=⇧→=, =⇧←=) | Moves the date the line is listed for by a day               | =org-agenda-date-later=/=-earlier= |
+| =I=                     | Clocks in                                                    | =org-agenda-clock-in=        |
+| =O=                     | Clocks out                                                   | =org-agenda-clock-out=       |
+| =X=                     | Cancels the clock                                            | =org-agenda-clock-cancel=    |
+| =C-c C-w=               | Refiles                                                      | =org-agenda-refile=          |
+| =$=, =C-c $=, =C-c C-x C-s= | Archives                                                 | =org-agenda-archive=         |
+
+=t= follows =org-todo=: with fast-selection keys in your TODO keywords it asks for the state, otherwise it cycles (see [[file:05-todos-and-tags.org][TODOs and tags]]). Questions an action needs, such as a date for =C-c C-s= or a note on a state change, appear in the agenda window. Dates take the same input as in the editor (see [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]]). =S-<right>= and =S-<left>= work only on deadline, scheduled and timestamp lines; they change the timestamp the line comes from.
+
+=C-c C-w= brings the main window forward and asks for the target there, where the target list is searchable.
+
+Each action finds the entry again by its heading line before it changes anything, so an action on a line whose entry has since moved or changed reports that rather than editing the wrong text. Edits go through the open buffer when the file is open, and through the file otherwise.
+
+** Bulk actions
+
+| Key | Does                                     | Org command                    |
+|-----+------------------------------------------+--------------------------------|
+| =m= | Marks the selected entry (shown with =›=) | =org-agenda-bulk-mark=        |
+| =u= | Unmarks it                               | =org-agenda-bulk-unmark=       |
+| =U= | Unmarks everything                       | =org-agenda-bulk-unmark-all=   |
+| =B= | Asks for an action on every marked entry | =org-agenda-bulk-action=       |
+
+=B= offers =$= archive, =r= refile, =t= set a TODO state (typed; empty for none), =+= add a tag, =-= remove a tag, =s= schedule and =d= set a deadline. Type the letter and press OK. Entries that changed since they were marked are skipped and counted in the status line. An action that needs a further answer per entry, such as a state-change note, is not run in bulk; the status line tells you to run it on the entry.
+
+* Reminders
+
+Orgstar can post a notification before each timed entry, as =org-agenda-to-appt= hands entries to =appt=. Reminders cover the next 7 days and include deadline, scheduled, plain timestamp and range lines that have a time of day and are not done. Overdue items and upcoming-deadline warnings don't get reminders.
+
+| Setting                       | Default | =config.toml=                      |
+|-------------------------------+---------+------------------------------------|
+| Notify before timed entries   | on      | =reminders = true= under =[orgstar]= |
+| Minutes of warning            | 12      | =appt-message-warning-time = 12=   |
+
+Both are in Settings ▸ Agenda. An entry's =APPT_WARNTIME= property, in minutes, overrides the warning time for that entry. If the warning time has already passed but the entry hasn't started, the reminder fires at once.
+
+The notification's title is the heading; its body is the time, the leader if any, and the category, such as =14:00 · Scheduled: · work=. Clicking it shows the entry in the main window.
+
+On the Mac, reminders are updated two seconds after edits stop, when files change, and every hour. At most 64 are set, the earliest first. The agenda's status line says how far ahead they are set, or that notifications are off for Orgstar in System Settings. Turning reminders off removes the pending ones.
+
+* The board
+
+The board shows the entries of your agenda files as a table or as kanban columns. It has no Org equivalent; the table is close to Org's column view across files. Open it with Window ▸ Board (=⇧⌘B=). It reads the same files as the agenda, including the subfolder setting.
+
+The toolbar has:
+
+- a Table / Kanban switch;
+- a match field, with the syntax of [[*Tag and property matches][Tag and property matches]]. When empty, the board shows every entry with a TODO keyword;
+- in table mode, a field of property names to show as extra columns, separated by commas (default =EFFORT=).
+
+These three choices are remembered by the app; they are not in =config.toml=.
+
+** Table
+
+Columns: TODO, priority, title, tags, scheduled, deadline, your property columns, and the file. Click a column header to sort (the property columns don't sort). The TODO column sorts by the keyword's order in your sequences. The context menu on a row offers Set TODO (a keyword or None), Set Property… (asked in the main window as =NAME value=) and Open. Double-click a row to open the entry.
+
+** Kanban
+
+Each TODO keyword your files use gets a column, in sequence order, done keywords included. A card shows the priority and title, the category and tags, and the deadline (in red) or the scheduled date. Drag a card to another column to set that keyword; this is the same edit as changing the state in the editor, so logging and state-change notes apply (a note is asked for in the main window). Double-click a card to open its entry. With VoiceOver, each card has a Move to … action for each other column.
+
+With a match that includes entries without a TODO keyword, those entries appear in the table but not on the kanban board, which has no column for them.
+
+The board is not available on iOS.
+
+* The agenda on iOS
+
+The Agenda tab shows the same views from the same files, using the settings in the synced =config.toml= and the views in =views.toml= (see [[file:14-ios.org][iOS]]). Differences from the Mac:
+
+- The Views menu lists the built-in views, your saved views, and Tags and Properties…, which asks for a match string. There is no TODO-only match from the menu; use =/!= in the match or a =todo-match= view. Today, Earlier and Later are in the same menu.
+- Pull down to refresh.
+- The Filter button opens a sheet: type a filter as for =/=, or tap a tag or category to cycle between Keep, Leave out and no filter.
+- Tap an entry to open it. Swipe left on an open TODO to mark it done with the first done keyword of its sequence.
+- Touch and hold an entry for TODO State…, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile… and Archive….
+- There are no keyboard commands, time grid lines, habit graphs, log mode, bulk marks or custom prefix formats.
+- Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open Orgstar to set later ones.

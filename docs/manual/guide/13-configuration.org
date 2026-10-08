@@ -1,0 +1,551 @@
+#+TITLE: Configuration
+#+DESCRIPTION: The Settings window, the files in ~/.config/orgstar, in-file settings, importing from Emacs, themes and fonts.
+#+LEDE: Every setting lives in a text file you can edit, and most of them also appear in the Settings window.
+
+* Where settings live
+
+Orgstar keeps its settings in a configuration folder:
+
+- =$XDG_CONFIG_HOME/orgstar= when =XDG_CONFIG_HOME= is set and not empty,
+- otherwise =~/.config/orgstar=.
+
+The environment variable =ORGSTAR_CONFIG_DIR= overrides both. If a file is missing from the configuration folder but exists in =~/Library/Application Support/Orgstar= (where earlier versions kept it), Orgstar reads it from there.
+
+The folder holds these files:
+
+| File                 | What it holds                                                    | Written by Orgstar                    |
+|----------------------+------------------------------------------------------------------+---------------------------------------|
+| =config.toml=        | Every setting of the Settings window, and the theme              | Yes, when you change a setting        |
+| =keymap.toml=        | Your key bindings, on top of the preset                          | Only by Import from Emacs             |
+| =capture.toml=       | Capture templates                                                | Only by Import from Emacs             |
+| =views.toml=         | Saved agenda views                                               | No                                    |
+| =default-theme.toml= | The default theme's colors, for reference                        | Yes, at every launch                  |
+
+=config.toml= is the source of truth. The Settings window writes each change into it, keeping your comments and the order of lines, and edits you make to the file apply while Orgstar runs. If the file doesn't exist at launch, Orgstar creates it with every setting at its current value and a comment after each one.
+
+When you add the folder to a dotfiles repository, keep =default-theme.toml= out of it or ignore its changes: Orgstar rewrites it whenever its contents differ from the built-in theme.
+
+** Opening config.toml
+
+- Orgstar ▸ Edit Config File (=⌥⌘,=) opens =config.toml= as a buffer in the main window. The command palette has the same command as Edit Config File.
+- Settings ▸ General has three buttons for the file: Edit in Orgstar, Open with Default App, and Show in Finder.
+
+Saving the buffer applies the file, the same as saving it from another editor.
+
+** Problems in the files
+
+If =config.toml= has a line Orgstar can't use, the problem shows in the message line under the editor, with a count when there are more. Each problem names the file and the key:
+
+- =config.toml: unknown setting editor.foo=
+- =config.toml: org-log-done must be one of nil, time, note=
+- =config.toml: org-agenda-start-day must look like "-3d" or "+0d"=
+- =config.toml: theme.light.background must be a color such as "#1f2328"=
+
+A file that isn't valid TOML is reported with its parse error, and none of it applies. =keymap.toml=, =capture.toml= and =views.toml= report their problems the same way when they are read.
+
+* The Settings window
+
+Open it with Orgstar ▸ Settings (=⌘,=). It has five panes. Each control writes the =config.toml= key named in the tables below; the config.toml reference below gives the type and the Emacs variable.
+
+** General
+
+| Control                                    | Choices                                                                      | Default                         | Key              |
+|--------------------------------------------+------------------------------------------------------------------------------+---------------------------------+------------------|
+| config.toml: Edit in Orgstar               | Opens the file in the main window                                            |                                 |                  |
+| config.toml: Open with Default App         | Opens the file in the app macOS uses for =.toml=                             |                                 |                  |
+| config.toml: Show in Finder                | Selects the file in Finder                                                   |                                 |                  |
+| Emacs: Import from Emacs…                  | Opens the import sheet; see Import from Emacs below|                                 |                  |
+| Save files                                 | Automatically, when typing stops; Only with File ▸ Save (=⌘S=)             | Automatically                   | =save=           |
+| Keys                                       | Emacs; Mac; Doom (Vim keys)                                                  | Emacs                           | =keymap=         |
+| Show hidden files and folders              | On or off                                                                    | On                              | =show-hidden-files= |
+| Option as Meta                             | Left Option; Right Option; Both; Neither                                     | Left Option                     | =option-as-meta= |
+
+Automatic saving writes a file one second after you stop typing. The keymap presets and =keymap.toml= are covered in [[file:03-keys.org][Keys and commands]].
+
+** Editing
+
+| Control                                                    | Choices or range                                       | Default             | Key                                  |
+|------------------------------------------------------------+--------------------------------------------------------+---------------------+--------------------------------------|
+| Tags                                                       | Aligned to end at column 77; One space after the title | Aligned (=-77=)     | =org-tags-column=                    |
+| M-RET adds the new heading after the subtree               | On or off                                              | On                  | =org-insert-heading-respect-content= |
+| M-RET splits the line at the caret                         | On or off                                              | Off                 | =org-M-RET-may-split-line=           |
+| Lists can use letters (a. b. c.)                           | On or off                                              | On                  | =org-list-allow-alphabetical=        |
+| M-q fills to column N                                      | 40 to 200                                              | 80                  | =fill-column=                        |
+| Emacs hides emphasis markers (org-hide-emphasis-markers)   | On or off                                              | On                  | =org-hide-emphasis-markers=          |
+| Emacs shows entities as characters (org-pretty-entities)   | On or off                                              | On                  | =org-pretty-entities=                |
+| Default TODO keywords                                      | Text in =#+TODO= syntax, one sequence per line         | See below           | =org-todo-keywords=                  |
+
+The two "Emacs hides" and "Emacs shows" switches describe your Emacs, not Orgstar's display. Tag alignment, table alignment and =M-q= measure text the way your Emacs displays it, so a file edited in both keeps the same layout. Set them to match your Emacs configuration. They also control whether Orgstar hides markers and shows entities when markup is hidden.
+
+The Tags picker offers two values. =config.toml= accepts any integer; with a value other than =-77= or =0= the picker shows no selection.
+
+Default TODO keywords apply to files without a =#+TODO= line. Orgstar reads them at launch, so a change takes effect after you quit and reopen Orgstar.
+
+** Appearance
+
+| Control                         | Range                                         | Default            | Key                 |
+|---------------------------------+-----------------------------------------------+--------------------+---------------------|
+| Font                            | System monospaced, or any installed monospaced family | System monospaced | =font=        |
+| Size                            | 8 to 36 pt                                    | 13 pt              | =font-size=         |
+| Line spacing                    | 0 to 16 pt                                    | 2 pt               | =line-spacing=      |
+| Headings grow by N pt a level   | 0 to 8 pt                                     | 1 pt               | =heading-size-step= |
+| Colors: Edit in config.toml     | Opens =config.toml=                           |                    |                     |
+| Colors: Show Default Theme      | Opens =default-theme.toml=                    |                    |                     |
+
+See Themes and Fonts below.
+
+** Agenda
+
+| Control                             | Range                  | Default      | Key                         |
+|-------------------------------------+------------------------+--------------+-----------------------------|
+| Agenda shows N days                 | 1 to 31                | 10           | =org-agenda-span=           |
+| Agenda starts N days before today   | 0 to 14 days before    | 3 days       | =org-agenda-start-day=      |
+| Include files in subfolders         | On or off              | Off          | =agenda-include-subfolders= |
+| Notify before timed agenda entries  | On or off              | On           | =reminders=                 |
+| N minutes before                    | 0 to 120               | 12           | =appt-message-warning-time= |
+
+An entry's =APPT_WARNTIME= property overrides the lead time. The agenda is covered in [[file:07-agenda.org][The agenda]].
+
+** Capture
+
+| Control                                | Default | Key                     |
+|----------------------------------------+---------+-------------------------|
+| ⌃⌥Space opens Capture from any app     | On      | =global-capture-hotkey= |
+
+The footer shows the path of =capture.toml=. Templates are covered in [[file:08-capture.org][Capture]].
+
+** Settings only in config.toml
+
+These settings have no control in the Settings window. Some are in the View menu.
+
+| Key                              | Also in                    |
+|----------------------------------+----------------------------|
+| =org-log-done=                   |                            |
+| =org-log-reschedule=             |                            |
+| =org-log-redeadline=             |                            |
+| =org-log-into-drawer=            |                            |
+| =org-startup-indented=           |                            |
+| =org-hide-leading-stars=         |                            |
+| =org-startup-align-all-tables=   |                            |
+| =org-startup-truncated=          |                            |
+| =org-startup-with-inline-images= |                            |
+| =org-cycle-hide-drawer-startup=  |                            |
+| =org-cycle-hide-block-startup=   |                            |
+| =org-use-speed-commands=         |                            |
+| =spell-check=                    |                            |
+| =electric-pair-mode=             |                            |
+| =display-line-numbers-type=      | View ▸ Show Line Numbers (=⇧⌘L=) |
+| =tab-bar=                        | View ▸ Show Tab Bar        |
+| =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
+| =ignored-folders=                |                            |
+| =[org-agenda-prefix-format]=     |                            |
+| =theme-file=                     |                            |
+
+* config.toml reference
+
+Settings that mirror an Emacs variable sit at the top of the file under that variable's name. The agenda prefix formats are in =[org-agenda-prefix-format]=, type and theme in =[theme]=, and the settings Emacs has no variable for in =[orgstar]=.
+
+A key you remove from the file goes back to its default. A key that isn't in the table below is reported as unknown.
+
+** Top level
+
+| Key                                  | Type    | Default | Effect                                                                                                         |
+|--------------------------------------+---------+---------+----------------------------------------------------------------------------------------------------------------|
+| =fill-column=                        | integer | =80=    | The column =M-q= fills to. Mirrors =fill-column=.                                                              |
+| =org-tags-column=                    | integer | =-77=   | Negative: tags end at that column. =0=: one space between title and tags. Mirrors =org-tags-column=.          |
+| =org-insert-heading-respect-content= | boolean | =true=  | =M-RET= adds the new heading after the current subtree. Mirrors =org-insert-heading-respect-content=.        |
+| =org-M-RET-may-split-line=           | boolean | =false= | =M-RET= in the middle of a line splits it at the caret. Mirrors the =default= entry of =org-M-RET-may-split-line=. |
+| =org-list-allow-alphabetical=        | boolean | =true=  | =a.=, =b)=, =A.= are list bullets. Mirrors =org-list-allow-alphabetical=.                                     |
+| =org-hide-emphasis-markers=          | boolean | =true=  | Your Emacs hides =*bold*= and ~=code=~ markers; Orgstar hides them when markup is hidden and measures text without them. Mirrors =org-hide-emphasis-markers=. |
+| =org-pretty-entities=                | boolean | =true=  | Your Emacs shows =\alpha= as α and lowers =x_{1}=; Orgstar does the same when markup is hidden. Mirrors =org-pretty-entities=. |
+| =org-todo-keywords=                  | string  | see below | Keywords for files without =#+TODO=, in =#+TODO= syntax; separate sequences with =\n=. Letters in parentheses turn on fast selection. Read at launch. Mirrors =org-todo-keywords=. |
+| =org-log-done=                       | string  | ="nil"= | =nil=, =time= (a =CLOSED= timestamp) or =note= (=CLOSED= and a note). Mirrors =org-log-done=.                |
+| =org-log-reschedule=                 | string  | ="nil"= | =nil=, =time= or =note=: log changing or removing a =SCHEDULED= date. Mirrors =org-log-reschedule=.          |
+| =org-log-redeadline=                 | string  | ="nil"= | =nil=, =time= or =note=: log changing or removing a =DEADLINE=. Mirrors =org-log-redeadline=.                 |
+| =org-log-into-drawer=                | string  | =""=    | The drawer state notes go in. ="LOGBOOK"= is Emacs's =t=; =""= puts them under the heading. Mirrors =org-log-into-drawer=. |
+| =org-startup-indented=               | boolean | =true=  | Indent bodies under their headings, as =org-indent-mode=. =#+STARTUP: indent= / =noindent= override it. Mirrors =org-startup-indented=. |
+| =org-hide-leading-stars=             | boolean | =false= | Show only a heading's last star, without indentation. =#+STARTUP: hidestars= / =showstars= override it. Mirrors =org-hide-leading-stars=. |
+| =org-startup-align-all-tables=       | boolean | =false= | Align every table when a file opens. =#+STARTUP: align= / =noalign= override it. Mirrors =org-startup-align-all-tables=. |
+| =org-startup-truncated=              | boolean | =false= | Long lines run off the right edge instead of wrapping. Mirrors =org-startup-truncated=.                        |
+| =spell-check=                        | boolean | =false= | Check spelling while typing, outside code, links, dates, tags and keywords.                                     |
+| =electric-pair-mode=                 | boolean | =true=  | Type brackets, =<>= and quotes in pairs. Mirrors =electric-pair-mode=.                                          |
+| =org-startup-with-inline-images=     | boolean | =false= | Show image links as images when a file opens. =#+STARTUP: inlineimages= / =noinlineimages= override it. Mirrors =org-startup-with-inline-images=. |
+| =org-use-speed-commands=             | boolean | =false= | Single keys at the start of a heading line run commands (=n=, =p=, =t=, =c=, …). Mirrors =org-use-speed-commands=. |
+| =org-cycle-hide-drawer-startup=      | boolean | =true=  | Fold drawers when a file opens. =#+STARTUP: hidedrawers= / =nohidedrawers= override it. Mirrors =org-cycle-hide-drawer-startup=. |
+| =org-cycle-hide-block-startup=       | boolean | =false= | Fold blocks when a file opens. =#+STARTUP: hideblocks= / =nohideblocks= override it. Mirrors =org-cycle-hide-block-startup=. |
+| =display-line-numbers-type=          | boolean | =true=  | Line numbers in the editor's gutter. Orgstar numbers lines absolutely; there is no relative or visual mode.    |
+| =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
+| =org-agenda-start-day=               | string  | ="-3d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
+| =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
+
+The default =org-todo-keywords= is the first sequence of Doom Emacs's default:
+
+#+BEGIN_SRC toml
+org-todo-keywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)"
+#+END_SRC
+
+The startup settings (=org-startup-*=, =org-hide-leading-stars=, =org-cycle-hide-*-startup=) apply when a file opens. Files already open keep their state until you open them again.
+
+** [org-agenda-prefix-format]
+
+| Key      | Type   | Default                  | Effect                              |
+|----------+--------+--------------------------+-------------------------------------|
+| =agenda= | string | =" %i %-12:c%?-12t% s"=  | Prefix of lines in the day view     |
+| =todo=   | string | =" %i %-12:c"=           | Prefix of lines in the TODO list    |
+| =tags=   | string | =" %i %-12:c"=           | Prefix of tag and property matches  |
+
+These mirror the entries of =org-agenda-prefix-format=. In the format, =%c= is the category, =%t= the time, =%s= the scheduled or deadline note, =%e= the effort, =%l= the level, =%b= the outline path, and a number such as =%-12= pads. See [[file:07-agenda.org][The agenda]].
+
+** [theme]
+
+| Key                 | Type    | Default | Effect                                                                                       |
+|---------------------+---------+---------+----------------------------------------------------------------------------------------------|
+| =font=              | string  | =""=    | A font family. =""= uses the system's monospaced font.                                       |
+| =font-size=         | integer | =13=    | Points.                                                                                      |
+| =line-spacing=      | integer | =2=     | Points between lines.                                                                        |
+| =heading-size-step= | integer | =1=     | Points a heading is larger than the level below. Level 4 and deeper are body size.           |
+| =theme-file=        | string  | =""=    | A theme in its own file in the configuration folder, applied under the colors in =config.toml=. |
+
+Any other key in =[theme]= is a color; see Themes below.
+
+** [orgstar]
+
+| Key                         | Type    | Default       | Effect                                                                                  |
+|-----------------------------+---------+---------------+-----------------------------------------------------------------------------------------|
+| =save=                      | string  | ="automatic"= | =automatic= (one second after typing stops) or =explicit= (only with =⌘S=).            |
+| =keymap=                    | string  | ="emacs"=     | =emacs=, =mac= or =doom=. Your own bindings go in =keymap.toml=.                       |
+| =option-as-meta=            | string  | ="left"=      | Which Option key is Meta: =left=, =right=, =both= or =none=.                           |
+| =tab-bar=                   | boolean | =false=       | A tab for each open buffer above the editor.                                            |
+| =show-markup=               | boolean | =false=       | Show link brackets and emphasis markers.                                                |
+| =show-hidden-files=         | boolean | =true=        | List dotfiles and dot folders in your folders.                                          |
+| =ignored-folders=           | string  | see below     | Folder names never listed or searched, separated by spaces.                            |
+| =agenda-include-subfolders= | boolean | =false=       | The agenda reads org files in subfolders too.                                           |
+| =reminders=                 | boolean | =true=        | Notify before timed entries.                                                            |
+| =global-capture-hotkey=     | boolean | =true=        | =⌃⌥Space= opens Capture from any app.                                                   |
+
+The default =ignored-folders= is:
+
+#+BEGIN_SRC toml
+ignored-folders = ".Spotlight-V100 .Trash .build .bzr .cache .fseventsd .git .gradle .hg .jj .mypy_cache .next .pytest_cache .stfolder .stversions .svn .terraform .tox .venv node_modules"
+#+END_SRC
+
+** An example
+
+#+BEGIN_SRC toml
+fill-column = 72
+org-tags-column = 0
+org-todo-keywords = "TODO(t) NEXT(n) WAIT(w@/!) | DONE(d!) CANCELED(c@)"
+org-log-done = "time"
+org-log-into-drawer = "LOGBOOK"
+org-startup-truncated = true
+org-agenda-span = 7
+org-agenda-start-day = "+0d"
+
+[theme]
+font = "JetBrains Mono"
+font-size = 14
+link = "#0a7ea4"
+
+[theme.todo]
+WAIT = "#bf8700"
+
+[orgstar]
+keymap = "doom"
+save = "explicit"
+#+END_SRC
+
+** Names from earlier versions
+
+Earlier versions used keys such as =editor.fill-column= and =agenda.span=. Orgstar still reads them. At launch, a file that uses any of them is rewritten with the current names and every setting at its current value; comments you added are not kept. A file that lacks a whole section (such as =[theme]=) gets that section added at the end.
+
+* keymap.toml and capture.toml
+
+=keymap.toml= holds =[[bind]]= tables with =keys=, =command=, and optionally =mode= and =when=. They layer over the preset chosen in Keys. Orgstar reloads the file when it changes. See [[file:03-keys.org][Keys and commands]].
+
+#+BEGIN_SRC toml
+[[bind]]
+keys = "C-c a"
+command = "app.agenda"
+#+END_SRC
+
+=capture.toml= holds =[[template]]= tables. Without the file, Orgstar uses two templates: =t= (Personal todo, under =Inbox= in =todo.org=) and =n= (Personal notes, under =Inbox= in =notes.org=). See [[file:08-capture.org][Capture]].
+
+=views.toml= holds =[[view]]= tables for the agenda; see [[file:07-agenda.org][The agenda]].
+
+* In-file settings
+
+Keyword lines in a file set options for that file, as in Emacs. Orgstar reads them outside blocks; for =#+STARTUP= only lines at the element level count, so a =#+STARTUP= line inside a paragraph or a block doesn't change folding.
+
+** Keywords Orgstar reads
+
+| Keyword                     | Effect                                                                                                                                          |
+|-----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------|
+| =#+TODO=, =#+SEQ_TODO=      | A TODO sequence: active keywords, a bar, then done keywords. Without the bar, the last word is the done state. =NAME(k)= gives a fast-selection key, =NAME(k!/@)= logging on entering and leaving. Any TODO line replaces the default keywords. |
+| =#+TYP_TODO=                | A type sequence. As in Org, type sequences come first, then =#+TODO=, then =#+SEQ_TODO=.                                                        |
+| =#+PRIORITIES=              | Three values: highest, lowest, default, as =A C B= or =1 5 3=. The default is =A C B=.                                                           |
+| =#+STARTUP=                 | Startup options; see below.                                                                                                                     |
+| =#+TAGS=                    | Tags for fast tag selection with =C-c C-q=, with keys as =work(w)=, groups in ={ }= and tag groups in =[ ]=. Without =#+TAGS=, =C-c C-q= offers the tags used in the file. |
+| =#+FILETAGS=                | Tags every heading in the file inherits, as =:work:project:=.                                                                                    |
+| =#+PROPERTY=                | A file-wide property, as =#+PROPERTY: header-args :results output=. =NAME+= appends to the value.                                               |
+| =#+CATEGORY=                | The file's category in the agenda. Without it the category is the file name.                                                                    |
+| =#+ARCHIVE=                 | Where =C-c C-x C-a= archives to. The default is =%s_archive::=.                                                                                  |
+| =#+COLUMNS=                 | The default column view format.                                                                                                                 |
+| =#+LINK=                    | A link abbreviation, as =#+LINK: gh https://github.com/%s=.                                                                                      |
+| =#+CONSTANTS=               | Constants for table formulas, as =#+CONSTANTS: c=299792458 pi=3.14=.                                                                             |
+| =#+SETUPFILE=               | A file whose keyword lines count as this file's; see below.                                                                                     |
+| =#+TITLE=, =#+AUTHOR=, =#+DESCRIPTION= | Used by export, Quick Look and Spotlight.                                                                                             |
+| =#+OPTIONS=, =#+MACRO=, =#+INCLUDE=, =#+EXCLUDE_TAGS=, =#+SELECT_TAGS= | Export settings; see [[file:12-export.org][Export]].                                                                   |
+
+#+BEGIN_SRC org
+,#+TODO: TODO(t) NEXT(n) WAIT(w@/!) | DONE(d!) CANCELED(c@)
+,#+PRIORITIES: A E C
+,#+STARTUP: content logdrawer
+,#+FILETAGS: :work:
+,#+CATEGORY: acme
+#+END_SRC
+
+After you change a keyword line, press =C-c C-c= on it to read the file's settings again, as =org-mode-restart= does in Emacs. Changes to =#+TODO=, =#+SEQ_TODO=, =#+TYP_TODO= and =#+PRIORITIES= apply as you type.
+
+** #+STARTUP options
+
+| Option                                        | Effect                                                                   |
+|-----------------------------------------------+--------------------------------------------------------------------------|
+| =overview=, =fold=                            | Only top-level headings show when the file opens.                        |
+| =content=                                     | All headings show, no bodies.                                            |
+| =showall=, =nofold=                           | Everything shows.                                                        |
+| =show2levels= … =show5levels= (any =showNlevels=) | Headings down to level N show.                                       |
+| =showeverything=                              | Everything shows, including drawers and blocks; =VISIBILITY= properties are ignored. |
+| =hidedrawers=, =nohidedrawers=                | Fold or don't fold drawers at startup.                                   |
+| =hideblocks=, =nohideblocks=                  | Fold or don't fold blocks at startup.                                    |
+| =indent=, =noindent=                          | Virtual indentation on or off.                                           |
+| =hidestars=, =showstars=                      | Hide leading stars or show them.                                         |
+| =align=, =noalign=                            | Align every table when the file opens, or don't.                         |
+| =inlineimages=, =noinlineimages=              | Show image links as images, or don't.                                    |
+| =shrink=                                      | Shrink table columns that have a width cookie.                           |
+| =logdone=, =lognotedone=, =nologdone=         | Record a time, a note, or nothing when an entry becomes done.            |
+| =logrepeat=, =lognoterepeat=, =nologrepeat=   | The same, when a repeating entry is completed.                           |
+| =logreschedule=, =lognotereschedule=, =nologreschedule= | The same, when a scheduled date changes.                       |
+| =logredeadline=, =lognoteredeadline=, =nologredeadline= | The same, when a deadline changes.                             |
+| =logdrawer=, =nologdrawer=                    | Notes go in =LOGBOOK=, or under the heading.                             |
+
+After the startup visibility, Orgstar applies each heading's =VISIBILITY= property and folds subtrees tagged =ARCHIVE=, unless =showeverything= is set.
+
+Completion offers every option of =org-startup-options=. Options not in the table above, such as =odd=, =entitiespretty=, =latexpreview=, =constSI= and the footnote options, are accepted and ignored.
+
+** Setup files
+
+=#+SETUPFILE: path= reads the keyword lines of another file and treats them as if they were in this file, before its own lines. This follows =org--collect-keywords-1= in Org:
+
+- A relative path is relative to the folder of the file that names it. =~= expands to your home folder. Quotes around the path are removed.
+- A setup file can name further setup files; each is read once, and a file never reads itself.
+- URLs (anything starting with =scheme://=) aren't fetched.
+- A setup file that can't be read, or isn't UTF-8, is skipped without a message.
+
+Keywords from setup files count for TODO keywords, priorities, =#+STARTUP=, =#+TAGS=, =#+FILETAGS=, =#+PROPERTY=, =#+CATEGORY=, =#+ARCHIVE=, =#+COLUMNS=, =#+LINK=, =#+CONSTANTS= and export. Orgstar reads setup files when a file opens, when you press =C-c C-c= on a keyword line, and when the file changes on disk. If you edit only the setup file, press =C-c C-c= on a keyword line of each open file that uses it.
+
+* Import from Emacs
+
+Import from Emacs reads your Emacs or Doom Emacs configuration and offers to carry its org settings, folders, capture templates and key bindings over. Nothing changes until you choose Import.
+
+** Running it
+
+1. Open Settings ▸ General and click Import from Emacs…, or run Import from Emacs… from the command palette (=⇧⌘P=).
+2. Orgstar looks for a configuration in these places, in order, and reads the first it finds: =$DOOMDIR=, =~/.config/doom=, =~/.doom.d=, =~/.config/emacs=, =~/.emacs.d=, =~/.emacs=. A folder counts when it holds =init.el=, =config.el= or =custom.el=. Doom's own installation folder (one with =lisp/doom.el=) is skipped.
+3. To read another configuration, click Choose… and pick a file or a folder. For a folder, Orgstar reads =init.el=, =config.el= and =custom.el= in it.
+4. The sheet lists what it found under Settings, Folders, Capture templates and Key bindings, each with the line it came from (=config.el:27=, or =Doom default=). Everything is selected; clear what you don't want.
+5. Click Import. The sheet then summarizes what was imported and any problems.
+
+What Import does with each kind of item:
+
+- Settings are written to =config.toml=.
+- Folders are added to the sidebar if they exist and aren't there already.
+- Capture templates are appended to =capture.toml=, except those whose key is already in the file.
+- Key bindings are appended to =keymap.toml=. Running the import again appends them again.
+
+The Not imported section lists what Orgstar read but can't use, with the reason: settings it has no equivalent for, values it can't work out without running Emacs, bindings to code rather than a command, and files it couldn't read. The footer counts variables that aren't about org, which are left alone.
+
+A literate configuration (=config.org=) isn't read. Point Choose… at the =config.el= it tangles to.
+
+** Doom Emacs
+
+A configuration counts as Doom when it contains =(doom!=, =(map! = or =(after! =. Orgstar then also reads Doom's own org defaults, from the Doom installation in =$EMACSDIR=, =~/.config/emacs= or =~/.emacs.d=: =modules/lang/org/config.el= and =lisp/doom-emacs.el=. Your configuration overrides them. Doom defaults Orgstar has no use for are counted in the footer rather than listed.
+
+A Doom configuration, or any configuration that enables =evil=, adds =keymap = "doom"=.
+
+** What it reads
+
+Orgstar reads the configuration as Lisp data; it never runs it. It looks at these forms:
+
+| Form                                                                 | What Orgstar takes                                                              |
+|----------------------------------------------------------------------+---------------------------------------------------------------------------------|
+| =setq=, =setq-default=, =setq!=, =setopt=, =csetq=                   | Each variable and value                                                         |
+| =defvar=, =defcustom=                                                | The value, below every other assignment                                         |
+| =custom-set-variables=                                               | Each quoted =(variable value)=                                                  |
+| =after!=, =with-eval-after-load=, =eval-after-load=                  | The forms inside, ranked above plain assignments                                |
+| =use-package=, =use-package!=                                        | Forms in =:config= and =:init=, and pairs in =:custom=                          |
+| =progn=, =when=, =unless=, =if=, =let=, =let*=, =with-no-warnings=   | The forms inside. Conditions aren't evaluated, so every branch is read.         |
+| =map!= (Doom)                                                        | Bindings, with =:leader= (=SPC=), =:localleader= (=SPC m=), =:prefix=, and state keywords such as =:n=, =:i=, =:v=, =:nv= |
+| =define-key=, =keymap-set=, =global-set-key=, =keymap-global-set=    | Bindings                                                                        |
+| =evil-define-key=, =evil-define-key*=                                | Bindings in the =normal=, =insert= or =visual= state                            |
+
+When a variable is set more than once, the last assignment wins, with assignments inside =after!= and similar forms winning over plain ones, and those over Doom's defaults.
+
+Orgstar works out a value when it is a literal, a quoted or backquoted form (with =,= and =,@=), a variable set earlier in the configuration, or a call to =list=, =concat=, =expand-file-name=, =file-name-concat= or =file-name-as-directory= on such values. Anything else, such as a function call or a value computed from the environment, is listed under Not imported as worked out when Emacs runs.
+
+Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =fill-column=, =evil-=, =doom-font=, =doom-variable-pitch-font=, =doom-theme= or =calendar-week-start-day= are considered.
+
+** How variables map
+
+| Emacs variable                                                     | Becomes                                                                                       |
+|--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------|
+| =fill-column=, =org-tags-column=, =appt-message-warning-time=      | The same key, when the value is a number                                                      |
+| =org-insert-heading-respect-content=, =org-list-allow-alphabetical=, =org-hide-emphasis-markers=, =org-pretty-entities=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=, =org-use-speed-commands=, =org-startup-with-inline-images=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-align-all-tables=, =org-startup-truncated= | The same key: =nil= or an empty list is =false=, anything else =true= |
+| =org-hide-drawer-startup=, =org-hide-block-startup=                | =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=                               |
+| =org-M-RET-may-split-line=                                         | =org-M-RET-may-split-line=, from the =default= entry of an alist; other per-context entries aren't supported |
+| =org-agenda-prefix-format=                                         | =[org-agenda-prefix-format]=: a string sets all three views; an alist sets =agenda=, =todo= and =tags= |
+| =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |
+| =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |
+| =display-line-numbers-type=                                        | =true= unless =nil=; =relative= and =visual= become absolute numbers                          |
+| =org-agenda-span=                                                  | A number, or =day= (1), =week= (7), =fortnight= (14), =month= (30), =year= (365)               |
+| =org-agenda-start-day=                                             | A day offset such as ="-3d"=; =nil= becomes ="+0d"=. Other forms aren't supported.            |
+| =org-todo-keywords=                                                | =org-todo-keywords=, one line per sequence. Keywords with spaces are left out; =type= sequences are read as sequences. |
+| =org-directory=                                                    | A folder to add                                                                               |
+| =org-agenda-files=                                                 | A folder for each entry; for a =.org= file, its folder                                        |
+| =org-capture-templates=                                            | Templates for =capture.toml=; see below                                                       |
+| =doom-font=                                                        | =font= and =font-size=, from =(font-spec :family … :size …)= or ="Family-14"=                 |
+| =doom-variable-pitch-font=                                         | Not imported: Orgstar uses one font                                                           |
+| =doom-theme=                                                       | Not imported: set colors under =[theme]=                                                      |
+| =evil-mode= in use, or Doom                                        | =keymap = "doom"=                                                                             |
+
+Any other =org-= or =appt-= variable is listed as having no equivalent.
+
+Capture templates are imported when their type is =entry=, =item=, =checkitem=, =plain= or =table-line=, their template is a string, and their target is =file=, =file+headline=, =file+olp=, =file+olp+datetree=, =file+datetree=, =file+weektree=, =id= or =clock=. The properties =:prepend=, =:immediate-finish=, =:jump-to-captured=, =:clock-in=, =:clock-keep=, =:clock-resume=, =:empty-lines=, =:empty-lines-before=, =:empty-lines-after=, =:tree-type= (=day=, =week=, =month=) and =:table-line-pos= carry over; others are listed as left out. Template groups (a key and a name only) are skipped.
+
+Key bindings are imported when the command is one Orgstar has a counterpart for, such as =org-todo=, =org-schedule=, =org-refile=, =org-capture= or =save-buffer=. Keys must be a string or =(kbd "…")=. In a Doom configuration, bindings without a state go to the =normal= state.
+
+** Limits of the Lisp reader
+
+- Comments (=;=) are skipped. Strings understand =\n=, =\t=, =\"= and line continuations; other escapes give the character itself.
+- =#'= reads as =function=. Other =#= syntax is read as a symbol, so forms using it aren't understood.
+- A syntax error anywhere in a file, such as an unclosed parenthesis, stops that file from being read at all. The error and its line show under Not imported.
+- Macros other than those in the table above are not expanded, and functions are not called. Settings made by code you wrote (a =defun= that calls =setq=, a hook) aren't found.
+
+* Themes
+
+Orgstar has one built-in theme, the default theme, with light and dark colors after GitHub's light and dark themes. You change it by setting colors in =config.toml=, or by keeping a theme in its own file.
+
+Colors are strings in the form ="#rrggbb"= or ="#rrggbbaa"=. They go in these tables:
+
+| Table          | Effect                                                                 |
+|----------------+------------------------------------------------------------------------|
+| =[theme]=      | Sets a color for both light and dark appearance                        |
+| =[theme.light]= | Sets a color for light appearance only                                |
+| =[theme.dark]= | Sets a color for dark appearance only                                  |
+| =[theme.todo]= | Colors TODO keywords by name, in both appearances, as =org-todo-keyword-faces= |
+
+#+BEGIN_SRC toml
+[theme]
+heading-1 = "#005cc5"
+
+[theme.dark]
+background = "#1e1e1e"
+foreground = "#d4d4d4"
+
+[theme.todo]
+WAIT = "#bf8700"
+PROJ = "#8250df"
+#+END_SRC
+
+A keyword without its own color uses =todo= or =done=.
+
+=default-theme.toml= in the configuration folder lists every color key with the default theme's values, light and dark. Settings ▸ Appearance ▸ Show Default Theme opens it. Copy lines from it into =config.toml=; edits to =default-theme.toml= itself are overwritten at the next launch.
+
+** Theme files
+
+To keep a theme in its own file, put it in the configuration folder with the same tables (=[theme]=, =[theme.light]=, =[theme.dark]=, =[theme.todo]=) and name it in =config.toml=:
+
+#+BEGIN_SRC toml
+[theme]
+theme-file = "solarized.toml"
+#+END_SRC
+
+The colors stack in this order, each over the one before: the default theme, the theme file, then the colors in =config.toml=. Orgstar reloads the theme file when it changes. Only colors are read from a theme file; =font= and the other type keys in its =[theme]= table are ignored.
+
+** Color keys
+
+| Key                     | Colors                                                       |
+|-------------------------+--------------------------------------------------------------|
+| =background=            | the editor's background                                      |
+| =foreground=            | body text                                                    |
+| =cursor=                | the caret                                                    |
+| =selection=             | selected text's background                                   |
+| =heading-1= … =heading-7= | headings of that level                                     |
+| =heading-8=             | level 8 and deeper headings                                  |
+| =todo=                  | TODO keywords not yet done                                   |
+| =done=                  | DONE keywords                                                |
+| =priority=              | =[#A]= cookies                                               |
+| =tags=                  | =:tags:=                                                     |
+| =link=                  | links                                                        |
+| =timestamp=             | timestamps                                                   |
+| =code=                  | =~code~= and inline source                                   |
+| =verbatim=              | ~=verbatim=~                                                 |
+| =inline-background=     | behind =~code~= and ~=verbatim=~                             |
+| =markup=                | link brackets and emphasis markers                           |
+| =comment=               | comments                                                     |
+| =keyword=               | =#+KEYWORD= lines                                            |
+| =metadata=              | planning lines, drawers, properties and clocks               |
+| =special=               | footnotes, statistics cookies, targets, macros and LaTeX     |
+| =block-background=      | the band behind blocks                                       |
+| =block-delimiter=       | =#+begin_= and =#+end_= lines                                |
+| =table=                 | tables                                                       |
+| =line-number=           | line numbers                                                 |
+| =line-number-current=   | the caret's line number                                      |
+| =syntax-keyword=        | code: keywords                                               |
+| =syntax-string=         | code: strings                                                |
+| =syntax-comment=        | code: comments                                               |
+| =syntax-function=       | code: functions                                              |
+| =syntax-type=           | code: types and modules                                      |
+| =syntax-number=         | code: numbers, constants and escapes                         |
+| =syntax-property=       | code: properties, attributes and tags                        |
+| =syntax-label=          | code: labels                                                 |
+| =sidebar-background=    | the folder sidebar and the outline                           |
+| =sidebar-foreground=    | file and heading names there                                 |
+| =sidebar-header=        | folder names there                                           |
+| =modeline-background=   | the modeline and message line                                |
+| =modeline-foreground=   | modeline text                                                |
+| =modeline-highlight=    | the outline path and the clock in the modeline               |
+| =state-normal=          | the NORMAL tag (Doom keys)                                   |
+| =state-insert=          | the INSERT tag                                               |
+| =state-visual=          | the VISUAL and V-LINE tags                                   |
+| =agenda-background=     | the agenda and board                                         |
+| =agenda-date=           | agenda day headers                                           |
+| =agenda-today=          | today's header and the current time                          |
+| =agenda-time=           | times and the time grid                                      |
+| =agenda-category=       | categories                                                   |
+| =agenda-deadline=       | deadlines due                                                |
+| =agenda-upcoming=       | deadlines coming up                                          |
+| =agenda-scheduled=      | scheduled items                                              |
+| =agenda-scheduled-past= | items scheduled on an earlier day                            |
+| =habit-clear=           | habit graph: not due yet                                     |
+| =habit-ready=           | habit graph: due                                             |
+| =habit-alert=           | habit graph: due today, last chance                          |
+| =habit-overdue=         | habit graph: overdue                                         |
+
+The default theme leaves =sidebar-background=, =sidebar-foreground=, =sidebar-header=, =modeline-background=, =modeline-foreground= and =agenda-background= unset, so those parts keep the standard macOS look. Set them to color those parts too. In the views around the editor (sidebar, modeline, agenda), a color you set for one appearance only leaves the other appearance to the system. In the editor, a color set for one appearance only takes the default theme's color in the other.
+
+An unknown color key, a value that isn't a color, or an unknown table such as =[theme.solarized]= is reported as a problem and skipped.
+
+* Appearance
+
+Orgstar follows the system's light or dark appearance (System Settings ▸ Appearance). There is no setting to fix one appearance; to use the same colors in both, set them under =[theme]= rather than =[theme.light]= or =[theme.dark]=.
+
+* Fonts
+
+The editor uses one font for everything: body text, headings, code and tables. Choose it in Settings ▸ Appearance or with =font= under =[theme]=.
+
+- The Font menu lists installed monospaced families. =config.toml= accepts any family name; a family that isn't installed falls back to the system's monospaced font. Tags and tables line up in columns, so a proportional font misaligns them.
+- =font-size= is the body size, at least 6 points.
+- Headings are bold. Level 1 is =font-size= plus three times =heading-size-step=, level 2 plus two times, level 3 plus one time; level 4 and deeper are body size. Set =heading-size-step = 0= for one size throughout.
+- =line-spacing= adds space between lines, in points.
+
+On iPhone and iPad, the theme and font settings don't apply; see [[file:14-ios.org][iPhone and iPad]].

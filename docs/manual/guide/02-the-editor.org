@@ -1,0 +1,325 @@
+#+TITLE: The editor
+#+DESCRIPTION: How the editor displays org text, folds it, reports state in the modeline and echo area, completes, checks spelling, pairs brackets, wraps lines and undoes.
+#+LEDE: The editor shows an org file as plain text with its markup styled or hidden, folds headings, drawers and blocks the way Org does, and reports position and state in a modeline and echo area below the text.
+
+* What the editor shows
+
+The editor holds the file's text exactly as it is on disk. Styling, hidden markup, indentation and images are display only; none of them change the file.
+
+Org files open with the caret at the start of the file, as in Emacs. Buffers you had open when you quit reopen with the caret where you left it.
+
+** Markup
+
+View ▸ Show Markup (=⇧⌘M=; palette: Show or Hide Markup) is off by default. While it is off:
+
+- Link brackets and targets are hidden, so =[[https://orgmode.org][Org]]= shows as an underlined =Org=, as with =org-link-descriptive=.
+- Emphasis markers (the =*= of bold, the === of verbatim and so on) are hidden when =org-hide-emphasis-markers= is on, which is the default.
+- Entities and sub- and superscripts are drawn as characters when =org-pretty-entities= is on, which is the default (see /Entities/ below).
+
+The line with the caret always shows its markup, so you can edit it. Moving to another line hides it again. Turn Show Markup on to see all markup everywhere. The =config.toml= setting is =show-markup= in =[orgstar]=.
+
+The two Org options are in Settings ▸ Editing as "Emacs hides emphasis markers (org-hide-emphasis-markers)" and "Emacs shows entities as characters (org-pretty-entities)", and in =config.toml= as =org-hide-emphasis-markers= and =org-pretty-entities=. They also tell Orgstar how wide your Emacs displays text, so tag alignment, table alignment and =M-q= produce the same file Emacs would. Set them to match your Emacs.
+
+** Styling
+
+- Headings are bold and coloured by level (eight colours, as =org-level-1= to =org-level-8=). Levels 1 to 3 are larger than body text: each level is a step larger than the one below it, and level 4 and deeper are body size. The step is Settings ▸ Appearance ▸ "Headings grow by N pt a level" (1 pt by default, 0 to 8).
+- TODO and DONE keywords are bold, in the TODO or DONE colour, or a colour you set for that keyword.
+- Priorities, tags, timestamps, comments, keywords (=#+TITLE:= and the like), planning lines and drawers, block delimiters and tables each have a colour; footnotes, targets, macros and LaTeX share one.
+- Bold, italic, underline and strike-through are drawn as such; verbatim and code get their own colour and background.
+- Links are underlined.
+- Blocks (=#+BEGIN_…= to =#+END_…=), dynamic blocks and fixed-width lines are drawn on a shaded band across the whole width of the editor, as Emacs extends the =org-block= face. Code in src blocks is highlighted for its language (see [[file:11-code-blocks.org][Code blocks]]).
+- A folded heading shows an ellipsis after its line.
+
+Colours come from the theme and follow the system's light or dark appearance. The font, size and line spacing are in Settings ▸ Appearance; colours are set in =config.toml=. See [[file:13-configuration.org][Configuration]]. Use a monospaced font: tags and tables line up by columns.
+
+** Indentation and stars
+
+Org files display as =org-indent-mode= shows them, by default: each heading's body is indented to start one column past its stars, all stars but the last are hidden, and a wrapped heading title continues under the title. The indentation is display only; the file keeps its text at the left margin.
+
+Body lines that wrap continue under their own text: past leading spaces, and past a list item's bullet and checkbox, as =adaptive-wrap= does.
+
+| Setting                                 | Default | What it does                                                         |
+|-----------------------------------------+---------+----------------------------------------------------------------------|
+| =org-startup-indented=                  | on      | Indent bodies under their headings. =#+STARTUP: indent= or =noindent= overrides it per file. |
+| =org-hide-leading-stars=                | off     | Without indentation, show only a heading's last star. =#+STARTUP: hidestars= or =showstars= overrides it. |
+
+With both off, headings show all their stars and bodies start at the left margin. Both settings are in =config.toml= only, and are read when a file opens.
+
+** Entities
+
+When =org-pretty-entities= is on and Show Markup is off:
+
+- An entity such as =\alpha= or =\to= is drawn as its character (=α=, =→=), taking one column.
+- =x_{1}= and =x^{2}= are drawn lowered and raised, without their markers. Braces are required: =x_1= is left as typed.
+
+Entities are left as typed on the caret's line, in comment lines and inside blocks. Sub- and superscripts are left as typed inside emphasis, links and keywords.
+
+** Inline images
+
+Org ▸ Show or Hide Inline Images (=C-c C-x C-v= in the Emacs and Doom presets), as =org-toggle-inline-images= does, draws images in place of their links. The echo area reports how many images it displayed.
+
+A line shows as an image when it holds nothing but a link to an image file with no description:
+
+#+BEGIN_SRC org
+#+ATTR_ORG: :width 400
+[[file:images/diagram.png]]
+#+END_SRC
+
+- Recognised extensions: =png=, =jpg=, =jpeg=, =gif=, =svg=, =webp=, =tif=, =tiff=, =bmp=, =heic=, =avif=.
+- Paths are relative to the file's folder; =~= is expanded. Remote URLs are not displayed.
+- =#+ATTR_ORG: :width N= sets the width in points. Images are never wider than the editor.
+- The link text is hidden while its image shows, except on the caret's line.
+
+To show images when a file opens, add =#+STARTUP: inlineimages= to the file, or set =org-startup-with-inline-images = true= in =config.toml=. =#+STARTUP: noinlineimages= turns it off for one file.
+
+** What isn't rendered
+
+LaTeX fragments and environments are coloured but not rendered as formulas. Images in links that have a description, and images on lines with other text, show as links.
+
+* Folding
+
+Headings, drawers and blocks fold as in Org. Folding is display only and isn't saved in the file.
+
+** Cycling
+
+| Action                         | Emacs and Mac presets | Doom                                                 | Org command          |
+|--------------------------------+-----------------------+------------------------------------------------------+----------------------|
+| Cycle the heading or element at the caret | =TAB=      | =TAB=, =z a=, =z c=, =z o= in normal state; =TAB= in visual state | =org-cycle=          |
+| Cycle the whole file           | =S-TAB=               | =S-TAB=, =z A= in normal state; =S-TAB= in visual state | =org-global-cycle=   |
+
+The palette titles are Cycle Visibility and Cycle Global Visibility; both are also in the Org menu.
+
+=TAB= on a heading line cycles that heading: folded, then its children, then the whole subtree, then folded again. A heading without children goes straight from folded to open. =TAB= on the first or last line of a drawer or block folds or opens it; drawer and block folds are kept apart from heading folds, so cycling a heading leaves them as they are. Elsewhere =TAB= does what it otherwise would: in a table it moves to the next field, and in plain text it inserts a tab.
+
+In Doom's insert state, =TAB= and =S-TAB= on a heading demote and promote it, and on a list item indent and outdent it, as Doom's =+org-indent-maybe-h= does. Use normal state to fold.
+
+=S-TAB= cycles the whole file through three states, starting at the first:
+
+1. Overview: top-level headings only.
+2. Contents: every heading, no bodies.
+3. Show all: everything, with blocks opened. Drawers stay folded.
+
+Overview and contents also fold drawers before the first heading.
+
+Clicking a heading's stars cycles that heading, as =TAB= does on it.
+
+The caret can't rest in folded text: moving forward into a fold jumps past it, and moving back into one goes to the end of the heading line. Going to a location from the outline pane, search, a link or the agenda opens whatever folds hide it.
+
+** Folding when a file opens
+
+With no =#+STARTUP= visibility option, a file opens with every heading shown. Drawers start folded (=org-cycle-hide-drawer-startup=, on by default); blocks start open (=org-cycle-hide-block-startup=, off by default). Both settings are in =config.toml=.
+
+=#+STARTUP= options a file can set:
+
+| Option                                 | Effect when the file opens                                  |
+|----------------------------------------+-------------------------------------------------------------|
+| =overview=, =fold=                     | Top-level headings only                                     |
+| =content=                              | Every heading, no bodies                                    |
+| =showall=, =nofold=                    | Everything                                                  |
+| =show2levels=, =show3levels=, …        | Headings down to that level, no bodies                      |
+| =showeverything=                       | Everything, including drawers and blocks; =VISIBILITY= properties are ignored |
+| =hidedrawers=, =nohidedrawers=         | Fold or open drawers                                        |
+| =hideblocks=, =nohideblocks=           | Fold or open blocks                                         |
+| =indent=, =noindent=                   | Indent bodies under headings, or not                        |
+| =hidestars=, =showstars=               | Hide all stars but the last, or not                         |
+| =inlineimages=, =noinlineimages=       | Show image links as images, or not                          |
+| =align=, =noalign=                     | Align every table, or not (=org-startup-align-all-tables=)  |
+| =shrink=                               | Narrow table columns that have width cookies                |
+
+#+BEGIN_SRC org
+#+STARTUP: content hideblocks
+#+END_SRC
+
+When the file sets a visibility (=overview=, =content=, =showall=, =showNlevels= and the like, but not =showeverything=), Orgstar then applies each heading's =VISIBILITY= property and folds subtrees tagged =ARCHIVE=, as =org-cycle-set-visibility-according-to-property= and =org-cycle-hide-archived-subtrees= do. =VISIBILITY= takes =folded=, =children=, =content= or =all=:
+
+#+BEGIN_SRC org
+,* Reference
+:PROPERTIES:
+:VISIBILITY: folded
+:END:
+#+END_SRC
+
+=#+STARTUP= options are read from the file and from any =#+SETUPFILE= it names, and take effect when the file opens. To apply changed options to an open file, close its buffer and open it again.
+
+Narrowing to a subtree or block, and sparse trees, also hide text; see [[file:04-outlines.org][Outlines]].
+
+* The modeline
+
+The line under the editor shows, from the left:
+
+| Item                       | Shown when                         | What it shows                                                     |
+|----------------------------+------------------------------------+-------------------------------------------------------------------|
+| Evil state                 | Doom preset                        | =NORMAL=, =INSERT=, =VISUAL=, =V-LINE= or =V-BLOCK=, on a coloured tag |
+| Unsaved dot                | the buffer has unsaved edits       | a small dot                                                       |
+| Outline path               | the caret is under a heading       | the headings containing the caret, outermost first, as =Projects › House › Roof= |
+| Running clock              | a clock is running                 | elapsed time and the clocked heading; click for Clock Out, Cancel Clock and Go to Clocked Entry |
+| Selection counts           | text is selected                   | lines, words and characters in the selection, as =count-words-region= |
+| Line and column            | always                             | =LINE:COLUMN= of the caret (the end of the selection)             |
+| Word count                 | always                             | words in the whole file, as =count-words=                         |
+| Encoding notes             | the file differs from UTF-8 with LF | =Read-only=, =BOM= and =CRLF=, in orange                         |
+| Git branch                 | the file is in a Git repository    | the checked-out branch, or the first 7 characters of the commit when detached |
+
+Lines count from 1. Columns count from 0, as Emacs's =column-number-mode= does: a tab advances to the next multiple of 8, and wide characters such as CJK count as two columns. Hover over an item for a description.
+
+The word count follows edits after a pause. The Git branch is read from the repository's =HEAD= file without running =git=, and checked again every 5 seconds; worktrees and submodules are followed.
+
+The running clock is covered in [[file:06-dates-and-clocking.org][Dates and clocking]]; the evil states in [[file:03-keys.org][Keys and commands]].
+
+* The echo area
+
+The line under the modeline is the echo area, as Emacs's minibuffer. It shows:
+
+- *Messages* from commands, such as =Stored: …= or =Not an org file=. A message stays for 4 seconds.
+- *A pending key prefix*. After =C-c= it shows =C-c-=. If you pause for about 0.6 seconds, a grid of the keys that can follow appears, each with the command it runs, or =+prefix= for a further prefix, as =which-key= shows them. =C-g= cancels the prefix and shows =Quit=. A sequence that isn't bound shows, for example, =C-c z is undefined=.
+- *Prompts*, when a command asks a question.
+
+** Prompts
+
+A prompt shows its question and a text field, which takes the keyboard.
+
+- Type an answer and press =Return=.
+- When the prompt has choices (buffers, refile targets, tags), up to 12 of them list above the field, filtered as you type: characters match in order, and the best match is listed first. =Tab= completes the field to the first match. =Return= accepts the first match when the prompt requires one of its choices, and the typed text otherwise. Clicking a choice accepts it.
+- Prompts that take several values, such as tags separated by colons, complete only the part after the last separator.
+- =Escape= cancels the prompt; the command reports =Quit=.
+
+Date prompts also show a date picker, and =S-<left>=, =S-<right>=, =S-<up>= and =S-<down>= move the date by a day or a week; see [[file:06-dates-and-clocking.org][Dates and clocking]]. TODO keywords and tags with fast-selection keys show a key menu instead of a text field; see [[file:05-todos-and-tags.org][TODOs and tags]].
+
+When a prompt closes, the keyboard goes back to the editor.
+
+* Completion
+
+Complete at Point (=completion-at-point=) completes the word before the caret from what Org knows at that position.
+
+| Preset | Key                                                      |
+|--------+----------------------------------------------------------|
+| Emacs  | =C-M-i=                                                  |
+| Doom   | =C-SPC= or =C-@= in insert state; the list also opens by itself after you type two characters and pause for 0.4 seconds, as Doom's corfu does |
+| Mac    | no key; run Complete at Point from the palette, or bind one in =keymap.toml= |
+
+With one candidate, it is inserted. With several, a list opens under the caret, showing up to 16 rows. Nothing is selected until you pick a row.
+
+| Key                         | In the list                                                                |
+|-----------------------------+----------------------------------------------------------------------------|
+| =C-n=, =<down>=, =C-j=      | Next candidate; past the last one the selection goes back to what you typed |
+| =C-p=, =<up>=, =C-k=        | Previous candidate                                                         |
+| =TAB=                       | Insert the selected candidate; with none selected, insert the part all candidates share |
+| =RET=                       | Insert the selected candidate; with none selected, close the list and insert a newline |
+| =ESC=                       | Close the list; the key then does what it otherwise would                  |
+| =C-g=                       | Close the list                                                             |
+
+The list follows what you type and closes when nothing matches. Candidates are those that start with what you typed.
+
+What is completed, by position:
+
+| Where                                        | Candidates                                                     |
+|----------------------------------------------+----------------------------------------------------------------|
+| =#+= at the start of a line                  | keyword names (=TITLE=, =STARTUP=, =OPTIONS=, …), in upper and lower case |
+| After =#+STARTUP:=                           | startup options                                                |
+| After =#+OPTIONS:=                           | export options                                                 |
+| After =#+DATE:=                              | today's date as a timestamp                                    |
+| After =#+EXCLUDE_TAGS:=, =#+SELECT_TAGS:=, =#+LANGUAGE:=, =#+PRIORITIES:= | the usual values                     |
+| =<= and a letter at the start of a line      | structure templates (=<s= for a src block and so on); see [[file:11-code-blocks.org][Code blocks]] |
+| After =#+BEGIN_SRC=                          | languages, then header arguments                               |
+| After =#+BEGIN: clocktable=                  | clock table options                                            |
+| After =[[=                                   | link types and the file's link abbreviations                   |
+| After =[[*=                                  | heading titles in the file                                     |
+| After =\=                                    | entity names                                                   |
+| After =:= at the end of a heading            | tags: those in =#+TAGS=, or else tags used in the file and across your folders |
+| After the stars of an empty heading          | TODO keywords                                                  |
+| =:= at the start of a line in a property drawer | property names the entry doesn't have yet                   |
+| =:= at the start of a line elsewhere         | drawer names                                                   |
+
+Elsewhere, Complete at Point reports =No match=. Completion is for org files only.
+
+* Electric pairs
+
+Typing an opening bracket inserts its closing partner, as =electric-pair-mode= does. The pairs are =()=, =[]=, ={}=, =<>= and a pair of double quotes.
+
+- Typing a closing character in front of the same closer moves over it instead of inserting another, skipping whitespace before it.
+- =DEL= between an empty pair deletes both.
+- =RET= between a pair opens a blank line between them.
+- With text selected, typing an opening or closing character, or a double quote, wraps the selection.
+- No pair is inserted where it would leave the brackets unbalanced (=electric-pair-preserve-balance=).
+
+Electric pairs are on by default and work in org files only. Set =electric-pair-mode = false= in =config.toml= to turn them off. Plain Emacs has them off; Doom pairs with smartparens.
+
+* Spell checking
+
+Spell checking is off by default. Turn it on for the current buffer with Check Spelling While Typing from the palette (=SPC t s= in Doom normal state); the echo area says whether it is now on or off. To have it on in every file, set =spell-check = true= in =config.toml=.
+
+Misspelt words are underlined, using the macOS spelling dictionary. In org files, Orgstar doesn't mark words where spell-fu skips them: code, verbatim, links, timestamps, tags, TODO keywords, priorities, list bullets, checkboxes, keywords and affiliated keywords, planning and clock lines, property drawers, the first and last lines of drawers and blocks, the whole of src, example, export and comment blocks, LaTeX, entities, macros, targets, footnote references, citations, table formulas and fixed-width lines.
+
+Orgstar never corrects spelling on its own; automatic spelling correction, text replacement and smart quotes and dashes are off.
+
+On iOS, spell checking is always on.
+
+* Wrapping and filling
+
+Long lines wrap at the edge of the editor by default. Truncate or Wrap Long Lines (=toggle-truncate-lines=) switches the current buffer to long lines that run off the right edge, with a horizontal scroll bar, and back. The echo area says which is now in effect.
+
+| Preset | Key                          |
+|--------+------------------------------|
+| Emacs  | =C-x x t=                    |
+| Doom   | =SPC t w= in normal state    |
+| Mac    | palette only                 |
+
+To truncate lines in every file, set =org-startup-truncated = true= in =config.toml=. The default is to wrap, as Doom does; Emacs's own default is to truncate.
+
+Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (=org-fill-paragraph=), which breaks the paragraph's lines at the fill column: =M-q= in the Emacs preset, =⌃⌘P= in the Mac preset, the Org menu or palette in Doom. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or =fill-column= in =config.toml=. Orgstar has no auto-fill: lines are not broken as you type.
+
+* View toggles
+
+| Toggle                        | Menu                          | Keys                                            | Default | =config.toml=                    | Scope          |
+|-------------------------------+-------------------------------+-------------------------------------------------+---------+----------------------------------+----------------|
+| Show Markup                   | View ▸ Show Markup            | =⇧⌘M=                                           | off     | =show-markup=                    | every buffer   |
+| Show Line Numbers             | View ▸ Show Line Numbers      | =⇧⌘L=                                           | on      | =display-line-numbers-type=      | every buffer   |
+| Inline images                 | Org ▸ Show or Hide Inline Images | =C-c C-x C-v= (Emacs, Doom)                  | off     | =org-startup-with-inline-images= | current buffer |
+| Spell checking                | palette                       | =SPC t s= (Doom)                                | off     | =spell-check=                    | current buffer |
+| Truncate long lines           | palette                       | =C-x x t= (Emacs), =SPC t w= (Doom)             | off     | =org-startup-truncated=          | current buffer |
+
+Toggles that apply to the current buffer last until it closes; the =config.toml= setting decides how each file starts. Changing those settings, and =org-startup-indented= and =org-hide-leading-stars=, affects files opened afterwards, not buffers already open.
+
+** Line numbers
+
+Line numbers show in a margin left of the text, as =display-line-numbers-mode= shows them: one number per line of the file, so wrapped lines are numbered once and folded lines are skipped. The caret's line number is brighter. Line numbers are on by default.
+
+* Themes
+
+The editor's font, size, line spacing and heading sizes are in Settings ▸ Appearance. Colours for the editor, the sidebar, the modeline, line numbers, the selection and the caret come from =config.toml=, under =[theme]= for both appearances, =[theme.light]= and =[theme.dark]= for one, and =[theme.todo]= for colours of TODO keywords. Settings ▸ Appearance ▸ Show Default Theme opens =default-theme.toml=, which lists every colour with its default value. Changes apply while Orgstar runs. See [[file:13-configuration.org][Configuration]].
+
+* Undo
+
+Each buffer has its own undo history, kept while other buffers show.
+
+| Action | Menu        | Mac     | Emacs preset              | Doom (normal state) |
+|--------+-------------+---------+---------------------------+---------------------|
+| Undo   | Edit ▸ Undo | =⌘Z=    | =⌘Z=, =C-/=, =C-_=, =C-x u= | =u=                 |
+| Redo   | Edit ▸ Redo | =⇧⌘Z=   | =⇧⌘Z=                     | =C-r=               |
+
+A command's whole change undoes in one step, separately from the typing around it. Restoring a recovery version and resolving a Syncthing conflict copy can be undone too.
+
+The undo history is cleared when the buffer reloads or merges changes from disk, and when you take the disk version or merge with markers to settle a conflict; see [[file:01-files-and-folders.org][Files, folders and buffers]]. The Emacs preset has no redo key other than =⇧⌘Z=, and undo is linear, not Emacs's undo tree.
+
+* Finding text in a file
+
+Edit ▸ Find opens the find bar above the text.
+
+| Menu item                         | Shortcut | Emacs preset      | Doom                  |
+|-----------------------------------+----------+-------------------+-----------------------|
+| Edit ▸ Find ▸ Find…               | =⌘F=     | =C-s=, =C-r=      | =SPC s s=             |
+| Edit ▸ Find ▸ Find and Replace…   | =⌥⌘F=    | =M-%=             |                       |
+| Edit ▸ Find ▸ Find Next           | =⌘G=     |                   |                       |
+| Edit ▸ Find ▸ Find Previous       | =⇧⌘G=    |                   |                       |
+| Edit ▸ Find ▸ Use Selection for Find | =⌘E=  |                   |                       |
+
+In the Emacs preset =C-s= and =C-r= open the find bar; they are not incremental search. In Doom, =:s/PATTERN/REPLACEMENT/= and =:%s/…/…/= with the =g= and =i= flags substitute with regular expressions on the current line or in the whole file.
+
+To search all your files, use the toolbar's search field; see [[file:01-files-and-folders.org][Files, folders and buffers]].
+
+* Accessibility
+
+The editor works with VoiceOver. VoiceOver reads the text as it is shown rather than as stored: hidden link brackets and targets, hidden emphasis markers and hidden stars are skipped, entities are read as the characters drawn for them, and narrowed table columns are read as drawn. Folded text is still read, so the whole file is available. Lines, the caret position and the selection are reported in terms of the shown text.
+
+Other parts of the window are labelled: tabs in the tab bar are buttons, with the current one marked selected, and each close button names its buffer and says whether it is unsaved; the modeline's unsaved dot reads "Unsaved changes", and the Doom state tag reads, for example, "Normal state".
+
+The editor keeps the system's keyboard navigation and text editing; the presets only add bindings. See [[file:03-keys.org][Keys and commands]].

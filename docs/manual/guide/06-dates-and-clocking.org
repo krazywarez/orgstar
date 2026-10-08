@@ -1,0 +1,390 @@
+#+TITLE: Dates, scheduling and clocking
+#+DESCRIPTION: Timestamps, the date prompt, SCHEDULED and DEADLINE, repeating tasks, effort, clocking, clock tables, habits and reminders in Orgstar.
+#+LEDE: Put dates on entries, plan work with scheduled dates and deadlines, and record the time you spend.
+
+* Timestamps
+
+A timestamp is a date, optionally with a time, in angle brackets (active) or square brackets (inactive):
+
+#+BEGIN_SRC org
+<2026-10-07 Wed>
+<2026-10-07 Wed 14:30>
+<2026-10-07 Wed 10:00-11:30>
+<2026-10-07 Wed>--<2026-10-09 Fri>
+[2026-10-07 Wed 09:12]
+#+END_SRC
+
+- Active timestamps put the entry on the agenda for that day. Inactive ones are records only.
+- =10:00-11:30= is a time range within one day. =<…>--<…>= is a range of days; both ends must be of the same kind.
+- Orgstar writes day names in English. When reading, it accepts a day name in any language, as Org does.
+
+** Repeaters and warning periods
+
+After the date and time, a timestamp can carry a repeater and a warning or delay:
+
+#+BEGIN_SRC org
+<2026-10-07 Wed +1w>
+<2026-10-07 Wed 08:00 ++1d>
+<2026-10-07 Wed .+2w>
+<2026-10-31 Sat -3d>
+<2026-10-31 Sat +1m -5d>
+<2026-10-07 Wed .+2d/4d>
+#+END_SRC
+
+| Element  | Meaning                                                                 |
+|----------+-------------------------------------------------------------------------|
+| =+1w=    | Repeat every week, counted from the date in the timestamp               |
+| =++1w=   | Repeat every week, moving the date past today when the task is done     |
+| =.+1w=   | Repeat one week after the day the task is done                          |
+| =-3d=    | On a deadline, start warning 3 days before; on a scheduled date, hide it from the agenda until 3 days after |
+| =--3d=   | As =-3d=, for the first occurrence only; it is dropped when the task repeats |
+| =/4d=    | After a repeater, the longest interval a habit allows (see "Habits")    |
+
+Units are =h= (hours), =d=, =w=, =m= and =y=. What happens when a repeating task is done is described under "Repeating tasks".
+
+** Diary sexps
+
+The agenda also reads =<%%(…)>= timestamps and =%%(…)= lines with Emacs diary expressions such as =diary-float=, =diary-anniversary=, =diary-block= and =diary-cyclic=, and their =org-= counterparts. See [[file:07-agenda.org][The agenda]] for the functions that are supported. Orgstar does not insert or edit these.
+
+* Inserting timestamps
+
+| Command                     | Org command          | Emacs, Doom | Mac   | Doom leader |
+|-----------------------------+----------------------+-------------+-------+-------------|
+| Insert Timestamp            | =org-timestamp=      | =C-c .=     | ⌃⌘.   | =SPC m d t= |
+| Insert Inactive Timestamp   | =org-timestamp-inactive= | =C-c != | ⌃⌥⌘.  | =SPC m d T= |
+
+Both ask for a date in the echo area (see "The date prompt"). With the caret on an existing timestamp, they replace it with the date you give, keep its repeater, and start from its date and time. Run the command again right after inserting a timestamp to add a second one and make a range, =<…>--<…>=.
+
+Org's prefix arguments are not available: to include the current time, type it, or use a relative time such as =+0h= (see below).
+
+* The date prompt
+
+Every command that asks for a date shows the same prompt (=org-read-date=): a text field, the date the text reads as, and a month calendar.
+
+- Type a date in any of the forms below. The line above the field shows the result, such as =<2026-10-09 Fri 15:00>=, as you type.
+- Click a day in the calendar to answer with that day. A time you typed is kept.
+- =S-<left>= and =S-<right>= in the field move the answer one day; =S-<up>= and =S-<down>= move it one week.
+- =RET= accepts. An empty answer takes the default: the date of the timestamp being changed, or today.
+- =Esc= cancels.
+
+Orgstar reads the answer as Org 9.8 does, with =org-read-date-prefer-future= =t=: a date given without a year, or without a month, is taken to be the next such date from today.
+
+| You type           | Result                                                    |
+|--------------------+-----------------------------------------------------------|
+| =.=                | Today                                                     |
+| =+0=               | Today                                                     |
+| =+1=, =+2d=        | Tomorrow, two days from today                             |
+| =-3d=              | Three days ago                                            |
+| =+1w=, =+2m=, =-1y= | One week, two months from today; one year ago            |
+| =++3=              | Three days after the default date, not after today       |
+| =+3h=              | Three hours after the default time; sets a time           |
+| =fri=, =mon=       | The next Friday or Monday, the default date included      |
+| =+fri=             | The next Friday after today                               |
+| =-fri=             | The last Friday before today                              |
+| =+2fri=            | The second Friday from today                              |
+| =2026-10-07=, =2026-10-7= | That date                                          |
+| =10-7=             | 7 October, the next one                                   |
+| =7.10.=, =7.10.2027= | 7 October (day first)                                   |
+| =10/7=, =10/7/27=  | 7 October (month first)                                   |
+| =15=               | The 15th, this month or next                              |
+| =sep 15=, =15 sep= | 15 September, the next one                                |
+| =dec 25 2027=      | 25 December 2027                                          |
+| =w42=, =2027-w01=, =w3-5= | Monday of ISO week 42; Monday of week 1 of 2027; Friday of week 3 |
+| =10:00=, =9:30=    | The default date at that time                             |
+| =10am=, =3pm=, =12:30pm= | 12-hour times                                       |
+| =10h=, =10h30=, =h45= | 10:00, 10:30, 00:45                                    |
+| =10:00-11:30=      | A time range                                              |
+| =10:00+1:30=       | 10:00-11:30                                               |
+| =fri 10:00=, =+2d 9:00= | A date and a time together                           |
+
+Forms without a sign, such as =fri=, =15= or =10:00=, fill in what is missing from the default date: the date of the timestamp being changed, or today. Forms with a single sign count from today; =++= counts from the default date. Two-digit years are read relative to the current year. Words the prompt does not recognize are ignored, so =tomorrow= gives the default date.
+
+* Changing dates
+
+| Command                      | Org command              | Emacs, Doom   | Mac  |
+|------------------------------+--------------------------+---------------+------|
+| Increase Timestamp Part      | =org-timestamp-up=       | =S-<up>=      | ⌃⌘↑  |
+| Decrease Timestamp Part      | =org-timestamp-down=     | =S-<down>=    | ⌃⌘↓  |
+| Timestamp One Day Later      | =org-timestamp-up-day=   | =S-<right>=   | ⌃⌘→  |
+| Timestamp One Day Earlier    | =org-timestamp-down-day= | =S-<left>=    | ⌃⌘←  |
+| Evaluate Time Range          | =org-evaluate-time-range= | =C-c C-y=    |      |
+
+These keys act on the timestamp when the caret is in one. Elsewhere the same keys do other things, such as changing the TODO keyword or priority on a heading line ([[file:05-todos-and-tags.org][TODOs and tags]]). In the Doom preset they work in normal and insert state, and =C-S-h=, =C-S-j=, =C-S-k= and =C-S-l= do the same as =S-<left>=, =S-<down>=, =S-<up>= and =S-<right>=.
+
+=S-<up>= and =S-<down>= change the part of the timestamp under the caret:
+
+- the year, month or day (on the day name, the day);
+- the hour, or the minute in steps of 5 (=org-time-stamp-rounding-minutes=), first rounding to a multiple of 5;
+- in a time range, the end time; changing the start time moves the end time with it;
+- the number or unit of a repeater or warning (the unit cycles =d=, =w=, =m=, =y=);
+- on the opening or closing bracket, the timestamp switches between active and inactive.
+
+=S-<left>= and =S-<right>= move the whole timestamp by a day, wherever the caret is in it. The day name is rewritten after every change. In a range of days, each end changes on its own.
+
+=C-c C-c= on a timestamp rewrites its day name to match its date. =C-c C-y= shows the length of the range at the caret, or of the first range on the line, such as =2 days 3 hours=; on a clock line it recomputes the clock's duration.
+
+* SCHEDULED and DEADLINE
+
+A planning line goes directly under the heading:
+
+#+BEGIN_SRC org
+,* TODO Submit the tax return
+DEADLINE: <2026-10-31 Sat -7d> SCHEDULED: <2026-10-20 Tue>
+#+END_SRC
+
+- =SCHEDULED= is the day you plan to start. The agenda shows the entry from that day until it is done.
+- =DEADLINE= is the day it is due. The agenda warns about it 14 days ahead (=org-deadline-warning-days=), or as the timestamp's own =-Nd= says.
+
+| Command          | Org command      | Emacs, Doom | Mac  | Doom leader |
+|------------------+------------------+-------------+------+-------------|
+| Schedule         | =org-schedule=   | =C-c C-s=   | ⌃⌘S  | =SPC m d s= |
+| Set Deadline     | =org-deadline=   | =C-c C-d=   | ⌃⌘D  | =SPC m d d= |
+| Remove Schedule  | =C-u C-c C-s=    |             |      |             |
+| Remove Deadline  | =C-u C-c C-d=    |             |      |             |
+
+Schedule and Set Deadline ask for a date, starting from the entry's current one and its time. They replace an existing date, keep its repeater and warning, and remove a =CLOSED= stamp from the entry. Remove Schedule and Remove Deadline have no default keys; run them from the Org menu or the command palette ([[file:03-keys.org][Keys]]).
+
+With =org-log-reschedule= or =org-log-redeadline= set to =time= or =note= in =config.toml=, or the matching =#+STARTUP= words, Orgstar logs each change of an existing date and each removal:
+
+#+BEGIN_SRC org
+,* TODO Submit the tax return
+SCHEDULED: <2026-10-22 Thu>
+- Rescheduled from "[2026-10-20 Tue]" on [2026-10-19 Mon 08:40]
+#+END_SRC
+
+Where these notes go, and the =#+STARTUP= words, are covered in [[file:05-todos-and-tags.org][TODOs and tags]].
+
+* Repeating tasks
+
+When an entry with a repeater in an active timestamp changes from an active TODO keyword to a done one (=org-auto-repeat-maybe=), Orgstar does not leave it done:
+
+1. The keyword returns to the first keyword of its sequence. In a =#+TYP_TODO= sequence it returns to the keyword it had. A =REPEAT_TO_STATE= property, inherited from ancestors, names another keyword to use.
+2. =CLOSED= is removed.
+3. With =org-log-repeat= on (the default, =time=), the =LAST_REPEAT= property is set to the current time and a state note is logged, such as =- State "DONE" from "TODO" [2026-10-07 Wed 18:02]=.
+4. A =SCHEDULED= date without a repeater is removed.
+5. Every active timestamp with a repeater in the entry moves forward:
+   - =+N= moves it by N once, which may leave it in the past.
+   - =++N= moves it by N until it is after today (for hours, after now).
+   - =.+N= sets it to today and then moves it by N.
+6. =--= delays in those timestamps are removed.
+
+#+BEGIN_SRC org
+,* TODO Water the plants
+SCHEDULED: <2026-10-07 Wed .+3d>
+#+END_SRC
+
+Marking this done on 7 October gives:
+
+#+BEGIN_SRC org
+,* TODO Water the plants
+SCHEDULED: <2026-10-10 Sat .+3d>
+:PROPERTIES:
+:LAST_REPEAT: [2026-10-07 Wed 18:02]
+:END:
+- State "DONE"       from "TODO"       [2026-10-07 Wed 18:02]
+#+END_SRC
+
+A repeater of =0= (=+0d=) does not repeat. An hourly repeater needs a time in the timestamp; without one, Orgstar reports "Cannot repeat in N hour(s) because no hour has been set". Inactive timestamps never repeat.
+
+To turn the repeat note off for a file, use =#+STARTUP: nologrepeat=; =lognoterepeat= asks for a note instead.
+
+* Effort
+
+Effort estimates live in the =Effort= property.
+
+| Command     | Org command      | Emacs, Doom   | Doom leader   | Speed key |
+|-------------+------------------+---------------+---------------+-----------|
+| Set Effort  | =org-set-effort= | =C-c C-x e=   | =SPC m c E=   | =e=       |
+
+Set Effort asks for a value, such as =0:30= or =2:00=, starting with the current one. If the entry, an ancestor, or a =#+PROPERTY: Effort_ALL= line defines =Effort_ALL=, its values are offered as choices; you can also type another value.
+
+#+BEGIN_SRC org
+,#+PROPERTY: Effort_ALL 0:15 0:30 1:00 2:00 4:00
+#+END_SRC
+
+Effort appears in column view and in clock tables with =:properties ("Effort")=. Orgstar does not compare the running clock with the effort estimate.
+
+* Clocking
+
+Clocking records the time you work on an entry as =CLOCK:= lines in its =LOGBOOK= drawer.
+
+| Command              | Org command        | Emacs, Doom     | Doom leader | Speed key |
+|----------------------+--------------------+-----------------+-------------+-----------|
+| Clock In             | =org-clock-in=     | =C-c C-x C-i=   | =SPC m c i= | =I=       |
+| Clock Out            | =org-clock-out=    | =C-c C-x C-o=   | =SPC m c o= | =O=       |
+| Cancel Clock         | =org-clock-cancel= | =C-c C-x C-q=   | =SPC m c c= |           |
+| Go to Clocked Entry  | =org-clock-goto=   | =C-c C-x C-j=   | =SPC m c g= |           |
+
+The Mac preset has no keys for these; run them from the command palette, or the clock menus described below. In the agenda, =I=, =O= and =X= clock in, out and cancel for the entry at the line ([[file:07-agenda.org][The agenda]]). Capture templates can clock in too ([[file:08-capture.org][Capture]]).
+
+** Clocking in and out
+
+Clock In starts a clock on the heading at the caret and inserts a line at the top of its =LOGBOOK= drawer, creating the drawer after the planning line and property drawer if needed:
+
+#+BEGIN_SRC org
+,* TODO Write the report
+:LOGBOOK:
+CLOCK: [2026-10-07 Wed 09:00]
+CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 15:30] =>  1:30
+:END:
+#+END_SRC
+
+- Only one clock runs at a time. Clocking in while another clock runs clocks that one out first.
+- =CLOCK:= lines outside a drawer move into the new drawer the first time you clock in on that entry.
+- Clock Out completes the line with the end time and the duration in hours and minutes. Clocks of zero minutes are kept.
+- Cancel Clock removes the running clock's line, and the drawer if it is left empty.
+- Go to Clocked Entry opens the file and moves the caret to the running clock's line.
+
+Orgstar remembers the running clock across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
+
+These parts of Org's clocking are not implemented:
+
+- clock history and the =C-u C-c C-x C-i= selection of recent tasks;
+- idle detection and resolving dangling clocks (=org-clock-idle-time=, =org-resolve-clocks=);
+- sharing the running clock with Emacs: Orgstar does not read or write Emacs's =org-clock-persist= file, so a clock started in one is not known to the other, although both see the open =CLOCK:= line;
+- rounding, changing the TODO state on clock-in (=org-clock-in-switch-to-state=), and clocking out when the entry is marked done (=org-clock-out-when-done=): the clock keeps running;
+- a =CLOCK_INTO_DRAWER= property or another drawer name: clocks always go into =LOGBOOK=.
+
+** The running clock
+
+While a clock runs, Orgstar shows it in three places, refreshed every 30 seconds:
+
+- the mode line under the editor: =⏱ 0:42 Write the report=;
+- the window's toolbar;
+- the macOS menu bar, with the elapsed time.
+
+The time shown is the time since you clocked in, not the entry's total. Each of them opens a menu with Clock Out, Cancel Clock and Go to Clocked Entry; the menu bar item also has Clock Report.
+
+** Editing clock lines
+
+You can edit clock lines by hand. =S-<up>= and =S-<down>= change their timestamps as anywhere else, but do not update the duration after ~=>~. Press =C-c C-c= (or =C-c C-y=) on the line afterwards: Orgstar fixes both day names and writes the duration again (=org-clock-update-time-maybe=).
+
+A line of the form ~CLOCK: => 1:15~, with only a duration, counts towards clock tables.
+
+* Clock summaries
+
+** The inspector
+
+View ▸ Show or Hide Columns and Clock opens the inspector beside the editor. Its Clock tab lists the clocked time per heading in the open file for Today, This Week (weeks start on Monday) or All, with a total. Clicking a heading moves to it. Only finished clocks count.
+
+** The clock report window
+
+Clock Report (=SPC m c R= and =SPC z t= in Doom, the command palette, or the clock menus) opens a window that totals time across files. Choose files on the left; files with clock lines are selected when the window opens. Turn on From to limit the report to a range of dates. The report is an Org table of time per date and heading, with a total after each ISO week:
+
+#+BEGIN_SRC org
+,#+title: Time Report
+
+| Date         | Code                                          | Hours |
+|--------------+-----------------------------------------------+-------|
+| 2026-10-05   | Write the report                              |  2:15 |
+| 2026-10-06   | Write the report                              |  1:30 |
+|--------------+-----------------------------------------------+-------|
+| 2026-W41     | WEEK TOTAL                                    |  3:45 |
+#+END_SRC
+
+Copy puts it on the clipboard; Save writes it to a file.
+
+* Clock tables
+
+A clock table is a dynamic block that Orgstar fills with a summary of clocked time (=org-clocktable-write-default=).
+
+| Command                         | Org command          | Emacs, Doom     |
+|---------------------------------+----------------------+-----------------|
+| Insert or Update Clock Table    | =org-clock-report=   | =C-c C-x C-r=   |
+| Update Dynamic Block            | =org-update-dblock=  | =C-c C-x C-u=   |
+
+=C-c C-c= on the =#+BEGIN:= line also updates the block. In the Mac preset, use the Org menu or the command palette.
+
+Insert or Update Clock Table updates the clock table at the caret. Elsewhere it inserts a new one, with =:scope subtree= inside an entry or =:scope file= before the first heading, and fills it:
+
+#+BEGIN_SRC org
+,#+BEGIN: clocktable :scope file :maxlevel 2 :block thisweek
+,#+CAPTION: Clock summary at [2026-10-07 Wed 17:00], for week 2026-W41.
+| Headline         | Time   |      |
+|------------------+--------+------|
+| *Total time*     | *5:15* |      |
+|------------------+--------+------|
+| Project Alpha    | 5:15   |      |
+| \_  Design       |        | 3:00 |
+| \_  Write code   |        | 2:15 |
+,#+END:
+#+END_SRC
+
+Times are written as =H:MM=, with a day count such as =2d= before them for a day or more. A heading's time includes its subtree's. Only finished clock lines and ~CLOCK: => H:MM~ lines count; a running clock does not. A =COMMENT= prefix is left out of headlines.
+
+** Parameters
+
+| Parameter         | Values                                         | Default   |
+|-------------------+------------------------------------------------+-----------|
+| =:scope=          | =file= (or =nil=), =subtree=, =tree=, =treeN=  | =file=    |
+| =:maxlevel=       | Deepest heading level listed                   | =2=       |
+| =:block=          | A time block (see below)                       | none      |
+| =:tstart=, =:tend= | Start and end, such as ="<2026-09-01>"=, ="<today>"=, ="<-1w>"= | none |
+| =:wstart=         | First day of the week for =:block= weeks, =1= is Monday | =1=  |
+| =:mstart=         | First day of the month for =:block= months     | =1=       |
+| =:link=           | =t=: headlines link to their headings          | =nil=     |
+| =:narrow=         | =N= adds a =<N>= width cookie; =N!= cuts headlines to N characters | =40!= |
+| =:indent=         | =t=: indent sublevels with =\_=                | =t=       |
+| =:compact=        | =t=: one time column, indented, cut to 40 characters | =nil= |
+| =:emphasize=      | =t=: level 1 bold, level 2 italic              | =nil=     |
+| =:level=          | =t=: a column with the level                   | =nil=     |
+| =:tags=           | =t=: a column with the tags, inherited ones first | =nil=  |
+| =:properties=     | A list of property names, such as =("Effort")=, one column each | none |
+| =:tcolumns=       | Number of time columns                         | up to =:maxlevel= |
+| =:formula=        | =%= adds a percentage column; a string becomes the table's =#+TBLFM= | none |
+| =:fileskip0=      | Accepted; has no effect within one file        | =nil=     |
+
+=:scope tree= covers the top-level tree around the block; =tree2= the tree from its level-2 ancestor, and so on. =:block= takes precedence over =:tstart= and =:tend=. Clocks that cross the start or end of the range count only the part inside it.
+
+=:block= values:
+
+| Value                                     | Range                                   |
+|-------------------------------------------+-----------------------------------------|
+| =today=, =yesterday=, =today-N=           | One day                                 |
+| =thisweek=, =lastweek=, =thisweek-N=      | One week, from =:wstart=                |
+| =thismonth=, =lastmonth=, =thismonth-N=   | One month, from =:mstart=               |
+| =thisyear=, =lastyear=, =thisyear-N=      | One year                                |
+| =2026=, =2026-10=, =2026-W41=, =2026-10-07= | That year, month, ISO week or day     |
+
+=week=, =month= and =year= are the same as =thisweek=, =thismonth= and =thisyear=, and a =+N= suffix moves forward.
+
+A =#+TBLFM= line already under the table is kept when the table is updated, unless =:formula= gives one.
+
+Not supported: scopes over other files (=agenda=, file lists, =file-with-archives=), =:match= and =:step=, which stop the update with a message, and =:formatter=, which is ignored along with other unknown parameters. Labels are in English only.
+
+* Habits
+
+A habit is a repeating task whose history the agenda shows as a consistency graph (=org-habit=). Define one with the =STYLE= property and a =SCHEDULED= date with a repeater:
+
+#+BEGIN_SRC org
+,* TODO Go for a run
+SCHEDULED: <2026-10-07 Wed .+2d/4d>
+:PROPERTIES:
+:STYLE:    habit
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-10-05 Mon 07:30]
+- State "DONE"       from "TODO"       [2026-10-03 Sat 07:10]
+:END:
+#+END_SRC
+
+- The repeater sets the interval you aim for. Use =.+= for most habits, so the next date counts from when you last did it.
+- The optional =/4d= sets the longest acceptable interval. It must be longer than the repeater.
+- The repeater's unit must be =d=, =w=, =m= or =y=. A month counts as 30.4 days and a year as 365.25.
+- The history comes from the entry's state notes for done keywords and its =CLOSING NOTE= lines, up to 28 of them. Those are written when the task repeats, as long as =org-log-repeat= is on (the default), or when =org-log-done= is =note=.
+
+How habits appear in the agenda, with the graph covering 21 days back and 7 ahead, is described in [[file:07-agenda.org][The agenda]].
+
+* Reminders
+
+Orgstar can post a macOS notification before entries that have a time of day, as Emacs's =appt= does with =org-agenda-to-appt=.
+
+- It covers the agenda's files and the next 7 days: scheduled items, deadlines, plain active timestamps and date ranges with a time, that are not done.
+- Each reminder comes the lead time before the entry's time: 12 minutes by default (=appt-message-warning-time=). An =APPT_WARNTIME= property on the entry, in minutes, overrides it.
+- If the warning time has already passed when Orgstar sets a reminder but the entry has not started, the notification comes at once.
+- At most 64 reminders are pending at a time, the earliest first.
+- The notification shows the entry's text, its time, and its category. Clicking it opens the entry. Notifications also show while Orgstar is the active app.
+
+Orgstar updates the reminders a couple of seconds after you stop editing, when files change, and every hour. The agenda window shows how far ahead reminders are set. Reminders already set still arrive after you quit Orgstar; changes to your files are taken into account the next time it runs.
+
+Turn reminders on or off, and set the lead time from 0 to 120 minutes, in Settings ▸ Agenda; in =config.toml= the keys are =reminders= under =[orgstar]= (default =true=) and =appt-message-warning-time=. The first time, macOS asks whether Orgstar may post notifications; if you decline, the agenda says so, and you can change it in System Settings ▸ Notifications. The iOS app's reminders are described in [[file:14-ios.org][iOS]].

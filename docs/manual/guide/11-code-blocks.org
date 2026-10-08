@@ -1,0 +1,648 @@
+#+TITLE: Code blocks
+#+DESCRIPTION: Source blocks in Orgstar: highlighting, editing, running with Babel, results, header arguments, noweb and tangling.
+#+LEDE: Orgstar runs and tangles source blocks the way Org Babel does, and refuses anything it would run differently.
+
+* Source blocks
+
+A source block holds code in a named language:
+
+#+BEGIN_SRC org
+,#+begin_src python
+return 6 * 7
+,#+end_src
+#+END_SRC
+
+Orgstar reads the same syntax Org does: the language after =#+begin_src=, then any switches such as =-i= or =-r=, then header arguments. A =#+NAME:= line above a block names it, so other blocks, =#+CALL:= lines and =:var= references can refer to it.
+
+Lines inside a block that start with =*= or =#+= are protected with a leading comma, as Org does (=org-escape-code-in-region=). The comma is removed when the block runs, tangles or exports, and when you edit the block apart.
+
+** Syntax highlighting
+
+On the Mac, the code in a block is highlighted in the editor and in the block editor. Highlighting uses tree-sitter grammars for these language names:
+
+| Language names                  | Grammar    |
+|---------------------------------+------------|
+| =sh=, =bash=, =shell=, =zsh=    | Bash       |
+| =python=, =python3=, =py=       | Python     |
+| =emacs-lisp=, =elisp=           | Emacs Lisp |
+| =c=                             | C          |
+| =c++=, =cpp=                    | C++        |
+| =r=                             | R          |
+| =js=, =javascript=, =node=      | JavaScript |
+| =java=                          | Java       |
+| =scheme=                        | Scheme     |
+| =clojure=, =clj=                | Clojure    |
+| =haskell=                       | Haskell    |
+| =rust=                          | Rust       |
+| =go=                            | Go         |
+| =ruby=                          | Ruby       |
+| =json=                          | JSON       |
+| =yaml=, =yml=                   | YAML       |
+| =toml=, =conf-toml=             | TOML       |
+| =lua=                           | Lua        |
+
+Names are matched without regard to case. Blocks in any other language show as plain monospaced text. The iOS app does not highlight code.
+
+* Editing a block apart
+
+=org-edit-special= edits a block's contents in a separate editor. Put the caret in a =src=, =example= or =export= block (or on a =#+TBLFM:= line; see [[file:10-tables.org][Tables]]) and run *Edit Block*.
+
+| Preset | Key                       |
+|--------+---------------------------|
+| Emacs  | =C-c '=                   |
+| Doom   | =C-c '=, or =SPC m '= in normal state |
+| Mac    | Org ▸ Edit Block, or the command palette |
+
+On the Mac the block opens in a sheet titled with the block's kind and language, with the same highlighting as the main editor. The protecting commas are removed while you edit and added back when you save.
+
+| Action | Keys                                 |
+|--------+--------------------------------------|
+| Save   | =C-c '= or ⌘Return, or *Save Block*  |
+| Leave  | =C-c C-k= or Escape, or *Cancel*     |
+
+If the block changed in the main editor while you edited it, the edit is not saved and the message area says so.
+
+On iOS the block opens in a plain text sheet with Cancel and Save buttons.
+
+* Running a block
+
+=C-c C-c= in a source block runs it (=org-babel-execute-src-block=) and writes its result under it. The same command runs a =#+CALL:= line or an inline =src_= block when the caret is on one.
+
+| Preset | Key                                                  |
+|--------+------------------------------------------------------|
+| Emacs  | =C-c C-c=                                            |
+| Doom   | =C-c C-c= in normal, insert and visual state         |
+| Mac    | Org ▸ Run Source Block, or the command palette       |
+
+The program runs in the folder of the file, or in =:dir=. It reads the code on standard input. While it runs, the message area shows "Running /language/ block…"; when it ends, it shows "Code block evaluation complete." or the problem.
+
+If the program writes to standard error or exits with a non-zero status, the message area shows the exit status and the first line of standard error. The result is still inserted, as Emacs does.
+
+The block's text is remembered when the run starts. If you edit the block while it runs, so it can no longer be found, the result is not written.
+
+** Languages that run
+
+On the Mac, Orgstar starts each interpreter through =/usr/bin/env=. Because an app opened from the Dock does not see your shell's =PATH=, Orgstar adds =/opt/homebrew/bin=, =/usr/local/bin=, =/usr/bin= and =/bin= to the end of it.
+
+| Language                                                         | Program run                                         |
+|------------------------------------------------------------------+-----------------------------------------------------|
+| =sh=, =bash=, =zsh=, =fish=, =ksh=, =dash=, =ash=, =csh=, =mksh=, =posh= | The shell of that name                         |
+| =shell=                                                          | The shell in =SHELL=, or =/bin/sh=                  |
+| =python=                                                         | =python3=, or the program in =:python=              |
+| =emacs-lisp=, =elisp=                                            | =emacs -Q --batch=; see Emacs Lisp blocks below     |
+| =ruby=                                                           | =ruby=                                              |
+| =js=, =javascript=                                               | =node=                                              |
+| =R=                                                              | =Rscript -=                                         |
+| =awk=                                                            | =awk -f /dev/stdin=                                 |
+| =dot=, =plantuml=, =mermaid=                                     | =dot=, =plantuml=, =mmdc=; see Graphics below       |
+
+For =ruby=, =js=, =javascript=, =R= and =awk=, =:cmd= names a different program. These languages always return their standard output, and =:var= is refused for them.
+
+Any other language is refused with "No way to run /language/ blocks yet."
+
+A run that takes longer than five minutes is stopped. Runs in a =:session= have no time limit.
+
+** The trust prompt
+
+Before a block runs, Orgstar asks "Run this /language/ block? (yes, no, always)", as =org-confirm-babel-evaluate= does.
+
+- =yes= runs it this once.
+- =no= does not run it.
+- =always= runs it and remembers the block, so it runs without asking next time.
+
+A remembered block is identified by the file's path and the exact text of the block. Any change to the block, or moving the file, makes Orgstar ask again. The remembered hashes are kept in =trusted.json= in Orgstar's Application Support folder (=~/Library/Application Support/Orgstar= on the Mac). The same file records table formulas you allowed to run Lisp. To forget every choice, delete the file while Orgstar is not running.
+
+When a block's =:var= or =:stdin= refers to other blocks that have to run first, you are asked once for all of them. The prompt covers the block you ran and every block its references reach. If any of those blocks changes while the chain runs, Orgstar stops with "The blocks changed while running; nothing more was run."
+
+** =:eval=
+
+| Value                                    | Effect                                                     |
+|------------------------------------------+------------------------------------------------------------|
+| =never=, =no=, =never-export=, =no-export= | The block does not run: "Evaluation of this /language/ code block is disabled." |
+| =query=                                  | Asks every time, with only =yes= and =no=. A block reached through =:var= with =:eval query= makes the whole chain ask every time. |
+| anything else, or absent                 | Runs after the trust prompt.                                |
+
+Orgstar does not export by running blocks, so =never-export= and =no-export= also stop the block from running interactively. In Org these two values only stop evaluation during export.
+
+** Cancelling a run
+
+On the Mac, Edit ▸ Cancel Running Block (⌘.) stops the running block. Its result is not inserted, and the message area shows "Code block canceled." The command is also in the command palette.
+
+Only one block runs at a time. Starting another block cancels the one that is running.
+
+Cancelling a block that runs in a =:session= stops the session's interpreter, so the session's state is lost. The next block in that session starts a new one.
+
+The iOS app has no cancel command.
+
+* Results
+
+The result is written after a =#+RESULTS:= line below the block (=org-babel-insert-result=). Running again replaces it. A named block's result goes under =#+RESULTS: name=, wherever that line is in the file. An unnamed block's result is the =#+RESULTS:= line right after it, past blank lines. The result keeps the block's indentation, so a block inside a list item keeps its result inside the item.
+
+#+BEGIN_SRC org
+,#+begin_src sh
+echo hello
+,#+end_src
+
+,#+RESULTS:
+: hello
+#+END_SRC
+
+By default a result is shaped like this:
+
+- Text of fewer than ten lines gets a =: = prefix on each line.
+- Text of ten lines or more goes in an =#+begin_example= block.
+- A table becomes an aligned Org table.
+
+** Value or output
+
+| Word     | Result                                                                                                  |
+|----------+---------------------------------------------------------------------------------------------------------|
+| =value=  | The value of the block. This is the default.                                                           |
+| =output= | Everything the program printed on standard output.                                                     |
+
+What "value" means depends on the language:
+
+| Language                | Value                                                                                         |
+|-------------------------+-----------------------------------------------------------------------------------------------|
+| Shells, by default      | Standard output, read as a table: tab-separated columns, then comma-separated, then space-separated; a single field is a plain value. |
+| Shells, =:results value= written out | The exit status of the last command.                                             |
+| Python                  | What the block returns. The body runs as a function, so it needs =return=. =:return expr= adds a final =return expr=. |
+| Python in a =:session=  | The value of the last expression.                                                             |
+| Emacs Lisp              | The value of the last form.                                                                   |
+| =ruby=, =js=, =R=, =awk= | Standard output, always.                                                                     |
+
+Python lists of lists become tables, with =None= rows as rules. A flat list becomes a one-row table. Emacs Lisp lists become tables the same way, with =hline= for rules. Numbers are written the way Emacs prints them.
+
+** Result types
+
+| Word                 | Effect                                                                     |
+|----------------------+----------------------------------------------------------------------------|
+| =table=, =vector=    | Read the result as a table. This is the default for values.                |
+| =list=               | Write a plain list, one =- = item per line or per element.                 |
+| =scalar=, =verbatim= | Write the result as text without reading it as a table.                    |
+| =file=               | Write a link to a file (see Results in files below).                       |
+
+=:results verbatim= on an Emacs Lisp value writes it as =prin1= would, with quotes around strings.
+
+** Result formats
+
+| Word     | Written as                                                     |
+|----------+----------------------------------------------------------------|
+| =raw=    | The text as it is, so Org markup in it takes effect.           |
+| =drawer= | Between =:results:= and =:end:=.                                |
+| =code=   | In a =#+begin_src= block of the block's language.               |
+| =org=    | In a =#+begin_src org= block.                                   |
+| =html=   | In a =#+begin_export html= block.                               |
+| =latex=  | In a =#+begin_export latex= block.                              |
+| =pp=     | Python: formatted with =pprint=; written as text.               |
+
+Lines that start with =*= or =#+= inside =code=, =org=, =html= and =latex= results are comma-protected.
+
+** Inserting
+
+| Word      | Effect                                                         |
+|-----------+----------------------------------------------------------------|
+| =replace= | Replace the previous result. This is the default.             |
+| =append=  | Add after the previous result.                                 |
+| =prepend= | Add before the previous result.                                |
+| =silent=  | Show the output in the message area and write nothing.         |
+| =none=, =discard= | Write nothing.                                         |
+
+Words from different groups combine: =:results output list append=. A later word replaces an earlier one from the same group.
+
+** =:wrap=
+
+=:wrap= puts the result in a block, ahead of any format word.
+
+| Value               | Wrapped in                                         |
+|---------------------+----------------------------------------------------|
+| =:wrap= alone       | =#+begin_results= … =#+end_results=                 |
+| =:wrap example=     | =#+begin_example= … =#+end_example=                 |
+| =:wrap src python=  | =#+begin_src python= … =#+end_src=                  |
+| =:wrap export html= | =#+begin_export html= … =#+end_export=              |
+| =:wrap no=, =:wrap nil= | No wrapping                                    |
+
+Inside =example=, =src= and =export= wrappers, lines starting with =*= or =#+= are comma-protected.
+
+** Results in files
+
+With =:results file=, the result is a link instead of text.
+
+| Header        | Effect                                                                                     |
+|---------------+--------------------------------------------------------------------------------------------|
+| =:file name=  | Write the result into =name= and link to it. Without =:results file=, =:file= has no effect, except in graphics blocks. |
+| =:output-dir dir= | Put =:file= under =dir=. The folder must exist.                                        |
+| =:file-desc text= | Give the link a description: =[[file:name][text]]=. An empty =:file-desc= uses the file name. |
+
+A relative =:file= is written in the folder the block ran in: the file's folder, or =:dir=. Without =:file=, =:results file= takes the result itself as the path to link to.
+
+#+BEGIN_SRC org
+,#+begin_src sh :results file :file out.txt :file-desc Output
+echo hello
+,#+end_src
+
+,#+RESULTS:
+[[file:out.txt][Output]]
+#+END_SRC
+
+* Header arguments
+
+** Where they come from
+
+Orgstar merges header arguments in this order, each layer overriding the ones before it (=org-babel-get-src-block-info=):
+
+1. =#+PROPERTY: header-args …= in the file, then =header-args= properties of the block's headings, from the outermost heading inwards.
+2. =header-args:LANG= the same way, for blocks in language =LANG=.
+3. The arguments on the =#+begin_src= line.
+4. =#+HEADER:= lines above the block.
+5. For a call, the call's arguments (see Calls below).
+
+A property written with a =+=, such as =header-args+=, adds to the value inherited from above instead of replacing it.
+
+#+BEGIN_SRC org
+,#+PROPERTY: header-args :results output
+
+,* Scripts
+:PROPERTIES:
+:header-args:sh: :dir /tmp
+:END:
+
+,#+HEADER: :results verbatim
+,#+begin_src sh :var name="world"
+echo "hello $name"
+,#+end_src
+#+END_SRC
+
+Without any of these, a block has =:results replace=, =:exports code=, =:session none=, =:cache no=, =:noweb no=, =:hlines no= and =:tangle no=. An inline =src_= block defaults to =:exports results= and =:hlines yes=.
+
+** Lisp in header values
+
+A header value that starts with =(=, ='=, =`= or =[= and is not in quotes is Lisp, as in =org-babel-read=. Orgstar evaluates it with its own Emacs Lisp interpreter, which also knows =buffer-file-name=, =default-directory=, =system-type= and the functions =expand-file-name=, =file-name-directory=, =file-name-nondirectory=, =file-name-sans-extension= and =file-name-as-directory=.
+
+#+BEGIN_SRC org
+,#+begin_src sh :dir (concat "/" "usr") :results output
+pwd
+,#+end_src
+#+END_SRC
+
+A string or number takes the place of the form. Lisp that the interpreter cannot evaluate is refused where it matters: for =:var= ("is Lisp that only Emacs can evaluate"), =:colnames= and =:rownames=, and any header of a =:cache yes= block.
+
+** Header argument reference
+
+| Argument          | Values                                         | Effect                                                                                     |
+|-------------------+------------------------------------------------+--------------------------------------------------------------------------------------------|
+| =:results=        | see Results above                              | How the result is collected, shaped and inserted.                                          |
+| =:wrap=           | block type and parameters                      | Wraps the result in a block.                                                               |
+| =:file=           | file name                                      | Where a file result goes; required for graphics.                                           |
+| =:output-dir=     | folder                                         | Folder for =:file=.                                                                        |
+| =:file-desc=      | text                                           | Description of a file result's link.                                                       |
+| =:var=            | =name=value=                                   | Passes a value in (see Variables below).                                                   |
+| =:colnames=       | =yes=, =no=, Lisp list                         | Header row of table variables (see Tables in variables below).                             |
+| =:rownames=       | =yes=, =no=, Lisp list                         | First column of table variables.                                                           |
+| =:hlines=         | =yes=, =no=                                    | Keep rules in table variables.                                                             |
+| =:separator=      | text                                           | Column separator for tables in shell variables; a tab by default.                          |
+| =:hline-string=   | text                                           | What a rule becomes in a shell variable with =:hlines yes=; =hline= by default.            |
+| =:dir=            | folder                                         | Folder to run in, relative to the file's folder. It must exist.                            |
+| =:session=        | name, =none=                                   | Runs in a long-lived interpreter (see Sessions below). Shells and Python only.             |
+| =:stdin=          | name of a table, list or block                 | Feeds the value to standard input. Shells only.                                            |
+| =:cmdline=        | arguments                                      | Command-line arguments. Shells, =dot=, =plantuml= and =mermaid= only.                      |
+| =:shebang=        | =#!…= line                                     | Runs the block as a script with this first line. Shells only; also used by tangling.       |
+| =:padline=        | =no=                                           | No blank line after the shebang of a script, or between tangled blocks.                    |
+| =:python=         | program                                        | Python interpreter to use.                                                                 |
+| =:cmd=            | program                                        | Interpreter for =ruby=, =js=, =javascript=, =R= and =awk=.                                 |
+| =:return=         | expression                                     | Python: the value to return.                                                               |
+| =:cache=          | =yes=, =no=                                    | Skip the run when the result is current (see Caching below).                               |
+| =:eval=           | =never=, =no=, =query=, …                      | Whether and how to ask before running (see =:eval= above).                                 |
+| =:noweb=          | see Noweb below                                | Expands =<<name>>= references.                                                             |
+| =:noweb-ref=      | name                                           | Makes the block part of =<<name>>=.                                                        |
+| =:noweb-sep=      | text                                           | Separator between blocks joined under one =:noweb-ref=; a newline by default.             |
+| =:noweb-prefix=   | =no=                                           | Do not repeat the text before =<<name>>= on each expanded line.                            |
+| =:exports=        | =code=, =results=, =both=, =none=              | What export shows (see [[file:12-export.org][Export]]).                                  |
+| =:tangle=         | see Tangling below                             | Where tangling writes the block.                                                           |
+
+** Arguments that are refused
+
+Orgstar does not run a block whose arguments it would handle differently from Emacs. Instead it says why and runs nothing.
+
+| Argument                    | Refused for                                     | Message                                                  |
+|-----------------------------+-------------------------------------------------+----------------------------------------------------------|
+| =:prologue=, =:epilogue=, =:post= | every language when running (tangling uses =:prologue= and =:epilogue=) | "=:prologue= isn't supported yet; nothing was run."      |
+| =:stdin=, =:shebang=        | languages other than shells                     | "=:stdin= isn't supported yet; nothing was run."         |
+| =:cmdline=                  | languages other than shells and graphics        | "=:cmdline= isn't supported for /language/ yet; nothing was run." |
+| =:session=                  | languages other than shells and Python          | "=:session= isn't supported for /language/ yet; nothing was run." |
+| =:var=                      | =ruby=, =js=, =javascript=, =R=, =awk=          | "=:var= isn't supported for /language/ yet."             |
+
+* Variables
+
+=:var name=value= passes a value into the block (=org-babel-ref-resolve=). One =:var= can hold several assignments separated by spaces, and you can repeat =:var=. A later assignment to the same name replaces an earlier one.
+
+| Value                          | Meaning                                                                         |
+|--------------------------------+---------------------------------------------------------------------------------|
+| =5=, =2.5=                     | A number.                                                                       |
+| ="two words"=                  | A string. =\n= and =\t= in it are a newline and a tab.                          |
+| ='(1 2)=, =(+ 1 2)=, ='((1 2) hline (3 4))= | Lisp: evaluated to a string, number, list or table.               |
+| =tbl=                          | The table or plain list under =#+NAME: tbl= in the same file.                   |
+| =gen=                          | The result of the source block named =gen=, which runs first.                   |
+| =double(n=4)=                  | The result of the block named =double=, run with =n= set to 4.                  |
+
+#+BEGIN_SRC org
+,#+NAME: nums
+| 1 | 2 |
+| 3 | 4 |
+
+,#+begin_src python :var t=nums :var scale=10
+return [[c * scale for c in row] for row in t]
+,#+end_src
+#+END_SRC
+
+A referenced block runs before the block that refers to it, after the one trust prompt that covers them all. A block with =:cache yes= and a current result gives that result without running. A chain that leads back to itself is refused with "/name/ refers to itself through :var".
+
+These are not supported and are refused:
+
+- Indexing into a table, such as =tbl[1,2]=: "References like … aren't supported yet."
+- A name that matches nothing in the file: "Can't find … for :var."
+- References to other files.
+
+How a value reaches the code depends on the language:
+
+| Language   | Scalars                 | Lists                          | Tables                                                       |
+|------------+-------------------------+--------------------------------+--------------------------------------------------------------|
+| bash       | quoted string           | indexed array (=declare -a=)   | two or more columns: associative array keyed by the first column (=declare -A=); one column: indexed array |
+| other shells | quoted string         | one item per line              | rows on lines, cells separated by a tab or =:separator=     |
+| fish       | =set name 'value'=      | as other shells                | as other shells                                              |
+| Python     | literal                 | list                           | list of lists, =None= for rules                              |
+| Emacs Lisp | =let=-bound value       | list                           | list of lists, =hline= for rules                             |
+
+For =shell= blocks, the bash forms are used when =SHELL= is bash.
+
+#+BEGIN_SRC org
+,#+NAME: kv
+| a | 1 |
+| b | 2 |
+
+,#+begin_src bash :var t=kv :results output
+echo ${t[a]} ${t[b]}
+,#+end_src
+#+END_SRC
+
+** Tables in variables
+
+A table passed as a variable loses some of its structure first (=org-babel-disassemble-tables=):
+
+- Rules are removed, unless =:hlines yes=.
+- The first row is taken off as column names when =:colnames yes=, or when the table's only rule is under the first row. =:colnames no= keeps it as data.
+- The first column is taken off as row names when =:rownames yes=.
+
+If the result is a table of the same width (for columns) or height (for rows), the names are put back on it (=org-babel-reassemble-table=). =:colnames= and =:rownames= can also be Lisp lists of names to put on the result, such as =:colnames '("x" "y")=.
+
+#+BEGIN_SRC org
+,#+NAME: tbl
+| a | b |
+|---+---|
+| 1 | x |
+| 2 | y |
+
+,#+begin_src python :var t=tbl
+return [r + ["!"] for r in t]
+,#+end_src
+#+END_SRC
+
+** Standard input and arguments
+
+For shell blocks, =:stdin name= sends a table, list or block result to standard input, a table as tab-separated lines. =:cmdline= gives the script arguments, and =:shebang= its first line. With any of the three, the block is written to an executable script and run by the shell (=org-babel-sh-evaluate=); without =:shebang=, the first line is =#!/usr/bin/env= and the shell's name.
+
+#+BEGIN_SRC org
+,#+begin_src sh :cmdline one "two words" :results output
+for a in "$@"; do echo "[$a]"; done
+,#+end_src
+#+END_SRC
+
+* Sessions
+
+=:session name= runs the block in an interpreter that stays running, so variables, functions and the working folder carry over to the next block in the same session. Sessions work for shells and Python on the Mac.
+
+- =:session= with no name uses =*language*=, such as =*sh*=. =:session none= runs without one.
+- A session belongs to one folder, one interpreter and one name. Blocks in different folders, or with different names, do not share state.
+- A session starts in the block's =:dir=, or the file's folder, the first time it is used.
+- A shell session's output is what the block prints. =:results value= gives the exit status of the last command.
+- A Python session runs the block at top level. Its value is the value of the last expression, so =return= is not used.
+- Sessions stop when you quit Orgstar, or when you cancel a block running in one.
+
+#+BEGIN_SRC org
+,#+begin_src python :session py :results output
+a = 2
+print("set")
+,#+end_src
+
+,#+begin_src python :session py
+a * 3
+,#+end_src
+#+END_SRC
+
+* Caching
+
+With =:cache yes=, Orgstar computes a SHA-1 hash of the block's header arguments and expanded body, as =org-babel-sha1-hash= does, and writes it on the results line: =#+RESULTS[hash]:=. When you run the block again and the hash matches, nothing runs and the message area shows the cached value ("Cached: …").
+
+Change the block or its arguments and it runs again. Results inserted with =append= or =prepend= carry no hash. Inline blocks are not cached. A cached block that has Lisp in its header arguments the interpreter cannot evaluate is refused.
+
+* Noweb
+
+A noweb reference =<<name>>= in a block's body stands for other code. Whether references expand depends on =:noweb= and on what is happening:
+
+| =:noweb=        | Running  | Tangling         | Exporting |
+|-----------------+----------+------------------+-----------|
+| =no= (default)  | no       | no               | no        |
+| =yes=           | expands  | expands          | no        |
+| =tangle=        | no       | expands          | no        |
+| =eval=          | expands  | no               | no        |
+| =no-export=     | expands  | expands          | no        |
+| =strip-export=  | expands  | expands          | no        |
+| =strip-tangle=  | expands  | removes the references | no  |
+
+Exported code always shows the references as written; see [[file:12-export.org][Export]].
+
+=<<name>>= expands to the first of these that exists:
+
+1. The contents of the heading whose =ID= property is =name=, or whose =CUSTOM_ID= is =name= without its leading =#=.
+2. The body of the source block named =name=.
+3. The bodies of all blocks with =:noweb-ref name=, joined by each block's =:noweb-sep= (a newline by default).
+
+Blocks under a =COMMENT= heading are skipped. A referenced block expands its own references according to its own =:noweb=, up to 32 levels deep.
+
+Text before the reference on its line is repeated before each line the reference brings in, so references inside comments or indented code keep their prefix. =:noweb-prefix no= turns this off.
+
+#+BEGIN_SRC org
+,#+NAME: greeting
+,#+begin_src sh
+echo hello
+,#+end_src
+
+,#+begin_src sh :noweb yes
+<<greeting>>
+echo world
+,#+end_src
+#+END_SRC
+
+A reference that runs a block, =<<name()>>=, is refused: "Noweb references that run a block (…) aren't supported yet; nothing was run."
+
+* Calls
+
+** =#+CALL:= lines
+
+=#+CALL:= runs a named block with other arguments, as Org's library of Babel calls do (=org-babel-lob-get-info=). Run it with =C-c C-c= on the line.
+
+#+BEGIN_SRC org
+,#+NAME: double
+,#+begin_src sh :var n=2
+echo $((n*2))
+,#+end_src
+
+,#+CALL: double(n=5)
+
+,#+RESULTS:
+: 10
+#+END_SRC
+
+The full form is =#+CALL: name[inside](arguments) end=:
+
+- =name= is the block to run. It must be in the same file.
+- =[inside]= holds header arguments applied to the block, such as =[:results raw]=.
+- =(arguments)= are =:var= assignments, separated by commas.
+- =end= holds header arguments for the call's result, such as =:results verbatim=.
+
+The result goes under the call. A =#+NAME:= line above the =#+CALL:= names the result.
+
+** Inline calls and blocks
+
+An inline source block, =src_sh{echo hi}=, runs with =C-c C-c= on it. Header arguments go in brackets: =src_sh[:var x=3]{echo $x}=. The result is written right after the block as a =results= macro:
+
+#+BEGIN_SRC org
+Text src_sh{echo hi} {{{results(=hi=)}}} end.
+#+END_SRC
+
+Running again replaces the macro. With =:results raw= the result goes in as it is, without the macro. An inline result must be one line, and a table result must be a single cell.
+
+An inline call, =call_double(n=6)=, has the same parts as a =#+CALL:= line: =call_name[inside](arguments)[end]=. Orgstar reads inline calls and writes their results the same way as inline blocks, but =C-c C-c= on an inline call does not run it. Use a =#+CALL:= line instead.
+
+* Emacs Lisp blocks
+
+On the Mac, an =emacs-lisp= or =elisp= block runs in a new =emacs -Q --batch= for each run, with lexical binding on. =-Q= means your init file and packages are not loaded, and nothing carries over between runs. Orgstar looks for Emacs at =ORGSTAR_EMACS=, then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and =/usr/bin/emacs=. Without Emacs, the block fails with "Emacs isn't installed, so Emacs Lisp blocks can't run."
+
+On iOS, Emacs Lisp blocks run in Orgstar's own Emacs Lisp interpreter. It covers ordinary list, string, number and control forms, =princ= and =message=. A block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, on the Mac." A Lisp error fails the run, as it does in Emacs.
+
+Variables are bound with =let= around the body. =:results output= collects what the block prints with =princ=, =prin1=, =print= and =terpri=.
+
+* Graphics
+
+=dot= (Graphviz), =plantuml= and =mermaid= blocks draw a picture into =:file=, and the result is a link to it. =:file= is required: "/language/ code blocks need a :file header argument". The file's extension picks the output format; with none, =png= is used.
+
+| Language   | Command                                   |
+|------------+-------------------------------------------|
+| =dot=      | =dot -T/ext/ -o file=                      |
+| =plantuml= | =plantuml -p -t/ext/=, output to the file  |
+| =mermaid=  | =mmdc -i input -o file=                    |
+
+A =plantuml= body without an =@start…= line is wrapped in =@startuml= and =@enduml=. =:cmdline= adds options to the command. The program must be installed and on the =PATH= described under Languages that run.
+
+#+BEGIN_SRC org
+,#+begin_src dot :file graph.svg
+digraph { a -> b }
+,#+end_src
+
+,#+RESULTS:
+[[file:graph.svg]]
+#+END_SRC
+
+* Tangling
+
+Tangling writes source blocks to the files their =:tangle= argument names (=org-babel-tangle=).
+
+| Command                 | Emacs and Doom              | What it tangles                                   |
+|-------------------------+-----------------------------+---------------------------------------------------|
+| Tangle File             | =C-c C-v t=, =C-c C-v C-t=  | Every block in the file                            |
+| Tangle Block            | none                        | The block at the caret (Emacs: =C-u C-c C-v t=)    |
+| Tangle Block's Target   | none                        | Every block going to the same file as the one at the caret (Emacs: =C-u C-u C-c C-v t=) |
+
+All three are in the Org menu and the command palette. The Mac preset has no keys for them. Tangling uses the text in the editor, saved or not, and the message area reports "Tangled /N/ code blocks from /file/".
+
+** =:tangle= and file names
+
+| =:tangle=         | Target                                                                                          |
+|-------------------+-------------------------------------------------------------------------------------------------|
+| =no= (default)    | Not tangled.                                                                                    |
+| =yes=             | The Org file's name with the language as extension: =el= for =emacs-lisp= and =elisp=, =bib= for =bibtex=, otherwise the language name itself (=notes.sh= for =sh=, =notes.python= for =python=). |
+| a path            | That file, relative to the Org file's folder. =~= is expanded.                                   |
+| Lisp              | Evaluated as described under Lisp in header values, with =buffer-file-name= set to the Org file. |
+
+Blocks under a =COMMENT= heading, or a heading tagged =ARCHIVE=, are skipped. Blocks going to the same file are written in the order they appear.
+
+#+BEGIN_SRC org
+,#+PROPERTY: header-args:python :tangle script.py
+
+,* Tool
+:PROPERTIES:
+:header-args: :tangle bin/tool.sh :mkdirp yes :shebang "#!/bin/sh"
+:END:
+
+,#+begin_src sh
+echo tool
+,#+end_src
+#+END_SRC
+
+** Tangling arguments
+
+| Argument        | Values                                            | Effect                                                                                       |
+|-----------------+---------------------------------------------------+----------------------------------------------------------------------------------------------|
+| =:mkdirp=       | =yes=                                             | Create the target's folder if it is missing.                                                 |
+| =:tangle-mode=  | =(identity #o755)=, =#o755=, =o755=, =rwxr-xr-x=, =u+x,g-r= | Set the file's mode. A symbolic mode starts from =644=. When several blocks give a mode, the first one counts. |
+| =:shebang=      | =#!…= line                                        | First line of the file, written once. Makes the file mode =755= unless =:tangle-mode= says otherwise. |
+| =:padline=      | =no=                                              | No blank line between this block and the one before it.                                      |
+| =:comments=     | =no=, =link=, =yes=, =org=, =both=, =noweb=       | Comments around each block (below).                                                          |
+| =:noweb=        | see Noweb above                                   | Expand or strip =<<name>>= references.                                                       |
+| =:prologue=, =:epilogue= | text                                     | A line before and after the block's code.                                                    |
+| =:var=          | as for running                                    | Shell scalars become assignments, Python values become assignments, Emacs Lisp values are =let=-bound. |
+| =:no-expand=    | any                                               | Write the body without =:var=, =:prologue= or =:epilogue=.                                   |
+
+Block switches also apply. =-r= removes coderef labels such as =(ref:name)=, using the format from =-l= if given. =-i= keeps the block's indentation. Otherwise common indentation and surrounding blank lines are removed.
+
+** Comments
+
+| =:comments= | Written                                                                                                  |
+|-------------+----------------------------------------------------------------------------------------------------------|
+| =no=        | The code only.                                                                                           |
+| =link=, =yes= | A comment with a link back to the block before the code, and "/name/ ends here" after it.               |
+| =org=       | The Org text between the heading (or the previous block) and this block, as a comment.                   |
+| =both=      | The Org text and the link comments.                                                                      |
+| =noweb=     | Link comments, plus link comments around each expanded noweb reference.                                  |
+
+The link is relative to the tangled file's folder. /name/ is the block's =#+NAME=, or the heading's title and the block's number under that heading, such as =Setup:2=.
+
+Comments need the language's comment syntax. Orgstar knows it for: =emacs-lisp=, =elisp=, =lisp=, =scheme=, =asm= (=;;=); =python=, =ruby=, =perl=, =conf=, =toml=, =makefile=, =awk=, =tcl=, =m4=, =icon=, =desktop= and the shells except =fish= (=#=); =js=, =javascript=, =java=, =cpp=, =C++=, =objc=, =csharp=, =idl=, =pike=, =antlr=, =verilog= (=//=); =c=, =C=, =css= (=/* */=); =lua=, =sql=, =sqlite=, =vhdl= (=--=); =latex=, =tex=, =prolog= (=%%=); =ps=, =metapost= (=%=); =f90=, =dcl= (=!=); =html=, =xml=, =nxml=, =mhtml=, =sgml= (=<!-- -->=); =octave= (=##=); =pascal= (={ }=); =texinfo= (=@c=); =bibtex= (=@Comment=); =nroff= (=\"=); =bat= (=rem=). For any other language, =:comments= other than =no= stops tangling with a message.
+
+** Writing the files
+
+- A file whose contents would not change is left alone, so its modification time stays the same.
+- A read-only file is replaced.
+- Tangling into the Org file itself is refused: "Not allowed to tangle into the same file as self".
+
+** What tangling refuses
+
+Tangling stops, writes nothing and says why when:
+
+- =:var= refers to a source block, which would have to run: "would run a block while tangling".
+- A shell block's =:var= is a table or list.
+- =:var= is used in a language other than shells, Python and Emacs Lisp.
+- A Lisp header value cannot be evaluated: "is Lisp tangling can't evaluate yet; nothing was tangled."
+- =:tangle-mode= is in a form it does not read.
+- =:comments= needs a comment syntax it does not know.
+
+* On iOS
+
+- Only Emacs Lisp blocks run, in Orgstar's own interpreter. Any other language fails with "/language/ blocks need the Mac to run.", and so does an Emacs Lisp block whose =:var= refers to a block in another language.
+- There are no sessions and no graphics.
+- The trust prompt works the same way, with its own =trusted.json= on the device.
+- There is no cancel command.
+- Tangling works, for files in folders Orgstar can write to.
+- Edit Block opens a plain text sheet without highlighting.
+
+See [[file:14-ios.org][iOS]] for the rest of the iOS app.

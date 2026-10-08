@@ -1,0 +1,33 @@
+# The Orgstar user manual, built with orgo and published to the pages branch by
+# scripts/publish-docs.sh.
+
+[site]
+title = "Orgstar"
+description = "A native macOS and iOS editor for org-mode files."
+language = "en"
+base_url = ""
+theme = "docs"
+
+[nav]
+mode = "explicit"
+pages = ["install.org", "quickstart.org"]
+
+[templates]
+dir = "templates"
+
+[highlight]
+theme = "base16-ocean.dark"
+
+[html]
+heading_offset = 1
+toc = true
+section_numbers = false
+
+[[collections]]
+source = "guide"
+output = "guide/index.html"
+template = "list.html"
+title = "Manual"
+sort = "path"
+order = "asc"
+nav = true

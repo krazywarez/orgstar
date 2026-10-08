@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<ul class="post-list">
+{%- for entry in pages %}
+<li>
+<a href="{{ root }}{{ entry.url }}">{{ entry.title }}</a>
+{%- if entry.excerpt %}
+<p class="excerpt">{{ entry.excerpt | truncate(180) }}</p>
+{%- endif %}
+<span class="reading-time">{{ entry.reading_time }} min read</span>
+</li>
+{%- endfor %}
+</ul>
+{% endblock %}

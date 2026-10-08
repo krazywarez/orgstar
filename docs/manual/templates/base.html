@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="{{ site.language }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title }} &middot; {{ site.title }}</title>
+{%- if site.base_url %}
+<link rel="canonical" href="{{ page.url | absolute }}">
+{%- endif %}
+<meta name="description" content="{{ page.excerpt | truncate(150) }}">
+<link rel="icon" href="{{ root }}favicon.svg" type="image/svg+xml">
+{%- if theme %}
+<link rel="stylesheet" href="{{ theme }}">
+{%- endif %}
+{%- if stylesheet %}
+<link rel="stylesheet" href="{{ stylesheet }}">
+{%- endif %}
+<link rel="stylesheet" href="{{ root }}style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="{{ root }}index.html">{{ site.title }}</a>
+{%- if nav %}
+<nav>
+{%- for item in nav %}
+<a href="{{ item.url }}">{{ item.title }}</a>
+{%- endfor %}
+</nav>
+{%- endif %}
+</header>
+<main>
+<h1>{{ page.title }}</h1>
+{%- if page.keywords.lede %}
+<p class="lede">{{ page.keywords.lede }}</p>
+{%- endif %}
+{%- if page.toc | length > 1 %}
+{%- macro toc_list(entries) %}
+<ul>
+{%- for entry in entries %}
+<li><a href="#{{ entry.anchor }}">{{ entry.title }}</a>
+{%- if entry.children %}{{ toc_list(entry.children) }}{% endif %}</li>
+{%- endfor %}
+</ul>
+{%- endmacro %}
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+{{- toc_list(page.toc) }}
+</nav>
+{%- endif %}
+{% block content %}{{ body | safe }}{% endblock %}</main>
+<footer class="site">
+Orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>
