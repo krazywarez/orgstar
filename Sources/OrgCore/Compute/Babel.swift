@@ -190,7 +190,7 @@ public enum Babel {
         guard let m = line.firstMatch(of: #/(?i)^[ \t]*#\+CALL:[ \t]*([^\s(\[]+)(?:\[([^\]]*)\])?\((.*?)\)[ \t]*(.*?)[ \t]*\n?$/#) else { return nil }
         let name = String(m.1)
         guard let block = model.srcBlocks.first(where: { $0.name == name }) else { throw Failure.message("Reference '\(name)' not found in this buffer") }
-        var extra: [[(String, String)]] = []
+        var extra = [lobDefaults]
         if let inside = m.2 { extra.append(Params.parse(String(inside))) }
         extra.append(splitArguments(String(m.3)).map { (":var", $0) })
         if !m.4.isEmpty { extra.append(Params.parse(String(m.4))) }
@@ -216,11 +216,47 @@ public enum Babel {
         guard let object = found, let m = object.text.firstMatch(of: /^call_([^()\[\]\s]+)(?:\[([^\]]*)\])?\((.*?)\)(?:\[([^\]]*)\])?$/) else { return nil }
         let name = String(m.1)
         guard let block = model.srcBlocks.first(where: { $0.name == name }) else { throw Failure.message("Reference '\(name)' not found in this buffer") }
-        var extra: [[(String, String)]] = []
+        var extra = [lobDefaults]
         if let inside = m.2 { extra.append(Params.parse(String(inside))) }
         extra.append(splitArguments(String(m.3)).map { (":var", $0) })
         if let end = m.4 { extra.append(Params.parse(String(end))) }
         return (block, try Params(block: block, model: model, text: text, extra: extra), object.range)
+    }
+
+    /// `org-babel-default-lob-header-args`, over the called block's own header arguments.
+    static let lobDefaults = [(":exports", "results")]
+
+    /// `:exports` from the language's `org-babel-default-header-args:LANG` in Org 9.8.7.
+    static let languageExports = ["dot": "results", "plantuml": "results", "ditaa": "results", "gnuplot": "results",
+                                  "latex": "results", "lilypond": "results"]
+
+    /// What export shows of the src block, `#+CALL:` line, inline call or inline src block
+    /// starting at `offset` (`org-babel-exp-process-buffer`): `code`, `results`, `both` or
+    /// `none`, from the header arguments as evaluation resolves them. Calls never show code.
+    /// Nil when nothing there runs.
+    public static func exports(at offset: Int, tree: OrgTree, model: DocumentModel, text: NSString) -> String? {
+        func value(_ params: Params?, language: String?) -> String {
+            (params?.single[":exports"] ?? language.flatMap { languageExports[$0] } ?? "code").lowercased()
+        }
+        if let block = model.srcBlocks.first(where: { $0.range.lowerBound == offset }) {
+            return value(try? Params(block: block, model: model, text: text), language: block.language)
+        }
+        let line = text.substring(with: text.lineRange(for: NSRange(location: min(offset, text.length), length: 0)))
+        let call: Params?
+        if line.range(of: "(?i)^[ \\t]*#\\+CALL:", options: .regularExpression) != nil {
+            call = (try? callAt(offset, model: model, text: text))?.params
+        } else if tree.root.descendants().contains(where: { $0.kind == .inlineBabelCall && $0.range.lowerBound == offset }) {
+            call = (try? inlineCallAt(offset, tree: tree, model: model, text: text))?.params
+        } else if let inline = try? inlineAt(offset, tree: tree, model: model, text: text), inline.block.range.lowerBound == offset {
+            return value(inline.params, language: inline.block.language)
+        } else {
+            return nil
+        }
+        // `org-babel-exp-code` for a call is `org-babel-exp-call-line-template`, empty.
+        switch call?.single[":exports"]?.lowercased() ?? "results" {
+        case "both", "results": return "results"
+        default: return "none"
+        }
     }
 
     /// Call arguments split on commas outside quotes and parentheses.
@@ -255,9 +291,8 @@ public enum Babel {
         guard let object = found, let m = object.text.firstMatch(of: /^src_([^\s\[{]+)(?:\[([^\]]*)\])?\{(.*)\}$/) else { return nil }
         let heading = model.headings.lastIndex { $0.headingRange.lowerBound <= object.range.lowerBound }
         let block = SrcBlockInfo(range: object.range, heading: heading, name: nil, language: String(m.1), switches: [], body: String(m.3), headerArguments: [:])
-        var extra: [[(String, String)]] = [[(":exports", "results"), (":hlines", "yes")]]
-        if let headers = m.2 { extra.append(Params.parse(String(headers))) }
-        return (block, try Params(block: block, model: model, text: text, extra: extra, inline: true))
+        let extra = m.2.map { [Params.parse(String($0))] } ?? []
+        return (block, try Params(block: block, model: model, text: text, defaults: [(":exports", "results"), (":hlines", "yes")], extra: extra, inline: true))
     }
 
     /// What `:var` references resolve to while planning.
@@ -882,8 +917,10 @@ public enum Babel {
             ["output", "value"],
         ]
 
-        init(block: SrcBlockInfo, model: DocumentModel, text: NSString, extra: [[(String, String)]] = [], inline: Bool = false) throws {
-            var layers: [[(String, String)]] = []
+        /// `defaults` go under the properties, as `org-babel-default-inline-header-args` do.
+        init(block: SrcBlockInfo, model: DocumentModel, text: NSString, defaults: [(String, String)] = [], extra: [[(String, String)]] = [],
+             inline: Bool = false) throws {
+            var layers: [[(String, String)]] = [defaults]
             let language = block.language ?? ""
             // `org-babel-params-from-properties`: the inherited `header-args`, then the inherited
             // `header-args:LANG`, each the nearest value with `+` additions after it.

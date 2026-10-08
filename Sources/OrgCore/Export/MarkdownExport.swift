@@ -38,7 +38,7 @@ final class MarkdownRenderer {
                 definitions[String(m.1)] = String(node.text[m.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
-        var out = blocks(tree.root)
+        var out = rendering(tree, text) { blocks(tree.root) }
         if !notes.isEmpty {
             out += notes.map { "[^\($0.0)]: " + $0.1 }.joined(separator: "\n") + "\n"
         }
@@ -48,7 +48,17 @@ final class MarkdownRenderer {
     func inlineString(_ text: String) -> String {
         let tree = OrgParser.parse(text, defaults: settings)
         guard let paragraph = tree.root.descendants().first(where: { $0.kind == .paragraph }) else { return text }
-        return inline(paragraph).trimmingCharacters(in: .whitespacesAndNewlines)
+        return rendering(tree, text) { inline(paragraph).trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
+
+    private var source: ExportSource?
+
+    /// `body` with `tree` as the source of `:exports`.
+    private func rendering<T>(_ tree: OrgTree, _ text: String, _ body: () -> T) -> T {
+        let saved = source
+        source = ExportSource(tree: tree, text: text)
+        defer { source = saved }
+        return body()
     }
 
     private var lastExports = "code"
@@ -66,7 +76,7 @@ final class MarkdownRenderer {
                 defer { lastExports = "code" }
                 if lastExports != "results", lastExports != "both" { return "" }
             }
-            if child.kind == .block, let exports = HTMLRenderer.srcExports(child) {
+            if child.kind == .block || child.kind == .keyword, let exports = source?.exports(at: child.range.lowerBound) {
                 lastExports = exports
                 if exports == "results" || exports == "none" { return "" }
             }
@@ -76,7 +86,8 @@ final class MarkdownRenderer {
     }
 
     private func blocks(text: String) -> String {
-        blocks(OrgParser.parse(text, defaults: settings).root)
+        let tree = OrgParser.parse(text, defaults: settings)
+        return rendering(tree, text) { blocks(tree.root) }
     }
 
     private func element(_ node: SyntaxNode, indent: String) -> String {
@@ -274,7 +285,16 @@ final class MarkdownRenderer {
             let inner = body.hasPrefix("{") && body.hasSuffix("}") ? String(body.dropFirst().dropLast()) : String(body)
             return node.text.hasPrefix("_") ? "<sub>\(inner)</sub>" : "<sup>\(inner)</sup>"
         case .lineBreak: return "  \n"
-        case .target, .macro: return ""
+        case .macro:
+            guard case .some(let value) = source?.resultsMacro(node) else { return "" }
+            return value.map(inlineString) ?? ""
+        case .target: return ""
+        case .inlineSourceBlock:
+            let exports = source?.exports(at: node.range.lowerBound) ?? "results"
+            source?.inlineResults = exports == "results" || exports == "both"
+            guard exports == "code" || exports == "both" else { return "" }
+            if let m = node.text.firstMatch(of: /\{(.*)\}$/) { return code(String(m.1)) }
+            return node.text
         // ox-md uses ox-html's translator: only HTML snippets.
         case .exportSnippet:
             guard node.tokens.first?.text == "@@html:" else { return "" }
@@ -283,7 +303,9 @@ final class MarkdownRenderer {
             if inTitle { return "" }
             guard let pieces = citations?.next(node.text) else { return node.text }
             return render(pieces)
-        case .inlineBabelCall: return node.text
+        case .inlineBabelCall:
+            source?.inlineResults = (source?.exports(at: node.range.lowerBound) ?? "results") == "results"
+            return ""
         default: return inline(node)
         }
     }

@@ -93,6 +93,33 @@ public enum HTMLExport {
     }
 }
 
+/// The tree being exported, for what its src blocks, calls and inline blocks export.
+final class ExportSource {
+    let tree: OrgTree
+    let text: NSString
+    private lazy var model = DocumentModel(tree: tree)
+    /// Whether the last inline src block or call lets the `{{{results(…)}}}` after it show;
+    /// nil when nothing asks.
+    var inlineResults: Bool?
+
+    init(tree: OrgTree, text: String) {
+        self.tree = tree
+        self.text = text as NSString
+    }
+
+    func exports(at offset: Int) -> String? {
+        Babel.exports(at: offset, tree: tree, model: model, text: text)
+    }
+
+    /// `{{{results(…)}}}`, Org's `$1` macro, as the inline block or call before it allows:
+    /// nil for other macros, the text to show (or nil) for this one.
+    func resultsMacro(_ node: SyntaxNode) -> String?? {
+        guard let m = node.text.firstMatch(of: /(?i)^\{\{\{results\((.*)\)\}\}\}$/) else { return .none }
+        defer { inlineResults = nil }
+        return inlineResults ?? true ? ExportPreprocess.arguments(String(m.1)).first : .some(nil)
+    }
+}
+
 final class HTMLRenderer {
     let settings: OrgSettings
     let options: ExportOptions
@@ -144,9 +171,21 @@ final class HTMLRenderer {
         collectDefinitions(tree.root)
         selected = Self.selection(tree, tags: options.selectTags)
         var out = ""
-        for child in tree.root.children { out += element(child) }
+        rendering(tree, text) {
+            for child in tree.root.children { out += element(child) }
+        }
         out += footnoteSection()
         return out
+    }
+
+    private var source: ExportSource?
+
+    /// `body` with `tree` as the source of `:exports`.
+    private func rendering<T>(_ tree: OrgTree, _ text: String, _ body: () -> T) -> T {
+        let saved = source
+        source = ExportSource(tree: tree, text: text)
+        defer { source = saved }
+        return body()
     }
 
     private func collectDefinitions(_ node: SyntaxNode) {
@@ -181,7 +220,9 @@ final class HTMLRenderer {
     func blocks(_ text: String) -> String {
         let tree = OrgParser.parse(text, defaults: settings)
         var out = ""
-        for child in tree.root.children { out += element(child) }
+        rendering(tree, text) {
+            for child in tree.root.children { out += element(child) }
+        }
         return out
     }
 
@@ -189,7 +230,7 @@ final class HTMLRenderer {
     func inlineString(_ text: String) -> String {
         let tree = OrgParser.parse(text, defaults: settings)
         guard let paragraph = tree.root.descendants().first(where: { $0.kind == .paragraph }) else { return Self.escape(text) }
-        return inline(paragraph).trimmingCharacters(in: .whitespacesAndNewlines)
+        return rendering(tree, text) { inline(paragraph).trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
     /// A citation's or a bibliography entry's pieces: text escaped, prefixes and suffixes as
@@ -209,8 +250,8 @@ final class HTMLRenderer {
     // MARK: - Elements
 
     private var affiliated: [String: String] = [:]
-    /// `:exports` of the last src block: its results are exported only for `results` and
-    /// `both`; nothing runs.
+    /// `:exports` of the last src block or call: its results are exported only for `results`
+    /// and `both`; nothing runs.
     private var lastExports = "code"
 
     func element(_ node: SyntaxNode) -> String {
@@ -219,7 +260,7 @@ final class HTMLRenderer {
             defer { lastExports = "code" }
             if lastExports != "results", lastExports != "both" { return "" }
         }
-        if node.kind == .block, let exports = Self.srcExports(node) {
+        if node.kind == .block || node.kind == .keyword, let exports = source?.exports(at: node.range.lowerBound) {
             lastExports = exports
             if exports == "results" || exports == "none" { return "" }
         }
@@ -309,14 +350,6 @@ final class HTMLRenderer {
             // Keywords, comments, drawers, planning, clocks, footnote definitions, formulas.
             return ""
         }
-    }
-
-    /// The `:exports` value of a src block, or nil for other blocks.
-    static func srcExports(_ node: SyntaxNode) -> String? {
-        guard DocumentModel.isSrcBlock(node) else { return nil }
-        let first = node.text.components(separatedBy: "\n").first ?? ""
-        if let m = first.firstMatch(of: /:exports[ \t]+(\S+)/) { return m.1.lowercased() }
-        return "code"
     }
 
     private func slug(_ text: String) -> String {
@@ -706,8 +739,14 @@ final class HTMLRenderer {
             let inner = braced ? String(body.dropFirst().dropLast()) : String(body)
             return text.hasPrefix("_") ? "<sub>\(Self.escape(inner))</sub>" : "<sup>\(Self.escape(inner))</sup>"
         case .lineBreak: return "<br>\n"
-        case .target, .macro: return ""
+        case .macro:
+            guard case .some(let value) = source?.resultsMacro(node) else { return "" }
+            return value.map(inlineString) ?? ""
+        case .target: return ""
         case .inlineSourceBlock:
+            let exports = source?.exports(at: node.range.lowerBound) ?? "results"
+            source?.inlineResults = exports == "results" || exports == "both"
+            guard exports == "code" || exports == "both" else { return "" }
             if let m = node.text.firstMatch(of: /\{(.*)\}$/) { return "<code>\(Self.escape(String(m.1)))</code>" }
             return Self.escape(node.text)
         case .latexFragment:
@@ -724,7 +763,9 @@ final class HTMLRenderer {
             if inTitle { return "" }
             guard let pieces = citations?.next(node.text) else { return Self.escape(node.text) }
             return render(pieces)
-        case .inlineBabelCall: return Self.escape(node.text)
+        case .inlineBabelCall:
+            source?.inlineResults = (source?.exports(at: node.range.lowerBound) ?? "results") == "results"
+            return ""
         default: return inline(node)
         }
     }

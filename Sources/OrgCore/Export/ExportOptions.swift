@@ -208,6 +208,11 @@ public enum ExportPreprocess {
                 continue
             }
             let name = ns.substring(with: m.range(at: 1)).lowercased()
+            // Inline results stay for the exporter, which shows them as `:exports` says.
+            if name == "results", definitions[name] == nil {
+                out += ns.substring(with: m.range)
+                continue
+            }
             let args = m.range(at: 2).location == NSNotFound ? [] : arguments(ns.substring(with: m.range(at: 2)))
             out += expand(name, args, definitions: definitions, keywords: keywords, counters: &counters, path: path, now: now)
         }

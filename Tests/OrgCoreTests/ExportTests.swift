@@ -220,4 +220,85 @@ struct ExportResultsTests {
         #expect(html.contains("echo b") && html.contains(">b</pre>"))
         #expect(!html.contains("echo c") && html.contains(">c</pre>"))
     }
+
+    static let exports = """
+        #+PROPERTY: header-args :exports both
+        * Heading
+        :PROPERTIES:
+        :header-args:sh: :exports results
+        :END:
+        #+begin_src sh
+        echo codeprop
+        #+end_src
+
+        #+RESULTS:
+        : resprop
+
+        #+HEADER: :exports code
+        #+begin_src sh
+        echo codeheader
+        #+end_src
+
+        #+RESULTS:
+        : resheader
+
+        #+begin_src python
+        codefile
+        #+end_src
+
+        #+RESULTS:
+        : resfile
+
+        #+NAME: named
+        #+begin_src sh :exports none
+        echo codenamed
+        #+end_src
+
+        #+CALL: named()
+
+        #+RESULTS:
+        : rescall
+
+        #+CALL: named() :exports code
+
+        #+RESULTS:
+        : rescallcode
+
+        #+begin_src dot :file graph.png
+        digraph { codedot }
+        #+end_src
+
+        #+RESULTS:
+        : resdot
+
+        Inline src_sh{echo codeinline} {{{results(=resinline=)}}} one.
+
+        Inline src_sh[:exports code]{echo codeinlinecode} {{{results(=resinlinecode=)}}} two.
+
+        Inline src_sh[:exports both]{echo codeinlineboth} {{{results(=resinlineboth=)}}} three.
+
+        Inline call_named() {{{results(=resinlinecall=)}}} four.
+        """ + "\n"
+
+    /// Which code and results the HTML and Markdown exports keep, against ox-html with nothing
+    /// evaluated.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func exportsLikeOrg() throws {
+        let emacs = try EmacsOracle.evaluate(Self.exports, """
+            (progn
+              (require 'ox-html) (require 'ob-shell) (require 'ob-python) (require 'ob-dot)
+              (dolist (v '(org-babel-default-header-args org-babel-default-inline-header-args org-babel-default-lob-header-args))
+                (set v (cons '(:eval . "never-export") (symbol-value v))))
+              (list (org-export-as 'html nil nil t)))
+            """)[0]
+        let words = Self.exports.matches(of: /\b(?:code|res)[a-z]+\b/).map { String($0.0) }
+        let expected = Set(words.filter { emacs.contains($0) })
+        #expect(expected.count > 4 && expected.count < words.count)
+        let html = HTMLExport.page(Self.exports, fallbackTitle: "t")
+        let markdown = MarkdownExport.document(Self.exports)
+        for word in words {
+            #expect(html.contains(word) == expected.contains(word), "HTML \(word)")
+            #expect(markdown.contains(word) == expected.contains(word), "Markdown \(word)")
+        }
+    }
 }
