@@ -57,6 +57,7 @@ public enum EmacsRunner {
         process.executableURL = emacs
         process.arguments = ["-Q", "--batch", "-l", script.path]
         process.currentDirectoryURL = directory
+        process.environment = BabelRunner.environment
         let errors = Pipe()
         process.standardError = errors
         process.standardOutput = FileHandle.nullDevice
