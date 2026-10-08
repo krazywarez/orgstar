@@ -16,7 +16,8 @@ extension OrgEditor {
         }
         switch dispatcher.feed(chord) {
         case .pending(let keys):
-            let next = keymap.continuations(of: keys, mode: dispatcher.mode).map { item in
+            let context = editContext()
+            let next = keymap.continuations(of: keys, mode: dispatcher.mode) { modalRuns($0, in: context) }.map { item in
                 (key: item.key.description, title: item.command.map { EditorCommands.command($0)?.title ?? $0 } ?? "+prefix")
             }
             onKeysPending?(KeySequence.format(keys), next)
@@ -27,9 +28,7 @@ extension OrgEditor {
         case .complete(let keys, let candidates):
             if keys.count > 1 { onKeysPending?(nil, []) }
             let context = editContext()
-            if let binding = candidates.first(where: { binding in
-                (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && commandApplies(binding.command, in: context)
-            }) {
+            if let binding = candidates.first(where: { modalRuns($0, in: context) }) {
                 run(binding.command)
                 updateCursor()
                 return true
@@ -102,6 +101,10 @@ extension OrgEditor {
     private func editContext() -> EditContext {
         let selected = textView.selectedRange()
         return EditContext(revision: document.revision, text: document.text, tree: document.tree, selection: [selected.location..<NSMaxRange(selected)], options: options)
+    }
+
+    private func modalRuns(_ binding: KeyBinding, in context: EditContext) -> Bool {
+        (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && commandApplies(binding.command, in: context)
     }
 
     private func commandApplies(_ id: String, in context: EditContext) -> Bool {

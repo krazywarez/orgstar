@@ -395,7 +395,8 @@ public final class OrgEditor: NSObject {
         if modal { return handleModal(chord) }
         switch dispatcher.feed(chord) {
         case .pending(let keys):
-            let next = keymap.continuations(of: keys).map { item in
+            let context = context()
+            let next = keymap.continuations(of: keys) { runs($0, in: context) }.map { item in
                 (key: item.key.description, title: item.command.map { EditorCommands.command($0)?.title ?? $0 } ?? "+prefix")
             }
             onKeysPending?(KeySequence.format(keys), next)
@@ -413,9 +414,7 @@ public final class OrgEditor: NSObject {
         case .complete(let keys, let candidates):
             if keys.count > 1 { onKeysPending?(nil, []) }
             let context = context()
-            let runnable = candidates.first { binding in
-                (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && applies(binding.command, in: context)
-            }
+            let runnable = candidates.first { runs($0, in: context) }
             if let binding = runnable ?? (keys.count > 1 ? candidates.first : nil) {
                 run(binding.command)
                 return true
@@ -433,6 +432,11 @@ public final class OrgEditor: NSObject {
         guard command.applies(in: context()) else { return false }
         _ = perform(command)
         return true
+    }
+
+    /// Whether a key's `binding` runs in `context`: its context holds and its command applies.
+    private func runs(_ binding: KeyBinding, in context: EditContext) -> Bool {
+        (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && applies(binding.command, in: context)
     }
 
     private func applies(_ id: String, in context: EditContext) -> Bool {

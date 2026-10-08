@@ -194,6 +194,19 @@ struct KeymapTests {
         #expect(keymap.continuations(of: []).contains { $0.key == KeyChord("c", .control) && $0.command == nil })
     }
 
+    @Test func continuationsFollowContext() {
+        let keymap = KeymapPreset.emacs.keymap
+        let text = "* a\n#+begin_src sh\necho\n#+end_src\n"
+        func hint(at caret: Int) -> String?? {
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+            return keymap.continuations(of: [KeyChord("c", .control)]) { binding in
+                binding.when.map { KeyContext.holds($0, in: context) } ?? true
+            }.first { $0.key == KeyChord("c", .control) }?.command
+        }
+        #expect(hint(at: 1) == "org.ctrl-c-ctrl-c")
+        #expect(hint(at: 20) == "org.babel.execute")
+    }
+
     @Test func contexts() {
         let text = "* a\n| x |\n- item\n"
         let tree = OrgParser.parse(text)

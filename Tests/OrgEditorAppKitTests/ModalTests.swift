@@ -72,6 +72,21 @@ struct ModalTests {
         #expect(h.editor.vim.mode == .normal)
     }
 
+    @Test func keyHintsFollowContext() {
+        let h = doom("* a\n#+begin_src sh\necho\n#+end_src\n")
+        var hints: [(key: String, title: String)] = []
+        h.editor.onKeysPending = { _, next in if !next.isEmpty { hints = next } }
+        func hint() -> String? { hints.first { $0.key == "C-c" }?.title }
+        h.caret(at: 1)
+        type(h, "C-c")
+        #expect(hint() != nil && hint() != "Run Source Block")
+        type(h, "C-g")
+        h.caret(at: 20)
+        type(h, "C-c")
+        #expect(hint() == "Run Source Block")
+        type(h, "C-g")
+    }
+
     @Test func visualSelection() {
         let h = doom("one two three\n")
         h.caret(at: 0)

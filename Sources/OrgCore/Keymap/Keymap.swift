@@ -92,8 +92,9 @@ public struct Keymap: Sendable, Equatable {
     }
 
     /// What can follow `prefix`: each next key with the command it runs, or nil when it
-    /// leads to a longer sequence. Sorted by key.
-    public func continuations(of prefix: [KeyChord], mode: String? = nil) -> [(key: KeyChord, command: String?)] {
+    /// leads to a longer sequence. Sorted by key. The command is the first candidate that
+    /// `runs` accepts, as dispatch picks it, or the first candidate when none does.
+    public func continuations(of prefix: [KeyChord], mode: String? = nil, runs: (KeyBinding) -> Bool = { _ in true }) -> [(key: KeyChord, command: String?)] {
         var seen: [KeyChord: String?] = [:]
         for binding in bindings where binding.mode == mode && binding.keys.count > prefix.count && Array(binding.keys.prefix(prefix.count)) == prefix {
             let next = binding.keys[prefix.count]
@@ -101,8 +102,9 @@ public struct Keymap: Sendable, Equatable {
             guard seen[next] == nil else { continue }
             if isPrefix(sequence, mode: mode) {
                 seen[next] = .some(nil)
-            } else if let command = candidates(for: sequence, mode: mode).first?.command {
-                seen[next] = .some(command)
+            } else {
+                let found = candidates(for: sequence, mode: mode)
+                if let command = (found.first(where: runs) ?? found.first)?.command { seen[next] = .some(command) }
             }
         }
         return seen.map { (key: $0.key, command: $0.value) }.sorted { $0.key.description < $1.key.description }
