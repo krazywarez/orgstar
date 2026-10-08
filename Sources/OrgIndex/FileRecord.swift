@@ -108,6 +108,8 @@ public struct FileRecord: Sendable, Equatable {
     public let hash: String
     public let settingsVersion: Int
     public let headings: [HeadingRecord]
+    /// Links before the first heading, the file's own.
+    public let links: [LinkRow]
 
     public static func hash(_ bytes: [UInt8]) -> String {
         SHA256.hash(data: Data(bytes)).map { String(format: "%02x", $0) }.joined()
@@ -124,7 +126,7 @@ public struct FileRecord: Sendable, Equatable {
         var resolved = settings
         resolved.org = settings.org.resolvingSetupFiles(in: source.text, path: path, read: OrgSettings.readFile)
         self.settingsVersion = Self.settingsVersion(settings, text: source.text, setupKeywords: resolved.org.setupKeywords)
-        headings = kind == .conflict ? [] : Self.headings(source.text, settings: resolved)
+        (headings, links) = kind == .conflict ? ([], []) : Self.rows(source.text, settings: resolved)
     }
 
     /// The settings version a file's rows are built under: the index's, with the keywords of
@@ -157,11 +159,12 @@ public struct FileRecord: Sendable, Equatable {
         self.hash = Self.unreadHash(size: size, mtime: mtime)
         self.settingsVersion = settings.version
         headings = []
+        links = []
     }
 
     public static func unreadHash(size: Int, mtime: Double) -> String { "unread:\(size):\(mtime)" }
 
-    static func headings(_ text: String, settings: IndexSettings) -> [HeadingRecord] {
+    static func rows(_ text: String, settings: IndexSettings) -> (headings: [HeadingRecord], links: [LinkRow]) {
         let model = DocumentModel(tree: OrgParser.parse(text, defaults: settings.org), settings: settings.semantic)
         let utf16 = text.utf16
         func slice(_ range: Range<Int>) -> String {
@@ -174,7 +177,7 @@ public struct FileRecord: Sendable, Equatable {
             if let parent = heading.parent, firstChild[parent] == nil { firstChild[parent] = index }
         }
 
-        return model.headings.enumerated().map { index, heading in
+        let headings = model.headings.enumerated().map { index, heading in
             let bodyEnd = firstChild[index].map { model.headings[$0].sectionRange.lowerBound } ?? heading.sectionRange.upperBound
             let tags = model.tags(of: index)
             return HeadingRecord(
@@ -197,13 +200,16 @@ public struct FileRecord: Sendable, Equatable {
                 clocks: heading.clocks.map {
                     ClockRow(start: format($0.start), end: $0.end.map(format), minutes: $0.minutes)
                 },
-                links: heading.links.map { target in
-                    let scheme = target.prefix { $0 != ":" }
-                    let isScheme = scheme.count < target.count && !scheme.isEmpty && scheme.allSatisfy { $0.isLetter || $0 == "-" }
-                    return LinkRow(type: isScheme ? scheme.lowercased() : "fuzzy", target: target)
-                }
+                links: heading.links.map(linkRow)
             )
         }
+        return (headings, model.links.map(linkRow))
+    }
+
+    static func linkRow(_ target: String) -> LinkRow {
+        let scheme = target.prefix { $0 != ":" }
+        let isScheme = scheme.count < target.count && !scheme.isEmpty && scheme.allSatisfy { $0.isLetter || $0 == "-" }
+        return LinkRow(type: isScheme ? scheme.lowercased() : "fuzzy", target: target)
     }
 
     /// Own properties, plus inherited ones for keys that inherit.

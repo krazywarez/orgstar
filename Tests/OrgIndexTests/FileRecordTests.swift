@@ -54,6 +54,12 @@ struct FileRecordTests {
         #expect(child.properties.contains(PropertyRow(key: "OWNER", value: "team", inherited: true)))
     }
 
+    @Test func linksBeforeTheFirstHeadingBelongToTheFile() {
+        let file = record("/notes/a.org", "#+TITLE: A\nSee [[file:b.org]] and https://x.org.\n* H\n[[id:h]]\n")
+        #expect(file.links == [LinkRow(type: "file", target: "file:b.org"), LinkRow(type: "https", target: "https://x.org")])
+        #expect(file.headings[0].links == [LinkRow(type: "id", target: "id:h")])
+    }
+
     @Test func archiveTag() {
         let headings = record("/notes/a.org", "* a :ARCHIVE:\n** b\n* c\n").headings
         #expect(headings.map(\.archived) == [true, true, false])

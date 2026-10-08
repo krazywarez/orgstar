@@ -11,6 +11,8 @@ public struct DocumentModel: Sendable {
     public private(set) var fileProperties: [Property] = []
     public private(set) var tables: [TableModel] = []
     public private(set) var srcBlocks: [SrcBlockInfo] = []
+    /// Link targets before the first heading, as `HeadingInfo.links` has a heading's.
+    public private(set) var links: [String] = []
 
     /// Always inherited, whatever the inheritance setting.
     static let alwaysInherited: Set<String> = ["CATEGORY", "ARCHIVE", "COLUMNS", "LOGGING"]
@@ -130,7 +132,7 @@ public struct DocumentModel: Sendable {
             case .timestamp:
                 if let heading, let stamp = Timestamp.parse(child.text) { headings[heading].timestamps.append(stamp) }
             case .link:
-                if let heading { headings[heading].links.append(linkTarget(child)) }
+                if let heading { headings[heading].links.append(linkTarget(child)) } else { links.append(linkTarget(child)) }
             case .keyword:
                 fileKeyword(child)
             case .table:

@@ -21,6 +21,7 @@ public struct IndexedHeading: Sendable, Hashable {
 
 public struct HeadingLocation: Sendable, Hashable {
     public let path: String
+    /// `fileOrdinal` for the file itself, before its first heading.
     public let ordinal: Int
     public let title: String
     public let start: Int
@@ -32,6 +33,13 @@ public struct HeadingLocation: Sendable, Hashable {
         self.title = title
         self.start = start
         self.contentHash = contentHash
+    }
+
+    public static let fileOrdinal = -1
+
+    /// The file before its first heading, titled by its name.
+    public static func file(_ path: String, contentHash: String) -> HeadingLocation {
+        HeadingLocation(path: path, ordinal: fileOrdinal, title: (path as NSString).lastPathComponent, start: 0, contentHash: contentHash)
     }
 }
 
@@ -134,6 +142,18 @@ public final class IndexStore: Sendable {
                 END;
                 """)
         }
+        migrator.registerMigration("v2") { db in
+            // Links before a file's first heading; files are read again to fill it.
+            try db.execute(sql: """
+                CREATE TABLE file_links (
+                    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+                    type TEXT NOT NULL,
+                    target TEXT NOT NULL
+                );
+                CREATE INDEX file_links_file ON file_links(file_id);
+                UPDATE files SET settings_version = -1;
+                """)
+        }
         return migrator
     }
 
@@ -174,6 +194,9 @@ public final class IndexStore: Sendable {
                         record.settingsVersion, Date().timeIntervalSince1970]
         )
         let fileID = db.lastInsertedRowID
+        for link in record.links {
+            try db.execute(sql: "INSERT INTO file_links VALUES (?, ?, ?)", arguments: [fileID, link.type, link.target])
+        }
         for heading in record.headings {
             try db.execute(
                 sql: """
@@ -316,20 +339,29 @@ public final class IndexStore: Sendable {
         return indexed.filter { overlay[$0.path] == nil } + live
     }
 
-    /// Every link and the heading it's in, unsaved buffers' in place of their files'.
+    /// Every link and the heading it's in, or the file for links before its first heading,
+    /// unsaved buffers' in place of their files'.
     public func links(overlay: [String: FileRecord] = [:]) throws -> [(source: HeadingLocation, target: String)] {
         let indexed = try database.read { db in
             try Row.fetchAll(
                 db,
                 sql: """
+                    SELECT f.path, f.hash, -1 AS ordinal, '' AS title, 0 AS start_offset, l.target
+                    FROM file_links l JOIN files f ON f.id = l.file_id WHERE f.kind = 'org'
+                    UNION ALL
                     SELECT f.path, f.hash, h.ordinal, h.title, h.start_offset, l.target
                     FROM links l JOIN headings h ON h.id = l.heading_id JOIN files f ON f.id = h.file_id
-                    WHERE f.kind = 'org' ORDER BY f.path, h.ordinal
+                    WHERE f.kind = 'org' ORDER BY 1, 3
                     """
-            ).map { (source: location($0), target: $0["target"] as String) }
+            ).map { row in
+                let location = location(row)
+                return (source: location.ordinal == HeadingLocation.fileOrdinal ? .file(location.path, contentHash: location.contentHash) : location,
+                        target: row["target"] as String)
+            }
         }
         let live = overlay.values.sorted { $0.path < $1.path }.flatMap { record in
-            record.headings.flatMap { heading in heading.links.map { (source: location(record, heading), target: $0.target) } }
+            record.links.map { (source: HeadingLocation.file(record.path, contentHash: record.hash), target: $0.target) }
+                + record.headings.flatMap { heading in heading.links.map { (source: location(record, heading), target: $0.target) } }
         }
         return indexed.filter { overlay[$0.source.path] == nil } + live
     }

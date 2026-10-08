@@ -847,6 +847,8 @@ public final class DocumentSession {
         let offset: Int
         if !isDirty, hash == location.contentHash {
             offset = location.start
+        } else if location.ordinal == HeadingLocation.fileOrdinal {
+            offset = 0
         } else if location.ordinal < outline.count, outline[location.ordinal].title == location.title {
             offset = outline[location.ordinal].start
         } else if let entry = outline.first(where: { $0.title == location.title }) {

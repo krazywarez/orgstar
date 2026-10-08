@@ -107,14 +107,22 @@ struct WorkspaceModelTests {
         let notes = try Folder()
         try notes.write("a.org", "* Sink\n:PROPERTIES:\n:ID: s-1\n:CUSTOM_ID: sink\n:END:\nsee [[*Taps]]\n* Taps\n")
         try notes.write("b.org", "* Plumbing\n[[id:s-1][the sink]] and [[file:a.org]]\n* Other\n[[file:a.org::#sink]] [[https://x.org]]\n")
+        // Links before the first heading come from the file itself.
+        try notes.write("c.org", "#+TITLE: C\nAbout [[file:a.org::*Sink]] and [[file:a.org]].\n* Later\n")
         let model = try WorkspaceModel(directory: nil)
         try await model.addRoot(notes.url)
         let a = try #require(model.files.first { $0.path.hasSuffix("/a.org") }).path
+        let c = try #require(model.files.first { $0.path.hasSuffix("/c.org") }).path
         let sink = Backlinks.Target(path: a, title: "Sink", id: "s-1", customID: "sink")
-        #expect(model.backlinks(to: sink).map(\.title) == ["Plumbing", "Other"])
-        #expect(model.backlinks(to: Backlinks.Target(path: a)).map(\.title) == ["Plumbing"])
+        #expect(model.backlinks(to: sink).map(\.title) == ["Plumbing", "Other", "c.org"])
+        #expect(model.backlinks(to: Backlinks.Target(path: a)).map(\.title) == ["Plumbing", "c.org"])
         #expect(model.backlinks(to: Backlinks.Target(path: a, title: "Taps")).map(\.title) == ["Sink"])
-        #expect(model.backlinks(to: sink, excluding: 0).map(\.title) == ["Plumbing", "Other"])
+        #expect(model.backlinks(to: sink, excluding: 0).map(\.title) == ["Plumbing", "Other", "c.org"])
+        let fromC = try #require(model.backlinks(to: sink).last)
+        #expect(fromC == .file(c, contentHash: fromC.contentHash))
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.show(fromC)
+        #expect(session.path == c && session.revealRequest?.offset == 0)
     }
 
     @Test func createRenameAndTrashFiles() async throws {
