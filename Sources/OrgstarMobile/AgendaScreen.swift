@@ -260,9 +260,7 @@ struct AgendaScreen: View {
 
     /// The first done keyword of the item's TODO sequence.
     private func doneKeyword(for item: AgendaItem) -> String? {
-        guard let todo = item.todo, let path = item.path else { return nil }
-        let text = session.openTexts[path] ?? (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
-        let settings = OrgParser.parse(text).settings
+        guard let todo = item.todo, let path = item.path, let settings = session.settings(for: path) else { return nil }
         return settings.todoSequences.first { ($0.active + $0.done).contains { $0.name == todo } }?.done.first?.name
     }
 
