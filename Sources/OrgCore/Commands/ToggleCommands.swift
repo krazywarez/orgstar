@@ -326,7 +326,7 @@ extension EmacsBuffer {
     }
 }
 
-/// C-c @ and M-h on a heading: `org-mark-subtree`, the subtree selected from its heading.
+/// C-c @ (and the speed key @) on a heading: `org-mark-subtree`, the subtree selected from its heading.
 public struct MarkSubtree: OrgCommand {
     public init() {}
     public var id: String { "org.subtree.mark" }

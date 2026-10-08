@@ -2,8 +2,8 @@ import Foundation
 
 // C-c C-c (`org-ctrl-c-ctrl-c`, Org 9.8.7) for the contexts no more specific binding takes:
 // headings set tags, clock lines get their duration again, timestamps their weekday, cookies
-// update, items without a checkbox have their list repaired, setup keywords refresh, and
-// elsewhere there's nothing to do.
+// update, items toggle their checkbox, or without one have their list repaired, setup keywords
+// refresh, and elsewhere there's nothing to do.
 
 /// `org-ctrl-c-ctrl-c`.
 public struct CtrlCCtrlC: OrgCommand {

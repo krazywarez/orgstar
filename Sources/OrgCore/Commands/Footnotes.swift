@@ -513,7 +513,7 @@ public struct FootnoteAction: OrgCommand {
         return .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection, effects: result.effects + [.message(message)]))
     }
 
-    static let definitionMessage = "Edit definition and go back with `C-c &' or, if unique, with `C-c C-c'."
+    static let definitionMessage = "Edit definition and go back with `C-c C-c' or `C-c C-x f' on its label."
 
     private func move(_ context: EditContext, to offset: Int, message: String? = nil) -> CommandStep {
         .commit(EditResult(baseRevision: context.revision, edits: [], selection: [offset..<offset], effects: message.map { [.message($0)] } ?? []))
