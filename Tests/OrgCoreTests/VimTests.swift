@@ -12,6 +12,7 @@ struct VimDriver {
     var commands: [String] = []
     var halfPage = 15
     var visible: Range<Int>?
+    var org = false
 
     init(_ text: String, caret: Int) {
         self.text = text
@@ -38,7 +39,7 @@ struct VimDriver {
                 }
                 continue
             }
-            let actions = vim.feed(key, Vim.Context(text: text, caret: caret, clipboard: clipboard, halfPage: halfPage, visible: visible))
+            let actions = vim.feed(key, Vim.Context(text: text, caret: caret, clipboard: clipboard, halfPage: halfPage, visible: visible, org: org))
             for action in actions {
                 switch action {
                 case .edit(let edits, let to):

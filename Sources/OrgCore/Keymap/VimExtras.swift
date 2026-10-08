@@ -253,14 +253,23 @@ extension Vim {
         var node: SyntaxNode?
     }
 
-    static func orgObject(_ key: String, inner: Bool, _ buffer: Buffer, _ c: Int) -> (range: Range<Int>, linewise: Bool)? {
+    /// `j` and `k` are evil-org's `gj` and `gk` (`org-forward-element`, `org-backward-element`):
+    /// an empty range where they go, nil where they can't.
+    static func orgObject(_ key: String, inner: Bool, _ buffer: Buffer, _ position: Int) -> (range: Range<Int>, linewise: Bool)? {
         let tree = OrgParser.parse(buffer.ns as String)
+        /// The point the element functions look at, and the nodes containing it.
+        var c = position
         var chain: [SyntaxNode] = []
-        var node = tree.root
-        while let child = node.child(containing: c) {
-            chain.append(child)
-            node = child
+        func look(at p: Int) {
+            c = p
+            chain = []
+            var node = tree.root
+            while let child = node.child(containing: c) {
+                chain.append(child)
+                node = child
+            }
         }
+        look(at: position)
         /// The end of the line ending at or after `p`, without trailing blank lines.
         func trimmed(_ lower: Int, _ upper: Int) -> Int {
             var end = upper
@@ -353,7 +362,49 @@ extension Vim {
             if let contents = e.contents { return contents }
             return e.begin..<max(e.begin, trimmed(e.begin, e.end) - (buffer.char(trimmed(e.begin, e.end) - 1) == 10 ? 1 : 0))
         }
+        /// The stars of the heading on the line holding `p`, or nil.
+        func headingLevel(_ p: Int) -> Int? {
+            let line = buffer.substring(buffer.lineStart(p)..<buffer.lineEnd(p))
+            guard let stars = line.range(of: "^\\*+(?=[ \\t]|$)", options: .regularExpression) else { return nil }
+            return line.distance(from: stars.lowerBound, to: stars.upperBound)
+        }
+        func at(_ p: Int) -> (range: Range<Int>, linewise: Bool) { (p..<p, false) }
         switch key {
+        case "j":
+            guard position < buffer.length else { return nil }
+            if headingLevel(position) != nil {
+                // To the end of the subtree, when a heading is there.
+                guard let section = chain.last(where: { $0.kind == .section }) else { return nil }
+                let end = section.range.upperBound
+                return end < buffer.length && headingLevel(end) != nil ? at(end) : nil
+            }
+            guard let e = atPoint() else { return nil }
+            if let up = parent(e), up.contents?.upperBound == e.end { return at(up.end) }
+            return at(e.end)
+        case "k":
+            guard position > 0 else { return nil }
+            if let level = headingLevel(position) {
+                // The previous heading at this level, or else the parent.
+                var line = buffer.lineStart(position)
+                while line > 0 {
+                    line = buffer.lineStart(line - 1)
+                    if let other = headingLevel(line), other <= level { return at(line) }
+                }
+                return nil
+            }
+            guard let e = atPoint() else { return nil }
+            if position != e.begin { return at(e.begin) }
+            var p = e.begin
+            while p > 0, let ch = buffer.char(p - 1), Buffer.isSpace(ch) { p -= 1 }
+            guard p > 0 else { return at(0) }
+            look(at: p)
+            guard var prev = atPoint() else { return at(e.begin) }
+            var target = prev.begin
+            while let up = parent(prev), up.end <= e.begin {
+                target = up.begin
+                prev = up
+            }
+            return at(target)
         case "R":
             guard let headline = chain.last(where: { $0.kind == .section }).map(element) else { return nil }
             return (inner ? (headline.contents ?? headline.begin..<headline.begin) : headline.begin..<headline.end, true)

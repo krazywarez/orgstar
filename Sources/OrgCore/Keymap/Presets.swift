@@ -460,14 +460,6 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.heading.up"
         mode = "normal"
         [[bind]]
-        keys = "g j"
-        command = "org.heading.forward-same-level"
-        mode = "normal"
-        [[bind]]
-        keys = "g k"
-        command = "org.heading.backward-same-level"
-        mode = "normal"
-        [[bind]]
         keys = "] h"
         command = "org.heading.forward-same-level"
         mode = "normal"

@@ -62,8 +62,11 @@ public struct Vim: Sendable {
         public var marks: [Character: Int]
         /// The text the window shows, for H, M and L; nil when unknown.
         public var visible: Range<Int>?
+        /// An Org buffer, where evil-org's keys apply.
+        public var org: Bool
 
-        public init(text: String, caret: Int, clipboard: String? = nil, halfPage: Int = 15, marks: [Character: Int] = [:], visible: Range<Int>? = nil) {
+        public init(text: String, caret: Int, clipboard: String? = nil, halfPage: Int = 15, marks: [Character: Int] = [:], visible: Range<Int>? = nil, org: Bool = false) {
+            self.org = org
             self.text = text
             self.caret = caret
             self.clipboard = clipboard
@@ -105,6 +108,7 @@ public struct Vim: Sendable {
     /// The context's half page and visible text for this key.
     var contextHalfPage = 15
     var contextVisible: Range<Int>?
+    var contextOrg = false
     /// Keys are going into a macro register.
     public internal(set) var recording = false
     var lastMacro: Character?
@@ -126,6 +130,7 @@ public struct Vim: Sendable {
             contextMarks = context.marks
             contextHalfPage = context.halfPage
             contextVisible = context.visible
+            contextOrg = context.org
             var buffer = Buffer(context)
             switch parse(keys, &buffer, context) {
             case .incomplete:
@@ -475,7 +480,7 @@ public struct Vim: Sendable {
             }
         }
 
-        if mode == .normal, rest.count == 2, first == KeyChord("g"), rest.last == KeyChord("j") || rest.last == KeyChord("k") {
+        if mode == .normal, !contextOrg, rest.count == 2, first == KeyChord("g"), rest.last == KeyChord("j") || rest.last == KeyChord("k") {
             return .done([.visualLines(rest.last == KeyChord("j") ? n : -n)])
         }
 
@@ -583,6 +588,11 @@ public struct Vim: Sendable {
                 var p = c
                 for _ in 0..<n { p = buffer.wordEndBackward(p, bigWord: keys[1].key == "E") }
                 return .moved(p, .inclusive)
+            case "j" where contextOrg, "k" where contextOrg:
+                // evil-org: org-forward-element and org-backward-element, which take no count.
+                guard let p = Self.orgObject(keys[1].key, inner: false, buffer, c)?.range.lowerBound, p != c else { return .invalid }
+                goalColumn = nil
+                return .moved(p, .exclusive)
             case "j":
                 return motion([KeyChord("j")], &buffer, &caret, count: n, operatorPending: operatorPending)
             case "k":
@@ -940,7 +950,7 @@ public struct Vim: Sendable {
                     caret += inserted.utf16.count
                 }
             }
-            let produced = copy.feed(key, Context(text: text, caret: caret, clipboard: context.clipboard, halfPage: context.halfPage, visible: context.visible))
+            let produced = copy.feed(key, Context(text: text, caret: caret, clipboard: context.clipboard, halfPage: context.halfPage, visible: context.visible, org: context.org))
             for action in produced {
                 switch action {
                 case .edit(let edits, let to):

@@ -38,6 +38,25 @@ struct VimExtrasTests {
         #expect(run("abcdef\n", 1, "v l l ESC 0 g v d").text == "aef\n")
     }
 
+    @Test func elementMotionsStop() {
+        let text = "intro\n\n* H\npara one\n* Next\nend\n"
+        func moved(_ caret: Int, _ keys: String, org: Bool = true) -> Int {
+            var driver = VimDriver(text, caret: caret)
+            driver.org = org
+            driver.type(KeySequence.parse(keys)!)
+            return driver.caret
+        }
+        #expect(moved(0, "g k") == 0)
+        #expect(moved(7, "g k") == 7)
+        #expect(moved(20, "g j") == 20)
+        // A count doesn't repeat them: org-forward-element takes no argument.
+        #expect(moved(0, "2 g j") == 7)
+        // Outside Org, gj and gk are screen lines, which the editor moves.
+        var vim = Vim()
+        _ = vim.feed(KeyChord("g"), Vim.Context(text: text, caret: 0))
+        #expect(vim.feed(KeyChord("j"), Vim.Context(text: text, caret: 0)) == [.visualLines(1)])
+    }
+
     @Test func blockVisual() {
         #expect(run("abc\ndef\nghi\n", 0, "C-v j l d").text == "c\nf\nghi\n")
         #expect(run("abc\ndef\nghi\n", 0, "C-v j l y j j P").text == "abc\ndef\nabghi\n" || true)
@@ -117,7 +136,28 @@ struct VimExtrasTests {
             ("a =code= b\n", 3, "d i e"),
             ("a =code= b\n", 3, "d a e"),
             ("a [[https://x.org]] b\n", 5, "d i e"),
+        ] + elementCases
+    }()
+
+    /// evil-org's gj and gk: org-forward-element and org-backward-element.
+    static let elementCases: [(String, Int, String)] = {
+        let text = "intro\n\n* H\npara one\nstill\n\n- a\n- b\n\nafter\n** Sub\nsub body\n** Two\n* Next\nend\n"
+        let at = { (s: String) in (text as NSString).range(of: s).location }
+        var cases: [(String, Int, String)] = []
+        // Org signals an error, and evil stays, for g k at 0 and on the first heading, and g j on
+        // the last one: see `elementMotionsStop`.
+        for start in [0, 3, at("* H"), at("para"), at("still") + 2, at("- a"), at("- b"), at("after"), at("** Sub"), at("sub body"), at("** Two"), at("* Next"), at("end")] {
+            if start != at("* Next") { cases.append((text, start, "g j")) }
+            if start != 0, start != at("* H") { cases.append((text, start, "g k")) }
+        }
+        cases += [
+            (text, at("para"), "g j g j g j"),
+            (text, at("end"), "g k g k"),
+            (text, at("para"), "3 g j"),
+            (text, at("para"), "d g j"),
+            (text, at("* H"), "d g j"),
         ]
+        return cases
     }()
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
@@ -134,7 +174,7 @@ struct VimExtrasTests {
               (require 'evil-surround)
               (setq kill-ring nil)
               (switch-to-buffer (current-buffer))
-              \(org ? "(org-mode) (require 'evil-org) (evil-org-set-key-theme '(textobjects)) (evil-org-mode 1)" : "")
+              \(org ? "(org-mode) (require 'evil-org) (evil-org-set-key-theme '(textobjects navigation)) (evil-org-mode 1)" : "")
               (evil-local-mode 1)
               (evil-surround-mode 1)
               (evil-normal-state)
@@ -148,9 +188,10 @@ struct VimExtrasTests {
             """)
         }
         let results = try EmacsOracle.run(forms)
-        for ((c, _), result) in zip(all, results) {
+        for ((c, org), result) in zip(all, results) {
             let (text, point, keys) = c
             var driver = VimDriver(text, caret: point)
+            driver.org = org
             driver.type(KeySequence.parse(keys)!)
             guard let marker = result.text.range(of: "\n@@STATE ") else {
                 Issue.record("\(keys): \(result.error)")

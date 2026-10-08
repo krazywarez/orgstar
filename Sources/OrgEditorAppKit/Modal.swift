@@ -79,7 +79,7 @@ extension OrgEditor {
             if jumpIndex > 0, jumpIndex <= jumpList.count { marks["'"] = jumpList[jumpIndex - 1] }
             vim.registers = Self.vimRegisters
             vim.clipboardRecord = Self.vimClipboardRecord
-            let actions = vim.feed(key, Vim.Context(text: document.text, caret: caret, clipboard: clipboard, halfPage: halfPage, marks: marks, visible: visibleText))
+            let actions = vim.feed(key, Vim.Context(text: document.text, caret: caret, clipboard: clipboard, halfPage: halfPage, marks: marks, visible: visibleText, org: isOrg))
             Self.vimRegisters = vim.registers
             Self.vimClipboardRecord = vim.clipboardRecord
             apply(actions)
