@@ -72,6 +72,25 @@ struct ModalTests {
         #expect(h.editor.vim.mode == .normal)
     }
 
+    @Test func undefinedLeaderSequencesDoNothing() {
+        let h = doom("* Task\nbody text\n")
+        var messages: [String] = []
+        h.editor.onMessage = { messages.append($0) }
+        h.caret(at: 0)
+        type(h, "SPC m z")
+        #expect(messages.last == "SPC m z is undefined")
+        #expect(h.textView.selectedRange().location == 0)
+        // No mark z was set: a jump to it fails and the caret stays.
+        type(h, "j ' z")
+        #expect(h.textView.selectedRange().location == 7)
+        type(h, "C-c z")
+        #expect(messages.last == "C-c z is undefined")
+        #expect(h.editor.document.text == "* Task\nbody text\n")
+        // Evil's own prefixes still reach it.
+        type(h, "g g")
+        #expect(h.textView.selectedRange().location == 0)
+    }
+
     @Test func keyHintsFollowContext() {
         let h = doom("* a\n#+begin_src sh\necho\n#+end_src\n")
         var hints: [(key: String, title: String)] = []

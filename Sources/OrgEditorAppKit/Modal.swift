@@ -36,6 +36,12 @@ extension OrgEditor {
             return feedVim(keys)
         case .undefined(let keys):
             onKeysPending?(nil, [])
+            // The leader and Emacs prefixes (C-c, C-x) mean nothing to evil: the sequence is
+            // undefined, as in Doom. Other prefixes (g, z, [, ]) are evil's too.
+            if let first = keys.first, first == KeyChord("SPC") || !first.modifiers.isDisjoint(with: [.control, .meta]) {
+                onMessage?("\(KeySequence.format(keys)) is undefined")
+                return true
+            }
             return feedVim(keys)
         case .unbound:
             return feedVim([chord])
