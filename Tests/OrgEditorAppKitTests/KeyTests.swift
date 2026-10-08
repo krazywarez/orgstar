@@ -1,6 +1,7 @@
 import AppKit
 import OrgCore
 import Testing
+@testable import OrgApp
 @testable import OrgEditorAppKit
 
 @MainActor
@@ -131,6 +132,12 @@ struct KeyTests {
             for binding in preset.keymap.bindings {
                 #expect(EditorCommands.command(binding.command) != nil, "\(preset): \(binding.command)")
             }
+        }
+    }
+
+    @Test func everyEmacsImportCommandExists() {
+        for (emacs, command) in EmacsImport.commands {
+            #expect(EditorCommands.command(command) != nil, "\(emacs): \(command)")
         }
     }
 }

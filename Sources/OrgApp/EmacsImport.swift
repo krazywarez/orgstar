@@ -234,7 +234,7 @@ public struct EmacsImport: Sendable {
             return modes.isEmpty ? [nil] : modes
         }
 
-        /// `(kbd "C-c x")`, `"C-c x"` (keymap-set), or a vector of one key.
+        /// `(kbd "C-c x")` or `"C-c x"` (keymap-set); key vectors such as `[f5]` are skipped.
         func keyString(_ sexp: Sexp) -> String? {
             if let s = sexp.string { return s }
             if sexp.head == "kbd", let s = sexp.elements?.dropFirst().first?.string { return s }
@@ -618,7 +618,7 @@ public struct EmacsImport: Sendable {
 
     /// Emacs commands and the Orgstar commands that do the same.
     static let commands: [String: String] = [
-        "org-todo": "org.todo.cycle", "org-shiftright": "org.todo.cycle", "org-priority-up": "org.priority.up", "org-priority-down": "org.priority.down",
+        "org-todo": "org.todo.cycle", "org-shiftright": "org.todo.next", "org-shiftleft": "org.todo.previous", "org-priority-up": "org.priority.up", "org-priority-down": "org.priority.down",
         "org-metaleft": "org.heading.promote", "org-metaright": "org.heading.demote", "org-do-promote": "org.heading.promote", "org-do-demote": "org.heading.demote",
         "org-promote-subtree": "org.subtree.promote", "org-demote-subtree": "org.subtree.demote",
         "org-shiftmetaleft": "org.subtree.promote", "org-shiftmetaright": "org.subtree.demote",
@@ -629,8 +629,8 @@ public struct EmacsImport: Sendable {
         "org-next-visible-heading": "org.heading.next", "org-previous-visible-heading": "org.heading.previous",
         "org-forward-heading-same-level": "org.heading.forward-same-level", "org-backward-heading-same-level": "org.heading.backward-same-level",
         "outline-up-heading": "org.heading.up", "org-up-element": "org.heading.up",
-        "org-set-tags-command": "org.tags.set", "org-set-property": "org.property.set",
-        "org-toggle-checkbox": "org.checkbox.toggle", "org-ctrl-c-ctrl-c": "org.dwim", "+org/dwim-at-point": "org.dwim",
+        "org-set-tags-command": "org.tags.set", "org-set-property": "org.property.read-and-set",
+        "org-toggle-checkbox": "org.checkbox.toggle", "org-ctrl-c-ctrl-c": "org.ctrl-c-ctrl-c", "+org/dwim-at-point": "org.dwim",
         "org-schedule": "org.schedule", "org-deadline": "org.deadline", "org-time-stamp": "org.timestamp.active", "org-timestamp": "org.timestamp.active",
         "org-time-stamp-inactive": "org.timestamp.inactive", "org-timestamp-inactive": "org.timestamp.inactive",
         "org-fill-paragraph": "org.fill-paragraph", "org-cycle": "org.cycle", "org-shifttab": "org.cycle-global", "org-global-cycle": "org.cycle-global",
@@ -652,7 +652,8 @@ public struct EmacsImport: Sendable {
 extension EmacsImport {
     /// Applies `items`: settings to `defaults` (and so config.toml), folders to the workspace,
     /// capture templates and key bindings appended to capture.toml and keymap.toml in
-    /// `directory`, leaving out templates whose key is there already. Returns a summary.
+    /// `directory`, leaving out templates whose key is there already and bindings that are
+    /// there already. Returns a summary.
     @MainActor
     public static func apply(
         _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory
@@ -695,9 +696,13 @@ extension EmacsImport {
         }
         let keymapFile = directory.appendingPathComponent("keymap.toml")
         var keymap = (try? String(contentsOf: keymapFile, encoding: .utf8)) ?? ""
+        func binding(_ keys: String?, _ command: String?, _ mode: String?) -> String { [keys ?? "", command ?? "", mode ?? ""].joined(separator: "\u{0}") }
+        var existingBindings = Set((try? TOML.parse(keymap))?.filter { $0.name == "bind" && $0.values["when"] == nil }
+            .map { binding($0.values["keys"]?.string, $0.values["command"]?.string, $0.values["mode"]?.string) } ?? [])
         var addedKeys = ""
         for item in items {
-            guard case .binding(let keys, let command, let mode) = item.change else { continue }
+            guard case .binding(let keys, let command, let mode) = item.change,
+                  existingBindings.insert(binding(keys, command, mode)).inserted else { continue }
             addedKeys += "\n[[bind]]\nkeys = \(UserConfig.format(.string(keys)))\ncommand = \(UserConfig.format(.string(command)))\n"
             if let mode { addedKeys += "mode = \(UserConfig.format(.string(mode)))\n" }
             bindings += 1

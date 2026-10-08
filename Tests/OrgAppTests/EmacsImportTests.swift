@@ -170,5 +170,11 @@ struct EmacsImportTests {
         #expect(summary.hasPrefix("Imported 17 settings, 3 capture templates, 3 key bindings."), "\(summary)")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
         #expect(defaults.integer(forKey: "themeFontSize") == 14)
+
+        // Importing again adds no bindings or templates.
+        let before = try String(contentsOf: keymap, encoding: .utf8)
+        let again = await EmacsImport.apply(result.items, defaults: defaults, workspace: nil, directory: folder)
+        #expect(try String(contentsOf: keymap, encoding: .utf8) == before)
+        #expect(!again.contains("key binding") && !again.contains("capture template"), "\(again)")
     }
 }
