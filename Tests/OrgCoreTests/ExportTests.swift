@@ -320,6 +320,19 @@ struct ExportResultsTests {
         Inline src_sh[:exports both]{echo codeinlineboth} {{{results(=resinlineboth=)}}} three.
 
         Inline call_named() {{{results(=resinlinecall=)}}} four.
+
+        * Other
+        :PROPERTIES:
+        :header-args: :exports none
+        :END:
+        #+CALL: named()
+
+        #+RESULTS:
+        : rescallother
+
+        Inline call_named() {{{results(=resinlinecallother=)}}} five.
+
+        Inline call_named[:exports code]() {{{results(=resinlinecallcode=)}}} six.
         """ + "\n"
 
     /// Which code and results the HTML and Markdown exports keep, against ox-html with nothing

@@ -190,7 +190,7 @@ public enum Babel {
         guard let m = line.firstMatch(of: #/(?i)^[ \t]*#\+CALL:[ \t]*([^\s(\[]+)(?:\[([^\]]*)\])?\((.*?)\)[ \t]*(.*?)[ \t]*\n?$/#) else { return nil }
         let name = String(m.1)
         guard let block = model.srcBlocks.first(where: { $0.name == name }) else { throw Failure.message("Reference '\(name)' not found in this buffer") }
-        var extra = [lobDefaults]
+        var extra = [lobDefaults] + callProperties(block, at: lineRange.location, model: model)
         if let inside = m.2 { extra.append(Params.parse(String(inside))) }
         extra.append(splitArguments(String(m.3)).map { (":var", $0) })
         if !m.4.isEmpty { extra.append(Params.parse(String(m.4))) }
@@ -216,11 +216,18 @@ public enum Babel {
         guard let object = found, let m = object.text.firstMatch(of: /^call_([^()\[\]\s]+)(?:\[([^\]]*)\])?\((.*?)\)(?:\[([^\]]*)\])?$/) else { return nil }
         let name = String(m.1)
         guard let block = model.srcBlocks.first(where: { $0.name == name }) else { throw Failure.message("Reference '\(name)' not found in this buffer") }
-        var extra = [lobDefaults]
+        var extra = [lobDefaults] + callProperties(block, at: object.range.lowerBound, model: model)
         if let inside = m.2 { extra.append(Params.parse(String(inside))) }
         extra.append(splitArguments(String(m.3)).map { (":var", $0) })
         if let end = m.4 { extra.append(Params.parse(String(end))) }
         return (block, try Params(block: block, model: model, text: text, extra: extra), object.range)
+    }
+
+    /// The `header-args` properties where a call is, in the called block's language, which
+    /// `org-babel-lob-get-info` puts after `lobDefaults`.
+    static func callProperties(_ block: SrcBlockInfo, at location: Int, model: DocumentModel) -> [[(String, String)]] {
+        let heading = model.headings.lastIndex { $0.headingRange.lowerBound <= location }
+        return Params.propertyLayers(language: block.language ?? "", heading: heading, model: model)
     }
 
     /// `org-babel-default-lob-header-args`, over the called block's own header arguments.
@@ -246,7 +253,9 @@ public enum Babel {
         if line.range(of: "(?i)^[ \\t]*#\\+CALL:", options: .regularExpression) != nil {
             call = (try? callAt(offset, model: model, text: text))?.params
         } else if tree.root.descendants().contains(where: { $0.kind == .inlineBabelCall && $0.range.lowerBound == offset }) {
-            call = (try? inlineCallAt(offset, tree: tree, model: model, text: text))?.params
+            // `org-babel-remove-result` only takes away `#+RESULTS:`, so an inline call's
+            // `{{{results(...)}}}` stays whatever `:exports` says.
+            return "results"
         } else if let inline = try? inlineAt(offset, tree: tree, model: model, text: text), inline.block.range.lowerBound == offset {
             return value(inline.params, language: inline.block.language)
         } else {
@@ -924,22 +933,7 @@ public enum Babel {
         init(block: SrcBlockInfo, model: DocumentModel, text: NSString, defaults: [(String, String)] = [], extra: [[(String, String)]] = [],
              inline: Bool = false) throws {
             var layers: [[(String, String)]] = [defaults]
-            let language = block.language ?? ""
-            // `org-babel-params-from-properties`: the inherited `header-args`, then the inherited
-            // `header-args:LANG`, each the nearest value with `+` additions after it.
-            var levels = [model.fileProperties]
-            if let heading = block.heading {
-                levels += (model.ancestors(of: heading).reversed() + [heading]).map { model.headings[$0].properties }
-            }
-            for key in ["header-args", "header-args:\(language)"] {
-                var value: String?
-                for entries in levels {
-                    for entry in entries where entry.key.lowercased() == key {
-                        value = entry.additive ? [value, entry.value].compactMap { $0 }.joined(separator: " ") : entry.value
-                    }
-                }
-                if let value { layers.append(Params.parse(value)) }
-            }
+            layers += Params.propertyLayers(language: block.language ?? "", heading: block.heading, model: model)
             let firstLine = inline ? "" : text.substring(with: text.lineRange(for: NSRange(location: block.range.lowerBound, length: 0)))
             if let r = firstLine.range(of: "(?i)#\\+begin_src[ \\t]+\\S+", options: .regularExpression) {
                 var rest = String(firstLine[r.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -990,6 +984,25 @@ public enum Babel {
                         single[key] = value
                     }
                 }
+            }
+        }
+
+        /// `org-babel-params-from-properties` under `heading`, or before any: the inherited
+        /// `header-args`, then the inherited `header-args:LANG`, each the nearest value with `+`
+        /// additions after it.
+        static func propertyLayers(language: String, heading: Int?, model: DocumentModel) -> [[(String, String)]] {
+            var levels = [model.fileProperties]
+            if let heading {
+                levels += (model.ancestors(of: heading).reversed() + [heading]).map { model.headings[$0].properties }
+            }
+            return ["header-args", "header-args:\(language)"].compactMap { key in
+                var value: String?
+                for entries in levels {
+                    for entry in entries where entry.key.lowercased() == key {
+                        value = entry.additive ? [value, entry.value].compactMap { $0 }.joined(separator: " ") : entry.value
+                    }
+                }
+                return value.map(Params.parse)
             }
         }
 

@@ -368,7 +368,27 @@ struct BabelCallTests {
         (named + "Inline call_double[:results verbatim](n=1) here.\n", "call_"),
         (named + "Inline call_double(n=2) {{{results(=0=)}}} here.\n", "call_"),
         (named + "Inline call_double(n=2) and call_double(n=3) here.\n", "call_double(n=3"),
+        // Properties where the call is, not where the block is.
+        (underHeadings + "#+CALL: double()\n", "#+CALL"),
+        (underHeadings + "#+CALL: double() :var n=1\n", "#+CALL"),
+        (underHeadings + "Inline call_double() here.\n", "call_"),
     ]
+    static let underHeadings = """
+        * Library
+        :PROPERTIES:
+        :header-args: :results verbatim
+        :END:
+        #+NAME: double
+        #+begin_src sh :var n=2
+        echo $((n*2))
+        #+end_src
+        * Use
+        :PROPERTIES:
+        :header-args:sh: :var n=7
+        :header-args: :results raw
+        :END:
+
+        """
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func matchesEmacs() throws {
