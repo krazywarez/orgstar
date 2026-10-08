@@ -26,7 +26,7 @@ struct SettingsScreen: View {
             Section("In use") {
                 let _ = model.settingsVersion
                 LabeledContent("TODO keywords", value: todoKeywords)
-                LabeledContent("Agenda", value: "\(OrgPreferences.agendaSpan()) days from \(OrgPreferences.agendaStartOffset())d")
+                LabeledContent("Agenda", value: agenda)
                 LabeledContent("Reminders", value: OrgPreferences.reminders() ? "\(OrgPreferences.reminderLead()) min before" : "Off")
                 LabeledContent("Capture templates", value: CaptureTemplates.load().templates.map(\.key).joined(separator: " "))
             }
@@ -35,6 +35,14 @@ struct SettingsScreen: View {
         .fileImporter(isPresented: $choosing, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { model.setConfigFolder(url) }
         }
+    }
+
+    /// The span and start day, worded as the Mac's Settings word the start.
+    private var agenda: String {
+        func days(_ count: Int) -> String { count == 1 ? "1 day" : "\(count) days" }
+        let offset = OrgPreferences.agendaStartOffset()
+        let start = offset == 0 ? "today" : offset < 0 ? "\(days(-offset)) before today" : "\(days(offset)) after today"
+        return "\(days(OrgPreferences.agendaSpan())), starting \(start)"
     }
 
     private var todoKeywords: String {

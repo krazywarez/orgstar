@@ -184,12 +184,16 @@ final class MobileEditor: NSObject, DocumentBuffer {
             onTangle?(scope)
         case .external(.agenda(let start, let count)) where onAgenda != nil:
             onAgenda?(start, count)
-        case .external(.emacsTable(_, _, _, let reason, _)):
-            onMessage?("This table needs Emacs, which runs on the Mac: \(reason).")
-        case .external:
-            onMessage?("\(command.title) needs Emacs, which runs on the Mac.")
+        case .external(let request):
+            onMessage?(Self.unavailable(request, title: command.title))
         }
         return step
+    }
+
+    /// Why a request the app doesn't handle did nothing: only table recalculation needs Emacs.
+    static func unavailable(_ request: ExternalRequest, title: String) -> String {
+        if case .emacsTable(_, _, _, let reason, _) = request { return "This table needs Emacs, which runs on the Mac: \(reason)." }
+        return "\(title) isn't available on iPhone and iPad."
     }
 
     // MARK: - Commands by name and key
@@ -288,8 +292,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
             let runnable = candidates.first { binding in
                 (binding.when.map { KeyContext.holds($0, in: context) } ?? true) && applies(binding.command, in: context)
             }
-            guard let binding = runnable else { return keys.count > 1 }
-            if binding.command.hasPrefix("edit."), !["edit.undo", "edit.redo"].contains(binding.command) { return keys.count > 1 }
+            // A sequence runs its command even where it doesn't apply, which says why, as on the Mac.
+            guard let binding = runnable ?? (keys.count > 1 ? candidates.first : nil) else { return false }
+            if keys.count == 1, binding.command.hasPrefix("edit."), !["edit.undo", "edit.redo"].contains(binding.command) { return false }
             run(binding.command)
             return true
         }

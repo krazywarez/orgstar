@@ -65,6 +65,7 @@ struct CaptureScreen: View {
             templates = loaded.templates
             problem = loaded.problems.first
             key = request.template.flatMap { wanted in templates.first { $0.key == wanted }?.key } ?? templates.first?.key
+            if let wanted = request.template, !templates.contains(where: { $0.key == wanted }) { problem = "No capture template \"\(wanted)\"" }
         }
         .onChange(of: key, initial: true) { choose() }
     }

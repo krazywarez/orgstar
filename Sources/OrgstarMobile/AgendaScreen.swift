@@ -250,8 +250,8 @@ struct AgendaScreen: View {
             }
         case .failed(let text):
             message = text
-        case .external:
-            message = "\(command.title) needs Emacs, which runs on the Mac."
+        case .external(let request):
+            message = MobileEditor.unavailable(request, title: command.title)
         case .commit:
             message = nil
         }
