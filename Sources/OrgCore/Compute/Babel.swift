@@ -113,8 +113,9 @@ public enum Babel {
 
     public struct Options: Sendable, Equatable {
         public var python = "python3"
-        /// `shell-file-name`, for blocks in the `shell` language.
-        public var shell = "/bin/sh"
+        /// `shell-file-name`, from `SHELL` as Emacs sets it: runs blocks in the `shell` language
+        /// and chooses how variables are written in the `:cache` hash.
+        public var shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/sh"
         public init() {}
     }
 
@@ -262,6 +263,8 @@ public enum Babel {
     static func plan(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text ns: NSString, options: Options,
                      location: Range<Int>, name: String?, inline: Bool = false, refs: References? = nil, useCache: Bool = true) -> Result<BabelJob, Failure> {
         let refs = refs ?? References(resolved: [:], options: options)
+        var params = params
+        params.evaluateLisp()
         guard let language = block.language else { return .failure(.message("This block has no language")) }
         let eval = params.single[":eval"]?.lowercased()
         if eval == "never" || eval == "no" || eval == "never-export" || eval == "no-export" {
@@ -298,7 +301,7 @@ public enum Babel {
         let finishBase = { (kind: BabelJob.Finish.Kind) in
             BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: name, inline: inline,
                             file: toFile ? file : nil, fileDescription: params.single[":file-desc"], hash: hash,
-                            colnames: tables.picked(tables.colnames, params.single[":colnames"]), rownames: tables.picked(tables.rownames, params.single[":rownames"]))
+                            colnames: tables.picked(tables.colnames, ":colnames", params), rownames: tables.picked(tables.rownames, ":rownames", params))
         }
         let vars: [(String, VarValue)]
         var stdin: VarValue?
@@ -581,11 +584,23 @@ public enum Babel {
         var colnames: [(name: String, names: [Cell])] = []
         var rownames: [(name: String, names: [Cell])] = []
 
-        /// `org-babel-pick-name`: the last variable's names, unless the header argument is
-        /// absent, whose `nil` selects none.
-        func picked(_ names: [(name: String, names: [Cell])], _ selector: String?) -> [String]? {
-            guard selector != nil, let last = names.last else { return nil }
+        /// `org-babel-pick-name`: a Lisp list given as the header argument, or the last
+        /// variable's names, unless the header argument is absent, whose `nil` selects none.
+        func picked(_ names: [(name: String, names: [Cell])], _ key: String, _ params: Params) -> [String]? {
+            if let list = params.evaluated[key].flatMap(Babel.lispNames) { return list }
+            guard params.single[key] != nil, let last = names.last else { return nil }
             return last.names.map(Babel.cellText)
+        }
+    }
+
+    /// A Lisp list of strings and numbers, as names.
+    static func lispNames(_ value: Sexp) -> [String]? {
+        guard case .list(let items) = value else { return nil }
+        return try? items.map { item in
+            if let s = item.string { return s }
+            let printed = Elisp.printed(item)
+            guard number(printed) == printed else { throw Failure.message(printed) }
+            return printed
         }
     }
 
@@ -600,8 +615,8 @@ public enum Babel {
     /// by default when only its second row is a rule; its first column with `:rownames`; its
     /// rules unless `:hlines yes`.
     static func disassemble(_ vars: [(String, VarValue)], params: Params) throws -> Tables {
-        for key in [":colnames", ":rownames"] where params.lisp.contains(key) {
-            throw Failure.message("\(key) with a Lisp value isn't supported yet; nothing was run.")
+        for key in [":colnames", ":rownames"] where params.lisp.contains(key) && params.evaluated[key].flatMap(lispNames) == nil {
+            throw Failure.message("\(key) \(params.single[key] ?? "") is Lisp that only Emacs can evaluate; nothing was run.")
         }
         let colnames = params.single[":colnames"]
         let rownames = params.single[":rownames"]
@@ -708,8 +723,8 @@ public enum Babel {
     /// What `org-babel-sha1-hash` hashes: the header arguments after `org-babel-process-params`,
     /// sorted by key and printed with `%S`, then the expanded body.
     static func cacheInput(language: String, params: Params, tables: Tables, expanded: String, call: Bool) throws -> String {
-        if !params.lisp.isEmpty {
-            throw Failure.message(":cache with Lisp header values isn't supported yet; nothing was run.")
+        if let key = params.lisp.first(where: { params.evaluated[$0] == nil }) {
+            throw Failure.message(":cache with \(key) \(params.single[key] ?? "") needs Emacs to evaluate the Lisp; nothing was run.")
         }
         let ignored: Set<String> = ["replace", "silent", "none", "discard", "append", "prepend"]
         let drawsFile = language == "dot" || language == "plantuml"
@@ -719,7 +734,9 @@ public enum Babel {
         var entries: [(key: String, printed: String)] = []
         for (key, value) in defaults.merging(params.single, uniquingKeysWith: { $1 }) {
             let printed: String
-            if value.isEmpty {
+            if let evaluated = params.evaluated[key] {
+                printed = Elisp.printed(evaluated, escape: true)
+            } else if value.isEmpty {
                 continue
             } else if key == ":exports" {
                 printed = lispString(value.split(whereSeparator: \.isWhitespace).map(String.init).filter { !ignored.contains($0) }.sorted().joined(separator: " "))
@@ -803,10 +820,32 @@ public enum Babel {
         var single: [String: String] = [:]
         var vars: [(name: String, value: String)] = []
         var wrap: String?
-        /// Keys whose value is Lisp to evaluate (`org-babel-read`): unquoted, starting with `(`.
+        /// Keys whose value is Lisp to evaluate (`org-babel-read`): unquoted, starting with `(`, `'`, `` ` `` or `[`.
         var lisp: Set<String> = []
         /// Keys whose value was a quoted string, which `org-babel-read` doesn't take for a number.
         var quoted: Set<String> = []
+        /// Lisp values evaluated to something other than a string or number, such as a list of
+        /// column names.
+        var evaluated: [String: Sexp] = [:]
+
+        /// `org-babel-read` on the Lisp values the interpreter can evaluate: a string or number
+        /// takes the form's place; other values are kept in `evaluated`.
+        mutating func evaluateLisp() {
+            for key in lisp {
+                guard let form = try? LispReader.readFirst(single[key] ?? "").sexp, let value = try? Elisp().eval(form) else { continue }
+                let printed = Elisp.printed(value)
+                if let s = value.string {
+                    single[key] = s
+                    quoted.insert(key)
+                    lisp.remove(key)
+                } else if Babel.number(printed) == printed {
+                    single[key] = printed
+                    lisp.remove(key)
+                } else {
+                    evaluated[key] = value
+                }
+            }
+        }
 
         static let resultGroups: [Set<String>] = [
             ["file", "list", "vector", "table", "scalar", "verbatim"],
@@ -859,7 +898,7 @@ public enum Babel {
                     let quoted = key != ":var" && raw.count >= 2 && raw.hasPrefix("\"") && raw.hasSuffix("\"")
                     let value = quoted ? Params.unescape(String(raw.dropFirst().dropLast())) : raw
                     if key != ":var" {
-                        if !quoted, value.hasPrefix("(") { lisp.insert(key) } else { lisp.remove(key) }
+                        if !quoted, let first = value.first, "('`[".contains(first) { lisp.insert(key) } else { lisp.remove(key) }
                         if quoted { self.quoted.insert(key) } else { self.quoted.remove(key) }
                     }
                     switch key {
@@ -1060,7 +1099,8 @@ public enum Babel {
             let extra = arguments.map { [splitArguments($0).map { (":var", $0) }] } ?? []
             var inner = refs
             inner.visiting.insert(name)
-            let params = try Params(block: block, model: model, text: text, extra: extra)
+            var params = try Params(block: block, model: model, text: text, extra: extra)
+            params.evaluateLisp()
             // A cached block gives its result without running, as `org-babel-execute-src-block` does.
             var useCache = true
             if params.single[":cache"] == "yes", let language = block.language {

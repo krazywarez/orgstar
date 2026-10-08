@@ -189,6 +189,10 @@ struct BabelTests {
         "#+begin_src bash :var l='(1 \"two\" 3) :results output\necho ${l[2]} ${l[1]}\n#+end_src\n",
         "#+NAME: items\n- one\n- two\n\n#+begin_src zsh :var l=items :results output\necho \"$l\"\n#+end_src\n",
         "TBL#+begin_src shell :var t=tbl :results output\necho \"$t\"\n#+end_src\n",
+        "TBL#+begin_src python :var t=tbl :colnames '(\"x\" \"y\")\nreturn t\n#+end_src\n",
+        "TBL#+begin_src python :var t=tbl :rownames '(\"r1\" \"r2\")\nreturn t\n#+end_src\n",
+        "#+begin_src sh :dir (concat \"/\" \"usr\") :results output\npwd\n#+end_src\n",
+        "#+NAME: items\n- one\n- two\n\n#+begin_src shell :var l=items :results output\necho \"$l\"\n#+end_src\n",
         // Lisp values.
         "#+begin_src python :var l='(1 2) m='((1 2) (3 4)) n=(+ 1 2) s='(\"a\" \"b\")\nreturn [l, m, n, s]\n#+end_src\n",
         "#+begin_src emacs-lisp :var l='(1 2) h='((1 2) hline (3 4)) s=(concat \"a\" \"b\")\n(list l h s)\n#+end_src\n",

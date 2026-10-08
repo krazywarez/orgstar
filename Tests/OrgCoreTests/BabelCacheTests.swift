@@ -33,6 +33,10 @@ struct BabelCacheTests {
              runs: ["#+begin_src", "#+begin_src"]),
         Case(text: "#+NAME: kv\n| a | 1 |\n| b | 2 |\n\n#+begin_src sh :cache yes :var t=kv :separator ,\necho $t\n#+end_src\n",
              runs: ["#+begin_src", "#+begin_src"]),
+        Case(text: "#+begin_src sh :cache yes :dir (concat \"/\" \"usr\") :foo (list 1 \"a\") :bar (+ 1 2)\npwd\n#+end_src\n",
+             runs: ["#+begin_src", "#+begin_src"]),
+        Case(text: "#+NAME: tbl\n| a | b |\n|---+---|\n| 1 | x |\n\n#+begin_src python :cache yes :var t=tbl :colnames '(\"x\" \"y\")\nreturn t\n#+end_src\n",
+             runs: ["#+begin_src", "#+begin_src"]),
         // Edited after the first run, so it runs again.
         Case(text: "#+begin_src sh :cache yes\necho one\n#+end_src\n", runs: ["#+begin_src", "#+begin_src"], edits: [("echo one", "echo two")]),
         // A reference to a cached block takes its result without running it.
@@ -93,12 +97,12 @@ struct BabelCacheTests {
     }
 
     @Test func lispHeadersAreRefused() {
-        let text = "#+begin_src sh :cache yes :dir (concat \"/\" \"tmp\")\necho hi\n#+end_src\n"
+        let text = "#+begin_src sh :cache yes :dir (expand-file-name \"x\")\necho hi\n#+end_src\n"
         let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
         guard case .failure(.message(let message)) = Babel.plan(context) else {
             Issue.record("planned")
             return
         }
-        #expect(message.hasPrefix(":cache with Lisp header values"))
+        #expect(message.hasPrefix(":cache with :dir (expand-file-name"))
     }
 }
