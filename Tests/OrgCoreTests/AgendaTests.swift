@@ -536,4 +536,14 @@ struct AgendaFilterTests {
         let kept = filter.parse("++urgent", tags: ["urgent"], categories: []).filter
         #expect(kept.tags == ["-phone", "+urgent"])
     }
+
+    @Test func descriptionRoundTrips() {
+        let tags: Set<String> = ["phone", "urgent"], categories: Set<String> = ["work", "my-cat"]
+        for text in ["-/call/", "-work+phone-<0:10>1:00/a/-/b/", "\"my-cat\"-urgent", "-\"my-cat\""] {
+            let filter = AgendaFilter().parse(text, tags: tags, categories: categories).filter
+            #expect(AgendaFilter().parse(filter.description, tags: tags, categories: categories).filter == filter, "\(text)")
+        }
+        let negative = AgendaFilter().parse("-/call/", tags: [], categories: []).filter
+        #expect(negative.description == "-/call/")
+    }
 }

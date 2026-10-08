@@ -13,10 +13,19 @@ public struct AgendaFilter: Sendable, Equatable {
 
     public var isEmpty: Bool { categories.isEmpty && tags.isEmpty && efforts.isEmpty && regexps.isEmpty }
 
-    /// The filter as `/` shows it for editing.
+    /// The filter as `/` shows it for editing; `parse` reads it back to the same filter.
+    /// Categories holding `-` are quoted.
     public var description: String {
-        let regexp = regexps.first.map { "/" + $0.dropFirst().replacingOccurrences(of: "^\\+", with: "", options: .regularExpression) + "/" } ?? ""
-        return categories.joined() + tags.joined() + (efforts.first.map { String($0.dropFirst()) } ?? "") + regexp
+        func unsigned(_ term: String) -> (sign: String, body: String) {
+            (term.hasPrefix("-") ? "-" : "", String(term.dropFirst()))
+        }
+        let cats = categories.map { term -> String in
+            let (sign, body) = unsigned(term)
+            return (sign.isEmpty ? "+" : sign) + (body.contains("-") ? "\"\(body)\"" : body)
+        }
+        let efforts = efforts.map { unsigned($0).sign + unsigned($0).body }
+        let regexps = regexps.map { unsigned($0).sign + "/" + unsigned($0).body + "/" }
+        return (cats + tags + efforts + regexps).joined()
     }
 
     /// Reads `+cat-tag<0:10-/regexp/`: a word is a tag if a shown line has it, else a category
@@ -43,7 +52,7 @@ public struct AgendaFilter: Sendable, Equatable {
                 let word = ns.substring(with: m.range(at: 3)).replacingOccurrences(of: "~~~", with: "-")
                 if shownTags.contains(word) {
                     append(sign + word, to: &result.tags)
-                } else if shownCategories.contains(word) {
+                } else if shownCategories.contains(word.replacingOccurrences(of: "^\"(.*)\"$", with: "$1", options: .regularExpression)) {
                     append(sign + word.replacingOccurrences(of: "^\"(.*)\"$", with: "$1", options: .regularExpression), to: &result.categories)
                 } else {
                     ignored.append(sign + word)
