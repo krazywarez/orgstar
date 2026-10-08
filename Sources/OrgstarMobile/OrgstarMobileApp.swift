@@ -131,7 +131,10 @@ struct RootView: View {
                 }
             }
         }
-        .clockAccessory(model.clock.running, perform: clock)
+        .clockAccessory(model.clock, perform: clock)
+        .sheet(item: Binding(get: { model.clockPrompts.pending }, set: { if $0 == nil { model.clockPrompts.answer(nil) } })) { pending in
+            ClockPromptSheet(prompt: pending.prompt) { model.clockPrompts.answer($0) }
+        }
         // Above the tab bar, clear of every screen's toolbar.
         .overlay(alignment: .bottom) {
             if let message {
@@ -222,13 +225,10 @@ struct RootView: View {
     }
 
     private func clock(_ id: String) {
-        switch id {
-        case "app.clock.out": message = model.clock.clockOut(session)
-        case "app.clock.cancel": message = model.clock.clockOut(session, cancel: true)
-        case "app.clock.goto":
-            if let location = model.clock.location(session) { model.openRequest = .offset(location.path, location.offset) }
-        case "app.clock.report": showingClockReport = true
-        default: break
+        if id == "app.clock.report" {
+            showingClockReport = true
+        } else {
+            _ = MobileClock.run(id, model: model, workspace: workspace) { message = $0 }
         }
     }
 

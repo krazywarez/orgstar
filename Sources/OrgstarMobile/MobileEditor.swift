@@ -333,7 +333,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.cycle":
             return Presentation.heading(containing: context.caret, in: context.tree) != nil || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
         case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "editor.toggle-truncate-lines": return true
-        case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.toggle-markup": return onAppCommand != nil
+        case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.clock.in-recent", "app.clock.in-last",
+             "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
         case "org.link.open": return OpenLinkAtPoint().applies(in: context)
         default: return false
         }

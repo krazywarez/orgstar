@@ -22,6 +22,7 @@ final class MobileModel {
     let agenda: AgendaModel?
     let scheduler = ReminderScheduler(center: SystemReminderCenter())
     let clock = ClockModel()
+    let clockPrompts = ClockPrompter()
     let spotlight = SpotlightIndexer()
     /// Captures from the share extension; nil without the app group.
     let inbox = CaptureInbox()

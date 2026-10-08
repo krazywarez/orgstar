@@ -70,6 +70,7 @@ struct EditorScreen: View {
                     Toggle(isOn: Binding(get: { model.showMarkup }, set: { model.showMarkup = $0 })) {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
+                    RecentClockMenu(clock: clock) { editor?.run($0) }
                     if let text = session.document?.text, session.path == path { ExportMenu(path: path, text: text) }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
@@ -175,14 +176,10 @@ struct EditorScreen: View {
             editor.onRefreshSetup = { session.refreshSetup() }
             editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
             editor.onAppCommand = { id in
-                switch id {
-                case "app.clock.in": message = clock.clockIn(session)
-                case "app.clock.out": message = clock.clockOut(session)
-                case "app.clock.cancel": message = clock.clockOut(session, cancel: true)
-                case "app.clock.goto":
-                    if let location = clock.location(session) { model.openRequest = .offset(location.path, location.offset) } else { message = "No active clock" }
-                case "app.toggle-markup": model.showMarkup.toggle()
-                default: message = "Not available on iOS yet"
+                if id == "app.toggle-markup" {
+                    model.showMarkup.toggle()
+                } else if !MobileClock.run(id, model: model, workspace: workspace, show: { message = $0 }) {
+                    message = "Not available on iOS yet"
                 }
             }
             self.editor = editor
@@ -412,7 +409,10 @@ struct CommandPalette: View {
         ("org.cycle", "Cycle Visibility"), ("org.cycle-global", "Cycle Global Visibility"),
         ("edit.undo", "Undo"), ("edit.redo", "Redo"),
         ("app.clock.in", "Clock In"), ("app.clock.out", "Clock Out"), ("app.clock.cancel", "Cancel Clock"),
-        ("app.clock.goto", "Go to Clocked Entry"), ("app.toggle-markup", "Show or Hide Markup"),
+        ("app.clock.goto", "Go to Clocked Entry"), ("app.clock.in-recent", "Clock In to Recent Entry…"),
+        ("app.clock.in-last", "Clock In to Last Entry"), ("app.clock.goto-recent", "Go to Recent Clocked Entry…"),
+        ("app.clock.default", "Mark as Default Clock Task"), ("app.clock.resolve", "Resolve Open Clocks…"),
+        ("app.toggle-markup", "Show or Hide Markup"),
         ("org.toggle-inline-images", "Show or Hide Inline Images"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
     ]
 
