@@ -1,8 +1,9 @@
 import Foundation
 
 /// `org-agenda-prefix-format` for one view, compiled as `org-compile-prefix-format` does:
-/// `%c` category, `%t` time, `%l` level, `%s` extra, `%e` effort, `%b` breadcrumbs, `%i` icon
-/// (none in Orgstar), each with an optional `?` (empty when the value is), a `%-12`-style
+/// `%c` category, `%t` time, `%l` level, `%s` extra, `%e` effort, `%b` breadcrumbs, `%T` last
+/// tag (Org's regexp lists only lower-case keys but matches `T` under `case-fold-search`),
+/// `%i` icon (none in Orgstar), each with an optional `?` (empty when the value is), a `%-12`-style
 /// width with an optional `.N` limit on categories, and a punctuation character added after a
 /// non-empty value. `%(…)` forms run Lisp; they are empty here.
 public struct PrefixFormat: Sendable, Equatable {
@@ -18,7 +19,7 @@ public struct PrefixFormat: Sendable, Equatable {
     let categoryMaxLength: Int?
 
     public init(_ format: String) {
-        let regex = try! NSRegularExpression(pattern: "%(\\?)?([-+]?[0-9.]*)([ .;,:!?=|/<>]?)([cltseib]|\\(.+?\\))")
+        let regex = try! NSRegularExpression(pattern: "%(\\?)?([-+]?[0-9.]*)([ .;,:!?=|/<>]?)([cltseibT]|\\(.+?\\))")
         let ns = format as NSString
         var pieces: [Piece] = []
         var hasTime = false

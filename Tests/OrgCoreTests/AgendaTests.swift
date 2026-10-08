@@ -437,6 +437,24 @@ struct AgendaPrefixFormatTests {
         }
     }
 
+    /// `%T` is the last tag: Org's field regexp lists only lower-case keys, but matches it
+    /// under `case-fold-search`.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func lastTagMatchesEmacs() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        let formats = ["agenda": " %-10:c%-8T%?-12t% s", "todo": " %?-6T|", "tags": "%c %-6:T", "search": " %i %-12:c"]
+        try AgendaOracle.compare(files: [("p.org", Self.file)], start: today, span: 2, today: today, prefix: formats)
+        var options = AgendaOptions()
+        options.prefixFormat = formats
+        let lisp = AgendaOracle.prefixLisp(formats)
+        try AgendaOracle.compareList(files: [("p.org", Self.file)], form: "(let ((org-agenda-prefix-format \(lisp))) (org-todo-list))", today: today) {
+            Agenda.todoList($0, options: options)
+        }
+        try AgendaOracle.compareList(files: [("p.org", Self.file)], form: "(let ((org-agenda-prefix-format \(lisp))) (org-tags-view nil \"work|proj\"))", today: today) {
+            Agenda.tagsMatch($0, match: "work|proj", options: options)
+        }
+    }
+
     @Test func compilesFields() {
         let format = PrefixFormat(" %-8.6c|%?-4t%e")
         #expect(format.render(["c": "category", "e": "1:00"]) == " categ   |1:00")
