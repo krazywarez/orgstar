@@ -45,6 +45,34 @@ struct ExportOptionsTests {
     }
 
     @Test(.enabled(if: oracle))
+    func expandsPropertyMacroLikeOrg() throws {
+        let text = """
+            #+PROPERTY: color filecolor
+            Top: [{{{property(color)}}}]
+            * One
+            :PROPERTIES:
+            :color: red
+            :Size: big
+            :CUSTOM_ID: one
+            :END:
+            In one: [{{{property(color)}}}] [{{{property(SIZE)}}}] [{{{property(missing)}}}] [{{{property(ITEM)}}}]
+            ** Child
+            Child: [{{{property(color)}}}]
+            * Two
+            Two: [{{{property(color,*One)}}}] [{{{property(color,#one)}}}] [{{{property(Size, One)}}}]
+            """ + "\n"
+        let emacs = try EmacsOracle.evaluate(text, """
+            (progn
+              (require 'ox)
+              (org-macro-initialize-templates)
+              (org-macro-replace-all org-macro-templates)
+              (list (buffer-substring-no-properties (point-min) (point-max))))
+            """)
+        let ours = ExportPreprocess.macros(text, path: nil)
+        #expect(ours.contains("[red] [big] [] [One]") && ours == emacs.first, "ours:\n\(ours)\nemacs:\n\(emacs.first ?? "")")
+    }
+
+    @Test(.enabled(if: oracle))
     func expandsIncludesAndMacrosLikeOrg() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-include-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

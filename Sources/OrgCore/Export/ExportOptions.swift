@@ -194,6 +194,28 @@ public enum ExportPreprocess {
             }
         }
         var counters: [String: Int] = [:]
+        var model: DocumentModel?
+        /// `org-entry-get` with `selective` inheritance at the heading holding `location`, or
+        /// at the entry `search` finds (`*Title`, `#custom-id` or a title).
+        func property(_ name: String, _ search: String?, at location: Int) -> String {
+            if model == nil { model = DocumentModel(tree: OrgParser.parse(text)) }
+            let headings = model!.headings
+            let index: Int?
+            if let search, !search.isEmpty {
+                if search.hasPrefix("#") {
+                    let id = String(search.dropFirst())
+                    index = headings.firstIndex { $0.properties.contains { $0.key.uppercased() == "CUSTOM_ID" && $0.value == id } }
+                } else {
+                    let title = search.hasPrefix("*") ? String(search.dropFirst()) : search
+                    index = headings.firstIndex { Links.displayFormat($0.title).trimmingCharacters(in: .whitespaces) == title || $0.title == title }
+                }
+            } else {
+                index = headings.lastIndex { $0.headingRange.lowerBound <= location }
+            }
+            guard let index else { return "" }
+            if name.uppercased() == "ITEM" { return headings[index].title }
+            return model!.property(name, of: index)?.value ?? ""
+        }
         let regex = try! NSRegularExpression(pattern: "\\{\\{\\{([-A-Za-z0-9_]+)(?:\\((.*?)\\))?\\}\\}\\}")
         var out = ""
         var at = 0
@@ -214,7 +236,10 @@ public enum ExportPreprocess {
                 continue
             }
             let args = m.range(at: 2).location == NSNotFound ? [] : arguments(ns.substring(with: m.range(at: 2)))
-            out += expand(name, args, definitions: definitions, keywords: keywords, counters: &counters, path: path, now: now)
+            let location = m.range.location
+            out += expand(name, args, definitions: definitions, keywords: keywords, counters: &counters, path: path, now: now) {
+                property($0, $1, at: location)
+            }
         }
         out += ns.substring(from: at)
         return out
@@ -245,7 +270,7 @@ public enum ExportPreprocess {
     }
 
     static func expand(_ name: String, _ args: [String], definitions: [String: String], keywords: [String: String],
-                       counters: inout [String: Int], path: String?, now: Date) -> String {
+                       counters: inout [String: Int], path: String?, now: Date, property: (String, String?) -> String) -> String {
         if let template = definitions[name] {
             guard !template.hasPrefix("(eval") else { return "" }
             var result = template
@@ -256,6 +281,7 @@ public enum ExportPreprocess {
         case "title", "author", "date", "email": return keywords[name.uppercased()] ?? ""
         case "keyword": return args.first.flatMap { keywords[$0.uppercased()] } ?? ""
         case "input-file": return path.map { ($0 as NSString).lastPathComponent } ?? ""
+        case "property": return args.first.map { property($0, args.count > 1 ? args[1] : nil) } ?? ""
         case "n":
             let counter = args.first ?? ""
             let action = args.count > 1 ? args[1] : ""
