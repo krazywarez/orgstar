@@ -470,6 +470,48 @@ extension EmacsBuffer {
         }
     }
 
+    /// `org-fill-paragraph` with an active region: from the region's end back to `start`, M-q at
+    /// the end of each paragraph's text, moving back a paragraph at a time.
+    func fillParagraphs(_ start: Int, _ end: Int) {
+        saveExcursion {
+            point = end
+            skipBackward(Self.whitespace)
+            while point > start {
+                let before = point
+                fillParagraph()
+                point = paragraphBackwardStop()
+                skipBackward(Self.whitespace)
+                if point >= before { break }
+            }
+        }
+    }
+
+    /// Where `org--backward-paragraph-once` goes from the end of a line's text.
+    private func paragraphBackwardStop() -> Int {
+        guard let element = element(at: point) else { return lineStart(point) }
+        switch element.kind {
+        case .block where ["comment", "example", "export", "src", "verse"].contains(element.blockType ?? ""):
+            // Between empty lines in the block.
+            let contentsStart = lineEnd(element.range.lowerBound) + 1
+            guard point > contentsStart else { return element.range.lowerBound }
+            let contentsEnd = saveExcursion { () -> Int in
+                point = element.range.upperBound
+                skipBackward(Self.whitespace)
+                return lineStart(point)
+            }
+            if point > contentsEnd { return contentsEnd }
+            return saveExcursion {
+                skipBackward(Self.whitespace, bound: element.range.lowerBound)
+                return searchBackward("^[ \t]*\n", bound: contentsStart, caseInsensitive: false)?[0]!.lowerBound ?? contentsStart
+            }
+        case .block, .drawer, .propertyDrawer, .dynamicBlock:
+            // On the closing line: inside, to the contents' end.
+            return lineStart(point) > element.range.lowerBound ? lineStart(point) : element.range.lowerBound
+        default:
+            return lineStart(element.range.lowerBound)
+        }
+    }
+
     /// `fill-region` over whole lines: each paragraph's part of `from..<to` filled as a
     /// paragraph. Other elements stay.
     func fillRegion(_ from: Int, _ to: Int, nosqueeze: Bool = false) {
@@ -499,13 +541,25 @@ extension EmacsBuffer {
     }
 }
 
-/// M-q: `org-fill-paragraph`.
+/// M-q: `org-fill-paragraph`. With a selection, as with an active region, every paragraph
+/// in it; `point` is where the caret is in it, and stays.
 public struct FillParagraph: OrgCommand {
-    public init() {}
+    public let point: Int?
+
+    public init(point: Int? = nil) { self.point = point }
     public var id: String { "org.fill-paragraph" }
     public var title: String { "Fill Paragraph" }
     public func applies(in context: EditContext) -> Bool { true }
-    public func run(in context: EditContext) -> CommandStep { commitBuffer(context) { $0.fillParagraph() } }
+    public func run(in context: EditContext) -> CommandStep {
+        commitBuffer(context) { buffer in
+            if let selection = context.selection.first, !selection.isEmpty {
+                if let point { buffer.point = point }
+                buffer.fillParagraphs(selection.lowerBound, selection.upperBound)
+            } else {
+                buffer.fillParagraph()
+            }
+        }
+    }
 }
 
 /// evil's `gq` and `gw` operators: the paragraphs in `range`'s lines filled, as `fill-region`.

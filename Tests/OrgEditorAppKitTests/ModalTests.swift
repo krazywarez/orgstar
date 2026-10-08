@@ -142,6 +142,25 @@ struct ModalTests {
         #expect(h.editor.document.text == "short\nlines\n\nnext\n")
     }
 
+    /// M-q in visual states fills the region's paragraphs and leaves visual state, as in
+    /// Doom (checked against evil with `org-fill-paragraph`).
+    @Test func fillParagraphFillsTheVisualRegion() {
+        let h = doom("aaa\nbbb\n\nccc\nddd\n\neee\nfff\n")
+        h.caret(at: 0)
+        type(h, "v j j j")
+        KeyTests().press(h, "q", option: KeyEvents.leftOption, typed: "œ")
+        #expect(h.editor.document.text == "aaa bbb\n\nccc ddd\n\neee\nfff\n")
+        #expect(h.textView.selectedRange() == NSRange(location: 9, length: 0))
+        #expect(h.editor.vim.mode == .normal)
+        let lines = doom("aaa\nbbb\nccc\n\nx\ny\n")
+        lines.caret(at: 8)
+        type(lines, "v k")
+        KeyTests().press(lines, "q", option: KeyEvents.leftOption, typed: "œ")
+        #expect(lines.editor.document.text == "aaa bbb ccc\n\nx\ny\n")
+        #expect(lines.textView.selectedRange() == NSRange(location: 4, length: 0))
+        #expect(lines.editor.vim.mode == .normal)
+    }
+
     @Test func zzSavesAndClosesAsWq() {
         let h = doom("text\n")
         var app: [String] = []

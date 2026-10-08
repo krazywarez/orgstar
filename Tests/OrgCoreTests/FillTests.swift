@@ -37,6 +37,46 @@ struct FillTests {
         try compareWithEmacs(inputs, commands, options: doomOptions)
     }
 
+    /// M-q with an active region: `org-fill-paragraph` called interactively.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func regionFillMatchesEmacs() throws {
+        try #require(EmacsOracle.isAvailable)
+        let texts = [
+            "Short\nlines\n\n" + Self.long + "\nmore\n\nlast\npara\n",
+            "* H\nintro\ntext\n- item " + Self.long + "\n- b\n  c\n# comment\n# lines\n#\n# again\n",
+            "a\nb\n#+begin_comment\none\ntwo\n\nthree\nfour\n#+end_comment\n:NOTES:\nx\ny\n:END:\n#+begin_quote\nq\nr\n#+end_quote\nz\nw\n",
+            "Words  with   extra spaces\n\n  and   more\n",
+        ]
+        var cases: [EmacsOracle.Case] = []
+        var ours: [(label: String, text: String, caret: Int)] = []
+        for text in texts {
+            let positions = EmacsOracle.positions(text)
+            for (i, from) in positions.enumerated() where i % 3 == 0 {
+                for to in positions where to > from && (to - from) % 5 == 1 {
+                    let form = "(progn (transient-mark-mode 1) (set-mark \(EmacsOracle.point(to, in: text))) (activate-mark) (org-fill-paragraph nil t))"
+                    cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(from, in: text), form: withOptions(.org, form)))
+                    let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [from..<to], options: .org)
+                    guard case .commit(let result) = FillParagraph().run(in: context) else {
+                        ours.append(("\(from)..<\(to) failed", text, -1))
+                        continue
+                    }
+                    let new = result.edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(text) { $1.apply(to: $0) }
+                    ours.append(("\(from)..<\(to) in \(text.debugDescription)", new, result.selection?.first?.lowerBound ?? from))
+                }
+            }
+        }
+        var mismatches = 0
+        for (mine, emacs) in zip(ours, try EmacsOracle.run(cases)) {
+            let caret = EmacsOracle.offset(emacs.point, in: emacs.text)
+            guard !emacs.error.isEmpty || mine.text != emacs.text || mine.caret != caret else { continue }
+            mismatches += 1
+            if mismatches <= 12 {
+                Issue.record("\(mine.label)\n  ours:  \(mine.text.debugDescription) @\(mine.caret)\n  emacs: \(emacs.error.isEmpty ? "\(emacs.text.debugDescription) @\(caret)" : emacs.error)")
+            }
+        }
+        #expect(mismatches == 0, "\(mismatches) of \(ours.count) differ")
+    }
+
     /// Real paragraphs: `ORGSTAR_ORACLE_CORPUS=<folder>` fills the first 30 paragraph-like lines
     /// of up to 60 files.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_ORACLE_CORPUS"] != nil))
