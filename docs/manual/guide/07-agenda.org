@@ -49,7 +49,7 @@ The default view is =org-agenda-list=: a run of days, each with a header such as
 
 | Setting                      | Default | =config.toml=                     | Range in Settings |
 |------------------------------+---------+-----------------------------------+-------------------|
-| Days shown                   | 10      | =org-agenda-span = 10=            | 1 to 31           |
+| Days shown                   | 10      | =org-agenda-span = 10=            | 1 to 366          |
 | First day, relative to today | 3 days before | =org-agenda-start-day = "-3d"= | 0 to 14 days before |
 
 Both mirror the Emacs variables of the same name. The defaults are Doom's values, not plain Emacs's (a week starting today). =org-agenda-start-day= takes only day offsets such as ="-3d"= or ="+0d"=. There are no day, week or month view keys (=d=, =w=, =m= in Emacs) and no =org-agenda-start-on-weekday=: the span is a number of days and always begins at the configured offset.
@@ -326,6 +326,8 @@ The combined filter =/= reads terms such as:
 
 With two or more =+= categories, a line may have any of them. Tag terms all have to hold.
 
+The =/= prompt starts with the whole current filter written in this form, every term with its sign: categories, then tags, efforts and regexps, with categories that contain =-= in quotes. Pressing =Return= on it unchanged keeps the same filter.
+
 The =\= prompt reads every word as a tag, whether or not a line has it; there, ={regexp}= matches any tag that matches the regexp. The === prompt takes one regexp, with a leading =-= to drop matches. The =_= prompt takes one comparison such as =<0:30=.
 
 * The prefix and line layout
@@ -351,6 +353,7 @@ These are the defaults. =agenda= applies to the day view, =todo= to the TODO lis
 | =%e=  | The =Effort= property                                                 |
 | =%l=  | One space per heading level                                           |
 | =%b=  | The outline path above the heading, each title followed by =->=       |
+| =%T=  | The item's last tag, counting inherited tags                          |
 | =%i=  | The category icon; always empty in Orgstar                            |
 
 Each field takes Org's modifiers: =%-12c= pads to 12 columns on the right (=%12c= on the left); =%-12.6c= limits a category to 5 characters; =%?t= leaves the field out entirely when empty; a punctuation character after the width (=%-12:c=) is added after a non-empty value. When the format contains =%t=, times move out of the heading text into the prefix, as =org-agenda-remove-times-when-in-prefix= does. =%(…)= Lisp forms are accepted but always empty.
@@ -439,7 +442,7 @@ The Agenda tab shows the same views from the same files, using the settings in t
 - The Views menu lists the built-in views, your saved views, and Tags and Properties…, which asks for a match string. There is no TODO-only match from the menu; use =/!= in the match or a =todo-match= view. Today, Earlier and Later are in the same menu.
 - Pull down to refresh.
 - The Filter button opens a sheet: type a filter as for =/=, or tap a tag or category to cycle between Keep, Leave out and no filter.
-- Tap an entry to open it. Swipe left on an open TODO to mark it done with the first done keyword of its sequence.
+- Tap an entry to open it. Swipe left on an open TODO to mark it done with the first done keyword of its sequence, as the file defines its keywords: the default keywords from =config.toml=, the file's own =#+TODO= lines, and those of its setup files, with unsaved edits in an open buffer included.
 - Touch and hold an entry for TODO State…, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile… and Archive….
 - There are no keyboard commands, time grid lines, habit graphs, log mode, bulk marks or custom prefix formats.
 - Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open Orgstar to set later ones.

@@ -61,7 +61,7 @@ Org's prefix arguments are not available: to include the current time, type it, 
 
 Every command that asks for a date shows the same prompt (=org-read-date=): a text field, the date the text reads as, and a month calendar.
 
-- Type a date in any of the forms below. The line above the field shows the result, such as =<2026-10-09 Fri 15:00>=, as you type.
+- Type a date in any of the forms below. The line above the field shows the result, such as =<2026-10-09 Fri 15:00>=, as you type; for an inactive timestamp it is in square brackets, =[2026-10-09 Fri 15:00]=.
 - Click a day in the calendar to answer with that day. A time you typed is kept.
 - =S-<left>= and =S-<right>= in the field move the answer one day; =S-<up>= and =S-<down>= move it one week.
 - =RET= accepts. An empty answer takes the default: the date of the timestamp being changed, or today.
@@ -138,7 +138,7 @@ DEADLINE: <2026-10-31 Sat -7d> SCHEDULED: <2026-10-20 Tue>
 | Command          | Org command      | Emacs, Doom | Mac  | Doom leader |
 |------------------+------------------+-------------+------+-------------|
 | Schedule         | =org-schedule=   | =C-c C-s=   | ⌃⌘S  | =SPC m d s= |
-| Set Deadline     | =org-deadline=   | =C-c C-d=   | ⌃⌘D  | =SPC m d d= |
+| Set Deadline     | =org-deadline=   | =C-c C-d=   | ⌃⌘E  | =SPC m d d= |
 | Remove Schedule  | =C-u C-c C-s=    |             |      |             |
 | Remove Deadline  | =C-u C-c C-d=    |             |      |             |
 
@@ -165,7 +165,7 @@ When an entry with a repeater in an active timestamp changes from an active TODO
 5. Every active timestamp with a repeater in the entry moves forward:
    - =+N= moves it by N once, which may leave it in the past.
    - =++N= moves it by N until it is after today (for hours, after now).
-   - =.+N= sets it to today and then moves it by N.
+   - =.+N= sets it to today and then moves it by N. With hours, =.+Nh=, the new time is N hours after the current time, to the minute, and a time range loses its end time.
 6. =--= delays in those timestamps are removed.
 
 #+BEGIN_SRC org
@@ -257,7 +257,9 @@ The time shown is the time since you clocked in, not the entry's total. Each of 
 
 ** Editing clock lines
 
-You can edit clock lines by hand. =S-<up>= and =S-<down>= change their timestamps as anywhere else, but do not update the duration after ~=>~. Press =C-c C-c= (or =C-c C-y=) on the line afterwards: Orgstar fixes both day names and writes the duration again (=org-clock-update-time-maybe=).
+You can edit clock lines by hand. =S-<up>=, =S-<down>=, =S-<left>= and =S-<right>= change their timestamps as anywhere else, and then write the duration after ~=>~ again, as =H:MM=. After typing changes yourself, press =C-c C-c= (or =C-c C-y=) on the line: Orgstar fixes both day names and writes the duration again (=org-clock-update-time-maybe=).
+
+=C-c .= with the caret on the =--= between the two timestamps of a clock line inserts a new timestamp there. Emacs replaces the second timestamp instead.
 
 A line of the form ~CLOCK: => 1:15~, with only a duration, counts towards clock tables.
 

@@ -122,13 +122,16 @@ lines they do nothing. Orgstar has no =org-drag-element= for paragraphs.
 |--------------------------------+-----------------------------------+-----------+--------+-------------------|
 | Next Heading                   | =org-next-visible-heading=        | =C-c C-n= | =⌥⌘↓=  | =C-c C-n=         |
 | Previous Heading               | =org-previous-visible-heading=    | =C-c C-p= | =⌥⌘↑=  | =C-c C-p=         |
-| Next Heading at Same Level     | =org-forward-heading-same-level=  | =C-c C-f= | menu   | =g j=, =] h=      |
-| Previous Heading at Same Level | =org-backward-heading-same-level= | =C-c C-b= | menu   | =g k=, =[ h=      |
+| Next Heading at Same Level     | =org-forward-heading-same-level=  | =C-c C-f= | menu   | =] h=             |
+| Previous Heading at Same Level | =org-backward-heading-same-level= | =C-c C-b= | menu   | =[ h=             |
 | Up to Parent Heading           | =outline-up-heading=              | =C-c C-u= | menu   | =g h=             |
 | Go to Heading…                 | =org-goto=                        | =C-c C-j= | menu   | =SPC m .=         |
 
 Next and Previous Heading skip headings that are folded out of sight. The same-level
-commands stop at the parent's boundary. Go to Heading asks for a heading by its outline
+commands stop at the parent's boundary. In Doom's normal state, =gj= and =gk= move by
+Org element, as evil-org's =org-forward-element= and =org-backward-element=: on a
+heading line, to the next heading after its subtree, or to the previous heading at the
+same level or higher (see [[file:03-keys.org][Keys and commands]]). Go to Heading asks for a heading by its outline
 path (=Project/Meetings/Kickoff=) with completion, as =org-goto= does with
 =outline-path-completion=.
 
@@ -696,7 +699,9 @@ Footnote Action depends on where the caret is:
   number and creates its definition.
 - Where a footnote can't go, it shows the footnote menu.
 
-=C-c C-c= on a reference or a definition's label does the same jumps.
+=C-c C-c= on a reference or a definition's label does the same jumps. After a jump to a
+definition, the echo area says how to get back:
+=Edit definition and go back with `C-c C-c' or `C-c C-x f' on its label.=
 
 New definitions go in a level 1 heading named =Footnotes= at the end of the file, which
 is created when needed (Org's =org-footnote-section=):

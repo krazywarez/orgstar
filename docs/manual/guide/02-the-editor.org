@@ -84,10 +84,15 @@ Headings, drawers and blocks fold as in Org. Folding is display only and isn't s
 
 | Action                         | Emacs and Mac presets | Doom                                                 | Org command          |
 |--------------------------------+-----------------------+------------------------------------------------------+----------------------|
-| Cycle the heading or element at the caret | =TAB=      | =TAB=, =z a=, =z c=, =z o= in normal state; =TAB= in visual state | =org-cycle=          |
+| Cycle the heading or element at the caret | =TAB=      | =TAB= in normal and visual state                     | =org-cycle=          |
 | Cycle the whole file           | =S-TAB=               | =S-TAB=, =z A= in normal state; =S-TAB= in visual state | =org-global-cycle=   |
+| Open or fold the heading       |                       | =z a= in normal state                                | =+org/toggle-fold=   |
+| Open the heading one level     |                       | =z o= in normal state                                | =+org/open-fold=     |
+| Fold the subtree the caret is in |                     | =z c= in normal state                                | =outline-hide-subtree= |
 
-The palette titles are Cycle Visibility and Cycle Global Visibility; both are also in the Org menu.
+The titles in the palette and the Org menu are Cycle Visibility, Cycle Global Visibility, Toggle Fold, Open Fold and Close Fold.
+
+Toggle Fold and Open Fold act on a heading line: a folded heading opens one level, showing its body and its child headings, each folded. On an open heading, Toggle Fold folds it and Open Fold does nothing. Close Fold folds the subtree of the heading the caret is under, from anywhere in it.
 
 =TAB= on a heading line cycles that heading: folded, then its children, then the whole subtree, then folded again. A heading without children goes straight from folded to open. =TAB= on the first or last line of a drawer or block folds or opens it; drawer and block folds are kept apart from heading folds, so cycling a heading leaves them as they are. Elsewhere =TAB= does what it otherwise would: in a table it moves to the next field, and in plain text it inserts a tab.
 
@@ -170,7 +175,7 @@ The running clock is covered in [[file:06-dates-and-clocking.org][Dates and cloc
 The line under the modeline is the echo area, as Emacs's minibuffer. It shows:
 
 - *Messages* from commands, such as =Stored: …= or =Not an org file=. A message stays for 4 seconds.
-- *A pending key prefix*. After =C-c= it shows =C-c-=. If you pause for about 0.6 seconds, a grid of the keys that can follow appears, each with the command it runs, or =+prefix= for a further prefix, as =which-key= shows them. =C-g= cancels the prefix and shows =Quit=. A sequence that isn't bound shows, for example, =C-c z is undefined=.
+- *A pending key prefix*. After =C-c= it shows =C-c-=. If you pause for about 0.6 seconds, a grid of the keys that can follow appears, each with the command it would run at the caret, or =+prefix= for a further prefix, as =which-key= shows them. =C-g= cancels the prefix and shows =Quit=. A sequence that isn't bound shows, for example, =C-c z is undefined=, and does nothing; in the Doom preset this includes sequences after =SPC=.
 - *Prompts*, when a command asks a question.
 
 ** Prompts
@@ -251,7 +256,7 @@ Misspelt words are underlined, using the macOS spelling dictionary. In org files
 
 Orgstar never corrects spelling on its own; automatic spelling correction, text replacement and smart quotes and dashes are off.
 
-On iOS, spell checking is always on.
+On iOS, spell checking follows =spell-check= in the synced =config.toml=, and is off by default.
 
 * Wrapping and filling
 
@@ -265,7 +270,7 @@ Long lines wrap at the edge of the editor by default. Truncate or Wrap Long Line
 
 To truncate lines in every file, set =org-startup-truncated = true= in =config.toml=. The default is to wrap, as Doom does; Emacs's own default is to truncate.
 
-Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (=org-fill-paragraph=), which breaks the paragraph's lines at the fill column: =M-q= in the Emacs preset, =⌃⌘P= in the Mac preset, the Org menu or palette in Doom. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or =fill-column= in =config.toml=. Orgstar has no auto-fill: lines are not broken as you type.
+Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (=org-fill-paragraph=), which breaks the paragraph's lines at the fill column: =M-q= in the Emacs preset and in every Doom state, =⌃⌘P= in the Mac preset. In Doom's normal and visual states, =gq= and =gw= with a motion fill the paragraphs in the lines it covers (=gqq= and =gww= for the current lines); =gq= leaves the caret on the last line, =gw= where it was. See [[file:03-keys.org][Keys and commands]]. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or =fill-column= in =config.toml=. Orgstar has no auto-fill: lines are not broken as you type.
 
 * View toggles
 

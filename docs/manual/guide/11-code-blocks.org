@@ -82,7 +82,7 @@ The block's text is remembered when the run starts. If you edit the block while 
 
 ** Languages that run
 
-On the Mac, Orgstar starts each interpreter through =/usr/bin/env=. Because an app opened from the Dock does not see your shell's =PATH=, Orgstar adds =/opt/homebrew/bin=, =/usr/local/bin=, =/usr/bin= and =/bin= to the end of it.
+On the Mac, Orgstar starts each interpreter through =/usr/bin/env=. Because an app opened from the Dock does not see your shell's =PATH=, Orgstar adds =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin= to the end of it.
 
 | Language                                                         | Program run                                         |
 |------------------------------------------------------------------+-----------------------------------------------------|
@@ -118,11 +118,11 @@ When a block's =:var= or =:stdin= refers to other blocks that have to run first,
 
 | Value                                    | Effect                                                     |
 |------------------------------------------+------------------------------------------------------------|
-| =never=, =no=, =never-export=, =no-export= | The block does not run: "Evaluation of this /language/ code block is disabled." |
+| =never=, =no=                            | The block does not run: "Evaluation of this /language/ code block is disabled." |
 | =query=                                  | Asks every time, with only =yes= and =no=. A block reached through =:var= with =:eval query= makes the whole chain ask every time. |
 | anything else, or absent                 | Runs after the trust prompt.                                |
 
-Orgstar does not export by running blocks, so =never-export= and =no-export= also stop the block from running interactively. In Org these two values only stop evaluation during export.
+=never-export= and =no-export= only stop evaluation during export in Org. Orgstar does not run blocks during export, so with these values the block runs from =C-c C-c= like any other.
 
 ** Cancelling a run
 
@@ -257,7 +257,7 @@ Orgstar merges header arguments in this order, each layer overriding the ones be
 4. =#+HEADER:= lines above the block.
 5. For a call, the call's arguments (see Calls below).
 
-A property written with a =+=, such as =header-args+=, adds to the value inherited from above instead of replacing it.
+A property written with a =+=, such as =header-args+=, adds to the value inherited from above instead of replacing it. In a property drawer, =:header-args:sh:= is one property name, so its value applies only to =sh= blocks.
 
 #+BEGIN_SRC org
 ,#+PROPERTY: header-args :results output
@@ -522,7 +522,7 @@ Text src_sh{echo hi} {{{results(=hi=)}}} end.
 
 Running again replaces the macro. With =:results raw= the result goes in as it is, without the macro. An inline result must be one line, and a table result must be a single cell.
 
-An inline call, =call_double(n=6)=, has the same parts as a =#+CALL:= line: =call_name[inside](arguments)[end]=. Orgstar reads inline calls and writes their results the same way as inline blocks, but =C-c C-c= on an inline call does not run it. Use a =#+CALL:= line instead.
+An inline call, =call_double(n=6)=, has the same parts as a =#+CALL:= line: =call_name[inside](arguments)[end]=. =C-c C-c= on an inline call runs it, and its result is written after it as a =results= macro, as for inline blocks.
 
 * Emacs Lisp blocks
 
@@ -570,7 +570,7 @@ All three are in the Org menu and the command palette. The Mac preset has no key
 | =:tangle=         | Target                                                                                          |
 |-------------------+-------------------------------------------------------------------------------------------------|
 | =no= (default)    | Not tangled.                                                                                    |
-| =yes=             | The Org file's name with the language as extension: =el= for =emacs-lisp= and =elisp=, =bib= for =bibtex=, otherwise the language name itself (=notes.sh= for =sh=, =notes.python= for =python=). |
+| =yes=             | The Org file's name with the language's extension, as Org's language files define it (=org-babel-tangle-lang-exts=): =py= for =python=, =rb= for =ruby=, =pl= for =perl=, =cpp= for =C++=, =d= for =D=, =awk=, =sed=, =lua=, =hs= for =haskell=, =java=, =tex= for =latex=, =ly= for =LilyPond=, =F90= for =fortran=, =clj= for =clojure=, =cljs= for =clojurescript=, =cs= for =csharp=, =groovy=, =jl= for =julia=, =lisp=, =max= for =maxima=, =ml= for =ocaml=, =pde= for =processing=, =el= for =emacs-lisp= and =elisp=, and =bib= for =bibtex=. Any other language is its own extension (=notes.sh= for =sh=). |
 | a path            | That file, relative to the Org file's folder. =~= is expanded.                                   |
 | Lisp              | Evaluated as described under Lisp in header values, with =buffer-file-name= set to the Org file. |
 

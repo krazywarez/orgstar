@@ -20,8 +20,6 @@ Choose a preset in Settings ▸ General ▸ Keys, or with =keymap= in the =[orgs
 
 The Mac preset binds fewer commands than the others. It has no keys for links, export, agenda, capture, clocking, narrowing, sorting, properties, footnotes, code blocks or =C-c C-c=. Run those from the Org menu, from the command palette (=⇧⌘P=), from a menu shortcut (Agenda =⇧⌘A=, Capture =⇧⌘N=), or bind them yourself in =keymap.toml=.
 
-The Mac preset binds Set Tags to =⌃⌘Q=, which is also the macOS Lock Screen shortcut. macOS takes that key first, so give Set Tags another key in =keymap.toml= (for example =C-s-g= for =⌃⌘G=) or run it from the Org menu.
-
 In the Emacs and Mac presets, and in Doom's insert state, macOS's own text keys keep working where the preset does not bind the key: =⌥←=, =⌘←=, =⇧= with arrows to select, and the Control keys the macOS text system provides (=⌃A=, =⌃E=, =⌃K= and so on). Menu shortcuts such as =⌘S= and =⌘F= work in every preset; see [[*Menu shortcuts][Menu shortcuts]].
 
 * Option as Meta
@@ -69,9 +67,9 @@ In a file that is not an Org file, =org.= commands never apply, so their keys fa
 
 A prefix is a key that starts longer sequences, such as =C-c=, =C-c C-x=, =C-x n= or, in the Doom preset, =SPC= and =SPC m=. After a prefix, Orgstar waits for the next key and shows the keys typed so far in the echo area, followed by a dash: =C-c C-x-=.
 
-If you pause on a prefix for 0.6 seconds, a panel of key hints opens above the echo area. It lists each key that can follow, sorted by key, with the title of the command it runs, or =+prefix= when it leads to a longer sequence. This is Orgstar's version of =which-key=. The hints follow the current keymap, including your =keymap.toml=, and in the Doom preset the current evil state. A hint shows the highest-priority command for the key, which may not be the one that runs at the caret when the key has several contexts (=C-c C-c= is the common case).
+If you pause on a prefix for 0.6 seconds, a panel of key hints opens above the echo area. It lists each key that can follow, sorted by key, with the title of the command it runs, or =+prefix= when it leads to a longer sequence. This is Orgstar's version of =which-key=. The hints follow the current keymap, including your =keymap.toml=, and in the Doom preset the current evil state. When a key has several contexts (=C-c C-c= is the common case), the hint shows the command that would run at the caret; where none of them applies, it shows the highest-priority one.
 
-=C-g= during a prefix cancels it; in the Emacs and Mac presets the echo area shows =Quit=. A sequence that nothing binds shows, for example, =C-c z is undefined= in the Emacs and Mac presets.
+=C-g= during a prefix cancels it; in the Emacs and Mac presets the echo area shows =Quit=. A sequence that nothing binds shows, for example, =C-c z is undefined= and does nothing. In the Doom preset this holds for sequences that start with =SPC= or with a Control or Meta key; see [[*How keys are handled][How keys are handled]] for the others.
 
 A key bound by itself cannot also be a prefix. When a keymap binds both =C-c= and =C-c C-t=, =C-c= always waits for the next key, so the binding for =C-c= alone never runs.
 
@@ -125,13 +123,14 @@ These come from the menu bar and work in every preset. In the Doom preset, keys 
 | Edit | Search Notes | =⇧⌘F= |
 | View | Show Markup | =⇧⌘M= |
 | View | Show Line Numbers | =⇧⌘L= |
-| View | Show or Hide Columns and Clock | =⌥⌘I= or =⌥⌘O= (see below) |
+| View | Show or Hide Outline | =⌥⌘O= |
+| View | Show or Hide Columns and Clock | =⌥⌘I= |
 | Window | Agenda | =⇧⌘A= |
 | Window | Board | =⇧⌘B= |
 | Window | Next Buffer | =⇧⌘]= |
 | Window | Previous Buffer | =⇧⌘[= |
 
-View ▸ Show or Hide Outline, Show or Hide Backlinks and Show Tab Bar, Window ▸ Switch to Buffer…, and the items of File ▸ Export have no shortcut. The Columns and Clock item declares both =⌥⌘I= and =⌥⌘O=, and only one of them takes effect.
+View ▸ Show or Hide Backlinks and Show Tab Bar, Window ▸ Switch to Buffer…, and the items of File ▸ Export have no shortcut.
 
 With Settings ▸ Capture ▸ "⌃⌥Space opens Capture from any app" on (the default), =⌃⌥Space= opens the Capture window from any application (see [[file:08-capture.org][Capture]]).
 
@@ -143,7 +142,7 @@ Speed keys work in the Emacs and Mac presets, and in the Doom preset in insert s
 
 * Customizing keys: keymap.toml
 
-Your own bindings go in =keymap.toml= in the configuration folder: =$XDG_CONFIG_HOME/orgstar/keymap.toml= when =XDG_CONFIG_HOME= is set, otherwise =~/.config/orgstar/keymap.toml=. Settings ▸ General shows the path under the Keys picker. The file does not exist until you create it. If you used an earlier version that kept it in =~/Library/Application Support/Orgstar/=, that copy is read until one exists in the configuration folder; changes to it are not picked up automatically, so run Reload Keymap after editing it.
+Your own bindings go in =keymap.toml= in the configuration folder: =$XDG_CONFIG_HOME/orgstar/keymap.toml= when =XDG_CONFIG_HOME= is set, otherwise =~/.config/orgstar/keymap.toml=. Settings ▸ General shows the path under the Keys picker. The file does not exist until you create it. If you used an earlier version that kept it in =~/Library/Application Support/Orgstar/=, that copy is read, and reloaded when you save it, until one exists in the configuration folder.
 
 The bindings in the file are layered on top of the chosen preset. They apply to whichever preset is chosen, so a file written for the Emacs preset does nothing useful under Doom unless its bindings name a =mode=.
 
@@ -165,7 +164,7 @@ command = "org.todo.cycle"
 | =when= | no | A context from the table in [[*Contexts][Contexts]]. Without it the binding holds everywhere. |
 | =mode= | no | An evil state for the Doom preset: ="normal"=, ="insert"= or ="visual"=. |
 
-The [[*Key reference][key reference]] gives each command's id after its title. Commands no preset binds are listed under [[*Unbound commands][Unbound commands]]. A typo in a command id is not caught when the file loads; pressing the key shows =Unknown command= and the id.
+The [[*Key reference][key reference]] gives each command's id after its title. Commands no preset binds are listed under [[*Unbound commands][Unbound commands]]. A binding whose command id Orgstar does not know is skipped and reported when the file loads (see [[*Reloading and errors][Reloading and errors]]).
 
 Orgstar reads a subset of TOML: =[[bind]]= headers, =key = value= lines, basic ="..."= and literal ='...'= strings, =true= and =false=, integers, and =#= comments. Arrays, inline tables and multi-line strings are not supported.
 
@@ -248,17 +247,17 @@ command = "org.heading.insert"
 mode = "insert"
 #+END_SRC
 
-=mode= is not checked when the file loads. Any value other than =normal=, =insert= or =visual= (including =visual-line=) makes a binding that never runs.
+A =mode= other than =normal=, =insert= or =visual= (including =visual-line=) is reported when the file loads, and the binding is skipped.
 
 ** More examples
 
 #+BEGIN_SRC toml
-# Mac preset: ⌃⌘L inserts a link, ⌃⌘E opens the export sheet, ⌃⌘X runs C-c C-c.
+# Mac preset: ⌃⌘L inserts a link, ⌃⌘O opens the export sheet, ⌃⌘X runs C-c C-c.
 [[bind]]
 keys = "C-s-l"
 command = "org.link.insert"
 [[bind]]
-keys = "C-s-e"
+keys = "C-s-o"
 command = "app.export-dialog"
 [[bind]]
 keys = "C-s-x"
@@ -278,11 +277,11 @@ command = "app.reload-keymap"
 
 Orgstar watches the configuration folder and reloads =keymap.toml= when you save it. It also reloads when you change the preset, and when you run Reload Keymap (=app.reload-keymap=, in the palette, and =SPC h r r= in Doom normal state), which shows =Keymap reloaded=.
 
-Problems are reported in the echo area with the line number, for example =keymap.toml: line 12: unknown context tabel (and 1 more)=. A binding with bad or missing =keys=, a missing =command=, an unknown =when=, or a table other than =[[bind]]= is skipped; the rest of the file still applies. A file that is not valid TOML is ignored as a whole and the error is shown; the preset alone applies until you fix it.
+Problems are reported in the echo area with the line number, for example =keymap.toml: line 12: unknown context tabel (and 1 more)=. A binding with bad or missing =keys=, a missing =command=, a command id Orgstar does not know, an unknown =when= or =mode=, or a table other than =[[bind]]= is skipped; the rest of the file still applies. A file that is not valid TOML is ignored as a whole and the error is shown; the preset alone applies until you fix it.
 
 ** Importing from Emacs
 
-Settings ▸ General ▸ Import from Emacs… reads your Emacs or Doom configuration and offers, among other things, the key bindings it finds: =global-set-key=, =keymap-global-set=, =define-key=, =keymap-set=, =evil-define-key= and Doom's =map!= with =:leader=, =:localleader=, state keywords and =:prefix=. Bindings to commands Orgstar has are appended to =keymap.toml= under a =# Imported from Emacs.= comment. See [[file:15-alongside-emacs.org][Alongside Emacs]].
+Settings ▸ General ▸ Import from Emacs… reads your Emacs or Doom configuration and offers, among other things, the key bindings it finds: =global-set-key=, =keymap-global-set=, =define-key=, =keymap-set=, =evil-define-key= and Doom's =map!= with =:leader=, =:localleader=, state keywords and =:prefix=. Bindings to commands Orgstar has are appended to =keymap.toml= under a =# Imported from Emacs.= comment, leaving out bindings the file already has. Keys written as vectors, such as =[f5]=, are skipped. See [[file:15-alongside-emacs.org][Alongside Emacs]].
 
 * Vim editing (Doom preset)
 
@@ -299,8 +298,8 @@ Each key goes first to the keymap for the current state, then to the Vim engine:
 
 Two consequences:
 
-- Keymap commands do not take counts or registers. Once you type a count or a register, the following keys go straight to Vim, so =3gj= moves three screen lines even in an Org file, where =gj= alone moves by headings.
-- A sequence the keymap does not complete is replayed into Vim. =SPC= followed by a key the leader does not bind runs Vim's =SPC= (move right) and then that key, instead of reporting the sequence as undefined.
+- Keymap commands do not take counts or registers. Once you type a count or a register, the following keys go straight to Vim.
+- A sequence the keymap does not complete after =SPC=, =C-c=, =C-x= or another Control or Meta prefix is undefined: the echo area shows, for example, =SPC j is undefined=, and nothing runs. After =g=, =z=, =[= or =]=, which are Vim prefixes too, the keys are replayed into Vim, so =gu= and =gq= reach the Vim engine although the keymap binds other =g= keys.
 
 ** States
 
@@ -324,7 +323,7 @@ Motions move the caret in normal state, extend the selection in visual states, a
 |-+-|
 | =h=, =l=, =<left>=, =<right>=, =DEL= | Left, right; =DEL= is =h=. Stays on the line. |
 | =j=, =k=, =<down>=, =<up>= | Down, up, keeping the column. |
-| =gj=, =gk= | Down, up by screen lines in wrapped text. In Org files the keymap takes =g j= and =g k= first; see below. |
+| =gj=, =gk= | In Org files, to the next or previous Org element (=org-forward-element=, =org-backward-element=, as evil-org binds them); counts are ignored. On a heading, =gj= goes to the next heading after the subtree and =gk= to the previous heading at the same level or higher. In other files, down and up by screen lines in wrapped text. |
 | =+=, =-=, =RET= | First non-blank of the next or previous line. In Org files =RET= runs Act at Point instead. |
 | =w=, =b=, =e=, =ge= | Next word start, previous word start, word end, previous word end. |
 | =W=, =B=, =E=, =gE= | The same for blank-separated WORDs. |
@@ -334,19 +333,18 @@ Motions move the caret in normal state, extend the selection in visual states, a
 | =g_= | Last non-blank of the line. |
 | =gg=, =G= | First line, last line; with a count, that line. The column is kept (=evil-start-of-line= nil). |
 | =f= /x/, =F= /x/, =t= /x/, =T= /x/ | To, or to just before, the next or previous /x/ on the line. |
-| =;=, =,= | Repeats the last =f=, =F=, =t= or =T=, forward or reversed. |
+| =;=, =,= | Repeats the last =f=, =F=, =t=, =T=, =s= or =S=, forward or reversed. A snipe repeated this way searches all the text the window shows, not only the caret's line (=evil-snipe-repeat-scope=, as Doom sets it). |
 | =s= /xy/, =S= /xy/ | evil-snipe: to the next or previous /xy/ on the line. All-lowercase /xy/ matches case-insensitively. Not available after an operator. |
 | =%= | The bracket matching the next =()=, =[]= or ={}= on the line. |
 | ={=, =}= | Previous, next blank line. |
 | =/=, =?= | Asks in the echo area for a regular expression and searches forward or backward, wrapping around the file. |
 | =n=, =N= | Repeats the last search in the same or the opposite direction. |
 | =*=, =#= | Searches forward or backward for the whole word under the caret. |
-| =C-d=, =C-u= | Down, up 15 lines; with a count, that many lines. |
+| =C-d=, =C-u= | Down, up half the window's height; with a count, that many lines. |
+| =H=, =M=, =L= | First non-blank of the top, middle or bottom line the window shows. With a count, =H= goes to that line from the top and =L= from the bottom. Lines are text lines, not wrapped screen lines. Linewise after an operator. |
 | ='= /a/, =`= /a/ | To mark /a/: its line's first non-blank, or its exact position. See [[*Marks and jumps][Marks and jumps]]. |
 
 Search patterns are ICU regular expressions as macOS uses them, close to PCRE; Emacs and Vim regexp syntax such as =\(...\)= or =\<= does not work. =:noh= is accepted and does nothing; searches are not highlighted.
-
-=H=, =M= and =L= are not implemented.
 
 ** Operators
 
@@ -358,6 +356,9 @@ Search patterns are ICU regular expressions as macOS uses them, close to PCRE; E
 | =>= /motion/, =<= /motion/ | Indents or outdents lines by 8 spaces (=evil-shift-width=, which Doom sets to Org's =tab-width=). =>>= and =<<= act on lines. |
 | =g~= /motion/, =gu= /motion/, =gU= /motion/ | Toggles case, lowercases, uppercases. =g~~=, =guu=, =gUU= act on lines. |
 | =gc= /motion/ | Comments or uncomments lines with =#= (=evilnc-comment-operator=). =gcc= acts on lines. See [[*Commenting][Commenting]]. |
+| =gq= /motion/, =gw= /motion/ | Fills the paragraphs in the motion's lines to the fill column, as Fill Paragraph does; other elements in the lines are left alone. =gq= leaves the caret on the first non-blank of the last line, =gw= where it was. =gqq= and =gww= act on lines. |
+
+=M-q= runs Fill Paragraph in normal, insert and visual state.
 
 Counts multiply: =2d3w= deletes six words. Doubling an operator with a count acts on that many lines: =3dd=.
 
@@ -375,8 +376,8 @@ Single-key changes:
 | =r= /x/ | Replaces the character under the caret (count: that many) with /x/; =r RET= splits the line. |
 | =u=, =C-r= | Undo, redo, with counts. |
 | =.= | Repeats the last change. |
-| =ZZ= | Saves the file. It does not close anything. |
-| =ZQ= | Not available; shows a message. |
+| =ZZ= | Saves the file and closes the window, as =:wq=. |
+| =ZQ= | Closes the window, as =:q!=. |
 
 =o= and =O= open a line below or above with Org's indentation: under a list item, aligned with the item's text; under a heading, none; otherwise the line's own indentation.
 
@@ -413,7 +414,7 @@ A count is digits before a command; =0= only counts after another digit. A regis
 
 Pasting from the clipboard is linewise when its text is what the last linewise yank or delete put there; text copied in another app pastes as characters. Numbered registers ="1= to ="9=, and the read-only registers such as ="%=, are not available.
 
-Named registers, the yank register, marks, macros and the jump list belong to the buffer: each open file has its own set, and they are gone when the buffer closes or Orgstar quits. Only the clipboard is shared.
+Registers and macros are shared by every buffer, as in evil: a yank into ="a= in one file pastes with ="ap= in another. Lowercase marks and the jump list belong to the buffer and are gone when it closes. Nothing is kept when Orgstar quits.
 
 ** Repeat
 
@@ -436,9 +437,9 @@ A macro replays the keys you typed, including keymap commands, leader keys and i
 
 =m= /a/ sets mark /a/ (any letter) at the caret. Marks move with the text as you edit. ='= /a/ goes to the first non-blank of the mark's line, =`= /a/ to its exact position. =''= and =``= go back to where the last jump started.
 
-Jumps are =G=, =gg=, =%=, ={=, =}=, =n=, =N=, =*=, =#=, ='=, =`=, and searches with =/= and =?=. Each jump adds its starting point to the jump list, which keeps the last 100. =C-o= goes back through the list and =C-i= forward again. A new jump after =C-o= drops the places you went back past.
+Jumps are =G=, =gg=, =%=, ={=, =}=, =n=, =N=, =*=, =#=, ='=, =`=, =H=, =M=, =L=, and searches with =/= and =?=. Each jump adds its starting point to the jump list, which keeps the last 100. =C-o= goes back through the list and =C-i= forward again. A new jump after =C-o= drops the places you went back past.
 
-Uppercase marks are per buffer like lowercase ones; there are no file marks.
+Lowercase marks belong to the buffer, and so do =C-o= and =C-i=. Uppercase marks (=mA= to =mZ=) are file marks, shared by every buffer: ='A= or =`A= in another buffer shows the buffer the mark was set in, at the mark. A file mark goes away when its buffer closes.
 
 ** Visual states
 
@@ -454,6 +455,7 @@ In visual and visual-line state:
 | =>=, =<= | Indents or outdents its lines. |
 | =~=, =u=, =U=, =g~=, =gu=, =gU= | Toggles case, lowercases, uppercases. |
 | =gc= | Comments or uncomments its lines. |
+| =gq=, =gw= | Fills the paragraphs in its lines. |
 | =J= | Joins its lines. |
 | =p=, =P= | Replaces it with the clipboard or a register; the replaced text goes to the clipboard. |
 | =S= /x/ | Surrounds it with /x/ (see below). Linewise selections get the delimiters on lines of their own. |
@@ -510,17 +512,18 @@ For =ds= and =cs=, brackets are found across lines; any other character is match
 
 ** Org keys in normal state
 
-Besides the leader, the preset binds these evil-org and Doom keys in normal state. =TAB=, =S-TAB= and =RET= in normal state, and the Emacs preset's Org keys in every state, are listed in the [[*Key reference][key reference]].
+Besides the leader, the preset binds these evil-org and Doom keys in normal state. =TAB=, =S-TAB= and =RET= in normal state, and the Emacs preset's Org keys in every state, are listed in the [[*Key reference][key reference]]. =gj= and =gk= move by Org element; see [[*Motions][Motions]].
 
 | Keys | Command |
 |-+-|
 | =TAB= | Cycle Visibility (=org-cycle=). Also in visual state. |
 | =S-TAB= | Cycle Global Visibility. Also in visual and insert state. |
 | =RET= | Act at Point (=+org/dwim-at-point=). |
-| =z a=, =z c=, =z o= | Cycle Visibility. All three cycle; there is no separate open and close. |
+| =z a= | Toggle Fold (=+org/toggle-fold=). On a heading line: a folded heading opens one level, showing its body and its child headings folded; an open one folds. |
+| =z o= | Open Fold (=+org/open-fold=). On a heading line, a folded heading opens one level; an open one stays as it is. |
+| =z c= | Close Fold (=outline-hide-subtree=). Folds the subtree the caret is in, from anywhere inside it. |
 | =z A= | Cycle Global Visibility. |
 | =g h= | Up to Parent Heading. |
-| =g j=, =g k= | Next or previous heading at the same level. evil-org moves by element here; Orgstar moves by heading only. In files that are not Org files these keys fall through to Vim's screen-line motions. |
 | =] h=, =[ h= | Next or previous heading at the same level. |
 | =] b=, =[ b= | Next or previous buffer. |
 | =M-h=, =M-j=, =M-k=, =M-l= | =M-<left>=, =M-<down>=, =M-<up>=, =M-<right>=: promote, move down, move up, demote on headings; the same for items; move columns and rows in tables. Also in insert and visual state. |
@@ -639,7 +642,7 @@ Anything else shows =Not an editor command=. Ranges other than =%=, the =c= flag
 
 ** Not available
 
-Things evil users may reach for that Orgstar does not have: =H=, =M=, =L=, =zz=, =zt= and the other scroll and fold =z= commands except =za=, =zc=, =zo= and =zA=; =C-a= and =C-x= to increment numbers; =gi=, =g;=, =gJ=; replace state (=R=); =&=; =q:=; the numbered and read-only registers; repeating evil-snipe with =;= or =,=; tag and sentence text objects. =C-d= and =C-u= move a fixed 15 lines rather than half the window.
+Things evil users may reach for that Orgstar does not have: =zz=, =zt= and the other scroll and fold =z= commands except =za=, =zc=, =zo= and =zA=; =C-a= and =C-x= to increment numbers; =gi=, =g;=, =gJ=; replace state (=R=); =&=; =q:=; the numbered and read-only registers; tag and sentence text objects.
 
 * Keys in other windows
 
@@ -683,7 +686,8 @@ With a hardware keyboard, the iOS app runs the Emacs preset's bindings, whatever
 - Option acts as Meta when the key starts a binding (=M-RET=, =M-<left>=); otherwise Option types characters as usual.
 - Keys with =⌘= are left to iOS.
 - Movement and editing keys bound to =edit.= commands (=C-a=, =C-e=, =C-k= and so on) are left to the iOS text system, except undo.
-- Of the =app.= commands only clock in, clock out, cancel clock and go to clocked entry run from keys. Other =app.= keys, and editor commands such as narrowing, do nothing.
+- Of the =app.= commands only clock in, clock out, cancel clock and go to clocked entry run from keys. Other =app.= keys, and editor commands such as narrowing, show =Not available on iOS yet=.
+- A sequence of two or more keys whose command cannot run at the caret runs it anyway and shows its message, as on the Mac (for example =Not on a heading=).
 - A pending prefix shows as a message, without key hints.
 
 The on-screen key bar's buttons run what their Emacs keys run at the caret (Fold is =TAB=, Promote is =M-<left>=, TODO is =C-c C-t=). See [[file:14-ios.org][iOS]].
@@ -694,7 +698,7 @@ Every binding in the three presets, generated from the presets themselves. Each 
 
 - *Emacs* lists the Emacs preset's keys.
 - *Mac* lists the Mac preset's keys, with macOS symbols. =⇥= is Tab and =↩= Return.
-- *Doom* lists the keys the Doom preset adds. Every Emacs-preset key that starts with =C-c= or =C-x=, the =M-= and =S-= arrow keys, =M-RET=, =M-S-RET=, =C-RET= and =M-x= also work in the Doom preset, in normal, insert and visual states, so they are not repeated in the Doom column. Doom keys marked (N), (I) or (V) work only in normal, insert or visual state; unmarked ones work in all three.
+- *Doom* lists the keys the Doom preset adds. Every Emacs-preset key that starts with =C-c= or =C-x=, the =M-= and =S-= arrow keys, =M-RET=, =M-S-RET=, =C-RET=, =M-x= and =M-q= also work in the Doom preset, in normal, insert and visual states, so they are not repeated in the Doom column. Doom keys marked (N), (I) or (V) work only in normal, insert or visual state; unmarked ones work in all three.
 
 When a key appears in several rows, it runs the command whose condition holds at the caret: for example =M-<right>= demotes a heading, indents a list item and moves a table column. The descriptions say where each one applies. Movement and text editing in the Doom preset are the Vim keys above, so the Doom column is empty for those rows.
 
@@ -738,13 +742,16 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Find Previous (=edit.find-previous=) | — | — | — | Goes to the previous match. |
 | Use Selection for Find (=edit.use-selection-for-find=) | — | — | — | Puts the selection in the find bar. |
 | Complete at Point (=editor.complete=) | =C-M-i= | — | =C-SPC= (I), =C-@= (I) | Completes what is typed at the caret: =#+= keywords and their values, link types, entities, tags, TODO keywords, headings, drawers, properties, src languages and header arguments, and =<s=-style templates (=completion-at-point=). One candidate is inserted; several open a list. |
-| Fill Paragraph (=org.fill-paragraph=) | =M-q= | =⌃⌘P= | — | Refills the paragraph or list item to the fill column (=org-fill-paragraph=). |
+| Fill Paragraph (=org.fill-paragraph=) | =M-q= | =⌃⌘P= | — | Refills the paragraph or list item to the fill column (=org-fill-paragraph=). In the Doom preset, =gq= and =gw= fill the lines a motion covers; see [[*Operators][Operators]]. |
 
 ** Outline: visibility and narrowing
 
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
-| Cycle Visibility (=org.cycle=) | =TAB= | =⇥= | =TAB= (N, V), =z a= (N), =z c= (N), =z o= (N) | On a heading, cycles its subtree through folded, children and everything; on the first or last line of a drawer or block, folds or unfolds it (=org-cycle=). Elsewhere, =TAB= types a tab in the Emacs and Mac presets. |
+| Cycle Visibility (=org.cycle=) | =TAB= | =⇥= | =TAB= (N, V) | On a heading, cycles its subtree through folded, children and everything; on the first or last line of a drawer or block, folds or unfolds it (=org-cycle=). Elsewhere, =TAB= types a tab in the Emacs and Mac presets. |
+| Toggle Fold (=org.fold.toggle=) | — | — | =z a= (N) | On a heading line, opens a folded heading one level or folds an open one (=+org/toggle-fold=). |
+| Open Fold (=org.fold.open=) | — | — | =z o= (N) | On a heading line, opens a folded heading one level (=+org/open-fold=). |
+| Close Fold (=org.fold.close=) | — | — | =z c= (N) | Folds the subtree the caret is in (=outline-hide-subtree=). |
 | Cycle Global Visibility (=org.cycle-global=) | =S-TAB= | =⇧⇥= | =S-TAB=, =z A= (N) | Cycles the whole file through overview, contents and everything (=org-global-cycle=). |
 | Narrow to Subtree (=org.narrow.subtree=) | =C-x n s= | — | =SPC m s n= (N) | Shows only the current subtree (=org-narrow-to-subtree=). |
 | Narrow to Block (=org.narrow.block=) | =C-x n b= | — | — | Shows only the current block (=org-narrow-to-block=). |
@@ -759,8 +766,8 @@ When a key appears in several rows, it runs the command whose condition holds at
 |-+-+-+-+-|
 | Next Heading (=org.heading.next=) | =C-c C-n= | =⌥⌘↓= | — | Moves to the next heading (=org-next-visible-heading=). |
 | Previous Heading (=org.heading.previous=) | =C-c C-p= | =⌥⌘↑= | — | Moves to the previous heading (=org-previous-visible-heading=). |
-| Next Heading at Same Level (=org.heading.forward-same-level=) | =C-c C-f= | — | =g j= (N), =] h= (N) | Moves to the next heading at the same level (=org-forward-heading-same-level=). |
-| Previous Heading at Same Level (=org.heading.backward-same-level=) | =C-c C-b= | — | =g k= (N), =[ h= (N) | Moves to the previous heading at the same level (=org-backward-heading-same-level=). |
+| Next Heading at Same Level (=org.heading.forward-same-level=) | =C-c C-f= | — | =] h= (N) | Moves to the next heading at the same level (=org-forward-heading-same-level=). |
+| Previous Heading at Same Level (=org.heading.backward-same-level=) | =C-c C-b= | — | =[ h= (N) | Moves to the previous heading at the same level (=org-backward-heading-same-level=). |
 | Up to Parent Heading (=org.heading.up=) | =C-c C-u= | — | =g h= (N) | Moves to the parent heading (=outline-up-heading=). |
 | Go to Heading… (=org.goto=) | =C-c C-j= | — | =SPC m .= (N) | Asks for a heading of this file by its outline path and jumps to it (=org-goto=). |
 | Insert Heading (=org.heading.insert=) | =M-RET= | =⌘↩= | — | Inserts a heading at the current level; on a list item, see Insert Item (=org-meta-return=, =org-insert-heading=). |
@@ -814,7 +821,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Set Priority B (=org.priority.set-b=) | — | — | — | Sets priority B. Bound only as a speed key. |
 | Set Priority C (=org.priority.set-c=) | — | — | — | Sets priority C. Bound only as a speed key. |
 | Remove Priority (=org.priority.remove=) | — | — | — | Removes the priority. Bound only as a speed key. |
-| Set Tags (=org.tags.set=) | =C-c C-q= | =⌃⌘Q= | =SPC m q= (N) | Sets the heading's tags, with fast selection when =#+TAGS= has keys (=org-set-tags-command=). |
+| Set Tags (=org.tags.set=) | =C-c C-q= | =⌃⌘G= | =SPC m q= (N) | Sets the heading's tags, with fast selection when =#+TAGS= has keys (=org-set-tags-command=). |
 
 ** Properties and column view
 
@@ -835,7 +842,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Insert Timestamp (=org.timestamp.active=) | =C-c .= | =⌃⌘.= | =SPC m d t= (N) | Asks for a date and inserts an active timestamp, or changes the one at point (=org-timestamp=). |
 | Insert Inactive Timestamp (=org.timestamp.inactive=) | =C-c != | =⌃⌥⌘.= | =SPC m d T= (N) | Same, inactive (=org-timestamp-inactive=). |
 | Schedule (=org.schedule=) | =C-c C-s= | =⌃⌘S= | =SPC m d s= (N) | Asks for a date and sets =SCHEDULED= (=org-schedule=). |
-| Set Deadline (=org.deadline=) | =C-c C-d= | =⌃⌘D= | =SPC m d d= (N) | Asks for a date and sets =DEADLINE= (=org-deadline=). |
+| Set Deadline (=org.deadline=) | =C-c C-d= | =⌃⌘E= | =SPC m d d= (N) | Asks for a date and sets =DEADLINE= (=org-deadline=). |
 | Increase Timestamp Part (=org.timestamp.up=) | =S-<up>= | =⌃⌘↑= | =C-S-k= (N, I) | On a timestamp, increases the part under the caret: year, month, day, hour or minute (=org-timestamp-up=). |
 | Decrease Timestamp Part (=org.timestamp.down=) | =S-<down>= | =⌃⌘↓= | =C-S-j= (N, I) | On a timestamp, decreases the part under the caret (=org-timestamp-down=). |
 | Timestamp One Day Later (=org.timestamp.day-later=) | =S-<right>= | =⌃⌘→= | =C-S-l= (N, I) | On a timestamp, moves it one day later (=org-timestamp-up-day=). |
@@ -856,7 +863,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Next Table Field (=org.table.next-field=) | =TAB= | =⇥= | =TAB= (I) | In a table, aligns it and moves to the next field, adding a row at the end (=org-table-next-field=). |
 | Previous Table Field (=org.table.previous-field=) | =S-TAB= | =⇧⇥= | =S-TAB= (I) | In a table, moves to the previous field (=org-table-previous-field=). |
 | Next Table Row (=org.table.next-row=) | =RET= | =↩= | =RET= (I) | In a table, moves to the same field in the next row, adding a row at the end (=org-table-next-row=). |
-| Align Table (=org.table.align=) | =C-c C-c= | — | =SPC m b a= (N) | In a table, aligns it (=org-table-align=). |
+| Align Table (=org.table.align=) | — | — | =SPC m b a= (N) | In a table, aligns it (=org-table-align=). =C-c C-c= in a table also aligns it; see Act at Point. |
 | Move Table Row Up (=org.table.row-up=) | =M-<up>= | =⌃⌘↑= | =M-k= | In a table, moves the row up (=org-table-move-row-up=). |
 | Move Table Row Down (=org.table.row-down=) | =M-<down>= | =⌃⌘↓= | =M-j= | In a table, moves the row down (=org-table-move-row-down=). |
 | Move Table Column Left (=org.table.column-left=) | =M-<left>= | =⌃⌘←= | =M-h=, =C-d= (I) | In a table, moves the column left (=org-table-move-column-left=). |
@@ -886,7 +893,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
-| Act at Point (C-c C-c) (=org.ctrl-c-ctrl-c=) | =C-c C-c= | — | — | Does what fits the context: sets tags on a heading, toggles an item's checkbox, follows a footnote, offers the property menu in a property drawer, updates a clock line, statistics cookie or timestamp, and refreshes the setup on a =#+= keyword line (=org-ctrl-c-ctrl-c=). After a sparse tree, the first =C-c C-c= only clears the highlights. More specific bindings take =C-c C-c= in tables, src blocks, =#+TBLFM= lines and dynamic blocks. |
+| Act at Point (C-c C-c) (=org.ctrl-c-ctrl-c=) | =C-c C-c= | — | — | Does what fits the context: sets tags on a heading, toggles an item's checkbox, follows a footnote, offers the property menu in a property drawer, updates a clock line, statistics cookie or timestamp, runs a =#+CALL:= line, inline =call_= or inline =src_= block, and refreshes the setup on a =#+= keyword line (=org-ctrl-c-ctrl-c=). In a table it evaluates a formula typed in the field (starting with ~=~ or ~:=~), then recalculates the row when it is marked =#= and otherwise aligns the table; at the table's first character it recalculates the whole table. After a sparse tree, the first =C-c C-c= only clears the highlights. More specific bindings take =C-c C-c= in src blocks, =#+TBLFM= lines and dynamic blocks. |
 | Act at Point (=org.dwim=) | — | — | =RET= (N) | Doom's =+org/dwim-at-point=: follows a link, runs a src block, recalculates or aligns a table, toggles a checkbox, or switches a heading between TODO and done. |
 | Run Source Block (=org.babel.execute=) | =C-c C-c= | — | — | In a src block, runs it and inserts the results (=org-babel-execute-src-block=). |
 | Tangle File (=org.babel.tangle=) | =C-c C-v t=, =C-c C-v C-t= | — | — | Writes the file's src blocks to their tangle targets (=org-babel-tangle=). |
@@ -904,7 +911,6 @@ When a key appears in several rows, it runs the command whose condition holds at
 
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
-| Export… (=app.export-dialog=) | =C-c C-e= | — | — | Opens the export sheet (=org-export-dispatch=). |
 | Export to HTML (=app.export.html=) | =C-c C-e h h= | — | =SPC m e h h= (N) | Exports to HTML (=org-html-export-to-html=). |
 | Export to HTML and Open (=app.export.html-open=) | =C-c C-e h o= | — | =SPC m e h o= (N) | Exports to HTML and opens the result. |
 | Export to Markdown (=app.export.markdown=) | =C-c C-e m m= | — | =SPC m e m m= (N) | Exports to Markdown (=org-md-export-to-markdown=). |
@@ -943,15 +949,16 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Board (=app.board=) | Opens the Board window. Window ▸ Board, =⇧⌘B=. |
 | Cancel Running Block (=app.babel.cancel=) | Stops the src block that is running. Edit ▸ Cancel Running Block, =⌘.=. |
 | Edit Config File (=app.edit-config=) | Opens =config.toml= in the editor. =⌥⌘,=. |
+| Export… (=app.export-dialog=) | Opens the export sheet. In the Emacs and Doom presets =C-c C-e= is a prefix for the export keys only; pausing after it lists them in the key hints. |
 | Import from Emacs… (=app.import-emacs=) | Opens Import from Emacs…. |
 | Revert to File on Disk (=app.revert=) | Replaces the buffer with the file on disk; unsaved changes go to recovery (=revert-buffer=). |
 | Recovery Versions… (=app.recovery=) | Shows the recovery versions of the file. |
 | Resolve Sync Conflicts… (=app.sync-conflicts=) | Shows the file's sync conflict copies to resolve them. |
 | Import Table from File… (=app.table-import=) | Asks for a CSV, TSV or space-separated file and inserts it as a table (=org-table-import=). |
 | Export Table to File… (=app.table-export=) | Writes the table at point to a CSV or TSV file (=org-table-export=). |
-| Show or Hide Outline (=app.toggle-outline=) | Shows or hides the outline pane. View ▸ Show or Hide Outline. |
+| Show or Hide Outline (=app.toggle-outline=) | Shows or hides the outline pane. View ▸ Show or Hide Outline, =⌥⌘O=. |
 | Show or Hide Backlinks (=app.toggle-backlinks=) | Shows or hides the backlinks pane. View ▸ Show or Hide Backlinks. |
-| Show or Hide Columns and Clock (=app.toggle-inspector=) | Shows or hides the columns and clock inspector. |
+| Show or Hide Columns and Clock (=app.toggle-inspector=) | Shows or hides the columns and clock inspector. View ▸ Show or Hide Columns and Clock, =⌥⌘I=. |
 | Show or Hide Markup (=app.toggle-markup=) | Shows or hides link brackets and emphasis markers. View ▸ Show Markup, =⇧⌘M=. |
 | Show or Hide Line Numbers (=app.toggle-line-numbers=) | Shows or hides line numbers. View ▸ Show Line Numbers, =⇧⌘L=. |
 | Show or Hide Tab Bar (=app.toggle-tab-bar=) | Shows or hides the tab bar. View ▸ Show Tab Bar. |
@@ -960,7 +967,7 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Column View of File (=org.columns.global=) | Shows the column view of the whole file (=org-columns= with =C-u=). |
 | Remove Schedule (=org.schedule.remove=) | Removes =SCHEDULED= (=org-schedule= with =C-u=). |
 | Remove Deadline (=org.deadline.remove=) | Removes =DEADLINE= (=org-deadline= with =C-u=). |
-| Create ID (=org.id.create=) | Gives the entry an =ID= property unless it has one (=org-id-get-create=). |
+| Create ID (=org.id.create=) | Gives the entry an =ID= property, a lowercase UUID, unless it has one (=org-id-get-create=). |
 | Delete Property… (=org.property.delete=) | Asks for a property of the entry and deletes it (=org-delete-property=). |
 | Delete Property Everywhere… (=org.property.delete-globally=) | Asks for a property and deletes it from every entry in the file (=org-delete-property-globally=). |
 | Property Action… (=org.property.action=) | Offers set, delete and delete globally for the property at point (=org-property-action=). =C-c C-c= in a property drawer runs it. |

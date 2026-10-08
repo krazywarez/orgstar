@@ -31,7 +31,7 @@ Several commands in this chapter are only in the palette, not in a menu: Close O
 
 | Menu item                                | Shortcut | Palette title                    |
 |------------------------------------------+----------+----------------------------------|
-| View ▸ Show or Hide Outline              |          | Show or Hide Outline             |
+| View ▸ Show or Hide Outline              | =⌥⌘O=    | Show or Hide Outline             |
 | View ▸ Show or Hide Backlinks            |          | Show or Hide Backlinks           |
 | View ▸ Show or Hide Columns and Clock    | =⌥⌘I=    | Show or Hide Columns and Clock   |
 | View ▸ Show Tab Bar                      |          | Show or Hide Tab Bar             |
@@ -99,7 +99,7 @@ Right-click a file or folder in the sidebar for:
 - New File… — creates a file in that folder (for a file, in the folder holding it). A name without an extension gets =.org=. A name like =projects/house= creates the =projects= folder too. Names can't start with =/= or contain =..=. The new file opens.
 - Rename… — renames the file or folder in place. The new name can't contain =/=. Open buffers of the file, or of files inside the folder, are saved first (in explicit save mode you are asked) and reopened under the new path.
 - Show in Finder.
-- Move to Trash… — moves the file or folder to the Trash after you confirm. Open buffers of it close without saving. You can put it back from the Trash in Finder.
+- Move to Trash… — moves the file or folder to the Trash after you confirm. Open buffers of it close without saving; the confirmation warns you when the file, or an open file inside the folder, has unsaved changes. You can put it back from the Trash in Finder.
 
 Right-click a root's header for New File…, Expand or Collapse, Show in Finder and Remove from Sidebar….
 
@@ -107,7 +107,7 @@ Right-click a root's header for New File…, Expand or Collapse, Show in Finder 
 
 Click a file in the sidebar to open it. Other ways:
 
-- *Quick Open*: File ▸ Quick Open… (=⌘P=; =C-x C-f= in the Emacs and Doom presets; =SPC SPC=, =SPC .= or =SPC f f= in Doom normal state). Type part of a file's path below its root. Characters match in order, not necessarily next to each other; matches at the start of a word and runs of consecutive characters rank higher, and shorter paths win ties. Up to 50 matches show, with each file's name and path. Press =Return= to open the top match or click any match; =Escape= closes the list. Syncthing conflict copies are left out.
+- *Quick Open*: File ▸ Quick Open… (=⌘P=; =C-x C-f= in the Emacs and Doom presets; =SPC SPC=, =SPC .= or =SPC f f= in Doom normal state). Type part of a file's path below its root. Characters match in order, not necessarily next to each other; matches at the start of a word and runs of consecutive characters rank higher, and shorter paths win ties. Up to 50 matches show, with each file's name and path. The top match is selected; =↑= and =↓=, or =C-p= and =C-n=, move the selection. Press =Return= to open the selected match or click any match; =Escape= closes the list. Syncthing conflict copies are left out.
 - *Finder*: open an org file from Finder, with =open file.org= in Terminal, or by dropping it on Orgstar's Dock icon. Orgstar registers as the default app for org files and as an alternative editor for plain text. Each file opens as a buffer.
 - *Links*: following a =file:= link or an ID link opens the target file; see [[file:09-links.org][Links]].
 - *Doom ex command*: =:e FILE= opens =FILE=, relative to the current file's folder; =~= is expanded. A file that doesn't exist is reported as =No file FILE=.
@@ -195,7 +195,7 @@ The outline follows your edits after a short pause in typing.
 
 ** Backlinks
 
-Under the outline, the backlinks pane lists headings in your folders that link to the current file (=Links to this file=) and to the heading at the caret (=Links to= followed by the heading's title). It updates as you move the caret. Click an entry to open it. Turn the pane off with View ▸ Show or Hide Backlinks. Which links count is covered in [[file:09-links.org][Links]].
+Under the outline, the backlinks pane lists headings in your folders that link to the current file (a link before a file's first heading is listed under the file's name) (=Links to this file=) and to the heading at the caret (=Links to= followed by the heading's title). It updates as you move the caret. Click an entry to open it. Turn the pane off with View ▸ Show or Hide Backlinks. Which links count is covered in [[file:09-links.org][Links]].
 
 ** Inspector
 

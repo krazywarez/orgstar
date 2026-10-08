@@ -9,7 +9,7 @@ Orgstar keeps its settings in a configuration folder:
 - =$XDG_CONFIG_HOME/orgstar= when =XDG_CONFIG_HOME= is set and not empty,
 - otherwise =~/.config/orgstar=.
 
-The environment variable =ORGSTAR_CONFIG_DIR= overrides both. If a file is missing from the configuration folder but exists in =~/Library/Application Support/Orgstar= (where earlier versions kept it), Orgstar reads it from there.
+The environment variable =ORGSTAR_CONFIG_DIR= overrides both. If a file is missing from the configuration folder but exists in =~/Library/Application Support/Orgstar= (where earlier versions kept it), Orgstar reads it from there, and reloads it when you edit it there.
 
 The folder holds these files:
 
@@ -98,7 +98,7 @@ See Themes and Fonts below.
 
 | Control                             | Range                  | Default      | Key                         |
 |-------------------------------------+------------------------+--------------+-----------------------------|
-| Agenda shows N days                 | 1 to 31                | 10           | =org-agenda-span=           |
+| Agenda shows N days                 | 1 to 366               | 10           | =org-agenda-span=           |
 | Agenda starts N days before today   | 0 to 14 days before    | 3 days       | =org-agenda-start-day=      |
 | Include files in subfolders         | On or off              | Off          | =agenda-include-subfolders= |
 | Notify before timed agenda entries  | On or off              | On           | =reminders=                 |
@@ -194,7 +194,7 @@ The startup settings (=org-startup-*=, =org-hide-leading-stars=, =org-cycle-hide
 | =todo=   | string | =" %i %-12:c"=           | Prefix of lines in the TODO list    |
 | =tags=   | string | =" %i %-12:c"=           | Prefix of tag and property matches  |
 
-These mirror the entries of =org-agenda-prefix-format=. In the format, =%c= is the category, =%t= the time, =%s= the scheduled or deadline note, =%e= the effort, =%l= the level, =%b= the outline path, and a number such as =%-12= pads. See [[file:07-agenda.org][The agenda]].
+These mirror the entries of =org-agenda-prefix-format=. In the format, =%c= is the category, =%t= the time, =%s= the scheduled or deadline note, =%e= the effort, =%l= the level, =%b= the outline path, =%T= the item's last tag (inherited tags included), and a number such as =%-12= pads. See [[file:07-agenda.org][The agenda]].
 
 ** [theme]
 
@@ -256,7 +256,7 @@ save = "explicit"
 
 ** Names from earlier versions
 
-Earlier versions used keys such as =editor.fill-column= and =agenda.span=. Orgstar still reads them. At launch, a file that uses any of them is rewritten with the current names and every setting at its current value; comments you added are not kept. A file that lacks a whole section (such as =[theme]=) gets that section added at the end.
+Earlier versions used keys such as =editor.fill-column= and =agenda.span=. Orgstar still reads them. At launch, each such key in the file is renamed in place to its current name and moved to its current section; the rest of the file, and the comments on those lines, stay as they are. When a setting is in the file under both names, the current name wins and the old line is removed. A section the move leaves empty is removed. A file that lacks a whole section (such as =[theme]=) gets that section added at the end.
 
 * keymap.toml and capture.toml
 
@@ -274,7 +274,7 @@ command = "app.agenda"
 
 * In-file settings
 
-Keyword lines in a file set options for that file, as in Emacs. Orgstar reads them outside blocks; for =#+STARTUP= only lines at the element level count, so a =#+STARTUP= line inside a paragraph or a block doesn't change folding.
+Keyword lines in a file set options for that file, as in Emacs. Orgstar reads them outside blocks; for =#+STARTUP= only keyword lines count, so a =#+STARTUP= line inside a paragraph or a block changes nothing: not folding, logging or inline images.
 
 ** Keywords Orgstar reads
 
@@ -360,7 +360,7 @@ What Import does with each kind of item:
 - Settings are written to =config.toml=.
 - Folders are added to the sidebar if they exist and aren't there already.
 - Capture templates are appended to =capture.toml=, except those whose key is already in the file.
-- Key bindings are appended to =keymap.toml=. Running the import again appends them again.
+- Key bindings are appended to =keymap.toml=, except those already in the file with the same keys, command and state. Running the import again adds no duplicates.
 
 The Not imported section lists what Orgstar read but can't use, with the reason: settings it has no equivalent for, values it can't work out without running Emacs, bindings to code rather than a command, and files it couldn't read. The footer counts variables that aren't about org, which are left alone.
 
@@ -421,7 +421,7 @@ Any other =org-= or =appt-= variable is listed as having no equivalent.
 
 Capture templates are imported when their type is =entry=, =item=, =checkitem=, =plain= or =table-line=, their template is a string, and their target is =file=, =file+headline=, =file+olp=, =file+olp+datetree=, =file+datetree=, =file+weektree=, =id= or =clock=. The properties =:prepend=, =:immediate-finish=, =:jump-to-captured=, =:clock-in=, =:clock-keep=, =:clock-resume=, =:empty-lines=, =:empty-lines-before=, =:empty-lines-after=, =:tree-type= (=day=, =week=, =month=) and =:table-line-pos= carry over; others are listed as left out. Template groups (a key and a name only) are skipped.
 
-Key bindings are imported when the command is one Orgstar has a counterpart for, such as =org-todo=, =org-schedule=, =org-refile=, =org-capture= or =save-buffer=. Keys must be a string or =(kbd "…")=. In a Doom configuration, bindings without a state go to the =normal= state.
+Key bindings are imported when the command is one Orgstar has a counterpart for, such as =org-todo=, =org-schedule=, =org-refile=, =org-capture= or =save-buffer=. Keys must be a string or =(kbd "…")=; bindings with key vectors such as =[f5]= are skipped. In a Doom configuration, bindings without a state go to the =normal= state.
 
 ** Limits of the Lisp reader
 
@@ -469,7 +469,7 @@ To keep a theme in its own file, put it in the configuration folder with the sam
 theme-file = "solarized.toml"
 #+END_SRC
 
-The colors stack in this order, each over the one before: the default theme, the theme file, then the colors in =config.toml=. Orgstar reloads the theme file when it changes. Only colors are read from a theme file; =font= and the other type keys in its =[theme]= table are ignored.
+The colors stack in this order, each over the one before: the default theme, the theme file, then the colors in =config.toml=. The path is relative to the configuration folder and may name a subfolder, as =themes/solarized.toml=. Orgstar reloads the theme file when it changes. Only colors are read from a theme file; =font= and the other type keys in its =[theme]= table are ignored.
 
 ** Color keys
 

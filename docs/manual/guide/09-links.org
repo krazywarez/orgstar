@@ -55,13 +55,15 @@ A message in the echo area explains a link that can't be followed.
 | =http=, =https=, =ftp=, =news=, =mailto=     | =[[mailto:me@example.com]]=          | Opened by macOS in your default browser or mail app.                                       |
 | =doi=                                        | =[[doi:10.1000/182]]=                | Opens =https://doi.org/= followed by the DOI.                                              |
 | =file= (also =file+sys:=, =file+emacs:=)     | =[[file:notes.org::*Ideas]]=         | See /File links/ below.                                                                 |
-| =id=                                         | =[[id:6A3C…]]=                       | Opens the file with the heading whose =ID= property matches, and moves to the heading.     |
+| =id=                                         | =[[id:6a3c…]]=                       | Opens the file with the heading whose =ID= property matches, and moves to the heading.     |
 | Custom ID                                    | =[[#setup]]=                         | Moves to the heading in this file whose =CUSTOM_ID= property is =setup=.                   |
 | Heading                                      | =[[*Weekly review]]=                 | Moves to the heading in this file with that title.                                         |
 | Text                                         | =[[budget table]]=                   | Searches this file: a =<<budget table>>= target, then =#+NAME: budget table=, then a heading. |
 | Coderef                                      | =[[(ref)]]=                          | Not supported. The echo area says so.                                                      |
 | =shell=, =elisp=                             | =[[shell:ls]]=                       | Not run. Orgstar never executes these links.                                               |
-| =attachment=, =info=, =help=, others         |                                      | Not followed. The echo area says Orgstar can't open the type.                              |
+| =attachment=                                 | =[[attachment:scan.pdf]]=            | Opens the file in the entry's attachment folder; see /Attachment links/ below.             |
+| Radio link                                   | Text matching a =<<<radio target>>>= | Moves to the radio target.                                                                 |
+| =info=, =help=, others                       |                                      | Not followed. The echo area says Orgstar can't open the type.                              |
 
 The text search follows =org-link-search=. A dedicated =<<target>>= matches its words
 case-insensitively, with any run of blanks between them. A heading matches when its
@@ -69,8 +71,9 @@ title, with statistics cookies such as =[2/5]= and a leading =COMMENT= removed, 
 same words as the link, ignoring case. A search that starts with =*= looks at headings
 only. Regular-expression searches (=/re/=) are not supported.
 
-Following a radio link looks for a dedicated target, a name or a heading with the same
-text. It does not jump to the =<<<radio target>>>= itself.
+Following a radio link moves to its =<<<radio target>>>=, matching the words without
+regard to case, as =org-link--search-radio-target= does. When the target is gone, the
+echo area shows =No match for radio target:= and the text.
 
 ** File links
 
@@ -96,6 +99,21 @@ After =::=, a file link can carry a search option:
 | =*Title=        | =[[file:notes.org::*Ideas]]=     | The heading with that title.                |
 | =#custom-id=    | =[[file:notes.org::#setup]]=     | The heading with that =CUSTOM_ID=.          |
 | Other text      | =[[file:notes.org::budget]]=     | A target, a =#+NAME= or a heading, as above. |
+
+** Attachment links
+
+An =attachment:= link names a file in the attachment folder of the entry that holds
+the link, with org-attach's default settings. Relative folders are resolved against
+the folder of the file that holds the link:
+
+1. When the entry has a =DIR= property, or the older =ATTACH_DIR=, that folder.
+2. Otherwise, for an entry with an =ID=, the first of these folders that exists:
+   =data/= followed by the ID's first two characters, =/= and the rest of the ID;
+   =data/= followed by its first six characters, =/= and the rest;
+   =data/__/=, the ID's first character, =/= and the whole ID.
+
+When the folder does not exist, the path is relative to the file's own folder. The file then opens as a =file:= link would, and
+a search option after =::= works the same way.
 
 ** id links
 
@@ -125,7 +143,7 @@ stored links. It completes from:
 
 - your stored links, most recent first, and their descriptions;
 - the link abbreviations defined in the file (see /Link abbreviations/);
-- the link types =id=, =eww=, =rmail=, =mhe=, =irc=, =info=, =gnus=, =docview=,
+- the link types =attachment=, =id=, =eww=, =rmail=, =mhe=, =irc=, =info=, =gnus=, =docview=,
   =bibtex=, =bbdb=, =w3m=, =doi=, =file+sys=, =file+emacs=, =shell=, =news=, =mailto=,
   =https=, =http=, =ftp=, =shortdoc=, =help=, =file= and =elisp=, each followed by =:=.
 
@@ -196,7 +214,7 @@ Org identifies headings across files with an =ID= property. Two commands manage 
 | Org ▸ Store ID Link   | =org-id-get-create= + =org-id-store-link= | Doom =SPC m l i=; no key in Emacs or Mac |
 
 Create ID gives the heading at the caret an =ID= property if it doesn't have one. The
-ID is a new UUID in upper case, for example =6A3C2F9E-…=. Before the first heading,
+ID is a new UUID in lower case, for example =6a3c2f9e-…=, as =org-id-uuid= makes them. Before the first heading,
 the property goes into the file-level property drawer.
 
 Store ID Link does the same, then stores an =id:= link to the heading with its title
@@ -216,8 +234,7 @@ link carries that search, as =id:…::search=, which mirrors =org-id-link-use-co
 =<<<radio target>>>= makes every other occurrence of its words in the file a link,
 matched case-insensitively and between non-word characters. Radio links are
 highlighted as links and exported as links to the target (see
-[[file:12-export.org][Export]]). Following one in the editor does not reach the
-radio target; see /What each link type does/.
+[[file:12-export.org][Export]]). Following one moves to the radio target.
 
 * Link abbreviations
 
@@ -246,7 +263,8 @@ two sections:
 - *Links to* the heading at the caret, named after that heading.
 - *Links to this file*.
 
-Each row shows the linking heading and its file name. Click a row to open it. The
+Each row shows the linking heading and its file name; a link in the text before a
+file's first heading is listed under the file's name. Click a row to open it. The
 pane is shown by default and updates as you move the caret and edit.
 
 The pane looks at every org file in your sidebar folders, including unsaved changes
@@ -259,9 +277,8 @@ file:
   heading;
 - within the same file, =[[*Title]]=, =[[#custom-id]]= and =[[Title]]=.
 
-Links to targets, names and line numbers are not counted. Only links inside a heading's
-entry are indexed, so links in the text before a file's first heading don't appear.
-A heading's links to itself are left out.
+Links to targets, names and line numbers are not counted. A heading's links to itself
+are left out.
 
 * Inline images
 

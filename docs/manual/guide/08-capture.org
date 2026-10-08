@@ -27,7 +27,7 @@ Captures can also arrive from a browser through org-protocol, from Shortcuts, an
 
 A capture goes through up to three steps.
 
-1. *Choose a template.* The window lists your templates with their keys and targets. Press a template's key, or click it.
+1. *Choose a template.* The window lists your templates with their keys and targets. Type a template's key, or click it. For a key of several characters, such as =wb=, each character you type narrows the list to the templates whose keys start with what you typed, and the header shows the keys so far (=Capture: w=). =Delete= removes the last key typed. The template is chosen as soon as the keys match one.
 2. *Answer its questions.* If the template has prompts (=%^{…}=, =%^g=, =%^t= and the others below), they appear as a form. Leave a field empty for its default. Press Return (Continue) to go on.
 3. *Edit and file.* The filled template appears in an editor, headed with the template's name and target, with the cursor where =%?= was. Press =⌘Return= (File It) to file it.
 
@@ -35,7 +35,7 @@ Press Esc (Cancel) at any step to close the window without filing anything, as =
 
 Filing, the equivalent of =org-capture-finalize=, places the text in its target and saves it through the open buffer if the file is open, or into the file otherwise. A target file that doesn't exist is created, with its folders. The status line in the main window then says where the entry went.
 
-If filing fails, for example because a heading on an =olp= path is missing, the window stays open with your text, so you can try again after fixing the file or cancel.
+If filing fails, for example because a heading on an =olp= path is missing, the window stays open with your text and shows the error in red below it, so you can try again after fixing the file or cancel.
 
 Limits compared with Emacs:
 
@@ -65,9 +65,9 @@ The file is read each time the capture window opens. If it doesn't exist, or non
 | =t= | Personal todo  | =todo.org=, heading =Inbox= | =* TODO %?\n%i\n%a=   |
 | =n= | Personal notes | =notes.org=, heading =Inbox= | =* %u %?\n%i\n%a=   |
 
-A problem in the file, such as a table without a key, shows in red under the template list; the other templates still load.
+A problem in the file, such as a table without a key, shows in red at the bottom of the window; the other templates still load.
 
-Templates are a flat list. A key is matched against a single key press, so a key longer than one character can only be chosen by clicking. Emacs's template groups (an entry with only a key and a description) have no equivalent.
+Templates are a flat list. Keys of several characters are typed one character at a time, as in Emacs, but Emacs's template groups (an entry with only a key and a description) have no equivalent: the list shows every template whose key starts with what you typed.
 
 ** Keys
 
@@ -295,7 +295,7 @@ The sheet works as on the Mac, in a form:
 - Prompts appear as fields. Date prompts have a date picker; choices and tags appear as buttons, and tapping a tag adds it.
 - Continue fills the template and shows the text to edit; File files it; Cancel discards it.
 
-Differences from the Mac: there is no selection, clipboard, current file, user name or clock link to insert, so =%i= and =%a= are empty unless the capture came from a link or the share sheet, and =%c=, =%x=, =%f=, =%F=, =%n=, =%k= and =%K= are empty. An org-protocol link naming a template key that doesn't exist opens the sheet on the first template instead of reporting an error.
+Differences from the Mac: there is no selection, clipboard, current file, user name or clock link to insert, so =%i= and =%a= are empty unless the capture came from a link or the share sheet, and =%c=, =%x=, =%f=, =%F=, =%n=, =%k= and =%K= are empty. An org-protocol link naming a template key that doesn't exist opens the sheet on the first template and shows =No capture template "x"= with the key.
 
 ** The share sheet
 

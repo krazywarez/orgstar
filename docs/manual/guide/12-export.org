@@ -18,13 +18,13 @@ Export works on the file in the current editor, using its text as it is now, sav
 | ODT                | Export to ODT with Emacs         | =C-c C-e o o= | =C-c C-e o o=                 | yes         |
 | Plain text         | Export to Plain Text with Emacs  | =C-c C-e t u= | =C-c C-e t u=                 | yes         |
 
-The keys follow Emacs's export dispatcher (=org-export-dispatch=). The =SPC m e= keys work in normal state; the =C-c C-e= keys work in every Doom state. The Mac preset has no export keys.
+The keys follow Emacs's export dispatcher (=org-export-dispatch=). =C-c C-e= on its own is only a prefix: pause after it and the key hints list the formats. The =SPC m e= keys work in normal state; the =C-c C-e= keys work in every Doom state. The Mac preset has no export keys.
 
 All seven commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.tex=, =.odt= or =.txt=. A file already there is replaced. The message area shows "Exported to /name/".
 
 ** The export dialog
 
-The command palette's *Export…* opens a dialog with:
+*Export…* in the command palette opens a dialog. No preset binds it to a key; bind =app.export-dialog= in =keymap.toml= if you want one (see [[file:03-keys.org][Keys and commands]]). The dialog has:
 
 - *Format*: HTML, Markdown, PDF (Emacs), ODT (Emacs), LaTeX (Emacs) or Plain text (Emacs).
 - *Destination*: beside the Org file by default. *Choose…* picks another place and name. Changing the format changes the extension.
@@ -125,6 +125,8 @@ A file that cannot be read is replaced by an empty line.
 | ={{{title}}}=, ={{{author}}}=, ={{{date}}}=, ={{{email}}}= | That keyword's value.                     |
 | ={{{keyword(NAME)}}}=        | The value of =#+NAME:=.                                               |
 | ={{{input-file}}}=           | The Org file's name.                                                  |
+| ={{{property(NAME)}}}=       | The value of property =NAME= of the entry the macro is in; =ITEM= gives the heading's title. Empty before the first heading. |
+| ={{{property(NAME,SEARCH)}}}= | The same for the entry =SEARCH= finds in this file: =*Title=, =#custom-id= or a title. |
 | ={{{n}}}=, ={{{n(name)}}}=   | A counter, increased at each use. =n(name,-)= repeats the current value; =n(name,5)= sets it to 5. |
 | ={{{time(format)}}}=         | The current time, formatted as =format-time-string= does.             |
 
@@ -152,16 +154,16 @@ Links to =.org= files point to the =.html= file of the same name. Links to headi
 
 A source block is exported as =<pre><code class="language-LANG">=, with the code escaped and its common indentation removed. Orgstar does not color the code; the class lets a script or stylesheet in =#+HTML_HEAD= highlight it. Noweb references are shown as written. Line-number switches are ignored.
 
-The block's =:exports= argument decides what appears. Orgstar reads it from the =#+begin_src= line only.
+The block's =:exports= header argument decides what appears. Orgstar resolves it as running the block would: from the =#+begin_src= line, =#+HEADER:= lines, =header-args= properties and =#+PROPERTY:= lines (see [[file:11-code-blocks.org][Code blocks]]). Without one, it is =results= for =dot=, =plantuml=, =ditaa=, =gnuplot=, =latex= and =lilypond= blocks, as their Org defaults set it, and =code= for other languages.
 
 | =:exports=       | Exported                                  |
 |------------------+-------------------------------------------|
-| =code= (default) | The code.                                 |
+| =code=           | The code.                                 |
 | =results=        | The block's existing =#+RESULTS:=.        |
 | =both=           | The code, then the results.               |
 | =none=           | Nothing.                                  |
 
-An inline =src_= block is exported as its code in =<code>=. Results of =#+CALL:= lines and inline blocks are not exported.
+A =#+CALL:= line exports its existing results, never the call itself; =:exports code= or =none= on the call exports nothing. An inline =src_= block has =:exports results= by default: the ={{{results(…)}}}= after it is exported and its code is not. With =:exports code= the code is exported in =<code>= and the results are not; with =both=, both. An inline =call_= exports its results the same way, and the call itself never appears.
 
 ** Other blocks and elements
 
@@ -193,19 +195,19 @@ HTML and Markdown export handle citations the same way; see Citations below.
 
 Markdown export writes GitHub-flavored Markdown:
 
-- =#+TITLE:= becomes a top =#= heading. Org headings are one level down: =*= is =##=. TODO keywords and priorities stay in the heading text, and tags are shown as inline code.
+- =#+TITLE:= becomes a top =#= heading. Org headings are one level down: =*= is =##=. TODO keywords stay in the heading text, and tags are shown as inline code. Priority cookies are left out unless =#+OPTIONS= has =pri:t=.
 - Source blocks become fenced code blocks with the language; example blocks, =: = lines and table.el tables become fenced blocks without one.
 - Tables become pipe tables. A rule after the first row makes it the header; otherwise the header row is empty.
 - Checkboxes become task-list items (=- [x]=, =- [ ]=).
 - Footnotes become =[^1]= references with the notes at the end.
 - Quotes become =>= blocks. Verse lines end with two spaces.
-- Images become =![](path)=. Links to =.org= files written without =file:= point to the =.md= file of the same name.
+- Images become =![](path)=. Links to =.org= files, with or without =file:=, point to the =.md= file of the same name; a search option after =::= is dropped.
 - =#+begin_export= blocks for =markdown=, =md= or =html=, and =@@html:…@@= snippets, are copied as they are.
 - Underline, subscripts and superscripts are written as HTML tags.
 - =:exports= is handled as in HTML export.
 - Citations are handled as in HTML export.
 
-Markdown export is simpler than HTML export. It does not read =#+OPTIONS=, =#+EXCLUDE_TAGS= or =#+SELECT_TAGS=, does not leave out =noexport= or =COMMENT= headings, does not expand =#+INCLUDE:=, and drops macros. It writes no author or date.
+As in HTML export, =#+INCLUDE:= lines are expanded and macros replaced first, and =#+EXCLUDE_TAGS=, =#+SELECT_TAGS=, =COMMENT= headings and =ARCHIVE= tags decide which headings are exported (see /Which headings are exported/). Of the =#+OPTIONS=, Markdown export reads =todo=, =pri=, =tags=, =^= and =title=; the others do not apply. It writes no author or date.
 
 * Exporting through Emacs
 
@@ -223,7 +225,7 @@ Orgstar runs =emacs -Q --batch= in the Org file's folder. It opens the file, rep
 What you need:
 
 - Emacs, at =ORGSTAR_EMACS= or one of =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= or =/usr/bin/emacs=. Without it the export fails with "Emacs isn't installed, so this format can't be exported."
-- For PDF, a TeX installation that Emacs's LaTeX export can run.
+- For PDF, a TeX installation that Emacs's LaTeX export can run. Emacs runs with your =PATH= plus =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin=, the same as code blocks get, so =latexmk= and =pdflatex= from MacTeX or Homebrew are found when Orgstar was opened from the Dock.
 
 Things to know:
 

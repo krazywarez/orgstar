@@ -36,7 +36,7 @@ A file can set its own keywords, which replace the default ones for that file:
 
 - Each line is one sequence. =#+SEQ_TODO= means the same as =#+TODO=.
 - Without a =|=, the last word is the done keyword.
-- =#+TYP_TODO= marks a sequence of types (=org-todo-interpretation= =type=). The only difference Orgstar makes is in repeating tasks: a repeating entry returns to the keyword it had before it was done, instead of to the first keyword of the sequence.
+- =#+TYP_TODO= marks a sequence of types (=org-todo-interpretation= =type=). Cycling with =C-c C-t= from a type keyword goes to the sequence's first done keyword (see /Cycling/), and a repeating entry returns to the keyword it had before it was done, instead of to the first keyword of the sequence.
 - The order of sequences is the order Org uses: =#+TYP_TODO= lines first, then =#+TODO=, then =#+SEQ_TODO=.
 - Lines inside blocks are ignored. Lines from a =#+SETUPFILE= count as if they came first in the file.
 
@@ -73,7 +73,7 @@ With speed commands on (=org-use-speed-commands=), =t= at the start of a heading
 =C-c C-t= behaves in one of two ways:
 
 - If any keyword in the file has a fast-selection key, it opens fast selection (=org-use-fast-todo-selection= =auto=). The default keywords all have keys, so this is what you get unless you define keywords without keys.
-- Otherwise it cycles: no keyword, then each keyword of the first sequence in order, then no keyword again. From a keyword in another sequence it moves through that sequence and then to no keyword.
+- Otherwise it cycles: no keyword, then each keyword of the first sequence in order, then no keyword again. From a keyword in another sequence it moves through that sequence and then to no keyword. From a =#+TYP_TODO= keyword it goes straight to the sequence's first done keyword, as Org does; pressing =C-c C-t= again right away moves to the next type keyword instead. In the iOS app and the agenda, each press on a type keyword goes to the done keyword.
 
 =S-<right>= and =S-<left>= never use fast selection. They step through every keyword of every sequence in order, then to no keyword, and wrap around.
 
@@ -224,7 +224,7 @@ A tag consists of letters, digits, =_=, =@=, =#= and =%=.
 
 | Command   | Org command               | Emacs, Doom   | Mac   | Doom leader |
 |-----------+---------------------------+---------------+-------+-------------|
-| Set Tags  | =org-set-tags-command=    | =C-c C-q=     | ⌃⌘Q   | =SPC m q=   |
+| Set Tags  | =org-set-tags-command=    | =C-c C-q=     | ⌃⌘G   | =SPC m q=   |
 
 =C-c C-c= on a heading line also runs Set Tags, and so does =:= as a speed command.
 

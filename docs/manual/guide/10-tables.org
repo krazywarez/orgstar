@@ -66,6 +66,12 @@ table command, not while you type. To align without moving, use Org ▸ Align Ta
 | Mac    | Org ▸ Align Table            |
 | Doom   | =C-c C-c=, or =SPC m b a=    |
 
+=C-c C-c= in a table is =org-ctrl-c-ctrl-c=, as in Emacs. It first evaluates a formula
+typed in the current field (see /Entering formulas/). Then, in a row marked =#= (see
+/Names, parameters and constants/), it recalculates that row, which also aligns the
+table; in any other row it aligns the table. With the caret at the table's very first
+character, it recalculates the whole table instead.
+
 To align every table when a file opens, set =org-startup-align-all-tables= to =true=
 in the config file (default =false=), or put =#+STARTUP: align= in the file;
 =#+STARTUP: noalign= turns it off for that file. See
@@ -210,6 +216,7 @@ Rows count data lines from 1; rules don't count. Columns count from 1.
 | =@I+2=               | Two data rows after the first rule.                                  |
 | =@2$3=               | Row 2, column 3.                                                     |
 | =$0=                 | The current column.                                                  |
+| =@0=                 | The current row: =@0$2= is =$2=.                                     |
 | =@#=, =$#=           | The current row's or column's number, as a value.                    |
 | =@2$1..@4$3=         | A range: the fields of the rectangle, as a vector.                   |
 | =$1..$3=             | Columns 1 to 3 of the current row.                                   |
@@ -289,7 +296,9 @@ so ~$3=$2/3;~ is formatted with =%.2f=.
    folders, read from the file on disk.
 
 =REF= may use spreadsheet-style references such as =B3= (column B, row 3), which
-become =@3$2=.
+become =@3$2=. A =REF= without a row, such as =$1..$2=, reads the row of the other
+table that has the current row's number. =NAME= can itself be a reference: in
+=remote($1,@1$1)=, the current row's first field holds the table's name.
 
 ** Calc expressions
 
@@ -445,9 +454,9 @@ There are three ways to set a formula.
 
 *With a prompt.* =org-table-eval-formula= asks for the formula (~Column formula $N=~
 or ~Field formula @R$C=~) with the stored one filled in, stores it and evaluates it in
-the current field. An empty answer keeps the stored formula and evaluates it again,
-unlike Emacs, where an empty answer removes it. To remove a formula, delete it in the
-formula editor below or from the =#+TBLFM:= line.
+the current field. Clearing the prompt and pressing =Return= removes the stored
+formula, as in Emacs, and the echo area shows =Formula removed=. You can also delete a
+formula in the formula editor below or from the =#+TBLFM:= line.
 
 | Command                       | Emacs    | Mac                         | Doom     |
 |-------------------------------+----------+-----------------------------+----------|
@@ -462,8 +471,8 @@ prefix argument; use the menu item or type ~:=~ in the field.
 grouped under =# Column Formulas=, =# Field and Range Formulas= and
 =# Named Field Formulas=. A formula can continue on indented lines. =C-c '= or
 =⌘Return= installs the formulas; =Escape= or =C-c C-k= leaves them unchanged.
-Installing doesn't recalculate; do that next with =C-c C-c= on the =#+TBLFM:= line, or
-Org ▸ Recalculate Table in the Mac preset.
+Installing doesn't recalculate. The echo area says so and points to Recalculate Table:
+=C-c C-c= on the =#+TBLFM:= line, or Org ▸ Recalculate Table in the Mac preset.
 
 The formulas are stored sorted the way =org-table-formula-less-p= sorts them.
 
@@ -486,7 +495,7 @@ the table. Formulas are evaluated once; Org's iterate-until-stable recalculation
 
 Tables are not recalculated automatically. Rows marked =#= are not recalculated when
 you press =TAB= or =RET= in them, as =org-table-maybe-recalculate-line= would do in
-Emacs; recalculate with one of the commands above.
+Emacs; recalculate with one of the commands above, or with =C-c C-c= in the row.
 
 * When Emacs is needed
 
@@ -515,10 +524,10 @@ If the table's formulas contain Lisp, Orgstar asks first:
 table's text in this file, so the question isn't asked again until the text changes.
 
 Entering a formula that needs Emacs with ~C-c =~, Set Field Formula or ~=~ in a field
-is not handed to Emacs. The echo area shows =The formula was stored; recalculating it
-needs Emacs= and the reason, but the table and its =#+TBLFM:= line stay unchanged.
-Add such a formula in the formula editor or by editing the =#+TBLFM:= line, then
-recalculate the table, which runs it in Emacs.
+is not handed to Emacs. The formula is stored in the =#+TBLFM:= line and the field is
+left as it was; the echo area shows =The formula was stored; recalculating it needs
+Emacs= and the reason. =TAB= and =RET= still move to the next field. Recalculate the
+table to run the formula in Emacs.
 
 For how Orgstar and Emacs share files, see
 [[file:15-alongside-emacs.org][Using Orgstar alongside Emacs]].

@@ -42,7 +42,7 @@ Tap a file in Folders, Search or the agenda to read it.
 
 Tap Edit in the reader. The title shows the buffer name, with =•= while there are unsaved changes. The tab bar is hidden while you edit.
 
-The editor folds headings, drawers and blocks, styles text with the default theme, and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking is on.
+The editor folds headings, drawers and blocks, styles text with the default theme, and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows =spell-check= in =config.toml= and is off by default.
 
 The toolbar has:
 
@@ -102,6 +102,7 @@ With a hardware keyboard, the editor uses the Emacs keymap, whatever =keymap= is
 - Command shortcuts are the system's.
 - Keys the keymap leaves to the text system stay with iOS. These include the editing keys =C-a=, =C-e=, =C-k= and similar, which iOS handles itself.
 - After a prefix such as =C-c=, the message line shows =C-c-= while it waits for the next key. An unbound sequence shows =… is undefined=.
+- A sequence bound to a command that can't run at the caret, or that the iOS app doesn't have, shows why, as on the Mac: the command's own message (such as =Not on a heading=), or =Not available on iOS yet=.
 
 See [[file:03-keys.org][Keys and commands]] for the Emacs bindings.
 
@@ -121,7 +122,7 @@ The Agenda tab shows the agenda over all your folders, with the span and start d
 - Views (the calendar icon) :: the built-in views and those in =views.toml=, Tags and Properties… (a match such as =+work-home= or =TODO="WAIT"=), and in the day view, Today, Earlier and Later.
 - Filter :: keep or leave out tags and categories of the entries shown, or type a filter as Org's =/= takes it: =+keep= and =-drop= tags or categories, =<0:30= for effort, =/regexp/=. The status line shows the filter in use.
 - Tap an entry to read it, at its heading.
-- Swipe a TODO entry to the left to mark it done with the first done keyword of its sequence.
+- Swipe a TODO entry to the left to mark it done with the first done keyword of its sequence, as the file defines its keywords (with the default keywords, its =#+TODO= lines and its setup files).
 - Touch and hold an entry for TODO State…, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive….
 
 Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.
@@ -139,7 +140,7 @@ Tap Capture (the pencil icon) in the Agenda or Folders tab.
 
 Templates come from =capture.toml= in the configuration folder (see Settings below). Without one, the two default templates apply. A template with =immediate-finish= files as soon as its questions are answered, and one with =jump-to-captured= opens the captured entry. =%^g= offers the target file's tags as choices.
 
-=org-protocol://capture= links opened on the device open the capture sheet with the link's template, URL, title and text.
+=org-protocol://capture= links opened on the device open the capture sheet with the link's template, URL, title and text. When the link names a template key that =capture.toml= doesn't have, the sheet starts on the first template and shows =No capture template "x"= with the key.
 
 ** From the share sheet
 
@@ -230,18 +231,20 @@ Changes to the files apply as they sync, and again each time you return to the a
 
 Stop Using This Folder returns every setting to its default.
 
-The In use section shows the TODO keywords, the agenda span and start, the reminder lead time, and the capture template keys in effect.
+The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting 3 days before today=), the reminder lead time, and the capture template keys in effect.
 
 These settings from =config.toml= apply on iOS:
 
 - =org-todo-keywords=, =org-list-allow-alphabetical=
-- =org-tags-column=, =org-insert-heading-respect-content=, =fill-column=
+- =org-tags-column=, =org-insert-heading-respect-content=, =org-M-RET-may-split-line=, =fill-column=
+- =org-hide-emphasis-markers= and =org-pretty-entities=, for how tag and table alignment and filling measure text, as on the Mac
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
-- =electric-pair-mode=
+- =org-use-speed-commands=, with a hardware keyboard
+- =electric-pair-mode=, =spell-check=
 - =org-agenda-span=, =org-agenda-start-day=, =agenda-include-subfolders=
 - =reminders=, =appt-message-warning-time=
 
-=capture.toml= and =views.toml= in the folder apply too. Other settings, including =keymap=, =save=, the theme and font, and the startup settings, don't apply on iOS. See [[file:13-configuration.org][Configuration]].
+=capture.toml= and =views.toml= in the folder apply too. Other settings, including =keymap=, =save=, the theme and font, and the startup settings (=org-startup-*=, =org-hide-leading-stars=, =org-cycle-hide-*-startup=), don't change what the iOS reader and editor show. See [[file:13-configuration.org][Configuration]].
 
 * Spotlight and Quick Look
 
@@ -260,4 +263,4 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 - The global capture hotkey and the Settings window.
 - Explicit saving.
 
-Commands the iOS app can't carry out show a message instead, such as "Not available on iOS yet". Commands that only appear on the Mac, such as Refile from the editor, aren't listed in Commands; refile and archive from the agenda instead.
+Commands the iOS app can't carry out show a message instead, such as "Not available on iOS yet" or "/Command/ isn't available on iPhone and iPad." Only tables that need Emacs say that Emacs is needed. Commands that only appear on the Mac, such as Refile from the editor, aren't listed in Commands; refile and archive from the agenda instead.
