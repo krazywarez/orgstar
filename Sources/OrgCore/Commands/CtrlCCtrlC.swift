@@ -93,12 +93,12 @@ extension EmacsBuffer {
                   match[2] != nil, let first = match[1] else { return }
             saveExcursion {
                 point = first.lowerBound
-                try? changeTimestamp(0, what: .day)
+                try? changeTimestamp(0, what: .day, updateClock: false)
             }
             guard let again = lookingAt("[ \\t]*CLOCK: *[\\[<]([^\\]>]+)[\\]>](-+[\\[<]([^\\]>]+)[\\]>]([ \\t]*=>.*)?)?"), let second = again[3] else { return }
             saveExcursion {
                 point = second.lowerBound
-                try? changeTimestamp(0, what: .day)
+                try? changeTimestamp(0, what: .day, updateClock: false)
             }
             guard let final = lookingAt("[ \\t]*CLOCK: *[\\[<]([^\\]>]+)[\\]>](-+[\\[<]([^\\]>]+)[\\]>]([ \\t]*=>.*)?)?"),
                   let start = final[1], let end = final[3] else { return }

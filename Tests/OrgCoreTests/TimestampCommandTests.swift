@@ -100,6 +100,37 @@ struct TimestampCommandTests {
         #expect(mismatches == 0, "\(mismatches) of \(ours.count) differ")
     }
 
+    /// Shifting a timestamp on a CLOCK line rewrites the duration (`org-clock-update-time-maybe`).
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func clockShiftsMatchEmacs() throws {
+        let text = "* a\n:LOGBOOK:\nCLOCK: [2026-09-01 Tue 10:00]--[2026-09-01 Tue 11:30] =>  1:30\n  CLOCK: [2026-09-02 Wed 23:58]--[2026-09-03 Thu 00:02]\nCLOCK: [2026-09-04 Fri 09:00]\n:END:\n"
+        let commands: [(any OrgCommand, String)] = [
+            (ShiftTimestamp(up: true), "(org-timestamp-up)"), (ShiftTimestamp(up: false), "(org-timestamp-down)"),
+            (ShiftTimestampDay(later: true), "(org-timestamp-up-day)"), (ShiftTimestampDay(later: false), "(org-timestamp-down-day)"),
+        ]
+        var cases: [EmacsOracle.Case] = []
+        var ours: [(label: String, text: String, caret: Int, failed: Bool)] = []
+        for caret in EmacsOracle.positions(text) where EmacsBuffer(text, point: caret).atTimestamp() != nil {
+            for (command, form) in commands {
+                cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: frozenClock(1_789_000_000, form)))
+                let result = run(command, text, caret: caret)
+                ours.append(("\(command.id) at \(caret)", result.text, result.caret, result.failure != nil))
+            }
+        }
+        var mismatches = 0
+        for (mine, emacs) in zip(ours, try EmacsOracle.run(cases)) {
+            let failed = !emacs.error.isEmpty
+            let caret = EmacsOracle.offset(emacs.point, in: emacs.text)
+            guard mine.failed != failed || (!failed && (mine.text != emacs.text || mine.caret != caret)) else { continue }
+            mismatches += 1
+            if mismatches <= 12 {
+                Issue.record("\(mine.label)\n  ours:  \(mine.failed ? "failed" : "\(mine.text.debugDescription) @\(mine.caret)")\n  emacs: \(failed ? emacs.error : "\(emacs.text.debugDescription) @\(caret)")")
+            }
+        }
+        #expect(mismatches == 0, "\(mismatches) of \(ours.count) differ")
+        #expect(run(ShiftTimestamp(up: true), text, caret: (text as NSString).range(of: "11:30").location + 4).text.contains("11:35] =>  1:35\n"))
+    }
+
     static let repeating = [
         "* TODO a\nSCHEDULED: <2026-09-01 Tue +1w>\n",
         "* TODO a\nDEADLINE: <2026-09-01 Tue .+1d>\n",

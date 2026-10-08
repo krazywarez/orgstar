@@ -149,8 +149,9 @@ extension EmacsBuffer {
 
     enum TimestampUnit { case minute, hour, day, month, year }
 
-    /// `org-timestamp-change`. `what` nil changes the part at point.
-    func changeTimestamp(_ n: Int, what: TimestampUnit? = nil, updown: Bool = false, suppressDelay: Bool = false) throws {
+    /// `org-timestamp-change`. `what` nil changes the part at point. On a CLOCK line the
+    /// duration is then updated, unless `updateClock` is false.
+    func changeTimestamp(_ n: Int, what: TimestampUnit? = nil, updown: Bool = false, suppressDelay: Bool = false, updateClock: Bool = true) throws {
         let origin = point
         guard let (category, match) = atTimestamp() else { throw UserError(message: "Not at a timestamp") }
         if what == nil, category == .bracket {
@@ -214,6 +215,11 @@ extension EmacsBuffer {
         case .extra: point = min(after[0]!.upperBound - 1, origin)
         case .after: point = after[0]!.upperBound
         default: point = origin
+        }
+        if updateClock {
+            let before = point
+            clockUpdateTime()
+            if point >= before { point = before }
         }
     }
 
