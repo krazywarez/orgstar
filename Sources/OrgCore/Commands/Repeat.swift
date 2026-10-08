@@ -81,7 +81,9 @@ extension EmacsBuffer {
             if let kind = parts.1 {
                 let time = Self.parseTimeString(stamp).map(date)!
                 if kind == "." {
-                    if what != "h" {
+                    if what == "h" {
+                        try changeTimestamp(Int((now.timeIntervalSince(time) / 60).rounded(.down)), what: .minute)
+                    } else {
                         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: time), to: today).day!
                         try changeTimestamp(days, what: .day)
                     }

@@ -111,6 +111,9 @@ struct TimestampCommandTests {
         "* P [0/1]\n** TODO a\nSCHEDULED: <2026-09-01 Tue +1w>\n* Q\n",
         "* TODO no repeat\nSCHEDULED: <2026-09-01 Tue>\n",
         "* TODO hourly\nSCHEDULED: <2026-09-10 Thu 00:00 +1h>\n",
+        "* TODO from now\nSCHEDULED: <2026-09-08 Tue 10:00 .+2h>\n",
+        "* TODO from now\n<2026-09-10 Thu 03:15-04:00 .+1h>\n",
+        "* TODO catch up\nSCHEDULED: <2026-09-09 Wed 23:00 ++2h>\n",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
