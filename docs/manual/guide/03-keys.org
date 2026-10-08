@@ -332,8 +332,8 @@ Motions move the caret in normal state, extend the selection in visual states, a
 | =$=, =<end>= | End of the line; with a count, of the line count − 1 lines down. |
 | =g_= | Last non-blank of the line. |
 | =gg=, =G= | First line, last line; with a count, that line. The column is kept (=evil-start-of-line= nil). |
-| =f= /x/, =F= /x/, =t= /x/, =T= /x/ | To, or to just before, the next or previous /x/ on the line. |
-| =;=, =,= | Repeats the last =f=, =F=, =t=, =T=, =s= or =S=, forward or reversed. A snipe repeated this way searches all the text the window shows, not only the caret's line (=evil-snipe-repeat-scope=, as Doom sets it). |
+| =f= /x/, =F= /x/, =t= /x/, =T= /x/ | To, or to just before, the next or previous /x/ on the line. These are one-character snipes, as Doom's =evil-snipe-override-mode= makes them: a lowercase /x/ matches either case, an uppercase one only itself; =t= and =T= skip a match right next to the caret; =f SPC= and =t SPC= skip a run of blanks after the caret and stop at the last blank before the next word, or just before it. Accented variants of /x/ don't match (=evil-snipe-char-fold= is not supported). |
+| =;=, =,= | Repeats the last snipe (=s=, =S=, =f=, =F=, =t= or =T=), forward or reversed. A repeat searches all the text the window shows, so it can go past the caret's line (=evil-snipe-repeat-scope=, as Doom sets it). Right after a snipe, its own key repeats it: =f= goes on in the same direction and =F= reverses, and the same for =t= and =T= and for =s= and =S=. A count before that repeating key is not supported. |
 | =s= /xy/, =S= /xy/ | evil-snipe: to the next or previous /xy/ on the line. All-lowercase /xy/ matches case-insensitively. Not available after an operator. |
 | =%= | The bracket matching the next =()=, =[]= or ={}= on the line. |
 | ={=, =}= | Previous, next blank line. |
@@ -356,9 +356,9 @@ Search patterns are ICU regular expressions as macOS uses them, close to PCRE; E
 | =>= /motion/, =<= /motion/ | Indents or outdents lines by 8 spaces (=evil-shift-width=, which Doom sets to Org's =tab-width=). =>>= and =<<= act on lines. |
 | =g~= /motion/, =gu= /motion/, =gU= /motion/ | Toggles case, lowercases, uppercases. =g~~=, =guu=, =gUU= act on lines. |
 | =gc= /motion/ | Comments or uncomments lines with =#= (=evilnc-comment-operator=). =gcc= acts on lines. See [[*Commenting][Commenting]]. |
-| =gq= /motion/, =gw= /motion/ | Fills the paragraphs in the motion's lines to the fill column, as Fill Paragraph does; other elements in the lines are left alone. =gq= leaves the caret on the first non-blank of the last line, =gw= where it was. =gqq= and =gww= act on lines. |
+| =gq= /motion/, =gw= /motion/ | Fills the paragraphs in the motion's lines to the fill column, as Fill Paragraph does; other elements in the lines are left alone. =gq= leaves the caret on the first non-blank of the last line, =gw= where it was. Extra spaces between words and at the ends of lines are kept, as Doom fills without squeezing them. =gqq= and =gww= act on lines. |
 
-=M-q= runs Fill Paragraph in normal, insert and visual state.
+=M-q= runs Fill Paragraph in normal, insert and visual state. In visual and visual-line state it fills every paragraph the selection touches and leaves the caret where it was; if the text changed, the editor returns to normal state, otherwise the selection stays.
 
 Counts multiply: =2d3w= deletes six words. Doubling an operator with a count acts on that many lines: =3dd=.
 
@@ -437,7 +437,7 @@ A macro replays the keys you typed, including keymap commands, leader keys and i
 
 =m= /a/ sets mark /a/ (any letter) at the caret. Marks move with the text as you edit. ='= /a/ goes to the first non-blank of the mark's line, =`= /a/ to its exact position. =''= and =``= go back to where the last jump started.
 
-Jumps are =G=, =gg=, =%=, ={=, =}=, =n=, =N=, =*=, =#=, ='=, =`=, =H=, =M=, =L=, and searches with =/= and =?=. Each jump adds its starting point to the jump list, which keeps the last 100. =C-o= goes back through the list and =C-i= forward again. A new jump after =C-o= drops the places you went back past.
+Jumps are =G=, =gg=, =%=, ={=, =}=, =n=, =N=, =*=, =#=, ='=, =`=, =H=, =M=, =L=, the snipes =s=, =S=, =f=, =F=, =t= and =T=, and searches with =/= and =?=. Each jump adds its starting point to the jump list, which keeps the last 100. =C-o= goes back through the list and =C-i= forward again. A new jump after =C-o= drops the places you went back past.
 
 Lowercase marks belong to the buffer, and so do =C-o= and =C-i=. Uppercase marks (=mA= to =mZ=) are file marks, shared by every buffer: ='A= or =`A= in another buffer shows the buffer the mark was set in, at the mark. A file mark goes away when its buffer closes.
 
@@ -742,7 +742,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Find Previous (=edit.find-previous=) | — | — | — | Goes to the previous match. |
 | Use Selection for Find (=edit.use-selection-for-find=) | — | — | — | Puts the selection in the find bar. |
 | Complete at Point (=editor.complete=) | =C-M-i= | — | =C-SPC= (I), =C-@= (I) | Completes what is typed at the caret: =#+= keywords and their values, link types, entities, tags, TODO keywords, headings, drawers, properties, src languages and header arguments, and =<s=-style templates (=completion-at-point=). One candidate is inserted; several open a list. |
-| Fill Paragraph (=org.fill-paragraph=) | =M-q= | =⌃⌘P= | — | Refills the paragraph or list item to the fill column (=org-fill-paragraph=). In the Doom preset, =gq= and =gw= fill the lines a motion covers; see [[*Operators][Operators]]. |
+| Fill Paragraph (=org.fill-paragraph=) | =M-q= | =⌃⌘P= | — | Refills the paragraph or list item to the fill column (=org-fill-paragraph=); with a selection, every paragraph it touches. In the Doom preset, =gq= and =gw= fill the lines a motion covers; see [[*Operators][Operators]]. |
 
 ** Outline: visibility and narrowing
 

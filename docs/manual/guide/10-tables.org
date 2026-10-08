@@ -516,8 +516,11 @@ result. It looks for Emacs at the path in the =ORGSTAR_EMACS= environment variab
 then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=,
 =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and
 =/usr/bin/emacs=. If none is found, the echo area says Emacs isn't installed and the
-table is unchanged. The run stops after 60 seconds. If you edit the table while Emacs
-is working, its result is discarded.
+table is unchanged. Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local/bin=,
+=/Library/TeX/texbin=, =/usr/bin= and =/bin= added, as code blocks and export do, so
+programs a formula starts are found when Orgstar was opened from the Dock. The run
+stops after 60 seconds. If you edit the table while Emacs is working, its result is
+discarded.
 
 If the table's formulas contain Lisp, Orgstar asks first:
 =This table's formulas run Lisp. Run them? (yes, no, always)=. =always= trusts this

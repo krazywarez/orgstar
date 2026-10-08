@@ -163,7 +163,7 @@ The block's =:exports= header argument decides what appears. Orgstar resolves it
 | =both=           | The code, then the results.               |
 | =none=           | Nothing.                                  |
 
-A =#+CALL:= line exports its existing results, never the call itself; =:exports code= or =none= on the call exports nothing. An inline =src_= block has =:exports results= by default: the ={{{results(…)}}}= after it is exported and its code is not. With =:exports code= the code is exported in =<code>= and the results are not; with =both=, both. An inline =call_= exports its results the same way, and the call itself never appears.
+A =#+CALL:= line exports its existing results, never the call itself; =:exports code= or =none= on the call, or in the =header-args= properties where the call is, exports nothing. An inline =src_= block has =:exports results= by default: the ={{{results(…)}}}= after it is exported and its code is not. With =:exports code= the code is exported in =<code>= and the results are not; with =both=, both. An inline =call_= never appears itself, and the ={{{results(…)}}}= after it is always exported, whatever =:exports= says, as in Org.
 
 ** Other blocks and elements
 

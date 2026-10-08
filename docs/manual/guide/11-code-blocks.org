@@ -409,7 +409,7 @@ return [r + ["!"] for r in t]
 
 ** Standard input and arguments
 
-For shell blocks, =:stdin name= sends a table, list or block result to standard input, a table as tab-separated lines. =:cmdline= gives the script arguments, and =:shebang= its first line. With any of the three, the block is written to an executable script and run by the shell (=org-babel-sh-evaluate=); without =:shebang=, the first line is =#!/usr/bin/env= and the shell's name.
+For shell blocks, =:stdin name= sends a table, list or block result to standard input, a table as tab-separated lines. =:cmdline= gives the script arguments, and =:shebang= its first line. With any of the three, the block is written to an executable script and run by the shell (=org-babel-sh-evaluate=); without =:shebang=, the first line is =#!/usr/bin/env= and the shell's name. A block with =:stdin= or =:cmdline= runs as a script even with a =:session=, and leaves the session untouched; =:shebang= alone runs in the session.
 
 #+BEGIN_SRC org
 ,#+begin_src sh :cmdline one "two words" :results output
@@ -444,6 +444,8 @@ a * 3
 With =:cache yes=, Orgstar computes a SHA-1 hash of the block's header arguments and expanded body, as =org-babel-sha1-hash= does, and writes it on the results line: =#+RESULTS[hash]:=. When you run the block again and the hash matches, nothing runs and the message area shows the cached value ("Cached: …").
 
 Change the block or its arguments and it runs again. Results inserted with =append= or =prepend= carry no hash. Inline blocks are not cached. A cached block that has Lisp in its header arguments the interpreter cannot evaluate is refused.
+
+C, C++, D, Fortran and Clojure blocks don't run in Orgstar, but their hash is taken over the body as tangling expands it (see Tangling below), as Emacs does. A result Emacs wrote for such a block with =:cache yes= is recognised as current, and =C-c C-c= shows it.
 
 * Noweb
 
@@ -510,6 +512,8 @@ The full form is =#+CALL: name[inside](arguments) end=:
 - =(arguments)= are =:var= assignments, separated by commas.
 - =end= holds header arguments for the call's result, such as =:results verbatim=.
 
+The call also takes the =header-args= and =header-args:LANG= properties, and =#+PROPERTY:= lines, where the call is, with =LANG= the called block's language. They apply after the called block's own header arguments and before =[inside]=, as in Org.
+
 The result goes under the call. A =#+NAME:= line above the =#+CALL:= names the result.
 
 ** Inline calls and blocks
@@ -522,7 +526,7 @@ Text src_sh{echo hi} {{{results(=hi=)}}} end.
 
 Running again replaces the macro. With =:results raw= the result goes in as it is, without the macro. An inline result must be one line, and a table result must be a single cell.
 
-An inline call, =call_double(n=6)=, has the same parts as a =#+CALL:= line: =call_name[inside](arguments)[end]=. =C-c C-c= on an inline call runs it, and its result is written after it as a =results= macro, as for inline blocks.
+An inline call, =call_double(n=6)=, has the same parts as a =#+CALL:= line: =call_name[inside](arguments)[end]=. =C-c C-c= on an inline call runs it, and its result is written after it as a =results= macro, as for inline blocks. It takes the properties where it is as a =#+CALL:= line does.
 
 * Emacs Lisp blocks
 
@@ -600,8 +604,22 @@ echo tool
 | =:comments=     | =no=, =link=, =yes=, =org=, =both=, =noweb=       | Comments around each block (below).                                                          |
 | =:noweb=        | see Noweb above                                   | Expand or strip =<<name>>= references.                                                       |
 | =:prologue=, =:epilogue= | text                                     | A line before and after the block's code.                                                    |
-| =:var=          | as for running                                    | Shell scalars become assignments, Python values become assignments, Emacs Lisp values are =let=-bound. |
-| =:no-expand=    | any                                               | Write the body without =:var=, =:prologue= or =:epilogue=.                                   |
+| =:var=          | as for running                                    | Shell scalars become assignments, Python values become assignments, Emacs Lisp values are =let=-bound. For the languages below, as their Org language files write them. |
+| =:no-expand=    | any                                               | Write the body without =:var=, =:prologue=, =:epilogue= or the language's wrapping.          |
+
+A table in =:var= loses its first row when its only rule is under that row, or with =:colnames yes=, and its rules unless =:hlines yes=, as when the block runs. This holds for every language.
+
+=C=, =C++=, =cpp=, =D=, =java=, =fortran= and =clojure= blocks are written as Org's =org-babel-expand-body:LANG= writes them:
+
+| Language       | Written                                                                                                      |
+|----------------+--------------------------------------------------------------------------------------------------------------|
+| =C=, =C++=, =cpp= | =#include= lines from =:includes=, =#define= lines from =:defines=, =using namespace= lines from =:namespaces=, the =:var= declarations with table sizes and column-name helpers, then the body between =:prologue= and =:epilogue=, wrapped in =int main()= unless it has a =main= or =:main no= is given. |
+| =D=            | =module mmm;=, =import= lines from =:imports= plus =std.stdio= and =std.conv=, the =:var= declarations, and the body wrapped in =int main()= as for C. |
+| =java=         | The body between =:prologue= and =:epilogue=, wrapped in a =main= method when it has no method and in a class when it has none. The class is named by =:classname= or the body's own class; a dotted =:classname= adds a =package= line. =:imports= adds =import= lines, and =:var= values become static fields. |
+| =fortran=      | =#include= and =#define= lines from =:includes= and =:defines=, then the =:var= declarations and the body in =program main=, unless the body has its own =program= statement (then =:var= is refused) or =:main no= is given. |
+| =clojure=      | =(ns …)= from =:ns=, the body in a =let= of the =:var= values, and a printer around it unless =:results output=. |
+
+With =:hlines yes=, a table that keeps rules is refused for C, C++, D and Fortran; Java writes =null= for each rule.
 
 Block switches also apply. =-r= removes coderef labels such as =(ref:name)=, using the format from =-l= if given. =-i= keeps the block's indentation. Otherwise common indentation and surrounding blank lines are removed.
 
@@ -631,7 +649,8 @@ Tangling stops, writes nothing and says why when:
 
 - =:var= refers to a source block, which would have to run: "would run a block while tangling".
 - A shell block's =:var= is a table or list.
-- =:var= is used in a language other than shells, Python and Emacs Lisp.
+- =:var= is used in a language other than shells, Python, Emacs Lisp, C, C++, D, Java, Fortran and Clojure.
+- A C, C++, D or Fortran block's =:var= table keeps rules (with =:hlines yes=), or a value has no type the language takes.
 - A Lisp header value cannot be evaluated: "is Lisp tangling can't evaluate yet; nothing was tangled."
 - =:tangle-mode= is in a form it does not read.
 - =:comments= needs a comment syntax it does not know.

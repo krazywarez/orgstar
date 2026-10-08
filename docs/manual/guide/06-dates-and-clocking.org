@@ -53,7 +53,7 @@ The agenda also reads =<%%(…)>= timestamps and =%%(…)= lines with Emacs diar
 | Insert Timestamp            | =org-timestamp=      | =C-c .=     | ⌃⌘.   | =SPC m d t= |
 | Insert Inactive Timestamp   | =org-timestamp-inactive= | =C-c != | ⌃⌥⌘.  | =SPC m d T= |
 
-Both ask for a date in the echo area (see "The date prompt"). With the caret on an existing timestamp, they replace it with the date you give, keep its repeater, and start from its date and time. Run the command again right after inserting a timestamp to add a second one and make a range, =<…>--<…>=.
+Both ask for a date in the echo area (see "The date prompt"). With the caret on an existing timestamp, they replace it with the date you give, keep its repeater, and start from its date and time. In a range of days, the caret picks the end: with the caret between the two dashes of =--= or after them, the second timestamp is replaced and the prompt starts from its date; before that, the first. Run the command again right after inserting a timestamp to add a second one and make a range, =<…>--<…>=; the second date starts from the timestamp at the caret.
 
 Org's prefix arguments are not available: to include the current time, type it, or use a relative time such as =+0h= (see below).
 
@@ -259,7 +259,7 @@ The time shown is the time since you clocked in, not the entry's total. Each of 
 
 You can edit clock lines by hand. =S-<up>=, =S-<down>=, =S-<left>= and =S-<right>= change their timestamps as anywhere else, and then write the duration after ~=>~ again, as =H:MM=. After typing changes yourself, press =C-c C-c= (or =C-c C-y=) on the line: Orgstar fixes both day names and writes the duration again (=org-clock-update-time-maybe=).
 
-=C-c .= with the caret on the =--= between the two timestamps of a clock line inserts a new timestamp there. Emacs replaces the second timestamp instead.
+=C-c .= on a clock line's range replaces one of its timestamps, as in any range of days (see "Inserting timestamps").
 
 A line of the form ~CLOCK: => 1:15~, with only a duration, counts towards clock tables.
 
