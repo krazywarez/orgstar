@@ -1,5 +1,6 @@
 import AppKit
 import OrgCore
+import OrgDocument
 import Testing
 @testable import OrgEditorAppKit
 
@@ -44,9 +45,9 @@ struct ViewToggleTests {
 
     @Test func gjMovesByScreenLines() {
         let long = Array(repeating: "word", count: 60).joined(separator: " ")
-        let h = Harness(long + "\nnext\n")
-        // Doom binds `g j` to the next heading; without that binding it's the engine's.
-        h.editor.keymap = KeymapPreset.emacs.keymap
+        // In Org files gj is evil-org's element motion; elsewhere it's screen lines.
+        let h = Harness(DocumentState(bytes: Array((long + "\nnext\n").utf8)), mode: .plain(language: nil))
+        h.editor.keymap = KeymapPreset.doom.keymap
         h.editor.modal = true
         h.caret(at: 0)
         h.caret(at: 0)
