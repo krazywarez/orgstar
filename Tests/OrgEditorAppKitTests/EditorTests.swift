@@ -431,16 +431,6 @@ struct InitialStylingTests {
     }
 }
 
-struct HangingIndentTests {
-    @Test(arguments: [
-        ("plain", 0), ("  indented", 2), ("- item", 2), ("  - [X] done", 8), ("12. step", 4),
-        ("* heading-like", 0), ("  * starred item", 4), ("-not a bullet", 0), ("\t- tab", 10),
-    ])
-    func columns(line: String, expected: Int) {
-        #expect(OrgEditor.hangingColumns(line) == expected)
-    }
-}
-
 @MainActor
 struct CommandTests {
     @Test func performEditsThroughTheTextView() {

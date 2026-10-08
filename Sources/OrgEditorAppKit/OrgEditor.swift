@@ -176,22 +176,13 @@ public final class OrgEditor: NSObject {
         // Files open at their start, as in Emacs; replacing the storage leaves it at the end.
         textView.setSelectedRange(NSRange(location: 0, length: 0))
         if isOrg {
-            let words = Presentation.startupOptions(document.tree).map { $0.lowercased() }
-            indented = words.contains("indent") ? true : words.contains("noindent") ? false : options.startupIndented
-            hideStars = words.contains("hidestars") ? true : words.contains("showstars") ? false : options.hideLeadingStars
-            var startup = Presentation.startupFoldState(document.tree) ?? FoldState()
-            // VISIBILITY properties and archived trees, unless everything shows.
-            if Presentation.startupFoldState(document.tree) != nil, !words.contains("showeverything") {
-                startup = Presentation.applyVisibilityProperties(startup, in: document.tree)
-            }
-            let wrappers = Presentation.startupWrappers(document.tree, hideDrawers: options.hideDrawerStartup, hideBlocks: options.hideBlockStartup)
-            startup.wrapperFolds = Set(wrappers.map(\.start))
-            if startup != FoldState() { setFolds(startup, wrappers: wrappers) }
+            let startup = Presentation.startupDisplay(document.tree, options: options)
+            indented = startup.indented
+            hideStars = startup.hideStars
+            if startup.folds != FoldState() { setFolds(startup.folds, wrappers: startup.wrappers) }
             shrinkAtStartup()
-            if InlineImages.startup(document.tree) ?? options.startupWithInlineImages { showsImages = true }
-            if words.contains("align") || (options.startupAlignAllTables && !words.contains("noalign")) {
-                _ = perform(AlignAllTables())
-            }
+            if startup.inlineImages { showsImages = true }
+            if startup.alignTables { _ = perform(AlignAllTables()) }
             if !indented || !hideStars { restyleOutsideEditing(0..<utf16Length) }
         }
         spellChecking = options.spellCheck
@@ -1047,38 +1038,22 @@ public final class OrgEditor: NSObject {
             }
             return
         }
-        let text = storage.string as NSString
-        for run in Presentation.indents(document.tree, in: range) where indented {
-            guard let clipped = clip(run.range, to: range) else { continue }
-            guard run.firstLine == run.wrapped else {
-                storage.addAttribute(.paragraphStyle, value: paragraphStyle(run.firstLine, run.wrapped), range: clipped)
-                continue
-            }
-            // Body lines wrap under their own text: past leading blanks, and past a list bullet
-            // and checkbox, as adaptive-wrap does in Emacs.
-            var location = clipped.location
-            while location < NSMaxRange(clipped) {
-                let line = text.lineRange(for: NSRange(location: location, length: 0))
-                let hanging = Self.hangingColumns(text.substring(with: line))
-                let lineRange = NSIntersectionRange(line, clipped)
-                storage.addAttribute(.paragraphStyle, value: paragraphStyle(run.firstLine, run.wrapped + hanging), range: lineRange)
-                location = NSMaxRange(line)
+        if indented {
+            for line in Presentation.lineIndents(document.tree, in: range) {
+                storage.addAttribute(.paragraphStyle, value: paragraphStyle(line.firstLine, line.wrapped), range: NSRange(line.range))
             }
         }
         let revealed = caretLine
         var scriptExclusions: [Range<Int>] = []
         for run in Presentation.styles(document.tree, in: range, highlighter: highlighter) {
             guard let clipped = clip(run.range, to: range) else { continue }
-            if run.role == .leadingStars, !indented, !hideStars { continue }
-            if !showMarkup, hides(run.role), NSIntersectionRange(clipped, revealed).length == 0 {
+            if Presentation.skipsLeadingStars(run.role, indented: indented, hideStars: hideStars) { continue }
+            if !showMarkup, Presentation.hidesWithMarkup(run.role, options: options), NSIntersectionRange(clipped, revealed).length == 0 {
                 storage.addAttributes(theme.hidden, range: clipped)
             } else {
                 theme.apply(run.role, to: storage, range: clipped)
             }
-            switch run.role {
-            case .bold, .italic, .underline, .strikeThrough, .verbatim, .code, .link, .linkMarkup, .keyword: scriptExclusions.append(run.range)
-            default: break
-            }
+            if Presentation.excludesScripts(run.role) { scriptExclusions.append(run.range) }
         }
         if !showMarkup, options.prettyEntities { prettify(range, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
         applyShrunk(range, in: storage)
@@ -1087,49 +1062,29 @@ public final class OrgEditor: NSObject {
     }
 
     /// `org-pretty-entities`: entities drawn as their character over the entity's last
-    /// character (the rest hidden), sub/superscripts raised without their markers. Not on the
-    /// caret's line, in comments or in blocks; sub/superscripts not in emphasis, links or
-    /// keywords, as `org-raise-scripts` leaves them.
+    /// character (the rest hidden), sub/superscripts raised without their markers.
     private func prettify(_ range: Range<Int>, in storage: NSTextStorage, revealed: NSRange, scriptExclusions: [Range<Int>]) {
-        let text = storage.string as NSString
-        var location = range.lowerBound
-        while location < range.upperBound {
-            let line = text.lineRange(for: NSRange(location: location, length: 0))
-            guard line.length > 0 else { break }
-            location = NSMaxRange(line)
-            if line.location == revealed.location || shaded.containing(line.location) != nil { continue }
-            let content = text.substring(with: line)
-            if content.range(of: "^[ \\t]*#([ +]|$)", options: .regularExpression) != nil { continue }
-            for run in PrettyEntities.runs(in: content, subSuperscriptsNeedBraces: options.subSuperscriptsNeedBraces) {
-                switch run {
-                case .entity(let r, let display):
-                    let start = line.location + r.lowerBound
-                    let last = line.location + r.upperBound - 1
-                    if last > start { storage.addAttributes(theme.hidden, range: NSRange(location: start, length: last - start)) }
-                    storage.addAttributes([.foregroundColor: NSColor.clear, .orgEntityDisplay: display], range: NSRange(location: last, length: 1))
-                case .script(let markers, let body, let superscript):
-                    let bodyStart = line.location + body.lowerBound
-                    if scriptExclusions.contains(where: { $0.contains(bodyStart) }) || body.isEmpty { continue }
-                    for marker in markers {
-                        storage.addAttributes(theme.hidden, range: NSRange(location: line.location + marker.lowerBound, length: marker.count))
-                    }
-                    let size = theme.font.pointSize
-                    storage.addAttributes([
-                        .font: NSFont.monospacedSystemFont(ofSize: size * 0.7, weight: .regular),
-                        .baselineOffset: (superscript ? 0.3 : -0.3) * size,
-                    ], range: NSRange(location: bodyStart, length: body.count))
+        let runs = Presentation.prettyRuns(
+            storage.string as NSString, in: range, revealedLine: revealed.location, inBlock: { shaded.containing($0) != nil },
+            scriptExclusions: scriptExclusions, subSuperscriptsNeedBraces: options.subSuperscriptsNeedBraces
+        )
+        for (lineStart, run) in runs {
+            switch run {
+            case .entity(let r, let display):
+                let start = lineStart + r.lowerBound
+                let last = lineStart + r.upperBound - 1
+                if last > start { storage.addAttributes(theme.hidden, range: NSRange(location: start, length: last - start)) }
+                storage.addAttributes([.foregroundColor: NSColor.clear, .orgEntityDisplay: display], range: NSRange(location: last, length: 1))
+            case .script(let markers, let body, let superscript):
+                for marker in markers {
+                    storage.addAttributes(theme.hidden, range: NSRange(location: lineStart + marker.lowerBound, length: marker.count))
                 }
+                let size = theme.font.pointSize
+                storage.addAttributes([
+                    .font: NSFont.monospacedSystemFont(ofSize: size * 0.7, weight: .regular),
+                    .baselineOffset: (superscript ? 0.3 : -0.3) * size,
+                ], range: NSRange(location: lineStart + body.lowerBound, length: body.count))
             }
-        }
-    }
-
-    /// Link brackets and targets are hidden as with `org-link-descriptive`; emphasis
-    /// markers only when Emacs hides them too.
-    private func hides(_ role: StyleRole) -> Bool {
-        switch role {
-        case .linkMarkup: true
-        case .markup: options.hideEmphasisMarkers
-        default: false
         }
     }
 
@@ -1304,34 +1259,6 @@ public final class OrgEditor: NSObject {
         if lines.lineCount != lineCount { orgTextView?.updateGutter() }
         orgTextView?.redrawLineNumbers()
         onChange?()
-    }
-
-    /// Columns a wrapped continuation of `line` should start past the line's own start.
-    nonisolated static func hangingColumns(_ line: String) -> Int {
-        var columns = 0
-        var rest = Substring(line)
-        while let c = rest.first, c == " " || c == "\t" {
-            columns = c == "\t" ? (columns / 8 + 1) * 8 : columns + 1
-            rest = rest.dropFirst()
-        }
-        // A bullet (`-`, `+`, `*` when indented, `1.`, `1)`) and its space, then a checkbox.
-        var bullet = 0
-        if let first = rest.first, first == "-" || first == "+" || (first == "*" && columns > 0) {
-            bullet = 1
-        } else {
-            let digits = rest.prefix { $0.isASCII && $0.isNumber }
-            if !digits.isEmpty, let separator = rest.dropFirst(digits.count).first, separator == "." || separator == ")" {
-                bullet = digits.count + 1
-            }
-        }
-        guard bullet > 0, rest.dropFirst(bullet).first == " " else { return columns }
-        columns += bullet + 1
-        let afterBullet = rest.dropFirst(bullet + 1)
-        if afterBullet.count >= 4, afterBullet.first == "[", "X x-".contains(afterBullet.dropFirst().first!),
-           afterBullet.dropFirst(2).first == "]", afterBullet.dropFirst(3).first == " " {
-            columns += 4
-        }
-        return columns
     }
 
     /// Whether a heading line touches `start..<end` or starts right after it, where joining
