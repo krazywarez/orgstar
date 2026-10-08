@@ -170,6 +170,8 @@ extension OrgEditor {
                 NSPasteboard.general.setString(text, forType: .string)
             case .prompt(let kind):
                 prompt(kind)
+            case .ex(let command):
+                ex(command)
             case .message(let text):
                 onMessage?(text)
             case .setMark(let name, let offset):

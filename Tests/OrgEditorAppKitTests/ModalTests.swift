@@ -72,6 +72,17 @@ struct ModalTests {
         #expect(h.editor.vim.mode == .normal)
     }
 
+    @Test func zzSavesAndClosesAsWq() {
+        let h = doom("text\n")
+        var app: [String] = []
+        h.editor.onAppCommand = { app.append($0) }
+        h.caret(at: 0)
+        type(h, "Z Q")
+        #expect(app.isEmpty)
+        type(h, "Z Z")
+        #expect(app == ["app.save"])
+    }
+
     @Test func windowLinesInTheEditor() {
         let h = doom("one\ntwo\nthree\nfour\nfive\n")
         h.caret(at: 0)

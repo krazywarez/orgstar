@@ -196,6 +196,15 @@ struct VimTests {
         return driver.caret
     }
 
+    @Test func zzAndZqRunExCommands() {
+        var vim = Vim()
+        let context = Vim.Context(text: "a\n", caret: 0)
+        #expect(vim.feed(KeyChord("Z"), context) == [])
+        #expect(vim.feed(KeyChord("Z"), context) == [.ex("wq")])
+        _ = vim.feed(KeyChord("Z"), context)
+        #expect(vim.feed(KeyChord("Q"), context) == [.ex("q!")])
+    }
+
     @Test func halfPageScrollsFollowTheWindow() {
         #expect(driven(0, "C-d", halfPage: 5) == 35)
         #expect(driven(70, "C-u", halfPage: 5) == 35)

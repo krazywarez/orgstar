@@ -32,6 +32,8 @@ public struct Vim: Sendable {
         case setClipboard(String)
         /// Ask for a search pattern (`/`, `?`) or an ex command (`:`).
         case prompt(String)
+        /// An ex command to run, as if typed after `:` (`ZZ` is `:wq`, `ZQ` is `:q!`).
+        case ex(String)
         case message(String)
         /// `m`: a mark at this offset, for the editor to keep through edits.
         case setMark(Character, Int)
@@ -463,8 +465,8 @@ public struct Vim: Sendable {
             case ("Z", []):
                 guard rest.count >= 2 else { return .incomplete }
                 switch rest[rest.startIndex + 1].key {
-                case "Z": return .done([.command("app.save")])
-                case "Q": return .done([.message("ZQ isn't available; use the window's close button")])
+                case "Z": return .done([.ex("wq")])
+                case "Q": return .done([.ex("q!")])
                 default: return .invalid
                 }
             default:
