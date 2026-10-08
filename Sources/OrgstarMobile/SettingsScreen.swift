@@ -2,6 +2,7 @@
 import OrgApp
 import OrgCore
 import SwiftUI
+import UIKit
 
 /// Where settings come from: a folder with the Mac's `config.toml` and `capture.toml`, kept in
 /// sync by iCloud Drive or another app.
@@ -29,6 +30,8 @@ struct SettingsScreen: View {
                 LabeledContent("Agenda", value: agenda)
                 LabeledContent("Reminders", value: OrgPreferences.reminders() ? "\(OrgPreferences.reminderLead()) min before" : "Off")
                 LabeledContent("Capture templates", value: CaptureTemplates.load().templates.map(\.key).joined(separator: " "))
+                LabeledContent("Theme", value: UserDefaults.standard.string(forKey: "themeFile").flatMap { $0.isEmpty ? nil : $0 } ?? "Default")
+                LabeledContent("Font", value: font)
             }
         }
         .navigationTitle("Settings")
@@ -43,6 +46,14 @@ struct SettingsScreen: View {
         let offset = OrgPreferences.agendaStartOffset()
         let start = offset == 0 ? "today" : offset < 0 ? "\(days(-offset)) before today" : "\(days(offset)) after today"
         return "\(days(OrgPreferences.agendaSpan())), starting \(start)"
+    }
+
+    /// The theme's family, or the system's monospaced font when it's unset or not on the device.
+    private var font: String {
+        let spec = model.theme
+        let family = spec.font.isEmpty || UIFont.fontNames(forFamilyName: spec.font).isEmpty ? "System monospaced" : spec.font
+        let missing = !spec.font.isEmpty && family != spec.font ? " (\(spec.font) isn't installed)" : ""
+        return "\(family), \(spec.fontSize) pt\(missing)"
     }
 
     private var todoKeywords: String {

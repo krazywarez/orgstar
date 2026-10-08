@@ -4,6 +4,7 @@ import OrgCore
 import OrgIndex
 import OrgPresentation
 import SwiftUI
+import UIKit
 
 /// What to read: a file, and where in it.
 enum ReaderRoute: Hashable {
@@ -31,23 +32,27 @@ struct ReaderScreen: View {
     @State private var showingOutline = false
     @State private var message: String?
     @Environment(\.openURL) private var openURL
+    @Environment(MobileModel.self) private var model
 
     private var outline: [OutlineEntry] { session.outline }
 
     var body: some View {
         let _ = session.editVersion
+        // Read again when settings or the Dynamic Type size change.
+        let _ = model.settingsVersion
+        let theme = MobileTheme(model.theme)
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     if let tree = session.document?.tree {
                         let preambleEnd = outline.first?.start ?? (tree.text as NSString).length
-                        if preambleEnd > 0 { textView(tree, 0..<preambleEnd) }
+                        if preambleEnd > 0 { textView(tree, 0..<preambleEnd, theme) }
                         ForEach(Array(outline.enumerated()), id: \.element.start) { index, entry in
                             if isShown(index) {
-                                heading(tree, entry).id(entry.start)
+                                heading(tree, entry, theme).id(entry.start)
                                 if !fold.folds.contains(entry.start), !fold.bodyFolds.contains(entry.start) {
                                     let body = bodyRange(index, tree)
-                                    if !body.isEmpty { textView(tree, body).padding(.leading, indent(entry)) }
+                                    if !body.isEmpty { textView(tree, body, theme).padding(.leading, indent(entry)) }
                                 }
                             }
                         }
@@ -56,6 +61,7 @@ struct ReaderScreen: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .background(theme.swiftColor("background") ?? Color(uiColor: .systemBackground))
             .onChange(of: session.revealRequest?.id) {
                 guard let offset = session.revealRequest?.offset else { return }
                 reveal(offset, proxy)
@@ -108,19 +114,20 @@ struct ReaderScreen: View {
         return min(lineEnd, firstChild)..<firstChild
     }
 
-    private func heading(_ tree: OrgTree, _ entry: OutlineEntry) -> some View {
+    private func heading(_ tree: OrgTree, _ entry: OutlineEntry, _ theme: MobileTheme) -> some View {
         let ns = tree.text as NSString
         var line = ns.lineRange(for: NSRange(location: entry.start, length: 0))
         let title = min(entry.start + entry.level + 1, NSMaxRange(line))
         line.length = NSMaxRange(line) - title
-        let text = attributed(ReadingText.segments(tree, in: title..<(title + line.length)), heading: entry.level)
+        let text = attributed(ReadingText.segments(tree, in: title..<(title + line.length)), heading: entry.level, theme)
         let hasContent = entry.end > NSMaxRange(ns.lineRange(for: NSRange(location: entry.start, length: 0)))
         let foldedMark = fold.folds.contains(entry.start) && hasContent
         return HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: foldedMark ? "chevron.right" : "chevron.down")
-                .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                .font(.caption.weight(.semibold)).foregroundStyle(theme.swiftColor("markup") ?? Color(uiColor: .tertiaryLabel))
                 .opacity(hasContent ? 1 : 0)
-            Text(text.trimmingTrailingNewlines()).frame(maxWidth: .infinity, alignment: .leading)
+            Text(text.trimmingTrailingNewlines()).lineSpacing(CGFloat(max(0, theme.spec.lineSpacing)))
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.leading, indent(entry))
         .padding(.top, entry.level == 1 ? 6 : 0)
@@ -130,48 +137,70 @@ struct ReaderScreen: View {
         .accessibilityHint(foldedMark ? "Unfolds the heading" : "Folds the heading")
     }
 
-    private func textView(_ tree: OrgTree, _ range: Range<Int>) -> some View {
-        Text(attributed(ReadingText.segments(tree, in: range, folded: folded), heading: nil).trimmingTrailingNewlines())
+    private func textView(_ tree: OrgTree, _ range: Range<Int>, _ theme: MobileTheme) -> some View {
+        Text(attributed(ReadingText.segments(tree, in: range, folded: folded), heading: nil, theme).trimmingTrailingNewlines())
+            .lineSpacing(CGFloat(max(0, theme.spec.lineSpacing)))
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Segments as styled text; links get `orgstar-link:` URLs to follow.
-    private func attributed(_ segments: [ReadingText.Segment], heading level: Int?) -> AttributedString {
+    /// Segments as styled text in the theme's font and colors, as the editor styles them;
+    /// links get `orgstar-link:` URLs to follow.
+    private func attributed(_ segments: [ReadingText.Segment], heading level: Int?, _ theme: MobileTheme) -> AttributedString {
         var result = AttributedString()
         for segment in segments {
             var part = AttributedString(segment.text)
-            if let level {
-                part.font = level == 1 ? .title3.weight(.semibold) : level == 2 ? .headline : .body.weight(.semibold)
-            }
-            for role in segment.roles {
+            var font = level.map(theme.headingFont) ?? theme.font
+            var color = level.flatMap { theme.color("heading-\(min(max($0, 1), 8))") } ?? theme.foreground
+            func fg(_ key: String) { if let c = theme.color(key) { color = c } }
+            // Outer roles first, so inner ones win.
+            for role in segment.roles.sorted(by: { Self.depth($0) < Self.depth($1) }) {
                 switch role {
-                case .todo: part.foregroundColor = .red; part.font = (part.font ?? .body).weight(.semibold)
-                case .done: part.foregroundColor = .green
-                case .priority: part.foregroundColor = .orange
-                case .tags: part.foregroundColor = .secondary; part.font = .caption
-                case .bold: part.inlinePresentationIntent = .stronglyEmphasized
-                case .italic: part.inlinePresentationIntent = .emphasized
+                case .todo, .done:
+                    font = MobileTheme.adding(.traitBold, to: font)
+                    if let c = theme.keywordColor(segment.text, done: role == .done) { color = c }
+                case .priority: fg("priority")
+                case .tags: fg("tags")
+                case .bold: font = MobileTheme.adding(.traitBold, to: font)
+                case .italic: font = MobileTheme.adding(.traitItalic, to: font)
                 case .underline: part.underlineStyle = .single
                 case .strikeThrough: part.strikethroughStyle = .single
-                case .verbatim, .code, .inlineSource: part.font = .body.monospaced()
-                case .markup, .leadingStars: part.foregroundColor = .secondary
-                case .timestamp: part.foregroundColor = .purple
-                case .metadata, .keyword, .comment, .blockDelimiter:
-                    part.foregroundColor = .secondary
-                    part.font = .footnote.monospaced()
-                case .block, .table, .syntax: part.font = .callout.monospaced()
-                default: break
+                case .verbatim, .code, .inlineSource:
+                    if let background = theme.color("inline-background") { part.backgroundColor = Color(uiColor: background) }
+                    fg(role == .verbatim ? "verbatim" : "code")
+                case .markup, .linkMarkup, .leadingStars: fg("markup")
+                case .timestamp: fg("timestamp")
+                case .comment: fg("comment")
+                case .keyword: fg("keyword")
+                case .metadata: fg("metadata")
+                case .blockDelimiter: fg("block-delimiter")
+                case .footnote, .cookie, .target, .macro, .latex: fg("special")
+                case .table, .rule: fg("table")
+                case .link:
+                    part.underlineStyle = .single
+                    fg("link")
+                case .heading, .block, .syntax: break
                 }
             }
             if segment.link != nil {
                 // Found again by position when followed.
                 part.link = URL(string: "orgstar-link:\(segment.offset)")
-                part.foregroundColor = .accentColor
             }
+            part.font = Font(font as CTFont)
+            part.foregroundColor = Color(uiColor: color)
             result += part
         }
         return result
+    }
+
+    /// How deep a role's text usually nests: elements, then objects, then their parts.
+    private static func depth(_ role: StyleRole) -> Int {
+        switch role {
+        case .heading: 0
+        case .metadata, .keyword, .comment, .block, .table, .rule: 1
+        case .blockDelimiter, .link, .bold, .italic, .underline, .strikeThrough, .timestamp, .footnote, .target, .macro, .latex: 2
+        default: 3
+        }
     }
 
     // MARK: - Actions
@@ -190,7 +219,9 @@ struct ReaderScreen: View {
     /// The file's startup visibility, kept while the same file is open.
     private func loadFolds() {
         guard let tree = session.document?.tree else { return }
-        folded = Presentation.startupWrappers(tree).map(\.hidden)
+        folded = Presentation.startupWrappers(
+            tree, hideDrawers: session.options.hideDrawerStartup, hideBlocks: session.options.hideBlockStartup
+        ).map(\.hidden)
         guard loadedPath != session.path else { return }
         loadedPath = session.path
         fold = Presentation.applyVisibilityProperties(Presentation.startupFoldState(tree) ?? FoldState(), in: tree)
