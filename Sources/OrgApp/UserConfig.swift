@@ -23,12 +23,16 @@ public enum UserConfig {
         return URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".config/orgstar")
     }
 
+    /// Where earlier versions kept the configuration files.
+    public static var legacyDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Orgstar")
+    }
+
     /// A file of the configuration folder; one that exists only where earlier versions kept
     /// it (Application Support) is still read from there.
     public static func file(_ name: String) -> URL {
         let url = directory.appendingPathComponent(name)
-        let legacy = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Orgstar").appendingPathComponent(name)
+        let legacy = legacyDirectory.appendingPathComponent(name)
         let manager = FileManager.default
         if !manager.fileExists(atPath: url.path), manager.fileExists(atPath: legacy.path) { return legacy }
         return url

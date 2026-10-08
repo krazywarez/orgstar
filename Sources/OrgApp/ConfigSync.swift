@@ -62,8 +62,11 @@ public final class ConfigSync {
             MainActor.assumeIsolated { self?.writeBack() }
         }
         guard watch else { return }
-        let directory = url.deletingLastPathComponent()
-        watcher = FSEventsWatcher(roots: [directory.resolvingSymlinksInPath()]) { [weak self] events in
+        let directory = url.deletingLastPathComponent().resolvingSymlinksInPath()
+        // Files still read from where earlier versions kept them reload when edited there too.
+        let legacy = UserConfig.legacyDirectory.resolvingSymlinksInPath()
+        let watchesLegacy = legacy.path != directory.path && FileManager.default.fileExists(atPath: legacy.path)
+        watcher = FSEventsWatcher(roots: [directory] + (watchesLegacy ? [legacy] : [])) { [weak self] events in
             let changed = Set(events.compactMap { event -> URL? in
                 if case .changed(let url) = event { return url }
                 return nil
@@ -71,6 +74,8 @@ public final class ConfigSync {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 for file in changed.sorted(by: { $0.path < $1.path }) {
+                    if !file.path.hasPrefix(directory.path + "/"),
+                       UserConfig.file(file.lastPathComponent).resolvingSymlinksInPath().path != file.resolvingSymlinksInPath().path { continue }
                     let name = file.lastPathComponent
                     if name == self.url.lastPathComponent { self.reload() }
                     if self.isThemeFile(file) { self.readTheme() }
