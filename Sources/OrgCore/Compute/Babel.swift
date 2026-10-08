@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 // Babel (ob-core.el, ob-shell.el, ob-python.el, ob-emacs-lisp.el, Org 9.8.7): executing a src
@@ -65,6 +66,8 @@ public struct BabelJob: Sendable, Equatable {
         var fileDescription: String?
         /// The program writes `file` itself, as graphics languages do.
         var writesFile = false
+        /// `:cache yes`: the hash for the `#+RESULTS[…]:` line.
+        var hash: String?
     }
 }
 
@@ -253,7 +256,7 @@ public enum Babel {
     }
 
     static func plan(_ block: SrcBlockInfo, params: Params, model: DocumentModel, text ns: NSString, options: Options,
-                     location: Range<Int>, name: String?, inline: Bool = false, refs: References? = nil) -> Result<BabelJob, Failure> {
+                     location: Range<Int>, name: String?, inline: Bool = false, refs: References? = nil, useCache: Bool = true) -> Result<BabelJob, Failure> {
         let refs = refs ?? References(resolved: [:], options: options)
         guard let language = block.language else { return .failure(.message("This block has no language")) }
         let eval = params.single[":eval"]?.lowercased()
@@ -271,8 +274,6 @@ public enum Babel {
         if session != nil, !shells.contains(language), language != "python" {
             return .failure(.message(":session isn't supported for \(language) yet; nothing was run."))
         }
-        if params.single[":cache"] == "yes" { return .failure(.message(":cache isn't supported yet; nothing was run.")) }
-
         var body = normalizedBody(block)
         if nowebEvaluates(params.single[":noweb"]) {
             do {
@@ -288,9 +289,10 @@ public enum Babel {
             params.single[":output-dir"].map { $0.hasSuffix("/") ? $0 + name : $0 + "/" + name } ?? name
         }
         let toFile = params.results.contains("file")
+        var hash: String?
         let finishBase = { (kind: BabelJob.Finish.Kind) in
             BabelJob.Finish(kind: kind, language: language, params: params.results, output: output, wrap: params.wrap, name: name, inline: inline,
-                            file: toFile ? file : nil, fileDescription: params.single[":file-desc"])
+                            file: toFile ? file : nil, fileDescription: params.single[":file-desc"], hash: hash)
         }
         let vars: [(String, VarValue)]
         var stdin: VarValue?
@@ -313,6 +315,19 @@ public enum Babel {
             return .failure(error)
         } catch {
             return .failure(.message("\(error)"))
+        }
+        if useCache, !inline, params.single[":cache"] == "yes" {
+            do {
+                let state = try cacheState(language: language, params: params, vars: vars, body: body, location: location, name: name,
+                                           call: location != block.range, text: ns)
+                if state.current { return .failure(.message(cachedMessage(state.value))) }
+                // Appended or prepended results accumulate, so they carry no hash.
+                if params.results.contains("replace") { hash = state.hash }
+            } catch let error as Failure {
+                return .failure(error)
+            } catch {
+                return .failure(.message("\(error)"))
+            }
         }
         let blockText = ns.substring(with: NSRange(location))
         let dir = params.single[":dir"]
@@ -439,7 +454,7 @@ public enum Babel {
             return .success(BabelJob(
                 language: language, runner: .process(executable: params.single[":cmd"] ?? executable, arguments: arguments),
                 input: body + "\n", directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
-                finish: BabelJob.Finish(kind: .generic, language: language, params: params.results + (output ? [] : ["output"]), output: true, wrap: params.wrap, name: name, inline: inline)
+                finish: BabelJob.Finish(kind: .generic, language: language, params: params.results + (output ? [] : ["output"]), output: true, wrap: params.wrap, name: name, inline: inline, hash: hash)
             ))
         }
         return .failure(.message("No way to run \(language) blocks yet."))
@@ -559,6 +574,125 @@ public enum Babel {
         return lines.joined(separator: "\n")
     }
 
+    // MARK: - Cache
+
+    /// `:cache yes` (`org-babel-execute-src-block`): the block's hash, and whether its results
+    /// already carry it, with their value when it can be read.
+    static func cacheState(language: String, params: Params, vars: [(String, VarValue)], body: String, location: Range<Int>, name: String?,
+                           call: Bool, text: NSString) throws -> (hash: String, current: Bool, value: VarValue?) {
+        let input = try cacheInput(language: language, params: params, vars: vars, expanded: expandedBody(language: language, vars: vars, body: body), call: call)
+        let hash = Insecure.SHA1.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
+        guard let line = existingResults(name: name, block: location, text: text), resultsHash(at: line, text: text) == hash else {
+            return (hash, false, nil)
+        }
+        return (hash, true, readResult(after: line, text: text))
+    }
+
+    static func cachedMessage(_ value: VarValue?) -> String {
+        value.map { "Cached: " + lispLiteral($0) } ?? "Cached; nothing was run."
+    }
+
+    /// The body with its variables, as the language's `org-babel-expand-body:` writes it.
+    static func expandedBody(language: String, vars: [(String, VarValue)], body: String) -> String {
+        if shells.contains(language) {
+            let lines = vars.map { "\($0.0)='" + shellString($0.1).replacingOccurrences(of: "'", with: "'\"'\"'") + "'" }
+            return (lines + [body]).joined(separator: "\n")
+        }
+        if language == "python" {
+            return (vars.map { "\($0.0)=\(pythonLiteral($0.1))" } + [body]).joined(separator: "\n")
+        }
+        if language == "emacs-lisp" || language == "elisp" {
+            let bindings = vars.map { "(\($0.0) '\(lispLiteral($0.1)))" }
+            return bindings.isEmpty ? body + "\n" : "(let (\(bindings.joined(separator: "\n      ")))\n\(body)\n)"
+        }
+        return body
+    }
+
+    /// What `org-babel-sha1-hash` hashes: the header arguments after `org-babel-process-params`,
+    /// sorted by key and printed with `%S`, then the expanded body.
+    static func cacheInput(language: String, params: Params, vars: [(String, VarValue)], expanded: String, call: Bool) throws -> String {
+        if !params.lisp.isEmpty || params.single[":colnames"] != nil || params.single[":rownames"] != nil {
+            throw Failure.message(":cache with Lisp header values, :colnames or :rownames isn't supported yet; nothing was run.")
+        }
+        let ignored: Set<String> = ["replace", "silent", "none", "discard", "append", "prepend"]
+        let drawsFile = language == "dot" || language == "plantuml"
+        // `org-babel-default-header-args`, the language's and `org-babel-default-lob-header-args`.
+        var defaults = [":session": "none", ":exports": call || drawsFile ? "results" : "code", ":cache": "no", ":noweb": "no", ":hlines": "no", ":tangle": "no"]
+        if language == "emacs-lisp" || language == "elisp" { defaults[":lexical"] = "no" }
+        var entries: [(key: String, printed: String)] = []
+        for (key, value) in defaults.merging(params.single, uniquingKeysWith: { $1 }) {
+            let printed: String
+            if value.isEmpty {
+                continue
+            } else if key == ":exports" {
+                printed = lispString(value.split(whereSeparator: \.isWhitespace).map(String.init).filter { !ignored.contains($0) }.sorted().joined(separator: " "))
+            } else if params.single[key] != nil, !params.quoted.contains(key), let n = number(value) {
+                printed = n
+            } else {
+                printed = lispString(value)
+            }
+            entries.append((key, printed))
+        }
+        var words = params.results
+        if drawsFile, !words.contains(where: { Params.resultGroups[0].contains($0) }) { words.append("file") }
+        let kept = words.filter { !ignored.contains($0) }.sorted()
+        if !kept.isEmpty { entries.append((":result-params", "(" + kept.map { lispString($0) }.joined(separator: " ") + ")")) }
+        entries.append((":result-type", words.contains("output") ? "output" : "value"))
+        entries.append((":results", lispString(kept.joined(separator: " "))))
+        if let wrap = params.wrap, !wrap.isEmpty { entries.append((":wrap", lispString(wrap))) }
+        for (name, value) in vars {
+            switch value {
+            case .scalar, .number: entries.append((":var", "(\(name) . \(lispLiteral(value)))"))
+            case .list, .table: entries.append((":var", "(\(name) " + lispLiteral(value).dropFirst()))
+            }
+        }
+        let sorted = entries.enumerated().sorted { ($0.element.key, $0.offset) < ($1.element.key, $1.offset) }.map(\.element.printed)
+        return sorted.joined(separator: ":") + "-" + expanded
+    }
+
+    /// `org-babel-read-result` for fixed-width lines, a table without rules or a plain list after
+    /// the `#+RESULTS` line at `line`; nil for anything else.
+    static func readResult(after line: Int, text ns: NSString) -> VarValue? {
+        var location = NSMaxRange(ns.lineRange(for: NSRange(location: line, length: 0)))
+        var lines: [String] = []
+        while location < ns.length {
+            let range = ns.lineRange(for: NSRange(location: location, length: 0))
+            let content = ns.substring(with: range).trimmingCharacters(in: .newlines)
+            if content.trimmingCharacters(in: .whitespaces).isEmpty { break }
+            lines.append(content.trimmingCharacters(in: .whitespaces))
+            location = NSMaxRange(range)
+        }
+        guard let first = lines.first else { return nil }
+        if first == ":" || first.hasPrefix(": ") {
+            var fixed: [String] = []
+            for l in lines {
+                guard l == ":" || l.hasPrefix(": ") else { break }
+                fixed.append(String(l.dropFirst(2)))
+            }
+            let value = fixed.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            return number(value).map(VarValue.number) ?? .scalar(value)
+        }
+        if first.hasPrefix("|") {
+            var rows: [[Cell]] = []
+            for l in lines {
+                guard l.hasPrefix("|") else { break }
+                if l.hasPrefix("|-") { return nil }
+                let cells = l.dropFirst().split(separator: "|", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+                rows.append((l.hasSuffix("|") ? Array(cells.dropLast()) : cells).map(cell))
+            }
+            return .table(rows)
+        }
+        if first.firstMatch(of: #/^[-+*] /#) != nil {
+            var items: [Cell] = []
+            for l in lines {
+                guard let m = l.firstMatch(of: /^[-+*] (.*)$/) else { return nil }
+                items.append(cell(String(m.1)))
+            }
+            return .list(items)
+        }
+        return nil
+    }
+
     // MARK: - Header arguments
 
     struct Params {
@@ -568,6 +702,8 @@ public enum Babel {
         var wrap: String?
         /// Keys whose value is Lisp to evaluate (`org-babel-read`): unquoted, starting with `(`.
         var lisp: Set<String> = []
+        /// Keys whose value was a quoted string, which `org-babel-read` doesn't take for a number.
+        var quoted: Set<String> = []
 
         static let resultGroups: [Set<String>] = [
             ["file", "list", "vector", "table", "scalar", "verbatim"],
@@ -621,6 +757,7 @@ public enum Babel {
                     let value = quoted ? Params.unescape(String(raw.dropFirst().dropLast())) : raw
                     if key != ":var" {
                         if !quoted, value.hasPrefix("(") { lisp.insert(key) } else { lisp.remove(key) }
+                        if quoted { self.quoted.insert(key) } else { self.quoted.remove(key) }
                     }
                     switch key {
                     case ":results":
@@ -818,8 +955,20 @@ public enum Babel {
             let extra = arguments.map { [splitArguments($0).map { (":var", $0) }] } ?? []
             var inner = refs
             inner.visiting.insert(name)
-            switch plan(block, params: try Params(block: block, model: model, text: text, extra: extra), model: model, text: text,
-                        options: refs.options, location: block.range, name: name, refs: inner) {
+            let params = try Params(block: block, model: model, text: text, extra: extra)
+            // A cached block gives its result without running, as `org-babel-execute-src-block` does.
+            var useCache = true
+            if params.single[":cache"] == "yes", let language = block.language {
+                let vars = try params.vars.map { ($0.name, try resolve($0.value, model: model, text: text, refs: inner)) }
+                let body = nowebEvaluates(params.single[":noweb"]) ? try expandNoweb(block, params: params, model: model, text: text) : normalizedBody(block)
+                let state = try cacheState(language: language, params: params, vars: vars, body: body, location: block.range, name: name, call: false, text: text)
+                if state.current {
+                    if let value = state.value { return value }
+                    useCache = false
+                }
+            }
+            switch plan(block, params: params, model: model, text: text,
+                        options: refs.options, location: block.range, name: name, refs: inner, useCache: useCache) {
             case .failure(let failure): throw failure
             case .success(let job):
                 throw Needed(need: job.needs.first ?? BabelJob.Need(reference: value, job: job))
@@ -1302,30 +1451,55 @@ public enum Babel {
 
     /// `org-babel-where-is-src-block-result` with `insert`: the line of the block's results
     /// keyword, added when there is none.
-    static func resultsLine(_ finish: BabelJob.Finish, block: Range<Int>, buffer: EmacsBuffer) -> Int {
-        let ns = buffer.text
-        if let name = finish.name {
+    /// The `#+RESULTS` line of a block's results (`org-babel-where-is-src-block-result`):
+    /// the one naming `name`, or for an unnamed block an empty one right after it.
+    static func existingResults(name: String?, block: Range<Int>, text ns: NSString) -> Int? {
+        if let name {
             let pattern = "(?im)^[ \\t]*#\\+results(\\[[^\\]]*\\])?:[ \\t]*" + NSRegularExpression.escapedPattern(for: name) + "[ \\t]*$"
             let regex = try! NSRegularExpression(pattern: pattern)
-            for m in regex.matches(in: ns as String, range: NSRange(location: 0, length: ns.length)) {
-                // Not the name of another block.
-                return m.range.location
+            return regex.firstMatch(in: ns as String, range: NSRange(location: 0, length: ns.length))?.range.location
+        }
+        // The element after the block, past blank lines.
+        var location = block.upperBound
+        while location < ns.length {
+            let line = ns.lineRange(for: NSRange(location: location, length: 0))
+            let content = ns.substring(with: line)
+            if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                location = NSMaxRange(line)
+                continue
             }
-        } else {
-            // The element after the block, past blank lines.
-            var location = block.upperBound
-            while location < ns.length {
-                let line = ns.lineRange(for: NSRange(location: location, length: 0))
-                let content = ns.substring(with: line)
-                if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    location = NSMaxRange(line)
-                    continue
-                }
-                if content.range(of: "(?i)^[ \\t]*#\\+results(\\[[^\\]]*\\])?:[ \\t]*\\n?$", options: .regularExpression) != nil {
-                    return line.location
-                }
-                break
+            if content.range(of: "(?i)^[ \\t]*#\\+results(\\[[^\\]]*\\])?:[ \\t]*\\n?$", options: .regularExpression) != nil {
+                return line.location
             }
+            break
+        }
+        return nil
+    }
+
+    /// The hash in the `#+RESULTS[…]:` line at `line` (`org-babel-result-regexp`).
+    static func resultsHash(at line: Int, text ns: NSString) -> String? {
+        let content = ns.substring(with: ns.lineRange(for: NSRange(location: line, length: 0)))
+        return content.firstMatch(of: #/(?i)^[ \t]*#\+results\[(?:\(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\) )?([0-9a-f]+)\]:/#).map { String($0.1) }
+    }
+
+    static func resultsLine(_ finish: BabelJob.Finish, block: Range<Int>, buffer: EmacsBuffer) -> Int {
+        if let line = existingResults(name: finish.name, block: block, text: buffer.text) {
+            // `org-babel--clear-results-maybe`: a different hash clears the results and
+            // rewrites the keyword.
+            if let hash = finish.hash, resultsHash(at: line, text: buffer.text) != hash {
+                buffer.point = line
+                let indent = String(buffer.substring(line, buffer.lineEnd(line)).prefix { $0 == " " || $0 == "\t" })
+                buffer.forwardLine(1)
+                let contents = buffer.point
+                buffer.deleteRegion(contents, max(contents, resultEnd(buffer)))
+                buffer.deleteRegion(line, contents)
+                buffer.point = line
+                buffer.insert(indent + "#+RESULTS[\(hash)]:" + (finish.name.map { " " + $0 } ?? "") + "\n")
+                if buffer.looking("^[ \\t]*$", caseInsensitive: false, setsMatch: false) == nil {
+                    buffer.saveExcursion { buffer.insert("\n") }
+                }
+            }
+            return line
         }
         // A new keyword after the block.
         buffer.point = min(block.upperBound, buffer.length)
@@ -1339,7 +1513,7 @@ public enum Babel {
         }
         buffer.insert("\n")
         let keywordLine = buffer.point
-        buffer.insert(indent + "#+RESULTS:" + (finish.name.map { " " + $0 } ?? "") + "\n")
+        buffer.insert(indent + "#+RESULTS" + (finish.hash.map { "[\($0)]" } ?? "") + ":" + (finish.name.map { " " + $0 } ?? "") + "\n")
         if buffer.looking("^[ \\t]*$", caseInsensitive: false, setsMatch: false) == nil {
             buffer.saveExcursion { buffer.insert("\n") }
         }
