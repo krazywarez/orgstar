@@ -413,7 +413,8 @@ public enum Babel {
             let shebang = params.single[":shebang"].flatMap { $0.contains(where: { !$0.isWhitespace }) ? $0 : nil }
             if session == nil, stdin != nil || cmdline != nil || shebang != nil {
                 // `org-babel-sh-evaluate`: an executable script, run by the shell with the
-                // command line after it and `:stdin` as its input; the value is its last line.
+                // command line after it and `:stdin` as its input; the result is its standard
+                // output, or its exit status for `:results value`.
                 var script = (shebang ?? "#!/usr/bin/env \(executable)") + "\n"
                 if params.single[":padline"] != "no" { script += "\n" }
                 script += (lines + [body]).joined(separator: "\n") + (valueIsExitStatus ? "\necho $?" : "")

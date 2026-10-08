@@ -51,7 +51,7 @@ public enum SyntaxCategory: String, Hashable, Sendable, CaseIterable {
     }
 }
 
-/// Highlights source code; the platform supplies one (tree-sitter on macOS and iOS).
+/// Highlights source code; the platform supplies one (tree-sitter on macOS; iOS supplies none).
 public protocol CodeHighlighter: Sendable {
     /// Categories for ranges of `code`, in UTF-16 offsets; later runs win over earlier ones.
     /// Empty for languages it doesn't know.
