@@ -31,6 +31,7 @@ struct ClockTableTests {
         ":block today :maxlevel 3", ":block 2026-09", ":tstart \"<2026-09-08>\" :tend \"<2026-09-10>\"",
         ":link t :maxlevel 3", ":narrow 20! :maxlevel 3", ":tags t :level t :maxlevel 3", ":properties (\"Effort\") :formula %",
         ":indent nil :maxlevel 3", ":block yesterday", ":block 2026-W36 :maxlevel 3", ":fileskip0 t :block 2025",
+        ":maxlevel nil",
     ]
 
     static func ours(_ text: String, caret: Int, command: any OrgCommand, answers: [String: String] = [:]) -> String {
