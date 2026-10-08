@@ -28,6 +28,17 @@ struct TimestampCommandTests {
         #expect(run(ShiftTimestamp(up: true), "<2026-09-10 Thu 10:07>\n", caret: 20).text == "<2026-09-10 Thu 10:10>\n")
     }
 
+    @Test func promptSaysWhetherTheStampIsInactive() {
+        for inactive in [false, true] {
+            let context = EditContext(revision: 0, text: "x\n", tree: OrgParser.parse("x\n"), selection: [1..<1], now: Self.now, calendar: Self.calendar)
+            guard case .prompt(let prompt) = InsertTimestamp(inactive: inactive).run(in: context) else {
+                Issue.record("no prompt")
+                continue
+            }
+            #expect(prompt.date?.inactive == inactive)
+        }
+    }
+
     static let texts = [
         "* a\n",
         "* a\nbody <2026-09-01 Tue> text\n",

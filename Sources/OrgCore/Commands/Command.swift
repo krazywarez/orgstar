@@ -151,7 +151,12 @@ public struct Prompt: Sendable, Equatable {
 
     public struct DateRead: Sendable, Equatable {
         public let defaultDate: Date?
-        public init(defaultDate: Date?) { self.defaultDate = defaultDate }
+        /// Whether the answer becomes an inactive timestamp, shown in brackets.
+        public let inactive: Bool
+        public init(defaultDate: Date?, inactive: Bool = false) {
+            self.defaultDate = defaultDate
+            self.inactive = inactive
+        }
     }
 
     public init(

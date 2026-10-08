@@ -22,7 +22,7 @@ struct DatePickerView: View {
                 Button { month = calendar.date(byAdding: .month, value: 1, to: shown) } label: { Image(systemName: "chevron.right") }
                     .accessibilityLabel("Next month")
                 Spacer()
-                Text("=> " + Self.stamp(result, calendar)).font(.system(.callout, design: .monospaced))
+                Text("=> " + Self.stamp(result, calendar, inactive: read.inactive)).font(.system(.callout, design: .monospaced))
             }
             .buttonStyle(.plain)
             Grid(horizontalSpacing: 4, verticalSpacing: 2) {
@@ -102,11 +102,12 @@ struct DatePickerView: View {
         return Self.answer(for: day, keeping: result, calendar)
     }
 
-    static func stamp(_ result: ReadDate.Answer, _ calendar: Calendar) -> String {
+    static func stamp(_ result: ReadDate.Answer, _ calendar: Calendar, inactive: Bool) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = result.timeGiven ? "yyyy-MM-dd EEE HH:mm" : "yyyy-MM-dd EEE"
         let end = result.timeGiven ? result.endTime.map { "-" + $0 } ?? "" : ""
-        return "<" + formatter.string(from: calendar.date(from: result.components(calendar))!) + end + ">"
+        let stamp = formatter.string(from: calendar.date(from: result.components(calendar))!) + end
+        return inactive ? "[" + stamp + "]" : "<" + stamp + ">"
     }
 }

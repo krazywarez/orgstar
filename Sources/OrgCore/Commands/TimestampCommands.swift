@@ -113,7 +113,7 @@ public struct InsertTimestamp: OrgCommand {
             let stamp = buffer.atTimestamp().map { buffer.substring($0.match[0]!.lowerBound, $0.match[0]!.upperBound) }
             let repeated = context.lastCommand == "org.timestamp.active" || context.lastCommand == "org.timestamp.inactive"
             return .prompt(Prompt(key: "date", message: "Date+time:", initial: timeOfDayAtCaret(context),
-                                  date: .init(defaultDate: repeated ? nil : buffer.dateDefault(stamp))))
+                                  date: .init(defaultDate: repeated ? nil : buffer.dateDefault(stamp), inactive: inactive)))
         }
         // Twice in a row on a timestamp: a range to a second one.
         let repeated = context.lastCommand == "org.timestamp.active" || context.lastCommand == "org.timestamp.inactive"
