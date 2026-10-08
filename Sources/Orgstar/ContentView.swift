@@ -401,7 +401,7 @@ struct ContentView: View {
             let functions = ["pdf": "org-latex-export-to-pdf", "odt": "org-odt-export-to-odt", "latex": "org-latex-export-to-latex", "text": "org-ascii-export-to-ascii"]
             guard let function = functions[format] else { return }
             commands.show("Exporting with Emacs…")
-            Task {
+            commands.runInEmacs {
                 do {
                     var written = URL(fileURLWithPath: try await EmacsRunner.export(text: text, path: path, function: function))
                     if let destination, destination.standardizedFileURL != written.standardizedFileURL {
@@ -411,6 +411,8 @@ struct ContentView: View {
                     }
                     commands.show("Exported to \(written.lastPathComponent)")
                     if open { NSWorkspace.shared.open(written) }
+                } catch is CancellationError {
+                    commands.show("Export canceled")
                 } catch {
                     commands.show("\(error)")
                 }
@@ -435,7 +437,7 @@ struct ContentView: View {
         case .emacsTable(let table, let point, let form, let reason, let lisp):
             let run = {
                 commands.show("Recalculating in Emacs (\(reason))…")
-                Task { commands.show(await session.recalculateInEmacs(table: table, point: point, form: form)) }
+                commands.runInEmacs { commands.show(await session.recalculateInEmacs(table: table, point: point, form: form)) }
             }
             guard lisp, let path = session.path, let text = session.document?.text else { return run() }
             let content = (text as NSString).substring(with: NSRange(location: table.lowerBound, length: min((text as NSString).length, table.upperBound + 2000) - table.lowerBound))
@@ -550,7 +552,13 @@ struct ContentView: View {
             if UnsavedChanges.resolve(session, paths: all) { all.forEach(session.kill) }
         case "app.toggle-tab-bar": showTabBar.toggle()
         case "app.babel.cancel":
-            if session.isRunningBabel { session.cancelBabel() } else { commands.show("No block is running") }
+            if session.isRunningBabel {
+                session.cancelBabel()
+            } else if let task = commands.emacsTask {
+                task.cancel()
+            } else {
+                commands.show("Nothing is running")
+            }
         case "app.toggle-outline": toggleOutline()
         case "app.toggle-backlinks": backlinksShown.toggle()
         case "app.toggle-inspector": inspectorShown.toggle()

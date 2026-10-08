@@ -70,6 +70,21 @@ final class AppCommands {
         request.reply(text)
     }
 
+    /// An export or table recalculation running in Emacs, for Cancel Running Task.
+    private(set) var emacsTask: Task<Void, Never>?
+    private var emacsSerial = 0
+
+    /// Runs `work` as the Emacs task, cancelling the one before.
+    func runInEmacs(_ work: @escaping @MainActor () async -> Void) {
+        emacsTask?.cancel()
+        emacsSerial += 1
+        let serial = emacsSerial
+        emacsTask = Task {
+            await work()
+            if emacsSerial == serial { emacsTask = nil }
+        }
+    }
+
     /// An app command from a menu, run by the main window.
     private(set) var runRequest: (id: String, serial: Int)?
     private var runSerial = 0
@@ -363,9 +378,9 @@ struct OrgstarApp: App {
                 FindMenu(commands: commands)
             }
             CommandGroup(after: .textEditing) {
-                Button("Cancel Running Block") { commands.run("app.babel.cancel") }
+                Button("Cancel Running Task") { commands.run("app.babel.cancel") }
                     .keyboardShortcut(".")
-                    .disabled(!session.isRunningBabel)
+                    .disabled(!session.isRunningBabel && commands.emacsTask == nil)
                 Button("Search Notes") { commands.focusSearch = true }
                     .keyboardShortcut("f", modifiers: [.command, .shift])
             }

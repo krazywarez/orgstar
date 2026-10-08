@@ -721,6 +721,24 @@ struct EmacsFallbackTests {
         #expect(message == "Recalculated in Emacs")
         #expect(session.document?.text == "* Prices\n| item | n | twice |\n|------+---+-------|\n| x    | a | 2 a   |\n| y    | 2 | 4     |\n#+TBLFM: $3=$2*2\n")
     }
+
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func cancelingARecalculationLeavesTheTable() async throws {
+        let notes = try Folder()
+        let text = "| n | twice |\n|---+-------|\n| a |       |\n#+TBLFM: $2=$1*2\n"
+        let file = try notes.write("t.org", text)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        let step = session.perform(TableRecalculate(all: true), path: file.path, at: 2, expect: nil)
+        guard case .external(.emacsTable(let table, let point, let form, _, _)) = step else {
+            Issue.record("\(step)")
+            return
+        }
+        let task = Task { await session.recalculateInEmacs(table: table, point: point, form: form) }
+        task.cancel()
+        #expect(await task.value == "Recalculation canceled")
+        #expect(session.document?.text == text)
+    }
 }
 
 @MainActor

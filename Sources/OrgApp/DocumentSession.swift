@@ -721,6 +721,8 @@ public final class DocumentSession {
             if case .failed(let message) = current.perform(PrecomputedEdit(result), now: Date(), answers: [:]) { return message }
             changed(entry)
             return "Recalculated in Emacs"
+        } catch is CancellationError {
+            return "Recalculation canceled"
         } catch {
             return "\(error)"
         }
