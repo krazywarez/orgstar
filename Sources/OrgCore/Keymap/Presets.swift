@@ -67,7 +67,7 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
                 || (first.modifiers.contains(.meta) && ["<left>", "<right>", "<up>", "<down>", "RET"].contains(first.key))
                 || (first.modifiers.contains(.shift) && ["<left>", "<right>", "<up>", "<down>"].contains(first.key))
                 || (first.modifiers == [.control] && first.key == "RET")
-                || keys == "M-x"
+                || keys == "M-x" || keys == "M-q"
             guard orgKey else { continue }
             for mode in ["normal", "insert", "visual"] { bind(keys, binding.command, when: binding.when, mode: mode) }
             // evil-org: M-h/j/k/l and M-H/J/K/L in normal, visual and insert.
