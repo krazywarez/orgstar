@@ -13,6 +13,7 @@ struct TableFormulaEntryTests {
         let replaced = "| a | b |\n| 1 | =$1*5 |\n#+TBLFM: $2=$1*2::@1$2=x\n"
         let reuse = "| a | b |\n| 2 | = |\n#+TBLFM: $2=$1*2\n\nText\n"
         let last = "| 1 | =$1+1 |\n"
+        let prompt = { (arg: String) in "(cl-letf (((symbol-function 'read-string) (lambda (&rest _) \"\"))) (org-table-eval-formula \(arg)))" }
         let cases: [(String, String, any OrgCommand, [String: String], String)] = [
             (plain, "*2", TableCommand(.nextField), [:], "(org-table-next-field)"),
             (plain, "*2", TableCommand(.nextRow), [:], "(org-table-next-row)"),
@@ -25,6 +26,8 @@ struct TableFormulaEntryTests {
             (stored, "| 3", TableEvalFormula(named: false), ["formula": "$1*3"], "(org-table-eval-formula nil \"$1*3\")"),
             (stored, "| 3", TableEvalFormula(named: true), ["formula": "99"], "(org-table-eval-formula '(4) \"99\")"),
             (stored, "| 1 | 2", CtrlCCtrlC(), [:], "(org-ctrl-c-ctrl-c)"),
+            (stored, "| 3 | 4", TableEvalFormula(named: false), ["formula": ""], prompt("nil")),
+            (stored, "| 1", TableEvalFormula(named: true), ["formula": ""], prompt("'(4)")),
         ]
         let emacs = try EmacsOracle.run(cases.map { c in
             let caret = NSMaxRange((c.0 as NSString).range(of: c.1))
@@ -65,5 +68,33 @@ extension TableFormulaEntryTests {
             let ours = runCommand(ReplaceBlockLines(edit: edit, content: edited), text, caret: offset)
             #expect(ours.text == theirs.text, "ours:  \(ours.text.debugDescription) \(ours.failure ?? "")\nemacs: \(theirs.text.debugDescription) \(theirs.error)")
         }
+    }
+}
+
+extension TableFormulaEntryTests {
+    /// Runs a command that should commit: the new text, the caret and the message.
+    func committed(_ command: any OrgCommand, _ text: String, after needle: String, answers: [String: String] = [:]) -> (text: String, caret: Int, message: String?)? {
+        let caret = NSMaxRange((text as NSString).range(of: needle))
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], answers: answers)
+        guard case .commit(let result) = command.run(in: context) else { return nil }
+        var new = text
+        for edit in result.edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) { new = edit.apply(to: new) }
+        let message = result.effects.compactMap { effect -> String? in if case .message(let m) = effect { m } else { nil } }.first
+        return (new, result.selection?.first?.lowerBound ?? caret, message)
+    }
+
+    @Test func formulaEditsAreKeptWithTheirMessage() throws {
+        let text = "| a | b |\n|---+---|\n| 1 | 2 |\n#+TBLFM: $2=$1*2\n"
+        let removed = try #require(committed(TableEvalFormula(named: false), text, after: "| 1 | 2", answers: ["formula": ""]))
+        #expect(removed.text == "| a | b |\n|---+---|\n| 1 | 2 |\n#+TBLFM: \n" && removed.message == "Formula removed", "\(removed)")
+        // Text in a field is a Calc symbol, which needs Emacs: the formula is stored and TAB
+        // still moves on.
+        let symbolic = "| a | b |\n| x | =$1*2 |\n| y |   |\n"
+        let tab = try #require(committed(TableCommand(.nextField), symbolic, after: "*2"))
+        #expect(tab.text == "| a | b     |\n| x | =$1*2 |\n| y |       |\n#+TBLFM: $2=$1*2\n", "\(tab.text.debugDescription)")
+        #expect(tab.caret == (tab.text as NSString).range(of: "| y").location + 2)
+        #expect(tab.message?.hasPrefix("The formula was stored; recalculating it needs Emacs") == true)
+        let prompted = try #require(committed(TableEvalFormula(named: false), symbolic, after: "| x", answers: ["formula": "$1+1"]))
+        #expect(prompted.text.hasSuffix("#+TBLFM: $1=$1+1\n") && prompted.message != nil, "\(prompted)")
     }
 }

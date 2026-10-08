@@ -1012,18 +1012,21 @@ extension EmacsBuffer {
         }
     }
 
-    /// `org-table-get-formula` with EQUATION given: stores it for the current column, or with
-    /// `named` the current field, and returns it.
-    func tableGetFormula(_ equation: String, named: Bool, analysis: TableAnalysis) throws -> String {
+    /// `org-table-get-formula`: stores EQUATION for the current column, or with `named` the
+    /// current field, and returns it; nil when a blank EQUATION removed the formula. `read`
+    /// when EQUATION is the prompt's answer, which the stored formula never replaces.
+    func tableGetFormula(_ equation: String, named: Bool, read: Bool = false, analysis: TableAnalysis) throws -> String? {
         var stored = try Self.storedFormulas(firstTblfm(after: tableEnd()) ?? "")
         let ref = "@\(tableCurrentDataLine())$\(tableCurrentColumn())"
         let scol = named ? ref : "$\(tableCurrentColumn())"
         let old = stored.first { $0.lhs == scol }?.rhs
-        var eq = old != nil && equation.range(of: "^ *=? *$", options: .regularExpression) != nil ? old! : equation
+        var eq = !read && old != nil && equation.range(of: "^ *=? *$", options: .regularExpression) != nil ? old! : equation
         guard eq.contains(where: { !$0.isWhitespace }) else {
             stored.removeAll { $0.lhs == scol }
             tableStoreFormulas(stored, analysis: analysis)
-            throw UserError(message: "Formula removed")
+            // Org's user error, which keeps the stored formulas and stops the command.
+            message = "Formula removed"
+            return nil
         }
         eq = eq.replacingOccurrences(of: "^ *=?", with: "", options: .regularExpression)
         eq = eq.replacingOccurrences(of: " *$", with: "", options: .regularExpression)
@@ -1042,14 +1045,15 @@ extension EmacsBuffer {
     }
 
     /// `org-table-eval-formula` for the current field with EQUATION, which is stored first.
-    func tableEvalFormula(equation: String, named: Bool) throws {
+    /// A formula only Emacs can evaluate stays stored, the field unchanged.
+    func tableEvalFormula(equation: String, named: Bool, read: Bool = false) throws {
         try checkInsideDataField()
         let analysis = try tableAnalyze()
-        let formula = try tableGetFormula(equation, named: named, analysis: analysis)
+        guard let formula = try tableGetFormula(equation, named: named, read: read, analysis: analysis) else { return }
         do {
             try tableEvalFormula(formula, analysis: analysis, substituted: false)
         } catch let error as Calc.Unsupported {
-            throw UserError(message: "The formula was stored; recalculating it needs Emacs: " + error.reason)
+            message = "The formula was stored; recalculating it needs Emacs: " + error.reason
         }
         tableAlign()
     }
@@ -1085,7 +1089,7 @@ public struct TableEvalFormula: OrgCommand {
             let stored = (try? EmacsBuffer.storedFormulas(buffer.firstTblfm(after: buffer.tableEnd()) ?? ""))?.first { $0.lhs == scol }?.rhs
             return .prompt(Prompt(key: "formula", message: "\(named ? "Field" : "Column") formula \(scol)=", initial: stored ?? ""))
         }
-        return commitBuffer(context) { try $0.tableEvalFormula(equation: answer, named: named) }
+        return commitBuffer(context) { try $0.tableEvalFormula(equation: answer, named: named, read: true) }
     }
 }
 
@@ -1163,7 +1167,7 @@ extension BlockEdit {
         }
         guard case .commit(let result) = step else { return step }
         return .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection,
-                                  effects: result.effects + [.message("New formulas installed - press C-u C-c C-c to apply.")]))
+                                  effects: result.effects + [.message("New formulas installed - Recalculate Table (C-c C-c on the #+TBLFM line) applies them.")]))
     }
 }
 

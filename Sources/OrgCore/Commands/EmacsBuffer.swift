@@ -38,6 +38,8 @@ final class EmacsBuffer {
     var calendar = Calendar.current
     /// `org-last-inserted-timestamp`.
     var lastInsertedTimestamp: String?
+    /// Shown after the command commits, as `message`.
+    var message: String?
 
     let options: EditingOptions
 
@@ -466,7 +468,7 @@ final class EmacsBuffer {
 }
 
 /// Runs a buffer-editing body against a context and turns the result into one minimal edit
-/// and the new caret. A user error becomes `.failed`.
+/// and the new caret, with the buffer's message. A user error becomes `.failed`.
 func commitBuffer(_ context: EditContext, _ body: (EmacsBuffer) throws -> Void) -> CommandStep {
     let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
     buffer.now = context.now
@@ -499,9 +501,10 @@ func commitBuffer(_ context: EditContext, _ body: (EmacsBuffer) throws -> Void) 
     while prefix > 0, prefix < old.count, UTF16.isTrailSurrogate(old[prefix]) { prefix -= 1 }
     while suffix > 0, UTF16.isTrailSurrogate(old[old.count - suffix]) { suffix -= 1 }
     let caret = buffer.point
+    let effects: [Effect] = buffer.message.map { [.message($0)] } ?? []
     guard old.count != new.count || prefix != old.count else {
-        return .commit(EditResult(baseRevision: context.revision, edits: [], selection: [caret..<caret]))
+        return .commit(EditResult(baseRevision: context.revision, edits: [], selection: [caret..<caret], effects: effects))
     }
     let edit = TextEdit(range: (lower + prefix)..<(lower + old.count - suffix), replacement: String(decoding: new[prefix..<(new.count - suffix)], as: UTF16.self))
-    return .commit(EditResult(baseRevision: context.revision, edits: [edit], selection: [caret..<caret]))
+    return .commit(EditResult(baseRevision: context.revision, edits: [edit], selection: [caret..<caret], effects: effects))
 }
