@@ -356,6 +356,7 @@ struct OrgstarApp: App {
                 Button("Show or Hide Columns and Clock") { commands.run("app.toggle-inspector") }
                     .keyboardShortcut("i", modifiers: [.command, .option])
                 MarkupToggle()
+                Button("Truncate or Wrap Long Lines") { commands.run("editor.toggle-truncate-lines") }
             }
             CommandGroup(after: .pasteboard) {
                 Divider()
@@ -480,6 +481,7 @@ struct SettingsView: View {
     @AppStorage("fillColumn") private var fillColumn = 80
     @AppStorage("hiddenMarkers") private var hiddenMarkers = true
     @AppStorage("prettyEntities") private var prettyEntities = true
+    @AppStorage("startupTruncated") private var startupTruncated = false
     @AppStorage("todoKeywords") private var todoKeywords = Preferences.defaultTodoKeywords
     @AppStorage("agendaSpan") private var agendaSpan = 10
     @AppStorage("agendaStartOffset") private var agendaStartOffset = -3
@@ -574,6 +576,12 @@ struct SettingsView: View {
                 Stepper("M-q fills to column \(fillColumn)", value: $fillColumn, in: 40...200)
             }
             Section {
+                Toggle("Long lines run off the edge instead of wrapping (org-startup-truncated)", isOn: $startupTruncated)
+            } footer: {
+                Text("Applies to files as they open. View ▸ Truncate or Wrap Long Lines switches the current file.")
+                    .settingsFooter()
+            }
+            Section {
                 Toggle("Emacs hides emphasis markers (org-hide-emphasis-markers)", isOn: $hiddenMarkers)
                 Toggle("Emacs shows entities as characters (org-pretty-entities)", isOn: $prettyEntities)
             } footer: {
@@ -588,7 +596,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 450)
+        .frame(height: 520)
     }
 
     private var appearance: some View {

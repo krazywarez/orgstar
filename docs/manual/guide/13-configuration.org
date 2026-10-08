@@ -71,6 +71,7 @@ Automatic saving writes a file one second after you stop typing. The keymap pres
 | M-RET splits the line at the caret                         | On or off                                              | Off                 | =org-M-RET-may-split-line=           |
 | Lists can use letters (a. b. c.)                           | On or off                                              | On                  | =org-list-allow-alphabetical=        |
 | M-q fills to column N                                      | 40 to 200                                              | 80                  | =fill-column=                        |
+| Long lines run off the edge instead of wrapping (org-startup-truncated) | On or off                                | Off                 | =org-startup-truncated=              |
 | Emacs hides emphasis markers (org-hide-emphasis-markers)   | On or off                                              | On                  | =org-hide-emphasis-markers=          |
 | Emacs shows entities as characters (org-pretty-entities)   | On or off                                              | On                  | =org-pretty-entities=                |
 | Default TODO keywords                                      | Text in =#+TODO= syntax, one sequence per line         | See below           | =org-todo-keywords=                  |
@@ -78,6 +79,8 @@ Automatic saving writes a file one second after you stop typing. The keymap pres
 The two "Emacs hides" and "Emacs shows" switches describe your Emacs, not Orgstar's display. Tag alignment, table alignment and =M-q= measure text the way your Emacs displays it, so a file edited in both keeps the same layout. Set them to match your Emacs configuration. They also control whether Orgstar hides markers and shows entities when markup is hidden.
 
 The Tags picker offers two values. =config.toml= accepts any integer; with a value other than =-77= or =0= the picker shows no selection.
+
+The long-lines switch applies to files as they open; View ▸ Truncate or Wrap Long Lines switches the file in front.
 
 Default TODO keywords apply to files without a =#+TODO= line. Orgstar reads them at launch, so a change takes effect after you quit and reopen Orgstar.
 
@@ -127,7 +130,6 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-startup-indented=           |                            |
 | =org-hide-leading-stars=         |                            |
 | =org-startup-align-all-tables=   |                            |
-| =org-startup-truncated=          |                            |
 | =org-startup-with-inline-images= |                            |
 | =org-cycle-hide-drawer-startup=  |                            |
 | =org-cycle-hide-block-startup=   |                            |
