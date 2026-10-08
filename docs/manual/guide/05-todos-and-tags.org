@@ -61,10 +61,10 @@ Logging is described under "Logging state changes" below.
 | Command                | Org command      | Emacs, Doom    | Mac  | Doom leader |
 |------------------------+------------------+----------------+------+-------------|
 | Cycle TODO State       | =org-todo=       | =C-c C-t=      | ⌃⌘T  | =SPC m t=   |
-| Next TODO Keyword      | =org-shiftright= | =S-<right>=    |      |             |
-| Previous TODO Keyword  | =org-shiftleft=  | =S-<left>=     |      |             |
+| Next TODO Keyword      | =org-shiftright= | =S-<right>=    | ⌃⇧⌘→ |             |
+| Previous TODO Keyword  | =org-shiftleft=  | =S-<left>=     | ⌃⇧⌘← |             |
 
-=S-<right>= and =S-<left>= act on the TODO keyword when the caret is on a heading line and not on a timestamp. In the Doom preset they also work in normal and insert state, and =C-S-l= and =C-S-h= do the same. The Mac preset has no key for them; use the Org menu or the command palette.
+=S-<right>= and =S-<left>= act on the TODO keyword when the caret is on a heading line and not on a timestamp. In the Doom preset they also work in normal and insert state, and =C-S-l= and =C-S-h= do the same. The Mac preset's =⌃⇧⌘→= and =⌃⇧⌘←= act on the keyword when the caret is on a heading line.
 
 With speed commands on (=org-use-speed-commands=), =t= at the start of a heading line runs Cycle TODO State.
 
@@ -198,7 +198,7 @@ The range is =A= (highest) to =C= (lowest), with =B= as the default. A file can 
 
 | Command                       | Org command     | Emacs, Doom     | Mac   | Doom leader |
 |-------------------------------+-----------------+-----------------+-------+-------------|
-| Set Priority…                 | =org-priority=  | =C-c ,=         |       | =SPC m p p= |
+| Set Priority…                 | =org-priority=  | =C-c ,=         | ⌃⌘,   | =SPC m p p= |
 | Raise Priority                | =org-priority-up= | =S-<up>=      | ⌃⌘↑   | =SPC m p u= |
 | Lower Priority                | =org-priority-down= | =S-<down>=  | ⌃⌘↓   | =SPC m p d= |
 
@@ -226,7 +226,7 @@ A tag consists of letters, digits, =_=, =@=, =#= and =%=.
 |-----------+---------------------------+---------------+-------+-------------|
 | Set Tags  | =org-set-tags-command=    | =C-c C-q=     | ⌃⌘G   | =SPC m q=   |
 
-=C-c C-c= on a heading line also runs Set Tags, and so does =:= as a speed command.
+=C-c C-c= (Mac =⌃⌘X=) on a heading line also runs Set Tags, and so does =:= as a speed command.
 
 Without fast selection (see below), Set Tags asks for the tags in the echo area, starting with the current ones. Completion offers the tags in the file's =#+TAGS= lines, or, without those, every tag used in the file and its =#+FILETAGS=, and in both cases the tags used across your folders. You can type tags that are not offered. Spaces, commas and colons all separate tags; an empty answer removes all tags.
 

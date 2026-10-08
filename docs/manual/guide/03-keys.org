@@ -18,7 +18,7 @@ Choose a preset in Settings ▸ General ▸ Keys, or with =keymap= in the =[orgs
 | Mac | ="mac"= | Standard macOS text keys stay as they are. Org commands use Control-Command chords (=⌃⌘T=, =⌃⌘←=), which macOS text editing leaves free. |
 | Doom (Vim keys) | ="doom"= | Modal editing as in Doom Emacs with evil and evil-org: normal, insert and visual states, the =SPC= leader and =SPC m= local leader, plus the Emacs preset's Org keys in every state. |
 
-The Mac preset binds fewer commands than the others. It has no keys for links, export, agenda, capture, clocking, narrowing, sorting, properties, footnotes, code blocks or =C-c C-c=. Run those from the Org menu, from the command palette (=⇧⌘P=), from a menu shortcut (Agenda =⇧⌘A=, Capture =⇧⌘N=), or bind them yourself in =keymap.toml=.
+The Mac preset binds fewer commands than the others. =⌃⌘X= is its =C-c C-c=, =⌘K= inserts a link and =⇧⌘E= opens the export sheet; the [[*Key reference][key reference]] lists the rest. It has no keys for agenda, capture or the single export formats. Run those from the Org menu, from the command palette (=⇧⌘P=), from a menu shortcut (Agenda =⇧⌘A=, Capture =⇧⌘N=), or bind them yourself in =keymap.toml=.
 
 In the Emacs and Mac presets, and in Doom's insert state, macOS's own text keys keep working where the preset does not bind the key: =⌥←=, =⌘←=, =⇧= with arrows to select, and the Control keys the macOS text system provides (=⌃A=, =⌃E=, =⌃K= and so on). Menu shortcuts such as =⌘S= and =⌘F= work in every preset; see [[*Menu shortcuts][Menu shortcuts]].
 
@@ -119,7 +119,7 @@ These come from the menu bar and work in every preset. In the Doom preset, keys 
 | Edit ▸ Find | Find Next | =⌘G= |
 | Edit ▸ Find | Find Previous | =⇧⌘G= |
 | Edit ▸ Find | Use Selection for Find | =⌘E= |
-| Edit | Cancel Running Block | =⌘.= |
+| Edit | Cancel Running Task | =⌘.= |
 | Edit | Search Notes | =⇧⌘F= |
 | View | Show Markup | =⇧⌘M= |
 | View | Show Line Numbers | =⇧⌘L= |
@@ -252,16 +252,16 @@ A =mode= other than =normal=, =insert= or =visual= (including =visual-line=) is 
 ** More examples
 
 #+BEGIN_SRC toml
-# Mac preset: ⌃⌘L inserts a link, ⌃⌘O opens the export sheet, ⌃⌘X runs C-c C-c.
+# Mac preset: ⌃⌘U goes up to the parent heading, ⌃⌘R recalculates the table row, ⌃⌘; toggles COMMENT.
 [[bind]]
-keys = "C-s-l"
-command = "org.link.insert"
+keys = "C-s-u"
+command = "org.heading.up"
 [[bind]]
-keys = "C-s-o"
-command = "app.export-dialog"
+keys = "C-s-r"
+command = "org.table.recalc"
 [[bind]]
-keys = "C-s-x"
-command = "org.ctrl-c-ctrl-c"
+keys = "C-s-;"
+command = "org.heading.toggle-comment"
 
 # Emacs preset: C-c b opens the board, C-c r reloads this file.
 [[bind]]
@@ -756,7 +756,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Narrow to Subtree (=org.narrow.subtree=) | =C-x n s= | — | =SPC m s n= (N) | Shows only the current subtree (=org-narrow-to-subtree=). |
 | Narrow to Block (=org.narrow.block=) | =C-x n b= | — | — | Shows only the current block (=org-narrow-to-block=). |
 | Widen (=org.widen=) | =C-x n w= | — | =SPC m s N= (N) | Shows the whole file again (=widen=). |
-| Narrow to Subtree or Widen (=org.narrow.toggle=) | — | — | — | Narrows to the subtree, or widens when already narrowed (=org-toggle-narrow-to-subtree=). |
+| Narrow to Subtree or Widen (=org.narrow.toggle=) | — | =⌃⌘N= | — | Narrows to the subtree, or widens when already narrowed (=org-toggle-narrow-to-subtree=). |
 | Sparse Tree… (=org.sparse-tree=) | =C-c /= | — | =SPC m s s= (N) | Asks for a match and shows only the matching entries and their context (=org-sparse-tree=). =C-c C-c= clears the highlights. |
 | Show or Hide Inline Images (=org.toggle-inline-images=) | =C-c C-x C-v= | — | — | Shows or hides image links as images (=org-toggle-inline-images=). |
 
@@ -766,8 +766,8 @@ When a key appears in several rows, it runs the command whose condition holds at
 |-+-+-+-+-|
 | Next Heading (=org.heading.next=) | =C-c C-n= | =⌥⌘↓= | — | Moves to the next heading (=org-next-visible-heading=). |
 | Previous Heading (=org.heading.previous=) | =C-c C-p= | =⌥⌘↑= | — | Moves to the previous heading (=org-previous-visible-heading=). |
-| Next Heading at Same Level (=org.heading.forward-same-level=) | =C-c C-f= | — | =] h= (N) | Moves to the next heading at the same level (=org-forward-heading-same-level=). |
-| Previous Heading at Same Level (=org.heading.backward-same-level=) | =C-c C-b= | — | =[ h= (N) | Moves to the previous heading at the same level (=org-backward-heading-same-level=). |
+| Next Heading at Same Level (=org.heading.forward-same-level=) | =C-c C-f= | =⌥⇧⌘↓= | =] h= (N) | Moves to the next heading at the same level (=org-forward-heading-same-level=). |
+| Previous Heading at Same Level (=org.heading.backward-same-level=) | =C-c C-b= | =⌥⇧⌘↑= | =[ h= (N) | Moves to the previous heading at the same level (=org-backward-heading-same-level=). |
 | Up to Parent Heading (=org.heading.up=) | =C-c C-u= | — | =g h= (N) | Moves to the parent heading (=outline-up-heading=). |
 | Go to Heading… (=org.goto=) | =C-c C-j= | — | =SPC m .= (N) | Asks for a heading of this file by its outline path and jumps to it (=org-goto=). |
 | Insert Heading (=org.heading.insert=) | =M-RET= | =⌘↩= | — | Inserts a heading at the current level; on a list item, see Insert Item (=org-meta-return=, =org-insert-heading=). |
@@ -784,7 +784,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Copy Subtree (=org.subtree.copy=) | =C-c C-x M-w= | — | — | Copies the subtree to the clipboard (=org-copy-subtree=). |
 | Paste Subtree (=org.subtree.paste=) | =C-c C-x C-y= | — | — | Pastes a subtree from the clipboard, its levels adjusted to fit (=org-paste-subtree=). |
 | Clone Subtree with Time Shift (=org.subtree.clone=) | =C-c C-x c= | — | =SPC m s c= (N) | Asks for a count and a time shift, then inserts shifted copies of the subtree (=org-clone-subtree-with-time-shift=). |
-| Sort Entries (=org.sort=) | =C-c ^= | — | =SPC m s S= (N) | Sorts by a key you pick: the lines of a table in a table, the list on an item, otherwise the children of the current heading (=org-sort=). |
+| Sort Entries (=org.sort=) | =C-c ^= | =⌃⇧⌘S= | =SPC m s S= (N) | Sorts by a key you pick: the lines of a table in a table, the list on an item, otherwise the children of the current heading (=org-sort=). |
 | Toggle Heading (=org.heading.toggle=) | =C-c *= | — | =SPC m h= (N) | Outside a table, turns headings into text and lines or items into headings (=org-toggle-heading=). |
 | Toggle COMMENT (=org.heading.toggle-comment=) | =C-c ;= | — | — | Adds or removes the =COMMENT= keyword (=org-toggle-comment=). |
 | Refile… (=app.refile=) | =C-c C-w= | =⌃⌘W= | =SPC m r r= (N), =SPC m s r= (N) | Asks for a target heading in your folders and moves the subtree there (=org-refile=). |
@@ -812,11 +812,11 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
 | Cycle TODO State (=org.todo.cycle=) | =C-c C-t= | =⌃⌘T= | =SPC m t= (N) | Cycles the TODO keyword; with fast-selection keys in =#+TODO=, asks for one (=org-todo=). |
-| Next TODO Keyword (=org.todo.next=) | =S-<right>= | — | =C-S-l= (N, I) | On a heading, sets the next keyword across all sequences (=org-shiftright=). |
-| Previous TODO Keyword (=org.todo.previous=) | =S-<left>= | — | =C-S-h= (N, I) | On a heading, sets the previous keyword (=org-shiftleft=). |
+| Next TODO Keyword (=org.todo.next=) | =S-<right>= | =⌃⇧⌘→= | =C-S-l= (N, I) | On a heading, sets the next keyword across all sequences (=org-shiftright=). |
+| Previous TODO Keyword (=org.todo.previous=) | =S-<left>= | =⌃⇧⌘←= | =C-S-h= (N, I) | On a heading, sets the previous keyword (=org-shiftleft=). |
 | Raise Priority (=org.priority.up=) | =S-<up>= | =⌃⌘↑= | =C-S-k= (N, I), =SPC m p u= (N) | On a heading, raises the priority (=org-priority-up=). |
 | Lower Priority (=org.priority.down=) | =S-<down>= | =⌃⌘↓= | =C-S-j= (N, I), =SPC m p d= (N) | On a heading, lowers the priority (=org-priority-down=). |
-| Set Priority… (=org.priority.set=) | =C-c ,= | — | =SPC m p p= (N) | Asks for a priority; =SPC= removes it (=org-priority=). |
+| Set Priority… (=org.priority.set=) | =C-c ,= | =⌃⌘,= | =SPC m p p= (N) | Asks for a priority; =SPC= removes it (=org-priority=). |
 | Set Priority A (=org.priority.set-a=) | — | — | — | Sets priority A. Bound only as a speed key. |
 | Set Priority B (=org.priority.set-b=) | — | — | — | Sets priority B. Bound only as a speed key. |
 | Set Priority C (=org.priority.set-c=) | — | — | — | Sets priority C. Bound only as a speed key. |
@@ -827,13 +827,13 @@ When a key appears in several rows, it runs the command whose condition holds at
 
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
-| Set Property… (=org.property.read-and-set=) | =C-c C-x p= | — | =SPC m o= (N) | Asks for a property and a value and sets it (=org-set-property=). |
-| Next Allowed Value (=org.property.next-value=) | =S-<right>= | — | =C-S-l= (N, I) | On a property line, sets the next allowed value (=org-property-next-allowed-value=). |
-| Previous Allowed Value (=org.property.previous-value=) | =S-<left>= | — | =C-S-h= (N, I) | On a property line, sets the previous allowed value (=org-property-previous-allowed-value=). |
-| Set Effort (=org.effort.set=) | =C-c C-x e= | — | =SPC m c E= (N) | Sets the =Effort= property, offering =Effort_ALL= values (=org-set-effort=). |
+| Set Property… (=org.property.read-and-set=) | =C-c C-x p= | =⌃⇧⌘P= | =SPC m o= (N) | Asks for a property and a value and sets it (=org-set-property=). |
+| Next Allowed Value (=org.property.next-value=) | =S-<right>= | =⌃⇧⌘→= | =C-S-l= (N, I) | On a property line, sets the next allowed value (=org-property-next-allowed-value=). |
+| Previous Allowed Value (=org.property.previous-value=) | =S-<left>= | =⌃⇧⌘←= | =C-S-h= (N, I) | On a property line, sets the previous allowed value (=org-property-previous-allowed-value=). |
+| Set Effort (=org.effort.set=) | =C-c C-x e= | =⌃⇧⌘E= | =SPC m c E= (N) | Sets the =Effort= property, offering =Effort_ALL= values (=org-set-effort=). |
 | Column View (=org.columns=) | =C-c C-x C-c= | — | — | Shows the column view of the entries, read-only (=org-columns=). |
 | Insert Column View Table (=org.columns.insert-dblock=) | =C-c C-x i= | — | — | Inserts a =columnview= dynamic block (=org-columns-insert-dblock=). |
-| Update Dynamic Block (=org.dblock.update=) | =C-c C-x C-u=, =C-c C-c= | — | — | Updates the dynamic block at point, such as a clock table; =C-c C-c= does it on the block's =#+BEGIN= line (=org-update-dblock=). |
+| Update Dynamic Block (=org.dblock.update=) | =C-c C-x C-u=, =C-c C-c= | =⌃⌘X= | — | Updates the dynamic block at point, such as a clock table; =C-c C-c= and =⌃⌘X= do it on the block's =#+BEGIN= line (=org-update-dblock=). |
 
 ** Dates and clocking
 
@@ -848,10 +848,10 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Timestamp One Day Later (=org.timestamp.day-later=) | =S-<right>= | =⌃⌘→= | =C-S-l= (N, I) | On a timestamp, moves it one day later (=org-timestamp-up-day=). |
 | Timestamp One Day Earlier (=org.timestamp.day-earlier=) | =S-<left>= | =⌃⌘←= | =C-S-h= (N, I) | On a timestamp, moves it one day earlier (=org-timestamp-down-day=). |
 | Evaluate Time Range (=org.timestamp.evaluate-range=) | =C-c C-y= | — | — | Shows how long the time range lasts, or updates a clock line (=org-evaluate-time-range=). |
-| Clock In (=app.clock.in=) | =C-c C-x C-i= | — | =SPC m c i= (N) | Starts the clock on the current entry (=org-clock-in=). |
-| Clock Out (=app.clock.out=) | =C-c C-x C-o= | — | =SPC m c o= (N) | Stops the clock (=org-clock-out=). |
+| Clock In (=app.clock.in=) | =C-c C-x C-i= | =⌃⌘I= | =SPC m c i= (N) | Starts the clock on the current entry (=org-clock-in=). |
+| Clock Out (=app.clock.out=) | =C-c C-x C-o= | =⌃⇧⌘I= | =SPC m c o= (N) | Stops the clock (=org-clock-out=). |
 | Cancel Clock (=app.clock.cancel=) | =C-c C-x C-q= | — | =SPC m c c= (N) | Stops the clock and removes the running clock line (=org-clock-cancel=). |
-| Go to Clocked Entry (=app.clock.goto=) | =C-c C-x C-j= | — | =SPC m c g= (N) | Opens the entry the clock is running on (=org-clock-goto=). |
+| Go to Clocked Entry (=app.clock.goto=) | =C-c C-x C-j= | =⌃⌘J= | =SPC m c g= (N) | Opens the entry the clock is running on (=org-clock-goto=). |
 | Clock Report (=app.clock.report=) | — | — | =SPC z t= (N), =SPC m c R= (N) | Opens the Clock Report window. |
 | Insert or Update Clock Table (=org.clock.report=) | =C-c C-x C-r= | — | — | Inserts a clock table, or updates the one at point (=org-clock-report=). |
 
@@ -874,7 +874,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Delete Table Row (=org.table.kill-row=) | =M-S-<up>= | =⌃⌥⌘↑= | =M-K=, =SPC m b d r= (N) | In a table, deletes the row (=org-table-kill-row=). |
 | Insert Table Rule (=org.table.insert-hline=) | =C-c -= | =⌃⌘-= | =SPC m b -= (N), =SPC m b i h= (N) | In a table, inserts a horizontal rule (=org-table-insert-hline=). |
 | Recalculate Table Row (=org.table.recalc=) | =C-c *= | — | — | In a table, recalculates the current row (=org-table-recalculate=). |
-| Recalculate Table (=org.table.recalc-all=) | =C-c C-c= | — | =SPC m b r= (N) | Recalculates the whole table; =C-c C-c= runs it on a =#+TBLFM= line (=org-table-recalculate= with =C-u=). |
+| Recalculate Table (=org.table.recalc-all=) | =C-c C-c= | =⌃⌘X= | =SPC m b r= (N) | Recalculates the whole table; =C-c C-c= and =⌃⌘X= run it on a =#+TBLFM= line (=org-table-recalculate= with =C-u=). |
 | Set Column Formula (=org.table.column-formula=) | ~C-c =~ | — | — | Asks for the column's formula, offering the stored one (=org-table-eval-formula=). |
 | Edit Table Field (=org.table.edit-field=) | =C-c `= | — | — | In a table, edits the field in a separate editor (=org-table-edit-field=). |
 | Shrink or Expand Table Column (=org.table.toggle-column-width=) | =C-c TAB= | — | — | In a table, shrinks or expands the column (=org-table-toggle-column-width=). |
@@ -883,22 +883,22 @@ When a key appears in several rows, it runs the command whose condition holds at
 
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
-| Open Link (=org.link.open=) | =C-c C-o= | — | — | Follows the link or timestamp at the caret (=org-open-at-point=). |
-| Insert Link… (=org.link.insert=) | =C-c C-l= | — | =SPC m l l= (N) | Asks for a link and description and inserts it, offering stored links (=org-insert-link=). |
-| Store Link (=org.link.store=) | =C-c l= | — | =SPC m l s= (N), =SPC n l= (N) | Stores a link to the current entry for a later Insert Link (=org-store-link=). |
+| Open Link (=org.link.open=) | =C-c C-o= | =⌃⌘O= | — | Follows the link or timestamp at the caret (=org-open-at-point=). |
+| Insert Link… (=org.link.insert=) | =C-c C-l= | =⌘K= | =SPC m l l= (N) | Asks for a link and description and inserts it, offering stored links (=org-insert-link=). |
+| Store Link (=org.link.store=) | =C-c l= | =⌃⌘L= | =SPC m l s= (N), =SPC n l= (N) | Stores a link to the current entry for a later Insert Link (=org-store-link=). |
 | Store ID Link (=org.id.store-link=) | — | — | =SPC m l i= (N) | Gives the entry an =ID= if needed and stores an =id:= link to it (=org-id-store-link=). |
-| Footnote Action (=org.footnote.action=) | =C-c C-x f= | — | — | On a reference, goes to its definition; on a definition, back to a reference; elsewhere inserts a footnote (=org-footnote-action=). |
+| Footnote Action (=org.footnote.action=) | =C-c C-x f= | =⌃⇧⌘F= | — | On a reference, goes to its definition; on a definition, back to a reference; elsewhere inserts a footnote (=org-footnote-action=). |
 
 ** Code blocks and C-c C-c
 
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
-| Act at Point (C-c C-c) (=org.ctrl-c-ctrl-c=) | =C-c C-c= | — | — | Does what fits the context: sets tags on a heading, toggles an item's checkbox, follows a footnote, offers the property menu in a property drawer, updates a clock line, statistics cookie or timestamp, runs a =#+CALL:= line, inline =call_= or inline =src_= block, and refreshes the setup on a =#+= keyword line (=org-ctrl-c-ctrl-c=). In a table it evaluates a formula typed in the field (starting with ~=~ or ~:=~), then recalculates the row when it is marked =#= and otherwise aligns the table; at the table's first character it recalculates the whole table. After a sparse tree, the first =C-c C-c= only clears the highlights. More specific bindings take =C-c C-c= in src blocks, =#+TBLFM= lines and dynamic blocks. |
+| Act at Point (C-c C-c) (=org.ctrl-c-ctrl-c=) | =C-c C-c= | =⌃⌘X= | — | Does what fits the context: sets tags on a heading, toggles an item's checkbox, follows a footnote, offers the property menu in a property drawer, updates a clock line, statistics cookie or timestamp, runs a =#+CALL:= line, inline =call_= or inline =src_= block, and refreshes the setup on a =#+= keyword line (=org-ctrl-c-ctrl-c=). In a table it evaluates a formula typed in the field (starting with ~=~ or ~:=~), then recalculates the row when it is marked =#= and otherwise aligns the table; at the table's first character it recalculates the whole table. After a sparse tree, the first =C-c C-c= only clears the highlights. More specific bindings take =C-c C-c= and =⌃⌘X= in src blocks, =#+TBLFM= lines and dynamic blocks. |
 | Act at Point (=org.dwim=) | — | — | =RET= (N) | Doom's =+org/dwim-at-point=: follows a link, runs a src block, recalculates or aligns a table, toggles a checkbox, or switches a heading between TODO and done. |
-| Run Source Block (=org.babel.execute=) | =C-c C-c= | — | — | In a src block, runs it and inserts the results (=org-babel-execute-src-block=). |
-| Tangle File (=org.babel.tangle=) | =C-c C-v t=, =C-c C-v C-t= | — | — | Writes the file's src blocks to their tangle targets (=org-babel-tangle=). |
+| Run Source Block (=org.babel.execute=) | =C-c C-c= | =⌃⌘X= | — | In a src block, runs it and inserts the results (=org-babel-execute-src-block=). |
+| Tangle File (=org.babel.tangle=) | =C-c C-v t=, =C-c C-v C-t= | =⌃⌘V= | — | Writes the file's src blocks to their tangle targets (=org-babel-tangle=). |
 | Insert Structure Template (=org.structure-template=) | =C-c C-,= | — | — | Asks for a block type and inserts the block, or wraps the selection (=org-insert-structure-template=). |
-| Edit Block (=org.edit-special=) | =C-c '= | — | =SPC m '= (N) | Edits the src, example or export block at point in a separate editor (=org-edit-special=). |
+| Edit Block (=org.edit-special=) | =C-c '= | =⌃⌘'= | =SPC m '= (N) | Edits the src, example or export block at point in a separate editor (=org-edit-special=). |
 
 ** Agenda and capture
 
@@ -911,6 +911,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
+| Export… (=app.export-dialog=) | — | =⇧⌘E= | — | Opens the export sheet. In the Emacs and Doom presets =C-c C-e= is a prefix for the export keys only; pausing after it lists them in the key hints. |
 | Export to HTML (=app.export.html=) | =C-c C-e h h= | — | =SPC m e h h= (N) | Exports to HTML (=org-html-export-to-html=). |
 | Export to HTML and Open (=app.export.html-open=) | =C-c C-e h o= | — | =SPC m e h o= (N) | Exports to HTML and opens the result. |
 | Export to Markdown (=app.export.markdown=) | =C-c C-e m m= | — | =SPC m e m m= (N) | Exports to Markdown (=org-md-export-to-markdown=). |
@@ -947,9 +948,8 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Command | What it does |
 |-+-|
 | Board (=app.board=) | Opens the Board window. Window ▸ Board, =⇧⌘B=. |
-| Cancel Running Block (=app.babel.cancel=) | Stops the src block that is running. Edit ▸ Cancel Running Block, =⌘.=. |
+| Cancel Running Task (=app.babel.cancel=) | Stops the src block that is running, or an export or table recalculation running in Emacs. Edit ▸ Cancel Running Task, =⌘.=. |
 | Edit Config File (=app.edit-config=) | Opens =config.toml= in the editor. =⌥⌘,=. |
-| Export… (=app.export-dialog=) | Opens the export sheet. In the Emacs and Doom presets =C-c C-e= is a prefix for the export keys only; pausing after it lists them in the key hints. |
 | Import from Emacs… (=app.import-emacs=) | Opens Import from Emacs…. |
 | Revert to File on Disk (=app.revert=) | Replaces the buffer with the file on disk; unsaved changes go to recovery (=revert-buffer=). |
 | Recovery Versions… (=app.recovery=) | Shows the recovery versions of the file. |

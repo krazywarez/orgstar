@@ -56,7 +56,7 @@ With the Emacs keys:
 | =C-c C-c= | Context action: toggle a checkbox, align a table, run a code block. |
 
 With the Mac preset, the Org commands are on =⌃⌘= keys (=⌃⌘T= cycles TODO, =⌃⌘S=
-schedules); with Doom, they're under =SPC m= (=SPC m t=, =SPC m d s=).
+schedules, =⌃⌘X= is the context action); with Doom, they're under =SPC m= (=SPC m t=, =SPC m d s=).
 
 The [[file:guide/02-the-editor.org][editor chapter]] covers how Org markup is shown and
 hidden, and [[file:guide/04-outlines.org][Outlines and structure]] covers headings and lists.

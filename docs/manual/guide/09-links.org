@@ -42,7 +42,7 @@ file into a link, matched case-insensitively, as in Org.
 | Preset | Key                                                                                   |
 |--------+---------------------------------------------------------------------------------------|
 | Emacs  | =C-c C-o=                                                                             |
-| Mac    | Org ▸ Open Link (no key by default)                                                   |
+| Mac    | =⌃⌘O=                                                                                 |
 | Doom   | =C-c C-o= in any state; =RET= in normal state follows a link before doing anything else |
 | All    | =⌘=-click on the link; =o= at the start of a heading line when speed commands are on   |
 
@@ -123,7 +123,7 @@ has the ID= followed by the ID.
 
 ** Timestamps
 
-=C-c C-o= or =⌘=-click on a timestamp opens the agenda on that day, as
+=C-c C-o= (Mac =⌃⌘O=) or =⌘=-click on a timestamp opens the agenda on that day, as
 =org-follow-timestamp-link= does. On a date range such as
 =<2026-10-05 Mon>--<2026-10-09 Fri>=, the agenda shows the whole span. See
 [[file:07-agenda.org][Agenda]].
@@ -135,7 +135,7 @@ has the ID= followed by the ID.
 | Preset | Key                          |
 |--------+------------------------------|
 | Emacs  | =C-c C-l=                    |
-| Mac    | Org ▸ Insert Link…           |
+| Mac    | =⌘K=                         |
 | Doom   | =SPC m l l=, or =C-c C-l=    |
 
 The first prompt reads =Insert link:=, or =Insert link (default …):= when you have
@@ -186,7 +186,7 @@ see [[file:02-the-editor.org][The editor]].
 | Preset | Key                                   |
 |--------+---------------------------------------|
 | Emacs  | =C-c l=                               |
-| Mac    | Org ▸ Store Link                      |
+| Mac    | =⌃⌘L=                                 |
 | Doom   | =SPC m l s= or =SPC n l=              |
 
 The stored link is a =file:= link to the current file, written with =~= for your home

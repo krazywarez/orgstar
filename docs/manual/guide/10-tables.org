@@ -63,10 +63,10 @@ table command, not while you type. To align without moving, use Org ▸ Align Ta
 | Preset | Key                          |
 |--------+------------------------------|
 | Emacs  | =C-c C-c= in a table         |
-| Mac    | Org ▸ Align Table            |
+| Mac    | =⌃⌘X= in a table             |
 | Doom   | =C-c C-c=, or =SPC m b a=    |
 
-=C-c C-c= in a table is =org-ctrl-c-ctrl-c=, as in Emacs. It first evaluates a formula
+=C-c C-c= (Mac =⌃⌘X=) in a table is =org-ctrl-c-ctrl-c=, as in Emacs. It first evaluates a formula
 typed in the current field (see /Entering formulas/). Then, in a row marked =#= (see
 /Names, parameters and constants/), it recalculates that row, which also aligns the
 table; in any other row it aligns the table. With the caret at the table's very first
@@ -90,7 +90,7 @@ in the config file (default =false=), or put =#+STARTUP: align= in the file;
 | Insert row above                  | =org-table-insert-row=     | =M-S-<down>=   | =⌃⌥⌘↓=      | =M-S-<down>=, =SPC m b i r=   |
 | Delete row                        | =org-table-kill-row=       | =M-S-<up>=     | =⌃⌥⌘↑=      | =M-S-<up>=, =SPC m b d r=     |
 | Insert rule below                 | =org-table-insert-hline=   | =C-c -=        | =⌃⌘-=       | =C-c -=, =SPC m b -=, =SPC m b i h= |
-| Sort rows                         | =org-table-sort-lines=     | =C-c ^=        | Org ▸ Sort Table Lines | =C-c ^=            |
+| Sort rows                         | =org-table-sort-lines=     | =C-c ^=        | =⌃⇧⌘S=      | =C-c ^=            |
 | Transpose                         | =org-table-transpose-table-at-point= | Org ▸ Transpose Table | Org ▸ Transpose Table | Org ▸ Transpose Table |
 | Edit field in its own editor      | =org-table-edit-field=     | =C-c `=        | Org ▸ Edit Table Field | =C-c `=            |
 
@@ -472,7 +472,7 @@ grouped under =# Column Formulas=, =# Field and Range Formulas= and
 =# Named Field Formulas=. A formula can continue on indented lines. =C-c '= or
 =⌘Return= installs the formulas; =Escape= or =C-c C-k= leaves them unchanged.
 Installing doesn't recalculate. The echo area says so and points to Recalculate Table:
-=C-c C-c= on the =#+TBLFM:= line, or Org ▸ Recalculate Table in the Mac preset.
+=C-c C-c= on the =#+TBLFM:= line, or =⌃⌘X= there in the Mac preset.
 
 The formulas are stored sorted the way =org-table-formula-less-p= sorts them.
 
@@ -480,7 +480,7 @@ The formulas are stored sorted the way =org-table-formula-less-p= sorts them.
 
 | Command                          | Org command                       | Emacs                         | Mac                         | Doom                                |
 |----------------------------------+-----------------------------------+-------------------------------+-----------------------------+-------------------------------------|
-| Recalculate Table                | =org-table-recalculate= with =C-u= | =C-c C-c= on =#+TBLFM:=      | Org ▸ Recalculate Table     | =SPC m b r=, =C-c C-c= on =#+TBLFM:= |
+| Recalculate Table                | =org-table-recalculate= with =C-u= | =C-c C-c= on =#+TBLFM:=      | =⌃⌘X= on =#+TBLFM:=         | =SPC m b r=, =C-c C-c= on =#+TBLFM:= |
 | Recalculate Table Row            | =org-table-recalculate=           | =C-c *=                       | Org ▸ Recalculate Table Row | =C-c *=                             |
 
 In Doom's normal state, =RET= in a table recalculates it when it has a =#+TBLFM:=
@@ -495,7 +495,7 @@ the table. Formulas are evaluated once; Org's iterate-until-stable recalculation
 
 Tables are not recalculated automatically. Rows marked =#= are not recalculated when
 you press =TAB= or =RET= in them, as =org-table-maybe-recalculate-line= would do in
-Emacs; recalculate with one of the commands above, or with =C-c C-c= in the row.
+Emacs; recalculate with one of the commands above, or with =C-c C-c= (Mac =⌃⌘X=) in the row.
 
 * When Emacs is needed
 
@@ -521,6 +521,10 @@ table is unchanged. Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local
 programs a formula starts are found when Orgstar was opened from the Dock. The run
 stops after 60 seconds. If you edit the table while Emacs is working, its result is
 discarded.
+
+Edit ▸ Cancel Running Task (=⌘.=) stops the recalculation; the echo area shows
+=Recalculation canceled= and the table is unchanged. Starting another recalculation or
+export in Emacs cancels the one that is running.
 
 If the table's formulas contain Lisp, Orgstar asks first:
 =This table's formulas run Lisp. Run them? (yes, no, always)=. =always= trusts this

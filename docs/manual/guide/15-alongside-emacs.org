@@ -143,7 +143,7 @@ An app started from the Dock doesn't see your shell's =PATH=, which is why Orgst
 - Export doesn't run source blocks (=org-export-use-babel= is =nil=). The exported file is written next to the org file, as Emacs writes it, or moved to the place you chose.
 - For export and table recalculation, Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin= added, as source blocks do, so the programs it starts, such as =pdflatex=, are found when Orgstar was opened from the Dock.
 - PDF export needs a LaTeX installation that Org's LaTeX exporter can run.
-- A table recalculation that takes more than 60 seconds, or an export that takes more than 120 seconds, is stopped. Source blocks have a limit of 300 seconds, and =⌘.= (Cancel Running Block) stops one.
+- A table recalculation that takes more than 60 seconds, or an export that takes more than 120 seconds, is stopped. Source blocks have a limit of 300 seconds. =⌘.= (Cancel Running Task) stops a running block, export or table recalculation sooner.
 
 * Quick Look
 

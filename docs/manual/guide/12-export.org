@@ -18,13 +18,13 @@ Export works on the file in the current editor, using its text as it is now, sav
 | ODT                | Export to ODT with Emacs         | =C-c C-e o o= | =C-c C-e o o=                 | yes         |
 | Plain text         | Export to Plain Text with Emacs  | =C-c C-e t u= | =C-c C-e t u=                 | yes         |
 
-The keys follow Emacs's export dispatcher (=org-export-dispatch=). =C-c C-e= on its own is only a prefix: pause after it and the key hints list the formats. The =SPC m e= keys work in normal state; the =C-c C-e= keys work in every Doom state. The Mac preset has no export keys.
+The keys follow Emacs's export dispatcher (=org-export-dispatch=). =C-c C-e= on its own is only a prefix: pause after it and the key hints list the formats. The =SPC m e= keys work in normal state; the =C-c C-e= keys work in every Doom state. The Mac preset has no keys for the single formats; its =⇧⌘E= opens the export dialog.
 
 All seven commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.tex=, =.odt= or =.txt=. A file already there is replaced. The message area shows "Exported to /name/".
 
 ** The export dialog
 
-*Export…* in the command palette opens a dialog. No preset binds it to a key; bind =app.export-dialog= in =keymap.toml= if you want one (see [[file:03-keys.org][Keys and commands]]). The dialog has:
+*Export…* in the command palette, or =⇧⌘E= in the Mac preset, opens a dialog. The Emacs and Doom presets have no key for it; bind =app.export-dialog= in =keymap.toml= if you want one (see [[file:03-keys.org][Keys and commands]]). The dialog has:
 
 - *Format*: HTML, Markdown, PDF (Emacs), ODT (Emacs), LaTeX (Emacs) or Plain text (Emacs).
 - *Destination*: beside the Org file by default. *Choose…* picks another place and name. Changing the format changes the extension.
@@ -233,6 +233,7 @@ Things to know:
 - File-local variables are applied only when Emacs considers them safe.
 - =org-export-use-babel= is off, so no source blocks run.
 - An export that takes more than two minutes is stopped with "Emacs took too long to export."
+- Edit ▸ Cancel Running Task (=⌘.=) stops the export and shows "Export canceled". Starting another export or table recalculation in Emacs cancels the one that is running.
 - If Emacs fails, the message area shows the last line of its error output.
 
 To use your own Emacs configuration, or formats Orgstar does not list, export from Emacs itself; see [[file:15-alongside-emacs.org][Alongside Emacs]].

@@ -192,9 +192,9 @@ To turn the repeat note off for a file, use =#+STARTUP: nologrepeat=; =lognotere
 
 Effort estimates live in the =Effort= property.
 
-| Command     | Org command      | Emacs, Doom   | Doom leader   | Speed key |
-|-------------+------------------+---------------+---------------+-----------|
-| Set Effort  | =org-set-effort= | =C-c C-x e=   | =SPC m c E=   | =e=       |
+| Command     | Org command      | Emacs, Doom   | Mac    | Doom leader   | Speed key |
+|-------------+------------------+---------------+--------+---------------+-----------|
+| Set Effort  | =org-set-effort= | =C-c C-x e=   | =⌃⇧⌘E= | =SPC m c E=   | =e=       |
 
 Set Effort asks for a value, such as =0:30= or =2:00=, starting with the current one. If the entry, an ancestor, or a =#+PROPERTY: Effort_ALL= line defines =Effort_ALL=, its values are offered as choices; you can also type another value.
 
@@ -208,14 +208,14 @@ Effort appears in column view and in clock tables with =:properties ("Effort")=.
 
 Clocking records the time you work on an entry as =CLOCK:= lines in its =LOGBOOK= drawer.
 
-| Command              | Org command        | Emacs, Doom     | Doom leader | Speed key |
-|----------------------+--------------------+-----------------+-------------+-----------|
-| Clock In             | =org-clock-in=     | =C-c C-x C-i=   | =SPC m c i= | =I=       |
-| Clock Out            | =org-clock-out=    | =C-c C-x C-o=   | =SPC m c o= | =O=       |
-| Cancel Clock         | =org-clock-cancel= | =C-c C-x C-q=   | =SPC m c c= |           |
-| Go to Clocked Entry  | =org-clock-goto=   | =C-c C-x C-j=   | =SPC m c g= |           |
+| Command              | Org command        | Emacs, Doom     | Mac    | Doom leader | Speed key |
+|----------------------+--------------------+-----------------+--------+-------------+-----------|
+| Clock In             | =org-clock-in=     | =C-c C-x C-i=   | =⌃⌘I=  | =SPC m c i= | =I=       |
+| Clock Out            | =org-clock-out=    | =C-c C-x C-o=   | =⌃⇧⌘I= | =SPC m c o= | =O=       |
+| Cancel Clock         | =org-clock-cancel= | =C-c C-x C-q=   |        | =SPC m c c= |           |
+| Go to Clocked Entry  | =org-clock-goto=   | =C-c C-x C-j=   | =⌃⌘J=  | =SPC m c g= |           |
 
-The Mac preset has no keys for these; run them from the command palette, or the clock menus described below. In the agenda, =I=, =O= and =X= clock in, out and cancel for the entry at the line ([[file:07-agenda.org][The agenda]]). Capture templates can clock in too ([[file:08-capture.org][Capture]]).
+The Mac preset has no key for Cancel Clock; run it from the command palette, or the clock menus described below. In the agenda, =I=, =O= and =X= clock in, out and cancel for the entry at the line ([[file:07-agenda.org][The agenda]]). Capture templates can clock in too ([[file:08-capture.org][Capture]]).
 
 ** Clocking in and out
 
@@ -295,7 +295,7 @@ A clock table is a dynamic block that Orgstar fills with a summary of clocked ti
 | Insert or Update Clock Table    | =org-clock-report=   | =C-c C-x C-r=   |
 | Update Dynamic Block            | =org-update-dblock=  | =C-c C-x C-u=   |
 
-=C-c C-c= on the =#+BEGIN:= line also updates the block. In the Mac preset, use the Org menu or the command palette.
+=C-c C-c= on the =#+BEGIN:= line also updates the block; in the Mac preset, =⌃⌘X= does.
 
 Insert or Update Clock Table updates the clock table at the caret. Elsewhere it inserts a new one, with =:scope subtree= inside an entry or =:scope file= before the first heading, and fills it:
 

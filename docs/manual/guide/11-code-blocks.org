@@ -51,7 +51,7 @@ Names are matched without regard to case. Blocks in any other language show as p
 |--------+---------------------------|
 | Emacs  | =C-c '=                   |
 | Doom   | =C-c '=, or =SPC m '= in normal state |
-| Mac    | Org ▸ Edit Block, or the command palette |
+| Mac    | =⌃⌘'=                     |
 
 On the Mac the block opens in a sheet titled with the block's kind and language, with the same highlighting as the main editor. The protecting commas are removed while you edit and added back when you save.
 
@@ -72,7 +72,7 @@ On iOS the block opens in a plain text sheet with Cancel and Save buttons.
 |--------+------------------------------------------------------|
 | Emacs  | =C-c C-c=                                            |
 | Doom   | =C-c C-c= in normal, insert and visual state         |
-| Mac    | Org ▸ Run Source Block, or the command palette       |
+| Mac    | =⌃⌘X=                                                |
 
 The program runs in the folder of the file, or in =:dir=. It reads the code on standard input. While it runs, the message area shows "Running /language/ block…"; when it ends, it shows "Code block evaluation complete." or the problem.
 
@@ -126,7 +126,7 @@ When a block's =:var= or =:stdin= refers to other blocks that have to run first,
 
 ** Cancelling a run
 
-On the Mac, Edit ▸ Cancel Running Block (⌘.) stops the running block. Its result is not inserted, and the message area shows "Code block canceled." The command is also in the command palette.
+On the Mac, Edit ▸ Cancel Running Task (⌘.) stops the running block. Its result is not inserted, and the message area shows "Code block canceled." The same command stops an export or table recalculation running in Emacs (see [[file:12-export.org][Export]] and [[file:10-tables.org][Tables]]). With nothing running it shows "Nothing is running". The command is also in the command palette.
 
 Only one block runs at a time. Starting another block cancels the one that is running.
 
@@ -561,13 +561,13 @@ digraph { a -> b }
 
 Tangling writes source blocks to the files their =:tangle= argument names (=org-babel-tangle=).
 
-| Command                 | Emacs and Doom              | What it tangles                                   |
-|-------------------------+-----------------------------+---------------------------------------------------|
-| Tangle File             | =C-c C-v t=, =C-c C-v C-t=  | Every block in the file                            |
-| Tangle Block            | none                        | The block at the caret (Emacs: =C-u C-c C-v t=)    |
-| Tangle Block's Target   | none                        | Every block going to the same file as the one at the caret (Emacs: =C-u C-u C-c C-v t=) |
+| Command                 | Emacs and Doom              | Mac    | What it tangles                                   |
+|-------------------------+-----------------------------+--------+---------------------------------------------------|
+| Tangle File             | =C-c C-v t=, =C-c C-v C-t=  | =⌃⌘V=  | Every block in the file                            |
+| Tangle Block            | none                        | none   | The block at the caret (Emacs: =C-u C-c C-v t=)    |
+| Tangle Block's Target   | none                        | none   | Every block going to the same file as the one at the caret (Emacs: =C-u C-u C-c C-v t=) |
 
-All three are in the Org menu and the command palette. The Mac preset has no keys for them. Tangling uses the text in the editor, saved or not, and the message area reports "Tangled /N/ code blocks from /file/".
+All three are in the Org menu and the command palette. Tangling uses the text in the editor, saved or not, and the message area reports "Tangled /N/ code blocks from /file/".
 
 ** =:tangle= and file names
 

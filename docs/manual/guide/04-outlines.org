@@ -122,8 +122,8 @@ lines they do nothing. Orgstar has no =org-drag-element= for paragraphs.
 |--------------------------------+-----------------------------------+-----------+--------+-------------------|
 | Next Heading                   | =org-next-visible-heading=        | =C-c C-n= | =⌥⌘↓=  | =C-c C-n=         |
 | Previous Heading               | =org-previous-visible-heading=    | =C-c C-p= | =⌥⌘↑=  | =C-c C-p=         |
-| Next Heading at Same Level     | =org-forward-heading-same-level=  | =C-c C-f= | menu   | =] h=             |
-| Previous Heading at Same Level | =org-backward-heading-same-level= | =C-c C-b= | menu   | =[ h=             |
+| Next Heading at Same Level     | =org-forward-heading-same-level=  | =C-c C-f= | =⌥⇧⌘↓= | =] h=             |
+| Previous Heading at Same Level | =org-backward-heading-same-level= | =C-c C-b= | =⌥⇧⌘↑= | =[ h=             |
 | Up to Parent Heading           | =outline-up-heading=              | =C-c C-u= | menu   | =g h=             |
 | Go to Heading…                 | =org-goto=                        | =C-c C-j= | menu   | =SPC m .=         |
 
@@ -227,7 +227,7 @@ clone, as Org does.
 
 ** Sorting
 
-Sort Entries (=org-sort=, =C-c ^=, Doom =SPC m s S=) sorts what the caret is in:
+Sort Entries (=org-sort=, =C-c ^=, Mac =⌃⇧⌘S=, Doom =SPC m s S=) sorts what the caret is in:
 
 - In a table, the table's lines (=org-table-sort-lines=, see [[file:10-tables.org][Tables]]).
 - On a list item, the items of that list (=org-sort-list=).
@@ -262,7 +262,7 @@ Org's =f= (custom function) key is not available.
 | Narrow to Subtree          | =org-narrow-to-subtree=          | =C-x n s= | menu | =SPC m s n= |
 | Narrow to Block            | =org-narrow-to-block=            | =C-x n b= | menu | =C-x n b=  |
 | Widen                      | =widen=                          | =C-x n w= | menu | =SPC m s N= |
-| Narrow to Subtree or Widen | =org-toggle-narrow-to-subtree=   | speed key =s= | speed key =s= | speed key =s= |
+| Narrow to Subtree or Widen | =org-toggle-narrow-to-subtree=   | speed key =s= | =⌃⌘N=, speed key =s= | speed key =s= |
 
 Narrowing hides everything outside the current subtree or block, so the editor shows
 only that part of the file. Narrow to Block works on src, example, export, comment and
@@ -502,7 +502,7 @@ opens unless =org-cycle-hide-block-startup= is on in =config.toml= or the file h
 =#+STARTUP: hideblocks= (=nohideblocks= overrides the setting the other way). See
 [[file:02-the-editor.org][The editor]] for folding in general.
 
-Edit Block (=org-edit-special=, =C-c '=) edits a src, example or export block in a
+Edit Block (=org-edit-special=, =C-c '=, Mac =⌃⌘'=) edits a src, example or export block in a
 separate editor. See [[file:11-code-blocks.org][Code blocks]].
 
 * Drawers
@@ -547,12 +547,12 @@ space between.
 
 | Command                     | Org command                     | Emacs       | Mac  | Doom       |
 |-----------------------------+---------------------------------+-------------+------+------------|
-| Set Property…               | =org-set-property=              | =C-c C-x p= | menu | =SPC m o=  |
+| Set Property…               | =org-set-property=              | =C-c C-x p= | =⌃⇧⌘P= | =SPC m o=  |
 | Delete Property…            | =org-delete-property=           | none        | menu | none       |
 | Delete Property Everywhere… | =org-delete-property-globally=  | none        | menu | none       |
-| Property Action…            | =org-property-action=           | =C-c C-c= in a property drawer | menu | =C-c C-c= |
-| Next Allowed Value          | =org-property-next-allowed-value= | =S-<right>= on a property line | menu | =S-<right>=, =C-S-l= |
-| Previous Allowed Value      | =org-property-previous-allowed-value= | =S-<left>= on a property line | menu | =S-<left>=, =C-S-h= |
+| Property Action…            | =org-property-action=           | =C-c C-c= in a property drawer | =⌃⌘X= in a property drawer | =C-c C-c= |
+| Next Allowed Value          | =org-property-next-allowed-value= | =S-<right>= on a property line | =⌃⇧⌘→= on a property line | =S-<right>=, =C-S-l= |
+| Previous Allowed Value      | =org-property-previous-allowed-value= | =S-<left>= on a property line | =⌃⇧⌘←= on a property line | =S-<left>=, =C-S-h= |
 
 Set Property asks for the key, offering the keys used in the file, Org's standard keys
 and the properties named in =COLUMNS= formats; on a property line, Return takes that
@@ -666,7 +666,7 @@ capture: =local= (the default, the entry at the caret), =global= (the whole file
 ,#+END:
 #+END_SRC
 
-=C-c C-c= on the =#+BEGIN:= line, or =C-c C-x C-u= anywhere in the block, updates it.
+=C-c C-c= (Mac =⌃⌘X=) on the =#+BEGIN:= line, or =C-c C-x C-u= anywhere in the block, updates it.
 Updating writes summary values into the parents' properties, as Org does. The block
 takes these parameters:
 
@@ -687,7 +687,7 @@ Existing =#+TBLFM:= lines after the table are kept. An =:id= of the form =file:p
 
 | Command         | Org command          | Emacs       | Mac  | Doom        |
 |-----------------+----------------------+-------------+------+-------------|
-| Footnote Action | =org-footnote-action= | =C-c C-x f= | menu | =C-c C-x f= |
+| Footnote Action | =org-footnote-action= | =C-c C-x f= | =⌃⇧⌘F= | =C-c C-x f= |
 | Footnote Menu   | =org-footnote-action= with a prefix | none | menu | none |
 
 Footnote Action depends on where the caret is:
@@ -826,8 +826,7 @@ below the outline (see [[file:09-links.org][Links]]).
 * C-c C-c
 
 =C-c C-c= (=org-ctrl-c-ctrl-c=) does what fits the caret's position. In the Emacs and
-Doom presets it is =C-c C-c=; in the Mac preset, run Act at Point (C-c C-c) from the Org
-menu or the palette. In order, it:
+Doom presets it is =C-c C-c=; in the Mac preset it is =⌃⌘X=. In order, it:
 
 | Caret on                                   | Effect                                                     |
 |--------------------------------------------+------------------------------------------------------------|
