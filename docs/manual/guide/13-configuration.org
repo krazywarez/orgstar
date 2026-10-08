@@ -416,6 +416,8 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |
 | =display-line-numbers-type=                                        | =true= unless =nil=; =relative= and =visual= become absolute numbers                          |
 | =org-agenda-span=                                                  | A number, or =day= (1), =week= (7), =fortnight= (14), =month= (30), =year= (365)               |
+| =org-clock-idle-time=                                             | Minutes; =nil= becomes =0= (never)                                                            |
+| =org-clock-history-length=                                         | The same key, when the value is a positive number                                             |
 | =org-agenda-start-day=                                             | A day offset such as ="-3d"=; =nil= becomes ="+0d"=. Other forms aren't supported.            |
 | =org-todo-keywords=                                                | =org-todo-keywords=, one line per sequence. Keywords with spaces are left out; =type= sequences are read as sequences. |
 | =org-directory=                                                    | A folder to add                                                                               |

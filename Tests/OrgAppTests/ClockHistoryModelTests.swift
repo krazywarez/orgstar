@@ -111,6 +111,18 @@ struct ClockHistoryModelTests {
         #expect(clock.leftover == nil)
     }
 
+    @Test func jumpingFromADanglingClockShowsItAfterClockingIn() async throws {
+        let other = try notes.write("other.org", "* Old\n:LOGBOOK:\nCLOCK: [2026-09-09 Wed 09:00]\n:END:\n")
+        let clock = ClockModel(file: stateFile, defaults: defaults)
+        let started = clock.openClocks(session, paths: [other.path])[0].startedAt
+        // `c` isn't a key org-clock-resolve reads; `J` clocks out and jumps.
+        let answers = ScriptedAnswers(["c", "J"])
+        let outcome = await clock.clockIn(session, target: .caret, paths: [other.path], ask: answers.ask, now: { started.addingTimeInterval(600) })
+        #expect(answers.asked.count == 2)
+        #expect(outcome.jump?.path == other.path)
+        #expect(clock.running?.heading == "A")
+    }
+
     @Test func idleTimeIsSubtractedAndOfferedToTheNextClock() async throws {
         let clock = ClockModel(file: stateFile, defaults: defaults)
         _ = clock.clockIn(session, path: work.path, at: offset("* A"), now: start)

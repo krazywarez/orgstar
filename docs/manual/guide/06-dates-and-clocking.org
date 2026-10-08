@@ -302,7 +302,8 @@ The answer is a key, as in =org-clock-resolve=. The idle time is the time since 
 
 | Key            | What happens to the =CLOCK:= line                                                                   |
 |----------------+-----------------------------------------------------------------------------------------------------|
-| =j=            | Nothing; after Resolve Open Clocks… or the idle question, the line opens in the editor to adjust by hand. |
+| =j=            | Nothing; the line opens in the editor to adjust by hand (after the clock-in, when you were clocking in). |
+| =J=            | Ends the line now, then opens it in the editor.                                                     |
 | =k=            | Asks how many minutes of the idle time to keep, all of them by default. With all, the clock keeps running. With fewer, the line ends that many minutes after the idle time began, and a new clock starts now. |
 | =K=            | Asks the same, then ends the line after the minutes kept and leaves you clocked out.               |
 | =t=            | Like =k=, but asks for the date and time you got distracted; the line ends then.                    |
@@ -312,7 +313,7 @@ The answer is a key, as in =org-clock-resolve=. The idle time is the time since 
 | =s=            | Subtracts the idle time: the line ends when the idle time began, and a new clock starts now.        |
 | =S=            | Subtracts the idle time and leaves you clocked out.                                                 |
 | =C=            | Removes the line, as though you never clocked in.                                                   |
-| =c=, =i=, =q=, =Esc= | Leaves the line as it is, keeping all the idle time.                                          |
+| =i=, =q=, =Esc= | Leaves the line as it is, keeping all the idle time.                                               |
 
 - =k=, =K=, =g= and =G= ask for minutes with the default in the question, as =Keep how many minutes (default 95):=; Return with an empty field takes the default.
 - =t= and =T= ask =Date+time:= with Org's date syntax, as =14:00= or =-1h=.

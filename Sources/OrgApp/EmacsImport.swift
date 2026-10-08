@@ -512,6 +512,12 @@ public struct EmacsImport: Sendable {
             let days: Int? = value.integer ?? ["day": 1, "week": 7, "fortnight": 14, "month": 30, "year": 365][value.symbol ?? ""]
             guard let days else { return note("unknown span \(value.description)") }
             add(name, .integer(days))
+        case "org-clock-idle-time":
+            // nil is never; a number is minutes.
+            if value.symbol == "nil" { add(name, .integer(0)) } else if let minutes = value.integer, minutes > 0 { add(name, .integer(minutes)) } else { note("not a number of minutes") }
+        case "org-clock-history-length":
+            guard let length = value.integer, length > 0 else { return note("not a positive number") }
+            add(name, .integer(length))
         case "org-agenda-start-day":
             if value.symbol == "nil" { add(name, .string("+0d")) } else if let s = value.string, UserConfig.dayOffset(s) != nil { add(name, .string(s)) } else { note("only day offsets such as \"-3d\" are supported") }
         case "org-todo-keywords":

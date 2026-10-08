@@ -6,7 +6,7 @@ import Foundation
 
 public enum ClockResolution {
     /// The keys `org-clock-resolve` reads.
-    public static let keys: [Character] = ["j", "k", "K", "t", "T", "g", "G", "S", "s", "c", "C", "i", "q"]
+    public static let keys: [Character] = ["j", "J", "k", "K", "t", "T", "g", "G", "S", "s", "C", "i", "q"]
 
     /// The question's suffix, after the clock's description.
     public static let keyHint = " [jkKtTgGSscCiq]? "

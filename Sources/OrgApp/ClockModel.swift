@@ -286,6 +286,7 @@ public final class ClockModel {
                     clock, description: "Dangling clock started \(minutes) mins ago", lastValid: clock.startedAt, clockingIn: true, session, ask: ask, now: now
                 )
                 outcome.messages += result.messages
+                if let jump = result.jump { outcome.jump = jump }
             }
         }
         let location: (path: String, offset: Int)
