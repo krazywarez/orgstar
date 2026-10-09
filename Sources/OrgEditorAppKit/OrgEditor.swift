@@ -1296,6 +1296,8 @@ extension OrgEditor: DocumentBuffer {
             var state = view
             state.selection = [selected.location..<NSMaxRange(selected)]
             let mapped = state.mapped(through: edits)
+            // Shrunk columns were measured on the old text.
+            shrunk = ShrunkColumns()
             load(document.text)
             setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds, wrapperFolds: mapped.wrapperFolds))
             let selection = mapped.selection[0]
