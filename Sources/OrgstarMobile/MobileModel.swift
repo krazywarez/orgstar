@@ -114,6 +114,7 @@ final class MobileModel {
             agenda.span = OrgPreferences.agendaSpan()
             agenda.startOffset = OrgPreferences.agendaStartOffset()
             agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
+            agenda.options = OrgPreferences.agendaOptions(agenda.options)
         }
         settingsVersion += 1
     }

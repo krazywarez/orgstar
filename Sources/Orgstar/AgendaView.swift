@@ -251,6 +251,7 @@ struct AgendaView: View {
             agenda.includeSubfolders = includeSubfolders
             agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
             agenda.options.logMode = logMode
+            agenda.options = OrgPreferences.agendaOptions(agenda.options)
             let open = session.openTexts
             await agenda.refresh(open: open)
         }

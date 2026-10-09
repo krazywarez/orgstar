@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import OrgCore
 import OrgIndex
+import OrgPresentation
 
 /// The day/week agenda over the workspace's agenda files. Sources are read from disk and
 /// cached by modification date and size; the open file's come from its buffer, so the agenda
@@ -22,6 +23,14 @@ public final class AgendaModel {
     public var includeSubfolders = false
     public var options = AgendaOptions()
     public private(set) var isComputing = false
+    /// Calendar events over the days shown, from `calendarEvents` (nil reads none) and the
+    /// calendars in `calendarNames` (all when empty).
+    public private(set) var events: [AgendaEvent] = []
+    public var calendarEvents: CalendarEvents?
+    public var calendarNames: [String] = []
+    /// Today and the calendar of the last refresh.
+    public private(set) var today = Days.absolute(Date(), calendar: .current)
+    @ObservationIgnored private var calendar = Calendar.current
 
     private let workspace: WorkspaceModel
     @ObservationIgnored private var cache: [String: (mtime: Date, size: Int, source: AgendaSource)] = [:]
@@ -57,23 +66,33 @@ public final class AgendaModel {
         let first = start ?? today + startOffset
         let options = self.options
         let mode = self.mode
+        let provider = calendarEvents
+        let names = calendarNames
         let all = await sources(open: open)
         let result = await Task.detached {
             var days: [AgendaDay] = []
             var list: [AgendaItem] = []
+            var events: [AgendaEvent] = []
             switch mode {
             case .agenda:
                 days = Agenda.list(all, start: first, days: span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: options)
+                if let provider {
+                    let from = Self.date(first, calendar: calendar)
+                    events = provider.events(from: from, to: Self.date(first + span, calendar: calendar), chosen: names)
+                }
             case .todo(let keywords):
                 list = Agenda.todoList(all, keywords: keywords, options: options)
             case .match(let match, let todoOnly):
                 list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar, options: options)
             }
-            return (days, list)
+            return (days, list, events)
         }.value
         guard id == generation else { return }
         days = result.0
         list = result.1
+        events = result.2
+        self.today = today
+        self.calendar = calendar
         isComputing = false
     }
 
@@ -124,6 +143,17 @@ public final class AgendaModel {
             cache[source.path] = (source.mtime, source.size, source.source)
         }
         return loaded.map(\.source)
+    }
+
+    /// The days as rows with the events, empty days hidden unless `showAllDates`; see
+    /// `AgendaRows.groups`.
+    public func groups(showAllDates: Bool = false, keep: (AgendaItem) -> Bool = { _ in true }) -> [AgendaDayGroup] {
+        AgendaRows.groups(days, events: events, today: today, showAllDates: showAllDates, calendar: calendar, keep: keep)
+    }
+
+    nonisolated static func date(_ day: Int, calendar: Calendar) -> Date {
+        let d = Days.date(day)
+        return calendar.date(from: DateComponents(year: d.year, month: d.month, day: d.day)) ?? Date()
     }
 
     public func showToday() { start = nil }

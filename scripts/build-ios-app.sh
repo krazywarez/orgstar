@@ -47,6 +47,8 @@ cat > "$app/Info.plist" <<PLIST
     <array><string>iPhoneSimulator</string></array>
     <key>MinimumOSVersion</key>
     <string>26.0</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>The agenda shows your calendar events alongside your Org entries. Orgstar only reads them.</string>
     <key>UIDeviceFamily</key>
     <array><integer>1</integer><integer>2</integer></array>
     <key>UILaunchScreen</key>

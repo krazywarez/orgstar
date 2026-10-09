@@ -94,6 +94,8 @@ cat > "$app/Contents/Info.plist" <<EOF
     <string>26.0</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.productivity</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>The agenda shows your calendar events alongside your Org entries. Orgstar only reads them.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>

@@ -50,6 +50,23 @@ public enum OrgPreferences {
     public static func agendaSpan(_ defaults: UserDefaults = .standard) -> Int { integer("agendaSpan", defaults) }
     public static func agendaStartOffset(_ defaults: UserDefaults = .standard) -> Int { integer("agendaStartOffset", defaults) }
     public static func agendaSubfolders(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSubfolders", defaults) }
+    /// `org-agenda-show-all-dates`: days without entries show.
+    public static func agendaShowAllDates(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaShowAllDates", defaults) }
+    public static func agendaSkipScheduledIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipScheduledIfDone", defaults) }
+    public static func agendaSkipDeadlineIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipDeadlineIfDone", defaults) }
+    /// `options` with the skip-if-done settings.
+    public static func agendaOptions(_ options: AgendaOptions, _ defaults: UserDefaults = .standard) -> AgendaOptions {
+        var options = options
+        options.skipScheduledIfDone = agendaSkipScheduledIfDone(defaults)
+        options.skipDeadlineIfDone = agendaSkipDeadlineIfDone(defaults)
+        return options
+    }
+    /// `calendar-events`: Calendar's events show in the agenda.
+    public static func calendarEvents(_ defaults: UserDefaults = .standard) -> Bool { bool("calendarEvents", defaults) }
+    /// `calendar-event-calendars`: the calendars chosen, by title or identifier; empty for all.
+    public static func calendarEventCalendars(_ defaults: UserDefaults = .standard) -> [String] {
+        string("calendarEventCalendars", defaults).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
     public static func reminders(_ defaults: UserDefaults = .standard) -> Bool { bool("reminders", defaults) }
     /// `appt-message-warning-time`, in minutes.
     public static func reminderLead(_ defaults: UserDefaults = .standard) -> Int { integer("reminderLead", defaults) }
