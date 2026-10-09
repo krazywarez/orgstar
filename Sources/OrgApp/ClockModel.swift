@@ -139,22 +139,25 @@ public final class ClockModel {
         }
     }
 
-    /// A template's `clock-in` once its entry is filed: clocked from when capture began and,
-    /// without `clock-keep`, clocked out now, the clock it interrupted resuming with
-    /// `clock-resume`. The messages, in order.
+    /// A template's `clock-in` once its entry is filed: `org-clock-in` at the entry as when
+    /// capture began, dangling clocks resolved first, and, without `clock-keep`, clocked out
+    /// now, the clock it interrupted resuming with `clock-resume`.
     public func captured(
-        _ entry: (path: String, offset: Int), options: CaptureTemplate.Options, session: DocumentSession, opened: Date, now: Date = Date()
-    ) -> [String] {
-        guard options.clockIn else { return [] }
-        let previous = self.entry(session)
-        var messages = [clockIn(session, path: entry.path, at: entry.offset, now: opened)]
+        _ entry: (path: String, offset: Int), options: CaptureTemplate.Options, session: DocumentSession, paths: [String], ask: Ask,
+        opened: Date, now: Date = Date()
+    ) async -> Outcome {
+        guard options.clockIn else { return Outcome() }
+        let previous = running == nil ? nil : runningTask(session)
+        var outcome = await clockIn(session, target: .entry(path: entry.path, offset: entry.offset), paths: paths, ask: ask, now: { opened })
         if !options.clockKeep {
-            messages.append(clockOut(session, now: now))
+            outcome.messages.append(clockOut(session, now: now))
             if options.clockResume, let previous {
-                messages.append(clockIn(session, path: previous.path, at: previous.offset, now: now))
+                let resumed = await clockIn(session, target: .task(previous), paths: paths, ask: ask, now: { now })
+                outcome.messages += resumed.messages
+                if let jump = resumed.jump { outcome.jump = jump }
             }
         }
-        return messages
+        return outcome
     }
 
     static func text(_ path: String, _ session: DocumentSession) -> String? {
@@ -265,6 +268,9 @@ public final class ClockModel {
         case last
         /// A remembered entry.
         case task(ClockTask)
+        /// The heading containing `offset` in `path` (the agenda's `org-agenda-clock-in`, a
+        /// capture template's `clock-in`).
+        case entry(path: String, offset: Int)
     }
 
     /// `org-clock-in` as a command: dangling clocks in `paths` are resolved first when no
@@ -275,6 +281,19 @@ public final class ClockModel {
         if case .last = target, history.isEmpty {
             outcome.messages.append("No last clock")
             return outcome
+        }
+        var target = target
+        // Resolving may edit the entry's file, so its heading is found again afterwards.
+        if case .entry(let path, let offset) = target {
+            guard let text = Self.text(path, session) else {
+                outcome.messages.append("Can't read \(path)")
+                return outcome
+            }
+            guard let task = ClockTask.at(offset, in: text, path: path) else {
+                outcome.messages.append("Before first headline")
+                return outcome
+            }
+            target = .task(task)
         }
         let wasRunning = running != nil
         let stopped = leftover
@@ -312,7 +331,7 @@ public final class ClockModel {
                 }
                 location = found
             }
-        case .last, .task:
+        case .last, .task, .entry:
             let task: ClockTask
             if case .task(let chosen) = target { task = chosen } else { task = history[0] }
             guard let found = locate(task, session) else {

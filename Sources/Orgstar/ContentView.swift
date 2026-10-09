@@ -690,14 +690,7 @@ struct ContentView: View {
         }
     }
 
-    /// Clock questions in the echo area.
-    private var askClock: ClockModel.Ask {
-        { [commands] prompt in
-            await withCheckedContinuation { continuation in
-                commands.ask(prompt) { continuation.resume(returning: $0) }
-            }
-        }
-    }
+    private var askClock: ClockModel.Ask { commands.askClock }
 
     /// The files `org-resolve-clocks` looks through: the workspace's org files.
     private var orgFiles: [String] { workspace.files.filter { $0.kind == .org }.map(\.path) }

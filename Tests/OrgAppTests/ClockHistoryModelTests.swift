@@ -111,6 +111,59 @@ struct ClockHistoryModelTests {
         #expect(clock.leftover == nil)
     }
 
+    /// `org-agenda-clock-in` runs `org-clock-in` at the entry, so it resolves first too, and
+    /// finds the entry after resolving moved it.
+    @Test func clockingInAtAnEntryResolvesDanglingClocks() async throws {
+        let other = try notes.write("other.org", "* Old\n:LOGBOOK:\nCLOCK: [2026-09-09 Wed 09:00]\n:END:\n* New\n")
+        let clock = ClockModel(file: stateFile, defaults: defaults)
+        let started = clock.openClocks(session, paths: [other.path])[0].startedAt
+        let text = try #require(ClockModel.text(other.path, session))
+        let entry = (text as NSString).range(of: "* New").location
+        let answers = ScriptedAnswers(["K", "30"])
+        let outcome = await clock.clockIn(
+            session, target: .entry(path: other.path, offset: entry), paths: [other.path], ask: answers.ask, now: { started.addingTimeInterval(7200) }
+        )
+        #expect(answers.asked.first == "Dangling clock started 120 mins ago" + ClockResolution.keyHint)
+        #expect(clock.running?.heading == "New" && outcome.messages.last == "Clock starts at [2026-09-09 Wed 11:00]")
+        let updated = try #require(ClockModel.text(other.path, session))
+        #expect(
+            updated == "* Old\n:LOGBOOK:\nCLOCK: [2026-09-09 Wed 09:00]--[2026-09-09 Wed 09:30] =>  0:30\n:END:\n* New\n:LOGBOOK:\nCLOCK: [2026-09-09 Wed 11:00]\n:END:\n",
+            "\(updated)"
+        )
+    }
+
+    /// A template's `clock-in` is `org-clock-in` when capture began: dangling clocks are
+    /// resolved as of then, and the entry is clocked out when it is filed.
+    @Test func captureClockInResolvesDanglingClocks() async throws {
+        let other = try notes.write("other.org", "* Old\n:LOGBOOK:\nCLOCK: [2026-09-09 Wed 09:00]\n:END:\n")
+        let clock = ClockModel(file: stateFile, defaults: defaults)
+        let opened = clock.openClocks(session, paths: [other.path])[0].startedAt.addingTimeInterval(7200)
+        let answers = ScriptedAnswers(["K", "30"])
+        let outcome = await clock.captured(
+            (work.path, offset("* C")), options: .init(clockIn: true), session: session, paths: [other.path], ask: answers.ask,
+            opened: opened, now: opened.addingTimeInterval(600)
+        )
+        #expect(answers.asked.first == "Dangling clock started 120 mins ago" + ClockResolution.keyHint)
+        #expect(outcome.messages.suffix(2) == ["Clock starts at [2026-09-09 Wed 11:00]", "Clock stopped after 0:10"])
+        #expect(clock.running == nil && clock.history.first?.title == "C")
+        #expect(try #require(ClockModel.text(other.path, session)).contains("=>  0:30"))
+    }
+
+    /// With a clock running the capture clock-in resolves nothing; the `clock-resume` clock-in,
+    /// with no clock running, does, as in Org.
+    @Test func captureClockInResumesTheInterruptedClock() async throws {
+        let other = try notes.write("other.org", "* Old\n:LOGBOOK:\nCLOCK: [2026-09-09 Wed 09:00]\n:END:\n")
+        let clock = ClockModel(file: stateFile, defaults: defaults)
+        _ = clock.clockIn(session, path: work.path, at: offset("* A"), now: start)
+        let answers = ScriptedAnswers([])
+        let outcome = await clock.captured(
+            (work.path, offset("* C")), options: .init(clockIn: true, clockResume: true), session: session, paths: [other.path],
+            ask: answers.ask, opened: start.addingTimeInterval(600), now: start.addingTimeInterval(900)
+        )
+        #expect(answers.asked.count == 1 && answers.asked[0].hasPrefix("Dangling clock started"))
+        #expect(outcome.messages.count == 3 && clock.running?.heading == "A")
+    }
+
     @Test func jumpingFromADanglingClockShowsItAfterClockingIn() async throws {
         let other = try notes.write("other.org", "* Old\n:LOGBOOK:\nCLOCK: [2026-09-09 Wed 09:00]\n:END:\n")
         let clock = ClockModel(file: stateFile, defaults: defaults)

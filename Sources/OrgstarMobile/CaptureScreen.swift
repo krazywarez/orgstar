@@ -121,7 +121,10 @@ struct CaptureScreen: View {
             editing = true
         case .success(let entry):
             // Clocked from when capture began.
-            _ = clock.captured(entry, options: template.options, session: session, opened: context.now, now: now)
+            let paths = workspace.files.filter { $0.kind == .org }.map(\.path)
+            Task { [clock, session, opened = context.now] in
+                _ = await clock.captured(entry, options: template.options, session: session, paths: paths, ask: model.clockPrompts.ask, opened: opened, now: now)
+            }
             if template.options.jumpToCaptured { model.openRequest = .offset(entry.path, entry.offset) }
             dismiss()
         }

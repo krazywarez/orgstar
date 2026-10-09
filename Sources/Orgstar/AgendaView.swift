@@ -483,8 +483,13 @@ struct AgendaView: View {
             message = "No entry selected"
             return
         }
-        message = clock.clockIn(session, path: entry.path, at: offset)
-        tick += 1
+        let paths = workspace.files.filter { $0.kind == .org }.map(\.path)
+        Task {
+            let outcome = await clock.clockIn(session, target: .entry(path: entry.path, offset: offset), paths: paths, ask: commands.askClock)
+            if let jump = outcome.jump { commands.jump(path: jump.path, offset: jump.offset) }
+            message = outcome.messages.last { !$0.isEmpty }
+            tick += 1
+        }
     }
 
     private func archive() {

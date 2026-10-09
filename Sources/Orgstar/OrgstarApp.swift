@@ -62,6 +62,15 @@ final class AppCommands {
         self.prompt = PromptRequest(prompt: prompt, reply: reply)
     }
 
+    /// Clock questions in the echo area.
+    var askClock: ClockModel.Ask {
+        { [self] prompt in
+            await withCheckedContinuation { continuation in
+                ask(prompt) { continuation.resume(returning: $0) }
+            }
+        }
+    }
+
     /// Ends the prompt with an answer, or nil to cancel, and gives the editor the keys back.
     func answer(_ text: String?) {
         guard let request = prompt else { return }

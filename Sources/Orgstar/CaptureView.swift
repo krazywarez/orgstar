@@ -212,8 +212,16 @@ struct CaptureView: View {
         case .success(let entry):
             commands.show("Captured to \(Self.target(template))")
             let options = template.options
-            for message in clock.captured(entry, options: options, session: session, opened: opened, now: now) { commands.show(message) }
-            if options.jumpToCaptured { commands.jump(path: entry.path, offset: entry.offset) }
+            let paths = workspace.files.filter { $0.kind == .org }.map(\.path)
+            Task { [commands, clock, session] in
+                let outcome = await clock.captured(entry, options: options, session: session, paths: paths, ask: commands.askClock, opened: opened, now: now)
+                for message in outcome.messages { commands.show(message) }
+                if let jump = outcome.jump {
+                    commands.jump(path: jump.path, offset: jump.offset)
+                } else if options.jumpToCaptured {
+                    commands.jump(path: entry.path, offset: entry.offset)
+                }
+            }
         }
         close()
     }

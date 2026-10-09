@@ -14,6 +14,7 @@ struct AgendaScreen: View {
     let scheduler: ReminderScheduler
     @State private var message: String?
     @Environment(ClockModel.self) private var clock
+    @Environment(MobileModel.self) private var model
     @State private var tick = 0
     @State private var views = AgendaViewLoader.builtIn
     @State private var viewName = "Agenda"
@@ -193,7 +194,7 @@ struct AgendaScreen: View {
                 Button("Tags…", systemImage: "tag") { run("org.tags.set", on: item) }
                 Button("Priority…", systemImage: "exclamationmark.circle") { run("org.priority.set", on: item) }
                 Button("Clock In", systemImage: "stopwatch") {
-                    if let (path, offset) = locate(item) { message = clock.clockIn(session, path: path, at: offset) }
+                    if let (path, offset) = locate(item) { clockIn(path, offset) }
                 }
                 Divider()
                 Button("Refile…", systemImage: "arrow.turn.down.right") { refiling = item }
@@ -232,6 +233,16 @@ struct AgendaScreen: View {
             return nil
         }
         return (path, offset)
+    }
+
+    /// `org-agenda-clock-in`: `org-clock-in` at the entry, dangling clocks resolved first.
+    private func clockIn(_ path: String, _ offset: Int) {
+        let paths = workspace.files.filter { $0.kind == .org }.map(\.path)
+        Task {
+            let outcome = await clock.clockIn(session, target: .entry(path: path, offset: offset), paths: paths, ask: model.clockPrompts.ask)
+            if let jump = outcome.jump { model.openRequest = .offset(jump.path, jump.offset) }
+            message = outcome.messages.last { !$0.isEmpty }
+        }
     }
 
     /// Runs a command at the entry's heading, asking what it asks.
