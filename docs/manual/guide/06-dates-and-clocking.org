@@ -214,7 +214,7 @@ Clocking records the time you work on an entry as =CLOCK:= lines in its =LOGBOOK
 | Clock In to Recent Entry…   | =org-clock-in= with =C-u=     |                 | =⌃⌥⌘I=  |             |           |
 | Clock In to Last Entry      | =org-clock-in-last=           | =C-c C-x C-x=   |         | =SPC m c I= |           |
 | Clock Out                   | =org-clock-out=               | =C-c C-x C-o=   | =⌃⇧⌘I=  | =SPC m c o= | =O=       |
-| Cancel Clock                | =org-clock-cancel=            | =C-c C-x C-q=   |         | =SPC m c c= |           |
+| Cancel Clock                | =org-clock-cancel=            | =C-c C-x C-q=   | =⌃⌘K=   | =SPC m c c= |           |
 | Go to Clocked Entry         | =org-clock-goto=              | =C-c C-x C-j=   | =⌃⌘J=   | =SPC m c g= |           |
 | Go to Recent Clocked Entry… | =org-clock-goto= with =C-u=   |                 | =⌃⌥⌘J=  | =SPC m c G= |           |
 | Mark as Default Clock Task  | =org-clock-mark-default-task= |                 |         | =SPC m c d= |           |
@@ -243,7 +243,7 @@ CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 15:30] =>  1:30
 - Cancel Clock removes the running clock's line, and the drawer if it is left empty.
 - Go to Clocked Entry opens the file and moves the caret to the running clock's line. With no clock running, it goes to the most recently clocked entry and says "No running clock, this is the most recently clocked task".
 
-With no clock running, Clock In first asks about open clocks; see Open clocks below.
+With no clock running, Clock In first asks about open clocks; see Open clocks below. So do the agenda's =I= and a capture template's =clock-in=.
 
 Orgstar remembers the running clock and the clock history across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
 
@@ -294,7 +294,9 @@ When you clock in with no clock running, Orgstar first looks for open clocks in 
 Dangling clock started 95 mins ago [jkKtTgGSscCiq]?
 #+END_EXAMPLE
 
-Resolve Open Clocks… asks the same about every open clock, the running one included, and says "No open clocks" when there are none. Clocking in from the agenda or a capture template doesn't look for open clocks first.
+Clocking in from the agenda (=I=) or from a capture template with =clock-in= asks too, as =org-clock-in= does in Org. A capture template resolves open clocks as of when the capture began, which is when its clock starts. On the Mac, the questions for an agenda or capture clock-in are asked in the main window's echo area.
+
+Resolve Open Clocks… asks the same about every open clock, the running one included, and says "No open clocks" when there are none.
 
 Unlike Org, Orgstar doesn't show the clock's line while it asks; =j= opens it afterwards, except while clocking in.
 
@@ -322,7 +324,7 @@ The answer is a key, as in =org-clock-resolve=. The idle time is the time since 
 
 While clocking in, an answer never restarts the clock it resolves: where a key would start a new clock or keep one running, the line ends instead, and the clock you asked for starts. Resolving an open clock that isn't running with =k= and all the minutes, outside a clock-in, makes it the running clock.
 
-When =K=, =T= or =S= ends a clock outside a clock-in, the next clock-in asks:
+When =K=, =T= or =S= ends a clock outside a clock-in, the next clock-in, from the agenda or a capture template too, asks:
 
 #+BEGIN_EXAMPLE
 You stopped another clock 12 mins ago; start this one from then? (y or n)

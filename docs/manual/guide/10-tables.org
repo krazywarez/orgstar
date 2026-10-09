@@ -142,6 +142,10 @@ A column without a width cookie shrinks to a bare =…= when toggled. Typing in 
 field widens its column again, as editing Org's overlays does. =#+STARTUP: shrink=
 narrows every column with a width cookie when the file opens.
 
+The iOS editor narrows columns the same way, with =#+STARTUP: shrink= and the three
+commands, which are in Commands when the caret is in a table. The iOS reader shows
+tables at full width.
+
 * Importing and exporting
 
 | Command                                | Org command        |
@@ -481,7 +485,7 @@ The formulas are stored sorted the way =org-table-formula-less-p= sorts them.
 | Command                          | Org command                       | Emacs                         | Mac                         | Doom                                |
 |----------------------------------+-----------------------------------+-------------------------------+-----------------------------+-------------------------------------|
 | Recalculate Table                | =org-table-recalculate= with =C-u= | =C-c C-c= on =#+TBLFM:=      | =⌃⌘X= on =#+TBLFM:=         | =SPC m b r=, =C-c C-c= on =#+TBLFM:= |
-| Recalculate Table Row            | =org-table-recalculate=           | =C-c *=                       | Org ▸ Recalculate Table Row | =C-c *=                             |
+| Recalculate Table Row            | =org-table-recalculate=           | =C-c *=                       | =⌃⌘*= (=⌃⇧⌘8= on a US keyboard) | =C-c *=                             |
 
 In Doom's normal state, =RET= in a table recalculates it when it has a =#+TBLFM:=
 line and aligns it otherwise; on a =#+TBLFM:= line it recalculates.
@@ -565,5 +569,6 @@ plots (=org-plot/gnuplot= is not available).
 
 The iOS app evaluates formulas natively with the same engine. Tables that need Emacs
 are not recalculated there; the app reports =This table needs Emacs, which runs on the
-Mac= with the reason. Table import and export are Mac only. See
+Mac= with the reason. Table import and export are Mac only. Narrow columns work in the
+editor, as described under /Narrow columns/. See
 [[file:14-ios.org][iOS]].

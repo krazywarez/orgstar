@@ -332,9 +332,9 @@ Motions move the caret in normal state, extend the selection in visual states, a
 | =$=, =<end>= | End of the line; with a count, of the line count − 1 lines down. |
 | =g_= | Last non-blank of the line. |
 | =gg=, =G= | First line, last line; with a count, that line. The column is kept (=evil-start-of-line= nil). |
-| =f= /x/, =F= /x/, =t= /x/, =T= /x/ | To, or to just before, the next or previous /x/ on the line. These are one-character snipes, as Doom's =evil-snipe-override-mode= makes them: a lowercase /x/ matches either case, an uppercase one only itself; =t= and =T= skip a match right next to the caret; =f SPC= and =t SPC= skip a run of blanks after the caret and stop at the last blank before the next word, or just before it. Accented variants of /x/ don't match (=evil-snipe-char-fold= is not supported). |
-| =;=, =,= | Repeats the last snipe (=s=, =S=, =f=, =F=, =t= or =T=), forward or reversed. A repeat searches all the text the window shows, so it can go past the caret's line (=evil-snipe-repeat-scope=, as Doom sets it). Right after a snipe, its own key repeats it: =f= goes on in the same direction and =F= reverses, and the same for =t= and =T= and for =s= and =S=. A count before that repeating key is not supported. |
-| =s= /xy/, =S= /xy/ | evil-snipe: to the next or previous /xy/ on the line. All-lowercase /xy/ matches case-insensitively. Not available after an operator. |
+| =f= /x/, =F= /x/, =t= /x/, =T= /x/ | To, or to just before, the next or previous /x/ on the line. These are one-character snipes, as Doom's =evil-snipe-override-mode= makes them. /x/ also matches its accented and other variants, as Doom's =evil-snipe-char-fold= makes it: =a= matches =à=, =À=, =ª= and =ａ=. A lowercase /x/ matches either case, a capital only capitals; =t= and =T= skip a match right next to the caret; =f SPC= and =t SPC= skip a run of blanks after the caret and stop at the last blank before the next word, or just before it. |
+| =;=, =,= | Repeats the last snipe (=s=, =S=, =f=, =F=, =t= or =T=), forward or reversed. A repeat searches all the text the window shows, so it can go past the caret's line (=evil-snipe-repeat-scope=, as Doom sets it). Right after a snipe, its own key repeats it: =f= goes on in the same direction and =F= reverses, and the same for =t= and =T= and for =s= and =S=. A count typed right after a snipe ends this: the key after the count starts a new snipe with that count, so =f a 2 f a= goes to the next /a/, then to the second /a/ after it. |
+| =s= /xy/, =S= /xy/ | evil-snipe: to the next or previous /xy/ on the line. Each character matches its variants as for =f=, and /xy/ without a capital matches case-insensitively. =SPC= and =TAB= are read as a space and a tab. Not available after an operator. |
 | =%= | The bracket matching the next =()=, =[]= or ={}= on the line. |
 | ={=, =}= | Previous, next blank line. |
 | =/=, =?= | Asks in the echo area for a regular expression and searches forward or backward, wrapping around the file. |
@@ -358,7 +358,7 @@ Search patterns are ICU regular expressions as macOS uses them, close to PCRE; E
 | =gc= /motion/ | Comments or uncomments lines with =#= (=evilnc-comment-operator=). =gcc= acts on lines. See [[*Commenting][Commenting]]. |
 | =gq= /motion/, =gw= /motion/ | Fills the paragraphs in the motion's lines to the fill column, as Fill Paragraph does; other elements in the lines are left alone. =gq= leaves the caret on the first non-blank of the last line, =gw= where it was. Extra spaces between words and at the ends of lines are kept, as Doom fills without squeezing them. =gqq= and =gww= act on lines. |
 
-=M-q= runs Fill Paragraph in normal, insert and visual state. In visual and visual-line state it fills every paragraph the selection touches and leaves the caret where it was; if the text changed, the editor returns to normal state, otherwise the selection stays.
+=M-q= runs Fill Paragraph in normal, insert and visual state. In visual and visual-line state it fills every paragraph the selection touches and leaves the caret where it was. In visual-block state it fills the paragraph at the caret, as evil does with =transient-mark-mode= off. In each, if the text changed, the editor returns to normal state, otherwise the selection stays.
 
 Counts multiply: =2d3w= deletes six words. Doubling an operator with a count acts on that many lines: =3dd=.
 
@@ -856,7 +856,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Clock In to Recent Entry… (=app.clock.in-recent=) | — | =⌃⌥⌘I= | — | Asks for an entry from the clock history and clocks in to it (=org-clock-in= with =C-u=). |
 | Clock In to Last Entry (=app.clock.in-last=) | =C-c C-x C-x= | — | =SPC m c I= (N) | Clocks in to the most recently clocked entry (=org-clock-in-last=). |
 | Clock Out (=app.clock.out=) | =C-c C-x C-o= | =⌃⇧⌘I= | =SPC m c o= (N) | Stops the clock (=org-clock-out=). |
-| Cancel Clock (=app.clock.cancel=) | =C-c C-x C-q= | — | =SPC m c c= (N) | Stops the clock and removes the running clock line (=org-clock-cancel=). |
+| Cancel Clock (=app.clock.cancel=) | =C-c C-x C-q= | =⌃⌘K= | =SPC m c c= (N) | Stops the clock and removes the running clock line (=org-clock-cancel=). |
 | Go to Clocked Entry (=app.clock.goto=) | =C-c C-x C-j= | =⌃⌘J= | =SPC m c g= (N) | Opens the entry the clock is running on, or the most recently clocked one (=org-clock-goto=). |
 | Go to Recent Clocked Entry… (=app.clock.goto-recent=) | — | =⌃⌥⌘J= | =SPC m c G= (N) | Asks for an entry from the clock history and opens it (=org-clock-goto= with =C-u=). |
 | Mark as Default Clock Task (=app.clock.default=) | — | — | =SPC m c d= (N) | Makes the current entry the default task, =d= in the clock selection (=org-clock-mark-default-task=). |
@@ -882,7 +882,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Insert Table Row (=org.table.insert-row=) | =M-S-<down>= | =⌃⌥⌘↓= | =M-J=, =SPC m b i r= (N) | In a table, inserts a row (=org-table-insert-row=). |
 | Delete Table Row (=org.table.kill-row=) | =M-S-<up>= | =⌃⌥⌘↑= | =M-K=, =SPC m b d r= (N) | In a table, deletes the row (=org-table-kill-row=). |
 | Insert Table Rule (=org.table.insert-hline=) | =C-c -= | =⌃⌘-= | =SPC m b -= (N), =SPC m b i h= (N) | In a table, inserts a horizontal rule (=org-table-insert-hline=). |
-| Recalculate Table Row (=org.table.recalc=) | =C-c *= | — | — | In a table, recalculates the current row (=org-table-recalculate=). |
+| Recalculate Table Row (=org.table.recalc=) | =C-c *= | =⌃⌘*= | — | In a table, recalculates the current row (=org-table-recalculate=). On a US keyboard, =⌃⌘*= is typed =⌃⇧⌘8=. |
 | Recalculate Table (=org.table.recalc-all=) | =C-c C-c= | =⌃⌘X= | =SPC m b r= (N) | Recalculates the whole table; =C-c C-c= and =⌃⌘X= run it on a =#+TBLFM= line (=org-table-recalculate= with =C-u=). |
 | Set Column Formula (=org.table.column-formula=) | ~C-c =~ | — | — | Asks for the column's formula, offering the stored one (=org-table-eval-formula=). |
 | Edit Table Field (=org.table.edit-field=) | =C-c `= | — | — | In a table, edits the field in a separate editor (=org-table-edit-field=). |
@@ -906,6 +906,8 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Act at Point (=org.dwim=) | — | — | =RET= (N) | Doom's =+org/dwim-at-point=: follows a link, runs a src block, recalculates or aligns a table, toggles a checkbox, or switches a heading between TODO and done. |
 | Run Source Block (=org.babel.execute=) | =C-c C-c= | =⌃⌘X= | — | In a src block, runs it and inserts the results (=org-babel-execute-src-block=). |
 | Tangle File (=org.babel.tangle=) | =C-c C-v t=, =C-c C-v C-t= | =⌃⌘V= | — | Writes the file's src blocks to their tangle targets (=org-babel-tangle=). |
+| Tangle Block (=org.babel.tangle-block=) | — | =⌃⇧⌘V= | — | Tangles only the src block at point (=org-babel-tangle= with =C-u=). |
+| Tangle Block's Target (=org.babel.tangle-target=) | — | =⌃⌥⌘V= | — | Tangles every block that writes to the same file as the block at point (=org-babel-tangle= with =C-u C-u=). |
 | Insert Structure Template (=org.structure-template=) | =C-c C-,= | — | — | Asks for a block type and inserts the block, or wraps the selection (=org-insert-structure-template=). |
 | Edit Block (=org.edit-special=) | =C-c '= | =⌃⌘'= | =SPC m '= (N) | Edits the src, example or export block at point in a separate editor (=org-edit-special=). |
 
@@ -971,8 +973,6 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Show or Hide Markup (=app.toggle-markup=) | Shows or hides link brackets and emphasis markers. View ▸ Show Markup, =⇧⌘M=. |
 | Show or Hide Line Numbers (=app.toggle-line-numbers=) | Shows or hides line numbers. View ▸ Show Line Numbers, =⇧⌘L=. |
 | Show or Hide Tab Bar (=app.toggle-tab-bar=) | Shows or hides the tab bar. View ▸ Show Tab Bar. |
-| Tangle Block (=org.babel.tangle-block=) | Tangles only the src block at point (=org-babel-tangle= with =C-u=). |
-| Tangle Block's Target (=org.babel.tangle-target=) | Tangles every block that writes to the same file as the block at point (=org-babel-tangle= with =C-u C-u=). |
 | Column View of File (=org.columns.global=) | Shows the column view of the whole file (=org-columns= with =C-u=). |
 | Remove Schedule (=org.schedule.remove=) | Removes =SCHEDULED= (=org-schedule= with =C-u=). |
 | Remove Deadline (=org.deadline.remove=) | Removes =DEADLINE= (=org-deadline= with =C-u=). |

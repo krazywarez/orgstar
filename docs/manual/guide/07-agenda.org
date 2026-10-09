@@ -383,6 +383,8 @@ Select a line with the arrow keys or the mouse. These keys work in the agenda wi
 
 =C-c C-w= brings the main window forward and asks for the target there, where the target list is searchable.
 
+=I= clocks in as Clock In does, so with no clock running it first asks about open clocks, in the main window's echo area. See [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]].
+
 Each action finds the entry again by its heading line before it changes anything, so an action on a line whose entry has since moved or changed reports that rather than editing the wrong text. Edits go through the open buffer when the file is open, and through the file otherwise.
 
 ** Bulk actions

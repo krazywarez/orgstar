@@ -203,9 +203,10 @@ Orgstar refuses some things with a message rather than doing something different
 
 Code blocks (see [[file:11-code-blocks.org][Code blocks]]):
 
-- =:cmdline= is supported only for shells, =dot=, =plantuml= and =mermaid=.
-- =:prologue=, =:epilogue= and =:post= aren't supported; =:stdin= and =:shebang= only for shells.
-- =:session= is supported only for shells and Python.
+- =:cmdline= is supported only for shells, =dot=, =plantuml=, =mermaid= and C, C++, D, Java, Fortran and Clojure.
+- =:post= isn't supported; =:prologue= and =:epilogue= only for C, C++, D, Java, Fortran and Clojure; =:stdin= and =:shebang= only for shells.
+- =:session= is supported only for shells and Python. C, C++, D, Java, Fortran and Clojure ignore it, as in Org.
+- Clojure runs with babashka or the Clojure CLI only; other =:backend= values are refused.
 - =:var= isn't supported for some languages; references with arguments, as =block(x=1)=, and using another source block's result in =:var= aren't supported.
 - Header arguments, =:var= values and =:cache= that need Lisp evaluated by Emacs are refused when Orgstar's interpreter can't evaluate them: "… is Lisp that only Emacs can evaluate; nothing was run."
 - Noweb references that run a block aren't supported.

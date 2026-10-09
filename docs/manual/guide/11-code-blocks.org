@@ -18,7 +18,7 @@ Lines inside a block that start with =*= or =#+= are protected with a leading co
 
 ** Syntax highlighting
 
-On the Mac, the code in a block is highlighted in the editor and in the block editor. Highlighting uses tree-sitter grammars for these language names:
+The code in a block is highlighted in the editor on the Mac and on iOS, in the iOS reader, and in the Mac's block editor, in the theme's =syntax-*= colours. Highlighting uses tree-sitter grammars for these language names:
 
 | Language names                  | Grammar    |
 |---------------------------------+------------|
@@ -41,7 +41,7 @@ On the Mac, the code in a block is highlighted in the editor and in the block ed
 | =toml=, =conf-toml=             | TOML       |
 | =lua=                           | Lua        |
 
-Names are matched without regard to case. Blocks in any other language show as plain monospaced text. The iOS app does not highlight code.
+Names are matched without regard to case. Blocks in any other language show as plain monospaced text.
 
 * Editing a block apart
 
@@ -95,12 +95,49 @@ On the Mac, Orgstar starts each interpreter through =/usr/bin/env=. Because an a
 | =R=                                                              | =Rscript -=                                         |
 | =awk=                                                            | =awk -f /dev/stdin=                                 |
 | =dot=, =plantuml=, =mermaid=                                     | =dot=, =plantuml=, =mmdc=; see Graphics below       |
+| =C=, =C++=, =cpp=, =D=, =java=, =fortran=, =clojure=             | A compiler, or =bb= or =clojure=; see Compiled languages below |
 
 For =ruby=, =js=, =javascript=, =R= and =awk=, =:cmd= names a different program. These languages always return their standard output, and =:var= is refused for them.
 
 Any other language is refused with "No way to run /language/ blocks yet."
 
 A run that takes longer than five minutes is stopped. Runs in a =:session= have no time limit.
+
+** Compiled languages
+
+On the Mac, =C=, =C++=, =cpp=, =D=, =java=, =fortran= and =clojure= blocks run as Org's =ob-C=, =ob-java=, =ob-fortran= and =ob-clojure= run them. Orgstar writes the body, expanded as tangling writes it (see Tangling below), to a source file in a temporary folder, compiles it and runs the program in the file's folder or =:dir=, with a newline on standard input. What the compiler prints is dropped.
+
+| Language        | Commands                                                                         |
+|-----------------+----------------------------------------------------------------------------------|
+| =C=             | =gcc -o bin FLAGS src LIBS=, then =bin CMDLINE=                                  |
+| =C++=, =cpp=    | =g++ -o bin FLAGS src LIBS=, then =bin CMDLINE=                                  |
+| =D=             | =rdmd FLAGS src CMDLINE=, which compiles and runs                                |
+| =fortran=       | =gfortran -o bin FLAGS src=, then =bin CMDLINE=                                  |
+| =java=          | =javac CMPFLAG Class.java=, then =java -cp dir CMDLINE Class CMDARGS=            |
+| =clojure=       | =bb src= (babashka) when =bb= is installed, otherwise =clojure -M src=           |
+
+FLAGS is =:flags=, LIBS is =:libs= or the inherited =LIBS= property, and CMDLINE is =:cmdline=. A Lisp list works for =:flags= and =:libs=; its items are joined with spaces.
+
+| Argument            | Languages             | Effect                                                                                  |
+|---------------------+-----------------------+-----------------------------------------------------------------------------------------|
+| =:flags=            | C, C++, D, Fortran    | Compiler options.                                                                       |
+| =:libs=             | C, C++                | Libraries, after the source file, such as =-lm=.                                        |
+| =:cmdline=          | C, C++, D, Fortran    | The program's arguments.                                                                |
+| =:cmdline=          | Java                  | Options for =java=, before the class name.                                              |
+| =:cmdargs=          | Java                  | The program's arguments.                                                                |
+| =:cmpflag=          | Java                  | Options for =javac=.                                                                    |
+| =:javac=, =:java=   | Java                  | The compiler and runtime commands, with options; =javac= and =java= by default.         |
+| =:classname=        | Java                  | The class to run; a dotted name gives its package.                                      |
+| =:backend=          | Clojure               | =babashka= runs =bb=, =clojure-cli= runs =clojure -M=.                                  |
+| =:includes=, =:defines=, =:namespaces=, =:imports=, =:main=, =:prologue=, =:epilogue=, =:ns=, =:var= | as for tangling | What the expansion writes; see Tangling below. |
+
+When =:imports= is absent, a D block reads the =IMPORTS= property where it is, and a Fortran block without =:includes= or =:defines= reads the =INCLUDES= and =DEFINES= properties, as Org does when it runs them. =:session= is ignored for these languages, as in Org.
+
+Java's defaults are =:results output= and =:dir .= (=org-babel-default-header-args:java=). The =.java= and =.class= files are written in the folder the block runs in, under folders for the class's package (=org/ex/Hello.java= for =:classname org.ex.Hello=), and are left there. The class is =:classname=, the body's own class with its =package=, or =Main=.
+
+Any other Clojure backend is refused: "The cider backend for clojure needs Emacs; Orgstar runs babashka or clojure-cli."
+
+Before a run, Orgstar checks that each program it needs is on the =PATH= described above. If not, the block fails with "gcc isn't installed, so C blocks can't run." (=g++= for C++, =rdmd=, =gfortran=, or the commands =:javac= and =:java= name). For Clojure without a =:backend=, the message is "Neither bb nor clojure is installed, so clojure blocks can't run."
 
 ** The trust prompt
 
@@ -170,6 +207,10 @@ What "value" means depends on the language:
 | Python in a =:session=  | The value of the last expression.                                                             |
 | Emacs Lisp              | The value of the last form.                                                                   |
 | =ruby=, =js=, =R=, =awk= | Standard output, always.                                                                     |
+| C, C++, D               | Standard output without its common indentation, read as a table as for shells.                |
+| Fortran                 | The same, with blank space around the output trimmed.                                         |
+| Java                    | With =:results value=, what the body returns; it runs as =main=, so it needs =return=. Lists and arrays become tables, with =null= rows as rules, and a returned string is written without its quotes. Java's default is =:results output=. |
+| Clojure                 | The value of the last form as Clojure prints it. A number, or a string without its quotes, is written as that; vectors, lists and maps are written as printed, not as tables. |
 
 Python lists of lists become tables, with =None= rows as rules. A flat list becomes a one-row table. Emacs Lisp lists become tables the same way, with =hline= for rules. Numbers are written the way Emacs prints them.
 
@@ -183,6 +224,18 @@ Python lists of lists become tables, with =None= rows as rules. A flat list beco
 | =file=               | Write a link to a file (see Results in files below).                       |
 
 =:results verbatim= on an Emacs Lisp value writes it as =prin1= would, with quotes around strings.
+
+With =:results output list=, the list made from the output is written as an example, in lines such as =: - a=, as Org writes it:
+
+#+BEGIN_SRC org
+,#+begin_src sh :results output list
+printf 'a\nb\n'
+,#+end_src
+
+,#+RESULTS:
+: - a
+: - b
+#+END_SRC
 
 ** Result formats
 
@@ -303,9 +356,9 @@ A string or number takes the place of the form. Lisp that the interpreter cannot
 | =:separator=      | text                                           | Column separator for tables in shell variables; a tab by default.                          |
 | =:hline-string=   | text                                           | What a rule becomes in a shell variable with =:hlines yes=; =hline= by default.            |
 | =:dir=            | folder                                         | Folder to run in, relative to the file's folder. It must exist.                            |
-| =:session=        | name, =none=                                   | Runs in a long-lived interpreter (see Sessions below). Shells and Python only.             |
+| =:session=        | name, =none=                                   | Runs in a long-lived interpreter (see Sessions below). Shells and Python only; ignored for the compiled languages. |
 | =:stdin=          | name of a table, list or block                 | Feeds the value to standard input. Shells only.                                            |
-| =:cmdline=        | arguments                                      | Command-line arguments. Shells, =dot=, =plantuml= and =mermaid= only.                      |
+| =:cmdline=        | arguments                                      | Command-line arguments. Shells, =dot=, =plantuml=, =mermaid= and the compiled languages only. |
 | =:shebang=        | =#!…= line                                     | Runs the block as a script with this first line. Shells only; also used by tangling.       |
 | =:padline=        | =no=                                           | No blank line after the shebang of a script, or between tangled blocks.                    |
 | =:python=         | program                                        | Python interpreter to use.                                                                 |
@@ -326,10 +379,10 @@ Orgstar does not run a block whose arguments it would handle differently from Em
 
 | Argument                    | Refused for                                     | Message                                                  |
 |-----------------------------+-------------------------------------------------+----------------------------------------------------------|
-| =:prologue=, =:epilogue=, =:post= | every language when running (tangling uses =:prologue= and =:epilogue=) | "=:prologue= isn't supported yet; nothing was run."      |
+| =:prologue=, =:epilogue=, =:post= | every language when running, except =:prologue= and =:epilogue= for the compiled languages (tangling uses =:prologue= and =:epilogue=) | "=:prologue= isn't supported yet; nothing was run."      |
 | =:stdin=, =:shebang=        | languages other than shells                     | "=:stdin= isn't supported yet; nothing was run."         |
-| =:cmdline=                  | languages other than shells and graphics        | "=:cmdline= isn't supported for /language/ yet; nothing was run." |
-| =:session=                  | languages other than shells and Python          | "=:session= isn't supported for /language/ yet; nothing was run." |
+| =:cmdline=                  | languages other than shells, graphics and the compiled languages | "=:cmdline= isn't supported for /language/ yet; nothing was run." |
+| =:session=                  | languages other than shells, Python and the compiled languages, which ignore it | "=:session= isn't supported for /language/ yet; nothing was run." |
 | =:var=                      | =ruby=, =js=, =javascript=, =R=, =awk=          | "=:var= isn't supported for /language/ yet."             |
 
 * Variables
@@ -373,7 +426,7 @@ How a value reaches the code depends on the language:
 | Python     | literal                 | list                           | list of lists, =None= for rules                              |
 | Emacs Lisp | =let=-bound value       | list                           | list of lists, =hline= for rules                             |
 
-For =shell= blocks, the bash forms are used when =SHELL= is bash.
+For =shell= blocks, the bash forms are used when =SHELL= is bash. C, C++, D, Java, Fortran and Clojure blocks get declarations as their expansion writes them; see Tangling below.
 
 #+BEGIN_SRC org
 ,#+NAME: kv
@@ -393,7 +446,7 @@ A table passed as a variable loses some of its structure first (=org-babel-disas
 - The first row is taken off as column names when =:colnames yes=, or when the table's only rule is under the first row. =:colnames no= keeps it as data.
 - The first column is taken off as row names when =:rownames yes=.
 
-If the result is a table of the same width (for columns) or height (for rows), the names are put back on it (=org-babel-reassemble-table=). =:colnames= and =:rownames= can also be Lisp lists of names to put on the result, such as =:colnames '("x" "y")=.
+If the result is a table of the same width (for columns) or height (for rows), the names are put back on it (=org-babel-reassemble-table=). Clojure results don't get them back, as in Org. =:colnames= and =:rownames= can also be Lisp lists of names to put on the result, such as =:colnames '("x" "y")=.
 
 #+BEGIN_SRC org
 ,#+NAME: tbl
@@ -445,7 +498,7 @@ With =:cache yes=, Orgstar computes a SHA-1 hash of the block's header arguments
 
 Change the block or its arguments and it runs again. Results inserted with =append= or =prepend= carry no hash. Inline blocks are not cached. A cached block that has Lisp in its header arguments the interpreter cannot evaluate is refused.
 
-C, C++, D, Fortran and Clojure blocks don't run in Orgstar, but their hash is taken over the body as tangling expands it (see Tangling below), as Emacs does. A result Emacs wrote for such a block with =:cache yes= is recognised as current, and =C-c C-c= shows it.
+The hash of a C, C++, D, Java, Fortran or Clojure block is taken over the body as the language expands it (see Tangling below), with the =IMPORTS=, =INCLUDES= and =DEFINES= properties where the block is, and Java's default header arguments, as Emacs does. A result Emacs wrote for such a block with =:cache yes= is recognised as current, and =C-c C-c= shows it.
 
 * Noweb
 
@@ -561,11 +614,11 @@ digraph { a -> b }
 
 Tangling writes source blocks to the files their =:tangle= argument names (=org-babel-tangle=).
 
-| Command                 | Emacs and Doom              | Mac    | What it tangles                                   |
-|-------------------------+-----------------------------+--------+---------------------------------------------------|
-| Tangle File             | =C-c C-v t=, =C-c C-v C-t=  | =⌃⌘V=  | Every block in the file                            |
-| Tangle Block            | none                        | none   | The block at the caret (Emacs: =C-u C-c C-v t=)    |
-| Tangle Block's Target   | none                        | none   | Every block going to the same file as the one at the caret (Emacs: =C-u C-u C-c C-v t=) |
+| Command                 | Emacs and Doom              | Mac     | What it tangles                                   |
+|-------------------------+-----------------------------+---------+---------------------------------------------------|
+| Tangle File             | =C-c C-v t=, =C-c C-v C-t=  | =⌃⌘V=   | Every block in the file                            |
+| Tangle Block            | none                        | =⌃⇧⌘V=  | The block at the caret (Emacs: =C-u C-c C-v t=)    |
+| Tangle Block's Target   | none                        | =⌃⌥⌘V=  | Every block going to the same file as the one at the caret (Emacs: =C-u C-u C-c C-v t=) |
 
 All three are in the Org menu and the command palette. Tangling uses the text in the editor, saved or not, and the message area reports "Tangled /N/ code blocks from /file/".
 
@@ -614,9 +667,9 @@ A table in =:var= loses its first row when its only rule is under that row, or w
 | Language       | Written                                                                                                      |
 |----------------+--------------------------------------------------------------------------------------------------------------|
 | =C=, =C++=, =cpp= | =#include= lines from =:includes=, =#define= lines from =:defines=, =using namespace= lines from =:namespaces=, the =:var= declarations with table sizes and column-name helpers, then the body between =:prologue= and =:epilogue=, wrapped in =int main()= unless it has a =main= or =:main no= is given. |
-| =D=            | =module mmm;=, =import= lines from =:imports= plus =std.stdio= and =std.conv=, the =:var= declarations, and the body wrapped in =int main()= as for C. |
+| =D=            | =module mmm;=, =import= lines from =:imports= (or the =IMPORTS= property, except when tangling) plus =std.stdio= and =std.conv=, the =:var= declarations, and the body wrapped in =int main()= as for C. |
 | =java=         | The body between =:prologue= and =:epilogue=, wrapped in a =main= method when it has no method and in a class when it has none. The class is named by =:classname= or the body's own class; a dotted =:classname= adds a =package= line. =:imports= adds =import= lines, and =:var= values become static fields. |
-| =fortran=      | =#include= and =#define= lines from =:includes= and =:defines=, then the =:var= declarations and the body in =program main=, unless the body has its own =program= statement (then =:var= is refused) or =:main no= is given. |
+| =fortran=      | =#include= and =#define= lines from =:includes= and =:defines= (or the =INCLUDES= and =DEFINES= properties, except when tangling), then the =:var= declarations and the body in =program main=, unless the body has its own =program= statement (then =:var= is refused) or =:main no= is given. |
 | =clojure=      | =(ns …)= from =:ns=, the body in a =let= of the =:var= values, and a printer around it unless =:results output=. |
 
 With =:hlines yes=, a table that keeps rules is refused for C, C++, D and Fortran; Java writes =null= for each rule.
@@ -657,7 +710,7 @@ Tangling stops, writes nothing and says why when:
 
 * On iOS
 
-- Only Emacs Lisp blocks run, in Orgstar's own interpreter. Any other language fails with "/language/ blocks need the Mac to run.", and so does an Emacs Lisp block whose =:var= refers to a block in another language.
+- Only Emacs Lisp blocks run, in Orgstar's own interpreter. Any other language, compiled languages included, fails with "/language/ blocks need the Mac to run." (for example "C blocks need the Mac to run."), and so does an Emacs Lisp block whose =:var= refers to a block in another language.
 - There are no sessions and no graphics.
 - The trust prompt works the same way, with its own =trusted.json= on the device.
 - There is no cancel command.

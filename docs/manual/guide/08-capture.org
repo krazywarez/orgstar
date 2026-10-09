@@ -139,7 +139,7 @@ Placement follows =org-capture-place-entry= and its siblings, including how blan
 
 ** Clocking while capturing
 
-With =clock-in = true=, the captured entry gets a clock entry from when the template was filled to when you filed it, as Emacs clocks in while the capture buffer is open and out on finalize. With =clock-keep = true= as well, the clock keeps running in the new entry. With =clock-resume = true=, the clock that was running before the capture starts again after filing. See [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]].
+With =clock-in = true=, the captured entry gets a clock entry from when the template was filled to when you filed it, as Emacs clocks in while the capture buffer is open and out on finalize. With =clock-keep = true= as well, the clock keeps running in the new entry. With =clock-resume = true=, the clock that was running before the capture starts again after filing. With no clock running, clocking in to the entry first asks about open clocks, as Clock In does, as of when the capture began; on the Mac the questions are in the main window's echo area. See [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]].
 
 * Template escapes
 
