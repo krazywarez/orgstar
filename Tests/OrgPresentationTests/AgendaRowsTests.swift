@@ -86,6 +86,26 @@ struct AgendaRowsTests {
         #expect(!rent.isEvent && rent.item != nil)
     }
 
+    @Test func logRowsKeepTheDurationAndState() {
+        let text = """
+            * DONE Write report
+            CLOSED: [2026-10-05 Mon 11:00]
+            :LOGBOOK:
+            - State "DONE"       from "TODO"       [2026-10-05 Mon 11:00]
+            CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:30] =>  1:30
+            :END:
+            """
+        var options = AgendaOptions()
+        options.logMode = true
+        options.logItems = ["closed", "clock", "state"]
+        let source = AgendaSource(path: "w.org", text: text, defaults: OrgSettings.default.withTodoKeywords("TODO | DONE")!)
+        let items = Agenda.list([source], start: Self.today, days: 1, today: Self.today, now: (12, 0), options: options)[0].items
+        let rows = items.compactMap { AgendaRow(item: $0, day: Self.today, today: Self.today) }
+        #expect(rows.first { $0.item?.kind == .clock }?.detail == "1:30")
+        #expect(rows.first { $0.item?.kind == .state }?.detail == "DONE")
+        #expect(rows.first { $0.item?.kind == .closed }?.detail == nil)
+    }
+
     @Test func guttersOnOtherDays() {
         let later = Self.rows(day: Self.today + 4)
         #expect(later["Renew passport"]?.gutter == "Due" && later["Renew passport"]?.status == .normal)

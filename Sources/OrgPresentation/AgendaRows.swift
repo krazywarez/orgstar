@@ -76,6 +76,8 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
     public let priority: String?
     /// The statistics cookie: `1/3`, `50%`.
     public let progress: String?
+    /// Log mode: the time clocked (`1:30`) or the state set (`DONE`).
+    public let detail: String?
     /// `HHMM` of the start and the end, when timed.
     public let start: Int?
     public let end: Int?
@@ -146,6 +148,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         self.isDone = item.isDone
         self.priority = item.priorityLetter
         self.progress = item.progress
+        self.detail = item.kind == .clock || item.kind == .state ? Self.logDetail(item.extra) : nil
         self.start = timed?.0
         self.end = timed?.1
         self.planningDay = planning
@@ -184,6 +187,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         self.isDone = false
         self.priority = nil
         self.progress = nil
+        self.detail = nil
         self.start = start
         self.end = end
         self.planningDay = nil
@@ -192,7 +196,16 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
     }
 
     static let rangeDay = try! NSRegularExpression(pattern: "^\\(([0-9]+/[0-9]+)\\)")
+    static let logParen = try! NSRegularExpression(pattern: "\\(([^)]+)\\)")
     static let rangeEnd = try! NSRegularExpression(pattern: "-\\+?([0-9]{1,2}):([0-9]{2})")
+
+    /// The text in parentheses of a log row's `extra`: `Clocked:   (1:30)`.
+    static func logDetail(_ extra: String) -> String? {
+        let ns = extra as NSString
+        guard let m = logParen.firstMatch(in: extra, range: NSRange(location: 0, length: ns.length)) else { return nil }
+        let text = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
+        return text.isEmpty ? nil : text
+    }
 
     /// The end of a `%t` time range (` 9:00-10:30`), as `HHMM`; past midnight (`+1:00`) adds 24 hours.
     static func endTime(_ time: String) -> Int? {
@@ -223,6 +236,16 @@ public struct AgendaDayGroup: Sendable, Equatable, Identifiable {
 
     public var id: Int { day }
     public var isEmpty: Bool { overdue.isEmpty && rows.isEmpty }
+
+    /// `Today`, `Tomorrow`, `Yesterday`, or nil.
+    public func relativeName(today: Int) -> String? {
+        switch day - today {
+        case 0: "Today"
+        case 1: "Tomorrow"
+        case -1: "Yesterday"
+        default: nil
+        }
+    }
 
     /// Midnight starting the day.
     public func date(calendar: Calendar) -> Date {

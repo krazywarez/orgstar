@@ -17,6 +17,7 @@ struct AgendaScreen: View {
     @Environment(ClockModel.self) private var clock
     @Environment(MobileModel.self) private var model
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
     @State private var tick = 0
     /// The time the now line shows, kept to the minute while the agenda is open.
     @State private var now = Date()
@@ -261,10 +262,11 @@ struct AgendaScreen: View {
 
     private func header(_ group: AgendaDayGroup) -> some View {
         let day = date(group.day).formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        let color = group.isToday ? todayColor : group.day < agenda.today ? Color.secondary : themed(theme.color("agenda-date", dark: isDark), .primary)
         return HStack(alignment: .firstTextBaseline) {
-            Text(group.isToday ? "Today · " + day : day)
+            Text(group.relativeName(today: agenda.today).map { $0 + " · " + day } ?? day)
                 .font(.subheadline.weight(group.isToday ? .bold : .semibold))
-                .foregroundStyle(group.isToday ? todayColor : .primary)
+                .foregroundStyle(color)
             Spacer()
             Button("Add to \(day)", systemImage: "plus.circle") { model.captureRequest = CaptureRequest(day: group.day) }
                 .labelStyle(.iconOnly)
@@ -305,7 +307,7 @@ struct AgendaScreen: View {
     }
 
     private func weekStart(_ day: Int) -> Int {
-        day - (Days.weekday(day) - (Calendar.current.firstWeekday - 1) + 7) % 7
+        day - (Days.weekday(day) + 6) % 7
     }
 
     /// Shows `range` around `day`; nil returns to the configured span.
@@ -403,6 +405,14 @@ struct AgendaScreen: View {
         Group {
             if let item = row.item, let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
                 NavigationLink(value: ReaderRoute.offset(path, offset)) { AgendaRowView(row: row, day: day, theme: theme, dark: isDark) }
+            } else if let event = row.event {
+                // Calendar can't be asked for one event by URL; it opens on the event's day.
+                Button {
+                    if let url = URL(string: "calshow:\(event.start.timeIntervalSinceReferenceDate)") { openURL(url) }
+                } label: {
+                    AgendaRowView(row: row, day: day, theme: theme, dark: isDark)
+                }
+                .tint(.primary)
             } else {
                 AgendaRowView(row: row, day: day, theme: theme, dark: isDark)
             }
@@ -416,7 +426,7 @@ struct AgendaScreen: View {
         .swipeActions(edge: .leading) {
             if canReschedule(row), let item = row.item {
                 Button("Tomorrow", systemImage: "sunrise") { reschedule(row, item, to: agenda.today + 1) }.tint(.orange)
-                Button("Next Week", systemImage: "calendar.badge.plus") { reschedule(row, item, to: agenda.today + 7) }.tint(.indigo)
+                Button("Next Week", systemImage: "calendar.badge.plus") { reschedule(row, item, to: weekStart(agenda.today) + 7) }.tint(.indigo)
                 Button("Pick Date", systemImage: "calendar") { rescheduling = row }.tint(.gray)
             }
         }
@@ -426,7 +436,7 @@ struct AgendaScreen: View {
                 if canReschedule(row) {
                     Menu("Reschedule", systemImage: "calendar.badge.clock") {
                         Button("Tomorrow") { reschedule(row, item, to: agenda.today + 1) }
-                        Button("Next Week") { reschedule(row, item, to: agenda.today + 7) }
+                        Button("Next Week") { reschedule(row, item, to: weekStart(agenda.today) + 7) }
                         Button("Pick Date…") { rescheduling = row }
                     }
                 }
@@ -572,7 +582,7 @@ struct AgendaRowView: View {
                         Circle().fill(categoryColor).frame(width: 7, height: 7)
                         Text(row.category).lineLimit(1).layoutPriority(1)
                     }
-                    if let progress = row.progress {
+                    ForEach([row.progress, row.detail].compactMap { $0 }, id: \.self) { progress in
                         Text(progress).monospacedDigit()
                             .padding(.horizontal, 5)
                             .background(.quaternary.opacity(0.7), in: Capsule())

@@ -160,7 +160,7 @@ The Agenda tab shows the agenda over all your folders, with the span and start d
 - + on a day's header :: captures an entry scheduled on that day (see [[file:08-capture.org][Capture]]).
 - Tap :: an entry to read it, at its heading.
 - Swipe left :: on a TODO entry for Done, which sets the first done keyword of its sequence, or Next State.
-- Swipe right :: for Tomorrow, Next Week or Pick Date, which move the entry's scheduled date, or its deadline on a deadline row.
+- Swipe right :: for Tomorrow, Next Week (next Monday) or Pick Date, which move the entry's scheduled date, or its deadline on a deadline row.
 - Touch and hold :: an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive….
 
 Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.
@@ -311,8 +311,9 @@ Changes to the files apply as they sync, and again each time you return to the a
 
 Stop Using This Folder returns every setting to its default.
 
-The Calendar section is the one place the app changes a setting itself:
+The Agenda and Calendar sections are the only places the app changes a setting itself:
 
+- Show days without entries :: turns =org-agenda-show-all-dates= on or off.
 - Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; Orgstar only reads. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
 - The calendars :: tap one to show or hide its events (=calendar-event-calendars=). With every calendar checked the setting is empty, so calendars added later show too.
 

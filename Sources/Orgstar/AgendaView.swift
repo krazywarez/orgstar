@@ -64,7 +64,7 @@ struct AgendaView: View {
     @State private var spanKind: AgendaSpan?
     @State private var showingDatePicker = false
     @State private var pickedDate = Date()
-    @State private var overdueShown = true
+    @AppStorage("agendaOverdueExpanded") private var overdueShown = true
     @State private var hovered: String?
     @FocusState private var focused: Bool
     @AppStorage("agendaSpan") private var span = 10
@@ -350,7 +350,7 @@ struct AgendaView: View {
         let past = group.day < agenda.today
         let color = group.isToday ? todayColor : past ? Color.secondary : theme.color("agenda-date") ?? .primary
         return header {
-            if let relative = Self.relativeName(group.day, today: agenda.today) {
+            if let relative = group.relativeName(today: agenda.today) {
                 Text(relative)
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(color)
@@ -612,15 +612,6 @@ struct AgendaView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = pattern
         return formatter.string(from: date(day))
-    }
-
-    static func relativeName(_ day: Int, today: Int) -> String? {
-        switch day - today {
-        case 0: "Today"
-        case 1: "Tomorrow"
-        case -1: "Yesterday"
-        default: nil
-        }
     }
 
     static func hhmm(_ date: Date) -> Int {
@@ -1170,7 +1161,7 @@ struct AgendaRowView: View {
                 .foregroundStyle(row.isDone ? AnyShapeStyle(.secondary) : AnyShapeStyle(theme.color("foreground") ?? .primary))
                 .lineLimit(1)
                 .truncationMode(.tail)
-            if let progress = row.progress {
+            ForEach([row.progress, row.detail].compactMap { $0 }, id: \.self) { progress in
                 Text(progress)
                     .font(.system(size: 10, weight: .semibold).monospacedDigit())
                     .foregroundStyle(.secondary)

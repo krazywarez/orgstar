@@ -32,6 +32,12 @@ struct SettingsScreen: View {
             } footer: {
                 Text("A folder with config.toml and capture.toml, such as a synced copy of ~/.config/orgstar from your Mac. Changes to them apply as they sync.")
             }
+            Section("Agenda") {
+                let _ = model.settingsVersion
+                Toggle("Show days without entries", isOn: Binding {
+                    OrgPreferences.agendaShowAllDates()
+                } set: { model.set("agendaShowAllDates", to: .bool($0)) })
+            }
             calendarSection
             Section("In use") {
                 let _ = model.settingsVersion
@@ -101,9 +107,12 @@ struct SettingsScreen: View {
     }
 
     /// Shows or hides a calendar's events; with every calendar checked the setting is empty.
+    /// The last checked calendar stays checked, as an empty list means every calendar.
     private func toggle(_ title: String, shown: Bool, chosen: [String]) {
-        var titles = chosen.isEmpty ? calendars.map(\.title) : chosen
-        if shown { titles.removeAll { $0 == title } } else { titles.append(title) }
+        var titles = calendars.filter { CalendarEvents.chooses(id: $0.id, title: $0.title, chosen: chosen) }.map(\.title)
+        titles.removeAll { $0 == title }
+        if !shown { titles.append(title) }
+        guard !titles.isEmpty else { return }
         let value = Set(titles) == Set(calendars.map(\.title)) ? "" : titles.joined(separator: ", ")
         model.set("calendarEventCalendars", to: .string(value))
     }

@@ -493,7 +493,7 @@ A keyword without its own color takes its class's color. Case doesn't matter in 
 | Other open   | =todo=           | Any other keyword that isn't done                                                |
 | Other done   | =done=           | Any other done keyword                                                           |
 
-The classes color keywords in the agenda and its widgets on both platforms, and in the iOS editor and reader. The Mac editor colors keywords with =todo= and =done= only.
+The classes color keywords in the editors, the iOS reader, the agenda and its widgets.
 
 A category without its own color gets a hue worked out from its name, the same on every run and device, at a lightness that reads on the appearance's background.
 

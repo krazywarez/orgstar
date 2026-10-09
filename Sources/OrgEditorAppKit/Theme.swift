@@ -89,7 +89,7 @@ struct Theme {
             if let custom = spec.todo[keyword] {
                 storage.addAttribute(.foregroundColor, value: Self.dynamic(custom, custom), range: range)
             } else {
-                fg(role == .todo ? "todo" : "done")
+                fg(ThemeSpec.TodoClass.of(keyword, isDone: role == .done).key)
             }
         case .priority: fg("priority")
         case .tags: fg("tags")
