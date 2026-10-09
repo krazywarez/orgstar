@@ -121,7 +121,7 @@ struct BabelCacheTests {
         #expect(job.directory == (emacs[0] as NSString).deletingLastPathComponent + "/")
     }
 
-    /// Languages that don't run hash the body as their `org-babel-expand-body:LANG` writes it.
+    /// The compiled languages hash the body as their `org-babel-expand-body:LANG` writes it.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func expandedLanguagesHashLikeEmacs() throws {
         let texts = [
@@ -130,13 +130,18 @@ struct BabelCacheTests {
             "#+begin_src D :cache yes :var s=\"x\"\nwriteln(s);\n#+end_src\n",
             "#+begin_src fortran :cache yes :var n=3\nprint *, n\n#+end_src\n",
             "#+begin_src clojure :cache yes :var n=3\n(+ n 1)\n#+end_src\n",
+            "#+begin_src java :cache yes\nSystem.out.println(1);\n#+end_src\n",
+            "#+begin_src java :cache yes :results value :var n=3 :classname pkg.Main :imports java.util.Map\nreturn n;\n#+end_src\n",
+            "#+begin_src java :cache yes :dir /tmp :results output silent\nSystem.out.println(1);\n#+end_src\n",
+            "* H\n:PROPERTIES:\n:IMPORTS: std.math\n:END:\n#+begin_src D :cache yes\nwriteln(sqrt(2.0));\n#+end_src\n",
+            "* H\n:PROPERTIES:\n:INCLUDES: \"x.inc\"\n:END:\n#+begin_src fortran :cache yes\nprint *, 1\n#+end_src\n",
         ]
         for text in texts {
             let emacs = try EmacsOracle.evaluate(text, """
-                (progn (require 'ob-C) (require 'ob-fortran) (require 'ob-clojure) (setq org-babel-clojure-backend 'babashka)
+                (progn (require 'ob-C) (require 'ob-java) (require 'ob-fortran) (require 'ob-clojure) (setq org-babel-clojure-backend 'babashka)
                   (goto-char (point-min)) (search-forward "#+begin_src")
                   (list (org-babel-sha1-hash)))
-                """)
+                """, prelude: "(setq-default indent-tabs-mode nil)")
             let cached = text + "\n#+RESULTS[\(emacs[0])]:\n: 42\n"
             let caret = (cached as NSString).range(of: "#+begin_src").location + 2
             let context = EditContext(revision: 0, text: cached, tree: OrgParser.parse(cached), selection: [caret..<caret])

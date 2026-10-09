@@ -1,18 +1,22 @@
 import Foundation
 
 // `org-babel-expand-body:LANG` of ob-C (C, C++, cpp, D), ob-java, ob-fortran and ob-clojure
-// (Org 9.8.7), which tangling and the `:cache` hash use. These languages don't run.
+// (Org 9.8.7), which tangling, the `:cache` hash and runs use, and their `org-babel-execute:LANG`:
+// a script that writes the expansion to a file, compiles it and runs it.
 
 extension Babel {
     static let expandedLanguages: Set<String> = ["C", "C++", "cpp", "D", "java", "fortran", "clojure"]
 
     /// The body as the language's `org-babel-expand-body:` writes it, or nil for other languages.
-    static func languageExpansion(_ body: String, language: String, tables: Tables, params: Params) throws -> String? {
+    /// `properties` gives inherited properties where the block is, which D's and Fortran's
+    /// expansions read; tangling reads them outside the Org buffer, so never.
+    static func languageExpansion(_ body: String, language: String, tables: Tables, params: Params,
+                                  properties: (String) -> String? = { _ in nil }) throws -> String? {
         switch language {
         case "C", "C++", "cpp": return try expandC(body, d: false, tables: tables, params: params)
-        case "D": return try expandC(body, d: true, tables: tables, params: params)
+        case "D": return try expandC(body, d: true, tables: tables, params: params, properties: properties)
         case "java": return try expandJava(body, vars: tables.vars, params: params)
-        case "fortran": return try expandFortran(body, vars: tables.vars, params: params)
+        case "fortran": return try expandFortran(body, vars: tables.vars, params: params, properties: properties)
         case "clojure": return expandClojure(body, vars: tables.vars, params: params)
         default: return nil
         }
@@ -47,6 +51,37 @@ extension Babel {
         if Elisp.isNil(value) { return .items([]) }
         guard case .list(let items) = value else { throw Failure.message("\(key) \(raw) isn't a list of names.") }
         return .items(items.map { $0.string ?? Elisp.printed($0) })
+    }
+
+    /// `org-babel-read` of a property value: Lisp evaluated, a quoted string read, else the
+    /// string.
+    static func propertyValue(_ value: String?) throws -> HeaderValue? {
+        guard let value else { return nil }
+        guard let first = value.first, "('`[".contains(first) else {
+            guard case .string(let s) = read(value) else { return .string(value) }
+            return .string(s)
+        }
+        guard let form = try? LispReader.readFirst(value).sexp, let result = try? Elisp().eval(form) else {
+            throw Failure.message("The property value \(value) is Lisp that only Emacs can evaluate.")
+        }
+        if let s = result.string { return .string(s) }
+        if Elisp.isNil(result) { return .items([]) }
+        guard case .list(let items) = result else { throw Failure.message("The property value \(value) isn't a list of names.") }
+        return .items(items.map { $0.string ?? Elisp.printed($0) })
+    }
+
+    /// `(org-entry-get nil KEY t)` under `heading`, or before any: the nearest value from
+    /// `#+PROPERTY` down the outline, with `KEY+` additions.
+    static func inheritedProperty(_ key: String, heading: Int?, model: DocumentModel) -> String? {
+        var levels = [model.fileProperties]
+        if let heading { levels += (model.ancestors(of: heading) + [heading]).map { model.headings[$0].properties } }
+        var value: String?
+        for entries in levels {
+            for entry in entries where entry.key.uppercased() == key.uppercased() {
+                value = entry.additive ? [value, entry.value].compactMap { $0 }.joined(separator: " ") : entry.value
+            }
+        }
+        return value
     }
 
     enum BaseType { case integer, float, string }
@@ -106,7 +141,7 @@ extension Babel {
         """
 
     /// `org-babel-C-expand-C` and `org-babel-C-expand-D`.
-    static func expandC(_ body: String, d: Bool, tables: Tables, params: Params) throws -> String {
+    static func expandC(_ body: String, d: Bool, tables: Tables, params: Params, properties: (String) -> String? = { _ in nil }) throws -> String {
         let vars = tables.vars
         func typeName(_ type: BaseType?) throws -> String {
             switch type {
@@ -160,10 +195,10 @@ extension Babel {
         var body = body
         var parts: [String] = []
         if d {
-            // `:imports` and the inherited IMPORTS property, which tangling reads outside the
-            // Org buffer, so never.
+            // `:imports`, or the inherited IMPORTS property.
             parts.append("module mmm;")
-            parts.append(((try headerValue(":imports", params)?.words ?? []) + ["std.stdio", "std.conv"]).map { "import \($0);" }.joined(separator: "\n"))
+            let imports = try headerValue(":imports", params) ?? propertyValue(properties("imports"))
+            parts.append(((imports?.words ?? []) + ["std.stdio", "std.conv"]).map { "import \($0);" }.joined(separator: "\n"))
         } else {
             let includes = try headerValue(":includes", params)?.words ?? []
             parts.append(includes.map { $0.hasPrefix("<") ? "#include \($0)" : "#include \"\($0)\"" }.joined(separator: "\n"))
@@ -326,7 +361,7 @@ extension Babel {
     // MARK: - Fortran
 
     /// `org-babel-expand-body:fortran`.
-    static func expandFortran(_ body: String, vars: [(String, VarValue)], params: Params) throws -> String {
+    static func expandFortran(_ body: String, vars: [(String, VarValue)], params: Params, properties: (String) -> String? = { _ in nil }) throws -> String {
         let prologue = params.single[":prologue"]
         let epilogue = params.single[":epilogue"]
         // `%S`.
@@ -352,7 +387,6 @@ extension Babel {
                 return "real, parameter :: \(name)(\(items.count)) = (/" + items.map(printed).joined(separator: ", ") + "/)\n"
             }
         }
-        // The INCLUDES and DEFINES properties are read outside the Org buffer when tangling.
         func items(_ value: HeaderValue?) -> [String] {
             switch value {
             case .string(let s): [s]
@@ -360,8 +394,8 @@ extension Babel {
             case nil: []
             }
         }
-        let includes = items(try headerValue(":includes", params))
-        let defines = items(try headerValue(":defines", params))
+        let includes = items(try headerValue(":includes", params) ?? propertyValue(properties("includes")))
+        let defines = items(try headerValue(":defines", params) ?? propertyValue(properties("defines")))
         let main: String
         if params.single[":main"] == "no" {
             main = (prologue.map { $0 + "\n" } ?? "") + body + (epilogue.map { "\n" + $0 + "\n" } ?? "")
@@ -397,5 +431,210 @@ extension Babel {
             ? "(require '[clojure.pprint :refer [pprint]]) (pprint "
             : "(prn "
         return printer + "(binding [*out* (java.io.StringWriter.)]" + expanded + "))"
+    }
+
+    // MARK: - Running
+
+    /// A compiled language's run: `source` on the script's standard input, which the script
+    /// writes to a file, compiles and runs with a newline as standard input, as
+    /// `org-babel-eval` gives each command; the compiler's output is dropped.
+    struct CompiledRun {
+        let source: String
+        let script: String
+        let programs: [[String]]
+    }
+
+    /// `org-babel-C-execute`, `org-babel-execute:java`, `org-babel-execute:fortran` and
+    /// `org-babel-execute:clojure` with the babashka or Clojure CLI backend, with Org's
+    /// default compilers.
+    static func compiledRun(language: String, body: String, tables: Tables, params: Params, properties: (String) -> String?) throws -> CompiledRun {
+        func quoted(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\"'\"'") + "'" }
+        /// A string, or a Lisp list's items joined by spaces.
+        func joined(_ value: HeaderValue?) -> String {
+            switch value {
+            case .string(let s): s
+            case .items(let items): items.joined(separator: " ")
+            case nil: ""
+            }
+        }
+        func command(_ s: String) -> String { String(s.prefix { !$0.isWhitespace }) }
+        let expanded = try languageExpansion(body, language: language, tables: tables, params: params, properties: properties)!
+        let cmdline = params.single[":cmdline"].map { " " + $0 } ?? ""
+        let flags = joined(try headerValue(":flags", params))
+        let start = "d=$(mktemp -d) || exit 1\n"
+        let end = "s=$?\nrm -rf \"$d\"\nexit $s\n"
+        switch language {
+        case "C", "C++", "cpp":
+            let (compiler, ext) = language == "C" ? ("gcc", "c") : ("g++", "cpp")
+            let libs = joined(try headerValue(":libs", params) ?? propertyValue(properties("libs")))
+            let script = start + "cat > \"$d/C-src.\(ext)\"\necho | \(compiler) -o \"$d/C-bin\" \(flags) \"$d/C-src.\(ext)\" \(libs) > /dev/null\n"
+                + "echo | \"$d/C-bin\"\(cmdline)\n" + end
+            return CompiledRun(source: expanded, script: script, programs: [[compiler]])
+        case "D":
+            // rdmd compiles and runs.
+            let script = start + "cat > \"$d/C-src.d\"\necho | rdmd \(flags) \"$d/C-src.d\"\(cmdline)\n" + end
+            return CompiledRun(source: expanded, script: script, programs: [["rdmd"]])
+        case "fortran":
+            let script = start + "cat > \"$d/fortran-src.F90\"\necho | gfortran -o \"$d/fortran-bin\" \(flags) \"$d/fortran-src.F90\" > /dev/null\n"
+                + "echo | \"$d/fortran-bin\"\(cmdline)\n" + end
+            return CompiledRun(source: expanded, script: script, programs: [["gfortran"]])
+        case "java":
+            let javac = params.single[":javac"] ?? "javac"
+            let java = params.single[":java"] ?? "java"
+            let fullName = params.single[":classname"] ?? javaClassName(body)
+            let className = fullName.components(separatedBy: ".").last!
+            let packageName = fullName.contains(".") ? (fullName as NSString).deletingPathExtension : nil
+            // Without `:dir` (Java's default is "."), in a temporary folder without the
+            // package; else in the run's folder, under the package's folders.
+            let fromTemp = params.single[":dir"] == nil
+            let source = javaForEvaluation(expanded, suppressPackage: fromTemp, value: !params.results.contains("output"))
+            let cmpflag = params.single[":cmpflag"] ?? ""
+            let flags = params.single[":cmdline"] ?? ""
+            let cmdargs = params.single[":cmdargs"] ?? ""
+            let script: String
+            if fromTemp {
+                script = start + "cat > \"$d/\(className).java\"\n"
+                    + "echo | { \(javac) \(cmpflag) \"$d/\(className).java\" && \(java) -cp \"$d/\" \(flags) \(className) \(cmdargs); }\n" + end
+            } else {
+                let folder = packageName.map { $0.replacingOccurrences(of: ".", with: "/") + "/" } ?? ""
+                let file = quoted(folder + className + ".java")
+                script = (folder.isEmpty ? "" : "mkdir -p \(quoted(folder))\n") + "cat > \(file)\n"
+                    + "echo | { \(javac) \(cmpflag) \(file) && \(java) -cp \"$PWD/\" \(flags) \(fullName) \(cmdargs); }\n"
+            }
+            return CompiledRun(source: source, script: script, programs: [[command(javac)], [command(java)]])
+        case "clojure":
+            let file = "\"$d/clojure-cmd-script.clj\""
+            let run: String
+            let programs: [String]
+            switch params.single[":backend"] {
+            case nil:
+                // `org-babel-clojure-backend`: babashka when installed, else the Clojure CLI.
+                run = "if command -v bb > /dev/null 2>&1; then echo | bb \(file); else echo | clojure -M \(file); fi\n"
+                programs = ["bb", "clojure"]
+            case "babashka":
+                run = "echo | bb \(file)\n"
+                programs = ["bb"]
+            case "clojure-cli":
+                run = "echo | clojure -M \(file)\n"
+                programs = ["clojure"]
+            case let backend?:
+                throw Failure.message("The \(backend) backend for clojure needs Emacs; Orgstar runs babashka or clojure-cli.")
+            }
+            return CompiledRun(source: expanded, script: start + "cat > \(file)\n" + run + end, programs: [programs])
+        default:
+            throw Failure.message("No way to run \(language) blocks yet.")
+        }
+    }
+
+    /// `org-babel-java--result-wrapper`, writing to the result file.
+    static let javaResultWrapper = """
+
+            public static String __toString(Object val) {
+                if (val instanceof String) {
+                    return "\\"" + val + "\\"";
+                } else if (val == null) {
+                    return "null";
+                } else if (val.getClass().isArray()) {
+                    StringBuffer sb = new StringBuffer();
+                    Object[] vals = (Object[])val;
+                    sb.append("[");
+                    for (int ii=0; ii<vals.length; ii++) {
+                        sb.append(__toString(vals[ii]));
+                        if (ii<vals.length-1)
+                            sb.append(",");
+                    }
+                    sb.append("]");
+                    return sb.toString();
+                } else if (val instanceof List) {
+                    StringBuffer sb = new StringBuffer();
+                    List vals = (List)val;
+                    sb.append("[");
+                    for (int ii=0; ii<vals.size(); ii++) {
+                        sb.append(__toString(vals.get(ii)));
+                        if (ii<vals.size()-1)
+                            sb.append(",");
+                    }
+                    sb.append("]");
+                    return sb.toString();
+                } else {
+                    return String.valueOf(val);
+                }
+            }
+
+            public static void main(String[] args) throws IOException {
+                BufferedWriter output = new BufferedWriter(new FileWriter("\(resultFileToken)"));
+                output.write(__toString(_main(args)));
+                output.close();
+            }
+        """
+
+    /// `org-babel-java--expand-for-evaluation`: without the package when run from a temporary
+    /// folder, a `main` method when there is none, the value written to the result file, and
+    /// the imports those need.
+    static func javaForEvaluation(_ body: String, suppressPackage: Bool, value: Bool) -> String {
+        let buffer = NSMutableString(string: body)
+        func search(_ regex: NSRegularExpression, from point: Int) -> NSTextCheckingResult? {
+            regex.firstMatch(in: buffer as String, options: [.withTransparentBounds, .withoutAnchoringBounds],
+                             range: NSRange(location: point, length: buffer.length - point))
+        }
+        func movePast(_ regex: NSRegularExpression) -> Int {
+            var point = 0
+            while let m = search(regex, from: point) { point = min(NSMaxRange(m.range) + 1, buffer.length) }
+            return point
+        }
+        if suppressPackage, let m = search(javaPackage, from: 0) { buffer.replaceCharacters(in: m.range, with: "") }
+        if search(javaMain, from: 0) == nil {
+            buffer.insert("\n    public static void main(String[] args) {\n        System.out.print(\"success\");\n    }\n\n", at: movePast(javaClass))
+        }
+        if value {
+            let point = movePast(javaClass)
+            buffer.insert(javaResultWrapper, at: point)
+            let after = point + javaResultWrapper.utf16.count
+            let main = buffer.range(of: "public static void main(", options: .caseInsensitive, range: NSRange(location: after, length: buffer.length - after))
+            if main.location != NSNotFound { buffer.replaceCharacters(in: main, with: "public static Object _main(") }
+        }
+        // `org-babel-java--import-maybe`, with `case-fold-search`.
+        for (package, name) in [("java.util", "List"), ("java.util", "Arrays"), ("java.io", "BufferedWriter"), ("java.io", "FileWriter"), ("java.io", "IOException")] {
+            let used = buffer.range(of: name, options: .caseInsensitive).location != NSNotFound
+            let imported = buffer.range(of: "(?im)^import .*\(package).*(?:\\*|\(name));", options: .regularExpression).location != NSNotFound
+            if used, !imported { buffer.insert("import \(package).\(name);\n", at: movePast(javaPackage)) }
+        }
+        return buffer as String
+    }
+
+    /// A compiled language's result before it is read: standard output without its common
+    /// indentation, trimmed for Fortran; Java's value from the result file; Clojure's as printed.
+    static func compiledResult(_ finish: BabelJob.Finish, _ output: BabelOutput) -> String {
+        switch finish.language {
+        case "java": finish.output ? output.stdout : output.resultFile ?? ""
+        case "clojure": output.stdout
+        case "fortran": Tangle.removeIndentation(output.stdout).trimmingCharacters(in: .whitespacesAndNewlines)
+        default: Tangle.removeIndentation(output.stdout)
+        }
+    }
+
+    /// `org-babel-result-cond` of the languages: a string as it is, or with `org-babel-read`
+    /// for Fortran; else a table from the output (`org-babel-import-elisp-from-file`), or for
+    /// Java and Clojure `org-babel-script-escape`.
+    static func compiledValue(_ finish: BabelJob.Finish, _ output: BabelOutput, scalar: Bool) -> Value {
+        let raw = compiledResult(finish, output)
+        switch finish.language {
+        case "java": return scalar ? .string(raw) : pythonValue(raw, none: "null", braces: true)
+        case "clojure": return scalar ? .string(raw) : read(raw)
+        case "fortran": return scalar ? read(raw) : importTable(raw)
+        default: return scalar ? .string(raw) : importTable(raw)
+        }
+    }
+
+    /// `org-babel-read` of printed output: a number, or a single string's contents; other
+    /// values as printed. Clojure prints a final newline, so `org-babel-script-escape` never
+    /// takes its output for a list.
+    static func read(_ raw: String) -> Value {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let n = number(trimmed) { return .string(n) }
+        if trimmed.hasPrefix("\""), let (sexp, length) = try? LispReader.readFirst(trimmed), length == trimmed.count, let s = sexp.string {
+            return .string(s)
+        }
+        return .string(raw)
     }
 }

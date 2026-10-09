@@ -30,3 +30,37 @@ struct BabelSessionStateTests {
         #expect(try await run("#+begin_src python :session py\n[a, a]\n#+end_src\n", in: folder) == "\n#+RESULTS:\n| 2 | 2 |\n")
     }
 }
+
+struct BabelRunnerTests {
+    @Test func refusesWithoutTheCompiler() async throws {
+        for (text, programs, message) in [
+            ("#+begin_src D\nwriteln(1);\n#+end_src\n", ["rdmd"], "rdmd isn't installed, so D blocks can't run."),
+            ("#+begin_src clojure\n1\n#+end_src\n", ["bb", "clojure"], "Neither bb nor clojure is installed, so clojure blocks can't run."),
+        ] where !programs.contains(where: BabelRunner.installed) {
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+            guard case .success(let job) = Babel.plan(context) else {
+                Issue.record("not planned: \(text)")
+                continue
+            }
+            do {
+                _ = try await BabelRunner.run(job, fileDirectory: FileManager.default.temporaryDirectory)
+                Issue.record("ran: \(text)")
+            } catch let failure as BabelRunner.Failure {
+                #expect(failure.description == message)
+            }
+        }
+    }
+
+    @Test(.enabled(if: BabelRunner.installed("gcc")))
+    func compilesAndRunsC() async throws {
+        let text = "#+begin_src C :includes <stdio.h>\nprintf(\"%d\\n\", 6 * 7);\n#+end_src\n"
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+        guard case .success(let job) = Babel.plan(context) else {
+            Issue.record("not planned")
+            return
+        }
+        let output = try await BabelRunner.run(job, fileDirectory: FileManager.default.temporaryDirectory)
+        #expect(output.stdout == "42\n")
+        #expect(output.problem == nil)
+    }
+}

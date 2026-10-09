@@ -42,6 +42,8 @@ public struct BabelJob: Sendable, Equatable {
     var options = Babel.Options()
     /// A script for the runner to write to an executable file, for `Babel.scriptFileToken`.
     public internal(set) var script: String?
+    /// Programs the run needs: for each list, one of them on PATH.
+    public internal(set) var programs: [[String]] = []
     /// An Emacs Lisp block's form, for `Babel.evaluateNatively`.
     public internal(set) var lispForm: String?
     /// A Lisp header value couldn't be evaluated without the file's path: plan again with
@@ -55,7 +57,8 @@ public struct BabelJob: Sendable, Equatable {
     }
 
     public struct Finish: Sendable, Equatable {
-        enum Kind: Sendable, Equatable { case shell(valueIsExitStatus: Bool), python, generic, emacsLisp }
+        /// `compiled`: C, C++, D, Java, Fortran and Clojure, by `language`.
+        enum Kind: Sendable, Equatable { case shell(valueIsExitStatus: Bool), python, generic, emacsLisp, compiled }
         let kind: Kind
         var language = ""
         public internal(set) var params: [String]
@@ -233,6 +236,9 @@ public enum Babel {
     /// `org-babel-default-lob-header-args`, over the called block's own header arguments.
     static let lobDefaults = [(":exports", "results")]
 
+    /// `org-babel-default-header-args:LANG` in Org 9.8.7 other than `:exports`.
+    static let languageDefaults = ["java": [(":results", "output"), (":dir", ".")]]
+
     /// `:exports` from the language's `org-babel-default-header-args:LANG` in Org 9.8.7.
     static let languageExports = ["dot": "results", "plantuml": "results", "ditaa": "results", "gnuplot": "results",
                                   "latex": "results", "lilypond": "results"]
@@ -341,14 +347,16 @@ public enum Babel {
         if eval == "never" || eval == "no" {
             return .failure(.message("Evaluation of this \(language) code block\(block.name.map { " (\($0)) " } ?? " ")is disabled."))
         }
-        if params.single[":cmdline"] != nil, !["dot", "plantuml", "mermaid"].contains(language), !shells.contains(language) {
+        let compiled = expandedLanguages.contains(language)
+        if params.single[":cmdline"] != nil, !["dot", "plantuml", "mermaid"].contains(language), !shells.contains(language), !compiled {
             return .failure(.message(":cmdline isn't supported for \(language) yet; nothing was run."))
         }
         for key in [":prologue", ":epilogue", ":post", ":stdin", ":shebang"] where params.single[key] != nil
-            && !(shells.contains(language) && [":stdin", ":shebang"].contains(key)) {
+            && !(shells.contains(language) && [":stdin", ":shebang"].contains(key)) && !(compiled && [":prologue", ":epilogue"].contains(key)) {
             return .failure(.message("\(key) isn't supported yet; nothing was run."))
         }
-        let session = params.single[":session"].flatMap { $0 == "none" ? nil : ($0.isEmpty ? "*\(language)*" : $0) }
+        // The compiled languages' `org-babel-execute:` ignore `:session`.
+        let session = compiled ? nil : params.single[":session"].flatMap { $0 == "none" ? nil : ($0.isEmpty ? "*\(language)*" : $0) }
         if session != nil, !shells.contains(language), language != "python" {
             return .failure(.message(":session isn't supported for \(language) yet; nothing was run."))
         }
@@ -400,7 +408,7 @@ public enum Babel {
         if useCache, !inline, !needsFile, params.single[":cache"] == "yes" {
             do {
                 let state = try cacheState(language: language, params: params, tables: tables, body: body, location: location, name: name,
-                                           call: location != block.range, text: ns, options: options)
+                                           call: location != block.range, text: ns, options: options, model: model)
                 if state.current { return .failure(.message(cachedMessage(state.value))) }
                 // Appended or prepended results accumulate, so they carry no hash.
                 if params.results.contains("replace") { hash = state.hash }
@@ -523,6 +531,25 @@ public enum Babel {
                 language: language, runner: .process(executable: "/bin/sh", arguments: ["-c", command]),
                 input: input, directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finish
             ))
+        }
+        if compiled {
+            do {
+                let heading = model.headings.lastIndex { $0.headingRange.lowerBound <= location.lowerBound }
+                let run = try compiledRun(language: language, body: body, tables: tables, params: params,
+                                          properties: { inheritedProperty($0, heading: heading, model: model) })
+                var finish = finishBase(.compiled)
+                // ob-clojure doesn't reassemble tables.
+                if language == "clojure" { (finish.colnames, finish.rownames) = (nil, nil) }
+                var job = BabelJob(language: language, runner: .process(executable: "/bin/sh", arguments: [scriptFileToken]), input: run.source,
+                                   directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finish)
+                job.script = run.script
+                job.programs = run.programs
+                return .success(job)
+            } catch let error as Failure {
+                return .failure(error)
+            } catch {
+                return .failure(.message("\(error)"))
+            }
         }
         if let (executable, arguments) = generic[language] {
             guard vars.isEmpty else { return .failure(.message(":var isn't supported for \(language) yet.")) }
@@ -762,10 +789,12 @@ public enum Babel {
     /// `:cache yes` (`org-babel-execute-src-block`): the block's hash, and whether its results
     /// already carry it, with their value when it can be read.
     static func cacheState(language: String, params: Params, tables: Tables, body: String, location: Range<Int>, name: String?,
-                           call: Bool, text: NSString, options: Options) throws -> (hash: String, current: Bool, value: VarValue?) {
+                           call: Bool, text: NSString, options: Options, model: DocumentModel) throws -> (hash: String, current: Bool, value: VarValue?) {
+        let heading = model.headings.lastIndex { $0.headingRange.lowerBound <= location.lowerBound }
         // The hash is taken outside the shell's own binding of `shell-file-name`, so its
         // variables are written for the user's shell whatever the block's language.
-        let expanded = try languageExpansion(body, language: language, tables: tables, params: params)
+        let expanded = try languageExpansion(body, language: language, tables: tables, params: params,
+                                             properties: { inheritedProperty($0, heading: heading, model: model) })
             ?? expandedBody(language: language, vars: tables.vars, body: body, shell: options.shell, params: params)
         let input = try cacheInput(language: language, params: params, tables: tables, expanded: expanded, call: call)
         let hash = Insecure.SHA1.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
@@ -932,7 +961,7 @@ public enum Babel {
         /// `defaults` go under the properties, as `org-babel-default-inline-header-args` do.
         init(block: SrcBlockInfo, model: DocumentModel, text: NSString, defaults: [(String, String)] = [], extra: [[(String, String)]] = [],
              inline: Bool = false) throws {
-            var layers: [[(String, String)]] = [defaults]
+            var layers: [[(String, String)]] = [defaults, Babel.languageDefaults[block.language ?? ""] ?? []]
             layers += Params.propertyLayers(language: block.language ?? "", heading: block.heading, model: model)
             let firstLine = inline ? "" : text.substring(with: text.lineRange(for: NSRange(location: block.range.lowerBound, length: 0)))
             if let r = firstLine.range(of: "(?i)#\\+begin_src[ \\t]+\\S+", options: .regularExpression) {
@@ -1187,7 +1216,7 @@ public enum Babel {
             if params.single[":cache"] == "yes", let language = block.language {
                 let tables = try disassemble(params.vars.map { ($0.name, try resolve($0.value, model: model, text: text, refs: inner)) }, params: params)
                 let body = nowebEvaluates(params.single[":noweb"]) ? try expandNoweb(block, params: params, model: model, text: text) : normalizedBody(block)
-                let state = try cacheState(language: language, params: params, tables: tables, body: body, location: block.range, name: name, call: false, text: text, options: refs.options)
+                let state = try cacheState(language: language, params: params, tables: tables, body: body, location: block.range, name: name, call: false, text: text, options: refs.options, model: model)
                 if state.current {
                     if let value = state.value { return value }
                     useCache = false
@@ -1524,6 +1553,8 @@ public enum Babel {
             }
             let printed = object["S"] as? String ?? ""
             return printed == "nil" ? .none : .string(printed)
+        case .compiled:
+            return compiledValue(finish, output, scalar: scalar)
         }
     }
 
@@ -1537,6 +1568,7 @@ public enum Babel {
         case .shell(let valueIsExitStatus):
             return valueIsExitStatus ? output.stdout.split(separator: "\n").last.map(String.init) ?? "" : output.stdout
         case .generic: return output.stdout
+        case .compiled: return compiledResult(finish, output)
         }
     }
 
@@ -1596,10 +1628,11 @@ public enum Babel {
         return fields
     }
 
-    /// `org-babel-python-table-or-string`.
-    static func pythonValue(_ raw: String) -> Value {
+    /// `org-babel-python-table-or-string`; with `none` "null" and `braces`,
+    /// `org-babel-java-table-or-string`, which reads `{…}` as a list too.
+    static func pythonValue(_ raw: String, none: String = "None", braces: Bool = false) -> Value {
         guard let first = raw.first, let last = raw.last, raw.count >= 2,
-              (first == "[" && last == "]") || (first == "(" && last == ")") else {
+              (first == "[" && last == "]") || (first == "(" && last == ")") || (braces && first == "{" && last == "}") else {
             if raw.isEmpty { return .string("") }
             if raw.count > 2, (raw.hasPrefix("'") && raw.hasSuffix("'")) || (raw.hasPrefix("\"") && raw.hasSuffix("\"")) {
                 return .string(String(raw.dropFirst().dropLast()))
@@ -1608,6 +1641,7 @@ public enum Babel {
             return .string(raw)
         }
         var parser = PythonLiteral(Array(raw))
+        parser.braces = braces
         guard let parsed = parser.parse(), parser.atEnd, case .list(let items) = parsed else { return .string(raw) }
         func text(_ v: PythonLiteral.Node) -> String {
             switch v {
@@ -1616,13 +1650,13 @@ public enum Babel {
             case .list(let xs): return "(" + xs.map(text).joined(separator: " ") + ")"
             }
         }
-        if items.allSatisfy({ if case .list = $0 { return true }; if case .atom("None") = $0 { return true }; return false }) {
+        if items.allSatisfy({ if case .list = $0 { return true }; if case .atom(none) = $0 { return true }; return false }) {
             return .table(items.map { item -> [String]? in
                 if case .list(let cells) = item { return cells.map(text) }
                 return nil
             })
         }
-        return .table([items.map { if case .atom("None") = $0 { return "hline" }; return text($0) }])
+        return .table([items.map { if case .atom(none) = $0 { return "hline" }; return text($0) }])
     }
 
     struct PythonLiteral {
@@ -1634,6 +1668,8 @@ public enum Babel {
 
         let chars: [Character]
         var i = 0
+        /// `{…}` is a list, as `org-babel-script-escape` reads it.
+        var braces = false
         init(_ chars: [Character]) { self.chars = chars }
         var atEnd: Bool { mutating get { skip(); return i == chars.count } }
 
@@ -1643,8 +1679,8 @@ public enum Babel {
             skip()
             guard i < chars.count else { return nil }
             let c = chars[i]
-            if c == "[" || c == "(" {
-                let close: Character = c == "[" ? "]" : ")"
+            if c == "[" || c == "(" || (braces && c == "{") {
+                let close: Character = c == "[" ? "]" : c == "{" ? "}" : ")"
                 i += 1
                 var items: [Node] = []
                 skip()
@@ -1694,7 +1730,7 @@ public enum Babel {
                 return .string(s)
             }
             var s = ""
-            while i < chars.count, !",)] \n".contains(chars[i]) {
+            while i < chars.count, !",)] \n".contains(chars[i]), !(braces && chars[i] == "}") {
                 s.append(chars[i])
                 i += 1
             }

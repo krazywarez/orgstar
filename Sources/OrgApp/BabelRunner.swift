@@ -18,7 +18,17 @@ public enum BabelRunner {
         return environment
     }
 
+    /// Whether `program` is an executable file on `environment`'s PATH, or the path of one.
+    public static func installed(_ program: String) -> Bool {
+        let paths = program.contains("/") ? [program] : (environment["PATH"] ?? "").split(separator: ":").map { "\($0)/\(program)" }
+        return paths.contains { FileManager.default.isExecutableFile(atPath: $0) }
+    }
+
     public static func run(_ job: BabelJob, fileDirectory: URL, timeout: Duration = .seconds(300)) async throws -> BabelOutput {
+        for programs in job.programs where !programs.contains(where: installed) {
+            let names = programs.count == 1 ? programs[0] : "Neither " + programs.joined(separator: " nor ")
+            throw Failure(description: "\(names) \(programs.count == 1 ? "isn't" : "is") installed, so \(job.language) blocks can't run.")
+        }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-babel-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -98,7 +108,7 @@ public enum BabelRunner {
         let output = (try? String(contentsOf: stdout, encoding: .utf8)) ?? ""
         let errors = (try? String(contentsOf: stderr, encoding: .utf8)) ?? ""
         let result = try? String(contentsOf: resultFile, encoding: .utf8)
-        if case .process(let executable, _) = job.runner, process.terminationStatus == 127, output.isEmpty {
+        if case .process(let executable, _) = job.runner, job.programs.isEmpty, process.terminationStatus == 127, output.isEmpty {
             throw Failure(description: "\(executable) isn't installed.")
         }
         return BabelOutput(stdout: output, resultFile: result, stderr: errors, status: process.terminationStatus)
