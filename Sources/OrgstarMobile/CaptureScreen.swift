@@ -42,7 +42,7 @@ struct CaptureScreen: View {
                     }
                 } else {
                     ForEach(questions.indices, id: \.self) { index in
-                        QuestionField(question: questions[index], answer: $answers[index])
+                        QuestionField(question: questions[index], answer: $answers[index], defaultDate: request.day.map(Self.date))
                     }
                     if let problem { Text(problem).foregroundStyle(.red) }
                 }
@@ -95,11 +95,12 @@ struct CaptureScreen: View {
     /// The template expanded with the answers; the caret where `%?` was.
     private func fill() {
         guard let template else { return }
-        context.now = Date()
+        context.now = request.day.map(Self.date) ?? Date()
         switch Capture.fill(template.template, context: context, answers: answers) {
         case .success(let filled):
-            text = filled.text
-            selection = TextSelection(insertionPoint: String.Index(utf16Offset: filled.cursor, in: filled.text))
+            let (filledText, cursor) = request.day.map { Self.scheduling(filled.text, cursor: filled.cursor, on: $0) } ?? (filled.text, filled.cursor)
+            text = filledText
+            selection = TextSelection(insertionPoint: String.Index(utf16Offset: cursor, in: filledText))
             problem = nil
             editing = true
             focused = true
@@ -107,6 +108,31 @@ struct CaptureScreen: View {
         case .failure(.message(let message)):
             problem = message
         }
+    }
+
+    /// Now's time of day on `day` (a `Days` number): the default time of an agenda day's
+    /// capture, as `org-agenda-capture` sets `org-overriding-default-time`.
+    static func date(_ day: Int) -> Date {
+        let calendar = Calendar.current
+        let d = Days.date(day)
+        var parts = calendar.dateComponents([.hour, .minute, .second], from: Date())
+        (parts.year, parts.month, parts.day) = (d.year, d.month, d.day)
+        return calendar.date(from: parts) ?? Date()
+    }
+
+    /// An entry captured from an agenda day is scheduled on it: a SCHEDULED line goes under
+    /// the heading unless the template already gave the entry an active timestamp. The caret
+    /// keeps its place in the text.
+    static func scheduling(_ text: String, cursor: Int, on day: Int) -> (String, Int) {
+        guard text.hasPrefix("*"), text.firstMatch(of: /<[0-9]{4}-[0-9]{2}-[0-9]{2}/) == nil else { return (text, cursor) }
+        let d = Days.date(day)
+        let weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][Days.weekday(day)]
+        let line = String(format: "SCHEDULED: <%04d-%02d-%02d ", d.year, d.month, d.day) + weekday + ">"
+        let utf16 = Array(text.utf16)
+        let end = utf16.firstIndex(of: 10) ?? utf16.count
+        let inserted = "\n" + line
+        let result = String(decoding: utf16[..<end], as: UTF16.self) + inserted + String(decoding: utf16[end...], as: UTF16.self)
+        return (result, cursor > end ? cursor + inserted.utf16.count : cursor)
     }
 
     private func file() {
@@ -135,7 +161,16 @@ struct CaptureScreen: View {
 struct QuestionField: View {
     let question: Capture.Question
     @Binding var answer: String
-    @State private var date = Date()
+    /// What an empty date answer means: now, or the agenda day capture started from.
+    let defaultDate: Date?
+    @State private var date: Date
+
+    init(question: Capture.Question, answer: Binding<String>, defaultDate: Date? = nil) {
+        self.question = question
+        _answer = answer
+        self.defaultDate = defaultDate
+        _date = State(initialValue: defaultDate ?? Date())
+    }
 
     var body: some View {
         Section {
@@ -165,7 +200,9 @@ struct QuestionField: View {
         switch question.kind {
         case .text, .property, .clipboard: question.defaultValue
         case .tags: "tag:tag"
-        case .date(let withTime, _): withTime ? "now; or +2d, fri 14:00" : "today; or +2d, fri"
+        case .date(let withTime, _):
+            defaultDate.map { Self.stamp($0, withTime: withTime) + "; or +2d, fri" }
+                ?? (withTime ? "now; or +2d, fri 14:00" : "today; or +2d, fri")
         }
     }
 

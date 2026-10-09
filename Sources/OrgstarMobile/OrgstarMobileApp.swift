@@ -64,6 +64,8 @@ struct CaptureRequest: Identifiable {
     let id = UUID()
     var template: String?
     var properties: [String: String] = [:]
+    /// An agenda day (a `Days` number) the entry is scheduled on.
+    var day: Int?
 }
 
 extension CaptureRequest {
@@ -166,6 +168,11 @@ struct RootView: View {
         .onChange(of: workspace.changedFile?.version) {
             // An open file takes in what changed on disk.
             if let path = workspace.changedFile?.path { session.fileChanged(path) }
+        }
+        .onChange(of: model.captureRequest?.id) {
+            guard let request = model.captureRequest else { return }
+            model.captureRequest = nil
+            capture = request
         }
         .sheet(item: $capture, onDismiss: showWaiting) { request in
             CaptureScreen(workspace: workspace, session: session, request: request)

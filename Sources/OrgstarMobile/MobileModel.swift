@@ -32,6 +32,10 @@ final class MobileModel {
     var openRequest: ReaderRoute?
     /// Agenda days to show, from a followed timestamp: the first (a `Days` number) and how many.
     var agendaRequest: AgendaDays?
+    /// A capture to show, from the agenda.
+    var captureRequest: CaptureRequest?
+    /// Calendar's events for the agenda, with `calendar-events`.
+    let calendarEvents = CalendarEvents()
 
     struct AgendaDays: Equatable {
         let start: Int
@@ -115,8 +119,31 @@ final class MobileModel {
             agenda.startOffset = OrgPreferences.agendaStartOffset()
             agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
             agenda.options = OrgPreferences.agendaOptions(agenda.options)
+            agenda.calendarEvents = OrgPreferences.calendarEvents() ? calendarEvents : nil
+            agenda.calendarNames = OrgPreferences.calendarEventCalendars()
         }
         settingsVersion += 1
+    }
+
+    /// Changes a setting from the app: in the folder's config.toml when there is a folder, as
+    /// the Mac's Settings write it, else in this device's settings.
+    func set(_ defaultsKey: String, to value: TOML.Value) {
+        guard let setting = UserConfig.settings.first(where: { $0.defaultsKey == defaultsKey }) else { return }
+        if let configFolder {
+            let file = configFolder.appendingPathComponent("config.toml")
+            var error: NSError?
+            NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: file, options: [], error: &error) { url in
+                let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+                try? UserConfig.setting(text, section: setting.section, key: setting.key, to: value).write(to: url, atomically: true, encoding: .utf8)
+            }
+        } else {
+            switch value {
+            case .bool(let b): UserDefaults.standard.set(b, forKey: defaultsKey)
+            case .string(let s): UserDefaults.standard.set(s, forKey: defaultsKey)
+            case .integer(let i): UserDefaults.standard.set(i, forKey: defaultsKey)
+            }
+        }
+        reloadConfig()
     }
 
     /// The capture templates, for the share extension to offer.

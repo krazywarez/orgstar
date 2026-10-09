@@ -1,6 +1,7 @@
 #if os(iOS)
 import OrgApp
 import OrgCore
+import OrgPresentation
 import SwiftUI
 import UIKit
 
@@ -9,6 +10,13 @@ import UIKit
 struct SettingsScreen: View {
     let model: MobileModel
     @State private var choosing = false
+    @State private var calendars: [CalendarChoice] = []
+
+    private struct CalendarChoice {
+        let id: String
+        let title: String
+        let color: RGBA?
+    }
 
     var body: some View {
         Form {
@@ -24,6 +32,7 @@ struct SettingsScreen: View {
             } footer: {
                 Text("A folder with config.toml and capture.toml, such as a synced copy of ~/.config/orgstar from your Mac. Changes to them apply as they sync.")
             }
+            calendarSection
             Section("In use") {
                 let _ = model.settingsVersion
                 LabeledContent("TODO keywords", value: todoKeywords)
@@ -38,6 +47,65 @@ struct SettingsScreen: View {
         .fileImporter(isPresented: $choosing, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { model.setConfigFolder(url) }
         }
+    }
+
+    /// `calendar-events` and `calendar-event-calendars`, written to config.toml.
+    private var calendarSection: some View {
+        let _ = model.settingsVersion
+        let on = OrgPreferences.calendarEvents()
+        let chosen = OrgPreferences.calendarEventCalendars()
+        return Section {
+            Toggle("Show Calendar Events", isOn: Binding {
+                on
+            } set: { value in
+                model.set("calendarEvents", to: .bool(value))
+                if value { Task { await requestCalendars() } }
+            })
+            if on {
+                if !CalendarEvents.isAuthorized {
+                    Button("Allow Access to Calendars…") { Task { await requestCalendars() } }
+                }
+                ForEach(calendars, id: \.id) { calendar in
+                    let shown = CalendarEvents.chooses(id: calendar.id, title: calendar.title, chosen: chosen)
+                    Button {
+                        toggle(calendar.title, shown: shown, chosen: chosen)
+                    } label: {
+                        HStack {
+                            Circle().fill(calendar.color?.swiftUI ?? .secondary).frame(width: 10, height: 10)
+                            Text(calendar.title).foregroundStyle(.primary)
+                            Spacer()
+                            if shown { Image(systemName: "checkmark").foregroundStyle(Color.accentColor) }
+                        }
+                    }
+                    .tint(.primary)
+                }
+            }
+        } header: {
+            Text("Calendar")
+        } footer: {
+            Text(on ? "Events from the checked calendars show in the agenda, read-only." : "Show events from Calendar in the agenda, read-only.")
+        }
+        .task(id: on) { loadCalendars() }
+    }
+
+    private func requestCalendars() async {
+        _ = await model.calendarEvents.requestAccess()
+        loadCalendars()
+        model.reloadConfig()
+    }
+
+    private func loadCalendars() {
+        calendars = model.calendarEvents.calendars()
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+            .map { CalendarChoice(id: $0.id, title: $0.title, color: $0.color) }
+    }
+
+    /// Shows or hides a calendar's events; with every calendar checked the setting is empty.
+    private func toggle(_ title: String, shown: Bool, chosen: [String]) {
+        var titles = chosen.isEmpty ? calendars.map(\.title) : chosen
+        if shown { titles.removeAll { $0 == title } } else { titles.append(title) }
+        let value = Set(titles) == Set(calendars.map(\.title)) ? "" : titles.joined(separator: ", ")
+        model.set("calendarEventCalendars", to: .string(value))
     }
 
     /// The span and start day, worded as the Mac's Settings word the start.
