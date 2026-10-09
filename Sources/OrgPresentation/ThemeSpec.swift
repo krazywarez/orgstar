@@ -33,8 +33,8 @@ public struct RGBA: Hashable, Sendable {
 }
 
 /// The editor's look: colors for each kind of text in light and dark appearance, colors for
-/// TODO keywords, and type. Read from `[theme]`, `[theme.light]`, `[theme.dark]` and
-/// `[theme.todo]` in config.toml, on top of the default theme.
+/// TODO keywords and categories, and type. Read from `[theme]`, `[theme.light]`, `[theme.dark]`,
+/// `[theme.todo]` and `[theme.category]` in config.toml, on top of the default theme.
 public struct ThemeSpec: Equatable, Sendable {
     /// A font family; empty for the system's monospaced font.
     public var font = ""
@@ -47,6 +47,8 @@ public struct ThemeSpec: Equatable, Sendable {
     public var dark: [String: RGBA]
     /// `org-todo-keyword-faces`: a color per keyword, the same in both appearances.
     public var todo: [String: RGBA] = [:]
+    /// A color per agenda category, the same in both appearances, over `categoryColor`'s hue.
+    public var category: [String: RGBA] = [:]
 
     public init(light: [String: RGBA], dark: [String: RGBA]) {
         self.light = light
@@ -69,8 +71,14 @@ public struct ThemeSpec: Equatable, Sendable {
         ("heading-4", "level 4 headings"), ("heading-5", "level 5 headings"), ("heading-6", "level 6 headings"),
         ("heading-7", "level 7 headings"), ("heading-8", "level 8 and deeper headings"),
         ("todo", "TODO keywords not yet done"),
+        ("todo-next", "keywords of work under way: NEXT, STRT, STARTED, DOING, ACTIVE"),
+        ("todo-waiting", "keywords of work on hold: WAIT, WAITING, HOLD, BLOCKED, DEFERRED, SOMEDAY, MAYBE"),
         ("done", "DONE keywords"),
+        ("todo-cancelled", "done keywords that cancel: KILL, CANCELLED, CANCELED, CANCEL, SKIPPED, SKIP, ABORTED, NO, WONTFIX"),
         ("priority", "[#A] cookies"),
+        ("priority-a", "agenda: priority A"),
+        ("priority-b", "agenda: priority B"),
+        ("priority-c", "agenda: priority C"),
         ("tags", ":tags:"),
         ("link", "links"),
         ("timestamp", "timestamps"),
@@ -113,6 +121,9 @@ public struct ThemeSpec: Equatable, Sendable {
         ("agenda-upcoming", "deadlines coming up"),
         ("agenda-scheduled", "scheduled items"),
         ("agenda-scheduled-past", "items scheduled on an earlier day"),
+        ("agenda-overdue", "agenda: the status of entries past their deadline or scheduled date"),
+        ("agenda-due-soon", "agenda: the status of deadlines due today or coming up"),
+        ("agenda-event", "agenda: calendar events whose calendar has no color"),
         ("habit-clear", "habit graph: not due yet"),
         ("habit-ready", "habit graph: due"),
         ("habit-alert", "habit graph: due today, last chance"),
@@ -138,6 +149,8 @@ public struct ThemeSpec: Equatable, Sendable {
             "heading-1": "#0550ae", "heading-2": "#8250df", "heading-3": "#116329", "heading-4": "#953800",
             "heading-5": "#0550ae", "heading-6": "#8250df", "heading-7": "#116329", "heading-8": "#953800",
             "todo": "#cf222e", "done": "#1a7f37", "priority": "#bc4c00", "tags": "#6e7781",
+            "todo-next": "#0969da", "todo-waiting": "#9a6700", "todo-cancelled": "#6e7781",
+            "priority-a": "#cf222e", "priority-b": "#bc4c00", "priority-c": "#57606a",
             "link": "#0969da", "timestamp": "#8250df", "code": "#953800", "verbatim": "#0a3069", "inline-background": "#afb8c133",
             "markup": "#8c959f", "comment": "#6e7781", "keyword": "#6e7781", "metadata": "#6e7781", "special": "#1b7c83",
             "block-background": "#f6f8fa", "block-delimiter": "#8c959f", "table": "#1f2328",
@@ -147,6 +160,7 @@ public struct ThemeSpec: Equatable, Sendable {
             "modeline-highlight": "#1f2328", "state-normal": "#0969da", "state-insert": "#1a7f37", "state-visual": "#bc4c00",
             "agenda-date": "#1f2328", "agenda-today": "#0969da", "agenda-time": "#6e7781", "agenda-category": "#6e7781",
             "agenda-deadline": "#cf222e", "agenda-upcoming": "#bc4c00", "agenda-scheduled": "#6e7781", "agenda-scheduled-past": "#953800",
+            "agenda-overdue": "#cf222e", "agenda-due-soon": "#bc4c00", "agenda-event": "#8250df",
             "habit-clear": "#54aeff", "habit-ready": "#4ac26b", "habit-alert": "#d4a72c", "habit-overdue": "#ff8182",
         ]),
         dark: palette([
@@ -154,6 +168,8 @@ public struct ThemeSpec: Equatable, Sendable {
             "heading-1": "#79c0ff", "heading-2": "#d2a8ff", "heading-3": "#7ee787", "heading-4": "#ffa657",
             "heading-5": "#79c0ff", "heading-6": "#d2a8ff", "heading-7": "#7ee787", "heading-8": "#ffa657",
             "todo": "#ff7b72", "done": "#3fb950", "priority": "#ffa657", "tags": "#8b949e",
+            "todo-next": "#58a6ff", "todo-waiting": "#d29922", "todo-cancelled": "#8b949e",
+            "priority-a": "#ff7b72", "priority-b": "#ffa657", "priority-c": "#8b949e",
             "link": "#58a6ff", "timestamp": "#d2a8ff", "code": "#ffa657", "verbatim": "#a5d6ff", "inline-background": "#6e768166",
             "markup": "#6e7681", "comment": "#8b949e", "keyword": "#8b949e", "metadata": "#8b949e", "special": "#56d4dd",
             "block-background": "#161b22", "block-delimiter": "#6e7681", "table": "#e6edf3",
@@ -163,6 +179,7 @@ public struct ThemeSpec: Equatable, Sendable {
             "modeline-highlight": "#e6edf3", "state-normal": "#1f6feb", "state-insert": "#238636", "state-visual": "#9e6a03",
             "agenda-date": "#e6edf3", "agenda-today": "#58a6ff", "agenda-time": "#8b949e", "agenda-category": "#8b949e",
             "agenda-deadline": "#ff7b72", "agenda-upcoming": "#ffa657", "agenda-scheduled": "#8b949e", "agenda-scheduled-past": "#d29922",
+            "agenda-overdue": "#ff7b72", "agenda-due-soon": "#ffa657", "agenda-event": "#d2a8ff",
             "habit-clear": "#1f6feb", "habit-ready": "#238636", "habit-alert": "#9e6a03", "habit-overdue": "#da3633",
         ])
     )
@@ -193,6 +210,8 @@ public struct ThemeSpec: Equatable, Sendable {
                 switch table.name {
                 case "theme.todo":
                     spec.todo[key] = color
+                case "theme.category":
+                    spec.category[key] = color
                 case "theme", "theme.light", "theme.dark":
                     guard known.contains(key) else {
                         problems.append("\(file): unknown theme color \(key)")
@@ -219,6 +238,10 @@ public struct ThemeSpec: Equatable, Sendable {
             #   [theme.todo]
             #   WAIT = "#bf8700"
             #
+            # Otherwise a keyword takes its class's color: todo, todo-next, todo-waiting, done or
+            # todo-cancelled. [theme.category] colors agenda categories by name the same way;
+            # categories without one get a hue of their own from their name.
+            #
             # A theme kept in its own file (with the same tables) is used with
             # `theme-file = "name.toml"` under [theme] in config.toml.
 
@@ -236,5 +259,102 @@ public struct ThemeSpec: Equatable, Sendable {
             }
         }
         return out
+    }
+}
+
+// MARK: - Agenda colors
+
+extension ThemeSpec {
+    /// The color classes of TODO keywords, by name: keywords of work under way and on hold,
+    /// and done keywords that cancel; the others are `todo` or `done`.
+    public enum TodoClass: String, Sendable {
+        case todo, next, waiting, done, cancelled
+
+        /// The theme key.
+        public var key: String {
+            switch self {
+            case .todo: "todo"
+            case .next: "todo-next"
+            case .waiting: "todo-waiting"
+            case .done: "done"
+            case .cancelled: "todo-cancelled"
+            }
+        }
+
+        static let nextWords: Set<String> = ["NEXT", "STRT", "STARTED", "START", "DOING", "ACTIVE", "INPROGRESS", "IN-PROGRESS"]
+        static let waitingWords: Set<String> = ["WAIT", "WAITING", "HOLD", "ONHOLD", "BLOCKED", "DEFERRED", "SOMEDAY", "MAYBE"]
+        static let cancelledWords: Set<String> = ["KILL", "KILLED", "CANCELLED", "CANCELED", "CANCEL", "SKIPPED", "SKIP", "ABORTED", "NO", "WONTFIX"]
+
+        public static func of(_ keyword: String, isDone: Bool) -> TodoClass {
+            let word = keyword.uppercased()
+            if isDone { return cancelledWords.contains(word) ? .cancelled : .done }
+            if nextWords.contains(word) { return .next }
+            if waitingWords.contains(word) { return .waiting }
+            return .todo
+        }
+    }
+
+    /// `[theme.todo]`'s color for the keyword, else its class's.
+    public func todoColor(_ keyword: String, isDone: Bool, dark isDark: Bool) -> RGBA? {
+        todo[keyword] ?? color(TodoClass.of(keyword, isDone: isDone).key, dark: isDark)
+    }
+
+    /// `priority-a`, `-b`, `-c`; `priority` for the others.
+    public func priorityColor(_ priority: String, dark isDark: Bool) -> RGBA? {
+        let key = ["A": "priority-a", "B": "priority-b", "C": "priority-c"][priority] ?? "priority"
+        return color(key, dark: isDark) ?? color("priority", dark: isDark)
+    }
+
+    /// The gutter's color: `agenda-overdue`, `agenda-due-soon`, `done`, else `agenda-time`.
+    public func statusColor(_ status: AgendaRow.Status, dark isDark: Bool) -> RGBA? {
+        switch status {
+        case .overdue: color("agenda-overdue", dark: isDark)
+        case .dueSoon: color("agenda-due-soon", dark: isDark)
+        case .done: color("done", dark: isDark)
+        case .normal: color("agenda-time", dark: isDark)
+        }
+    }
+
+    /// An event's calendar color, else `agenda-event`.
+    public func eventColor(_ event: AgendaEvent, dark isDark: Bool) -> RGBA? {
+        event.color ?? color("agenda-event", dark: isDark)
+    }
+
+    /// `[theme.category]`'s color for the category, else its hue (`categoryHue`) at a
+    /// saturation and lightness that read on the appearance's background.
+    public func categoryColor(_ name: String, dark isDark: Bool) -> RGBA {
+        if let set = category[name] { return set }
+        let hue = Self.categoryHue(name)
+        return isDark ? RGBA(hue: hue, saturation: 0.65, lightness: 0.70) : RGBA(hue: hue, saturation: 0.60, lightness: 0.40)
+    }
+
+    /// A hue in degrees from the category's name (FNV-1a of its UTF-8), the same on every run
+    /// and device.
+    public static func categoryHue(_ name: String) -> Double {
+        var hash: UInt32 = 2166136261
+        for byte in name.utf8 {
+            hash ^= UInt32(byte)
+            hash = hash &* 16777619
+        }
+        return Double(hash % 360)
+    }
+}
+
+extension RGBA {
+    /// From HSL: hue in degrees, saturation and lightness 0 to 1.
+    public init(hue: Double, saturation s: Double, lightness l: Double, alpha: Double = 1) {
+        let c = (1 - abs(2 * l - 1)) * s
+        let h = (hue.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) / 60
+        let x = c * (1 - abs(h.truncatingRemainder(dividingBy: 2) - 1))
+        let (r, g, b): (Double, Double, Double) = switch Int(h) {
+        case 0: (c, x, 0)
+        case 1: (x, c, 0)
+        case 2: (0, c, x)
+        case 3: (0, x, c)
+        case 4: (x, 0, c)
+        default: (c, 0, x)
+        }
+        let m = l - c / 2
+        self.init(red: r + m, green: g + m, blue: b + m, alpha: alpha)
     }
 }
