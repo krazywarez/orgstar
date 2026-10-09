@@ -6,8 +6,8 @@ import OrgPresentation
 import SwiftUI
 
 /// The agenda over the workspace's agenda files: the day/week view, the TODO list, tag and
-/// property matches and the views in `views.toml`, with Org's filters and the agenda's
-/// actions on each entry.
+/// property matches, text search and the views in `views.toml`, with Org's filters and the
+/// agenda's actions on each entry.
 struct AgendaScreen: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
@@ -39,10 +39,10 @@ struct AgendaScreen: View {
     @State private var done = 0
     @State private var moved = 0
 
-    /// A match typed for the tag and property view.
+    /// A match typed for the tag and property view, or a search string.
     private enum Asking: Identifiable {
-        case match
-        var id: Int { 0 }
+        case match, search
+        var id: Self { self }
     }
 
     enum SpanRange: String, CaseIterable, Identifiable {
@@ -119,6 +119,7 @@ struct AgendaScreen: View {
                         Button(definition.name) { show(definition) }
                     }
                     Button("Tags and Properties…") { asking = .match }
+                    Button("Search…") { asking = .search }
                 } label: {
                     Label("Views", systemImage: "list.bullet.rectangle")
                 }
@@ -139,12 +140,21 @@ struct AgendaScreen: View {
                 if let picked, let item = row.item { reschedule(row, item, to: Days.absolute(picked, calendar: .current)) }
             }
         }
-        .sheet(item: $asking) { _ in
-            PromptSheet(prompt: Prompt(key: "match", message: "Match: tags and properties, as +work-home or TODO=\"WAIT\"")) { answer in
-                asking = nil
-                guard let answer, !answer.isEmpty else { return }
-                agenda.mode = .match(answer, todoOnly: false)
-                viewName = answer
+        .sheet(item: $asking) { kind in
+            if kind == .search {
+                PromptSheet(prompt: Prompt(key: "search", message: "Search: a phrase, or +word -word {regexp}; * for headlines, ! for TODO entries")) { answer in
+                    asking = nil
+                    guard let answer, answer.contains(where: { !$0.isWhitespace }) else { return }
+                    agenda.mode = .search(answer, todoOnly: false)
+                    viewName = answer
+                }
+            } else {
+                PromptSheet(prompt: Prompt(key: "match", message: "Match: tags and properties, as +work-home or TODO=\"WAIT\"")) { answer in
+                    asking = nil
+                    guard let answer, !answer.isEmpty else { return }
+                    agenda.mode = .match(answer, todoOnly: false)
+                    viewName = answer
+                }
             }
         }
         .sheet(item: $prompt) { request in

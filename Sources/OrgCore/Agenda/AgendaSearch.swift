@@ -44,6 +44,185 @@ extension Agenda {
         return sortByUrgency(items)
     }
 
+    /// `org-search-view`: entries, heading and body, containing `string` as a phrase, or with
+    /// a leading `+`, `-` or `{` (or `searchAlwaysBoolean`) matching each of its snippets. A
+    /// leading `*` searches headlines only, `!` keeps unfinished TODO entries as `todoOnly`
+    /// does, and `:` matches whole words. Text before the first heading is not searched.
+    public static func textSearch(_ sources: [AgendaSource], string: String, todoOnly: Bool = false, options: AgendaOptions = AgendaOptions()) -> [AgendaItem] {
+        let query = SearchQuery(string, todoOnly: todoOnly, options: options)
+        // Org searches for the longest positive snippet, then checks the entry it is in.
+        var positive = query.positive
+        let first = positive.isEmpty ? nil : positive.removeFirst()
+        let patterns = positive.compactMap(\.regex)
+        let negative = query.negative.compactMap(\.regex)
+        guard let search = SearchQuery.compile(first.map { (query.headlinesOnly ? "^\\*+ .*?" : "") + $0.emacs } ?? "^\\*+ "),
+              patterns.count == positive.count, negative.count == query.negative.count else { return [] }
+        let headingLine = try! NSRegularExpression(pattern: "^\\*+ ", options: .anchorsMatchLines)
+        var items: [AgendaItem] = []
+        for source in sources {
+            let text = source.text
+            let ns = text as NSString
+            let length = ns.length
+            let starts = headingLine.matches(in: text, range: NSRange(location: 0, length: length)).map(\.range.location)
+            guard let firstHeading = starts.first else { continue }
+            let byStart = Dictionary(source.headings.map { ($0.start, $0) }, uniquingKeysWith: { a, _ in a })
+            var required = patterns
+            if query.todoOnly {
+                guard !source.notDoneKeywords.isEmpty else { continue }
+                let keywords = source.notDoneKeywords.map(SearchQuery.quote).joined(separator: "\\|")
+                required.insert(SearchQuery.compile("^\\*+[ \\t]+\\(" + keywords + "\\)")!, at: 0)
+            }
+            func lineStart(_ at: Int) -> Int {
+                let newline = ns.range(of: "\n", options: .backwards, range: NSRange(location: 0, length: at))
+                return newline.location == NSNotFound ? 0 : newline.location + 1
+            }
+            var at = max(0, firstHeading - 1)
+            while at <= length, let m = search.firstMatch(in: text, options: [.withoutAnchoringBounds, .withTransparentBounds], range: NSRange(location: at, length: length - at)) {
+                let matchEnd = NSMaxRange(m.range)
+                // `org-back-to-heading`, then `outline-next-heading`.
+                guard let index = starts.lastIndex(where: { $0 <= lineStart(matchEnd) }) else { break }
+                let beg = starts[index]
+                let end = index + 1 < starts.count ? starts[index + 1] : length
+                let next = max(end - 1, at + 1)
+                guard let entry = byStart[beg] else {
+                    at = next
+                    continue
+                }
+                if entry.skipped {
+                    // `org-agenda-skip` leaves point at the end of the subtree, before blank lines.
+                    var stop = starts[(index + 1)...].first { byStart[$0].map { $0.level <= entry.level } ?? false } ?? length
+                    if stop > 0, [10, 13].contains(ns.character(at: stop - 1)) {
+                        stop -= 1
+                        while stop > beg, [9, 10, 13, 32].contains(ns.character(at: stop - 1)) { stop -= 1 }
+                    }
+                    at = max(stop, at + 1)
+                    continue
+                }
+                let lineEnd = ns.range(of: "\n", range: NSRange(location: beg, length: length - beg)).location
+                let stop = query.headlinesOnly && lineEnd != NSNotFound ? lineEnd : end
+                let entryText = ns.substring(with: NSRange(location: beg, length: stop - beg))
+                func found(_ regex: NSRegularExpression) -> Bool {
+                    regex.firstMatch(in: entryText, range: NSRange(location: 0, length: (entryText as NSString).length)) != nil
+                }
+                if !negative.contains(where: found), required.allSatisfy(found) {
+                    items.append(format(
+                        source, entry, kind: .search, marker: beg, extra: "", dotime: .headline, removing: nil,
+                        trailing: "", prefix: options.prefix("search"), urgency: { _ in 1000 }
+                    ))
+                    at = max(next, matchEnd)
+                } else {
+                    at = next
+                }
+            }
+        }
+        return items
+    }
+
+    /// An `org-search-view` string read into regexps, in Emacs syntax and compiled.
+    struct SearchQuery {
+        struct Pattern {
+            let emacs: String
+            let regex: NSRegularExpression?
+        }
+
+        let headlinesOnly: Bool
+        let todoOnly: Bool
+        let boolean: Bool
+        /// Longest first, as Org sorts them.
+        let positive: [Pattern]
+        let negative: [Pattern]
+
+        init(_ string: String, todoOnly: Bool, options: AgendaOptions) {
+            var words = Substring(string)
+            headlinesOnly = words.first == "*"
+            if headlinesOnly { words.removeFirst() }
+            var todo = todoOnly
+            if words.first == "!" {
+                todo = true
+                words.removeFirst()
+            }
+            self.todoOnly = todo
+            var fullWords = options.searchForceFullWords
+            if words.first == ":" {
+                fullWords = true
+                words.removeFirst()
+            }
+            boolean = options.searchAlwaysBoolean || ["-", "+", "{"].contains(words.first)
+
+            // `split-string`, then words ending in `\` joined to the next, and `{…}` kept whole.
+            var pending = words.split(whereSeparator: { " \u{0C}\t\n\r\u{0B}".contains($0) }).map(String.init)
+            var joined: [String] = []
+            while !pending.isEmpty {
+                var w = pending.removeFirst()
+                while w.hasSuffix("\\"), !pending.isEmpty { w = String(w.dropLast()) + " " + pending.removeFirst() }
+                joined.append(w)
+            }
+            pending = joined
+            joined = []
+            while !pending.isEmpty {
+                var w = pending.removeFirst()
+                if w.range(of: "^[-+]?\\{", options: .regularExpression) != nil, !w.hasSuffix("}") {
+                    while let next = pending.first, !next.hasSuffix("}") { w += " " + pending.removeFirst() }
+                    w += " " + (pending.isEmpty ? "" : pending.removeFirst())
+                }
+                joined.append(w)
+            }
+            if boolean {
+                pending = joined
+                joined = []
+                while !pending.isEmpty {
+                    var w = pending.removeFirst()
+                    let chars = Array(w)
+                    if chars[0] == "\"" || (chars.count > 1 && "+-".contains(chars[0]) && chars[1] == "\"") {
+                        while !pending.isEmpty, !w.hasSuffix("\"") { w += " " + pending.removeFirst() }
+                    }
+                    w = w.replacingOccurrences(of: "^([-+]?)\"", with: "$1", options: .regularExpression)
+                    if w.hasSuffix("\"") { w.removeLast() }
+                    joined.append(w)
+                }
+            }
+
+            var positive: [String] = []
+            var negative: [String] = []
+            if boolean {
+                for word in joined {
+                    var w = Substring(word)
+                    let negated = w.first == "-"
+                    if negated || w.first == "+" { w = w.dropFirst() }
+                    let re: String
+                    if w.count >= 2, w.first == "{", w.last == "}" {
+                        re = String(w.dropFirst().dropLast())
+                    } else {
+                        re = fullWords ? "\\<" + Self.quote(w.lowercased()) + "\\>" : Self.quote(w.lowercased())
+                    }
+                    if negated { negative.insert(re, at: 0) } else { positive.insert(re, at: 0) }
+                }
+            } else {
+                positive = [joined.map(Self.quote).joined(separator: "\\s-+")]
+            }
+            // `sort` is stable; the snippets were pushed, so the last comes first among equals.
+            self.positive = positive.enumerated().sorted { a, b in
+                a.element.count != b.element.count ? a.element.count > b.element.count : a.offset < b.offset
+            }.map { Pattern(emacs: $0.element, regex: Self.compile($0.element)) }
+            self.negative = negative.map { Pattern(emacs: $0, regex: Self.compile($0)) }
+        }
+
+        /// `regexp-quote`.
+        static func quote(_ s: String) -> String {
+            var out = ""
+            for c in s {
+                if "[*.\\?+^$".contains(c) { out.append("\\") }
+                out.append(c)
+            }
+            return out
+        }
+
+        /// Case-insensitive, as Org binds `case-fold-search`, with `^` and `$` at each line.
+        static func compile(_ emacs: String) -> NSRegularExpression? {
+            try? NSRegularExpression(pattern: EmacsRegex.translate(emacs), options: [.caseInsensitive, .anchorsMatchLines])
+        }
+    }
+
     /// `(urgency-down category-keep)`, stably.
     static func sortByUrgency(_ items: [AgendaItem]) -> [AgendaItem] {
         items.enumerated().sorted { a, b in
@@ -337,6 +516,12 @@ enum EmacsRegex {
                 case "|": out += "|"
                 case "{": out += "{"
                 case "}": out += "}"
+                case "s" where i + 2 < chars.count && chars[i + 2] == "-",
+                     "S" where i + 2 < chars.count && chars[i + 2] == "-":
+                    // Whitespace syntax in Org buffers.
+                    out += n == "s" ? "[\\t\\n\\f\\r \\u00a0]" : "[^\\t\\n\\f\\r \\u00a0]"
+                    i += 3
+                    continue
                 case "<", ">": out += "\\b"
                 case "`": out += "^"
                 case "'": out += "$"

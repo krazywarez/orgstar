@@ -94,6 +94,10 @@ public struct AgendaSource: Sendable {
     let progress: [Progress]
     /// The file's TODO keywords, active and done.
     let keywords: [String]
+    /// The active ones (`org-not-done-keywords`).
+    let notDoneKeywords: [String]
+    /// The file's text, for the search view.
+    let text: String
     let priorities: Priorities
 
     public init(path: String, text: String, defaults: OrgSettings = .default) {
@@ -104,6 +108,8 @@ public struct AgendaSource: Sendable {
         let ns = text as NSString
         let settings = tree.settings
         keywords = settings.todoSequences.flatMap { $0.active.map(\.name) + $0.done.map(\.name) }
+        notDoneKeywords = settings.todoSequences.flatMap { $0.active.map(\.name) }
+        self.text = text
         priorities = settings.priorities
 
         var stampsByHeading: [Int: [String]] = [:]

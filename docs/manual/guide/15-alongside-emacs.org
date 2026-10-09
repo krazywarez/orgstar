@@ -246,3 +246,4 @@ Other:
 - =#+SETUPFILE= URLs aren't fetched.
 - Most =#+STARTUP= options for footnotes, entities, LaTeX previews, numbering and odd levels are accepted and ignored; see [[file:13-configuration.org][Configuration]].
 - =display-line-numbers-type= has no relative or visual mode.
+- The agenda's text search (see [[file:07-agenda.org][The agenda]]) covers the agenda files only: =org-agenda-text-search-extra-files= and =org-agenda-search-view-max-outline-level= aren't supported. It runs from the view menu rather than the dispatcher's =s= and =S=, and the search view's =[=, =]=, ={= and =}= keys, which add words and regexps to the search, aren't supported.

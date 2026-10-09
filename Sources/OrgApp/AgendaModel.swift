@@ -11,7 +11,7 @@ import OrgPresentation
 @Observable
 public final class AgendaModel {
     public private(set) var days: [AgendaDay] = []
-    /// The entries of a TODO list or match view.
+    /// The entries of a TODO list, match or search view.
     public private(set) var list: [AgendaItem] = []
     public var mode: AgendaMode = .agenda(span: nil, startOffset: nil)
     /// The first day shown, as `Days` numbers it; nil follows today.
@@ -84,6 +84,8 @@ public final class AgendaModel {
                 list = Agenda.todoList(all, keywords: keywords, options: options)
             case .match(let match, let todoOnly):
                 list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar, options: options)
+            case .search(let string, let todoOnly):
+                list = Agenda.textSearch(all, string: string, todoOnly: todoOnly, options: options)
             }
             return (days, list, events)
         }.value

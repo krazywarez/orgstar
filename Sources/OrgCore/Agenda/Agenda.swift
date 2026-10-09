@@ -13,6 +13,7 @@ public struct AgendaItem: Sendable, Equatable {
         case currentTime
         case todo
         case tagsMatch = "tagsmatch"
+        case search
         /// Log mode: a closed entry, a clock line, a state change.
         case closed, clock, state
     }
@@ -79,6 +80,10 @@ public struct AgendaOptions: Sendable, Equatable {
     public var skipScheduledIfDone = false
     /// `org-agenda-skip-deadline-if-done`: done entries' deadlines are left out even on the day due.
     public var skipDeadlineIfDone = false
+    /// `org-agenda-search-view-always-boolean`: search strings are always `+word -word` snippets.
+    public var searchAlwaysBoolean = false
+    /// `org-agenda-search-view-force-full-words`: search snippets match whole words only.
+    public var searchForceFullWords = false
 
     public init() {}
 

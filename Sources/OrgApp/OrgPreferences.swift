@@ -54,11 +54,15 @@ public enum OrgPreferences {
     public static func agendaShowAllDates(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaShowAllDates", defaults) }
     public static func agendaSkipScheduledIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipScheduledIfDone", defaults) }
     public static func agendaSkipDeadlineIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipDeadlineIfDone", defaults) }
-    /// `options` with the skip-if-done settings.
+    public static func agendaSearchAlwaysBoolean(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchAlwaysBoolean", defaults) }
+    public static func agendaSearchForceFullWords(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchForceFullWords", defaults) }
+    /// `options` with the skip-if-done and search settings.
     public static func agendaOptions(_ options: AgendaOptions, _ defaults: UserDefaults = .standard) -> AgendaOptions {
         var options = options
         options.skipScheduledIfDone = agendaSkipScheduledIfDone(defaults)
         options.skipDeadlineIfDone = agendaSkipDeadlineIfDone(defaults)
+        options.searchAlwaysBoolean = agendaSearchAlwaysBoolean(defaults)
+        options.searchForceFullWords = agendaSearchForceFullWords(defaults)
         return options
     }
     /// `calendar-events`: Calendar's events show in the agenda.

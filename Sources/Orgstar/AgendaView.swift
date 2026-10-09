@@ -16,7 +16,7 @@ enum CalendarAccess {
     static let events = CalendarEvents()
 }
 
-/// The agenda window: the day/week agenda, the TODO list, tag matches and saved views.
+/// The agenda window: the day/week agenda, the TODO list, tag matches, text search and saved views.
 /// Return or a double click jumps to the entry in the main window. Keys as in Emacs's agenda:
 /// n/p (or the arrows) move between lines, f/b/. move the span, j picks a date, v d/v w/v m (or
 /// d/w) show a day, week or month, g refreshes, l shows the log (closed and clocked), / filters
@@ -80,6 +80,8 @@ struct AgendaView: View {
 
     static let match = "Match…"
     static let todoMatch = "TODO Match…"
+    static let search = "Search…"
+    static let todoSearch = "TODO Search…"
 
     init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands, scheduler: ReminderScheduler?, clock: ClockModel) {
         self.workspace = workspace
@@ -143,6 +145,7 @@ struct AgendaView: View {
     }
 
     private var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
+    private var isSearch: Bool { viewName == Self.search || viewName == Self.todoSearch }
 
     @Environment(\.orgTheme) private var theme
 
@@ -466,12 +469,14 @@ struct AgendaView: View {
                 Divider()
                 Button(Self.match) { viewName = Self.match }
                 Button(Self.todoMatch) { viewName = Self.todoMatch }
+                Button(Self.search) { viewName = Self.search }
+                Button(Self.todoSearch) { viewName = Self.todoSearch }
             } label: {
                 Label(viewName, systemImage: "calendar").labelStyle(.titleAndIcon)
             }
             .help("What the agenda shows")
-            if isMatch {
-                TextField("+work-boss|LEVEL>2/!TODO", text: $matchText)
+            if isMatch || isSearch {
+                TextField(isSearch ? "Phrase or +word -word {regexp}" : "+work-boss|LEVEL>2/!TODO", text: $matchText)
                     .frame(minWidth: 220)
                     .onSubmit { applyView() }
             }
@@ -633,6 +638,7 @@ struct AgendaView: View {
         switch agenda.mode {
         case .todo(let keywords): "TODO items: \(keywords ?? "all")"
         case .match(let match, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " matching \(match)"
+        case .search(let string, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " containing \(string)"
         case .agenda: ""
         }
     }
@@ -667,6 +673,9 @@ struct AgendaView: View {
             let match = matchText.trimmingCharacters(in: .whitespaces)
             guard !match.isEmpty else { return }
             agenda.mode = .match(match, todoOnly: viewName == Self.todoMatch)
+        case Self.search, Self.todoSearch:
+            guard matchText.contains(where: { !$0.isWhitespace }) else { return }
+            agenda.mode = .search(matchText, todoOnly: viewName == Self.todoSearch)
         default:
             if let view = views.first(where: { $0.name == viewName }) { agenda.mode = view.mode }
         }

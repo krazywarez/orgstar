@@ -134,7 +134,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         case .closed: (icon, untimed) = (.timestamp, "Closed")
         case .clock: (icon, untimed) = (.timestamp, "Clocked")
         case .state: (icon, untimed) = (.timestamp, "State")
-        case .todo, .tagsMatch, .timeGrid, .currentTime: break
+        case .todo, .tagsMatch, .search, .timeGrid, .currentTime: break
         }
         if item.isDone { status = .done }
         self.id = [item.path ?? "", "\(item.headingOffset ?? -1)", "\(item.markerOffset ?? -1)", item.kind.rawValue, item.text].joined(separator: "\u{1f}")

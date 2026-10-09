@@ -9,6 +9,8 @@ public enum AgendaMode: Hashable, Sendable {
     case todo(keywords: String?)
     /// `org-tags-view`.
     case match(String, todoOnly: Bool)
+    /// `org-search-view`.
+    case search(String, todoOnly: Bool)
 }
 
 /// A named view: the built-in ones and those in `views.toml`.
@@ -28,12 +30,12 @@ public struct AgendaViewDefinition: Hashable, Sendable, Identifiable {
 /// ```toml
 /// [[view]]
 /// name = "Work"
-/// type = "match"        # agenda, todo, match or todo-match
+/// type = "match"        # agenda, todo, match, todo-match, search or todo-search
 /// match = "+work-boss"
 /// ```
 ///
 /// `agenda` views take `span` and `start` (days from today), `todo` views `keywords`
-/// (`WAIT|HOLD`).
+/// (`WAIT|HOLD`); a `search` view's `match` is its search string.
 @MainActor
 public enum AgendaViewLoader {
     public static var userFile: URL { UserConfig.file("views.toml") }
@@ -76,6 +78,12 @@ public enum AgendaViewLoader {
                     continue
                 }
                 mode = .match(match, todoOnly: table.values["type"]?.string == "todo-match")
+            case "search", "todo-search":
+                guard let match else {
+                    problems.append("views.toml line \(table.line): \(name) needs a match")
+                    continue
+                }
+                mode = .search(match, todoOnly: table.values["type"]?.string == "todo-search")
             case let other:
                 problems.append("views.toml line \(table.line): unknown type \(other)")
                 continue

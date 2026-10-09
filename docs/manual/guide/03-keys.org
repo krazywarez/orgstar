@@ -689,6 +689,8 @@ The Agenda window has its own keys, modelled on =org-agenda-mode=, which =keymap
 | =C-c C-w= | Refile. |
 | =C-c $=, =C-c C-x C-s= | Archive. |
 
+=s= saves, as in =org-agenda-mode=. The text search that =s= starts from Org's agenda dispatcher is Search… in the view menu, and =S= is TODO Search….
+
 See [[file:07-agenda.org][Agenda]] for what these do. In the Capture window, typing a template's key picks it, =⌘↩= files the entry and =Esc= cancels; see [[file:08-capture.org][Capture]].
 
 * iOS and iPadOS

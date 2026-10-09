@@ -152,6 +152,8 @@ These settings have no control in the Settings window. Some are in the View menu
 | =ignored-folders=                |                            |
 | =org-agenda-skip-scheduled-if-done= |                         |
 | =org-agenda-skip-deadline-if-done=  |                         |
+| =org-agenda-search-view-always-boolean= |                     |
+| =org-agenda-search-view-force-full-words= |                   |
 | =[org-agenda-prefix-format]=     |                            |
 | =theme-file=                     |                            |
 
@@ -193,6 +195,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-show-all-dates=          | boolean | =false= | Show days without entries in the agenda; today always shows. Emacs's default is =t=. Mirrors =org-agenda-show-all-dates=. |
 | =org-agenda-skip-scheduled-if-done=  | boolean | =false= | Leave a done entry's scheduled date out of the agenda, even on its own day. Mirrors =org-agenda-skip-scheduled-if-done=. |
 | =org-agenda-skip-deadline-if-done=   | boolean | =false= | Leave a done entry's deadline out of the agenda, even on its own day. Mirrors =org-agenda-skip-deadline-if-done=. |
+| =org-agenda-search-view-always-boolean= | boolean | =false= | The agenda's text search reads every string as =+word -word {regexp}= snippets, never as a phrase. Mirrors =org-agenda-search-view-always-boolean=. |
+| =org-agenda-search-view-force-full-words= | boolean | =false= | Text search snippets match whole words only, as a leading =:= does. Mirrors =org-agenda-search-view-force-full-words=. |
 | =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
 | =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before Orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
 | =org-clock-history-length=           | integer | =5=     | How many recently clocked entries Orgstar remembers. Mirrors =org-clock-history-length=.                     |
