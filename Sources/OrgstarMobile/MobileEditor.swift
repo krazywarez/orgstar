@@ -22,9 +22,13 @@ final class LockedRanges: @unchecked Sendable {
 final class FragmentStyle: @unchecked Sendable {
     private let lock = NSLock()
     private var band: (color: UIColor, width: CGFloat) = (.clear, 0)
+    private var selected: (range: Range<Int>, color: UIColor)?
 
     func set(blockBackground color: UIColor, width: CGFloat) { lock.withLock { band = (color, width) } }
     var blockBand: (color: UIColor, width: CGFloat) { lock.withLock { band } }
+    /// The selection, which a block's fragment draws over its band, as the Mac's fragments do.
+    func set(selection range: Range<Int>?, color: UIColor) { lock.withLock { selected = range.map { ($0, color) } } }
+    var selection: (range: Range<Int>, color: UIColor)? { lock.withLock { selected } }
 }
 
 /// A text view that offers hardware-keyboard presses to the editor's keymap first.
@@ -155,6 +159,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// Blocks drawn on a band.
     let shaded = LockedRanges()
     let fragmentStyle = FragmentStyle()
+    private var selectionColor: UIColor = .clear
     /// `org-indent-mode` and `org-hide-leading-stars`, from the settings and `#+STARTUP`.
     private var indented = true
     private var hideStars = false
@@ -520,6 +525,27 @@ final class MobileEditor: NSObject, DocumentBuffer {
         let view = interaction.highlightView as? SelectionHighlightView ?? SelectionHighlightView()
         view.color = theme.color("selection") ?? UIColor.tintColor.withAlphaComponent(0.25)
         if interaction.highlightView !== view { interaction.highlightView = view }
+        selectionColor = view.color
+    }
+
+    /// The highlight view draws under the text, so a block's band would cover it: blocks the
+    /// selection enters or leaves are laid out again to draw it over their band.
+    private func redrawSelectedBlocks() {
+        let selected = textView.selectedRange
+        let range = selected.length > 0 ? selected.location..<NSMaxRange(selected) : nil
+        let old = fragmentStyle.selection?.range
+        fragmentStyle.set(selection: range, color: selectionColor)
+        guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return }
+        let touched = [old, range].compactMap { $0 }
+        for block in shaded.all where touched.contains(where: { $0.overlaps(block) }) {
+            guard let start = content.location(content.documentRange.location, offsetBy: block.lowerBound),
+                  let end = content.location(start, offsetBy: block.count),
+                  let textRange = NSTextRange(location: start, end: end) else { continue }
+            // Fragments are kept across layout passes, so they are asked to draw again too.
+            manager.invalidateRenderingAttributes(for: textRange)
+            manager.invalidateLayout(for: textRange)
+        }
+        textView.setNeedsDisplay()
     }
 
     /// The band behind blocks spans the view's width, or the widest line's when truncated;
@@ -532,7 +558,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
         fragmentStyle.set(blockBackground: band.color, width: width)
         imageWidth = textView.bounds.width
         if showsImages, resized { restyle(0..<textView.textStorage.length) }
-        if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+        if let manager = textView.textLayoutManager {
+            manager.invalidateRenderingAttributes(for: manager.documentRange)
+            manager.invalidateLayout(for: manager.documentRange)
+        }
     }
 
     /// Styles the whole file again.
@@ -825,6 +854,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     /// The caret left hidden text (a tap past a fold): what hides it opens.
     fileprivate func selectionChanged() {
+        redrawSelectedBlocks()
         let caret = textView.selectedRange.location
         if hidden.containing(caret) != nil { unfold(around: caret) }
         revealCaretLine()
@@ -897,6 +927,10 @@ extension MobileEditor: NSTextLayoutManagerDelegate {
         let fragment = OrgLineFragment(textElement: textElement, range: range)
         fragment.folded = folded
         fragment.band = band
+        if band != nil {
+            fragment.start = offset
+            fragment.style = fragmentStyle
+        }
         fragment.image = image
         return fragment
     }
@@ -950,6 +984,9 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
     var folded = false
     var band: (color: UIColor, width: CGFloat)?
     var image: InlineImageBox?
+    /// For a block's lines: where the fragment starts, and where the selection is read.
+    var start = 0
+    var style: FragmentStyle?
 
     static func image(_ string: NSAttributedString) -> InlineImageBox? {
         var found: InlineImageBox?
@@ -971,7 +1008,9 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
         guard let band else { return nil }
         // Not under the empty line TextKit adds after a final newline.
         let height = textLineFragments.last { $0.characterRange.length > 0 }?.typographicBounds.maxY ?? layoutFragmentFrame.height
-        return CGRect(x: -layoutFragmentFrame.minX, y: 0, width: max(band.width, layoutFragmentFrame.maxX), height: height)
+        // The width as it is now: the view may have been laid out since this fragment was made.
+        let width = style?.blockBand.width ?? band.width
+        return CGRect(x: -layoutFragmentFrame.minX, y: 0, width: max(width, layoutFragmentFrame.maxX), height: height)
     }
 
     private var imageRect: CGRect? {
@@ -992,6 +1031,7 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
             context.setFillColor(band.color.cgColor)
             context.fill(rect.offsetBy(dx: point.x, dy: point.y))
             context.restoreGState()
+            drawSelection(at: point, in: context, bandRect: rect)
         }
         super.draw(at: point, in: context)
         UIGraphicsPushContext(context)
@@ -1006,6 +1046,27 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
             ])
             ellipsis.draw(at: CGPoint(x: point.x + bounds.maxX, y: point.y + bounds.minY))
         }
+    }
+
+    /// The selected part of each line, over the band; a selection running past a line's end
+    /// fills to the band's edge.
+    private func drawSelection(at point: CGPoint, in context: CGContext, bandRect: CGRect) {
+        guard let selection = style?.selection else { return }
+        context.saveGState()
+        context.setFillColor(selection.color.cgColor)
+        for line in textLineFragments where line.characterRange.length > 0 {
+            let lineStart = start + line.characterRange.location
+            let lineEnd = lineStart + line.characterRange.length
+            let from = max(selection.range.lowerBound, lineStart), to = min(selection.range.upperBound, lineEnd)
+            guard from < to || (from == to && selection.range.upperBound > lineEnd && from == lineEnd) else { continue }
+            let bounds = line.typographicBounds
+            // From the margin when the selection began on an earlier line, as the system draws it.
+            let margin = bandRect.minX + (textLayoutManager?.textContainer?.lineFragmentPadding ?? 0)
+            let x1 = selection.range.lowerBound < lineStart ? margin : bounds.minX + line.locationForCharacter(at: from - start).x
+            let x2 = selection.range.upperBound >= lineEnd ? bandRect.maxX : bounds.minX + line.locationForCharacter(at: to - start).x
+            context.fill(CGRect(x: point.x + x1, y: point.y + bounds.minY, width: max(0, x2 - x1), height: bounds.height))
+        }
+        context.restoreGState()
     }
 
     private func drawEntities(at point: CGPoint) {
