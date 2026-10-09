@@ -338,5 +338,8 @@ Insert Link. Setting up a browser bookmarklet, and =org-protocol://capture=, are
 
 The iOS app follows links: tap a link in the reader. Org files open in the app, and
 web, mail and other files go to the system. The iOS editor shows inline images as the
-Mac does; the reader doesn't. Storing and inserting links and the backlinks pane are Mac
-features. See [[file:14-ios.org][iOS]].
+Mac does; the reader doesn't. In the editor, Store Link, Store ID Link and Insert Link…
+are in Commands, and on a hardware keyboard the Emacs keys run them; they work as
+described above, and stored links last until the app quits. =org-protocol://store-link=
+links opened on the device are stored and copied too. The backlinks pane is Mac only.
+See [[file:14-ios.org][iOS]].

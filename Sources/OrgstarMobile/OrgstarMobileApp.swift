@@ -226,6 +226,9 @@ struct RootView: View {
                 open(link)
             } else if let request = CaptureRequest(link: url.absoluteString) {
                 capture = request
+            } else if case .storeLink(let link, let title)? = OrgProtocol.parse(url.absoluteString) {
+                message = StoredLink.add(StoredLink(link: link, description: title), to: &model.storedLinks)
+                UIPasteboard.general.string = link
             }
         }
         // The Live Activity follows the clock, wherever it starts or stops.

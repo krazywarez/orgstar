@@ -32,16 +32,9 @@ final class AppCommands {
     /// `org-stored-links`, most recent first; kept for the session, as in Emacs.
     var storedLinks: [StoredLink] = []
 
-    /// `org-link--add-to-stored-links`: puts `link` first and says what happened.
+    /// Puts `link` first in `storedLinks` and says what happened.
     func storeLink(_ link: StoredLink) {
-        if storedLinks.first == link {
-            show("This link has already been stored")
-        } else {
-            let moved = storedLinks.contains(link)
-            storedLinks.removeAll { $0 == link }
-            storedLinks.insert(link, at: 0)
-            show((moved ? "Link moved to front: " : "Stored: ") + (link.description ?? link.link))
-        }
+        show(StoredLink.add(link, to: &storedLinks))
     }
 
     /// The keys that run `command`, as menus and the palette show them.

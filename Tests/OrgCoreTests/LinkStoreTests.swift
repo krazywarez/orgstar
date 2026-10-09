@@ -219,4 +219,15 @@ struct LinkStoreTests {
         let id = try #require(text.firstMatch(of: /:ID: +(\S+)/)?.1)
         #expect(String(id).range(of: uuid, options: .regularExpression) != nil, "\(text)")
     }
+
+    @Test func addingMovesALinkToTheFront() {
+        let a = StoredLink(link: "file:a.org", description: "A")
+        let b = StoredLink(link: "file:b.org", description: nil)
+        var links: [StoredLink] = []
+        #expect(StoredLink.add(a, to: &links) == "Stored: A")
+        #expect(StoredLink.add(b, to: &links) == "Stored: file:b.org")
+        #expect(StoredLink.add(b, to: &links) == "This link has already been stored")
+        #expect(StoredLink.add(a, to: &links) == "Link moved to front: A")
+        #expect(links == [a, b])
+    }
 }

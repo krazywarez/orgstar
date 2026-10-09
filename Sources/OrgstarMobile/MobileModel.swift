@@ -48,6 +48,8 @@ final class MobileModel {
     private(set) var theme = ThemeSpec.default
     /// `show-markup`, toggled in the editor; the folder's value applies when it changes.
     var showMarkup = false
+    /// `org-stored-links`, most recent first; kept while the app runs, as in Emacs.
+    var storedLinks: [StoredLink] = []
     @ObservationIgnored private var configShowMarkup: Bool?
     @ObservationIgnored private var presenter: FolderPresenter?
     @ObservationIgnored private var sizeObserver: NSObjectProtocol?

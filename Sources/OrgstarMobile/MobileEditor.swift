@@ -333,7 +333,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "edit.undo": textView.undoManager?.undo()
         case "edit.redo": textView.undoManager?.redo()
         case "org.table.toggle-column-width", "org.table.shrink", "org.table.expand": tableColumnWidth(id)
-        case _ where id.hasPrefix("app."):
+        case _ where id.hasPrefix("app.") || Self.linkCommands.contains(id):
             if let onAppCommand { onAppCommand(id) } else { onMessage?("Not available on iOS yet") }
         default:
             if let command = Commands.command(id) {
@@ -344,6 +344,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
         }
     }
 
+    /// Link commands that need the stored links or the file, which the screen has.
+    static let linkCommands: Set<String> = ["org.link.store", "org.id.store-link", "org.link.insert"]
+
     func applies(_ id: String, in context: EditContext) -> Bool {
         if let command = Commands.command(id) { return command.applies(in: context) }
         switch id {
@@ -352,6 +355,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "editor.toggle-truncate-lines": return true
         case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.clock.in-recent", "app.clock.in-last",
              "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
+        case _ where Self.linkCommands.contains(id): return onAppCommand != nil
         case "org.link.open": return OpenLinkAtPoint().applies(in: context)
         case "org.table.toggle-column-width", "org.table.shrink", "org.table.expand":
             return TableShrink.table(at: context.caret, in: context.text) != nil

@@ -264,7 +264,7 @@ org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=Example
 
 This stores the link, so =C-c C-l= in the editor offers it (see [[file:09-links.org][Links]]), and puts the URL on the clipboard.
 
-Other handlers, such as =open-source=, report that Orgstar handles only capture and store-link. On iOS only =capture= links are handled.
+Other handlers, such as =open-source=, report that Orgstar handles only capture and store-link.
 
 ** Bookmarklets
 

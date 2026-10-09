@@ -213,7 +213,7 @@ Tap Capture (the pencil icon) in the Agenda or Folders tab.
 
 Templates come from =capture.toml= in the configuration folder (see Settings below). Without one, the two default templates apply. A template with =immediate-finish= files as soon as its questions are answered, and one with =jump-to-captured= opens the captured entry. =%^g= offers the target file's tags as choices.
 
-=org-protocol://capture= links opened on the device open the capture sheet with the link's template, URL, title and text. When the link names a template key that =capture.toml= doesn't have, the sheet starts on the first template and shows =No capture template "x"= with the key.
+=org-protocol://store-link= links add the URL to the stored links that Insert Link… offers, and copy it. =org-protocol://capture= links opened on the device open the capture sheet with the link's template, URL, title and text. When the link names a template key that =capture.toml= doesn't have, the sheet starts on the first template and shows =No capture template "x"= with the key.
 
 ** From the share sheet
 

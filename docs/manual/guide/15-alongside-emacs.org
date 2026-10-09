@@ -166,7 +166,7 @@ Orgstar declares the =org.orgmode.org= file type for the extensions =.org= and =
 Orgstar registers the =org-protocol:= URL scheme on the Mac and iOS, and handles two sub-protocols, in both the =?key=value= form and the older =:/a/b/c= form:
 
 - =org-protocol://capture= opens Capture with the link's template, URL, title and body.
-- =org-protocol://store-link= stores the link for =C-c C-l= and copies it to the clipboard. This is Mac only; the iOS app handles only =capture=.
+- =org-protocol://store-link= stores the link for =C-c C-l= and copies it to the clipboard.
 
 Other sub-protocols, such as =open-source=, show "Orgstar handles org-protocol capture and store-link".
 

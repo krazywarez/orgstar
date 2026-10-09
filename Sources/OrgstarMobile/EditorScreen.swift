@@ -133,6 +133,22 @@ struct EditorScreen: View {
         }
     }
 
+    /// Store Link, Store ID Link and Insert Link, with the links stored while the app runs.
+    private func link(_ id: String) {
+        guard let editor else { return }
+        switch id {
+        case "org.link.store":
+            message = StoredLink.add(Links.store(in: editor.editContext(), path: Links.abbreviate(path, home: NSHomeDirectory())), to: &model.storedLinks)
+        case "org.id.store-link":
+            if case .commit = editor.perform(CreateID()),
+               let link = Links.storeID(in: editor.editContext(), fileName: (path as NSString).lastPathComponent) {
+                message = StoredLink.add(link, to: &model.storedLinks)
+            }
+        default:
+            _ = editor.perform(InsertLink(stored: model.storedLinks, file: path))
+        }
+    }
+
     /// Runs a block once it's trusted, asking as `org-confirm-babel-evaluate` does.
     private func run(_ job: BabelJob) {
         let go = {
@@ -178,6 +194,8 @@ struct EditorScreen: View {
             editor.onAppCommand = { id in
                 if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
+                } else if MobileEditor.linkCommands.contains(id) {
+                    link(id)
                 } else if !MobileClock.run(id, model: model, workspace: workspace, show: { message = $0 }) {
                     message = "Not available on iOS yet"
                 }

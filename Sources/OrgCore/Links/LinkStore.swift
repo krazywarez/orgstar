@@ -9,6 +9,15 @@ public struct StoredLink: Sendable, Equatable, Codable {
         self.link = link
         self.description = description
     }
+
+    /// `org-link--add-to-stored-links`: puts `link` first in `links` and says what happened.
+    public static func add(_ link: StoredLink, to links: inout [StoredLink]) -> String {
+        if links.first == link { return "This link has already been stored" }
+        let moved = links.contains(link)
+        links.removeAll { $0 == link }
+        links.insert(link, at: 0)
+        return (moved ? "Link moved to front: " : "Stored: ") + (link.description ?? link.link)
+    }
 }
 
 extension Links {
