@@ -108,6 +108,7 @@ struct BabelTests {
         "#+begin_src sh :results raw\necho '*bold*'\n#+end_src\n",
         "#+begin_src sh :results drawer\necho in a drawer\n#+end_src\n",
         "#+begin_src sh :results list\nprintf 'a\\nb\\n'\n#+end_src\n",
+        "#+begin_src sh :results output list\nprintf 'a\\nb\\n'\n#+end_src\n",
         "#+begin_src sh :results silent\necho quiet\n#+end_src\n",
         "#+begin_src sh :results output code\necho 'x=1'\n#+end_src\n",
         "#+begin_src sh :wrap example\necho wrapped\n#+end_src\n",

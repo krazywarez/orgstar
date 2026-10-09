@@ -1846,6 +1846,8 @@ public enum Babel {
             beg = buffer.point
         }
         var tabulated = false
+        // A list made from a string is examplified, as a string result is.
+        var listed = false
         switch value {
         case .none:
             break
@@ -1854,6 +1856,7 @@ public enum Babel {
             let items = s.split(separator: "\n", omittingEmptySubsequences: true)
             buffer.insert(items.map { "- " + $0 }.joined(separator: "\n") + "\n")
         case .table(let rows) where params.contains("list"):
+            listed = true
             let items = rows.count == 1 ? (rows[0] ?? []) : rows.compactMap { $0?.joined(separator: " ") }
             buffer.insert(items.map { "- " + $0 }.joined(separator: "\n") + "\n")
         case .table(let rows):
@@ -1895,7 +1898,7 @@ public enum Babel {
             // As inserted.
         } else if params.contains("drawer") {
             wrap(":results:", ":end:", escape: false)
-        } else if !tabulated, !params.contains("list") {
+        } else if !tabulated, !(params.contains("list") && listed) {
             examplify(buffer, beg, end.position)
         }
         if indent > 0, !(tabulated && params.contains("append")) {
