@@ -656,9 +656,16 @@ The Agenda window has its own keys, modelled on =org-agenda-mode=, which =keymap
 
 | Key | Does |
 |-+-|
-| =RET= | Opens the selected entry. |
+| =n=, =p=, =C-n=, =C-p=, =↓=, =↑= | Next or previous line. |
+| =RET=, =TAB= | Opens the selected entry, or a calendar event in Calendar. |
+| =SPC= | Shows the selected entry in the main window, keeping the agenda in front. |
 | =f=, =b= | Next or previous span (agenda views). |
 | =.= | Back to today (agenda views). |
+| =j= | Go to a date (agenda views). |
+| =v d=, =v w=, =v m= | Day, week or month view (agenda views). |
+| =d=, =w= | Day or week view (agenda views). |
+| =k= | Capture an entry scheduled on the selected line's day (agenda views). |
+| =s= | Save every file. |
 | =/= | Filter by tags, categories, effort and regexp (=+cat-tag<0:10-/regexp/=). |
 | =\= | Tag filter (=+tag-tag=). |
 | ~=~ | Regexp filter (=-re= drops matches). |
@@ -669,6 +676,7 @@ The Agenda window has its own keys, modelled on =org-agenda-mode=, which =keymap
 | =g=, =r= | Rebuilds the views. |
 | =t= | Cycle TODO State. |
 | =+=, =-= | Raise or lower priority. |
+| =,= | Set priority. |
 | =:= | Set tags. |
 | =S-<right>=, =S-<left>= | Moves the entry's timestamp a day later or earlier. |
 | =I=, =O=, =X= | Clock in, clock out, cancel the clock. |

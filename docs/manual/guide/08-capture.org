@@ -43,6 +43,23 @@ Limits compared with Emacs:
 - There is no refile from the capture window (=C-c C-w= in an Emacs capture buffer). Capture to an inbox heading and refile from the agenda or the editor.
 - The target is not shown while you edit (the capture buffer in Emacs is narrowed to the new entry in the target file).
 
+* Capturing onto an agenda day
+
+The + at the right of a day's header in the agenda, or =k= in the Mac agenda (=org-agenda-capture=), starts a capture for that day; see [[file:07-agenda.org][The agenda]]. Choose a template as usual. The day then stands in for today, as =org-overriding-default-time= makes it do in Org:
+
+- =%t=, =%T=, =%u= and =%U= give that day. The escapes with a time use the current time of day.
+- An empty answer to a date prompt (=%^t= and the others) is that day.
+- With =datetree = true=, the entry goes under that day in the date tree.
+
+When the filled template is a heading without an active timestamp, Orgstar adds =SCHEDULED:= with that day on the line after the heading, or at the end of the planning line when the template has one:
+
+#+BEGIN_SRC org
+,* TODO Call the bank
+SCHEDULED: <2026-10-09 Fri>
+#+END_SRC
+
+The line is part of the text you edit, so you can change or remove it before filing. A template with an active timestamp of its own, such as =%t= or =%^t=, gets no =SCHEDULED= line. On the Mac, the window's header names the day, as =Capture, scheduled Fri 9 Oct=.
+
 * Capture templates
 
 Templates live in =capture.toml= in the configuration folder (=~/.config/orgstar/capture.toml= by default; see [[file:13-configuration.org][Configuration]]). Settings ▸ Capture shows its path. Each template is a =[[template]]= table:
@@ -287,7 +304,7 @@ On the Mac, the action opens Orgstar if it isn't running and waits up to five se
 
 * Capture on iOS
 
-The Capture button (a square with a pencil) at the top of the Agenda and Folders tabs opens the capture sheet. The templates come from the =capture.toml= in your synced configuration folder (see [[file:14-ios.org][iOS]]).
+The Capture button (a square with a pencil) at the top of the Agenda and Folders tabs opens the capture sheet. The + on a day's header in the Agenda tab opens it for that day, as described in [[*Capturing onto an agenda day][Capturing onto an agenda day]]; date prompts then show that day as their default. The templates come from the =capture.toml= in your synced configuration folder (see [[file:14-ios.org][iOS]]).
 
 The sheet works as on the Mac, in a form:
 

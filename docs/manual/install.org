@@ -35,13 +35,13 @@ The iOS app (iOS 26 or later) is built with Xcode from =ios/Orgstar.xcodeproj=:
 
 1. Open =ios/Orgstar.xcodeproj=.
 2. Select the *Orgstar iOS* target, then Signing & Capabilities, and choose your team.
-   Change the bundle identifiers (=sh.krz.orgstar= and the two extensions' =.share= and
-   =.quicklook=) and the App Group (=group.sh.krz.orgstar=) to ones your team can register.
+   Change the bundle identifiers (=sh.krz.orgstar= and the three extensions' =.share=,
+   =.quicklook= and =.widgets=) and the App Group (=group.sh.krz.orgstar=) to ones your team can register.
 3. Choose your iPhone or iPad (or a Simulator) as the destination and Run (=⌘R=).
 
 On a device, Developer Mode must be on (Settings ▸ Privacy & Security ▸ Developer Mode).
 
-For the Simulator without opening Xcode:
+For the Simulator without opening Xcode (this build has no widgets):
 
 #+BEGIN_SRC sh
 scripts/build-ios-app.sh

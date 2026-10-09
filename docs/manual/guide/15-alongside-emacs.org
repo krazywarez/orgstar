@@ -192,10 +192,20 @@ Orgstar's defaults follow a common Doom Emacs setup rather than plain Emacs in s
 | =electric-pair-mode=                 | =true=                              | off                             |
 | =org-agenda-span=                    | 10 days                             | a week                          |
 | =org-agenda-start-day=               | ="-3d"=                             | today                           |
+| =org-agenda-show-all-dates=          | =false=                             | =t=                             |
 
 =org-hide-emphasis-markers= and =org-pretty-entities= matter for files you also edit in Emacs: Orgstar aligns tags and tables, and fills paragraphs, by the width text has on screen in your Emacs. If they don't match your Emacs, tags and tables that Orgstar aligns look misaligned in Emacs.
 
 These behave as Emacs's defaults and can't be changed: =org-log-repeat= is =time=, fast TODO selection is on when keywords have keys, priorities are =A= to =C= with =B= as default unless =#+PRIORITIES= says otherwise, and =org-use-sub-superscripts= is ={}= for display (only =x_{1}= and =x^{2}= are lowered and raised).
+
+** How the agenda looks
+
+The agenda selects the same entries as Org's, but shows them its own way (see [[file:07-agenda.org][The agenda]]):
+
+- Rows have their own layout: the time or a status such as =Due in 2d= on the left, the category above the title, and the keyword and priority as badges. =org-agenda-prefix-format= doesn't change it; only =%t= in its =agenda= entry still decides whether a time in the heading text leaves the title.
+- Days without entries are hidden unless =org-agenda-show-all-dates= is =true=.
+- Today's past deadlines and past scheduled entries are gathered in an Overdue group, oldest first, rather than sorted among today's entries by urgency.
+- The time grid isn't shown. The now line is, between today's timed entries.
 
 ** Known differences from Emacs Org
 

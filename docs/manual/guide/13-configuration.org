@@ -104,6 +104,9 @@ See Themes and Fonts below.
 | Agenda shows N days                 | 1 to 366               | 10           | =org-agenda-span=           |
 | Agenda starts N days before today   | 0 to 14 days before    | 3 days       | =org-agenda-start-day=      |
 | Include files in subfolders         | On or off              | Off          | =agenda-include-subfolders= |
+| Show days without entries           | On or off              | Off          | =org-agenda-show-all-dates= |
+| Show events from Calendar           | On or off              | Off          | =calendar-events=           |
+| A checkbox for each calendar        | On or off              | All on       | =calendar-event-calendars=  |
 | Notify before timed agenda entries  | On or off              | On           | =reminders=                 |
 | N minutes before                    | 0 to 120               | 12           | =appt-message-warning-time= |
 | Ask what to do with idle time while clocked in | On or off   | Off          | =org-clock-idle-time=       |
@@ -111,6 +114,8 @@ See Themes and Fonts below.
 | Remember N recently clocked entries | 1 to 35                | 5            | =org-clock-history-length=  |
 
 An entry's =APPT_WARNTIME= property overrides the lead time. The agenda is covered in [[file:07-agenda.org][The agenda]].
+
+The calendar checkboxes appear once Show events from Calendar is on and Orgstar may read your calendars; turning the switch on asks for that access. While every calendar is checked, =calendar-event-calendars= is empty, so calendars you add later show too. The last checked calendar can't be unchecked; turn off Show events from Calendar instead.
 
 Turning on the idle question sets =org-clock-idle-time= to 15 minutes; turning it off sets it to =0=. The minutes stepper is disabled while the question is off. Idle time and the clock history are covered in [[file:06-dates-and-clocking.org][Dates and clocking]].
 
@@ -145,6 +150,8 @@ These settings have no control in the Settings window. Some are in the View menu
 | =tab-bar=                        | View ▸ Show Tab Bar        |
 | =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
 | =ignored-folders=                |                            |
+| =org-agenda-skip-scheduled-if-done= |                         |
+| =org-agenda-skip-deadline-if-done=  |                         |
 | =[org-agenda-prefix-format]=     |                            |
 | =theme-file=                     |                            |
 
@@ -183,6 +190,9 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =display-line-numbers-type=          | boolean | =true=  | Line numbers in the editor's gutter. Orgstar numbers lines absolutely; there is no relative or visual mode.    |
 | =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
 | =org-agenda-start-day=               | string  | ="-3d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
+| =org-agenda-show-all-dates=          | boolean | =false= | Show days without entries in the agenda; today always shows. Emacs's default is =t=. Mirrors =org-agenda-show-all-dates=. |
+| =org-agenda-skip-scheduled-if-done=  | boolean | =false= | Leave a done entry's scheduled date out of the agenda, even on its own day. Mirrors =org-agenda-skip-scheduled-if-done=. |
+| =org-agenda-skip-deadline-if-done=   | boolean | =false= | Leave a done entry's deadline out of the agenda, even on its own day. Mirrors =org-agenda-skip-deadline-if-done=. |
 | =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
 | =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before Orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
 | =org-clock-history-length=           | integer | =5=     | How many recently clocked entries Orgstar remembers. Mirrors =org-clock-history-length=.                     |
@@ -203,7 +213,7 @@ The startup settings (=org-startup-*=, =org-hide-leading-stars=, =org-cycle-hide
 | =todo=   | string | =" %i %-12:c"=           | Prefix of lines in the TODO list    |
 | =tags=   | string | =" %i %-12:c"=           | Prefix of tag and property matches  |
 
-These mirror the entries of =org-agenda-prefix-format=. In the format, =%c= is the category, =%t= the time, =%s= the scheduled or deadline note, =%e= the effort, =%l= the level, =%b= the outline path, =%T= the item's last tag (inherited tags included), and a number such as =%-12= pads. See [[file:07-agenda.org][The agenda]].
+These mirror the entries of =org-agenda-prefix-format=. The agenda's rows don't show a prefix, so the formats don't change how the agenda looks. The one effect left is that a time written in heading text leaves the title when the =agenda= format contains =%t=. See [[file:07-agenda.org][The agenda]].
 
 ** [theme]
 
@@ -230,6 +240,8 @@ Any other key in =[theme]= is a color; see Themes below.
 | =ignored-folders=           | string  | see below     | Folder names never listed or searched, separated by spaces.                            |
 | =agenda-include-subfolders= | boolean | =false=       | The agenda reads org files in subfolders too.                                           |
 | =reminders=                 | boolean | =true=        | Notify before timed entries.                                                            |
+| =calendar-events=           | boolean | =false=       | Show events from Calendar in the agenda, read-only.                                     |
+| =calendar-event-calendars=  | string  | =""=          | The calendars whose events show, by title or identifier, separated by commas; =""= for all. |
 | =global-capture-hotkey=     | boolean | =true=        | =⌃⌥Space= opens Capture from any app.                                                   |
 
 The default =ignored-folders= is:
@@ -443,7 +455,7 @@ Key bindings are imported when the command is one Orgstar has a counterpart for,
 
 * Themes
 
-Orgstar has one built-in theme, the default theme, with light and dark colors after GitHub's light and dark themes. You change it by setting colors in =config.toml=, or by keeping a theme in its own file.
+Orgstar has one built-in theme, the default theme, with light and dark colors after GitHub's light and dark themes for text and code. TODO keywords, priorities and the agenda's statuses use the system's red, orange, blue and green, as iOS and macOS show them. You change it by setting colors in =config.toml=, or by keeping a theme in its own file.
 
 Colors are strings in the form ="#rrggbb"= or ="#rrggbbaa"=. They go in these tables:
 
@@ -453,6 +465,7 @@ Colors are strings in the form ="#rrggbb"= or ="#rrggbbaa"=. They go in these ta
 | =[theme.light]= | Sets a color for light appearance only                                |
 | =[theme.dark]= | Sets a color for dark appearance only                                  |
 | =[theme.todo]= | Colors TODO keywords by name, in both appearances, as =org-todo-keyword-faces= |
+| =[theme.category]= | Colors agenda categories by name, in both appearances               |
 
 #+BEGIN_SRC toml
 [theme]
@@ -465,15 +478,30 @@ foreground = "#d4d4d4"
 [theme.todo]
 WAIT = "#bf8700"
 PROJ = "#8250df"
+
+[theme.category]
+work = "#0a66d8"
 #+END_SRC
 
-A keyword without its own color uses =todo= or =done=.
+A keyword without its own color takes its class's color. Case doesn't matter in these lists:
+
+| Class        | Key              | Keywords                                                                         |
+|--------------+------------------+----------------------------------------------------------------------------------|
+| Under way    | =todo-next=      | =NEXT=, =STRT=, =START=, =STARTED=, =DOING=, =ACTIVE=, =INPROGRESS=, =IN-PROGRESS= |
+| On hold      | =todo-waiting=   | =WAIT=, =WAITING=, =HOLD=, =ONHOLD=, =BLOCKED=, =DEFERRED=, =SOMEDAY=, =MAYBE=   |
+| Cancelled    | =todo-cancelled= | Done keywords =KILL=, =KILLED=, =CANCELLED=, =CANCELED=, =CANCEL=, =SKIPPED=, =SKIP=, =ABORTED=, =NO=, =WONTFIX= |
+| Other open   | =todo=           | Any other keyword that isn't done                                                |
+| Other done   | =done=           | Any other done keyword                                                           |
+
+The classes color keywords in the agenda and its widgets on both platforms, and in the iOS editor and reader. The Mac editor colors keywords with =todo= and =done= only.
+
+A category without its own color gets a hue worked out from its name, the same on every run and device, at a lightness that reads on the appearance's background.
 
 =default-theme.toml= in the configuration folder lists every color key with the default theme's values, light and dark. Settings ▸ Appearance ▸ Show Default Theme opens it. Copy lines from it into =config.toml=; edits to =default-theme.toml= itself are overwritten at the next launch.
 
 ** Theme files
 
-To keep a theme in its own file, put it in the configuration folder with the same tables (=[theme]=, =[theme.light]=, =[theme.dark]=, =[theme.todo]=) and name it in =config.toml=:
+To keep a theme in its own file, put it in the configuration folder with the same tables (=[theme]=, =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=) and name it in =config.toml=:
 
 #+BEGIN_SRC toml
 [theme]
@@ -493,8 +521,14 @@ The colors stack in this order, each over the one before: the default theme, the
 | =heading-1= … =heading-7= | headings of that level                                     |
 | =heading-8=             | level 8 and deeper headings                                  |
 | =todo=                  | TODO keywords not yet done                                   |
+| =todo-next=             | keywords of work under way: =NEXT=, =STRT= and the others above |
+| =todo-waiting=          | keywords of work on hold: =WAIT=, =HOLD= and the others above |
 | =done=                  | DONE keywords                                                |
-| =priority=              | =[#A]= cookies                                               |
+| =todo-cancelled=        | done keywords that cancel: =KILL=, =CANCELLED= and the others above |
+| =priority=              | =[#A]= cookies; in the agenda, priorities other than A, B and C |
+| =priority-a=            | agenda: priority A                                           |
+| =priority-b=            | agenda: priority B                                           |
+| =priority-c=            | agenda: priority C                                           |
 | =tags=                  | =:tags:=                                                     |
 | =link=                  | links                                                        |
 | =timestamp=             | timestamps                                                   |
@@ -528,15 +562,18 @@ The colors stack in this order, each over the one before: the default theme, the
 | =state-normal=          | the NORMAL tag (Doom keys)                                   |
 | =state-insert=          | the INSERT tag                                               |
 | =state-visual=          | the VISUAL and V-LINE tags                                   |
-| =agenda-background=     | the agenda and board                                         |
-| =agenda-date=           | agenda day headers                                           |
-| =agenda-today=          | today's header and the current time                          |
-| =agenda-time=           | times and the time grid                                      |
+| =agenda-background=     | the agenda and board; the iOS widgets                        |
+| =agenda-date=           | agenda day headers after today                               |
+| =agenda-today=          | today's header and the now line                              |
+| =agenda-time=           | times and statuses of agenda rows with the normal status     |
 | =agenda-category=       | categories                                                   |
-| =agenda-deadline=       | deadlines due                                                |
-| =agenda-upcoming=       | deadlines coming up                                          |
-| =agenda-scheduled=      | scheduled items                                              |
-| =agenda-scheduled-past= | items scheduled on an earlier day                            |
+| =agenda-overdue=        | agenda: the status of entries past their deadline or scheduled date, and the Overdue group |
+| =agenda-due-soon=       | agenda: the status of deadlines due today or coming up       |
+| =agenda-event=          | agenda: calendar events whose calendar has no color          |
+| =agenda-deadline=       | accepted, not used                                           |
+| =agenda-upcoming=       | accepted, not used                                           |
+| =agenda-scheduled=      | accepted, not used                                           |
+| =agenda-scheduled-past= | accepted, not used                                           |
 | =habit-clear=           | habit graph: not due yet                                     |
 | =habit-ready=           | habit graph: due                                             |
 | =habit-alert=           | habit graph: due today, last chance                          |

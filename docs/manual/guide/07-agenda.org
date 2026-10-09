@@ -1,5 +1,5 @@
 #+TITLE: The agenda
-#+DESCRIPTION: The agenda window, the TODO list, tag and property matches, saved views, filters, reminders and the board.
+#+DESCRIPTION: The agenda window, its rows, calendar events, the TODO list, tag and property matches, saved views, filters, reminders and the board.
 #+LEDE: The agenda collects dated entries and TODO items from your agenda files into one list you can act on.
 
 * Opening the agenda
@@ -43,70 +43,153 @@ An entry's category is the nearest =CATEGORY= property on it or an ancestor, els
 
 If no agenda file exists, the window says so.
 
-* The day and week view
+* The day, week and month view
 
-The default view is =org-agenda-list=: a run of days, each with a header such as =Monday      5 October 2026 W41= (the ISO week number appears on Mondays).
+The default view is =org-agenda-list=: a run of days, each under a header with its date, such as =Monday 5 October= (with the year when it isn't the current year). Today, tomorrow and yesterday are named before the date: =Today · Thursday 8 October=. Today's header is in the =agenda-today= color and days before today are grey. Each header stays at the top of the window while you scroll through its day.
 
 | Setting                      | Default | =config.toml=                     | Range in Settings |
 |------------------------------+---------+-----------------------------------+-------------------|
 | Days shown                   | 10      | =org-agenda-span = 10=            | 1 to 366          |
 | First day, relative to today | 3 days before | =org-agenda-start-day = "-3d"= | 0 to 14 days before |
 
-Both mirror the Emacs variables of the same name. The defaults are Doom's values, not plain Emacs's (a week starting today). =org-agenda-start-day= takes only day offsets such as ="-3d"= or ="+0d"=. There are no day, week or month view keys (=d=, =w=, =m= in Emacs) and no =org-agenda-start-on-weekday=: the span is a number of days and always begins at the configured offset.
+Both mirror the Emacs variables of the same name. The defaults are Doom's values, not plain Emacs's (a week starting today). =org-agenda-start-day= takes only day offsets such as ="-3d"= or ="+0d"=.
+
+** Day, week and month
+
+The Day, Week and Month control in the toolbar, or =v d=, =v w= and =v m=, shows one day, one week or one calendar month, as =org-agenda-day-view=, =org-agenda-week-view= and =org-agenda-month-view= do. =d= and =w= also show a day and a week. The view is the one around the selected line's day, else around today when today is shown, else around the first day shown. Weeks start on Monday; there is no =org-agenda-start-on-weekday= setting.
+
+To return to the configured span, choose Agenda from the view menu.
+
+The window's title names the days shown: =Thursday 8 October 2026= for a day, =Week of 5 Oct 2026=, =October 2026=, or the first and last day for the configured span, =5 Oct – 14 Oct 2026=.
 
 ** Moving through days
 
-| Key | Toolbar   | Does                              | Org command              |
-|-----+-----------+-----------------------------------+--------------------------|
-| =f= | Later (›) | Moves forward by a whole span     | =org-agenda-later=       |
-| =b= | Earlier (‹) | Moves back by a whole span      | =org-agenda-earlier=     |
-| =.= | Today     | Returns to the span around today  | =org-agenda-goto-today=  |
-| =g=, =r= |      | Refreshes, and reloads =views.toml= | =org-agenda-redo=      |
+| Key      | Toolbar              | Does                                                                          | Org command             |
+|----------+----------------------+-------------------------------------------------------------------------------+-------------------------|
+| =f=      | Later (›)            | Moves forward by the days shown; in the month view, to the next month         | =org-agenda-later=      |
+| =b=      | Earlier (‹)          | Moves back by the days shown; in the month view, to the month before          | =org-agenda-earlier=    |
+| =.=      | Today                | Returns to the days around today, keeping a day, week or month view          | =org-agenda-goto-today= |
+| =j=      | Go to Date (calendar) | Picks a date in a calendar and shows the days from it, or its day, week or month | =org-agenda-goto-date= |
+| =g=, =r= |                      | Refreshes, and reloads =views.toml=                                           | =org-agenda-redo=       |
 
-The agenda also refreshes on its own when files change, when you edit an open buffer, and once a minute so the time grid and the current day stay correct.
+The agenda also refreshes on its own when files change and when you edit an open buffer. The now line (see below) moves each minute, and at midnight the agenda refreshes so that Today, the overdue entries and the statuses move to the new day.
 
 ** What appears on each day
 
-The entries follow =org-agenda-get-day-entries= with Org's default entry types, in the formats Org prints.
+The entries follow =org-agenda-get-day-entries= with Org's default entry types. The left column of each row shows the time, or for an untimed entry a short status:
 
-| Entry                                   | Where it appears                                                                                      | Leader                         |
+| Entry                                   | Where it appears                                                                                      | Left column                    |
 |-----------------------------------------+-------------------------------------------------------------------------------------------------------+--------------------------------|
-| =DEADLINE= on that day                  | On its day                                                                                            | =Deadline:=                    |
-| =DEADLINE= in the future                | On today, from the warning period before it                                                           | =In   3 d.:=                   |
-| =DEADLINE= in the past, not done        | On today                                                                                              | =2 d. ago:=                    |
-| =SCHEDULED= on that day                 | On its day                                                                                            | =Scheduled:=                   |
-| =SCHEDULED= in the past, not done       | On today                                                                                              | =Sched. 3x:=                   |
-| Active timestamp =<2026-10-05 Mon>=     | On its day; also in property drawers                                                                  | none                           |
-| Repeating timestamp =<… +1w>=           | On each occurrence within the span                                                                    | none                           |
-| Date range =<…>--<…>=                   | On every day of the range                                                                             | =(2/5):= (day 2 of 5)          |
-| Diary sexp =%%(…)= line or =<%%(…)>=    | On each day the sexp applies; see [[*Diary sexps][Diary sexps]]                                       | none                           |
-| Habit (=STYLE: habit=)                  | On today only, while not done; see [[*Habits][Habits]]                                               | none, with a consistency graph |
+| =DEADLINE= on that day                  | On its day                                                                                            | =Due today= on today, =Due= on other days |
+| =DEADLINE= in the future                | On today, from the warning period before it                                                           | =Due in 3d=                    |
+| =DEADLINE= in the past, not done        | On today, in the Overdue group                                                                        | =2d late=                      |
+| =SCHEDULED= on that day                 | On its day                                                                                            | =Scheduled=                    |
+| =SCHEDULED= in the past, not done       | On today, in the Overdue group                                                                        | =3d ago=                       |
+| Active timestamp =<2026-10-05 Mon>=     | On its day; also in property drawers                                                                  | =All day=                      |
+| Repeating timestamp =<… +1w>=           | On each occurrence within the span                                                                    | =All day=                      |
+| Date range =<…>--<…>=                   | On every day of the range                                                                             | =Day 2/5= (day 2 of 5)         |
+| Diary sexp =%%(…)= line or =<%%(…)>=    | On each day the sexp applies; see [[*Diary sexps][Diary sexps]]                                       | =All day=                      |
+| Habit (=STYLE: habit=)                  | On today only, while not done; see [[*Habits][Habits]]                                               | =Habit=, with a consistency graph |
+
+An entry with a time of day shows the time instead of the status: =08:00=, or =13:50–14:30= with an end time.
 
 Details:
 
 - Deadline warnings use =org-deadline-warning-days=, fixed at 14 days. A =-Nd= cookie in the timestamp (=<2026-10-20 Tue -3d>=) changes the warning for that deadline; =w=, =m= and =y= units work too.
 - A =-Nd= cookie on a =SCHEDULED= timestamp delays it: the entry first shows N days after the scheduled date.
 - Repeaters on =SCHEDULED= and =DEADLINE= timestamps (=+1w=, =++1w=, =.+1d=) make the entry show on the next occurrence on future days, as in Org.
-- A done entry shows only on the day of its deadline or scheduled date, not as overdue.
+- A done entry shows only on the day of its deadline or scheduled date, not as overdue. With =org-agenda-skip-scheduled-if-done= or =org-agenda-skip-deadline-if-done= set to =true= in =config.toml=, a done entry's scheduled date or deadline doesn't show on that day either. Both are =false= by default, as in Org.
 - Inactive timestamps (=[…]=) never appear, except in log mode.
 - Ranges in comment lines and inside source blocks are ignored, as in Org.
 
-Entries with a time of day sort into the day by time. On today, and on any day when the span is one day, a time grid is added when at least one entry has a time: lines at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00 and 20:00, and on today a "now" line at the current time. The grid times are not configurable.
+A time can come from the timestamp (=<2026-10-05 Mon 14:00-15:30>=) or from the heading text (=Call Ada 9:30am=), as =org-agenda-search-headline-for-time= allows. Times past 24:00, such as =25:30=, show as the time on the next day, =01:30=.
 
-A time can come from the timestamp (=<2026-10-05 Mon 14:00-15:30>=) or from the heading text (=Call Ada 9:30am=), as =org-agenda-search-headline-for-time= allows. Times past 24:00, such as =25:30=, show as =+1:30=.
+** Today, overdue entries and empty days
+
+Days without entries are left out. Today always shows, with =Nothing scheduled= when it has no entries. To show every day of the span, as Org does by default, turn on Settings ▸ Agenda ▸ Show days without entries, or set this in =config.toml=:
+
+#+BEGIN_SRC toml
+org-agenda-show-all-dates = true
+#+END_SRC
+
+Today's past deadlines and entries scheduled on earlier days, habits excepted, go in a group headed =Overdue= with their count, above today's other entries. The oldest date comes first; entries with the same date keep Org's order. Click or tap the header to collapse or expand the group.
+
+On today, a line marked with the current time sits between the timed entries: before the first entry that starts later, or after the last one when all have started. It shows only when today has timed entries, as Org's =now= line does. Org's time grid (the lines at 8:00, 10:00 and so on) isn't shown.
 
 ** Sorting
 
-Days are sorted as =org-agenda-sorting-strategy= sorts them by default for the agenda: =(habit-down time-up urgency-down category-keep)=. Habits go last; timed entries come first, earliest first; the rest by urgency, which combines priority with how overdue an entry is; ties keep file order. The TODO list and match views sort by urgency, then file order. The sorting is not configurable.
+Days are sorted as =org-agenda-sorting-strategy= sorts them by default for the agenda: =(habit-down time-up urgency-down category-keep)=. Habits go last; timed entries come first, earliest first; the rest by urgency, which combines priority with how overdue an entry is; ties keep file order. Calendar events go among them as described in [[*Calendar events][Calendar events]]. The TODO list and match views sort by urgency, then file order. The sorting is not configurable.
 
 ** Log mode
 
 Press =l= to turn log mode (=org-agenda-log-mode=) on or off. Each day then also shows:
 
-- =Closed:= entries whose =CLOSED:= timestamp is on that day;
-- =Clocked: (1:30)= for each =CLOCK:= line that starts on that day, with the clock's range and duration.
+- =Closed= entries whose =CLOSED:= timestamp is on that day;
+- =Clocked= entries for each =CLOCK:= line that starts on that day, with the clock's start and end times in the left column.
 
-A note under a clock line (a list item directly below it) is added to the line after a =-=. These are the default =org-agenda-log-mode-items=, =(closed clock)=; state changes are not shown and there is no setting for that.
+A note under a clock line (a list item directly below it) is added to the title after a =-=. These are the default =org-agenda-log-mode-items=, =(closed clock)=; state changes are not shown and there is no setting for that.
+
+* Rows
+
+Each row shows, from left to right:
+
+- The time or status described above, with an icon below it on the Mac and before it on iOS: a calendar for scheduled entries, a flag for deadlines, arrows in a circle for habits, a clock or a calendar for timestamps, and a dot or a calendar for calendar events. An overdue entry shows a warning sign instead, and on the Mac a done entry shows a check mark.
+- The category, with a colored dot, above the title. For a calendar event this is the calendar's name, with the event's location.
+- The title: the heading without its TODO keyword, priority cookie, statistics cookies, timestamps and tags, with links shown as their descriptions. A done entry's title is struck through.
+- The value of the first statistics cookie (=1/3=, =50%=) and the tags, inherited tags first, as small capsules. iOS shows at most three tags.
+- The habit's consistency graph, for habits.
+- The TODO keyword as a colored badge, and the priority as a colored letter in a circle.
+
+The status sets the color of the left column:
+
+| Status   | When                                                                    | Theme key         |
+|----------+-------------------------------------------------------------------------+-------------------|
+| Overdue  | Not done, with a deadline or scheduled date before today                | =agenda-overdue=  |
+| Due soon | Not done, a deadline listed on today: due today or within its warning   | =agenda-due-soon= |
+| Done     | A done keyword                                                          | =done=            |
+| Normal   | Everything else                                                         | =agenda-time=     |
+
+Ages and distances are written compactly: days up to 13 (=3d=), then whole weeks up to 59 days (=2w=), then months of 30 days up to a year (=4mo=), then years with any remaining months (=1y=, =1y 4mo=). They round down.
+
+The keyword's color comes from =[theme.todo]=, else from its class: =todo-next= for keywords of work under way such as =NEXT= and =STRT=, =todo-waiting= for =WAIT=, =HOLD= and similar, =todo-cancelled= for done keywords such as =KILL= and =CANCELLED=, and otherwise =todo= or =done=. Priorities =A=, =B= and =C= use =priority-a=, =priority-b= and =priority-c=; others use =priority=. A category's dot takes its color from =[theme.category]=, else a hue worked out from the category's name, the same on every device. See [[file:13-configuration.org][Configuration]] for the keyword lists and the theme keys.
+
+* Calendar events
+
+The agenda can show events from the system Calendar app (EventKit) among your entries. They are read-only: Orgstar never changes your calendars. It is off by default. To turn it on:
+
+- On the Mac, turn on Settings ▸ Agenda ▸ Show events from Calendar, and check the calendars to show.
+- On iOS, turn on Settings ▸ Calendar ▸ Show Calendar Events, and tap the calendars to show.
+- Or set the keys in =config.toml=:
+
+#+BEGIN_SRC toml
+[orgstar]
+calendar-events = true
+calendar-event-calendars = "Work, Family"
+#+END_SRC
+
+=calendar-event-calendars= names calendars by title or identifier, separated by commas; =""= (the default) shows every calendar, including calendars added later. While every calendar is checked in Settings, the key stays empty.
+
+The first time events are turned on, Orgstar asks for access to your calendars. The system asks for full access, because Calendar has no read-only level of access. If you declined, allow it in System Settings ▸ Privacy & Security ▸ Calendars on the Mac, or in the Settings app on iOS.
+
+Events appear only in the day, week and month view:
+
+- All-day events come first on their day, as calendars show them.
+- Timed events go among the timed entries by start time, after entries with the same start and before untimed entries and habits.
+- An event over several days shows its start time on its first day, =Until 02:00= on its last day, and =All day= on the days between.
+- The dot and the icon take the calendar's color, or =agenda-event= when the calendar has none.
+- Filters don't hide events.
+
+On the Mac, double-click an event, or select it and press =RET=, to open it in Calendar; its context menu has Show in Calendar. Entry commands such as =t= don't apply to events.
+
+* Done keywords the agenda doesn't know
+
+A keyword that isn't in =org-todo-keywords= or the file's =#+TODO= lines is not a keyword to Orgstar, as to Org: it is part of the title. A heading such as =SKIPPED Call the bank= with a =SCHEDULED= date last week is therefore an open entry, and shows as overdue. To make such a word a done state, add it after the ~|~:
+
+#+BEGIN_SRC toml
+org-todo-keywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k) SKIPPED"
+#+END_SRC
+
+Done entries leave the Overdue group. With =org-agenda-skip-scheduled-if-done= and =org-agenda-skip-deadline-if-done= on, they leave their own day too.
 
 * Diary sexps
 
@@ -160,7 +243,7 @@ SCHEDULED: <2026-10-05 Mon .+2d/4d>
 
 The repeater can be =+=, =++= or =.+=, with an optional =/Nd= maximum interval. Days the habit was done are read from =- State "DONE" … [date]= lines (for any done keyword) and =CLOSING NOTE [date]= lines in the entry.
 
-A habit appears only on today's agenda and not once it is done for the day. Its line carries the consistency graph: one cell per day for the 21 days before today and the 7 after (=org-habit-preceding-days= and =org-habit-following-days=), with =*= on days it was done and =!= on today. Cell colors follow org-habit's faces:
+A habit appears only on today's agenda and not once it is done for the day. Its row carries the consistency graph: one cell per day for the 21 days before today and the 7 after (=org-habit-preceding-days= and =org-habit-following-days=). On the Mac the graph is at the right of the row, with =*= on days the habit was done and =!= on today; on iOS it is a strip under the title, with a dot on days it was done and today outlined. Cell colors follow org-habit's faces:
 
 | Color  | Meaning                                    | Theme key       |
 |--------+--------------------------------------------+-----------------|
@@ -169,13 +252,15 @@ A habit appears only on today's agenda and not once it is done for the day. Its 
 | Yellow | Last day of the interval                   | =habit-alert=   |
 | Red    | Overdue                                    | =habit-overdue= |
 
-Future days use lighter shades. Hover a cell to see its date. Habits sort after other entries.
+Future days use lighter shades. On the Mac, hover a cell to see its date. Habits sort after other entries.
 
 * The TODO list
 
 The built-in view TODO List is =org-todo-list=: every heading with a TODO keyword that is not a done keyword, sorted by urgency (priority first). The time-based skipping options (=org-agenda-todo-ignore-scheduled= and its relatives) are not supported; every open TODO appears, as with Org's defaults.
 
 A saved view can list specific keywords instead, done ones included, with =keywords = "WAIT|HOLD"= (see [[*Views][Views]]). This mirrors =C-u M-x org-todo-list= with a keyword argument.
+
+The TODO list and the match views use the same rows as the day view (see [[*Rows][Rows]]), without the left column.
 
 * Tag and property matches
 
@@ -300,7 +385,9 @@ Not supported: block agendas (several views in one), per-view settings such as =
 
 * Filters
 
-Filters hide lines without changing the view, as =org-agenda-filter= does. Time grid lines always stay. The active filter shows in the status line at the bottom of the window as =Filter: …=.
+Filters hide lines without changing the view, as =org-agenda-filter= does. Calendar events always stay. The active filter shows in the status line at the bottom of the window as =Filter: …=.
+
+The Filter button in the toolbar asks for a combined filter, as =/= does; its menu has each of the filters below and Remove Filters.
 
 | Key  | Does                                                          | Org command                       |
 |------+---------------------------------------------------------------+-----------------------------------|
@@ -330,45 +417,40 @@ The =/= prompt starts with the whole current filter written in this form, every 
 
 The =\= prompt reads every word as a tag, whether or not a line has it; there, ={regexp}= matches any tag that matches the regexp. The === prompt takes one regexp, with a leading =-= to drop matches. The =_= prompt takes one comparison such as =<0:30=.
 
-* The prefix and line layout
+* Prefix format and colors
 
-Each line shows the category, the time, the leader (=Deadline:=, =In   3 d.:=, =(2/5):=), the heading with its TODO keyword colored, the habit graph if any, and the tags.
+The rows look the same whatever =org-agenda-prefix-format= says. Orgstar reads the =[org-agenda-prefix-format]= table in =config.toml= (see [[file:13-configuration.org][Configuration]]), but the only effect is on times written in heading text: when the =agenda= format contains =%t=, as the default =" %i %-12:c%?-12t% s"= does, a time such as =9:30am= in =Call Ada 9:30am= moves out of the title into the left column, as =org-agenda-remove-times-when-in-prefix= does. Without =%t=, the title keeps it.
 
-To change what comes before the heading, set =org-agenda-prefix-format= in =config.toml=:
+The agenda's colors come from these theme keys (see [[file:13-configuration.org][Configuration]]):
 
-#+BEGIN_SRC toml
-[org-agenda-prefix-format]
-agenda = " %i %-12:c%?-12t% s"
-todo = " %i %-12:c"
-tags = " %i %-12:c"
-#+END_SRC
+| Key                 | Colors                                                                    |
+|---------------------+---------------------------------------------------------------------------|
+| =agenda-background= | the Mac window's background, and the iOS widgets' background               |
+| =agenda-date=       | headers of days after today (Mac)                                         |
+| =agenda-today=      | today's header, the now line, and on iOS the widgets' date                 |
+| =agenda-time=       | the left column of rows with the normal status                            |
+| =agenda-overdue=    | the left column of overdue rows, and the Overdue group's header           |
+| =agenda-due-soon=   | the left column of deadlines due today or coming up                        |
+| =agenda-event=      | calendar events whose calendar has no color                               |
+| =agenda-category=   | category names (Mac)                                                      |
+| =todo=, =todo-next=, =todo-waiting=, =done=, =todo-cancelled= | TODO keyword badges, by class               |
+| =priority-a=, =priority-b=, =priority-c=, =priority= | priority letters                                     |
+| =tags=              | tag capsules (Mac)                                                        |
 
-These are the defaults. =agenda= applies to the day view, =todo= to the TODO list, and =tags= to match views. When a format differs from its default, the agenda shows the prefix as Emacs prints it, in a monospaced font, instead of its own columns.
-
-| Field | Shows                                                                 |
-|-------+-----------------------------------------------------------------------|
-| =%c=  | The category                                                          |
-| =%t=  | The time of day, or the time range                                    |
-| =%s=  | The leader: =Scheduled:=, =Deadline:=, =In 3 d.:= and so on           |
-| =%e=  | The =Effort= property                                                 |
-| =%l=  | One space per heading level                                           |
-| =%b=  | The outline path above the heading, each title followed by =->=       |
-| =%T=  | The item's last tag, counting inherited tags                          |
-| =%i=  | The category icon; always empty in Orgstar                            |
-
-Each field takes Org's modifiers: =%-12c= pads to 12 columns on the right (=%12c= on the left); =%-12.6c= limits a category to 5 characters; =%?t= leaves the field out entirely when empty; a punctuation character after the width (=%-12:c=) is added after a non-empty value. When the format contains =%t=, times move out of the heading text into the prefix, as =org-agenda-remove-times-when-in-prefix= does. =%(…)= Lisp forms are accepted but always empty.
-
-Colors come from the theme keys =agenda-background=, =agenda-date=, =agenda-today=, =agenda-time=, =agenda-category=, =agenda-deadline=, =agenda-upcoming=, =agenda-scheduled= and =agenda-scheduled-past= (see [[file:13-configuration.org][Configuration]]).
+=[theme.todo]= colors keywords by name and =[theme.category]= colors categories by name. =agenda-deadline=, =agenda-upcoming=, =agenda-scheduled= and =agenda-scheduled-past= are accepted in a theme but not used.
 
 * Acting on entries
 
-Select a line with the arrow keys or the mouse. These keys work in the agenda window in every keymap preset; they are fixed and are not read from =keymap.toml=.
+Select a line with the mouse, or move the selection with =n= and =p=, =C-n= and =C-p=, or =↓= and =↑=. These keys work in the agenda window in every keymap preset; they are fixed and are not read from =keymap.toml=.
 
 | Key                     | Does                                                         | Org command                  |
 |-------------------------+--------------------------------------------------------------+------------------------------|
-| =RET= or double click   | Shows the entry in the main window                           | =org-agenda-switch-to=       |
+| =n=, =p=                | Moves to the next or previous line                           | =org-agenda-next-line=/=-previous-line= |
+| =RET=, =TAB= or double click | Shows the entry in the main window; opens a calendar event in Calendar | =org-agenda-switch-to=, =org-agenda-goto= |
+| =SPC=                   | Shows the entry in the main window, keeping the agenda in front | =org-agenda-show-and-scroll-up= |
 | =t= or =C-c C-t=        | Changes the TODO state, as in the editor                     | =org-agenda-todo=            |
 | =+=, =-=                | Raises or lowers the priority                                | =org-agenda-priority-up=/=-down= |
+| =,=                     | Sets the priority                                            | =org-agenda-priority=        |
 | =:= or =C-c C-q=        | Sets tags                                                    | =org-agenda-set-tags=        |
 | =C-c C-s=               | Schedules                                                    | =org-agenda-schedule=        |
 | =C-c C-d=               | Sets a deadline                                              | =org-agenda-deadline=        |
@@ -378,6 +460,12 @@ Select a line with the arrow keys or the mouse. These keys work in the agenda wi
 | =X=                     | Cancels the clock                                            | =org-agenda-clock-cancel=    |
 | =C-c C-w=               | Refiles                                                      | =org-agenda-refile=          |
 | =$=, =C-c $=, =C-c C-x C-s= | Archives                                                 | =org-agenda-archive=         |
+| =k=                     | Captures an entry scheduled on the selected line's day       | =org-agenda-capture=         |
+| =s=                     | Saves every file                                             | =org-save-all-org-buffers=   |
+
+Without a selected line, =k= captures onto today when today is shown, else onto the first day shown. The + at the right of each day's header captures onto that day; see [[file:08-capture.org][Capture]].
+
+Right-click a line for Open, Cycle TODO State, Set Priority…, Set Tags…, Schedule…, Set Deadline…, Clock In, Mark or Unmark, and Archive. A calendar event's menu has Show in Calendar.
 
 =t= follows =org-todo=: with fast-selection keys in your TODO keywords it asks for the state, otherwise it cycles (see [[file:05-todos-and-tags.org][TODOs and tags]]). Questions an action needs, such as a date for =C-c C-s= or a note on a state change, appear in the agenda window. Dates take the same input as in the editor (see [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]]). =S-<right>= and =S-<left>= work only on deadline, scheduled and timestamp lines; they change the timestamp the line comes from.
 
@@ -391,7 +479,7 @@ Each action finds the entry again by its heading line before it changes anything
 
 | Key | Does                                     | Org command                    |
 |-----+------------------------------------------+--------------------------------|
-| =m= | Marks the selected entry (shown with =›=) | =org-agenda-bulk-mark=        |
+| =m= | Marks the selected entry (shown with a bar at its left) | =org-agenda-bulk-mark= |
 | =u= | Unmarks it                               | =org-agenda-bulk-unmark=       |
 | =U= | Unmarks everything                       | =org-agenda-bulk-unmark-all=   |
 | =B= | Asks for an action on every marked entry | =org-agenda-bulk-action=       |
@@ -409,7 +497,7 @@ Orgstar can post a notification before each timed entry, as =org-agenda-to-appt=
 
 Both are in Settings ▸ Agenda. An entry's =APPT_WARNTIME= property, in minutes, overrides the warning time for that entry. If the warning time has already passed but the entry hasn't started, the reminder fires at once.
 
-The notification's title is the heading; its body is the time, the leader if any, and the category, such as =14:00 · Scheduled: · work=. Clicking it shows the entry in the main window.
+The notification's title is the heading; its body is the time, Org's leader text (=Scheduled:=, =Deadline:=) if any, and the category, such as =14:00 · Scheduled: · work=. Clicking it shows the entry in the main window.
 
 On the Mac, reminders are updated two seconds after edits stop, when files change, and every hour. At most 64 are set, the earliest first. The agenda's status line says how far ahead they are set, or that notifications are off for Orgstar in System Settings. Turning reminders off removes the pending ones.
 
@@ -441,10 +529,18 @@ The board is not available on iOS.
 
 The Agenda tab shows the same views from the same files, using the settings in the synced =config.toml= and the views in =views.toml= (see [[file:14-ios.org][iOS]]). Differences from the Mac:
 
-- The Views menu lists the built-in views, your saved views, and Tags and Properties…, which asks for a match string. There is no TODO-only match from the menu; use =/!= in the match or a =todo-match= view. Today, Earlier and Later are in the same menu.
+- The Views menu, at the top left, lists the built-in views, your saved views, and Tags and Properties…, which asks for a match string. There is no TODO-only match from the menu; use =/!= in the match or a =todo-match= view.
+- A bar floats at the bottom of the screen with Earlier, Filter, Today, Go to Date, the span and Later. The span menu switches between Day, Week, Month and the configured span (=10 Days= by default). Weeks start on the first day of the week in the device's region settings. In the TODO list and match views the bar has Filter and Agenda, which returns to the day view. Messages show above the bar; tap one to dismiss it.
+- The title names the days shown: =Thu 8 Oct=, =Week of 5 Oct=, =October 2026=, or =5 Oct – 14 Oct=.
+- Day headers read =Today · Thu 8 Oct= or =Fri 9 Oct=, with a + that captures onto that day. The Overdue group stays collapsed or expanded as you left it.
 - Pull down to refresh.
 - The Filter button opens a sheet: type a filter as for =/=, or tap a tag or category to cycle between Keep, Leave out and no filter.
-- Tap an entry to open it. Swipe left on an open TODO to mark it done with the first done keyword of its sequence, as the file defines its keywords: the default keywords from =config.toml=, the file's own =#+TODO= lines, and those of its setup files, with unsaved edits in an open buffer included.
-- Touch and hold an entry for TODO State…, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile… and Archive….
-- There are no keyboard commands, time grid lines, habit graphs, log mode, bulk marks or custom prefix formats.
+- Tap an entry to open it. Calendar events don't open.
+- Swipe left on an open TODO entry for Done, which sets the first done keyword of its sequence, and Next State, which moves to the next keyword. The sequence is the one the file defines: the default keywords from =config.toml=, the file's own =#+TODO= lines, and those of its setup files, with unsaved edits in an open buffer included.
+- Swipe right on a scheduled entry, a deadline, a habit or a TODO entry, when it isn't done, for Tomorrow, Next Week and Pick Date. Tomorrow and Next Week are one day and seven days after today. On a deadline row these move the deadline; on other rows they set the scheduled date. A timed row keeps its times.
+- Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile… and Archive….
+- Marking an entry done and rescheduling one give haptic feedback.
+- There are no keyboard commands, log mode or bulk marks.
 - Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open Orgstar to set later ones.
+
+The Today and Up Next widgets show the agenda on the Home Screen and the Lock Screen; see [[file:14-ios.org][iPhone and iPad]].

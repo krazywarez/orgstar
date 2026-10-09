@@ -1,5 +1,5 @@
 #+TITLE: iPhone and iPad
-#+DESCRIPTION: The iOS app: folders, reading and editing, search, the agenda, capture, clocking, reminders, export and settings.
+#+DESCRIPTION: The iOS app: folders, reading and editing, search, the agenda, widgets, capture, clocking, reminders, export and settings.
 #+LEDE: Orgstar for iPhone and iPad reads and edits the same org files as the Mac, with the agenda, capture and search.
 
 * Overview
@@ -61,7 +61,7 @@ Files that aren't valid UTF-8 open read-only; commands that would change them sa
 
 ** Themes and display
 
-The editor and the reader use the theme set in the configuration folder's =config.toml=, stacked as on the Mac: the default theme, then the theme file named by =theme-file=, then the colours in =[theme]=, =[theme.light]=, =[theme.dark]= and =[theme.todo]=. Colours follow the system's light or dark appearance. Problems in the theme show in the Settings tab with the other problems. A change to =config.toml= or the theme file applies as it syncs, to open editors too. See [[file:13-configuration.org][Configuration]] for the colour keys.
+The editor and the reader use the theme set in the configuration folder's =config.toml=, stacked as on the Mac: the default theme, then the theme file named by =theme-file=, then the colours in =[theme]=, =[theme.light]=, =[theme.dark]=, =[theme.todo]= and =[theme.category]=. A TODO keyword without a colour in =[theme.todo]= takes its class's colour: =todo-next= for =NEXT= and =STRT=, =todo-waiting= for =WAIT= and =HOLD=, =todo-cancelled= for =KILL= and =CANCELLED=, and so on (see [[file:13-configuration.org][Configuration]] for the lists). Colours follow the system's light or dark appearance. Problems in the theme show in the Settings tab with the other problems. A change to =config.toml= or the theme file applies as it syncs, to open editors too. See [[file:13-configuration.org][Configuration]] for the colour keys.
 
 - Font :: =font= when that family is installed on the device, otherwise the system's monospaced font.
 - Size :: =font-size= is the size at the default Dynamic Type setting, 13 pt by default. Text grows and shrinks with the text size chosen in the system Settings app.
@@ -152,17 +152,55 @@ Tap a result to open it in the reader. A heading result opens at that heading.
 
 * The agenda
 
-The Agenda tab shows the agenda over all your folders, with the span and start day from the settings (10 days from 3 days ago by default). Pull down to refresh it.
+The Agenda tab shows the agenda over all your folders, with the span and start day from the settings (10 days from 3 days ago by default). Each day lists its entries in rows: the time or a status such as =Due today= or =3d late= on the left, the category and the keyword above the title. Days without entries are hidden, except today. Today's overdue entries are in a group of their own, and a line marks the current time between timed entries. Pull down to refresh.
 
-- Views (the calendar icon) :: the built-in views and those in =views.toml=, Tags and Properties… (a match such as =+work-home= or =TODO="WAIT"=), and in the day view, Today, Earlier and Later.
-- Filter :: keep or leave out tags and categories of the entries shown, or type a filter as Org's =/= takes it: =+keep= and =-drop= tags or categories, =<0:30= for effort, =/regexp/=. The status line shows the filter in use.
-- Tap an entry to read it, at its heading.
-- Swipe a TODO entry to the left to mark it done with the first done keyword of its sequence, as the file defines its keywords (with the default keywords, its =#+TODO= lines and its setup files).
-- Touch and hold an entry for TODO State…, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive….
+- Views (top left) :: the built-in views and those in =views.toml=, and Tags and Properties… (a match such as =+work-home= or ~TODO="WAIT"~).
+- The bar at the bottom :: Earlier, Filter, Today, Go to Date, the span (Day, Week, Month or the configured span) and Later.
+- Filter :: keep or leave out tags and categories of the entries shown, or type a filter as Org's =/= takes it: =+keep= and =-drop= tags or categories, =<0:30= for effort, =/regexp/=. The filter in use shows above the bar.
+- + on a day's header :: captures an entry scheduled on that day (see [[file:08-capture.org][Capture]]).
+- Tap :: an entry to read it, at its heading.
+- Swipe left :: on a TODO entry for Done, which sets the first done keyword of its sequence, or Next State.
+- Swipe right :: for Tomorrow, Next Week or Pick Date, which move the entry's scheduled date, or its deadline on a deadline row.
+- Touch and hold :: an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive….
 
 Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.
 
-See [[file:07-agenda.org][The agenda]] for the views and matches.
+With =calendar-events= on, the agenda also shows events from the Calendar app; see Settings below.
+
+See [[file:07-agenda.org][The agenda]] for the rows, the views and matches, and the differences from the Mac.
+
+* Widgets and the Live Activity
+
+** Widgets
+
+Orgstar has two widgets. Add them as any widget: touch and hold the Home Screen or the Lock Screen, and choose Orgstar in the widget gallery.
+
+| Widget | Sizes                                        | Shows                                                                                       |
+|--------+----------------------------------------------+---------------------------------------------------------------------------------------------|
+| Today  | Small, medium and large (Home Screen)        | The date, the count of open entries, and what's left of today: 3 rows (small), 4 rows (medium), or 6 rows and tomorrow's entries (large). Medium and large also count overdue entries. |
+| Up Next | Rectangular, inline and circular (Lock Screen) | The next entry's time or status and title (rectangular, inline), or the count of open entries today (circular, and inline when nothing is left) |
+
+What's left of today is today's entries and calendar events that aren't done, without timed ones that have ended (or started, when they have no end), followed by the overdue entries. The open count is today's entries not done, overdue ones included, without calendar events. The widgets use the theme's colours for the status, the keyword, the priority and the category.
+
+Tapping a row in the medium or large Today widget opens that entry; tapping elsewhere opens the agenda. Tapping Up Next opens the next entry, or the agenda when there is none.
+
+Widgets can't read your folders, so the app writes the next seven days of the agenda (today included) for them to read: while it is open, when files, edits or settings change, when you return to the app, and every hour. Between those times the widgets move on by themselves as timed entries end and at midnight, but they show nothing new until you open Orgstar. Until the app has written the agenda once, they say =Open Orgstar to show your agenda here.= The widgets ignore the agenda's filter and show no days without entries.
+
+** The clock's Live Activity
+
+While a clock runs, it shows on the Lock Screen and in the Dynamic Island: the heading, the time so far, and a Clock Out button. Clock Out stops the clock as Clock Out does in the app, and saves the file. Tapping the Live Activity opens the clocked entry.
+
+The Live Activity starts when you clock in in the app and ends when the clock stops, however it stops. It needs Live Activities allowed for Orgstar in the Settings app (Settings ▸ Orgstar ▸ Live Activities).
+
+** orgstar:// links
+
+The widgets and the Live Activity open the app with these links, which also work from Shortcuts, Safari or a note:
+
+| Link                                   | Opens                                      |
+|----------------------------------------+--------------------------------------------|
+| =orgstar://agenda=                     | The Agenda tab                             |
+| =orgstar://clock=                      | The entry of the running clock             |
+| ~orgstar://entry?path=/path/file.org&offset=N~ | The file in the reader, at offset N |
 
 * Capture
 
@@ -200,7 +238,7 @@ See [[file:08-capture.org][Capture]] for the template format.
 
 * Clocking
 
-Clock in from the editor (More ▸ Clock In, or Clock In in Commands) or from an agenda entry's menu. While a clock runs, a bar above the tab bar shows the entry and the time so far as =H:MM=, updated every 30 seconds. Tap the bar for:
+Clock in from the editor (More ▸ Clock In, or Clock In in Commands) or from an agenda entry's menu. While a clock runs, a bar above the tab bar shows the entry and the time so far as =H:MM=, updated every 30 seconds, and a Live Activity shows it on the Lock Screen and in the Dynamic Island (see [[*Widgets and the Live Activity][Widgets and the Live Activity]]). Tap the bar for:
 
 - Clock Out
 - Cancel Clock
@@ -264,7 +302,7 @@ See [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]] for
 
 * Settings
 
-The iOS app has no settings of its own. It reads them from a configuration folder: a folder holding =config.toml= and =capture.toml=, such as a copy of the Mac's =~/.config/orgstar= synced through iCloud Drive or another app.
+The iOS app reads its settings from a configuration folder: a folder holding =config.toml= and =capture.toml=, such as a copy of the Mac's =~/.config/orgstar= synced through iCloud Drive or another app.
 
 1. Open the Settings tab.
 2. Tap Choose Folder… and choose the folder.
@@ -272,6 +310,13 @@ The iOS app has no settings of its own. It reads them from a configuration folde
 Changes to the files apply as they sync, and again each time you return to the app. Problems in the files show in red under the folder. "No config.toml in /folder/; the defaults apply" means the folder has no =config.toml=.
 
 Stop Using This Folder returns every setting to its default.
+
+The Calendar section is the one place the app changes a setting itself:
+
+- Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; Orgstar only reads. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
+- The calendars :: tap one to show or hide its events (=calendar-event-calendars=). With every calendar checked the setting is empty, so calendars added later show too.
+
+These write =config.toml= in the configuration folder, as the Mac's Settings window does, so the Mac sees the change too. Without a configuration folder they are kept on the device.
 
 The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting 3 days before today=), the reminder lead time, the capture template keys, the theme (=Default=, or the theme file's name), and the font with its size. When =font= names a family that isn't installed on the device, Font shows the system's font with a note, as =System monospaced, 13 pt (JetBrains Mono isn't installed)=.
 
@@ -281,11 +326,12 @@ These settings from =config.toml= apply on iOS:
 - =org-tags-column=, =org-insert-heading-respect-content=, =org-M-RET-may-split-line=, =fill-column=
 - =org-hide-emphasis-markers= and =org-pretty-entities=, for what hidden markup shows and for how tag and table alignment and filling measure text, as on the Mac
 - =show-markup=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-with-inline-images=, =org-startup-align-all-tables=, =org-startup-truncated=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=
-- =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=
+- =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
 - =org-use-speed-commands=, with a hardware keyboard
 - =electric-pair-mode=, =spell-check=
-- =org-agenda-span=, =org-agenda-start-day=, =agenda-include-subfolders=
+- =org-agenda-span=, =org-agenda-start-day=, =agenda-include-subfolders=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=
+- =calendar-events=, =calendar-event-calendars=
 - =reminders=, =appt-message-warning-time=
 - =org-clock-history-length=
 
