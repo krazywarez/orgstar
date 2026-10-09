@@ -1022,7 +1022,7 @@ public enum Babel {
         static func propertyLayers(language: String, heading: Int?, model: DocumentModel) -> [[(String, String)]] {
             var levels = [model.fileProperties]
             if let heading {
-                levels += (model.ancestors(of: heading).reversed() + [heading]).map { model.headings[$0].properties }
+                levels += (model.ancestors(of: heading) + [heading]).map { model.headings[$0].properties }
             }
             return ["header-args", "header-args:\(language)"].compactMap { key in
                 var value: String?

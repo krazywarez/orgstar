@@ -201,6 +201,8 @@ struct BabelTests {
         "#+begin_src sh :dir (concat \"/\" \"usr\") :results output\npwd\n#+end_src\n",
         "#+begin_src sh :dir /tmp :results output\npwd\n#+end_src\n",
         "#+NAME: items\n- one\n- two\n\n#+begin_src shell :var l=items :results output\necho \"$l\"\n#+end_src\n",
+        // The nearest heading's header-args win.
+        "* A\n:PROPERTIES:\n:header-args: :var x=1\n:END:\n** B\n:PROPERTIES:\n:header-args: :var x=2\n:END:\n*** C\n#+begin_src sh\necho $x\n#+end_src\n",
         // Lisp values.
         "#+begin_src python :var l='(1 2) m='((1 2) (3 4)) n=(+ 1 2) s='(\"a\" \"b\")\nreturn [l, m, n, s]\n#+end_src\n",
         "#+begin_src emacs-lisp :var l='(1 2) h='((1 2) hline (3 4)) s=(concat \"a\" \"b\")\n(list l h s)\n#+end_src\n",
