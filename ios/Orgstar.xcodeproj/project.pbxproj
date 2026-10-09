@@ -1,0 +1,642 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1B78003BBCE8A4B809333342 = {
+			isa = PBXBuildFile;
+			productRef = A2BE626BBE45EA52880B6169;
+		};
+		1E5861C0EFE1D96CDC21A22F = {
+			isa = PBXBuildFile;
+			productRef = BA239181876756F7732397EB;
+		};
+		80E85E72A5B727A15D7123D4 = {
+			isa = PBXBuildFile;
+			fileRef = 54F0339BC26341A6010C1386;
+			settings = {
+				ATTRIBUTES = (
+					RemoveHeadersOnCopy,
+				);
+			};
+		};
+		9BE045FD696469CA8D19F22C = {
+			isa = PBXBuildFile;
+			productRef = 47D54A361A74FE9E2B0722BB;
+		};
+		A05D351FCD8FE36B6A58E035 = {
+			isa = PBXBuildFile;
+			fileRef = D128CD70D4E88FAA82D23FD9;
+			settings = {
+				ATTRIBUTES = (
+					RemoveHeadersOnCopy,
+				);
+			};
+		};
+		AB68F3B4EE90C0961355E986 = {
+			isa = PBXBuildFile;
+			productRef = 64DF80C4FBF50B0AF5DC6E33;
+		};
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5932E50A667F73AEF6E5FB26 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595;
+			proxyType = 1;
+			remoteGlobalIDString = 92364A1473ECC9B162FEAE51;
+			remoteInfo = OrgstarShare;
+		};
+		D0655711FB3B470A356B2D36 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595;
+			proxyType = 1;
+			remoteGlobalIDString = BBA37636EB6BBA564493899D;
+			remoteInfo = OrgstarQuickLook;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		269605D45C104F12CBCDC8FB = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A05D351FCD8FE36B6A58E035,
+				80E85E72A5B727A15D7123D4,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		008B67FA6385670637488313 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.entitlements;
+			path = Orgstar/Orgstar.entitlements;
+			sourceTree = "<group>";
+		};
+		1025FACEDEC31014F0AFA230 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.entitlements;
+			path = OrgstarShare/OrgstarShare.entitlements;
+			sourceTree = "<group>";
+		};
+		48A21BB1AB1E70D4429DCDE4 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = OrgstarQuickLook/Info.plist;
+			sourceTree = "<group>";
+		};
+		54F0339BC26341A6010C1386 = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.app-extension;
+			includeInIndex = 0;
+			path = OrgstarQuickLook.appex;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		D128CD70D4E88FAA82D23FD9 = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.app-extension;
+			includeInIndex = 0;
+			path = OrgstarShare.appex;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		D72184D78ACF70837216BCBF = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = OrgstarShare/Info.plist;
+			sourceTree = "<group>";
+		};
+		ECD4A6B56983444E4E07CE63 = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			path = Orgstar.app;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		F05C9F05F8A61806F30E9328 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.xml;
+			path = Orgstar/Info.plist;
+			sourceTree = "<group>";
+		};
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		25D1FFC8C8FE4375AA373DF9 = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				main.swift,
+			);
+			target = BBA37636EB6BBA564493899D;
+		};
+		921E3E2198CDD080F66DD902 = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				main.swift,
+			);
+			target = 92364A1473ECC9B162FEAE51;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		2412EC8ED6427B76498FCD18 = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../Sources/OrgstarQuickLook;
+			sourceTree = "<group>";
+			exceptions = (
+				25D1FFC8C8FE4375AA373DF9,
+			);
+		};
+		6425CB8F177EDFF8EE2BD447 = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../Sources/OrgstarShare;
+			sourceTree = "<group>";
+			exceptions = (
+				921E3E2198CDD080F66DD902,
+			);
+		};
+		7E85FA5E5BA11D0F6891693E = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../Sources/OrgstarMobile;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1439C48F60EF427CC7ADB87B = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1E5861C0EFE1D96CDC21A22F,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2058F3B51F8D10551554307D = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB68F3B4EE90C0961355E986,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		843FAAECD041CD2466904790 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B78003BBCE8A4B809333342,
+				9BE045FD696469CA8D19F22C,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0A2C978E52A76F0AA9F68BB5 = {
+			isa = PBXGroup;
+			children = (
+				ECD4A6B56983444E4E07CE63,
+				D128CD70D4E88FAA82D23FD9,
+				54F0339BC26341A6010C1386,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2B731CEFC6751AAE0EC69B98 = {
+			isa = PBXGroup;
+			children = (
+				6425CB8F177EDFF8EE2BD447,
+				2412EC8ED6427B76498FCD18,
+				7E85FA5E5BA11D0F6891693E,
+				40FCC6CF7BFC065FCDD48D4E,
+				0A2C978E52A76F0AA9F68BB5,
+			);
+			sourceTree = "<group>";
+		};
+		40FCC6CF7BFC065FCDD48D4E = {
+			isa = PBXGroup;
+			children = (
+				F05C9F05F8A61806F30E9328,
+				008B67FA6385670637488313,
+				D72184D78ACF70837216BCBF,
+				1025FACEDEC31014F0AFA230,
+				48A21BB1AB1E70D4429DCDE4,
+			);
+			name = Support;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4E815AD2268DF19F304A2880 = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3F4C2119C1AEC3C58EDF26F9;
+			buildPhases = (
+				FD11E99E3EE9450636C880B9,
+				843FAAECD041CD2466904790,
+				287027B677CE75B2D4715EE6,
+				269605D45C104F12CBCDC8FB,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7F4807D68646366ED2DCA5C2,
+				B35F6E044645C7D88B689DC1,
+			);
+			fileSystemSynchronizedGroups = (
+				7E85FA5E5BA11D0F6891693E,
+			);
+			name = "Orgstar iOS";
+			packageProductDependencies = (
+				A2BE626BBE45EA52880B6169,
+				47D54A361A74FE9E2B0722BB,
+			);
+			productName = Orgstar;
+			productReference = ECD4A6B56983444E4E07CE63;
+			productType = com.apple.product-type.application;
+		};
+		92364A1473ECC9B162FEAE51 = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9E5D2D8CAA074680FE17F119;
+			buildPhases = (
+				E5AC38BB173B87555EBEC0AC,
+				1439C48F60EF427CC7ADB87B,
+				1A9DC7DD7E76A6C5A1DC674C,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6425CB8F177EDFF8EE2BD447,
+			);
+			name = OrgstarShare;
+			packageProductDependencies = (
+				BA239181876756F7732397EB,
+			);
+			productName = OrgstarShare;
+			productReference = D128CD70D4E88FAA82D23FD9;
+			productType = com.apple.product-type.app-extension;
+		};
+		BBA37636EB6BBA564493899D = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA45BEE00EE2451462D002FF;
+			buildPhases = (
+				347F295A9254F751A96C2737,
+				2058F3B51F8D10551554307D,
+				D4E4B37C7E22E9760E5FA492,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				2412EC8ED6427B76498FCD18,
+			);
+			name = OrgstarQuickLook;
+			packageProductDependencies = (
+				64DF80C4FBF50B0AF5DC6E33,
+			);
+			productName = OrgstarQuickLook;
+			productReference = 54F0339BC26341A6010C1386;
+			productType = com.apple.product-type.app-extension;
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+			};
+			buildConfigurationList = 30435AE6E633F256CC883684;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 2B731CEFC6751AAE0EC69B98;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A46A1BCE0B67C45BEC8F435B,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0A2C978E52A76F0AA9F68BB5;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4E815AD2268DF19F304A2880,
+				92364A1473ECC9B162FEAE51,
+				BBA37636EB6BBA564493899D,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1A9DC7DD7E76A6C5A1DC674C = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		287027B677CE75B2D4715EE6 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E4B37C7E22E9760E5FA492 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		347F295A9254F751A96C2737 = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E5AC38BB173B87555EBEC0AC = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD11E99E3EE9450636C880B9 = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7F4807D68646366ED2DCA5C2 = {
+			isa = PBXTargetDependency;
+			target = 92364A1473ECC9B162FEAE51;
+			targetProxy = 5932E50A667F73AEF6E5FB26;
+		};
+		B35F6E044645C7D88B689DC1 = {
+			isa = PBXTargetDependency;
+			target = BBA37636EB6BBA564493899D;
+			targetProxy = D0655711FB3B470A356B2D36;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0BF40655E429259B35B06BEC = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				INFOPLIST_FILE = OrgstarQuickLook/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.quicklook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		0D865C988DB7EAA7BA355661 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				INFOPLIST_FILE = OrgstarShare/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				SKIP_INSTALL = YES;
+				CODE_SIGN_ENTITLEMENTS = OrgstarShare/OrgstarShare.entitlements;
+			};
+			name = Debug;
+		};
+		1339A23112C9EBCAEF5EF7FE = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				INFOPLIST_FILE = OrgstarShare/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				SKIP_INSTALL = YES;
+				CODE_SIGN_ENTITLEMENTS = OrgstarShare/OrgstarShare.entitlements;
+			};
+			name = Release;
+		};
+		2FA7055951A13CF159CF0B9C = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				INFOPLIST_FILE = Orgstar/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar;
+				PRODUCT_NAME = Orgstar;
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_MODULE_NAME = OrgstarMobile;
+				CODE_SIGN_ENTITLEMENTS = Orgstar/Orgstar.entitlements;
+			};
+			name = Release;
+		};
+		942C95A5D90B164020736D83 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				INFOPLIST_FILE = OrgstarQuickLook/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.quicklook;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		B7DFA010494D99B3247DD1DF = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_VERSION = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf-with-dsym;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CD700063997E34E9BA5D262B = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				INFOPLIST_FILE = Orgstar/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar;
+				PRODUCT_NAME = Orgstar;
+				MARKETING_VERSION = 0.1.0;
+				CURRENT_PROJECT_VERSION = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_MODULE_NAME = OrgstarMobile;
+				CODE_SIGN_ENTITLEMENTS = Orgstar/Orgstar.entitlements;
+			};
+			name = Debug;
+		};
+		F25EF7827B5210B4D9103995 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_VERSION = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_OPTIMIZATION_LEVEL = -Onone;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		30435AE6E633F256CC883684 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F25EF7827B5210B4D9103995,
+				B7DFA010494D99B3247DD1DF,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3F4C2119C1AEC3C58EDF26F9 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD700063997E34E9BA5D262B,
+				2FA7055951A13CF159CF0B9C,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9E5D2D8CAA074680FE17F119 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0D865C988DB7EAA7BA355661,
+				1339A23112C9EBCAEF5EF7FE,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA45BEE00EE2451462D002FF = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				942C95A5D90B164020736D83,
+				0BF40655E429259B35B06BEC,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A46A1BCE0B67C45BEC8F435B = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		47D54A361A74FE9E2B0722BB = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B;
+			productName = OrgHighlight;
+		};
+		64DF80C4FBF50B0AF5DC6E33 = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B;
+			productName = OrgCore;
+		};
+		A2BE626BBE45EA52880B6169 = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B;
+			productName = OrgApp;
+		};
+		BA239181876756F7732397EB = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B;
+			productName = OrgApp;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595;
+}

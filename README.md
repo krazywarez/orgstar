@@ -34,7 +34,10 @@ header names, as `org-babel-tangle` does.
 bookmarklets written for org-protocol work unchanged. Shortcuts has a
 "Capture to Orgstar" action that files text with a capture template.
 
-The iOS app (iOS 26) builds for the Simulator:
+The iOS app (iOS 26) is the "Orgstar iOS" scheme in `ios/Orgstar.xcodeproj`, with the
+share and Quick Look extensions. It builds from the package's sources and signs
+automatically with the team set in the project; choose a device or Simulator and Run.
+For the Simulator without Xcode:
 
 ```sh
 scripts/build-ios-app.sh      # builds .build/ios-app/Orgstar.app
