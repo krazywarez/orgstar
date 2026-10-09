@@ -14,6 +14,12 @@ struct SortListTests {
         "Intro\n- one\n- two\n  continued\n- three\nOutro\n",
     ]
 
+    static let utc: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }()
+
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func matchesEmacs() throws {
         var cases: [EmacsOracle.Case] = []
@@ -33,7 +39,8 @@ struct SortListTests {
             for caret in carets.prefix(2) {
                 for key in ["a", "A", "n", "N", "t", "T", "x", "X"] {
                     cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: "(org-sort-list nil ?\(key))"))
-                    ours.append(runCommand(SortEntries(), text, caret: caret, answers: ["sort": key]))
+                    // In UTC, as the oracle runs Emacs: an item without a time sorts as now.
+                    ours.append(runCommand(SortEntries(), text, caret: caret, answers: ["sort": key], calendar: Self.utc))
                 }
             }
         }

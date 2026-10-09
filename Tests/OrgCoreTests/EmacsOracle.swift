@@ -162,8 +162,9 @@ func withOptions(_ options: EditingOptions, _ form: String) -> String {
 let doomOptions = EditingOptions(tagsColumn: 0, insertHeadingRespectContent: true, metaReturnMaySplitLine: false, listAllowAlphabetical: true, fillColumn: 80, hideEmphasisMarkers: true, prettyEntities: true, subSuperscriptsNeedBraces: true)
 
 /// Runs a command the way an editor would: build a context, run, apply the edits.
-func runCommand(_ command: any OrgCommand, _ text: String, caret: Int, answers: [String: String] = [:], options: EditingOptions = .org) -> (text: String, caret: Int, failure: String?) {
-    let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], answers: answers, options: options)
+func runCommand(_ command: any OrgCommand, _ text: String, caret: Int, answers: [String: String] = [:], options: EditingOptions = .org,
+                calendar: Calendar = .current) -> (text: String, caret: Int, failure: String?) {
+    let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], calendar: calendar, answers: answers, options: options)
     switch command.run(in: context) {
     case .commit(let result):
         var new = text
