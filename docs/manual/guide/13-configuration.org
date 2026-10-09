@@ -570,10 +570,6 @@ The colors stack in this order, each over the one before: the default theme, the
 | =agenda-overdue=        | agenda: the status of entries past their deadline or scheduled date, and the Overdue group |
 | =agenda-due-soon=       | agenda: the status of deadlines due today or coming up       |
 | =agenda-event=          | agenda: calendar events whose calendar has no color          |
-| =agenda-deadline=       | accepted, not used                                           |
-| =agenda-upcoming=       | accepted, not used                                           |
-| =agenda-scheduled=      | accepted, not used                                           |
-| =agenda-scheduled-past= | accepted, not used                                           |
 | =habit-clear=           | habit graph: not due yet                                     |
 | =habit-ready=           | habit graph: due                                             |
 | =habit-alert=           | habit graph: due today, last chance                          |

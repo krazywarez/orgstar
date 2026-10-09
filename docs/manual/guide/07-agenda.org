@@ -437,7 +437,7 @@ The agenda's colors come from these theme keys (see [[file:13-configuration.org]
 | =priority-a=, =priority-b=, =priority-c=, =priority= | priority letters                                     |
 | =tags=              | tag capsules (Mac)                                                        |
 
-=[theme.todo]= colors keywords by name and =[theme.category]= colors categories by name. =agenda-deadline=, =agenda-upcoming=, =agenda-scheduled= and =agenda-scheduled-past= are accepted in a theme but not used.
+=[theme.todo]= colors keywords by name and =[theme.category]= colors categories by name.
 
 * Acting on entries
 

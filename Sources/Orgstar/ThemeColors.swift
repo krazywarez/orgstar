@@ -36,7 +36,7 @@ extension ThemeSpec {
         switch key {
         case "sidebar-background", "modeline-background": .windowBackgroundColor
         case "agenda-background", "background": .textBackgroundColor
-        case "sidebar-header", "modeline-foreground", "agenda-time", "agenda-category", "agenda-scheduled", "tags": .secondaryLabelColor
+        case "sidebar-header", "modeline-foreground", "agenda-time", "agenda-category", "tags": .secondaryLabelColor
         default: .labelColor
         }
     }
