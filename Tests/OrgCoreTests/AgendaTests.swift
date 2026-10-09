@@ -115,18 +115,21 @@ enum AgendaOracle {
 
     static func compare(
         files: [(name: String, text: String)], start: Int, span: Int, today: Int, hour: Int = 9, minute: Int = 30,
-        prefix: [String: String]? = nil, logMode: Bool = false
+        prefix: [String: String]? = nil, logMode: Bool = false, skipIfDone: Bool = false
     ) throws {
         let date = Days.date(start)
         var form = "(org-agenda-list nil \"\(String(format: "%04d-%02d-%02d", date.year, date.month, date.day))\" \(span))"
         if let prefix { form = "(let ((org-agenda-prefix-format \(prefixLisp(prefix)))) \(form))" }
         if logMode { form = "(let ((org-agenda-start-with-log-mode t)) \(form))" }
+        if skipIfDone { form = "(let ((org-agenda-skip-scheduled-if-done t) (org-agenda-skip-deadline-if-done t)) \(form))" }
         let emacs = try run(files: files, form: form, today: today, hour: hour, minute: minute)
         let defaults = OrgSettings.default.withTodoKeywords(keywords)!
         let sources = files.map { AgendaSource(path: $0.name, text: $0.text, defaults: defaults) }
         var options = AgendaOptions.terminal
         if let prefix { options.prefixFormat = prefix }
         options.logMode = logMode
+        options.skipScheduledIfDone = skipIfDone
+        options.skipDeadlineIfDone = skipIfDone
         let ours = Agenda.list(sources, start: start, days: span, today: today, now: (hour, minute), options: options)
         #expect(ours.count == emacs.count)
         for (o, e) in zip(ours, emacs) {
@@ -323,6 +326,27 @@ struct AgendaTests {
         let day = Days.absolute(year: 2026, month: 10, day: 6)
         try AgendaOracle.compare(files: files, start: day, span: 1, today: day)
         try AgendaOracle.compare(files: files, start: day + 1, span: 1, today: day)
+    }
+
+    static let doneEntries = """
+        * DONE Scheduled today
+        SCHEDULED: <2026-10-05 Mon>
+        * DONE Due today
+        DEADLINE: <2026-10-05 Mon>
+        * KILL Scheduled earlier
+        SCHEDULED: <2026-10-01 Thu>
+        * DONE Due later
+        DEADLINE: <2026-10-07 Wed>
+        * TODO Still open
+        SCHEDULED: <2026-10-05 Mon> DEADLINE: <2026-10-06 Tue>
+        """
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func skipsDoneEntriesLikeEmacs() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        for skip in [false, true] {
+            try AgendaOracle.compare(files: [("done.org", Self.doneEntries)], start: today - 4, span: 8, today: today, skipIfDone: skip)
+        }
     }
 
     /// `ORGSTAR_ORACLE_CORPUS=<folder>`: the top-level files of the folder, ten days around

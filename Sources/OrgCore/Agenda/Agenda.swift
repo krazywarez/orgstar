@@ -48,6 +48,9 @@ public struct AgendaItem: Sendable, Equatable {
     public var prefix = ""
     /// The entry's `Effort` property.
     public var effort: String?
+    /// Deadlines and scheduled items: the day (as `Days` numbers it) of the timestamp the item
+    /// is for, the repeater's occurrence when the item shows on it.
+    public var planningDay: Int?
 }
 
 public struct AgendaDay: Sendable, Equatable {
@@ -71,6 +74,11 @@ public struct AgendaOptions: Sendable, Equatable {
     public var logMode = false
     /// `org-agenda-log-mode-items`.
     public var logItems: Set<String> = ["closed", "clock"]
+    /// `org-agenda-skip-scheduled-if-done`: done entries' scheduled items are left out even
+    /// on the day they are scheduled.
+    public var skipScheduledIfDone = false
+    /// `org-agenda-skip-deadline-if-done`: done entries' deadlines are left out even on the day due.
+    public var skipDeadlineIfDone = false
 
     public init() {}
 
@@ -139,7 +147,7 @@ public enum Agenda {
                     continue
                 }
             }
-            if heading.isDone, deadline != current { continue }
+            if heading.isDone, options.skipDeadlineIfDone || deadline != current { continue }
             let time: Dotime? = current != deadline && current != repeat_ ? nil : (timeIn(s).map { .string($0) } ?? .headline)
             let extra: String
             if isToday, deadline < today {
@@ -150,10 +158,12 @@ public enum Agenda {
                 extra = "Deadline:  "
             }
             let upcoming = isToday && deadline > today
-            items.append(format(
+            var item = format(
                 source, heading, kind: upcoming ? .upcomingDeadline : .deadline, marker: offset, extra: extra,
                 dotime: time, removing: nil, trailing: options.gridTrailing, prefix: options.prefix("agenda"), urgency: { (isToday ? -diff : 0) + $0 }
-            ))
+            )
+            item.planningDay = current != deadline && current == repeat_ ? repeat_ : deadline
+            items.append(item)
         }
         return items
     }
@@ -171,17 +181,19 @@ public enum Agenda {
                 || (current != schedule && current != today && current != repeat_) {
                 continue
             }
-            if heading.isDone, schedule != current { continue }
+            if heading.isDone, options.skipScheduledIfDone || schedule != current { continue }
             // org-habit: habits only on today's agenda, and not when done.
             if heading.isHabit, heading.isDone || !isToday { continue }
             let time: Dotime? = !heading.isHabit && current != schedule && current != repeat_ ? nil : (timeIn(s).map { .string($0) } ?? .headline)
             let extra = heading.isHabit ? "" : isToday && past ? String(format: "Sched.%2dx: ", diff) : "Scheduled: "
             let habit = heading.isHabit ? heading.habit : nil
-            items.append(format(
+            var item = format(
                 source, heading, kind: past ? .pastScheduled : .scheduled, marker: offset, extra: extra,
                 dotime: time, removing: nil, trailing: options.gridTrailing, prefix: options.prefix("agenda"), habit: habit,
                 urgency: { habit?.urgency(today: today) ?? 99 + diff + $0 }
-            ))
+            )
+            item.planningDay = current != schedule && current == repeat_ ? repeat_ : schedule
+            items.append(item)
         }
         return items
     }
