@@ -480,6 +480,9 @@ public struct TagsMatcher: Sendable {
 /// Emacs regular expressions run through ICU, case-insensitively as the matcher binds
 /// `case-fold-search`.
 enum EmacsRegex {
+    /// Word syntax in an Org buffer: letters, digits, marks, `$` and `%`, but not `_`, `-` or `'`.
+    static let word = "[\\p{L}\\p{N}\\p{M}$%\\u00b7]"
+
     static func translate(_ pattern: String) -> String {
         var out = ""
         var chars = Array(pattern)
@@ -522,11 +525,14 @@ enum EmacsRegex {
                     out += n == "s" ? "[\\t\\n\\f\\r \\u00a0]" : "[^\\t\\n\\f\\r \\u00a0]"
                     i += 3
                     continue
-                case "<", ">": out += "\\b"
+                case "<": out += "(?<!\(word))(?=\(word))"
+                case ">": out += "(?<=\(word))(?!\(word))"
+                case "b": out += "(?:(?<!\(word))(?=\(word))|(?<=\(word))(?!\(word)))"
+                case "B": out += "(?:(?<=\(word))(?=\(word))|(?<!\(word))(?!\(word)))"
                 case "`": out += "^"
                 case "'": out += "$"
-                case "w": out += "[\\p{L}\\p{N}]"
-                case "W": out += "[^\\p{L}\\p{N}]"
+                case "w": out += word
+                case "W": out += "[^" + word.dropFirst()
                 default: out += "\\" + String(n)
                 }
                 i += 2

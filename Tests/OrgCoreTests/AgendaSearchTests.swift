@@ -28,6 +28,7 @@ struct AgendaSearchTests {
     * Two words
     The phrase two   words
     spans here; foo_bar and foo-bar.
+    Costs $5 or 50% (don't) for the café.
     * The last
     word ends this entry with last
     * word starts the next heading
@@ -54,6 +55,9 @@ struct AgendaSearchTests {
         "+alpha", "+alpha -beta", "+alpha +gamma", "-alpha", "+beta -nested", "{alph?a}", "+{^Gam}", "-{b[eo]}",
         "+{\\<rent\\>}", "+\"two words\"", "+\"two   words\"", "+\"the line\"", "{boiler\\b}", "+alpha +\"in the body\"",
         "+{foo\\s-bar}", "+boiler -plate", "+{a b}", "+{alpha} -{x y}",
+        // Emacs word syntax in Org buffers: `_`, `-` and `'` are not word characters; `$` and `%` are.
+        "+{\\<bar\\>}", "+{foo\\b}", "+{o\\B_}", "+{\\<5\\>}", "+{\\b50\\b}", "+{don\\>}", "+{\\w+_\\w+}", "+{\\W5}",
+        "+{caf\\w\\>}", "+{\\<\\$5}",
         // Headlines only.
         "*rent", "*alpha", "*+alpha -beta", "*+section", "*-alpha", "*pay rent", "*with alpha and",
         // TODO only and whole words.
