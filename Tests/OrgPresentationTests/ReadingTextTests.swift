@@ -18,4 +18,40 @@ struct ReadingTextTests {
         // Offsets point into the file.
         #expect(site.map { (text as NSString).substring(with: NSRange(location: $0.offset, length: 8)) } == "the site")
     }
+
+    static func shown(_ text: String, _ display: ReadingText.Display) -> [ReadingText.Segment] {
+        ReadingText.segments(OrgParser.parse(text), in: 0..<(text as NSString).length, display: display)
+    }
+
+    @Test func showMarkupShowsLinkBracketsAndEmphasisMarkers() {
+        var options = EditingOptions.org
+        options.hideEmphasisMarkers = true
+        let text = "a *b* [[c.org][d]]\n"
+        #expect(Self.shown(text, .init(options: options)).map(\.text).joined() == "a b d\n")
+        #expect(Self.shown(text, .init(showMarkup: false)).map(\.text).joined() == "a *b* d\n")
+        #expect(Self.shown(text, .init(showMarkup: true, options: options)).map(\.text).joined() == text)
+    }
+
+    @Test func prettyEntitiesShowTheirCharactersAndRaiseScripts() {
+        var options = EditingOptions.org
+        options.prettyEntities = true
+        options.subSuperscriptsNeedBraces = true
+        let text = "\\alpha and x^{2}\n#+begin_example\n\\beta\n#+end_example\n"
+        let segments = Self.shown(text, .init(options: options))
+        #expect(segments.map(\.text).joined() == "α and x2\n#+begin_example\n\\beta\n#+end_example\n")
+        #expect(segments.first { $0.text == "2" }?.superscript == true)
+        #expect(Self.shown(text, .init(showMarkup: true, options: options)).map(\.text).joined() == text)
+    }
+
+    struct Words: CodeHighlighter {
+        func highlights(language: String, code: String) -> [(range: Range<Int>, category: SyntaxCategory)] {
+            [(0..<4, .keyword)]
+        }
+    }
+
+    @Test func highlightsSrcBlocks() {
+        let text = "#+begin_src sh\necho hi\n#+end_src\n"
+        let segments = Self.shown(text, .init(highlighter: Words()))
+        #expect(segments.first { $0.text == "echo" }?.roles.contains(.syntax(.keyword)) == true)
+    }
 }

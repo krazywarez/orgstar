@@ -29,6 +29,8 @@ struct ReaderScreen: View {
     @State private var fold = FoldState()
     @State private var folded: [Range<Int>] = []
     @State private var loadedPath: String?
+    /// The file's display: indentation, leading stars, inline images, truncation.
+    @State private var startup: StartupDisplay?
     @State private var showingOutline = false
     @State private var message: String?
     @Environment(\.openURL) private var openURL
@@ -41,8 +43,9 @@ struct ReaderScreen: View {
         // Read again when settings or the Dynamic Type size change.
         let _ = model.settingsVersion
         let theme = MobileTheme(model.theme)
+        let truncated = startup?.truncated ?? false
         ScrollViewReader { proxy in
-            ScrollView {
+            ScrollView(truncated ? [.vertical, .horizontal] : .vertical) {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     if let tree = session.document?.tree {
                         let preambleEnd = outline.first?.start ?? (tree.text as NSString).length
@@ -52,14 +55,14 @@ struct ReaderScreen: View {
                                 heading(tree, entry, theme).id(entry.start)
                                 if !fold.folds.contains(entry.start), !fold.bodyFolds.contains(entry.start) {
                                     let body = bodyRange(index, tree)
-                                    if !body.isEmpty { textView(tree, body, theme).padding(.leading, indent(entry)) }
+                                    if !body.isEmpty { textView(tree, body, theme).padding(.leading, bodyIndent(entry, theme)) }
                                 }
                             }
                         }
                     }
                 }
                 .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: truncated ? nil : .infinity, alignment: .leading)
             }
             .background(theme.swiftColor("background") ?? Color(uiColor: .systemBackground))
             .onChange(of: session.revealRequest?.id) {
@@ -89,11 +92,30 @@ struct ReaderScreen: View {
         .onAppear(perform: open)
         .onChange(of: session.path) { loadFolds() }
         .onChange(of: session.editVersion) { loadFolds() }
+        .onChange(of: model.settingsVersion) { loadFolds() }
     }
 
     // MARK: - Content
 
     private func indent(_ entry: OutlineEntry) -> CGFloat { CGFloat(entry.level - 1) * 14 }
+
+    private var indented: Bool { startup?.indented ?? true }
+
+    /// The text as the editor's display settings show it.
+    private var display: ReadingText.Display {
+        ReadingText.Display(showMarkup: model.showMarkup, options: session.options, highlighter: MobileEditor.highlighter)
+    }
+
+    /// org-indent: a heading's text and its body start past its stars, at level + 1 columns,
+    /// the fold mark standing where the last star and its space would. Without it nothing is
+    /// indented and the stars show.
+    private func headingIndent(_ entry: OutlineEntry, _ theme: MobileTheme) -> CGFloat {
+        indented ? CGFloat(entry.level - 1) * theme.column : 0
+    }
+
+    private func bodyIndent(_ entry: OutlineEntry, _ theme: MobileTheme) -> CGFloat {
+        indented ? CGFloat(entry.level + 1) * theme.column : 0
+    }
 
     /// Hidden under a folded ancestor.
     private func isShown(_ index: Int) -> Bool {
@@ -116,20 +138,19 @@ struct ReaderScreen: View {
 
     private func heading(_ tree: OrgTree, _ entry: OutlineEntry, _ theme: MobileTheme) -> some View {
         let ns = tree.text as NSString
-        var line = ns.lineRange(for: NSRange(location: entry.start, length: 0))
-        let title = min(entry.start + entry.level + 1, NSMaxRange(line))
-        line.length = NSMaxRange(line) - title
-        let text = attributed(ReadingText.segments(tree, in: title..<(title + line.length)), heading: entry.level, theme)
-        let hasContent = entry.end > NSMaxRange(ns.lineRange(for: NSRange(location: entry.start, length: 0)))
+        let line = ns.lineRange(for: NSRange(location: entry.start, length: 0))
+        let start = indented ? min(entry.start + entry.level + 1, NSMaxRange(line)) : entry.start
+        let text = attributed(ReadingText.segments(tree, in: start..<NSMaxRange(line), display: display), heading: entry.level, theme)
+        let hasContent = entry.end > NSMaxRange(line)
         let foldedMark = fold.folds.contains(entry.start) && hasContent
-        return HStack(alignment: .firstTextBaseline, spacing: 6) {
+        return HStack(alignment: .firstTextBaseline, spacing: 0) {
             Image(systemName: foldedMark ? "chevron.right" : "chevron.down")
                 .font(.caption.weight(.semibold)).foregroundStyle(theme.swiftColor("markup") ?? Color(uiColor: .tertiaryLabel))
                 .opacity(hasContent ? 1 : 0)
-            Text(text.trimmingTrailingNewlines()).lineSpacing(CGFloat(max(0, theme.spec.lineSpacing)))
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: 2 * theme.column, alignment: .leading)
+            lineText(text.trimmingTrailingNewlines(), theme)
         }
-        .padding(.leading, indent(entry))
+        .padding(.leading, headingIndent(entry, theme))
         .padding(.top, entry.level == 1 ? 6 : 0)
         .contentShape(Rectangle())
         .onTapGesture { fold = Presentation.cycle(entry.start, in: tree, fold) }
@@ -138,10 +159,52 @@ struct ReaderScreen: View {
     }
 
     private func textView(_ tree: OrgTree, _ range: Range<Int>, _ theme: MobileTheme) -> some View {
-        Text(attributed(ReadingText.segments(tree, in: range, folded: folded), heading: nil, theme).trimmingTrailingNewlines())
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(parts(tree, range), id: \.range.lowerBound) { part in
+                if let image = part.image {
+                    Image(uiImage: image.picture).resizable().scaledToFit()
+                        .frame(maxWidth: image.width.map { CGFloat($0) } ?? image.picture.size.width, alignment: .leading)
+                        .accessibilityLabel((image.path as NSString).lastPathComponent)
+                } else {
+                    lineText(attributed(ReadingText.segments(tree, in: part.range, folded: folded, display: display), heading: nil, theme).trimmingTrailingNewlines(), theme)
+                        .textSelection(.enabled)
+                }
+            }
+        }
+    }
+
+    /// Wrapped to the view's width, or on one line each, scrolling sideways, while truncated.
+    private func lineText(_ text: AttributedString, _ theme: MobileTheme) -> some View {
+        Text(text)
             .lineSpacing(CGFloat(max(0, theme.spec.lineSpacing)))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: startup?.truncated ?? false, vertical: false)
+            .frame(maxWidth: startup?.truncated == true ? nil : .infinity, alignment: .leading)
+    }
+
+    private struct Part {
+        let range: Range<Int>
+        var image: (picture: UIImage, path: String, width: Int?)?
+    }
+
+    /// Text, and with inline images on, lines that are only an image link shown as the image.
+    private func parts(_ tree: OrgTree, _ range: Range<Int>) -> [Part] {
+        guard startup?.inlineImages == true, let path = session.path else { return [Part(range: range)] }
+        let base = URL(fileURLWithPath: path).deletingLastPathComponent()
+        let ns = tree.text as NSString
+        var parts: [Part] = []
+        var textStart = range.lowerBound
+        var location = range.lowerBound
+        while location < range.upperBound {
+            let line = ns.lineRange(for: NSRange(location: location, length: 0))
+            location = NSMaxRange(line)
+            guard folded.allSatisfy({ !$0.contains(line.location) }), let image = InlineImages.image(atLine: line.location, in: ns),
+                  let picture = MobileEditor.loadImage(image.path, relativeTo: base) else { continue }
+            if textStart < line.location { parts.append(Part(range: textStart..<line.location)) }
+            parts.append(Part(range: line.location..<min(NSMaxRange(line), range.upperBound), image: (picture, image.path, image.width)))
+            textStart = min(NSMaxRange(line), range.upperBound)
+        }
+        if textStart < range.upperBound { parts.append(Part(range: textStart..<range.upperBound)) }
+        return parts
     }
 
     /// Segments as styled text in the theme's font and colors, as the editor styles them;
@@ -168,7 +231,11 @@ struct ReaderScreen: View {
                 case .verbatim, .code, .inlineSource:
                     if let background = theme.color("inline-background") { part.backgroundColor = Color(uiColor: background) }
                     fg(role == .verbatim ? "verbatim" : "code")
-                case .markup, .linkMarkup, .leadingStars: fg("markup")
+                case .markup, .linkMarkup: fg("markup")
+                case .leadingStars:
+                    // As the editor hides them; shown in the heading's color unless hidden.
+                    if !Presentation.skipsLeadingStars(role, indented: indented, hideStars: startup?.hideStars ?? false) { color = .clear }
+                case .syntax(let category): if let key = category.themeKey { fg(key) }
                 case .timestamp: fg("timestamp")
                 case .comment: fg("comment")
                 case .keyword: fg("keyword")
@@ -179,12 +246,17 @@ struct ReaderScreen: View {
                 case .link:
                     part.underlineStyle = .single
                     fg("link")
-                case .heading, .block, .syntax: break
+                case .heading, .block: break
                 }
             }
             if segment.link != nil {
                 // Found again by position when followed.
                 part.link = URL(string: "orgstar-link:\(segment.offset)")
+            }
+            if let superscript = segment.superscript {
+                // Raised or lowered as the editor draws `org-pretty-entities` scripts.
+                part.baselineOffset = (superscript ? 0.3 : -0.3) * font.pointSize
+                font = font.withSize(font.pointSize * 0.7)
             }
             part.font = Font(font as CTFont)
             part.foregroundColor = Color(uiColor: color)
@@ -216,15 +288,16 @@ struct ReaderScreen: View {
         loadFolds()
     }
 
-    /// The file's startup visibility, kept while the same file is open.
+    /// The file's startup display, as the editor opens it; its heading folds are kept while
+    /// the same file is open.
     private func loadFolds() {
         guard let tree = session.document?.tree else { return }
-        folded = Presentation.startupWrappers(
-            tree, hideDrawers: session.options.hideDrawerStartup, hideBlocks: session.options.hideBlockStartup
-        ).map(\.hidden)
+        let display = Presentation.startupDisplay(tree, options: session.options)
+        startup = display
+        folded = display.wrappers.map(\.hidden)
         guard loadedPath != session.path else { return }
         loadedPath = session.path
-        fold = Presentation.applyVisibilityProperties(Presentation.startupFoldState(tree) ?? FoldState(), in: tree)
+        fold = display.folds
     }
 
     /// Unfolds the way to the heading containing `offset` and scrolls to it.
