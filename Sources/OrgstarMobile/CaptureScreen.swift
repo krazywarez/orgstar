@@ -98,7 +98,7 @@ struct CaptureScreen: View {
         context.now = request.day.map(Self.date) ?? Date()
         switch Capture.fill(template.template, context: context, answers: answers) {
         case .success(let filled):
-            let (filledText, cursor) = request.day.map { Self.scheduling(filled.text, cursor: filled.cursor, on: $0) } ?? (filled.text, filled.cursor)
+            let (filledText, cursor) = request.day.map { Capture.scheduling(filled.text, cursor: filled.cursor, on: $0) } ?? (filled.text, filled.cursor)
             text = filledText
             selection = TextSelection(insertionPoint: String.Index(utf16Offset: cursor, in: filledText))
             problem = nil
@@ -120,26 +120,11 @@ struct CaptureScreen: View {
         return calendar.date(from: parts) ?? Date()
     }
 
-    /// An entry captured from an agenda day is scheduled on it: a SCHEDULED line goes under
-    /// the heading unless the template already gave the entry an active timestamp. The caret
-    /// keeps its place in the text.
-    static func scheduling(_ text: String, cursor: Int, on day: Int) -> (String, Int) {
-        guard text.hasPrefix("*"), text.firstMatch(of: /<[0-9]{4}-[0-9]{2}-[0-9]{2}/) == nil else { return (text, cursor) }
-        let d = Days.date(day)
-        let weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][Days.weekday(day)]
-        let line = String(format: "SCHEDULED: <%04d-%02d-%02d ", d.year, d.month, d.day) + weekday + ">"
-        let utf16 = Array(text.utf16)
-        let end = utf16.firstIndex(of: 10) ?? utf16.count
-        let inserted = "\n" + line
-        let result = String(decoding: utf16[..<end], as: UTF16.self) + inserted + String(decoding: utf16[end...], as: UTF16.self)
-        return (result, cursor > end ? cursor + inserted.utf16.count : cursor)
-    }
-
     private func file() {
         guard let template else { return }
         let now = Date()
         let placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
-            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: now)
+            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: request.day.map(Self.date) ?? now)
         }
         switch placed {
         case .failure(let error):
