@@ -2,6 +2,7 @@
 import OrgApp
 import OrgCore
 import OrgDocument
+import OrgPresentation
 import SwiftUI
 
 /// The agenda over the workspace's agenda files: the day/week view, the TODO list, tag and
@@ -15,6 +16,7 @@ struct AgendaScreen: View {
     @State private var message: String?
     @Environment(ClockModel.self) private var clock
     @Environment(MobileModel.self) private var model
+    @Environment(\.colorScheme) private var colorScheme
     @State private var tick = 0
     @State private var views = AgendaViewLoader.builtIn
     @State private var viewName = "Agenda"
@@ -24,11 +26,26 @@ struct AgendaScreen: View {
     @State private var prompt: EditorScreen.PromptRequest?
     @State private var refiling: AgendaItem?
     @State private var archiving: AgendaItem?
+    /// The day, week or month shown; nil for `org-agenda-span` and `org-agenda-start-day`.
+    @State private var range: SpanRange?
+    /// The mode `range` set, to notice when something else changes the view.
+    @State private var rangeMode: AgendaMode?
+    @State private var jumping = false
+    @State private var rescheduling: AgendaRow?
+    @AppStorage("agendaOverdueExpanded") private var overdueExpanded = true
+    @State private var done = 0
+    @State private var moved = 0
 
     /// A match typed for the tag and property view.
     private enum Asking: Identifiable {
         case match
         var id: Int { 0 }
+    }
+
+    enum SpanRange: String, CaseIterable, Identifiable {
+        case day, week, month
+        var id: String { rawValue }
+        var title: String { rawValue.capitalized }
     }
 
     private struct Key: Equatable {
@@ -41,36 +58,48 @@ struct AgendaScreen: View {
         var span: Int
         var startOffset: Int
         var subfolders: Bool
+        var settings: Int
     }
+
+    private var isDark: Bool { colorScheme == .dark }
+    private var theme: ThemeSpec { model.theme }
 
     var body: some View {
         List {
             // With no folders the empty state stands alone, not over a column of empty days.
             if workspace.rootPaths.isEmpty {
             } else if case .agenda = agenda.mode {
-                ForEach(agenda.days, id: \.day) { day in
+                let _ = model.settingsVersion
+                ForEach(agenda.groups(showAllDates: OrgPreferences.agendaShowAllDates(), keep: filter.keeps)) { group in
                     Section {
-                        let items = day.items.filter(\.isEntry).filter(filter.keeps)
-                        ForEach(items.indices, id: \.self) { i in row(items[i]) }
+                        day(group)
                     } header: {
-                        Text(day.header.split(separator: " ", omittingEmptySubsequences: true).prefix(4).joined(separator: " "))
-                            .foregroundStyle(day.isToday ? Color.accentColor : .secondary)
+                        header(group)
                     }
                 }
             } else {
-                let items = agenda.list.filter(filter.keeps)
-                if items.isEmpty, !agenda.isComputing { Text("No entries").foregroundStyle(.secondary) }
-                ForEach(items.indices, id: \.self) { i in row(items[i]) }
+                let rows = agenda.list.filter(filter.keeps).compactMap { AgendaRow(item: $0, day: agenda.today, today: agenda.today) }
+                if rows.isEmpty, !agenda.isComputing { Text("No entries").foregroundStyle(.secondary) }
+                ForEach(rows) { row($0, day: agenda.today) }
             }
             if let reminderStatus {
                 Section { } footer: { Text(reminderStatus) }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(viewName)
+        .listSectionSpacing(.compact)
+        // The now line is shorter than a row.
+        .environment(\.defaultMinListRowHeight, 16)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .sensoryFeedback(.success, trigger: done)
+        .sensoryFeedback(.impact(weight: .light), trigger: moved)
         .onChange(of: agenda.start) {
             // Days a followed timestamp asked for.
             if agenda.start != nil, case .agenda = agenda.mode { viewName = "Agenda" }
+        }
+        .onChange(of: agenda.mode) {
+            if agenda.mode != rangeMode { range = nil }
         }
         .overlay {
             if workspace.rootPaths.isEmpty {
@@ -78,10 +107,7 @@ struct AgendaScreen: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if let status = message ?? (filter.isEmpty ? nil : "Filter: " + filter.description) {
-                Text(status).font(.callout).padding(8).frame(maxWidth: .infinity).background(.bar)
-                    .onTapGesture { message = nil }
-            }
+            if !workspace.rootPaths.isEmpty { bottomBar }
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -90,24 +116,25 @@ struct AgendaScreen: View {
                         Button(definition.name) { show(definition) }
                     }
                     Button("Tags and Properties…") { asking = .match }
-                    if case .agenda = agenda.mode {
-                        Divider()
-                        Button("Today", systemImage: "calendar.circle") { agenda.showToday() }
-                        Button("Earlier", systemImage: "chevron.left") { agenda.shift(forward: false) }
-                        Button("Later", systemImage: "chevron.right") { agenda.shift(forward: true) }
-                    }
                 } label: {
-                    Label("Views", systemImage: "calendar")
-                }
-            }
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Filter", systemImage: filter.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill") {
-                    showingFilter = true
+                    Label("Views", systemImage: "list.bullet.rectangle")
                 }
             }
         }
         .sheet(isPresented: $showingFilter) {
             FilterSheet(filter: $filter, items: shownItems)
+        }
+        .sheet(isPresented: $jumping) {
+            DateSheet(title: "Go to Date", action: "Go", initial: date(firstDay)) { picked in
+                jumping = false
+                if let picked { jump(to: Days.absolute(picked, calendar: .current)) }
+            }
+        }
+        .sheet(item: $rescheduling) { row in
+            DateSheet(title: row.icon == .deadline ? "Deadline" : "Schedule", action: "Set", initial: date(row.planningDay ?? agenda.today)) { picked in
+                rescheduling = nil
+                if let picked, let item = row.item { reschedule(row, item, to: Days.absolute(picked, calendar: .current)) }
+            }
         }
         .sheet(item: $asking) { _ in
             PromptSheet(prompt: Prompt(key: "match", message: "Match: tags and properties, as +work-home or TODO=\"WAIT\"")) { answer in
@@ -146,9 +173,14 @@ struct AgendaScreen: View {
             views = loaded.views
             if let problem = loaded.problems.first { message = problem }
         }
+        // Calendar access is asked for when calendar-events is turned on.
+        .task(id: model.settingsVersion) {
+            guard OrgPreferences.calendarEvents(), !CalendarEvents.isAuthorized else { return }
+            if await model.calendarEvents.requestAccess() { tick += 1 }
+        }
         .task(id: Key(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, tick: tick,
                       mode: agenda.mode, start: agenda.start, span: agenda.span, startOffset: agenda.startOffset,
-                      subfolders: agenda.includeSubfolders)) {
+                      subfolders: agenda.includeSubfolders, settings: model.settingsVersion)) {
             await agenda.refresh(open: session.openTexts)
         }
     }
@@ -173,24 +205,220 @@ struct AgendaScreen: View {
             + ". Open Orgstar to set later ones."
     }
 
+    // MARK: - Days
+
+    private func day(_ group: AgendaDayGroup) -> some View {
+        Group {
+            if group.isToday, !group.overdue.isEmpty {
+                Button {
+                    withAnimation { overdueExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .rotationEffect(.degrees(overdueExpanded ? 90 : 0))
+                        Text("Overdue").font(.subheadline.weight(.semibold))
+                        Text("\(group.overdue.count)").font(.subheadline.monospacedDigit())
+                        Spacer()
+                    }
+                    .foregroundStyle(themed(theme.statusColor(.overdue, dark: isDark), .red))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if overdueExpanded {
+                    ForEach(group.overdue) { row($0, day: group.day) }
+                }
+            }
+            if group.isEmpty {
+                Text("Nothing scheduled").font(.subheadline).foregroundStyle(.secondary)
+            }
+            let now = nowIndex(group)
+            ForEach(Array(group.rows.enumerated()), id: \.element.id) { index, item in
+                if index == now { NowLine(color: todayColor) }
+                row(item, day: group.day)
+            }
+            if let now, now == group.rows.count { NowLine(color: todayColor) }
+        }
+    }
+
+    private func nowIndex(_ group: AgendaDayGroup) -> Int? {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        return group.nowIndex(now: (c.hour ?? 0) * 100 + (c.minute ?? 0))
+    }
+
+    private var todayColor: Color { themed(theme.color("agenda-today", dark: isDark), .accentColor) }
+
+    private func header(_ group: AgendaDayGroup) -> some View {
+        let day = date(group.day).formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        return HStack(alignment: .firstTextBaseline) {
+            Text(group.isToday ? "Today · " + day : day)
+                .font(.subheadline.weight(group.isToday ? .bold : .semibold))
+                .foregroundStyle(group.isToday ? todayColor : .primary)
+            Spacer()
+            Button("Add to \(day)", systemImage: "plus.circle") { model.captureRequest = CaptureRequest(day: group.day) }
+                .labelStyle(.iconOnly)
+                .font(.body)
+                .foregroundStyle(group.isToday ? todayColor : .secondary)
+        }
+        .textCase(nil)
+    }
+
+    // MARK: - Span
+
+    /// The first day shown, as `Days` numbers it, and how many.
+    private var shown: (first: Int, span: Int) {
+        var span = agenda.span
+        var offset = agenda.startOffset
+        if case .agenda(let viewSpan, let viewStart) = agenda.mode {
+            span = viewSpan ?? span
+            offset = viewStart ?? offset
+        }
+        return (agenda.start ?? agenda.today + offset, span)
+    }
+
+    private var firstDay: Int { shown.first }
+
+    /// The span: `Thu 8 Oct`, `Week of 5 Oct`, `October 2026`, or the days, `5 – 14 Oct`.
+    private var title: String {
+        guard case .agenda = agenda.mode else { return viewName }
+        if viewName != "Agenda", range == nil, agenda.start == nil { return viewName }
+        let (first, span) = shown
+        let start = date(first)
+        if span == 1 { return start.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)) }
+        if span == 7, first == weekStart(first) { return "Week of " + start.formatted(.dateTime.day().month(.abbreviated)) }
+        let d = Days.date(first)
+        if d.day == 1, span == Days.absolute(year: d.year, month: d.month + 1, day: 1) - first {
+            return start.formatted(.dateTime.month(.wide).year())
+        }
+        return start.formatted(.dateTime.day().month(.abbreviated)) + " – " + date(first + span - 1).formatted(.dateTime.day().month(.abbreviated))
+    }
+
+    private func weekStart(_ day: Int) -> Int {
+        day - (Days.weekday(day) - (Calendar.current.firstWeekday - 1) + 7) % 7
+    }
+
+    /// Shows `range` around `day`; nil returns to the configured span.
+    private func show(_ range: SpanRange?, around day: Int) {
+        self.range = range
+        let mode: AgendaMode
+        let start: Int?
+        switch range {
+        case .day:
+            (mode, start) = (.agenda(span: 1, startOffset: 0), day)
+        case .week:
+            (mode, start) = (.agenda(span: 7, startOffset: 0), weekStart(day))
+        case .month:
+            let d = Days.date(day)
+            let first = Days.absolute(year: d.year, month: d.month, day: 1)
+            (mode, start) = (.agenda(span: Days.absolute(year: d.year, month: d.month + 1, day: 1) - first, startOffset: 0), first)
+        case nil:
+            (mode, start) = (.agenda(span: nil, startOffset: nil), day == agenda.today ? nil : day)
+        }
+        rangeMode = mode
+        viewName = "Agenda"
+        agenda.mode = mode
+        agenda.start = start
+    }
+
+    private func step(forward: Bool) {
+        if range == nil, case .agenda = agenda.mode {
+            agenda.shift(forward: forward)
+        } else {
+            let (first, span) = shown
+            show(range, around: forward ? first + span : first - 1)
+        }
+    }
+
+    private func jump(to day: Int) {
+        show(range, around: day)
+    }
+
+    private func goToday() {
+        if range == nil { show(nil, around: agenda.today) } else { show(range, around: agenda.today) }
+    }
+
+    private var bottomBar: some View {
+        VStack(spacing: 8) {
+            if let status = message ?? (filter.isEmpty ? nil : "Filter: " + filter.description) {
+                Text(status).font(.footnote).padding(.horizontal, 12).padding(.vertical, 6)
+                    .glassEffect(.regular, in: Capsule())
+                    .onTapGesture { message = nil }
+            }
+            HStack(spacing: 2) {
+                let isAgenda = if case .agenda = agenda.mode { true } else { false }
+                if isAgenda {
+                    barButton("Earlier", "chevron.left") { step(forward: false) }
+                }
+                barButton("Filter", filter.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill") { showingFilter = true }
+                if isAgenda {
+                    barButton("Today", "smallcircle.filled.circle") { goToday() }
+                    barButton("Go to Date", "calendar") { jumping = true }
+                    Menu {
+                        Picker("Span", selection: Binding { range } set: { show($0, around: $0 == nil ? agenda.today : firstDay) }) {
+                            ForEach(SpanRange.allCases) { Text($0.title).tag(Optional($0)) }
+                            Text("\(agenda.span) Days").tag(SpanRange?.none)
+                        }
+                    } label: {
+                        Text(range?.title ?? "\(agenda.span) Days")
+                            .font(.footnote.weight(.semibold).monospacedDigit())
+                            .lineLimit(1)
+                            .frame(minWidth: 52, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Span")
+                    barButton("Later", "chevron.right") { step(forward: true) }
+                } else {
+                    barButton("Agenda", "calendar") { show(nil, around: agenda.today) }
+                }
+            }
+            .padding(.horizontal, 6)
+            .glassEffect(.regular.interactive(), in: Capsule())
+        }
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func barButton(_ title: String, _ image: String, action: @escaping () -> Void) -> some View {
+        Button(title, systemImage: image, action: action)
+            .labelStyle(.iconOnly)
+            .font(.body.weight(.medium))
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+    }
+
     // MARK: - Rows
 
-    private func row(_ item: AgendaItem) -> some View {
+    private func row(_ row: AgendaRow, day: Int) -> some View {
         Group {
-            if let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
-                NavigationLink(value: ReaderRoute.offset(path, offset)) { entry(item) }
+            if let item = row.item, let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
+                NavigationLink(value: ReaderRoute.offset(path, offset)) { AgendaRowView(row: row, day: day, theme: theme, dark: isDark) }
             } else {
-                entry(item)
+                AgendaRowView(row: row, day: day, theme: theme, dark: isDark)
             }
         }
         .swipeActions(edge: .trailing) {
-            if item.todo != nil, !item.isDone, doneKeyword(for: item) != nil {
+            if let item = row.item, item.todo != nil, !item.isDone, doneKeyword(for: item) != nil {
                 Button("Done", systemImage: "checkmark") { markDone(item) }.tint(.green)
+                Button("Next State", systemImage: "arrow.right.circle") { run("org.todo.next", on: item) }.tint(.blue)
+            }
+        }
+        .swipeActions(edge: .leading) {
+            if canReschedule(row), let item = row.item {
+                Button("Tomorrow", systemImage: "sunrise") { reschedule(row, item, to: agenda.today + 1) }.tint(.orange)
+                Button("Next Week", systemImage: "calendar.badge.plus") { reschedule(row, item, to: agenda.today + 7) }.tint(.indigo)
+                Button("Pick Date", systemImage: "calendar") { rescheduling = row }.tint(.gray)
             }
         }
         .contextMenu {
-            if item.path != nil {
+            if let item = row.item, item.path != nil {
                 Button("TODO State…", systemImage: "checkmark.circle") { run("org.todo.cycle", on: item) }
+                if canReschedule(row) {
+                    Menu("Reschedule", systemImage: "calendar.badge.clock") {
+                        Button("Tomorrow") { reschedule(row, item, to: agenda.today + 1) }
+                        Button("Next Week") { reschedule(row, item, to: agenda.today + 7) }
+                        Button("Pick Date…") { rescheduling = row }
+                    }
+                }
                 Button("Schedule…", systemImage: "calendar") { run("org.schedule", on: item) }
                 Button("Deadline…", systemImage: "calendar.badge.exclamationmark") { run("org.deadline", on: item) }
                 Button("Tags…", systemImage: "tag") { run("org.tags.set", on: item) }
@@ -205,26 +433,26 @@ struct AgendaScreen: View {
         }
     }
 
-    private func entry(_ item: AgendaItem) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                if let time = item.time.firstMatch(of: /[0-9]{1,2}:[0-9]{2}(-[0-9]{1,2}:[0-9]{2})?/) {
-                    Text(time.output.0).font(.callout.monospacedDigit()).foregroundStyle(.secondary)
-                }
-                Text(item.text).strikethrough(item.isDone)
-            }
-            HStack(spacing: 6) {
-                Text(item.category)
-                let extra = item.extra.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-                if !extra.isEmpty { Text(extra) }
-                if !item.tags.isEmpty { Text(item.tags.map { ":" + $0 }.joined() + ":") }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
+    // MARK: - Actions
+
+    /// Entries with a heading, not done, that a schedule or deadline can move.
+    private func canReschedule(_ row: AgendaRow) -> Bool {
+        guard let item = row.item, item.path != nil, item.headingLine != nil, !row.isDone else { return false }
+        return item.todo != nil || row.icon == .scheduled || row.icon == .deadline || row.icon == .habit
     }
 
-    // MARK: - Actions
+    /// Moves the row's deadline (on a deadline row) or schedule to `day`, keeping its times,
+    /// as `org-agenda-schedule` and `org-agenda-deadline` with a date typed.
+    private func reschedule(_ row: AgendaRow, _ item: AgendaItem, to day: Int) {
+        let d = Days.date(day)
+        var answer = String(format: "%04d-%02d-%02d", d.year, d.month, d.day)
+        if let start = row.start {
+            answer += String(format: " %02d:%02d", start / 100 % 24, start % 100)
+            if let end = row.end { answer += String(format: "-%02d:%02d", end / 100 % 24, end % 100) }
+        }
+        run(row.icon == .deadline ? "org.deadline" : "org.schedule", on: item, answers: ["date": answer])
+        moved += 1
+    }
 
     /// The heading of `item` now, found again by its line in case the file changed.
     private func locate(_ item: AgendaItem) -> (path: String, offset: Int)? {
@@ -280,6 +508,7 @@ struct AgendaScreen: View {
     private func markDone(_ item: AgendaItem) {
         guard let keyword = doneKeyword(for: item) else { return }
         run(SetTodo(keyword: keyword), on: item)
+        done += 1
     }
 
     private func refile(_ item: AgendaItem, to target: RefileTarget) {
@@ -299,6 +528,232 @@ struct AgendaScreen: View {
         guard let (path, offset) = locate(item) else { return }
         message = session.archive(from: (path, offset))
         tick += 1
+    }
+
+    private func date(_ day: Int) -> Date {
+        let d = Days.date(day)
+        return Calendar.current.date(from: DateComponents(year: d.year, month: d.month, day: d.day)) ?? Date()
+    }
+
+    private func themed(_ color: RGBA?, _ fallback: Color) -> Color { color?.swiftUI ?? fallback }
+}
+
+extension RGBA {
+    var swiftUI: Color { Color(.sRGB, red: red, green: green, blue: blue, opacity: alpha) }
+}
+
+/// One agenda line: the time or status with an icon in the gutter; the category, title,
+/// progress and tags; the TODO keyword and priority on the right.
+struct AgendaRowView: View {
+    let row: AgendaRow
+    /// The day the row is on, for habit graphs.
+    let day: Int
+    let theme: ThemeSpec
+    let dark: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            // TODO and match lists have no times or statuses.
+            if !row.gutter.isEmpty || row.icon != nil { gutter.frame(width: 82, alignment: .leading) }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 5) {
+                    if !row.category.isEmpty {
+                        Circle().fill(categoryColor).frame(width: 7, height: 7)
+                        Text(row.category).lineLimit(1).layoutPriority(1)
+                    }
+                    if let progress = row.progress {
+                        Text(progress).monospacedDigit()
+                            .padding(.horizontal, 5)
+                            .background(.quaternary.opacity(0.7), in: Capsule())
+                    }
+                    ForEach(row.tags.prefix(3), id: \.self) { tag in
+                        Text(tag).lineLimit(1)
+                            .padding(.horizontal, 5)
+                            .background(.quaternary.opacity(0.7), in: Capsule())
+                    }
+                    Spacer(minLength: 4)
+                    marks
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                Text(row.title.isEmpty ? " " : row.title)
+                    .font(.body)
+                    .strikethrough(row.isDone)
+                    .foregroundStyle(row.isDone ? .secondary : .primary)
+                if let location = row.event?.location {
+                    Label(location, systemImage: "mappin").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                if let habit = row.item?.habit {
+                    HabitStrip(cells: habit.graph(today: day), theme: theme, dark: dark).padding(.top, 3)
+                }
+            }
+        }
+        .padding(.vertical, 2)
+        .opacity(row.isDone ? 0.75 : 1)
+    }
+
+    /// The TODO keyword and the priority, on the category's line.
+    private var marks: some View {
+        HStack(spacing: 5) {
+            if let todo = row.todo {
+                let color = theme.todoColor(todo, isDone: row.isDone, dark: dark)?.swiftUI ?? .secondary
+                Text(todo)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(color)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(color.opacity(0.14), in: Capsule())
+            }
+            if let priority = row.priority {
+                let color = theme.priorityColor(priority, dark: dark)?.swiftUI ?? .orange
+                Text(priority)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(color)
+                    .frame(width: 18, height: 18)
+                    .background(color.opacity(0.14), in: Circle())
+                    .overlay(Circle().strokeBorder(color, lineWidth: 1.2))
+                    .accessibilityLabel("Priority \(priority)")
+            }
+        }
+        .fixedSize()
+    }
+
+    private var statusColor: Color {
+        theme.statusColor(row.status, dark: dark)?.swiftUI ?? .secondary
+    }
+
+    private var categoryColor: Color {
+        if let event = row.event { return theme.eventColor(event, dark: dark)?.swiftUI ?? .purple }
+        return theme.categoryColor(row.category, dark: dark).swiftUI
+    }
+
+    /// The start over the end for timed rows, else the status; the icon under them.
+    private var gutter: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Image(systemName: icon ?? "circle").font(.caption2.weight(.semibold)).foregroundStyle(iconColor)
+                .frame(width: 14)
+                .opacity(icon == nil ? 0 : 1)
+            VStack(alignment: .leading, spacing: 1) {
+                if row.start != nil {
+                    let parts = row.gutter.split(separator: "–", maxSplits: 1)
+                    Text(parts.first.map(String.init) ?? row.gutter)
+                        .font(.subheadline.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(row.status == .normal ? Color.primary : row.status == .done ? Color.secondary : statusColor)
+                    if parts.count > 1 {
+                        Text(parts[1]).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    }
+                } else if !row.gutter.isEmpty {
+                    Text(row.gutter)
+                        .font(.caption.weight(.medium).monospacedDigit())
+                        .foregroundStyle(statusColor)
+                        .lineLimit(2)
+                        .allowsTightening(true)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var icon: String? {
+        switch row.icon {
+        case .scheduled: row.status == .overdue ? "exclamationmark.circle.fill" : "calendar"
+        case .deadline: row.status == .overdue ? "exclamationmark.triangle.fill" : "flag.fill"
+        case .habit: "repeat"
+        case .event: "calendar"
+        case .timestamp: "clock"
+        case nil: nil
+        }
+    }
+
+    private var iconColor: Color {
+        if row.isEvent { return categoryColor }
+        return row.status == .normal ? Color(.tertiaryLabel) : statusColor
+    }
+}
+
+/// The current time between timed rows, as Org's `now - - -` line.
+struct NowLine: View {
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(Date.now.formatted(date: .omitted, time: .shortened))
+                .font(.caption2.weight(.semibold).monospacedDigit())
+                .foregroundStyle(color)
+            Circle().fill(color).frame(width: 6, height: 6)
+            Rectangle().fill(color).frame(height: 1.5)
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowSeparator(.hidden)
+        .frame(height: 16)
+        .accessibilityLabel("Now")
+    }
+}
+
+/// org-habit's consistency graph, compact: a bar per day, a dot where the habit was done,
+/// today outlined.
+struct HabitStrip: View {
+    let cells: [Habit.Cell]
+    let theme: ThemeSpec
+    let dark: Bool
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(cells, id: \.day) { cell in
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(color(cell.face))
+                    .frame(width: 4, height: 12)
+                    .overlay {
+                        if cell.glyph == "*" { Circle().fill(.white.opacity(0.9)).frame(width: 3, height: 3) }
+                    }
+                    .overlay {
+                        if cell.glyph == "!" { RoundedRectangle(cornerRadius: 1.5).strokeBorder(Color.primary, lineWidth: 1) }
+                    }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Done \(cells.filter { $0.glyph == "*" }.count) of the last \(Habit.precedingDays) days")
+    }
+
+    /// Due-state colors, lighter for days to come, as org-habit's faces.
+    private func color(_ face: Habit.Face) -> Color {
+        func themed(_ key: String, _ fallback: Color) -> Color { theme.color(key, dark: dark)?.swiftUI ?? fallback }
+        switch face {
+        case .clear: return themed("habit-clear", .blue).opacity(0.7)
+        case .clearFuture: return themed("habit-clear", .blue).opacity(0.3)
+        case .ready: return themed("habit-ready", .green).opacity(0.8)
+        case .readyFuture: return themed("habit-ready", .green).opacity(0.3)
+        case .alert: return themed("habit-alert", .yellow).opacity(0.85)
+        case .alertFuture: return themed("habit-alert", .yellow).opacity(0.35)
+        case .overdue: return themed("habit-overdue", .red).opacity(0.8)
+        case .overdueFuture: return themed("habit-overdue", .red).opacity(0.3)
+        }
+    }
+}
+
+/// A date to go to or to schedule on.
+struct DateSheet: View {
+    let title: String
+    let action: String
+    let initial: Date
+    let done: (Date?) -> Void
+    @State private var date = Date()
+
+    var body: some View {
+        NavigationStack {
+            DatePicker(title, selection: $date, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .padding(.horizontal)
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { done(nil) } }
+                    ToolbarItem(placement: .confirmationAction) { Button(action) { done(date) } }
+                }
+            Spacer()
+        }
+        .presentationDetents([.medium, .large])
+        .onAppear { date = initial }
     }
 }
 
