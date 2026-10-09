@@ -51,7 +51,24 @@ public enum SyntaxCategory: String, Hashable, Sendable, CaseIterable {
     }
 }
 
-/// Highlights source code; the platform supplies one (tree-sitter on macOS; iOS supplies none).
+extension SyntaxCategory {
+    /// The theme color for this kind of token; nil for those drawn in the text color.
+    public var themeKey: String? {
+        switch self {
+        case .keyword: "syntax-keyword"
+        case .string: "syntax-string"
+        case .comment: "syntax-comment"
+        case .function: "syntax-function"
+        case .type: "syntax-type"
+        case .number, .constant, .escape: "syntax-number"
+        case .property, .attribute, .tag: "syntax-property"
+        case .label: "syntax-label"
+        case .variable, .operator, .punctuation: nil
+        }
+    }
+}
+
+/// Highlights source code; the apps supply tree-sitter's (OrgHighlight).
 public protocol CodeHighlighter: Sendable {
     /// Categories for ranges of `code`, in UTF-16 offsets; later runs win over earlier ones.
     /// Empty for languages it doesn't know.

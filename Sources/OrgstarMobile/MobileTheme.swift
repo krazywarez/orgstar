@@ -115,7 +115,8 @@ struct MobileTheme {
         case .footnote, .cookie, .target, .macro, .latex: fg("special")
         case .table, .rule: fg("table")
         case .block: break
-        case .syntax: break
+        case .syntax(let category):
+            if let key = category.themeKey { fg(key) }
         }
     }
 

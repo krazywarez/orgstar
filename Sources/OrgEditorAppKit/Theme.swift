@@ -118,21 +118,7 @@ struct Theme {
         case .block:
             break
         case .syntax(let category):
-            if let key = Self.slot(category) { fg(key) }
-        }
-    }
-
-    static func slot(_ category: SyntaxCategory) -> String? {
-        switch category {
-        case .keyword: "syntax-keyword"
-        case .string: "syntax-string"
-        case .comment: "syntax-comment"
-        case .function: "syntax-function"
-        case .type: "syntax-type"
-        case .number, .constant, .escape: "syntax-number"
-        case .property, .attribute, .tag: "syntax-property"
-        case .label: "syntax-label"
-        case .variable, .operator, .punctuation: nil
+            if let key = category.themeKey { fg(key) }
         }
     }
 

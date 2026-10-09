@@ -1,6 +1,7 @@
 #if os(iOS)
 import OrgCore
 import OrgDocument
+import OrgHighlight
 import OrgPresentation
 import UIKit
 
@@ -96,6 +97,8 @@ final class KeyedTextView: UITextView {
 /// fold as TAB cycles them.
 @MainActor
 final class MobileEditor: NSObject, DocumentBuffer {
+    /// One highlighter for every editor and the reader: it caches compiled grammars and results.
+    static let highlighter = TreeSitterHighlighter()
     private(set) var document: DocumentState
     let textView: UITextView
     var options: EditingOptions = .org {
@@ -555,7 +558,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         }
         let revealed = caretLine
         var scriptExclusions: [Range<Int>] = []
-        for run in Presentation.styles(document.tree, in: whole) {
+        for run in Presentation.styles(document.tree, in: whole, highlighter: Self.highlighter) {
             let clipped = NSIntersectionRange(NSRange(run.range), lines)
             guard clipped.length > 0 else { continue }
             if Presentation.skipsLeadingStars(run.role, indented: indented, hideStars: hideStars) { continue }

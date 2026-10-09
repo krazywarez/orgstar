@@ -84,7 +84,7 @@ let package = Package(
         .target(name: "OrgApp", dependencies: ["OrgWorkspace", "OrgDocument", "OrgPresentation"]),
         .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgEditorAppKit", "OrgHighlight"]),
         // The iOS app, bundled by scripts/build-ios-app.sh.
-        .executableTarget(name: "OrgstarMobile", dependencies: ["OrgApp"]),
+        .executableTarget(name: "OrgstarMobile", dependencies: ["OrgApp", "OrgHighlight"]),
         // App extensions, bundled into Orgstar.app by scripts/build-app.sh.
         .executableTarget(name: "OrgstarQuickLook", dependencies: ["OrgCore"], linkerSettings: extensionEntry),
         .executableTarget(name: "OrgstarSpotlight", dependencies: ["OrgCore"], linkerSettings: extensionEntry),
