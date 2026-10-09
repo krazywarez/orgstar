@@ -21,6 +21,16 @@ extension ThemeSpec {
         })
     }
 
+    /// A color that follows the appearance from a helper taking `dark:` (`todoColor`,
+    /// `statusColor`, …), or `fallback` where it gives none.
+    func dynamic(_ fallback: NSColor = .labelColor, _ pick: @escaping @Sendable (_ dark: Bool) -> RGBA?) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            guard let c = pick(isDark) else { return fallback }
+            return NSColor(srgbRed: c.red, green: c.green, blue: c.blue, alpha: c.alpha)
+        })
+    }
+
     /// What the system shows for a key the theme leaves unset in one appearance.
     static func systemColor(_ key: String) -> NSColor {
         switch key {

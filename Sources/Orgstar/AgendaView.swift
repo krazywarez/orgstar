@@ -1,16 +1,30 @@
+import AppKit
 import OrgApp
 import OrgDocument
 import OrgCore
 import OrgPresentation
 import SwiftUI
 
+/// The days an agenda shows, as Org's `v d`, `v w` and `v m`.
+enum AgendaSpan: String, CaseIterable {
+    case day, week, month
+}
+
+/// The app's one reader of Calendar events, for the agenda and Settings.
+@MainActor
+enum CalendarAccess {
+    static let events = CalendarEvents()
+}
+
 /// The agenda window: the day/week agenda, the TODO list, tag matches and saved views.
 /// Return or a double click jumps to the entry in the main window. Keys as in Emacs's agenda:
-/// f/b/. move the span, g refreshes, l shows the log (closed and clocked), / filters
+/// n/p (or the arrows) move between lines, f/b/. move the span, j picks a date, v d/v w/v m (or
+/// d/w) show a day, week or month, g refreshes, l shows the log (closed and clocked), / filters
 /// (`+cat-tag<0:10-/regexp/`), \ by tag, < by the line's category, = by regexp, _ by effort,
 /// | clears filters, I/O/X clock in, out and cancel, C-c C-w refiles, $ archives, m/u/U mark
-/// and unmark, B acts on the marked entries, t cycles the TODO state, +/- change the priority, : or
-/// C-c C-q sets tags, C-c C-s / C-c C-d schedule and set a deadline, S-→/S-← move the date.
+/// and unmark, B acts on the marked entries, t cycles the TODO state, +/- change the priority and
+/// , sets it, : or C-c C-q sets tags, C-c C-s / C-c C-d schedule and set a deadline, S-→/S-← move
+/// the date, k captures on the line's day, s saves all files, TAB and SPC show the entry.
 struct AgendaView: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
@@ -21,6 +35,7 @@ struct AgendaView: View {
     @State private var views = AgendaViewLoader.builtIn
     @State private var viewName = AgendaViewLoader.builtIn[0].name
     @State private var matchText = ""
+    /// The selected line: `day:index` (`day:o` + index in the overdue group), or `list:index`.
     @State private var selection: String?
     @State private var tick = 0
     /// The view picker moved to the agenda for a followed timestamp, which sets its own days.
@@ -43,9 +58,19 @@ struct AgendaView: View {
     }
     @State private var textPrompt: TextPrompt?
     @State private var textAnswer = ""
+    /// Day, week or month chosen with `v`; nil shows the span the settings or the view give.
+    @State private var spanKind: AgendaSpan?
+    @State private var showingDatePicker = false
+    @State private var pickedDate = Date()
+    @State private var overdueShown = true
+    @State private var hovered: String?
+    @FocusState private var focused: Bool
     @AppStorage("agendaSpan") private var span = 10
     @AppStorage("agendaStartOffset") private var startOffset = -3
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
+    @AppStorage("agendaShowAllDates") private var showAllDates = false
+    @AppStorage("calendarEvents") private var calendarEventsOn = false
+    @AppStorage("calendarEventCalendars") private var calendarNames = ""
     @AppStorage("agendaPrefixAgenda") private var prefixAgenda = PrefixFormat.defaults["agenda"]!
     @AppStorage("agendaPrefixTodo") private var prefixTodo = PrefixFormat.defaults["todo"]!
     @AppStorage("agendaPrefixTags") private var prefixTags = PrefixFormat.defaults["tags"]!
@@ -94,6 +119,7 @@ struct AgendaView: View {
         var includeSubfolders: Bool
         var prefix: [String]
         var logMode: Bool
+        var calendars: [String]
         var files: Int
         var changed: Int?
         var edits: Int
@@ -104,7 +130,7 @@ struct AgendaView: View {
     private var refreshKey: RefreshKey {
         RefreshKey(
             mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags], logMode: logMode,
-            files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
+            calendars: calendarEventsOn ? [calendarNames] : [], files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
             path: session.path, tick: tick
         )
     }
@@ -116,41 +142,74 @@ struct AgendaView: View {
 
     private var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
 
-    private var customPrefix: Bool {
-        switch agenda.mode {
-        case .agenda: prefixAgenda != PrefixFormat.defaults["agenda"]
-        case .todo: prefixTodo != PrefixFormat.defaults["todo"]
-        case .match: prefixTags != PrefixFormat.defaults["tags"]
+    @Environment(\.orgTheme) private var theme
+
+    // MARK: - Lines
+
+    /// A selectable line: its selection id, the row, and the day it is on.
+    struct Line {
+        let id: String
+        let row: AgendaRow
+        let day: Int
+    }
+
+    private var groups: [AgendaDayGroup] {
+        isAgenda ? agenda.groups(showAllDates: showAllDates, keep: filter.keeps) : []
+    }
+
+    private var listRows: [AgendaRow] {
+        isAgenda ? [] : agenda.list.filter(filter.keeps).compactMap { AgendaRow(item: $0, day: agenda.today, today: agenda.today) }
+    }
+
+    /// The lines in order, as up and down move through them.
+    private func lines(_ groups: [AgendaDayGroup]) -> [Line] {
+        guard isAgenda else { return listRows.enumerated().map { Line(id: "list:\($0.offset)", row: $0.element, day: agenda.today) } }
+        return groups.flatMap { group in
+            (overdueShown ? group.overdue.enumerated().map { Line(id: "\(group.day):o\($0.offset)", row: $0.element, day: group.day) } : [])
+                + group.rows.enumerated().map { Line(id: "\(group.day):\($0.offset)", row: $0.element, day: group.day) }
         }
     }
 
-    @Environment(\.orgTheme) private var theme
+    private func line(_ id: String) -> Line? { lines(groups).first { $0.id == id } }
 
     var body: some View {
-        List(selection: $selection) {
-            if isAgenda {
-                ForEach(agenda.days, id: \.day) { day in
-                    Section {
-                        rows(day.items.filter(filter.keeps), prefix: "\(day.day)", day: day.day)
-                    } header: {
-                        Text(day.header)
-                            .font(.headline)
-                            .foregroundStyle(day.isToday ? theme.color("agenda-today") ?? .accentColor : theme.color("agenda-date") ?? .primary)
+        let groups = self.groups
+        _ = tick
+        return ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    if isAgenda {
+                        ForEach(groups) { group in
+                            Section {
+                                dayRows(group)
+                            } header: {
+                                dayHeader(group).id("day\(group.day)")
+                            }
+                        }
+                    } else {
+                        Section {
+                            ForEach(Array(listRows.enumerated()), id: \.offset) { index, row in
+                                rowView(Line(id: "list:\(index)", row: row, day: agenda.today), showsGutter: false)
+                            }
+                        } header: {
+                            header { Text(listTitle).font(.system(size: 13, weight: .semibold)) }
+                        }
                     }
                 }
-            } else {
-                Section {
-                    rows(agenda.list.filter(filter.keeps), prefix: "list")
-                } header: {
-                    Text(listTitle).font(.headline)
-                }
+                .padding(.bottom, 12)
+            }
+            .onChange(of: selection) {
+                if let selection { proxy.scrollTo(selection) }
+            }
+            .onChange(of: agenda.days.first?.day) {
+                if groups.contains(where: \.isToday) { proxy.scrollTo("day\(agenda.today)", anchor: .top) }
             }
         }
-        .themedListBackground(theme.color("agenda-background"))
-        .contextMenu(forSelectionType: String.self) { _ in
-        } primaryAction: { ids in
-            if let id = ids.first { jump(id) }
-        }
+        .background(theme.color("agenda-background") ?? Color(nsColor: .textBackgroundColor))
+        .focusable()
+        .focusEffectDisabled()
+        .focused($focused)
+        .onAppear { focused = true }
         .onKeyPress(phases: .down) { press in handle(press) }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if let message = message ?? (filter.isEmpty ? reminderStatus : "Filter: " + filter.description) {
@@ -162,35 +221,7 @@ struct AgendaView: View {
                     .background(.bar)
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .navigation) {
-                Menu {
-                    ForEach(views) { view in Button(view.name) { viewName = view.name } }
-                    Divider()
-                    Button(Self.match) { viewName = Self.match }
-                    Button(Self.todoMatch) { viewName = Self.todoMatch }
-                } label: {
-                    Label(viewName, systemImage: "calendar").labelStyle(.titleAndIcon)
-                }
-                .help("What the agenda shows")
-                if isMatch {
-                    TextField("+work-boss|LEVEL>2/!TODO", text: $matchText)
-                        .frame(minWidth: 220)
-                        .onSubmit { applyView() }
-                }
-            }
-            ToolbarItemGroup {
-                if agenda.isComputing { ProgressView().controlSize(.small) }
-                if isAgenda {
-                    Button("Earlier", systemImage: "chevron.left") { agenda.shift(forward: false) }
-                        .help("Previous days (b)")
-                    Button("Today") { agenda.showToday() }
-                        .help("Back to today (.)")
-                    Button("Later", systemImage: "chevron.right") { agenda.shift(forward: true) }
-                        .help("Next days (f)")
-                }
-            }
-        }
+        .toolbar { toolbar }
         .overlay {
             if agenda.files.isEmpty {
                 ContentUnavailableView("No agenda files", systemImage: "calendar", description: Text("The agenda reads the org files at the top of each folder you add."))
@@ -241,7 +272,8 @@ struct AgendaView: View {
                 textAnswer = ""
             }
         }
-        .navigationTitle(viewName.replacingOccurrences(of: "…", with: ""))
+        .navigationTitle(title)
+        .navigationSubtitle(isAgenda && viewName != AgendaViewLoader.builtIn[0].name ? viewName : "")
         .onChange(of: viewName) { applyView() }
         .onChange(of: commands.agendaRequest?.start, initial: true) { showRequestedDays() }
         .onChange(of: commands.agendaRequest?.days) { showRequestedDays() }
@@ -252,6 +284,12 @@ struct AgendaView: View {
             agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
             agenda.options.logMode = logMode
             agenda.options = OrgPreferences.agendaOptions(agenda.options)
+            agenda.calendarNames = OrgPreferences.calendarEventCalendars()
+            if calendarEventsOn, isAgenda {
+                agenda.calendarEvents = await CalendarAccess.events.requestAccess() ? CalendarAccess.events : nil
+            } else {
+                agenda.calendarEvents = nil
+            }
             let open = session.openTexts
             await agenda.refresh(open: open)
         }
@@ -265,13 +303,325 @@ struct AgendaView: View {
         }
     }
 
+    // MARK: - Days
+
+    private var todayColor: Color { theme.color("agenda-today") ?? .accentColor }
+
     @ViewBuilder
-    private func rows(_ items: [AgendaItem], prefix: String, day: Int? = nil) -> some View {
-        ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-            AgendaRow(item: item, day: day, customPrefix: customPrefix, marked: EntryRef(item).map(marked.contains) ?? false)
-                .tag("\(prefix):\(index)")
-                .selectionDisabled(item.path == nil)
+    private func dayRows(_ group: AgendaDayGroup) -> some View {
+        if group.isToday, !group.overdue.isEmpty {
+            overdueHeader(count: group.overdue.count)
+            if overdueShown {
+                ForEach(Array(group.overdue.enumerated()), id: \.element.id) { index, row in
+                    rowView(Line(id: "\(group.day):o\(index)", row: row, day: group.day))
+                }
+                Divider().padding(.leading, 16).padding(.vertical, 4)
+            }
         }
+        if group.isEmpty {
+            Text("Nothing scheduled")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+        }
+        let now = group.nowIndex(now: Self.hhmm(Date()))
+        ForEach(Array(group.rows.enumerated()), id: \.element.id) { index, row in
+            if index == now { nowLine }
+            rowView(Line(id: "\(group.day):\(index)", row: row, day: group.day))
+        }
+        if let now, now == group.rows.count { nowLine }
+    }
+
+    private func header(@ViewBuilder _ content: () -> some View) -> some View {
+        HStack(spacing: 6) { content() }
+            .padding(.horizontal, 16)
+            .frame(height: 30)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(theme.color("agenda-background") ?? Color(nsColor: .textBackgroundColor))
+            .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func dayHeader(_ group: AgendaDayGroup) -> some View {
+        let past = group.day < agenda.today
+        let color = group.isToday ? todayColor : past ? Color.secondary : theme.color("agenda-date") ?? .primary
+        return header {
+            if let relative = Self.relativeName(group.day, today: agenda.today) {
+                Text(relative)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(color)
+                Text("·").foregroundStyle(.tertiary)
+            }
+            Text(Self.format(group.day, Days.date(group.day).year == Days.date(agenda.today).year ? "EEEE d MMMM" : "EEEE d MMMM yyyy"))
+                .font(.system(size: 13, weight: group.isToday ? .bold : .semibold))
+                .foregroundStyle(color)
+            Spacer()
+            Button {
+                capture(on: group.day)
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(group.isToday ? todayColor : .secondary)
+            .help("Capture an entry scheduled on this day (k)")
+        }
+    }
+
+    private func overdueHeader(count: Int) -> some View {
+        let color = theme.dynamic(.systemRed) { [theme] in theme.statusColor(.overdue, dark: $0) }
+        return Button {
+            withAnimation(.snappy(duration: 0.2)) { overdueShown.toggle() }
+            if !overdueShown, selection?.contains(":o") == true { selection = nil }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .rotationEffect(.degrees(overdueShown ? 90 : 0))
+                Text("Overdue").font(.system(size: 12, weight: .semibold))
+                Text("\(count)")
+                    .font(.system(size: 10, weight: .bold).monospacedDigit())
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(color.opacity(0.15)))
+                Spacer()
+            }
+            .foregroundStyle(color)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(overdueShown ? "Hide entries from earlier days" : "Show entries from earlier days")
+    }
+
+    private var nowLine: some View {
+        HStack(spacing: 6) {
+            Text(Date().formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute()))
+                .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                .frame(width: AgendaRowView.gutterWidth, alignment: .leading)
+            Circle().frame(width: 6, height: 6)
+            Rectangle().frame(height: 1)
+        }
+        .foregroundStyle(todayColor)
+        .padding(.horizontal, 16)
+        .frame(height: 10)
+        .accessibilityLabel("Now")
+    }
+
+    private func rowView(_ line: Line, showsGutter: Bool = true) -> some View {
+        AgendaRowView(
+            row: line.row, day: line.day, showsGutter: showsGutter, selected: selection == line.id, hovered: hovered == line.id,
+            marked: line.row.item.flatMap(EntryRef.init).map(marked.contains) ?? false
+        )
+        .id(line.id)
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside { hovered = line.id } else if hovered == line.id { hovered = nil }
+        }
+        .onTapGesture(count: 2) { open(line) }
+        .simultaneousGesture(TapGesture().onEnded {
+            selection = line.id
+            focused = true
+        })
+        .contextMenu { menu(line) }
+    }
+
+    @ViewBuilder
+    private func menu(_ line: Line) -> some View {
+        if let event = line.row.event {
+            Button("Show in Calendar") { openEvent(event) }
+        } else if line.row.item != nil {
+            Button("Open") { selection = line.id; jump(line.id) }
+            Divider()
+            Button("Cycle TODO State") { selection = line.id; run(TodoCycle()) }
+            Button("Set Priority…") { selection = line.id; run(SetPriority()) }
+            Button("Set Tags…") { selection = line.id; run(SetTags()) }
+            Button("Schedule…") { selection = line.id; run(SetPlanning(deadline: false)) }
+            Button("Set Deadline…") { selection = line.id; run(SetPlanning(deadline: true)) }
+            Divider()
+            Button("Clock In") { selection = line.id; clockIn() }
+            Button(EntryRef(line.row.item!).map(marked.contains) == true ? "Unmark" : "Mark") {
+                selection = line.id
+                mark(!(EntryRef(line.row.item!).map(marked.contains) ?? false))
+            }
+            Button("Archive") { selection = line.id; archive() }
+        }
+    }
+
+    // MARK: - Toolbar
+
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigation) {
+            Menu {
+                ForEach(views) { view in Button(view.name) { viewName = view.name } }
+                Divider()
+                Button(Self.match) { viewName = Self.match }
+                Button(Self.todoMatch) { viewName = Self.todoMatch }
+            } label: {
+                Label(viewName, systemImage: "calendar").labelStyle(.titleAndIcon)
+            }
+            .help("What the agenda shows")
+            if isMatch {
+                TextField("+work-boss|LEVEL>2/!TODO", text: $matchText)
+                    .frame(minWidth: 220)
+                    .onSubmit { applyView() }
+            }
+        }
+        ToolbarItemGroup {
+            if agenda.isComputing { ProgressView().controlSize(.small) }
+            if isAgenda {
+                Picker("Span", selection: Binding(get: { spanKind }, set: { if let kind = $0 { setSpan(kind) } })) {
+                    Text("Day").tag(AgendaSpan?.some(.day))
+                    Text("Week").tag(AgendaSpan?.some(.week))
+                    Text("Month").tag(AgendaSpan?.some(.month))
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help("Show a day, week or month (v d, v w, v m)")
+                ControlGroup {
+                    Button("Earlier", systemImage: "chevron.left") { move(forward: false) }
+                        .help("Previous days (b)")
+                    Button("Today") { goToday() }
+                        .help("Back to today (.)")
+                    Button("Later", systemImage: "chevron.right") { move(forward: true) }
+                        .help("Next days (f)")
+                }
+                Button("Go to Date", systemImage: "calendar") {
+                    pickedDate = Self.date(anchorDay)
+                    showingDatePicker = true
+                }
+                .help("Go to a date (j)")
+                .popover(isPresented: $showingDatePicker, arrowEdge: .bottom) {
+                    DatePicker("Date", selection: $pickedDate, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .padding()
+                        .onChange(of: pickedDate) {
+                            showingDatePicker = false
+                            goTo(Days.absolute(pickedDate, calendar: .current))
+                        }
+                }
+            }
+            Menu {
+                Button("Filter…") { askFilter("/") }
+                Button("By Tag…") { askFilter("\\") }
+                Button("By Category of Selected Line") { toggleCategoryFilter() }
+                Button("By Regexp…") { askFilter("=") }
+                Button("By Effort…") { askFilter("_") }
+                Divider()
+                Button("Remove Filters") { filter = AgendaFilter() }
+                    .disabled(filter.isEmpty)
+            } label: {
+                Label("Filter", systemImage: filter.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+            } primaryAction: {
+                askFilter("/")
+            }
+            .help("Filter the entries (/, \\, <, =, _; | removes)")
+        }
+    }
+
+    /// The span shown, as the window's title: `Week of 5 Oct 2026`.
+    private var title: String {
+        guard isAgenda else { return viewName.replacingOccurrences(of: "…", with: "") }
+        guard let first = agenda.days.first?.day, let last = agenda.days.last?.day else { return "Agenda" }
+        switch spanKind {
+        case .day: return Self.format(first, "EEEE d MMMM yyyy")
+        case .week: return "Week of " + Self.format(first, "d MMM yyyy")
+        case .month: return Self.format(first, "MMMM yyyy")
+        case nil:
+            if first == last { return Self.format(first, "EEEE d MMMM yyyy") }
+            let sameYear = Days.date(first).year == Days.date(last).year
+            return Self.format(first, sameYear ? "d MMM" : "d MMM yyyy") + " – " + Self.format(last, "d MMM yyyy")
+        }
+    }
+
+    // MARK: - Span
+
+    /// The day `v`, `j` and `k` start from: the selected line's, else today when shown, else the first.
+    private var anchorDay: Int {
+        if let selection, let day = Int(selection.prefix { $0 != ":" }) { return day }
+        let days = agenda.days.map(\.day)
+        if days.contains(agenda.today) || days.isEmpty { return agenda.today }
+        return days[0]
+    }
+
+    /// `org-agenda-day-view`, `-week-view`, `-month-view`: the day, the week from Monday
+    /// (`org-agenda-start-on-weekday`), or the month around `anchor`.
+    private func setSpan(_ kind: AgendaSpan, around anchor: Int? = nil) {
+        let anchor = anchor ?? anchorDay
+        spanKind = kind
+        selection = nil
+        switch kind {
+        case .day:
+            agenda.mode = .agenda(span: 1, startOffset: nil)
+            agenda.start = anchor
+        case .week:
+            agenda.mode = .agenda(span: 7, startOffset: nil)
+            agenda.start = anchor - (Days.weekday(anchor) + 6) % 7
+        case .month:
+            let d = Days.date(anchor)
+            let first = Days.absolute(year: d.year, month: d.month, day: 1)
+            let next = d.month == 12 ? Days.absolute(year: d.year + 1, month: 1, day: 1) : Days.absolute(year: d.year, month: d.month + 1, day: 1)
+            agenda.mode = .agenda(span: next - first, startOffset: nil)
+            agenda.start = first
+        }
+    }
+
+    private func move(forward: Bool) {
+        selection = nil
+        if spanKind == .month, let first = agenda.days.first?.day {
+            setSpan(.month, around: forward ? first + 31 : first - 1)
+        } else {
+            agenda.shift(forward: forward)
+        }
+    }
+
+    private func goToday() {
+        if let spanKind { setSpan(spanKind, around: agenda.today) } else { agenda.showToday() }
+        selection = nil
+    }
+
+    /// `org-agenda-goto-date`.
+    private func goTo(_ day: Int) {
+        if let spanKind { setSpan(spanKind, around: day) } else { agenda.start = day }
+        selection = nil
+    }
+
+    /// Capture on `day`, as `org-agenda-capture`.
+    private func capture(on day: Int) {
+        commands.capture(on: day)
+        NSApp.activate()
+        openWindow(id: "capture")
+    }
+
+    static func date(_ day: Int) -> Date {
+        let d = Days.date(day)
+        return Calendar.current.date(from: DateComponents(year: d.year, month: d.month, day: d.day)) ?? Date()
+    }
+
+    static func format(_ day: Int, _ pattern: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = pattern
+        return formatter.string(from: date(day))
+    }
+
+    static func relativeName(_ day: Int, today: Int) -> String? {
+        switch day - today {
+        case 0: "Today"
+        case 1: "Tomorrow"
+        case -1: "Yesterday"
+        default: nil
+        }
+    }
+
+    static func hhmm(_ date: Date) -> Int {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (c.hour ?? 0) * 100 + (c.minute ?? 0)
     }
 
     @AppStorage("reminders") private var remindersEnabled = true
@@ -303,6 +653,7 @@ struct AgendaView: View {
         guard let request = commands.agendaRequest else { return }
         commands.agendaRequest = nil
         selection = nil
+        spanKind = nil
         if viewName != AgendaViewLoader.builtIn[0].name {
             keepRequestedDays = true
             viewName = AgendaViewLoader.builtIn[0].name
@@ -314,6 +665,7 @@ struct AgendaView: View {
     private func applyView() {
         if keepRequestedDays { return keepRequestedDays = false }
         selection = nil
+        spanKind = nil
         agenda.start = nil
         switch viewName {
         case Self.match, Self.todoMatch:
@@ -327,11 +679,29 @@ struct AgendaView: View {
 
     // MARK: - Items
 
-    private func item(_ id: String) -> AgendaItem? {
-        let parts = id.split(separator: ":")
-        guard parts.count == 2, let index = Int(parts[1]) else { return nil }
-        let items = (parts[0] == "list" ? agenda.list : agenda.days.first { "\($0.day)" == parts[0] }?.items ?? []).filter(filter.keeps)
-        return index < items.count ? items[index] : nil
+    private func item(_ id: String) -> AgendaItem? { line(id)?.row.item }
+
+    /// Return and double click: the entry in the main window, or the event in Calendar.
+    private func open(_ line: Line) {
+        selection = line.id
+        if let event = line.row.event { openEvent(event) } else { jump(line.id) }
+    }
+
+    /// Calendar shows an event from its identifier (`AgendaEvent.id` adds `@` and the start).
+    private func openEvent(_ event: AgendaEvent) {
+        let identifier = event.id.split(separator: "@").dropLast().joined(separator: "@")
+        guard !identifier.isEmpty, let encoded = identifier.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "ical://ekevent/\(encoded)?method=show&options=more") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    /// Moves the selection by `step` lines.
+    private func step(_ step: Int) {
+        let all = lines(groups)
+        guard !all.isEmpty else { return }
+        let index = selection.flatMap { id in all.firstIndex { $0.id == id } }
+        let next = index.map { min(max($0 + step, 0), all.count - 1) } ?? (step > 0 ? 0 : all.count - 1)
+        selection = all[next].id
     }
 
     // MARK: - Filters
@@ -389,10 +759,11 @@ struct AgendaView: View {
         }
     }
 
-    private func jump(_ id: String) {
+    /// The entry in the main window; with `focus` false the agenda keeps the keys (SPC).
+    private func jump(_ id: String, focus: Bool = true) {
         guard let item = item(id), let path = item.path, let offset = item.markerOffset ?? item.headingOffset else { return }
         commands.jump(path: path, offset: offset)
-        openWindow(id: "main")
+        if focus { openWindow(id: "main") }
     }
 
     // MARK: - Commands
@@ -403,6 +774,16 @@ struct AgendaView: View {
         func isControl(_ letter: String, _ code: String) -> Bool { control && (press.characters == letter || press.characters == code) }
         if let pending = prefix {
             prefix = nil
+            if pending == "v" {
+                switch press.characters {
+                case "d" where isAgenda: setSpan(.day)
+                case "w" where isAgenda: setSpan(.week)
+                case "m" where isAgenda: setSpan(.month)
+                default: message = "v \(press.characters) is undefined"
+                }
+                if message == "v-" { message = nil }
+                return .handled
+            }
             if pending == "C-c C-x" {
                 if isControl("s", "\u{13}") { archive() } else { message = "C-c C-x \(press.characters) is undefined" }
                 return .handled
@@ -432,8 +813,20 @@ struct AgendaView: View {
             message = "C-c-"
             return .handled
         }
-        if press.key == .return, let selection {
-            jump(selection)
+        if isControl("n", "\u{0e}") || (press.key == .downArrow && press.modifiers.isEmpty) {
+            step(1)
+            return .handled
+        }
+        if isControl("p", "\u{10}") || (press.key == .upArrow && press.modifiers.isEmpty) {
+            step(-1)
+            return .handled
+        }
+        if press.key == .return || press.key == .tab, let selection, let line = line(selection) {
+            open(line)
+            return .handled
+        }
+        if press.key == .space, let selection {
+            jump(selection, focus: false)
             return .handled
         }
         if press.modifiers == .shift, press.key == .rightArrow || press.key == .leftArrow {
@@ -442,9 +835,23 @@ struct AgendaView: View {
         }
         guard press.modifiers.subtracting(.shift).isEmpty else { return .ignored }
         switch press.characters {
-        case "f" where isAgenda: agenda.shift(forward: true)
-        case "b" where isAgenda: agenda.shift(forward: false)
-        case "." where isAgenda: agenda.showToday()
+        case "n": step(1)
+        case "p": step(-1)
+        case "f" where isAgenda: move(forward: true)
+        case "b" where isAgenda: move(forward: false)
+        case "." where isAgenda: goToday()
+        case "j" where isAgenda:
+            pickedDate = Self.date(anchorDay)
+            showingDatePicker = true
+        case "v" where isAgenda:
+            prefix = "v"
+            message = "v-"
+        case "d" where isAgenda: setSpan(.day)
+        case "w" where isAgenda: setSpan(.week)
+        case "k" where isAgenda: capture(on: anchorDay)
+        case "s":
+            commands.run("app.save-all")
+            message = "Saved"
         case "/", "\\", "=", "_": askFilter(press.characters.first!)
         case "<": toggleCategoryFilter()
         case "|":
@@ -469,6 +876,7 @@ struct AgendaView: View {
         case "t": run(TodoCycle())
         case "+": run(PriorityUp())
         case "-": run(PriorityDown())
+        case ",": run(SetPriority())
         case ":": run(SetTags())
         default: return .ignored
         }
@@ -641,111 +1049,158 @@ struct AgendaView: View {
     }
 }
 
-struct AgendaRow: View {
-    let item: AgendaItem
+/// One agenda line: the time or status over an icon, the category above the title, progress
+/// and tags after it, and the TODO keyword and priority at the end.
+struct AgendaRowView: View {
+    let row: AgendaRow
     /// The agenda day the row is on, for habit graphs.
-    var day: Int?
-    /// A user `org-agenda-prefix-format`: the prefix as Emacs prints it, not the columns.
-    var customPrefix = false
+    var day: Int
+    var showsGutter = true
+    var selected = false
+    var hovered = false
     /// Marked for a bulk action.
     var marked = false
     @Environment(\.orgTheme) private var theme
 
+    static let gutterWidth: CGFloat = 92
+
     var body: some View {
-        switch item.kind {
-        case .timeGrid:
-            HStack(spacing: 8) {
-                Text(Self.trim(item.time))
-                    .monospacedDigit()
-                    .frame(width: 140, alignment: .trailing)
-                VStack { Divider() }
+        HStack(alignment: .center, spacing: 12) {
+            if showsGutter { gutter }
+            VStack(alignment: .leading, spacing: 2) {
+                if !row.category.isEmpty { categoryLine }
+                titleLine
             }
-            .font(.caption)
-            .foregroundStyle(theme.color("agenda-time").map(AnyShapeStyle.init) ?? AnyShapeStyle(.tertiary))
-        case .currentTime:
-            HStack(spacing: 8) {
-                Text("now " + Self.trim(item.time))
-                    .monospacedDigit()
-                    .frame(width: 140, alignment: .trailing)
-                Rectangle().fill(theme.color("agenda-today") ?? .accentColor).frame(height: 1)
+            .layoutPriority(1)
+            Spacer(minLength: 8)
+            if let habit = row.item?.habit {
+                HabitGraph(cells: habit.graph(today: day), theme: theme)
             }
-            .font(.caption)
-            .foregroundStyle(theme.color("agenda-today") ?? .accentColor)
-        default:
-            HStack(spacing: 4) {
-                if marked { Text("›").bold().foregroundStyle(theme.color("agenda-today") ?? .accentColor) }
-                entryRow
+            if let todo = row.todo {
+                let color = theme.dynamic(row.isDone ? .systemGreen : .systemRed) { [theme, row] in theme.todoColor(todo, isDone: row.isDone, dark: $0) }
+                Text(todo)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(color.opacity(0.14)))
+                    .fixedSize()
+            }
+            priorityBadge
+                .frame(width: 18)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .frame(minHeight: 44)
+        .background {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(selected ? theme.color("selection") ?? Color.accentColor.opacity(0.2) : hovered ? Color.primary.opacity(0.05) : .clear)
+                .padding(.horizontal, 6)
+        }
+        .overlay(alignment: .leading) {
+            if marked {
+                Capsule().fill(theme.color("agenda-today") ?? .accentColor).frame(width: 3).padding(.vertical, 8).padding(.leading, 8)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var statusColor: Color {
+        theme.dynamic(.secondaryLabelColor) { [theme, row] in theme.statusColor(row.status, dark: $0) }
+    }
+
+    private var gutter: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(row.gutter)
+                .font(.system(size: 12, weight: row.status == .overdue || row.status == .dueSoon ? .semibold : .regular).monospacedDigit())
+                .foregroundStyle(statusColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: row.icon == .event ? 8 : 10, weight: .semibold))
+                    .foregroundStyle(iconColor)
+                    .frame(height: 12)
+            }
+        }
+        .frame(width: Self.gutterWidth, alignment: .leading)
+    }
+
+    /// Overdue entries show a warning, done ones a check, as the status says first.
+    private var symbol: String? {
+        guard let icon = row.icon else { return nil }
+        if row.status == .overdue { return "exclamationmark.circle.fill" }
+        if row.status == .done { return "checkmark.circle.fill" }
+        switch icon {
+        case .scheduled: return "calendar"
+        case .deadline: return "flag.fill"
+        case .habit: return "repeat"
+        case .event: return "circle.fill"
+        case .timestamp: return row.start == nil ? "calendar" : "clock"
+        }
+    }
+
+    private var iconColor: Color {
+        if let event = row.event { return theme.dynamic(.systemPurple) { [theme] in theme.eventColor(event, dark: $0) } }
+        return row.status == .normal ? Color.secondary.opacity(0.8) : statusColor
+    }
+
+    private var categoryLine: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(row.event.map { event in theme.dynamic(.systemPurple) { [theme] in theme.eventColor(event, dark: $0) } }
+                    ?? theme.dynamic { [theme, row] in theme.categoryColor(row.category, dark: $0) })
+                .frame(width: 6, height: 6)
+            Text(row.category + (row.event?.location.map { " · " + $0 } ?? ""))
+                .font(.system(size: 11))
+                .foregroundStyle(theme.color("agenda-category") ?? .secondary)
+                .lineLimit(1)
+        }
+    }
+
+    private var titleLine: some View {
+        HStack(spacing: 6) {
+            Text(row.title.isEmpty ? " " : row.title)
+                .font(.system(size: 13))
+                .strikethrough(row.isDone)
+                .foregroundStyle(row.isDone ? AnyShapeStyle(.secondary) : AnyShapeStyle(theme.color("foreground") ?? .primary))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            if let progress = row.progress {
+                Text(progress)
+                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.secondary.opacity(0.14)))
+                    .fixedSize()
+            }
+            ForEach(row.tags, id: \.self) { tag in
+                Text(tag)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(theme.color("tags") ?? .secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(Capsule().strokeBorder((theme.color("tags") ?? .secondary).opacity(0.35), lineWidth: 0.5))
+                    .fixedSize()
             }
         }
     }
 
     @ViewBuilder
-    private var entryRow: some View {
-            if customPrefix {
-                HStack(spacing: 0) {
-                    Text(item.prefix)
-                        .font(.body.monospaced())
-                        .foregroundStyle(theme.color("agenda-category") ?? .secondary)
-                    title.lineLimit(1)
-                    Spacer(minLength: 8)
-                    if let habit = item.habit, let day { HabitGraph(cells: habit.graph(today: day), theme: theme) }
-                    if !item.tags.isEmpty {
-                        Text(":" + item.tags.joined(separator: ":") + ":").font(.caption).foregroundStyle(theme.color("tags") ?? .secondary)
-                    }
-                }
-            } else {
-            HStack(spacing: 8) {
-                Text(item.category)
-                    .lineLimit(1)
-                    .foregroundStyle(theme.color("agenda-category") ?? .secondary)
-                    .frame(width: 80, alignment: .leading)
-                if item.kind != .todo, item.kind != .tagsMatch {
-                    Text(Self.trim(item.time))
-                        .monospacedDigit()
-                        .foregroundStyle(theme.color("agenda-time") ?? .primary)
-                        .frame(width: 80, alignment: .leading)
-                }
-                if !item.extra.isEmpty {
-                    Text(item.extra.trimmingCharacters(in: .whitespaces))
-                        .monospacedDigit()
-                        .foregroundStyle(leaderColor)
-                }
-                title
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                if let habit = item.habit, let day {
-                    HabitGraph(cells: habit.graph(today: day), theme: theme)
-                }
-                if !item.tags.isEmpty {
-                    Text(":" + item.tags.joined(separator: ":") + ":")
-                        .font(.caption)
-                        .foregroundStyle(theme.color("tags") ?? .secondary)
-                }
-            }
-            }
-    }
-
-    static func trim(_ time: String) -> String {
-        time.trimmingCharacters(in: CharacterSet(charactersIn: " ┄."))
-    }
-
-    private var leaderColor: Color {
-        switch item.kind {
-        case .deadline: theme.color("agenda-deadline") ?? .red
-        case .upcomingDeadline: theme.color("agenda-upcoming") ?? .orange
-        case .pastScheduled: theme.color("agenda-scheduled-past") ?? .brown
-        default: theme.color("agenda-scheduled") ?? .secondary
+    private var priorityBadge: some View {
+        if let priority = row.priority {
+            let color = theme.dynamic(.systemOrange) { [theme] in theme.priorityColor(priority, dark: $0) }
+            Text(priority)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(color)
+                .frame(width: 18, height: 18)
+                .background(Circle().fill(color.opacity(0.14)))
+                .overlay(Circle().strokeBorder(color.opacity(0.6), lineWidth: 1))
+                .help("Priority \(priority)")
+        } else {
+            Color.clear.frame(width: 18, height: 18)
         }
-    }
-
-    /// The TODO keyword colored as in the editor.
-    private var title: Text {
-        let text = item.text.trimmingCharacters(in: .whitespaces)
-        guard let todo = item.todo, text.hasPrefix(todo + " ") else { return Text(text) }
-        let rest = String(text.dropFirst(todo.count))
-        let rest_ = Text(rest).foregroundColor(item.isDone ? theme.color("comment") ?? .secondary : theme.color("foreground") ?? .primary)
-        let todo_ = Text(todo).foregroundColor(theme.keywordColor(todo, done: item.isDone)).bold()
-        return Text("\(todo_)\(rest_)")
     }
 }
 

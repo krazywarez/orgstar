@@ -103,17 +103,24 @@ final class AppCommands {
         runRequest = (id, runSerial)
     }
 
-    /// An org-protocol capture waiting for the capture window: the template key and the link
-    /// properties for its escapes.
-    var captureRequest: (template: String?, properties: [String: String], serial: Int)?
+    /// A capture waiting for the capture window: the template key and the link properties for
+    /// its escapes (org-protocol), or the agenda day to schedule the entry on.
+    var captureRequest: (template: String?, properties: [String: String], day: Int?, serial: Int)?
     private var captureSerial = 0
+
+    /// Capture from an agenda day, as `org-agenda-capture`: that day is the capture's date, and
+    /// the entry is scheduled on it. The caller opens the capture window.
+    func capture(on day: Int) {
+        captureSerial += 1
+        captureRequest = (nil, [:], day, captureSerial)
+    }
 
     /// `org-protocol://capture` and `store-link`.
     func handle(protocolURL url: String) {
         switch OrgProtocol.parse(url) {
         case .capture(let template, let properties):
             captureSerial += 1
-            captureRequest = (template, properties, captureSerial)
+            captureRequest = (template, properties, nil, captureSerial)
             run("app.capture")
         case .storeLink(let link, let title):
             storeLink(StoredLink(link: link, description: title))

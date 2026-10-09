@@ -22,6 +22,8 @@ struct CaptureView: View {
     @State private var editing = false
     /// The template keys typed so far, for multi-key templates such as "wb".
     @State private var keys = ""
+    /// The agenda day the entry is captured for, as `Days` numbers it.
+    @State private var day: Int?
     @FocusState private var focused: Bool
     @Environment(\.dismissWindow) private var dismissWindow
 
@@ -59,7 +61,8 @@ struct CaptureView: View {
                         .keyboardShortcut(.defaultAction)
                 }
             } else {
-                Text(keys.isEmpty ? "Capture" : "Capture: \(keys)").font(.headline)
+                Text((keys.isEmpty ? "Capture" : "Capture: \(keys)") + (day == nil ? "" : ", scheduled " + captureDate(Date()).formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))))
+                    .font(.headline)
                 ForEach(templates.filter { $0.key.hasPrefix(keys) }) { template in
                     Button {
                         choose(template)
@@ -134,6 +137,7 @@ struct CaptureView: View {
         template = nil
         editing = false
         keys = ""
+        day = nil
         let clocked = clock.running
         let clockFile = clocked.map { Links.abbreviate($0.path, home: NSHomeDirectory()) }
         context = CaptureContext(
@@ -154,6 +158,7 @@ struct CaptureView: View {
     private func takeRequest() {
         guard let request = commands.captureRequest else { return }
         commands.captureRequest = nil
+        day = request.day
         context.initial = request.properties["initial"] ?? ""
         context.annotation = request.properties["annotation"] ?? ""
         context.linkProperties = request.properties
@@ -179,12 +184,13 @@ struct CaptureView: View {
 
     private func expand() {
         guard let template else { return }
-        context.now = Date()
+        context.now = captureDate(Date())
         switch Capture.fill(template.template, context: context, answers: answers) {
         case .failure(.message(let message)):
             problem = message
             self.template = nil
-        case .success(let filled):
+        case .success(var filled):
+            if let day { filled = Capture.scheduling(filled.text, cursor: filled.cursor, on: day) }
             text = filled.text
             if template.options.immediateFinish {
                 finish()
@@ -197,12 +203,21 @@ struct CaptureView: View {
         }
     }
 
+    /// `now` on the agenda day captured for, as `org-overriding-default-time` sets `%t`, `%U`
+    /// and the date tree's day.
+    private func captureDate(_ now: Date) -> Date {
+        guard let day else { return now }
+        let d = Days.date(day)
+        let time = Calendar.current.dateComponents([.hour, .minute, .second], from: now)
+        return Calendar.current.date(from: DateComponents(year: d.year, month: d.month, day: d.day, hour: time.hour, minute: time.minute, second: time.second)) ?? now
+    }
+
     private func finish() {
         guard let template else { return }
         let opened = context.now
         let now = Date()
         let placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
-            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: now)
+            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: captureDate(now))
         }
         switch placed {
         case .failure(let error):
