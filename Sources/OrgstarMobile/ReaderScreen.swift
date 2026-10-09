@@ -64,6 +64,8 @@ struct ReaderScreen: View {
                 .padding()
                 .frame(maxWidth: truncated ? nil : .infinity, alignment: .leading)
             }
+            // Narrower than the view while truncated, the text still starts at the top left.
+            .defaultScrollAnchor(truncated ? .topLeading : nil)
             .background(theme.swiftColor("background") ?? Color(uiColor: .systemBackground))
             .onChange(of: session.revealRequest?.id) {
                 guard let offset = session.revealRequest?.offset else { return }
