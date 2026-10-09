@@ -73,6 +73,8 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
     public let tags: [String]
     public let todo: String?
     public let isDone: Bool
+    /// Blocked from becoming done (`org-agenda-dim-blocked-tasks`): shown dimmed.
+    public let isBlocked: Bool
     public let priority: String?
     /// The statistics cookie: `1/3`, `50%`.
     public let progress: String?
@@ -146,6 +148,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         self.tags = item.tags
         self.todo = item.todo
         self.isDone = item.isDone
+        self.isBlocked = item.isBlocked
         self.priority = item.priorityLetter
         self.progress = item.progress
         self.detail = item.kind == .clock || item.kind == .state ? Self.logDetail(item.extra) : nil
@@ -185,6 +188,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         self.tags = []
         self.todo = nil
         self.isDone = false
+        self.isBlocked = false
         self.priority = nil
         self.progress = nil
         self.detail = nil

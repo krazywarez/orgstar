@@ -36,6 +36,7 @@ public struct SetTodo: OrgCommand {
         return commitBuffer(context) { buffer in
             try buffer.saveExcursion {
                 let previous = buffer.todoKeyword
+                try buffer.checkTodoBlocking(from: previous, to: keyword)
                 buffer.setTodoKeyword(keyword)
                 try buffer.afterTodoChange(previous: previous, answers: context.answers)
             }

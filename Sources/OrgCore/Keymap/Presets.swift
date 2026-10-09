@@ -761,6 +761,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-c C-x A"
         command = "org.archive.to-sibling"
         [[bind]]
+        keys = "C-c C-x o"
+        command = "org.property.toggle-ordered"
+        [[bind]]
         keys = "C-c C-x C-v"
         command = "org.toggle-inline-images"
         [[bind]]

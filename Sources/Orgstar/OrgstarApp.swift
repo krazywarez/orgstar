@@ -517,10 +517,13 @@ struct SettingsView: View {
     @AppStorage("prettyEntities") private var prettyEntities = true
     @AppStorage("startupTruncated") private var startupTruncated = false
     @AppStorage("todoKeywords") private var todoKeywords = Preferences.defaultTodoKeywords
+    @AppStorage("enforceTodoDependencies") private var enforceTodoDependencies = false
+    @AppStorage("enforceTodoCheckboxDependencies") private var enforceTodoCheckboxDependencies = false
     @AppStorage("agendaSpan") private var agendaSpan = 10
     @AppStorage("agendaStartOffset") private var agendaStartOffset = -3
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @AppStorage("agendaShowAllDates") private var agendaShowAllDates = false
+    @AppStorage("agendaDimBlockedTasks") private var agendaDimBlockedTasks = "t"
     @AppStorage("calendarEvents") private var calendarEvents = false
     @AppStorage("calendarEventCalendars") private var calendarEventCalendars = ""
     @State private var calendars: [(id: String, title: String, color: RGBA?)] = []
@@ -634,9 +637,16 @@ struct SettingsView: View {
                 Text("For files without #+TODO, in #+TODO syntax, one sequence per line. Takes effect when Orgstar restarts.")
                     .settingsFooter()
             }
+            Section {
+                Toggle("Entries can't be done before their TODO children (org-enforce-todo-dependencies)", isOn: $enforceTodoDependencies)
+                Toggle("Entries can't be done with unchecked boxes (org-enforce-todo-checkbox-dependencies)", isOn: $enforceTodoCheckboxDependencies)
+            } footer: {
+                Text("Under a parent with the ORDERED property (Toggle ORDERED Property, C-c C-x o), TODO children are also done in order.")
+                    .settingsFooter()
+            }
         }
         .formStyle(.grouped)
-        .frame(height: 520)
+        .frame(height: 640)
     }
 
     private var appearance: some View {
@@ -681,6 +691,11 @@ struct SettingsView: View {
                 Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
                 Toggle("Include files in subfolders", isOn: $agendaSubfolders)
                 Toggle("Show days without entries", isOn: $agendaShowAllDates)
+                Picker("Blocked entries", selection: $agendaDimBlockedTasks) {
+                    Text("Dimmed").tag("t")
+                    Text("Hidden").tag("invisible")
+                    Text("Shown as usual").tag("nil")
+                }
             }
             Section {
                 Toggle("Show events from Calendar", isOn: $calendarEvents)

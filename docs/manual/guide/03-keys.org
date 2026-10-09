@@ -828,6 +828,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Cycle TODO State (=org.todo.cycle=) | =C-c C-t= | =⌃⌘T= | =SPC m t= (N) | Cycles the TODO keyword; with fast-selection keys in =#+TODO=, asks for one (=org-todo=). |
 | Next TODO Keyword (=org.todo.next=) | =S-<right>= | =⌃⇧⌘→= | =C-S-l= (N, I) | On a heading, sets the next keyword across all sequences (=org-shiftright=). |
 | Previous TODO Keyword (=org.todo.previous=) | =S-<left>= | =⌃⇧⌘←= | =C-S-h= (N, I) | On a heading, sets the previous keyword (=org-shiftleft=). |
+| Toggle ORDERED Property (=org.property.toggle-ordered=) | =C-c C-x o= | — | — | Sets or removes =:ORDERED: t=, which makes the entry's TODO children be done in order (=org-toggle-ordered-property=). |
 | Raise Priority (=org.priority.up=) | =S-<up>= | =⌃⌘↑= | =C-S-k= (N, I), =SPC m p u= (N) | On a heading, raises the priority (=org-priority-up=). |
 | Lower Priority (=org.priority.down=) | =S-<down>= | =⌃⌘↓= | =C-S-j= (N, I), =SPC m p d= (N) | On a heading, lowers the priority (=org-priority-down=). |
 | Set Priority… (=org.priority.set=) | =C-c ,= | =⌃⌘,= | =SPC m p p= (N) | Asks for a priority; =SPC= removes it (=org-priority=). |

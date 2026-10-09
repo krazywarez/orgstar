@@ -52,6 +52,10 @@ public struct AgendaItem: Sendable, Equatable {
     /// Deadlines and scheduled items: the day (as `Days` numbers it) of the timestamp the item
     /// is for, the repeater's occurrence when the item shows on it.
     public var planningDay: Int?
+    /// Blocked from becoming done, for `org-agenda-dim-blocked-tasks`.
+    public var isBlocked = false
+    var blockedByCheckboxes = false
+    var blockedByHierarchy = false
 }
 
 public struct AgendaDay: Sendable, Equatable {
@@ -84,6 +88,16 @@ public struct AgendaOptions: Sendable, Equatable {
     public var searchAlwaysBoolean = false
     /// `org-agenda-search-view-force-full-words`: search snippets match whole words only.
     public var searchForceFullWords = false
+    /// `org-enforce-todo-dependencies` and `org-enforce-todo-checkbox-dependencies`, which
+    /// decide the entries `dimBlockedTasks` applies to.
+    public var enforceTodoDependencies = false
+    public var enforceTodoCheckboxDependencies = false
+    /// `org-agenda-dim-blocked-tasks`.
+    public var dimBlockedTasks = DimBlocked.dim
+
+    public enum DimBlocked: String, Sendable {
+        case off = "nil", dim = "t", invisible
+    }
 
     public init() {}
 
@@ -114,7 +128,7 @@ public enum Agenda {
             if (isToday || days == 1), items.contains(where: { $0.timeOfDay != nil }) {
                 items = grid(day: day, isToday: isToday, now: now, options: options) + items
             }
-            return AgendaDay(day: day, isToday: isToday, header: header(day), items: sort(items))
+            return AgendaDay(day: day, isToday: isToday, header: header(day), items: sort(markBlocked(items, options: options)))
         }
     }
 
@@ -387,13 +401,30 @@ public enum Agenda {
         ])
         txt = highlightTodo(txt, keywords: source.keywords)
         let priority = Self.priority(prefix + txt, source.priorities)
-        return AgendaItem(
+        var item = AgendaItem(
             kind: kind, path: source.path, headingOffset: attached ? heading.start : nil, headingLine: attached ? heading.line : nil, markerOffset: marker, category: category,
             timeOfDay: timed.timeOfDay, time: timed.time, extra: extra, text: txt, tags: tags.map(\.name),
             todo: heading.todo, isDone: heading.isDone, urgency: urgency(priority),
             warntime: heading.properties["APPT_WARNTIME"].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }, habit: habit,
             line: prefix + txt + (tagString.isEmpty ? "" : " " + tagString), prefix: prefix, effort: heading.properties["EFFORT"]
         )
+        item.blockedByCheckboxes = heading.blockedByCheckboxes
+        item.blockedByHierarchy = heading.blockedByHierarchy
+        return item
+    }
+
+    /// `org-agenda--mark-blocked-entry`: blocked entries are marked, or with `invisible` left
+    /// out, except those blocked by checkboxes, which only dim.
+    static func markBlocked(_ items: [AgendaItem], options: AgendaOptions) -> [AgendaItem] {
+        guard options.dimBlockedTasks != .off else { return items }
+        return items.compactMap { item in
+            let checkboxes = options.enforceTodoCheckboxDependencies && item.blockedByCheckboxes
+            guard checkboxes || (options.enforceTodoDependencies && item.blockedByHierarchy) else { return item }
+            if options.dimBlockedTasks == .invisible, !checkboxes { return nil }
+            var marked = item
+            marked.isBlocked = true
+            return marked
+        }
     }
 
     /// `%b`: the outline path above the heading, each title followed by `->`.

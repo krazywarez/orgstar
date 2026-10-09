@@ -31,6 +31,8 @@ public enum OrgPreferences {
             spellCheck: bool("spellCheck", defaults)
         )
         options.electricPair = bool("electricPair", defaults)
+        options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
+        options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         return options
     }
 
@@ -56,13 +58,16 @@ public enum OrgPreferences {
     public static func agendaSkipDeadlineIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipDeadlineIfDone", defaults) }
     public static func agendaSearchAlwaysBoolean(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchAlwaysBoolean", defaults) }
     public static func agendaSearchForceFullWords(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchForceFullWords", defaults) }
-    /// `options` with the skip-if-done and search settings.
+    /// `options` with the skip-if-done, search and blocked-entry settings.
     public static func agendaOptions(_ options: AgendaOptions, _ defaults: UserDefaults = .standard) -> AgendaOptions {
         var options = options
         options.skipScheduledIfDone = agendaSkipScheduledIfDone(defaults)
         options.skipDeadlineIfDone = agendaSkipDeadlineIfDone(defaults)
         options.searchAlwaysBoolean = agendaSearchAlwaysBoolean(defaults)
         options.searchForceFullWords = agendaSearchForceFullWords(defaults)
+        options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
+        options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
+        options.dimBlockedTasks = AgendaOptions.DimBlocked(rawValue: string("agendaDimBlockedTasks", defaults)) ?? .dim
         return options
     }
     /// `calendar-events`: Calendar's events show in the agenda.

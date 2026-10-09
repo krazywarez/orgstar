@@ -620,7 +620,8 @@ struct AgendaRowView: View {
             }
         }
         .padding(.vertical, 2)
-        .opacity(row.isDone ? 0.75 : 1)
+        // Blocked entries dim, as `org-agenda-dim-blocked-tasks`.
+        .opacity(row.isBlocked ? 0.5 : row.isDone ? 0.75 : 1)
     }
 
     /// The TODO keyword and the priority, on the category's line.

@@ -329,6 +329,7 @@ These settings from =config.toml= apply on iOS:
 - =show-markup=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-with-inline-images=, =org-startup-align-all-tables=, =org-startup-truncated=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=
 - =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
+- =org-enforce-todo-dependencies=, =org-enforce-todo-checkbox-dependencies=, =org-agenda-dim-blocked-tasks=
 - =org-use-speed-commands=, with a hardware keyboard
 - =electric-pair-mode=, =spell-check=
 - =org-agenda-span=, =org-agenda-start-day=, =agenda-include-subfolders=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=, =org-agenda-search-view-always-boolean=, =org-agenda-search-view-force-full-words=

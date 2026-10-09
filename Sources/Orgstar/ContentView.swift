@@ -49,6 +49,8 @@ struct ContentView: View {
     @AppStorage("electricPair") private var electricPair = true
     @AppStorage("hideDrawerStartup") private var hideDrawerStartup = true
     @AppStorage("hideBlockStartup") private var hideBlockStartup = false
+    @AppStorage("enforceTodoDependencies") private var enforceTodoDependencies = false
+    @AppStorage("enforceTodoCheckboxDependencies") private var enforceTodoCheckboxDependencies = false
 
     private var options: EditingOptions {
         Preferences.options(
@@ -57,7 +59,8 @@ struct ContentView: View {
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup, logReschedule: logReschedule, logRedeadline: logRedeadline,
             useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages,
             startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables,
-            startupTruncated: startupTruncated, spellCheck: spellCheck, electricPair: electricPair
+            startupTruncated: startupTruncated, spellCheck: spellCheck, electricPair: electricPair,
+            enforceTodoDependencies: enforceTodoDependencies, enforceTodoCheckboxDependencies: enforceTodoCheckboxDependencies
         )
     }
     /// A block being edited apart (`org-edit-special`).

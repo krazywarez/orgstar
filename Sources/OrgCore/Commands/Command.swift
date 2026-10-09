@@ -22,6 +22,11 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var logRedeadline: LogHow?
     /// `org-use-fast-todo-selection` `auto`: with keys in the keywords, C-c C-t asks for one.
     public var fastTodoSelection: Bool
+    /// `org-enforce-todo-dependencies`: an entry can't become done before its TODO
+    /// descendants, or under an `ORDERED` parent before its earlier TODO siblings.
+    public var enforceTodoDependencies = false
+    /// `org-enforce-todo-checkbox-dependencies`: an entry can't become done with unchecked boxes.
+    public var enforceTodoCheckboxDependencies = false
     /// `org-use-speed-commands`: single keys at the start of a heading line run commands.
     public var useSpeedCommands: Bool
     /// `org-startup-with-inline-images`.
@@ -277,7 +282,7 @@ public enum Commands {
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(), TableEditField(), TangleCommand(.all), TangleCommand(.block), TangleCommand(.target),
-        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(), SetPriority(), SetPriority(value: "A"), SetPriority(value: "B"), SetPriority(value: "C"), SetPriority(value: " "), ReadAndSetProperty(), DeleteProperty(), DeleteProperty(globally: true), PropertyAction(), NextAllowedValue(previous: false), NextAllowedValue(previous: true), InsertColumnView(), ShowColumnView(), ShowColumnView(global: true), ToggleArchiveTag(), ArchiveToSibling(),
+        UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(), SetPriority(), SetPriority(value: "A"), SetPriority(value: "B"), SetPriority(value: "C"), SetPriority(value: " "), ReadAndSetProperty(), DeleteProperty(), DeleteProperty(globally: true), PropertyAction(), NextAllowedValue(previous: false), NextAllowedValue(previous: true), InsertColumnView(), ShowColumnView(), ShowColumnView(global: true), ToggleArchiveTag(), ArchiveToSibling(), ToggleOrderedProperty(),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

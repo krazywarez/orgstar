@@ -75,6 +75,8 @@ Automatic saving writes a file one second after you stop typing. The keymap pres
 | Emacs hides emphasis markers (org-hide-emphasis-markers)   | On or off                                              | On                  | =org-hide-emphasis-markers=          |
 | Emacs shows entities as characters (org-pretty-entities)   | On or off                                              | On                  | =org-pretty-entities=                |
 | Default TODO keywords                                      | Text in =#+TODO= syntax, one sequence per line         | See below           | =org-todo-keywords=                  |
+| Entries can't be done before their TODO children (org-enforce-todo-dependencies) | On or off                 | Off                 | =org-enforce-todo-dependencies=      |
+| Entries can't be done with unchecked boxes (org-enforce-todo-checkbox-dependencies) | On or off              | Off                 | =org-enforce-todo-checkbox-dependencies= |
 
 The two "Emacs hides" and "Emacs shows" switches describe your Emacs, not Orgstar's display. Tag alignment, table alignment and =M-q= measure text the way your Emacs displays it, so a file edited in both keeps the same layout. Set them to match your Emacs configuration. They also control whether Orgstar hides markers and shows entities when markup is hidden.
 
@@ -83,6 +85,8 @@ The Tags picker offers two values. =config.toml= accepts any integer; with a val
 The long-lines switch applies to files as they open; View ▸ Truncate or Wrap Long Lines switches the file in front.
 
 Default TODO keywords apply to files without a =#+TODO= line. Orgstar reads them at launch, so a change takes effect after you quit and reopen Orgstar.
+
+The two dependency switches are described under Dependencies in [[file:05-todos-and-tags.org][TODOs and tags]].
 
 ** Appearance
 
@@ -105,6 +109,7 @@ See Themes and Fonts below.
 | Agenda starts N days before today   | 0 to 14 days before    | 3 days       | =org-agenda-start-day=      |
 | Include files in subfolders         | On or off              | Off          | =agenda-include-subfolders= |
 | Show days without entries           | On or off              | Off          | =org-agenda-show-all-dates= |
+| Blocked entries                     | Dimmed; Hidden; Shown as usual | Dimmed | =org-agenda-dim-blocked-tasks= |
 | Show events from Calendar           | On or off              | Off          | =calendar-events=           |
 | A checkbox for each calendar        | On or off              | All on       | =calendar-event-calendars=  |
 | Notify before timed agenda entries  | On or off              | On           | =reminders=                 |
@@ -179,6 +184,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-log-reschedule=                 | string  | ="nil"= | =nil=, =time= or =note=: log changing or removing a =SCHEDULED= date. Mirrors =org-log-reschedule=.          |
 | =org-log-redeadline=                 | string  | ="nil"= | =nil=, =time= or =note=: log changing or removing a =DEADLINE=. Mirrors =org-log-redeadline=.                 |
 | =org-log-into-drawer=                | string  | =""=    | The drawer state notes go in. ="LOGBOOK"= is Emacs's =t=; =""= puts them under the heading. Mirrors =org-log-into-drawer=. |
+| =org-enforce-todo-dependencies=      | boolean | =false= | An entry can't become done while a descendant has an active TODO keyword, or under an =ORDERED= parent while an earlier sibling has one. Mirrors =org-enforce-todo-dependencies=. |
+| =org-enforce-todo-checkbox-dependencies= | boolean | =false= | An entry can't become done while its text has an unchecked checkbox. Mirrors =org-enforce-todo-checkbox-dependencies=. |
 | =org-startup-indented=               | boolean | =true=  | Indent bodies under their headings, as =org-indent-mode=. =#+STARTUP: indent= / =noindent= override it. Mirrors =org-startup-indented=. |
 | =org-hide-leading-stars=             | boolean | =false= | Show only a heading's last star, without indentation. =#+STARTUP: hidestars= / =showstars= override it. Mirrors =org-hide-leading-stars=. |
 | =org-startup-align-all-tables=       | boolean | =false= | Align every table when a file opens. =#+STARTUP: align= / =noalign= override it. Mirrors =org-startup-align-all-tables=. |
@@ -197,6 +204,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-skip-deadline-if-done=   | boolean | =false= | Leave a done entry's deadline out of the agenda, even on its own day. Mirrors =org-agenda-skip-deadline-if-done=. |
 | =org-agenda-search-view-always-boolean= | boolean | =false= | The agenda's text search reads every string as =+word -word {regexp}= snippets, never as a phrase. Mirrors =org-agenda-search-view-always-boolean=. |
 | =org-agenda-search-view-force-full-words= | boolean | =false= | Text search snippets match whole words only, as a leading =:= does. Mirrors =org-agenda-search-view-force-full-words=. |
+| =org-agenda-dim-blocked-tasks=       | string  | ="t"=   | =t= dims entries the two enforce settings block, =invisible= hides them (entries blocked only by checkboxes are still dimmed), =nil= shows them as usual. Mirrors =org-agenda-dim-blocked-tasks=. |
 | =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
 | =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before Orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
 | =org-clock-history-length=           | integer | =5=     | How many recently clocked entries Orgstar remembers. Mirrors =org-clock-history-length=.                     |

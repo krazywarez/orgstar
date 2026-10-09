@@ -20,7 +20,7 @@ extension Agenda {
                 ))
             }
         }
-        return sortByUrgency(items)
+        return sortByUrgency(markBlocked(items, options: options))
     }
 
     /// `org-tags-view`: entries matching a tags/property/TODO match string. `todoOnly` keeps
@@ -41,7 +41,7 @@ extension Agenda {
                 ))
             }
         }
-        return sortByUrgency(items)
+        return sortByUrgency(markBlocked(items, options: options))
     }
 
     /// `org-search-view`: entries, heading and body, containing `string` as a phrase, or with

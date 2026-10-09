@@ -33,6 +33,7 @@ public struct OrgDwim: OrgCommand {
             if settings.isDone(current) {
                 buffer.setTodoKeyword(sequence.active.first?.name)
             } else if let done = sequence.done.first?.name {
+                try buffer.checkTodoBlocking(from: current, to: done)
                 buffer.setTodoKeyword(done)
             }
             try buffer.afterTodoChange(previous: current, answers: context.answers)

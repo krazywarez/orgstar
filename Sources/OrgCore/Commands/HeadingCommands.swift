@@ -210,7 +210,8 @@ public struct TodoCycle: OrgCommand {
     /// `org-todo`, then the parent's TODO statistics, and the repeat of a repeating entry
     /// that became done.
     public func run(in context: EditContext) -> CommandStep {
-        let previous = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings).todoKeyword
+        let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
+        let previous = buffer.todoKeyword
         if context.options.fastTodoSelection, entryHeading(at: context.caret, in: context.tree) != nil,
            let fast = FastSelection.todo(context.tree.settings) {
             guard let answer = context.answers["todo"] else {
@@ -219,6 +220,8 @@ public struct TodoCycle: OrgCommand {
             guard let key = answer.first, let keyword = fast.keyword(for: key, current: previous) else { return .failed("Quit") }
             return SetTodo(keyword: keyword).run(in: context)
         }
+        let next = Self.next(after: previous, in: context.tree.settings, repeated: context.lastCommand == id)
+        if let message = buffer.todoBlockedMessage(from: previous, to: next) { return .failed(message) }
         return followUp(context, cycle(in: context)) { buffer in
             try buffer.saveExcursion {
                 buffer.updateParentTodoStatistics()

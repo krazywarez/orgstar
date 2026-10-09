@@ -476,8 +476,11 @@ public struct EmacsImport: Sendable {
             add(name, .integer(n))
         case "org-insert-heading-respect-content", "org-list-allow-alphabetical", "org-hide-emphasis-markers", "org-pretty-entities",
              "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup", "org-use-speed-commands", "org-startup-with-inline-images",
-             "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated":
+             "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
+             "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies":
             add(name, .bool(truthy))
+        case "org-agenda-dim-blocked-tasks":
+            add(name, .string(value.symbol == "invisible" ? "invisible" : truthy ? "t" : "nil"))
         case "org-hide-drawer-startup", "org-hide-block-startup":
             add(name == "org-hide-drawer-startup" ? "org-cycle-hide-drawer-startup" : "org-cycle-hide-block-startup", .bool(truthy))
         case "org-M-RET-may-split-line":

@@ -1096,6 +1096,8 @@ struct AgendaRowView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .frame(minHeight: 44)
+        // `org-agenda-dim-blocked-tasks`.
+        .opacity(row.isBlocked ? 0.5 : 1)
         .background {
             RoundedRectangle(cornerRadius: 6)
                 .fill(selected ? theme.color("selection") ?? Color.accentColor.opacity(0.2) : hovered ? Color.primary.opacity(0.05) : .clear)

@@ -153,6 +153,8 @@ Ages and distances are written compactly: days up to 13 (=3d=), then whole weeks
 
 The keyword's color comes from =[theme.todo]=, else from its class: =todo-next= for keywords of work under way such as =NEXT= and =STRT=, =todo-waiting= for =WAIT=, =HOLD= and similar, =todo-cancelled= for done keywords such as =KILL= and =CANCELLED=, and otherwise =todo= or =done=. Priorities =A=, =B= and =C= use =priority-a=, =priority-b= and =priority-c=; others use =priority=. A category's dot takes its color from =[theme.category]=, else a hue worked out from the category's name, the same on every device. See [[file:13-configuration.org][Configuration]] for the keyword lists and the theme keys.
 
+With =org-enforce-todo-dependencies= or =org-enforce-todo-checkbox-dependencies= on, an entry that can't be marked done yet is dimmed in every view (=org-agenda-dim-blocked-tasks= =t=). Settings ▸ Agenda ▸ Blocked entries can hide such entries instead (=invisible=), though one held back only by its own checkboxes stays dimmed, or show them as usual (=nil=). Marking a blocked entry done from the agenda is refused with the same message as in the editor; see [[file:05-todos-and-tags.org][TODOs and tags]].
+
 * Calendar events
 
 The agenda can show events from the system Calendar app (EventKit) among your entries. They are read-only: Orgstar never changes your calendars. It is off by default. To turn it on:

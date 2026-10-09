@@ -95,7 +95,30 @@ Insert TODO Heading (=org-insert-todo-heading=, =M-S-RET= in Emacs and Doom, ⌘
 
 ** Dependencies
 
-Orgstar does not enforce TODO dependencies. =org-enforce-todo-dependencies= and the =ORDERED= and =NOBLOCKING= properties have no effect: a parent can be marked done while its children are open. The property names are offered in completion only so that files written for Emacs keep working there.
+With =org-enforce-todo-dependencies= on, an entry can't move to a done keyword while one of its descendants has an active keyword. Descendants without a keyword don't count. Orgstar refuses the change with Org's message:
+
+#+BEGIN_EXAMPLE
+TODO state change from TODO to DONE blocked (by "TODO Pack the kitchen")
+#+END_EXAMPLE
+
+The =ORDERED= property adds an order. Under a parent with =:ORDERED: t=, an entry can't be done while any heading between the parent and the entry has an active keyword: an earlier sibling, or an open child of one. The order also reaches down. When an entry with an active keyword is held back this way, its descendants can't be done either, as long as every heading between them has an active keyword too. =ORDERED= counts only on the direct parent, not inherited from higher up or from =#+PROPERTY=. Any value but =nil= turns it on, including an empty one.
+
+#+BEGIN_SRC org
+,* Move house
+:PROPERTIES:
+:ORDERED:  t
+:END:
+,** TODO Hire a van
+,** TODO Pack the kitchen
+#+END_SRC
+
+Here Pack the kitchen can't be done until Hire a van is. Toggle ORDERED Property (=org-toggle-ordered-property=, =C-c C-x o= in Emacs and Doom) adds =:ORDERED: t= to the entry's property drawer, or removes the property when it is set.
+
+With =org-enforce-todo-checkbox-dependencies= on, an entry can't be done while its own text has an unchecked (=[ ]=) or partly checked (=[-]=) checkbox. Checkboxes in child entries and in src, example, export and verse blocks don't count. The message ends in =(by contained checkboxes)=; when both settings would refuse the change, it names the checkboxes.
+
+The check applies to every change to a done keyword: =C-c C-t=, fast selection, =S-<right>= and =S-<left>=, Doom's =RET= and the agenda's TODO actions on both platforms. A blocked repeating entry doesn't repeat. Changes from a done keyword, and changes to an active keyword or to none, are never refused. An entry with a =NOBLOCKING= property (any value but =nil=) is never blocked.
+
+Both settings are off by default, as in Org. They are under Settings ▸ Editing and in =config.toml=. The agenda dims blocked entries; see [[file:07-agenda.org][The agenda]].
 
 * Logging state changes
 
@@ -313,5 +336,7 @@ The =COOKIE_DATA= property changes what the parent's cookie counts:
 | =org-todo-keywords=     | Settings ▸ Editing, =config.toml=         | See "The default keywords" above |
 | =org-log-done=          | =config.toml=                             | =nil=                      |
 | =org-log-into-drawer=   | =config.toml=                             | =""= (no drawer)           |
+| =org-enforce-todo-dependencies= | Settings ▸ Editing, =config.toml= | =false=                  |
+| =org-enforce-todo-checkbox-dependencies= | Settings ▸ Editing, =config.toml= | =false=         |
 | =org-tags-column=       | Settings ▸ Editing, =config.toml=         | =-77=                      |
 | =org-use-speed-commands= | =config.toml=                            | =false=                    |

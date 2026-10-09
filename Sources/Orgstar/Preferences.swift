@@ -18,7 +18,8 @@ enum Preferences {
         tagsColumn: Int, headingAfterSubtree: Bool, splitLine: Bool, alphabeticalLists: Bool, fillColumn: Int,
         hiddenMarkers: Bool, prettyEntities: Bool, logDone: String, logIntoDrawer: String,
         hideDrawerStartup: Bool, hideBlockStartup: Bool, logReschedule: String, logRedeadline: String, useSpeedCommands: Bool, startupWithInlineImages: Bool,
-        startupIndented: Bool, hideLeadingStars: Bool, startupAlignAllTables: Bool, startupTruncated: Bool, spellCheck: Bool, electricPair: Bool
+        startupIndented: Bool, hideLeadingStars: Bool, startupAlignAllTables: Bool, startupTruncated: Bool, spellCheck: Bool, electricPair: Bool,
+        enforceTodoDependencies: Bool, enforceTodoCheckboxDependencies: Bool
     ) -> EditingOptions {
         var options = EditingOptions(
             tagsColumn: tagsColumn, insertHeadingRespectContent: headingAfterSubtree,
@@ -32,6 +33,8 @@ enum Preferences {
             startupTruncated: startupTruncated, spellCheck: spellCheck
         )
         options.electricPair = electricPair
+        options.enforceTodoDependencies = enforceTodoDependencies
+        options.enforceTodoCheckboxDependencies = enforceTodoCheckboxDependencies
         return options
     }
 }

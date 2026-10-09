@@ -41,6 +41,10 @@ public struct AgendaSource: Sendable {
         let isHabit: Bool
         /// `org-habit-parse-todo`, nil where it signals an error.
         let habit: Habit?
+        /// `org-entry-blocked-p` with only `org-enforce-todo-checkbox-dependencies`, and with
+        /// only `org-enforce-todo-dependencies`.
+        let blockedByCheckboxes: Bool
+        let blockedByHierarchy: Bool
     }
 
     struct Stamp: Sendable {
@@ -170,6 +174,9 @@ public struct AgendaSource: Sendable {
         // Archived and commented trees are skipped whole, as `org-agenda-skip` does.
         var skipped: [Bool] = []
         var headings: [Heading] = []
+        var options = EditingOptions.org
+        options.listAllowAlphabetical = settings.listAllowAlphabetical
+        let buffer = EmacsBuffer(text, point: 0, settings: settings, options: options)
         for (index, info) in model.headings.enumerated() {
             let own = info.localTags.contains("ARCHIVE") || Self.isCommented(info.title)
             skipped.append(fileArchived || own || (info.parent.map { skipped[$0] } ?? false))
@@ -227,13 +234,21 @@ public struct AgendaSource: Sendable {
                 let entry = ns.substring(with: NSRange(location: info.headingRange.lowerBound, length: end - info.headingRange.lowerBound))
                 habit = Habit.parse(entry: entry, scheduled: scheduled.0, doneKeywords: settings.todoSequences.flatMap { $0.done.map(\.name) })
             }
+            var blockedByCheckboxes = false
+            var blockedByHierarchy = false
+            if info.todo != nil, !info.isDone, buffer.localProperty("NOBLOCKING", heading: info.headingRange.lowerBound).map({ $0 == "nil" }) ?? true {
+                buffer.point = info.headingRange.lowerBound
+                blockedByCheckboxes = buffer.hasOpenCheckbox()
+                blockedByHierarchy = buffer.hierarchyBlocker() != nil
+            }
             headings.append(Heading(
                 start: info.headingRange.lowerBound, level: info.level, skipped: skipped[index],
                 title: info.title.trimmingCharacters(in: .whitespaces), priority: info.priority, localTags: info.localTags,
                 properties: properties, planning: planningValues,
                 firstActive: ownStamps.first { $0.hasPrefix("<") }, firstInactive: ownStamps.first { $0.hasPrefix("[") },
                 line: line.trimmingCharacters(in: .newlines), head: head, todo: info.todo, isDone: info.isDone,
-                tags: tags, category: category, scheduled: scheduled, deadline: deadline, isHabit: isHabit, habit: habit
+                tags: tags, category: category, scheduled: scheduled, deadline: deadline, isHabit: isHabit, habit: habit,
+                blockedByCheckboxes: blockedByCheckboxes, blockedByHierarchy: blockedByHierarchy
             ))
         }
         self.headings = headings
