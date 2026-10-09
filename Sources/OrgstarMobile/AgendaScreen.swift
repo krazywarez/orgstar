@@ -45,7 +45,9 @@ struct AgendaScreen: View {
 
     var body: some View {
         List {
-            if case .agenda = agenda.mode {
+            // With no folders the empty state stands alone, not over a column of empty days.
+            if workspace.rootPaths.isEmpty {
+            } else if case .agenda = agenda.mode {
                 ForEach(agenda.days, id: \.day) { day in
                     Section {
                         let items = day.items.filter(\.isEntry).filter(filter.keeps)
