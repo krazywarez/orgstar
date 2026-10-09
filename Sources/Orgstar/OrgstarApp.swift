@@ -2,6 +2,7 @@ import AppKit
 import OrgApp
 import OrgCore
 import OrgEditorAppKit
+import OrgPresentation
 import SwiftUI
 import UserNotifications
 
@@ -519,6 +520,10 @@ struct SettingsView: View {
     @AppStorage("agendaSpan") private var agendaSpan = 10
     @AppStorage("agendaStartOffset") private var agendaStartOffset = -3
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
+    @AppStorage("agendaShowAllDates") private var agendaShowAllDates = false
+    @AppStorage("calendarEvents") private var calendarEvents = false
+    @AppStorage("calendarEventCalendars") private var calendarEventCalendars = ""
+    @State private var calendars: [(id: String, title: String, color: RGBA?)] = []
     @AppStorage("reminders") private var reminders = true
     @AppStorage("reminderLead") private var reminderLead = 12
     @AppStorage("clockIdleTime") private var clockIdleTime = 0
@@ -675,6 +680,33 @@ struct SettingsView: View {
                 Stepper("Agenda shows \(agendaSpan) days", value: $agendaSpan, in: 1...366)
                 Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
                 Toggle("Include files in subfolders", isOn: $agendaSubfolders)
+                Toggle("Show days without entries", isOn: $agendaShowAllDates)
+            }
+            Section {
+                Toggle("Show events from Calendar", isOn: $calendarEvents)
+                if calendarEvents {
+                    if calendars.isEmpty {
+                        Text(CalendarEvents.isAuthorized ? "No calendars." : "Allow Orgstar to read your calendars in System Settings ▸ Privacy & Security ▸ Calendars.")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(calendars, id: \.id) { calendar in
+                        Toggle(isOn: calendarChosen(calendar)) {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(calendar.color.map { Color(.sRGB, red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) } ?? .secondary)
+                                    .frame(width: 8, height: 8)
+                                Text(calendar.title)
+                            }
+                        }
+                    }
+                }
+            } footer: {
+                Text("Events show in the agenda read-only; double-click one to open it in Calendar. New calendars show while every calendar is checked.")
+                    .settingsFooter()
+            }
+            .task(id: calendarEvents) {
+                let allowed = calendarEvents ? await CalendarAccess.events.requestAccess() : false
+                calendars = allowed ? CalendarAccess.events.calendars() : []
             }
             Section {
                 Toggle("Notify before timed agenda entries", isOn: $reminders)
@@ -699,7 +731,24 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 430)
+        .frame(height: 560)
+    }
+
+    /// `calendar-event-calendars`: empty for every calendar, else the titles checked.
+    private func calendarChosen(_ calendar: (id: String, title: String, color: RGBA?)) -> Binding<Bool> {
+        let chosen = calendarEventCalendars.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return Binding {
+            CalendarEvents.chooses(id: calendar.id, title: calendar.title, chosen: chosen)
+        } set: { on in
+            var titles = calendars.map(\.title).filter { title in
+                chosen.isEmpty || chosen.contains(title) || chosen.contains(calendars.first { $0.title == title }?.id ?? "")
+            }
+            titles.removeAll { $0 == calendar.title }
+            if on { titles.append(calendar.title) }
+            // An empty list means every calendar; turning events off hides them all.
+            guard !titles.isEmpty else { return }
+            calendarEventCalendars = Set(titles) == Set(calendars.map(\.title)) ? "" : titles.joined(separator: ", ")
+        }
     }
 
     private var capture: some View {
