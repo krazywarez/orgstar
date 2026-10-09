@@ -7,6 +7,7 @@ import OrgIndex
 import OrgPresentation
 import OrgWorkspace
 import UIKit
+import WidgetKit
 
 /// The app's models, and the settings from the configuration folder: a folder you choose
 /// (a synced copy of the Mac's `~/.config/orgstar`) with `config.toml` and `capture.toml`.
@@ -208,6 +209,23 @@ final class MobileModel {
         agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
         let reminders = await agenda.reminders(open: session.openTexts, lead: OrgPreferences.reminderLead())
         await scheduler.reconcile(reminders)
+    }
+
+    /// The widgets' agenda: today and the next days in the app group's container, with the
+    /// widgets reloaded when it changed.
+    func updateWidgets() async {
+        guard let workspace, let file = AgendaSnapshot.file() else { return }
+        let days = AgendaModel(workspace: workspace)
+        days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
+        if let agenda {
+            days.includeSubfolders = agenda.includeSubfolders
+            days.options = agenda.options
+            days.calendarEvents = agenda.calendarEvents
+            days.calendarNames = agenda.calendarNames
+        }
+        await days.refresh(open: session.openTexts)
+        let snapshot = AgendaSnapshot(groups: days.groups(), today: days.today, theme: theme, generated: Date())
+        if (try? snapshot.write(to: file)) == true { WidgetCenter.shared.reloadAllTimelines() }
     }
 }
 #endif

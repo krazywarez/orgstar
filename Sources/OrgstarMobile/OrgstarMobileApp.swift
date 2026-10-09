@@ -11,6 +11,10 @@ struct OrgstarMobileApp: App {
     @UIApplicationDelegateAdaptor private var delegate: AppDelegate
     @State private var model = MobileModel.shared
 
+    init() {
+        LiveClock.install()
+    }
+
     var body: some Scene {
         WindowGroup {
             if let workspace = model.workspace, let agenda = model.agenda {
@@ -197,6 +201,7 @@ struct RootView: View {
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             await model.updateReminders()
+            await model.updateWidgets()
         }
         // Spotlight follows the files and saved edits.
         .task(id: SpotlightKey(files: workspace.files.count, changed: workspace.changedFile?.version, saved: session.dirtyPaths.count)) {
@@ -217,7 +222,16 @@ struct RootView: View {
             Task { await workspace.refresh() }
         }
         .onOpenURL { url in
-            if let request = CaptureRequest(link: url.absoluteString) { capture = request }
+            if let link = AppLink(url: url) {
+                open(link)
+            } else if let request = CaptureRequest(link: url.absoluteString) {
+                capture = request
+            }
+        }
+        // The Live Activity follows the clock, wherever it starts or stops.
+        .task { await LiveClock.sync(model.clock.running) }
+        .onChange(of: model.clock.running) {
+            Task { await LiveClock.sync(model.clock.running) }
         }
     }
 
@@ -229,6 +243,19 @@ struct RootView: View {
 
     private func showWaiting() {
         if !waiting.isEmpty { capture = waiting.removeFirst() }
+    }
+
+    /// A widget's or the Live Activity's link.
+    private func open(_ link: AppLink) {
+        switch link {
+        case .agenda:
+            tab = .agenda
+            agendaPath = NavigationPath()
+        case .entry(let path, let offset):
+            model.openRequest = .offset(path, offset)
+        case .clock:
+            clock("app.clock.goto")
+        }
     }
 
     private func clock(_ id: String) {

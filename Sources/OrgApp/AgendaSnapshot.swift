@@ -47,6 +47,30 @@ public struct AgendaSnapshot: Codable, Equatable, Sendable {
         public var priorityColor: Hex?
         public var categoryColor: Hex?
 
+        public init(
+            id: String, gutter: String, status: String, title: String, category: String, todo: String?, priority: String?, isDone: Bool,
+            isEvent: Bool, start: Date?, end: Date?, path: String?, offset: Int?, statusColor: Hex?, todoColor: Hex?, priorityColor: Hex?,
+            categoryColor: Hex?
+        ) {
+            self.id = id
+            self.gutter = gutter
+            self.status = status
+            self.title = title
+            self.category = category
+            self.todo = todo
+            self.priority = priority
+            self.isDone = isDone
+            self.isEvent = isEvent
+            self.start = start
+            self.end = end
+            self.path = path
+            self.offset = offset
+            self.statusColor = statusColor
+            self.todoColor = todoColor
+            self.priorityColor = priorityColor
+            self.categoryColor = categoryColor
+        }
+
         public var link: AppLink? {
             guard let path, let offset else { return nil }
             return .entry(path: path, offset: offset)
@@ -67,6 +91,14 @@ public struct AgendaSnapshot: Codable, Equatable, Sendable {
         public var rows: [Row]
 
         public var id: Int { day }
+
+        public init(day: Int, date: Date, header: String, overdue: [Row], rows: [Row]) {
+            self.day = day
+            self.date = date
+            self.header = header
+            self.overdue = overdue
+            self.rows = rows
+        }
     }
 
     public var generated: Date

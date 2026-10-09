@@ -24,11 +24,21 @@
 				<string>org-protocol</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>sh.krz.orgstar</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>orgstar</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>The agenda shows your calendar events alongside your Org entries. Orgstar only reads them.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
