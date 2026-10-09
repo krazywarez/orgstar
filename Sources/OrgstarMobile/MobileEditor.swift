@@ -171,6 +171,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
     private static let imageCache = NSCache<NSString, UIImage>()
     private var loading = false
     private var restyleScheduled: Range<Int>?
+    /// Narrowed table columns (`org-table-shrink`).
+    private var shrunk = ShrunkColumns()
+    /// A command's edits being applied, which keep shrunk columns narrow.
+    private var commandEditing = false
 
     init(
         document: DocumentState, editable: Bool, options: EditingOptions = .org, theme spec: ThemeSpec = .default,
@@ -204,6 +208,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         indented = startup.indented
         hideStars = startup.hideStars
         showsImages = startup.inlineImages
+        shrunk = ShrunkColumns.startup(document.tree)
         applyThemeToView()
         load(document.text)
         setFolds(startup.folds)
@@ -226,6 +231,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         let result = try change(&document)
         if document.text != before {
             // A save that merged a change from disk, or a revert: the view shows the new text.
+            shrunk = ShrunkColumns()
             load(document.text)
             let length = (document.text as NSString).length
             textView.selectedRange = NSRange(location: min(selected.location, length), length: 0)
@@ -249,7 +255,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
                 onMessage?("This file is read-only.")
                 return .failed("read-only")
             }
+            commandEditing = true
             applyEdits(result.edits)
+            commandEditing = false
             if let selected = result.selection?.first {
                 unfold(around: selected.lowerBound)
                 textView.selectedRange = NSRange(location: selected.lowerBound, length: selected.count)
@@ -319,6 +327,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
             onMessage?(truncatesLines ? "Truncate long lines enabled" : "Truncate long lines disabled")
         case "edit.undo": textView.undoManager?.undo()
         case "edit.redo": textView.undoManager?.redo()
+        case "org.table.toggle-column-width", "org.table.shrink", "org.table.expand": tableColumnWidth(id)
         case _ where id.hasPrefix("app."):
             if let onAppCommand { onAppCommand(id) } else { onMessage?("Not available on iOS yet") }
         default:
@@ -339,6 +348,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.clock.in-recent", "app.clock.in-last",
              "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
         case "org.link.open": return OpenLinkAtPoint().applies(in: context)
+        case "org.table.toggle-column-width", "org.table.shrink", "org.table.expand":
+            return TableShrink.table(at: context.caret, in: context.text) != nil
         default: return false
         }
     }
@@ -456,13 +467,16 @@ final class MobileEditor: NSObject, DocumentBuffer {
         guard !loading else { return }
         let old = range.location..<(range.location + range.length - delta)
         let replacement = (textView.textStorage.string as NSString).substring(with: range)
+        let edit = TextEdit(range: old, replacement: replacement)
         do {
-            try document.apply([TextEdit(range: old, replacement: replacement)], baseRevision: document.revision)
+            try document.apply([edit], baseRevision: document.revision)
         } catch {
             // Out of step: the view's text wins.
+            shrunk = ShrunkColumns()
             load(textView.textStorage.string)
             return
         }
+        for table in shrunk.map(through: edit, in: textView.textStorage.string, command: commandEditing) { scheduleRestyle(table) }
         fold = FoldState(
             folds: Self.map(fold.folds, old, delta), bodyFolds: Self.map(fold.bodyFolds, old, delta),
             wrapperFolds: Self.map(fold.wrapperFolds, old, delta)
@@ -496,6 +510,16 @@ final class MobileEditor: NSObject, DocumentBuffer {
         textView.tintColor = theme.color("cursor")
         textView.typingAttributes = theme.base
         fragmentStyle.set(blockBackground: theme.color("block-background") ?? .clear, width: textView.bounds.width)
+        themeSelection()
+    }
+
+    /// The selection in the theme's selection color: the text view's selection display
+    /// interaction draws it with our highlight view; the cursor and handles keep the tint.
+    private func themeSelection() {
+        guard let interaction = textView.interactions.lazy.compactMap({ $0 as? UITextSelectionDisplayInteraction }).first else { return }
+        let view = interaction.highlightView as? SelectionHighlightView ?? SelectionHighlightView()
+        view.color = theme.color("selection") ?? UIColor.tintColor.withAlphaComponent(0.25)
+        if interaction.highlightView !== view { interaction.highlightView = view }
     }
 
     /// The band behind blocks spans the view's width, or the widest line's when truncated;
@@ -570,6 +594,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
             if Presentation.excludesScripts(run.role) { scriptExclusions.append(run.range) }
         }
         if !showMarkup, options.prettyEntities { prettify(whole, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
+        applyShrunk(whole, in: storage)
         applyImages(whole, in: storage, revealed: revealed)
         storage.endEditing()
     }
@@ -623,6 +648,47 @@ final class MobileEditor: NSObject, DocumentBuffer {
         }
     }
 
+    // MARK: - Shrunk table columns
+
+    /// C-c TAB in a table: `org-table-toggle-column-width`; `shrink` for `org-table-shrink`,
+    /// `expand` for `org-table-expand`.
+    private func tableColumnWidth(_ id: String) {
+        switch shrunk.change(for: id, at: textView.selectedRange.location, in: textView.textStorage.string) {
+        case .notInTable: onMessage?("Not in a table")
+        case .set(let columns, let table): setShrunk(columns, in: table)
+        case .ask(let table, let current, let max):
+            onPrompt?(Prompt(key: "columns", message: "Column ranges (e.g. 2-4 6-):")) { [weak self] answer in
+                guard let self, let answer else { return }
+                self.setShrunk(ShrunkColumns.toggled(current, TableShrink.columns(answer, max: max)), in: table)
+            }
+        }
+    }
+
+    /// Narrows `columns` of `table` and widens its others.
+    private func setShrunk(_ columns: [Int], in table: Range<Int>) {
+        shrunk.set(columns, in: table, text: textView.textStorage.string)
+        restyleAll()
+    }
+
+    /// Hides each shrunk segment's text and draws its display where the text was, as pretty
+    /// entities draw theirs.
+    private func applyShrunk(_ range: Range<Int>, in storage: NSTextStorage) {
+        guard !shrunk.isEmpty else { return }
+        let cell = theme.column
+        for segment in shrunk.segments where segment.range.overlaps(range) && segment.range.upperBound <= storage.length {
+            let r = segment.range
+            let shown = segment.display.count
+            let kept = min(shown, r.count)
+            if r.count > kept { storage.addAttributes(theme.hidden, range: NSRange(location: r.lowerBound, length: r.count - kept)) }
+            guard kept > 0 else { continue }
+            let visible = NSRange(location: r.upperBound - kept, length: kept)
+            let color = storage.attribute(.foregroundColor, at: visible.location, effectiveRange: nil) as? UIColor ?? theme.foreground
+            storage.addAttribute(.foregroundColor, value: UIColor.clear, range: visible)
+            storage.addAttributes([.orgEntityDisplay: segment.display, .orgEntityColor: color], range: NSRange(location: visible.location, length: 1))
+            if shown > kept { storage.addAttribute(.kern, value: CGFloat(shown - kept) * cell, range: NSRange(location: NSMaxRange(visible) - 1, length: 1)) }
+        }
+    }
+
     // MARK: - Inline images
 
     private func toggleImages() {
@@ -634,7 +700,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
             var offset = 0
             while offset < ns.length {
                 let line = ns.lineRange(for: NSRange(location: offset, length: 0))
-                if let image = InlineImages.image(atLine: line.location, in: ns), loadImage(image.path) != nil { count += 1 }
+                if let image = InlineImages.image(atLine: line.location, in: ns), Self.loadImage(image.path, relativeTo: baseDirectory) != nil { count += 1 }
                 offset = NSMaxRange(line)
             }
             onMessage?("\(count) images displayed inline")
@@ -643,7 +709,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         }
     }
 
-    private func loadImage(_ path: String) -> UIImage? {
+    /// An image link's image, by its path or one relative to `baseDirectory`.
+    static func loadImage(_ path: String, relativeTo baseDirectory: URL?) -> UIImage? {
         let expanded = (path as NSString).expandingTildeInPath
         let url: URL
         if expanded.hasPrefix("/") {
@@ -672,7 +739,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         while location < range.upperBound, location < text.length {
             let line = text.lineRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(line)
-            guard let image = InlineImages.image(atLine: line.location, in: text), let picture = loadImage(image.path) else { continue }
+            guard let image = InlineImages.image(atLine: line.location, in: text), let picture = Self.loadImage(image.path, relativeTo: baseDirectory) else { continue }
             let width = min(image.width.map(CGFloat.init) ?? picture.size.width, maxWidth)
             let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0
             let content = NSRange(location: line.location, length: line.length - (text.substring(with: line).hasSuffix("\n") ? 1 : 0))
@@ -850,6 +917,29 @@ final class InlineImageBox: NSObject, @unchecked Sendable {
     init(image: UIImage, size: CGSize) {
         self.image = image
         self.size = size
+    }
+}
+
+/// Selected text's background, in one color however the rects overlap.
+final class SelectionHighlightView: UIView, UITextSelectionHighlightView {
+    var selectionRects: [UITextSelectionRect] = [] { didSet { setNeedsDisplay() } }
+    var color: UIColor = .clear { didSet { setNeedsDisplay() } }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isOpaque = false
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: SelectionHighlightView, _) in view.setNeedsDisplay() }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func draw(_ rect: CGRect) {
+        let path = UIBezierPath()
+        for selection in selectionRects where !selection.rect.isEmpty { path.append(UIBezierPath(rect: selection.rect)) }
+        color.setFill()
+        path.fill()
     }
 }
 

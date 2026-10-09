@@ -414,6 +414,8 @@ struct CommandPalette: View {
         ("app.clock.default", "Mark as Default Clock Task"), ("app.clock.resolve", "Resolve Open Clocks…"),
         ("app.toggle-markup", "Show or Hide Markup"),
         ("org.toggle-inline-images", "Show or Hide Inline Images"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
+        ("org.table.toggle-column-width", "Shrink or Expand Table Column"), ("org.table.shrink", "Shrink Table Columns with Widths"),
+        ("org.table.expand", "Expand Table Columns"),
     ]
 
     var body: some View {
