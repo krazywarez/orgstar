@@ -1228,6 +1228,10 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         command = "org.table.insert-hline"
         when = "table"
         [[bind]]
+        keys = "C-s-*"
+        command = "org.table.recalc"
+        when = "table"
+        [[bind]]
         keys = "C-s-\\\\"
         command = "org.table.create"
         [[bind]]
@@ -1288,6 +1292,9 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "C-M-s-j"
         command = "app.clock.goto-recent"
         [[bind]]
+        keys = "C-s-k"
+        command = "app.clock.cancel"
+        [[bind]]
         keys = "s-S-e"
         command = "app.export-dialog"
         [[bind]]
@@ -1336,6 +1343,12 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         [[bind]]
         keys = "C-s-v"
         command = "org.babel.tangle"
+        [[bind]]
+        keys = "C-S-s-v"
+        command = "org.babel.tangle-block"
+        [[bind]]
+        keys = "C-M-s-v"
+        command = "org.babel.tangle-target"
 
         """
 }

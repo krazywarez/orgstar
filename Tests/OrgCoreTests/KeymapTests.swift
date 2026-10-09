@@ -162,7 +162,8 @@ struct KeymapTests {
             ("org.narrow.toggle", "C-s-n"), ("org.sort", "C-s-S"), ("org.property.read-and-set", "C-s-P"),
             ("org.footnote.action", "C-s-F"), ("org.edit-special", "C-s-'"), ("org.todo.next", "C-S-s-<right>"),
             ("org.heading.forward-same-level", "M-S-s-<down>"), ("org.effort.set", "C-s-E"), ("org.priority.set", "C-s-,"),
-            ("org.babel.tangle", "C-s-v"),
+            ("org.babel.tangle", "C-s-v"), ("org.babel.tangle-block", "C-s-V"), ("org.babel.tangle-target", "C-M-s-v"),
+            ("app.clock.cancel", "C-s-k"), ("org.table.recalc", "C-s-*"),
         ]
         for (command, keys) in expected {
             #expect(mac.keys(for: command).map(KeySequence.format) == keys, "\(command)")
