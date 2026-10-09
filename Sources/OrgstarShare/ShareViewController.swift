@@ -12,12 +12,13 @@ final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let items = extensionContext?.inputItems as? [NSExtensionItem] ?? []
+        let context = extensionContext
         Task { @MainActor in
             let shared = await Shared.load(items)
             let inbox = CaptureInbox()
-            let form = ShareForm(shared: shared, templates: inbox?.templates() ?? [], available: inbox != nil) { [weak self] link in
+            let form = ShareForm(shared: shared, templates: inbox?.templates() ?? [], available: inbox != nil) { link in
                 if let link { try? inbox?.add(link) }
-                self?.extensionContext?.completeRequest(returningItems: nil)
+                context?.completeRequest(returningItems: nil)
             }
             let host = UIHostingController(rootView: form)
             addChild(host)

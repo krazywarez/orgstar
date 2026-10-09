@@ -40,6 +40,14 @@ final class SpotlightIndexer {
         }
     }
 
+    /// Opens a batch with the changes; `endBatch` commits them. Not async: in a batch the
+    /// calls' completion handlers wait for the batch to end.
+    private func submit(_ items: [CSSearchableItem], removing gone: [String]) {
+        index.beginBatch()
+        if !items.isEmpty { index.indexSearchableItems(items, completionHandler: nil) }
+        if !gone.isEmpty { index.deleteSearchableItems(withIdentifiers: gone, completionHandler: nil) }
+    }
+
     private func index(_ files: [FileEntry]) async {
         let generation = Data(state.generation.uuidString.utf8)
         let stamps = (try? await index.fetchLastClientState()) == generation ? state.stamps : [:]
@@ -56,9 +64,7 @@ final class SpotlightIndexer {
         }
         let gone = stamps.keys.filter { current[$0] == nil }
         guard !items.isEmpty || !gone.isEmpty else { return }
-        index.beginBatch()
-        if !items.isEmpty { index.indexSearchableItems(items, completionHandler: nil) }
-        if !gone.isEmpty { index.deleteSearchableItems(withIdentifiers: Array(gone), completionHandler: nil) }
+        submit(items, removing: gone)
         do {
             try await index.endBatch(withClientState: generation)
         } catch {

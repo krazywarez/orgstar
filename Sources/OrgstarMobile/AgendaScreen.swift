@@ -300,7 +300,7 @@ struct AgendaScreen: View {
     }
 }
 
-extension AgendaItem: Identifiable {
+extension AgendaItem: @retroactive Identifiable {
     public var id: String { "\(path ?? "")|\(headingOffset ?? -1)|\(kind.rawValue)|\(text)" }
 
     /// An entry, not a time-grid line.
