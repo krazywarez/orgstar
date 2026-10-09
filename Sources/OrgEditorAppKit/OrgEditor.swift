@@ -180,7 +180,7 @@ public final class OrgEditor: NSObject {
             indented = startup.indented
             hideStars = startup.hideStars
             if startup.folds != FoldState() { setFolds(startup.folds, wrappers: startup.wrappers) }
-            shrinkAtStartup()
+            shrunk = ShrunkColumns.startup(document.tree)
             if startup.inlineImages { showsImages = true }
             if startup.alignTables { _ = perform(AlignAllTables()) }
             if !indented || !hideStars { restyleOutsideEditing(0..<utf16Length) }
@@ -812,18 +812,13 @@ public final class OrgEditor: NSObject {
 
     // MARK: - Shrunk table columns
 
-    /// Narrowed table columns (`org-table-shrink`): by table start, each column's segments.
-    /// Recomputed as the text changes; typing into one widens its column again, as editing
-    /// org's overlays deletes them. Commands' edits keep columns narrow, as `org-table-align`
-    /// shrinks them again.
-    private var shrunk: [Int: [Int: [TableShrink.Segment]]] = [:]
+    /// Narrowed table columns (`org-table-shrink`).
+    private var shrunk = ShrunkColumns()
     private var commandEditing = false
 
     /// Narrows `columns` of `table` and widens its others.
     private func setShrunk(_ columns: [Int], in table: Range<Int>) {
-        let text = textView.string
-        let segments = Dictionary(uniqueKeysWithValues: columns.map { ($0, TableShrink.segments(table, column: $0, in: text)) })
-        shrunk[table.lowerBound] = segments.isEmpty ? nil : segments
+        shrunk.set(columns, in: table, text: textView.string)
         restyleOutsideEditing(table)
         textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
         textView.needsDisplay = true
@@ -832,73 +827,22 @@ public final class OrgEditor: NSObject {
     /// C-c TAB in a table: `org-table-toggle-column-width`; `shrink` for `org-table-shrink`,
     /// `expand` for `org-table-expand`.
     private func tableColumnWidth(_ id: String) {
-        let caret = textView.selectedRange().location
-        let text = textView.string
-        guard let table = TableShrink.table(at: caret, in: text) else {
-            onMessage?("Not in a table")
-            return
-        }
-        let current = shrunk[table.lowerBound].map { Array($0.keys) } ?? []
-        switch id {
-        case "org.table.shrink": setShrunk(TableShrink.cookieColumns(table, in: text), in: table)
-        case "org.table.expand": setShrunk([], in: table)
-        default:
-            if let column = TableShrink.column(at: caret, in: text) {
-                setShrunk(Array(Set(current).symmetricDifference([column])), in: table)
-                return
-            }
-            let line = (text as NSString).lineRange(for: NSRange(location: caret, length: 0))
+        switch shrunk.change(for: id, at: textView.selectedRange().location, in: textView.string) {
+        case .notInTable: onMessage?("Not in a table")
+        case .set(let columns, let table): setShrunk(columns, in: table)
+        case .ask(let table, let current, let max):
             onPrompt?(Prompt(key: "columns", message: "Column ranges (e.g. 2-4 6-):")) { [weak self] answer in
                 guard let self, let answer else { return }
-                self.setShrunk(Array(Set(current).symmetricDifference(TableShrink.columns(answer, max: line.length / 2))), in: table)
+                self.setShrunk(ShrunkColumns.toggled(current, TableShrink.columns(answer, max: max)), in: table)
             }
         }
-    }
-
-    /// `#+STARTUP: shrink`: every table's columns with width cookies start narrow.
-    private func shrinkAtStartup() {
-        guard Presentation.startupOptions(document.tree).contains(where: { $0.lowercased() == "shrink" }) else { return }
-        let text = textView.string
-        var offset = 0
-        let ns = text as NSString
-        while offset < ns.length {
-            let line = ns.lineRange(for: NSRange(location: offset, length: 0))
-            defer { offset = max(NSMaxRange(line), offset + 1) }
-            guard ns.substring(with: line).range(of: "^[ \\t]*\\|", options: .regularExpression) != nil,
-                  let table = TableShrink.table(at: line.location, in: text) else { continue }
-            let columns = TableShrink.cookieColumns(table, in: text)
-            if !columns.isEmpty { shrunk[table.lowerBound] = Dictionary(uniqueKeysWithValues: columns.map { ($0, TableShrink.segments(table, column: $0, in: text)) }) }
-            offset = table.upperBound
-        }
-    }
-
-    /// Moves shrunk columns through `edit`; returns the tables to restyle.
-    private func mapShrunk(through edit: TextEdit) -> [Range<Int>] {
-        guard !shrunk.isEmpty else { return [] }
-        let text = textView.string
-        let delta = edit.replacement.utf16.count - edit.range.count
-        var mapped: [Int: [Int: [TableShrink.Segment]]] = [:]
-        var tables: [Range<Int>] = []
-        for (start, columns) in shrunk {
-            let kept = columns.filter { _, segments in
-                commandEditing || !segments.contains { $0.range.lowerBound <= edit.range.upperBound && edit.range.lowerBound <= $0.range.upperBound }
-            }.keys
-            let touched = columns.values.joined().contains { $0.range.lowerBound <= edit.range.upperBound && edit.range.lowerBound <= $0.range.upperBound }
-            let newStart = start < edit.range.lowerBound ? start : start >= edit.range.upperBound ? start + delta : edit.range.lowerBound
-            guard let table = TableShrink.table(at: min(newStart, max(0, text.utf16.count - 1)), in: text) else { continue }
-            if touched || kept.count != columns.count { tables.append(table) }
-            guard !kept.isEmpty else { continue }
-            mapped[table.lowerBound] = Dictionary(uniqueKeysWithValues: kept.map { ($0, TableShrink.segments(table, column: $0, in: text)) })
-        }
-        shrunk = mapped
-        return tables
     }
 
     /// Hides each shrunk segment's text and draws its display where the text was.
     private func applyShrunk(_ range: Range<Int>, in storage: NSTextStorage) {
         guard !shrunk.isEmpty else { return }
         let cell = ("0" as NSString).size(withAttributes: [.font: theme.font]).width
-        for segment in shrunk.values.flatMap({ $0.values.joined() }) where segment.range.overlaps(range) && segment.range.upperBound <= storage.length {
+        for segment in shrunk.segments where segment.range.overlaps(range) && segment.range.upperBound <= storage.length {
             let r = segment.range
             let shown = segment.display.count
             let kept = min(shown, r.count)
@@ -1233,7 +1177,7 @@ public final class OrgEditor: NSObject {
         highlights = []
         updateHidden()
         restyle(min(oldMapped.lowerBound, newAffected.lowerBound)..<min(max(oldMapped.upperBound, newAffected.upperBound), newText.length), in: storage)
-        for table in mapShrunk(through: edit) { restyle(table.lowerBound..<min(table.upperBound, newText.length), in: storage) }
+        for table in shrunk.map(through: edit, in: storage.string, command: commandEditing) { restyle(table.lowerBound..<min(table.upperBound, newText.length), in: storage) }
         for range in oldHighlights where range.upperBound <= newText.length {
             let lines = newText.lineRange(for: NSRange(range))
             restyle(lines.location..<NSMaxRange(lines), in: storage)
