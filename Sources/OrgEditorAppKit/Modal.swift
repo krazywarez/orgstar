@@ -34,7 +34,7 @@ extension OrgEditor {
             if keys.count > 1 { onKeysPending?(nil, []) }
             let context = editContext()
             if let binding = candidates.first(where: { modalRuns($0, in: context) }) {
-                if binding.command == "org.fill-paragraph", vim.mode == .visual || vim.mode == .visualLine {
+                if binding.command == "org.fill-paragraph", vim.mode == .visual || vim.mode == .visualLine || vim.mode == .visualBlock {
                     fillVisual()
                 } else {
                     run(binding.command)
@@ -57,15 +57,21 @@ extension OrgEditor {
         }
     }
 
-    /// M-q in visual states: `org-fill-paragraph` on the region, the cursor kept. A change
-    /// deactivates the region, which leaves visual state.
+    /// M-q in visual states: `org-fill-paragraph` on the region, the cursor kept. Evil turns
+    /// `transient-mark-mode` off in block state, so there it fills the paragraph at the cursor.
+    /// A change deactivates the region, which leaves visual state.
     private func fillVisual() {
-        let selected = textView.selectedRange()
-        let cursor = visualCaret ?? selected.location
+        let selected = textView.selectedRanges
+        let cursor = visualCaret ?? textView.selectedRange().location
         let text = document.text
-        perform(FillParagraph(point: cursor))
+        if vim.mode == .visualBlock {
+            textView.setSelectedRange(NSRange(location: cursor, length: 0))
+            perform(FillParagraph())
+        } else {
+            perform(FillParagraph(point: cursor))
+        }
         if document.text == text {
-            textView.setSelectedRange(selected)
+            textView.selectedRanges = selected
             visualCaret = cursor
         } else {
             vim.reset()
@@ -91,7 +97,7 @@ extension OrgEditor {
                 }
             }
             let wasInsert = vim.mode == .insert
-            let visual = vim.mode == .visual || vim.mode == .visualLine
+            let visual = vim.mode == .visual || vim.mode == .visualLine || vim.mode == .visualBlock
             let caret = visual ? (visualCaret ?? textView.selectedRange().location) : textView.selectedRange().location
             if jumpToFileMark(key) { continue }
             let clipboard = NSPasteboard.general.string(forType: .string)

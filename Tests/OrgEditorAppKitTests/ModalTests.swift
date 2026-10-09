@@ -161,6 +161,35 @@ struct ModalTests {
         #expect(lines.editor.vim.mode == .normal)
     }
 
+    /// Evil turns `transient-mark-mode` off in visual block state, so M-q there fills the
+    /// paragraph at the cursor (checked against evil with `org-fill-paragraph`).
+    @Test func fillParagraphInVisualBlockFillsAtTheCursor() {
+        let h = doom("aaa\nbbb\n\nccc\nddd\n\neee\nfff\n")
+        h.caret(at: 0)
+        type(h, "C-v j j j")
+        #expect(h.textView.selectedRanges.first?.rangeValue == NSRange(location: 0, length: 1) && h.textView.selectedRanges.last?.rangeValue == NSRange(location: 9, length: 1))
+        KeyTests().press(h, "q", option: KeyEvents.leftOption, typed: "œ")
+        #expect(h.editor.document.text == "aaa\nbbb\n\nccc ddd\n\neee\nfff\n")
+        #expect(h.textView.selectedRange() == NSRange(location: 9, length: 0))
+        #expect(h.editor.vim.mode == .normal)
+        let up = doom("aaa\nbbb\nccc\n\nx\ny\n")
+        up.caret(at: 8)
+        type(up, "C-v k")
+        KeyTests().press(up, "q", option: KeyEvents.leftOption, typed: "œ")
+        #expect(up.editor.document.text == "aaa bbb ccc\n\nx\ny\n")
+        #expect(up.textView.selectedRange() == NSRange(location: 4, length: 0))
+        #expect(up.editor.vim.mode == .normal)
+        // Nothing to fill: the block stays.
+        let filled = doom("aaa bbb\n\nccc\n")
+        filled.caret(at: 0)
+        type(filled, "C-v l")
+        let block = filled.textView.selectedRanges
+        KeyTests().press(filled, "q", option: KeyEvents.leftOption, typed: "œ")
+        #expect(filled.editor.document.text == "aaa bbb\n\nccc\n")
+        #expect(filled.textView.selectedRanges == block)
+        #expect(filled.editor.vim.mode == .visualBlock)
+    }
+
     @Test func zzSavesAndClosesAsWq() {
         let h = doom("text\n")
         var app: [String] = []
