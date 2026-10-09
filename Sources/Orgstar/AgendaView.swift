@@ -38,6 +38,8 @@ struct AgendaView: View {
     /// The selected line: `day:index` (`day:o` + index in the overdue group), or `list:index`.
     @State private var selection: String?
     @State private var tick = 0
+    /// The time the now line shows, kept to the minute while the agenda is open.
+    @State private var now = Date()
     /// The view picker moved to the agenda for a followed timestamp, which sets its own days.
     @State private var keepRequestedDays = false
     @State private var message: String?
@@ -295,10 +297,12 @@ struct AgendaView: View {
         }
         .task {
             loadViews()
-            // The time grid's "now" line and the day itself move on.
+            // The now line moves each minute; a new day refreshes the statuses.
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(60))
-                tick += 1
+                let next = Calendar.current.nextDate(after: Date(), matching: DateComponents(second: 0), matchingPolicy: .nextTime) ?? Date().addingTimeInterval(60)
+                try? await Task.sleep(for: .seconds(next.timeIntervalSinceNow))
+                now = Date()
+                if Days.absolute(now, calendar: .current) != agenda.today { tick += 1 }
             }
         }
     }
@@ -325,12 +329,12 @@ struct AgendaView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
         }
-        let now = group.nowIndex(now: Self.hhmm(Date()))
+        let nowAt = group.nowIndex(now: Self.hhmm(now))
         ForEach(Array(group.rows.enumerated()), id: \.element.id) { index, row in
-            if index == now { nowLine }
+            if index == nowAt { nowLine }
             rowView(Line(id: "\(group.day):\(index)", row: row, day: group.day))
         }
-        if let now, now == group.rows.count { nowLine }
+        if let nowAt, nowAt == group.rows.count { nowLine }
     }
 
     private func header(@ViewBuilder _ content: () -> some View) -> some View {
@@ -400,7 +404,7 @@ struct AgendaView: View {
 
     private var nowLine: some View {
         HStack(spacing: 6) {
-            Text(Date().formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute()))
+            Text(now.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute()))
                 .font(.system(size: 10, weight: .semibold).monospacedDigit())
                 .frame(width: AgendaRowView.gutterWidth, alignment: .leading)
             Circle().frame(width: 6, height: 6)

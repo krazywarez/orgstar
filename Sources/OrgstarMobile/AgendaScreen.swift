@@ -18,6 +18,8 @@ struct AgendaScreen: View {
     @Environment(MobileModel.self) private var model
     @Environment(\.colorScheme) private var colorScheme
     @State private var tick = 0
+    /// The time the now line shows, kept to the minute while the agenda is open.
+    @State private var now = Date()
     @State private var views = AgendaViewLoader.builtIn
     @State private var viewName = "Agenda"
     @State private var filter = AgendaFilter()
@@ -173,6 +175,15 @@ struct AgendaScreen: View {
             views = loaded.views
             if let problem = loaded.problems.first { message = problem }
         }
+        // The now line moves each minute; a new day refreshes the statuses.
+        .task {
+            while !Task.isCancelled {
+                let next = Calendar.current.nextDate(after: Date(), matching: DateComponents(second: 0), matchingPolicy: .nextTime) ?? Date().addingTimeInterval(60)
+                try? await Task.sleep(for: .seconds(next.timeIntervalSinceNow))
+                now = Date()
+                if Days.absolute(now, calendar: .current) != agenda.today { tick += 1 }
+            }
+        }
         // Calendar access is asked for when calendar-events is turned on.
         .task(id: model.settingsVersion) {
             guard OrgPreferences.calendarEvents(), !CalendarEvents.isAuthorized else { return }
@@ -232,17 +243,17 @@ struct AgendaScreen: View {
             if group.isEmpty {
                 Text("Nothing scheduled").font(.subheadline).foregroundStyle(.secondary)
             }
-            let now = nowIndex(group)
+            let nowAt = nowIndex(group)
             ForEach(Array(group.rows.enumerated()), id: \.element.id) { index, item in
-                if index == now { NowLine(color: todayColor) }
+                if index == nowAt { NowLine(time: now, color: todayColor) }
                 row(item, day: group.day)
             }
-            if let now, now == group.rows.count { NowLine(color: todayColor) }
+            if let nowAt, nowAt == group.rows.count { NowLine(time: now, color: todayColor) }
         }
     }
 
     private func nowIndex(_ group: AgendaDayGroup) -> Int? {
-        let c = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        let c = Calendar.current.dateComponents([.hour, .minute], from: now)
         return group.nowIndex(now: (c.hour ?? 0) * 100 + (c.minute ?? 0))
     }
 
@@ -672,11 +683,12 @@ struct AgendaRowView: View {
 
 /// The current time between timed rows, as Org's `now - - -` line.
 struct NowLine: View {
+    let time: Date
     let color: Color
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(Date.now.formatted(date: .omitted, time: .shortened))
+            Text(time.formatted(date: .omitted, time: .shortened))
                 .font(.caption2.weight(.semibold).monospacedDigit())
                 .foregroundStyle(color)
             Circle().fill(color).frame(width: 6, height: 6)
