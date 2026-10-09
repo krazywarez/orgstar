@@ -252,13 +252,13 @@ A =mode= other than =normal=, =insert= or =visual= (including =visual-line=) is 
 ** More examples
 
 #+BEGIN_SRC toml
-# Mac preset: ⌃⌘U goes up to the parent heading, ⌃⌘R recalculates the table row, ⌃⌘; toggles COMMENT.
+# Mac preset: ⌃⌘U goes up to the parent heading, ⌃⌘R opens column view, ⌃⌘; toggles COMMENT.
 [[bind]]
 keys = "C-s-u"
 command = "org.heading.up"
 [[bind]]
 keys = "C-s-r"
-command = "org.table.recalc"
+command = "org.columns"
 [[bind]]
 keys = "C-s-;"
 command = "org.heading.toggle-comment"
