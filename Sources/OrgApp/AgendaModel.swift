@@ -114,6 +114,7 @@ public final class AgendaModel {
     /// while their modification date and size are unchanged.
     private func sources(open: [String: String]) async -> [AgendaSource] {
         let defaults = workspace.settings.org
+        let blocking = options.dimBlockedTasks != .off && (options.enforceTodoDependencies || options.enforceTodoCheckboxDependencies)
         var reads: [(path: String, cached: AgendaSource?, mtime: Date, size: Int, text: String?)] = []
         for path in files {
             if let text = open[path] {
@@ -124,7 +125,7 @@ public final class AgendaModel {
             let mtime = attributes?[.modificationDate] as? Date ?? .distantPast
             let size = (attributes?[.size] as? NSNumber)?.intValue ?? -1
             // A file reading setup files is read again: they may have changed.
-            let cached = cache[path].flatMap { $0.mtime == mtime && $0.size == size && !$0.source.readsSetupFiles ? $0.source : nil }
+            let cached = cache[path].flatMap { $0.mtime == mtime && $0.size == size && !$0.source.readsSetupFiles && $0.source.checksBlocking == blocking ? $0.source : nil }
             reads.append((path, cached, mtime, size, nil))
         }
         let loaded = await Task.detached {
@@ -133,10 +134,10 @@ public final class AgendaModel {
                 if let cached = read.cached {
                     sources.append((read.path, read.mtime, read.size, cached, true))
                 } else if let text = read.text {
-                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults.resolvingSetupFiles(in: text, path: read.path, read: OrgSettings.readFile)), false))
+                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults.resolvingSetupFiles(in: text, path: read.path, read: OrgSettings.readFile), checksBlocking: blocking), false))
                 } else if let data = FileManager.default.contents(atPath: read.path) {
                     let text = SourceText(bytes: [UInt8](data)).text
-                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults.resolvingSetupFiles(in: text, path: read.path, read: OrgSettings.readFile)), true))
+                    sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults.resolvingSetupFiles(in: text, path: read.path, read: OrgSettings.readFile), checksBlocking: blocking), true))
                 }
             }
             return sources

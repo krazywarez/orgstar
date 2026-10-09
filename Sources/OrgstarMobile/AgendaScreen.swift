@@ -38,6 +38,8 @@ struct AgendaScreen: View {
     @AppStorage("agendaOverdueExpanded") private var overdueExpanded = true
     @State private var done = 0
     @State private var moved = 0
+    /// `org-agenda-log-mode`: closed entries and clocked time on each day.
+    @State private var logMode = false
 
     /// A match typed for the tag and property view, or a search string.
     private enum Asking: Identifiable {
@@ -62,6 +64,7 @@ struct AgendaScreen: View {
         var startOffset: Int
         var subfolders: Bool
         var settings: Int
+        var logMode: Bool
     }
 
     private var isDark: Bool { colorScheme == .dark }
@@ -202,7 +205,8 @@ struct AgendaScreen: View {
         }
         .task(id: Key(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, tick: tick,
                       mode: agenda.mode, start: agenda.start, span: agenda.span, startOffset: agenda.startOffset,
-                      subfolders: agenda.includeSubfolders, settings: model.settingsVersion)) {
+                      subfolders: agenda.includeSubfolders, settings: model.settingsVersion, logMode: logMode)) {
+            agenda.options.logMode = logMode
             await agenda.refresh(open: session.openTexts)
         }
     }
@@ -381,6 +385,7 @@ struct AgendaScreen: View {
                             ForEach(SpanRange.allCases) { Text($0.title).tag(Optional($0)) }
                             Text("\(agenda.span) Days").tag(SpanRange?.none)
                         }
+                        Toggle("Log Mode", systemImage: "clock.arrow.circlepath", isOn: $logMode)
                     } label: {
                         Text(range?.title ?? "\(agenda.span) Days")
                             .font(.footnote.weight(.semibold).monospacedDigit())

@@ -155,7 +155,7 @@ Tap a result to open it in the reader. A heading result opens at that heading.
 The Agenda tab shows the agenda over all your folders, with the span and start day from the settings (10 days from 3 days ago by default). Each day lists its entries in rows: the time or a status such as =Due today= or =3d late= on the left, the category and the keyword above the title. Days without entries are hidden, except today. Today's overdue entries are in a group of their own, and a line marks the current time between timed entries. Pull down to refresh.
 
 - Views (top left) :: the built-in views and those in =views.toml=, Tags and Properties… (a match such as =+work-home= or ~TODO="WAIT"~), and Search… (a phrase, or snippets such as =+invoice -paid=).
-- The bar at the bottom :: Earlier, Filter, Today, Go to Date, the span (Day, Week, Month or the configured span) and Later.
+- The bar at the bottom :: Earlier, Filter, Today, Go to Date, the span (Day, Week, Month or the configured span, and Log Mode, which adds closed entries and clocked time) and Later.
 - Filter :: keep or leave out tags and categories of the entries shown, or type a filter as Org's =/= takes it: =+keep= and =-drop= tags or categories, =<0:30= for effort, =/regexp/=. The filter in use shows above the bar.
 - + on a day's header :: captures an entry scheduled on that day (see [[file:08-capture.org][Capture]]).
 - Tap :: an entry to read it, at its heading.
@@ -311,9 +311,11 @@ Changes to the files apply as they sync, and again each time you return to the a
 
 Stop Using This Folder returns every setting to its default.
 
-The Agenda and Calendar sections are the only places the app changes a setting itself:
+The Agenda, TODO Dependencies and Calendar sections are the only places the app changes a setting itself:
 
 - Show days without entries :: turns =org-agenda-show-all-dates= on or off.
+- Blocked entries :: Dimmed, Hidden or Shown as usual (=org-agenda-dim-blocked-tasks=).
+- TODO Dependencies :: Not done before TODO children (=org-enforce-todo-dependencies=) and Not done with unchecked boxes (=org-enforce-todo-checkbox-dependencies=).
 - Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; Orgstar only reads. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
 - The calendars :: tap one to show or hide its events (=calendar-event-calendars=). With every calendar checked the setting is empty, so calendars added later show too.
 

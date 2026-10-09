@@ -122,7 +122,7 @@ Days are sorted as =org-agenda-sorting-strategy= sorts them by default for the a
 
 ** Log mode
 
-Press =l= to turn log mode (=org-agenda-log-mode=) on or off. Each day then also shows:
+Press =l= to turn log mode (=org-agenda-log-mode=) on or off; on iOS, use Log Mode in the span menu. Each day then also shows:
 
 - =Closed= entries whose =CLOSED:= timestamp is on that day;
 - =Clocked= entries for each =CLOCK:= line that starts on that day, with the clock's start and end times in the left column and the time clocked, such as =1:30=, after the title.
@@ -153,7 +153,7 @@ Ages and distances are written compactly: days up to 13 (=3d=), then whole weeks
 
 The keyword's color comes from =[theme.todo]=, else from its class: =todo-next= for keywords of work under way such as =NEXT= and =STRT=, =todo-waiting= for =WAIT=, =HOLD= and similar, =todo-cancelled= for done keywords such as =KILL= and =CANCELLED=, and otherwise =todo= or =done=. Priorities =A=, =B= and =C= use =priority-a=, =priority-b= and =priority-c=; others use =priority=. A category's dot takes its color from =[theme.category]=, else a hue worked out from the category's name, the same on every device. See [[file:13-configuration.org][Configuration]] for the keyword lists and the theme keys.
 
-With =org-enforce-todo-dependencies= or =org-enforce-todo-checkbox-dependencies= on, an entry that can't be marked done yet is dimmed in every view (=org-agenda-dim-blocked-tasks= =t=). Settings ▸ Agenda ▸ Blocked entries can hide such entries instead (=invisible=), though one held back only by its own checkboxes stays dimmed, or show them as usual (=nil=). Marking a blocked entry done from the agenda is refused with the same message as in the editor; see [[file:05-todos-and-tags.org][TODOs and tags]].
+With =org-enforce-todo-dependencies= or =org-enforce-todo-checkbox-dependencies= on, an entry that can't be marked done yet is dimmed in every view (=org-agenda-dim-blocked-tasks= =t=). Settings ▸ Agenda ▸ Blocked entries (on iOS, Settings ▸ Agenda) can hide such entries instead (=invisible=), though one held back only by its own checkboxes stays dimmed, or show them as usual (=nil=). Marking a blocked entry done from the agenda is refused with the same message as in the editor; see [[file:05-todos-and-tags.org][TODOs and tags]].
 
 * Calendar events
 
@@ -571,7 +571,8 @@ The Agenda tab shows the same views from the same files, using the settings in t
 - Swipe right on a scheduled entry, a deadline, a habit or a TODO entry, when it isn't done, for Tomorrow, Next Week and Pick Date. Tomorrow is the day after today and Next Week is next Monday. On a deadline row these move the deadline; on other rows they set the scheduled date. A timed row keeps its times.
 - Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile… and Archive….
 - Marking an entry done and rescheduling one give haptic feedback.
-- There are no keyboard commands, log mode or bulk marks.
+- Log Mode, in the span menu, turns log mode on and off. The widgets never show log mode's entries.
+- There are no keyboard commands or bulk marks.
 - Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open Orgstar to set later ones.
 
 The Today and Up Next widgets show the agenda on the Home Screen and the Lock Screen; see [[file:14-ios.org][iPhone and iPad]].

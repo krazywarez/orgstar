@@ -37,6 +37,26 @@ struct SettingsScreen: View {
                 Toggle("Show days without entries", isOn: Binding {
                     OrgPreferences.agendaShowAllDates()
                 } set: { model.set("agendaShowAllDates", to: .bool($0)) })
+                Picker("Blocked entries", selection: Binding {
+                    UserDefaults.standard.string(forKey: "agendaDimBlockedTasks") ?? "t"
+                } set: { model.set("agendaDimBlockedTasks", to: .string($0)) }) {
+                    Text("Dimmed").tag("t")
+                    Text("Hidden").tag("invisible")
+                    Text("Shown as usual").tag("nil")
+                }
+            }
+            Section {
+                let _ = model.settingsVersion
+                Toggle("Not done before TODO children", isOn: Binding {
+                    UserDefaults.standard.bool(forKey: "enforceTodoDependencies")
+                } set: { model.set("enforceTodoDependencies", to: .bool($0)) })
+                Toggle("Not done with unchecked boxes", isOn: Binding {
+                    UserDefaults.standard.bool(forKey: "enforceTodoCheckboxDependencies")
+                } set: { model.set("enforceTodoCheckboxDependencies", to: .bool($0)) })
+            } header: {
+                Text("TODO Dependencies")
+            } footer: {
+                Text("org-enforce-todo-dependencies and org-enforce-todo-checkbox-dependencies.")
             }
             calendarSection
             Section("In use") {

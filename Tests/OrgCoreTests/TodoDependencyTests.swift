@@ -192,6 +192,13 @@ struct TodoDependencyTests {
         #expect(blocked(true, true, .invisible) == ["TODO B", "~TODO C", "TODO D"])
     }
 
+    @Test func sourcesCanSkipTheBlockingCheck() {
+        let source = AgendaSource(path: "/tmp/a.org", text: "* TODO A\n** TODO B\n", checksBlocking: false)
+        var options = AgendaOptions()
+        options.enforceTodoDependencies = true
+        #expect(Agenda.todoList([source], options: options).allSatisfy { !$0.isBlocked })
+    }
+
     @Test func dwimIsBlocked() {
         let text = "* TODO A\n** TODO B\n"
         var options = EditingOptions.org

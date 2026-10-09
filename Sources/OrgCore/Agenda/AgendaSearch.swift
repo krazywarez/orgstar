@@ -219,7 +219,7 @@ extension Agenda {
 
         /// Case-insensitive, as Org binds `case-fold-search`, with `^` and `$` at each line.
         static func compile(_ emacs: String) -> NSRegularExpression? {
-            try? NSRegularExpression(pattern: EmacsRegex.translate(emacs), options: [.caseInsensitive, .anchorsMatchLines])
+            try? NSRegularExpression(pattern: EmacsRegex.translate(emacs, search: true), options: [.caseInsensitive, .anchorsMatchLines])
         }
     }
 
@@ -480,10 +480,32 @@ public struct TagsMatcher: Sendable {
 /// Emacs regular expressions run through ICU, case-insensitively as the matcher binds
 /// `case-fold-search`.
 enum EmacsRegex {
-    /// Word syntax in an Org buffer: letters, digits, marks, `$` and `%`, but not `_`, `-` or `'`.
-    static let word = "[\\p{L}\\p{N}\\p{M}$%\\u00b7]"
-
-    static func translate(_ pattern: String) -> String {
+    /// Characters without word syntax in an Org buffer under Emacs 31, as ranges: everything
+    /// else, `$`, `%` and `'` included, is a word character. Emacs also puts a word boundary
+    /// where the script changes, which this doesn't.
+    static let nonWord = ""
+        + "\\x{0}-\\x{23}\\x{26}\\x{28}-\\x{2f}\\x{3a}-\\x{40}\\x{5b}-\\x{60}\\x{7b}-\\x{7f}\\x{a0}-\\x{a4}"
+        + "\\x{a6}-\\x{b1}\\x{b4}\\x{b6}\\x{b8}\\x{ba}-\\x{bf}\\x{d7}\\x{f7}\\x{2c7}\\x{2c9}\\x{2d0}"
+        + "\\x{2d8}-\\x{2db}\\x{2dd}\\x{384}-\\x{385}\\x{5be}\\x{5c0}\\x{5c3}\\x{5c6}\\x{e2f}\\x{e3f}\\x{e46}"
+        + "\\x{e4f}\\x{e5a}-\\x{e5b}\\x{eaf}\\x{ec6}\\x{f00}-\\x{f0b}\\x{f0d}-\\x{f18}\\x{f1a}-\\x{f1f}\\x{f34}"
+        + "\\x{f36}\\x{f38}-\\x{f3f}\\x{f7f}\\x{f85}\\x{fbe}-\\x{fcf}\\x{1361}-\\x{1368}\\x{1800}-\\x{180a}"
+        + "\\x{2000}-\\x{2026}\\x{202f}-\\x{205f}\\x{207d}-\\x{207e}\\x{208d}-\\x{208e}\\x{20ac}\\x{2103}"
+        + "\\x{2109}\\x{2116}\\x{2121}-\\x{2122}\\x{2153}-\\x{2154}\\x{215b}-\\x{215e}\\x{2190}-\\x{244f}"
+        + "\\x{2460}-\\x{246e}\\x{2474}-\\x{24b5}\\x{2500}-\\x{254b}\\x{2592}\\x{25a0}-\\x{25a1}"
+        + "\\x{25a3}-\\x{25a9}\\x{25b2}-\\x{25b3}\\x{25b6}-\\x{25b7}\\x{25bc}-\\x{25bd}\\x{25c0}-\\x{25c1}"
+        + "\\x{25c6}-\\x{25c8}\\x{25cb}\\x{25ce}-\\x{25d1}\\x{25ef}\\x{2605}-\\x{2606}\\x{260e}-\\x{260f}"
+        + "\\x{261c}\\x{261e}\\x{2640}\\x{2642}\\x{2660}-\\x{2661}\\x{2663}-\\x{2665}\\x{2667}-\\x{266a}"
+        + "\\x{266c}-\\x{266d}\\x{266f}\\x{2768}-\\x{276d}\\x{2770}-\\x{2775}\\x{27e6}-\\x{27eb}"
+        + "\\x{2983}-\\x{2998}\\x{29fc}-\\x{29fd}\\x{2a00}-\\x{2bff}\\x{2e00}-\\x{2e7f}\\x{3000}-\\x{3003}"
+        + "\\x{3008}-\\x{301c}\\x{30fb}\\x{3200}-\\x{321c}\\x{3220}-\\x{3229}\\x{3260}-\\x{327b}"
+        + "\\x{327e}-\\x{327f}\\x{3380}-\\x{3384}\\x{3388}-\\x{33ca}\\x{33cf}-\\x{33d0}\\x{33d3}\\x{33d6}"
+        + "\\x{33d8}\\x{33db}-\\x{33dd}\\x{aadb}-\\x{aadf}\\x{fd3e}-\\x{fd3f}\\x{fe35}-\\x{fe44}"
+        + "\\x{fe59}-\\x{fe5e}\\x{ff01}-\\x{ff0f}\\x{ff1b}-\\x{ff20}\\x{ff3b}-\\x{ff40}\\x{ff5b}-\\x{ff65}"
+        + "\\x{ffe0}-\\x{ffe3}\\x{ffe5}\\x{11660}-\\x{1166c}\\x{1fb00}-\\x{1fbff}"
+    /// `search` uses `org-search-view`'s syntax table, where `'` is punctuation.
+    static func translate(_ pattern: String, search: Bool = false) -> String {
+        let nonWord = search ? Self.nonWord + "'" : Self.nonWord
+        let word = "[^" + nonWord + "]"
         var out = ""
         var chars = Array(pattern)
         var i = 0
@@ -532,7 +554,7 @@ enum EmacsRegex {
                 case "`": out += "^"
                 case "'": out += "$"
                 case "w": out += word
-                case "W": out += "[^" + word.dropFirst()
+                case "W": out += "[" + nonWord + "]"
                 default: out += "\\" + String(n)
                 }
                 i += 2

@@ -102,10 +102,15 @@ public struct AgendaSource: Sendable {
     let notDoneKeywords: [String]
     /// The file's text, for the search view.
     let text: String
+    /// Whether the headings' blocked flags were worked out.
+    public let checksBlocking: Bool
     let priorities: Priorities
 
-    public init(path: String, text: String, defaults: OrgSettings = .default) {
+    /// `checksBlocking` false leaves every heading unblocked, for when neither enforce
+    /// setting is on.
+    public init(path: String, text: String, defaults: OrgSettings = .default, checksBlocking: Bool = true) {
         self.path = path
+        self.checksBlocking = checksBlocking
         readsSetupFiles = text.range(of: "#+setupfile:", options: .caseInsensitive) != nil
         let tree = OrgParser.parse(text, defaults: defaults)
         let model = DocumentModel(tree: tree)
@@ -236,7 +241,7 @@ public struct AgendaSource: Sendable {
             }
             var blockedByCheckboxes = false
             var blockedByHierarchy = false
-            if info.todo != nil, !info.isDone, buffer.localProperty("NOBLOCKING", heading: info.headingRange.lowerBound).map({ $0 == "nil" }) ?? true {
+            if checksBlocking, info.todo != nil, !info.isDone, buffer.localProperty("NOBLOCKING", heading: info.headingRange.lowerBound).map({ $0 == "nil" }) ?? true {
                 buffer.point = info.headingRange.lowerBound
                 blockedByCheckboxes = buffer.hasOpenCheckbox()
                 blockedByHierarchy = buffer.hierarchyBlocker() != nil

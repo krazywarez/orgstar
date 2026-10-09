@@ -220,6 +220,7 @@ final class MobileModel {
         if let agenda {
             days.includeSubfolders = agenda.includeSubfolders
             days.options = agenda.options
+            days.options.logMode = false
             days.calendarEvents = agenda.calendarEvents
             days.calendarNames = agenda.calendarNames
         }
