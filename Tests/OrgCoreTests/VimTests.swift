@@ -223,6 +223,24 @@ struct VimTests {
         ("ab ab ab\n", 0, "s a b d ;"),
         ("ab ab ab\n", 0, "v s a b d"),
         ("ab x\ncd ab\nab\n", 5, "s a b ; , x"),
+        // A count after a snipe ends its repeat keys: the key snipes again with the count.
+        ("a1a2a3a4a5a6a7\n", 0, "f a 2 f a x"),
+        ("a1a2a3a4a5a6a7\n", 0, "f a f 2 f a x"),
+        ("a1a2a3a4a5a6a7\n", 0, "f a 2 ; x"),
+        ("a1a2a3a4a3\n", 0, "s a 2 2 s a 3 x"),
+        // evil-snipe-char-fold: a letter matches its variants, in either case unless typed
+        // as a capital.
+        ("x à b á c\n", 0, "f a ; x"),
+        ("x À b á c\n", 0, "f a x"),
+        ("x à b À c\n", 0, "f A x"),
+        ("x ü b ǜ c\n", 0, "f u ; x"),
+        ("x ⓐ ａ ª\n", 0, "f a ; ; x"),
+        ("x e\u{301}b\n", 0, "t b x"),
+        ("x e\u{301}b\n", 0, "t e x"),
+        ("x é b\n", 0, "s é SPC x"),
+        ("x é É\n", 0, "f É x"),
+        ("a\u{A0}b c\n", 0, "f SPC x"),
+        ("one ﬁ fa\n", 0, "f f x"),
     ]
 
     /// Thirty lines of seven characters: line `i` starts at `7 * i`.

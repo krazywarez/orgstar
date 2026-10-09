@@ -631,7 +631,7 @@ public struct Vim: Sendable {
             return snipe(forward: forward, count: n * last.count, buffer, c, operatorPending: operatorPending, repeating: true)
         case ("s", []) where !operatorPending, ("S", []) where !operatorPending:
             guard keys.count >= 3 else { return .incomplete }
-            let chars = keys[1].key + keys[2].key
+            let chars = keys[1...2].map { $0.key == "SPC" ? " " : $0.key == "TAB" ? "\t" : $0.key }.joined()
             lastSnipe = (key.key == "s", chars, n, true, (KeyChord("s"), KeyChord("S")))
             return snipe(forward: key.key == "s", count: n, buffer, c, operatorPending: operatorPending, repeating: false)
         case ("%", []):
@@ -680,8 +680,8 @@ public struct Vim: Sendable {
     }
 
     /// `evil-snipe--seek` for the last snipe: the `n`th match from `c` in the line after (or
-    /// before) the search start, or for a repeat in the visible text, with smart case and
-    /// `evil-snipe-skip-leading-whitespace`.
+    /// before) the search start, or for a repeat in the visible text, with smart case,
+    /// Doom's `evil-snipe-char-fold` and `evil-snipe-skip-leading-whitespace`.
     mutating func snipe(forward: Bool, count n: Int, _ buffer: Buffer, _ c: Int, operatorPending: Bool, repeating: Bool) -> MotionResult {
         guard let last = lastSnipe else { return .invalid }
         // f, s and F search from the next or this character, t and T one further.
@@ -692,9 +692,12 @@ public struct Vim: Sendable {
             bound = forward ? min(visible.upperBound, buffer.length) - 1 : min(visible.lowerBound, start)
         }
         let blankKeys = last.chars.first == " " || last.chars.first == "\t"
-        var pattern = NSRegularExpression.escapedPattern(for: last.chars)
+        let regexps = last.chars.map(CharFold.regexp)
+        var pattern = regexps.map(CharFold.icu).joined()
         if blankKeys, let ch = buffer.char(start), Buffer.isBlank(ch) { pattern += "[^ \t]" }
-        let regex = try! NSRegularExpression(pattern: pattern, options: last.chars == last.chars.lowercased() ? .caseInsensitive : [])
+        // `evil-snipe--case-p`: case matters when the regexps hold a capital letter.
+        let caseFold = !regexps.joined().unicodeScalars.contains { ("A"..."Z").contains($0) }
+        let regex = try! NSRegularExpression(pattern: pattern, options: caseFold ? .caseInsensitive : [])
         var match: NSRange?
         if forward, start <= bound {
             var from = start

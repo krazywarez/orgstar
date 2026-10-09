@@ -591,3 +591,71 @@ extension Vim {
         return edits.isEmpty ? [.move(caret: back)] : [.edit(edits, caret: back)]
     }
 }
+
+/// `char-fold-to-regexp` for one snipe key, as evil-snipe's `evil-snipe--process-key` uses it
+/// with `evil-snipe-char-fold`: a letter also matches its accented and other variants.
+enum CharFold {
+    /// `char-fold-table` by code point.
+    static let regexps: [UInt32: String] = {
+        var regexps: [UInt32: String] = [:]
+        // Scalars, not characters: a tab before a combining mark is one character.
+        for line in table.unicodeScalars.split(separator: "\n") {
+            guard let tab = line.firstIndex(of: "\t"), let code = UInt32(String(line[..<tab]), radix: 16) else { continue }
+            regexps[code] = String(line[line.index(after: tab)...])
+        }
+        return regexps
+    }()
+
+    /// The Emacs regexp `key` matches: its table entry, else the key quoted.
+    static func regexp(_ key: Character) -> String {
+        let scalars = key.unicodeScalars
+        if scalars.count == 1, let entry = regexps[scalars.first!.value] { return entry }
+        return scalars.map { "[*.\\?+^$".unicodeScalars.contains($0) ? "\\" + String($0) : String($0) }.joined()
+    }
+
+    /// An Emacs regexp of shy groups, alternatives, bracket expressions and literals, which is
+    /// all `char-fold-table` and `regexp-quote` produce, as an ICU pattern.
+    static func icu(_ emacs: String) -> String {
+        let s = Array(emacs.unicodeScalars)
+        func literal(_ c: Unicode.Scalar) -> String { String(format: "\\x{%X}", c.value) }
+        var out = ""
+        var i = 0
+        while i < s.count {
+            if s[i] == "\\", i + 1 < s.count {
+                switch s[i + 1] {
+                case "(":
+                    out += "(?:"
+                    i += i + 3 < s.count && s[i + 2] == "?" && s[i + 3] == ":" ? 4 : 2
+                case "|":
+                    out += "|"
+                    i += 2
+                case ")":
+                    out += ")"
+                    i += 2
+                default:
+                    out += literal(s[i + 1])
+                    i += 2
+                }
+            } else if s[i] == "[", let close = s[(i + 2)...].firstIndex(of: "]") {
+                // A `]` right after `[` is a member; `-` between two members is a range.
+                var j = i + 1
+                out += "["
+                while j < close {
+                    if j + 2 < close, s[j + 1] == "-" {
+                        out += literal(s[j]) + "-" + literal(s[j + 2])
+                        j += 3
+                    } else {
+                        out += literal(s[j])
+                        j += 1
+                    }
+                }
+                out += "]"
+                i = close + 1
+            } else {
+                out += literal(s[i])
+                i += 1
+            }
+        }
+        return out
+    }
+}
