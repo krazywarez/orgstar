@@ -37,10 +37,11 @@ struct MobileTheme {
 
     var foreground: UIColor { color("foreground") ?? .label }
 
-    /// A TODO keyword's color: its own from `[theme.todo]`, else the theme's TODO or DONE.
+    /// A TODO keyword's color: its own from `[theme.todo]`, else its class's (`todo-next`,
+    /// `todo-waiting`, `todo-cancelled`, `todo`, `done`).
     func keywordColor(_ keyword: String, done: Bool) -> UIColor? {
         if let custom = spec.todo[keyword] { return Self.dynamic(custom, custom) }
-        return color(done ? "done" : "todo")
+        return color(ThemeSpec.TodoClass.of(keyword, isDone: done).key)
     }
 
     /// A heading's font: larger by the heading step for levels 1 to 3, bold.

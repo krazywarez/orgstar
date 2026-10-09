@@ -141,16 +141,17 @@ public struct ThemeSpec: Equatable, Sendable {
         pairs.compactMapValues { RGBA(hex: $0) }
     }
 
-    /// Calm colors after GitHub's light and dark themes: headings colored by level, keywords
-    /// clear without shouting, code in the colors developers know.
+    /// Calm colors after GitHub's light and dark themes for text and code: headings colored by
+    /// level, code in the colors developers know. Keywords, priorities and the agenda's states
+    /// use the system's accessible reds, oranges, blues and greens, so they match iOS and macOS.
     public static let `default` = ThemeSpec(
         light: palette([
             "background": "#ffffff", "foreground": "#1f2328", "cursor": "#0969da", "selection": "#0969da33",
             "heading-1": "#0550ae", "heading-2": "#8250df", "heading-3": "#116329", "heading-4": "#953800",
             "heading-5": "#0550ae", "heading-6": "#8250df", "heading-7": "#116329", "heading-8": "#953800",
-            "todo": "#cf222e", "done": "#1a7f37", "priority": "#bc4c00", "tags": "#6e7781",
-            "todo-next": "#0969da", "todo-waiting": "#9a6700", "todo-cancelled": "#6e7781",
-            "priority-a": "#cf222e", "priority-b": "#bc4c00", "priority-c": "#57606a",
+            "todo": "#d70015", "done": "#248a3d", "priority": "#c93400", "tags": "#6e7781",
+            "todo-next": "#0a66d8", "todo-waiting": "#b25000", "todo-cancelled": "#8e8e93",
+            "priority-a": "#d70015", "priority-b": "#c93400", "priority-c": "#6c7a8c",
             "link": "#0969da", "timestamp": "#8250df", "code": "#953800", "verbatim": "#0a3069", "inline-background": "#afb8c133",
             "markup": "#8c959f", "comment": "#6e7781", "keyword": "#6e7781", "metadata": "#6e7781", "special": "#1b7c83",
             "block-background": "#f6f8fa", "block-delimiter": "#8c959f", "table": "#1f2328",
@@ -158,18 +159,18 @@ public struct ThemeSpec: Equatable, Sendable {
             "syntax-keyword": "#cf222e", "syntax-string": "#0a3069", "syntax-comment": "#6e7781", "syntax-function": "#8250df",
             "syntax-type": "#953800", "syntax-number": "#1b7c83", "syntax-property": "#0550ae", "syntax-label": "#8250df",
             "modeline-highlight": "#1f2328", "state-normal": "#0969da", "state-insert": "#1a7f37", "state-visual": "#bc4c00",
-            "agenda-date": "#1f2328", "agenda-today": "#0969da", "agenda-time": "#6e7781", "agenda-category": "#6e7781",
-            "agenda-deadline": "#cf222e", "agenda-upcoming": "#bc4c00", "agenda-scheduled": "#6e7781", "agenda-scheduled-past": "#953800",
-            "agenda-overdue": "#cf222e", "agenda-due-soon": "#bc4c00", "agenda-event": "#8250df",
+            "agenda-date": "#1f2328", "agenda-today": "#007aff", "agenda-time": "#6c6c70", "agenda-category": "#6c6c70",
+            "agenda-deadline": "#d70015", "agenda-upcoming": "#c93400", "agenda-scheduled": "#6c6c70", "agenda-scheduled-past": "#c93400",
+            "agenda-overdue": "#d70015", "agenda-due-soon": "#c93400", "agenda-event": "#8944ab",
             "habit-clear": "#54aeff", "habit-ready": "#4ac26b", "habit-alert": "#d4a72c", "habit-overdue": "#ff8182",
         ]),
         dark: palette([
             "background": "#0d1117", "foreground": "#e6edf3", "cursor": "#58a6ff", "selection": "#388bfd66",
             "heading-1": "#79c0ff", "heading-2": "#d2a8ff", "heading-3": "#7ee787", "heading-4": "#ffa657",
             "heading-5": "#79c0ff", "heading-6": "#d2a8ff", "heading-7": "#7ee787", "heading-8": "#ffa657",
-            "todo": "#ff7b72", "done": "#3fb950", "priority": "#ffa657", "tags": "#8b949e",
-            "todo-next": "#58a6ff", "todo-waiting": "#d29922", "todo-cancelled": "#8b949e",
-            "priority-a": "#ff7b72", "priority-b": "#ffa657", "priority-c": "#8b949e",
+            "todo": "#ff6961", "done": "#30d158", "priority": "#ff9f0a", "tags": "#8b949e",
+            "todo-next": "#409cff", "todo-waiting": "#ffd60a", "todo-cancelled": "#8e8e93",
+            "priority-a": "#ff6961", "priority-b": "#ff9f0a", "priority-c": "#98a6b8",
             "link": "#58a6ff", "timestamp": "#d2a8ff", "code": "#ffa657", "verbatim": "#a5d6ff", "inline-background": "#6e768166",
             "markup": "#6e7681", "comment": "#8b949e", "keyword": "#8b949e", "metadata": "#8b949e", "special": "#56d4dd",
             "block-background": "#161b22", "block-delimiter": "#6e7681", "table": "#e6edf3",
@@ -177,9 +178,9 @@ public struct ThemeSpec: Equatable, Sendable {
             "syntax-keyword": "#ff7b72", "syntax-string": "#a5d6ff", "syntax-comment": "#8b949e", "syntax-function": "#d2a8ff",
             "syntax-type": "#ffa657", "syntax-number": "#56d4dd", "syntax-property": "#79c0ff", "syntax-label": "#d2a8ff",
             "modeline-highlight": "#e6edf3", "state-normal": "#1f6feb", "state-insert": "#238636", "state-visual": "#9e6a03",
-            "agenda-date": "#e6edf3", "agenda-today": "#58a6ff", "agenda-time": "#8b949e", "agenda-category": "#8b949e",
-            "agenda-deadline": "#ff7b72", "agenda-upcoming": "#ffa657", "agenda-scheduled": "#8b949e", "agenda-scheduled-past": "#d29922",
-            "agenda-overdue": "#ff7b72", "agenda-due-soon": "#ffa657", "agenda-event": "#d2a8ff",
+            "agenda-date": "#e6edf3", "agenda-today": "#0a84ff", "agenda-time": "#98989d", "agenda-category": "#98989d",
+            "agenda-deadline": "#ff6961", "agenda-upcoming": "#ff9f0a", "agenda-scheduled": "#98989d", "agenda-scheduled-past": "#ff9f0a",
+            "agenda-overdue": "#ff6961", "agenda-due-soon": "#ff9f0a", "agenda-event": "#da8fff",
             "habit-clear": "#1f6feb", "habit-ready": "#238636", "habit-alert": "#9e6a03", "habit-overdue": "#da3633",
         ])
     )
