@@ -32,7 +32,7 @@ Timed rows show `08:00` or `13:50–14:30` (zero-padded, en dash; past midnight 
 | Deadline, on today, upcoming | `Due in 2d` | due-soon |
 | Deadline, on another day | `Due` | overdue if before today, else normal |
 | Scheduled | `Scheduled` | overdue if before today, else normal |
-| Scheduled, carried to today | `Sched. 4d ago` | overdue |
+| Scheduled, carried to today | `4d ago` | overdue |
 | Habit | `Habit` | overdue if scheduled before today |
 | Timestamp, diary sexp | `All day` | normal |
 | Range, middle days | `Day 2/5` | normal |

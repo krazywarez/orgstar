@@ -42,7 +42,7 @@ public struct AgendaEvent: Sendable, Equatable, Identifiable {
 ///
 /// The gutter holds the time (`08:00`, `13:50–14:30`) or, untimed, a short status:
 /// deadlines `Due today`, `Due in 2d`, `3d late`, `Due` (on a day other than today);
-/// scheduled `Scheduled`, `Sched. 4d ago`; habits `Habit`; timestamps, diary sexps and
+/// scheduled `Scheduled`, `4d ago`; habits `Habit`; timestamps, diary sexps and
 /// calendar events `All day`; ranges `Day 2/5`; log mode `Closed`, `Clocked`, `State`; TODO
 /// and match lists nothing. Ages use `AgendaAge.compact`.
 public struct AgendaRow: Sendable, Equatable, Identifiable {
@@ -115,7 +115,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
             } else {
                 icon = .scheduled
                 let on = planning ?? day
-                untimed = on < day ? "Sched. \(AgendaAge.compact(day - on)) ago" : "Scheduled"
+                untimed = on < day ? "\(AgendaAge.compact(day - on)) ago" : "Scheduled"
             }
             status = late ? .overdue : .normal
         case .timestamp, .sexp:

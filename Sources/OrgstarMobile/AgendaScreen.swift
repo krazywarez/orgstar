@@ -645,10 +645,9 @@ struct AgendaRowView: View {
                     Text(row.gutter)
                         .font(.caption.weight(.medium).monospacedDigit())
                         .foregroundStyle(statusColor)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .allowsTightening(true)
-                        .minimumScaleFactor(0.85)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .minimumScaleFactor(0.8)
                 }
             }
         }

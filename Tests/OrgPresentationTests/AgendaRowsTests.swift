@@ -68,8 +68,8 @@ struct AgendaRowsTests {
             #expect(row?.status == status, "\(title)", sourceLocation: sourceLocation)
             #expect(row?.icon == icon, "\(title)", sourceLocation: sourceLocation)
         }
-        check("Pay rent", "Sched. 4d ago", .overdue, .scheduled)
-        check("Ancient chore", "Sched. 1y 4mo ago", .overdue, .scheduled)
+        check("Pay rent", "4d ago", .overdue, .scheduled)
+        check("Ancient chore", "1y 4mo ago", .overdue, .scheduled)
         check("Send forms", "3d late", .overdue, .deadline)
         check("File taxes", "Due today", .dueSoon, .deadline)
         check("Renew passport", "Due in 4d", .dueSoon, .deadline)
