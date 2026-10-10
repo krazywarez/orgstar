@@ -22,7 +22,7 @@ orgstar on iOS works on folders you choose, in iCloud Drive or in another app's 
 
 orgstar keeps access to the folder across launches. Each folder appears as a section listing its =.org= files by their path inside the folder. Remove Folder at the end of a section removes it from orgstar; the files stay where they are.
 
-Swipe left on a file, or touch and hold it, to delete it. orgstar asks first. A file in iCloud Drive goes to Recently Deleted in the Files app; elsewhere it is removed.
+Swipe left on a file, or touch and hold it, to delete it. orgstar asks first. A file in iCloud Drive goes to Recently Deleted in the Files app; elsewhere it is removed. Empty folders are listed too and delete the same way; a folder with anything in it other than hidden files can't be deleted from orgstar.
 
 Files that iCloud hasn't downloaded to the device yet appear in grey with a cloud icon. orgstar asks iCloud to download them and lists them as files once they arrive.
 
