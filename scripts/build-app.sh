@@ -1,17 +1,33 @@
 #!/bin/sh
-# Builds orgstar.app in .build/app from the release binary, signed ad hoc for local use. The
-# icon is drawn by scripts/make-icon.swift.
-# Usage: scripts/build-app.sh [version]
+# Builds orgstar.app in .build/app from the release binary. The icon is drawn by
+# scripts/make-icon.swift.
+# Usage: scripts/build-app.sh [version] [build]
+#   ORGSTAR_SIGN   signing identity; ad hoc ("-") for local use by default. Any other
+#                  identity also turns on the hardened runtime and a secure timestamp.
+#   ORGSTAR_ARCHS  architectures, e.g. "arm64 x86_64" for a universal app; this Mac's by default.
 set -eu
 
 cd "$(dirname "$0")/.."
 version="${1:-0.1.0}"
+build="${2:-$version}"
+sign="${ORGSTAR_SIGN:--}"
 app=".build/app/orgstar.app"
+arch_flags=""
+for arch in ${ORGSTAR_ARCHS:-$(uname -m)}; do arch_flags="$arch_flags --arch $arch"; done
+if [ "$sign" = "-" ]; then
+    sign_flags=""
+else
+    sign_flags="--options runtime --timestamp"
+fi
 
-swift build -c release --product Orgstar
-swift build -c release --product OrgstarQuickLook
-swift build -c release --product OrgstarSpotlight
-binary="$(swift build -c release --show-bin-path)/Orgstar"
+# shellcheck disable=SC2086
+swift build -c release $arch_flags --product Orgstar
+# shellcheck disable=SC2086
+swift build -c release $arch_flags --product OrgstarQuickLook
+# shellcheck disable=SC2086
+swift build -c release $arch_flags --product OrgstarSpotlight
+# shellcheck disable=SC2086
+binary="$(swift build -c release $arch_flags --show-bin-path)/Orgstar"
 
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -89,7 +105,7 @@ cat > "$app/Contents/Info.plist" <<EOF
     <key>CFBundleShortVersionString</key>
     <string>${version}</string>
     <key>CFBundleVersion</key>
-    <string>${version}</string>
+    <string>${build}</string>
     <key>LSMinimumSystemVersion</key>
     <string>26.0</string>
     <key>LSApplicationCategoryType</key>
@@ -138,7 +154,7 @@ appex() { # name, extension point, principal class, attributes
     <key>CFBundleShortVersionString</key>
     <string>${version}</string>
     <key>CFBundleVersion</key>
-    <string>${version}</string>
+    <string>${build}</string>
     <key>LSMinimumSystemVersion</key>
     <string>26.0</string>
     <key>NSExtension</key>
@@ -163,14 +179,27 @@ PLIST
 </dict>
 </plist>
 PLIST
-    codesign --force --sign - --entitlements "$work/sandbox.entitlements" "$app/Contents/PlugIns/$1.appex"
+    # shellcheck disable=SC2086
+    codesign --force --sign "$sign" $sign_flags --entitlements "$work/sandbox.entitlements" "$app/Contents/PlugIns/$1.appex"
 }
 work="$(mktemp -d)"
 appex OrgstarQuickLook com.apple.quicklook.preview PreviewProvider \
     "<key>QLSupportedContentTypes</key><array><string>org.orgmode.org</string></array><key>QLIsDataBasedPreview</key><true/>"
 appex OrgstarSpotlight com.apple.spotlight.import ImportExtension \
     "<key>CSSupportedContentTypes</key><array><string>org.orgmode.org</string></array>"
-rm -rf "$work"
 
-codesign --force --sign - "$app"
+# The hardened runtime needs Calendar access declared for the agenda's events.
+cat > "$work/app.entitlements" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.personal-information.calendars</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+# shellcheck disable=SC2086
+codesign --force --sign "$sign" $sign_flags --entitlements "$work/app.entitlements" "$app"
+rm -rf "$work"
 echo "$app"

@@ -21,6 +21,10 @@ scripts/build-app.sh          # builds .build/app/orgstar.app, signed ad hoc
 open .build/app/orgstar.app
 ```
 
+`scripts/release-mac.sh <version>` builds a universal app, signs it with the keychain's
+Developer ID, notarizes a DMG, tags `v<version>`, uploads the DMG to the gitbay release
+and updates the cask in krz/homebrew-tap.
+
 Add a folder with File > Add Folder… (⇧⌘O). ⌘P opens a file by name, ⇧⌘F
 searches, ⇧⌘A shows the agenda. In the editor, TAB on a heading cycles its
 folding and Shift-TAB cycles the whole file. orgstar opens `.org` files from

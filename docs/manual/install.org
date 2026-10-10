@@ -1,6 +1,6 @@
 #+TITLE: Install
-#+DESCRIPTION: Building orgstar for the Mac and the iOS Simulator from source.
-#+LEDE: orgstar is built from source; there are no prebuilt downloads yet.
+#+DESCRIPTION: Installing orgstar on the Mac with Homebrew or a download, and building it from source.
+#+LEDE: The Mac app comes as a notarized download and a Homebrew cask; the iOS app is built from source.
 
 * Requirements
 
@@ -12,6 +12,21 @@
   [[file:guide/15-alongside-emacs.org][Working alongside Emacs and other tools]].
 
 * The Mac app
+
+** With Homebrew
+
+#+BEGIN_SRC sh
+brew tap krz/tap https://gitbay.org/krz/homebrew-tap.git
+brew install --cask orgstar
+#+END_SRC
+
+** As a download
+
+Download =orgstar-<version>.dmg= from the [[https://gitbay.org/krz/orgstar/releases][releases page]], open it, and drag
+orgstar to Applications. The app is universal (Apple silicon and Intel), signed with a
+Developer ID and notarized by Apple, so it opens without warnings.
+
+** From source
 
 #+BEGIN_SRC sh
 git clone https://gitbay.org/krz/orgstar.git
@@ -52,7 +67,8 @@ See [[file:guide/14-ios.org][iPhone and iPad]] for what it does.
 
 * Updating
 
-Pull and build again:
+orgstar doesn't update itself. With Homebrew, run =brew upgrade --cask orgstar=; otherwise
+download the new DMG and replace the app. From source, pull and build again:
 
 #+BEGIN_SRC sh
 git pull
@@ -63,5 +79,6 @@ Your settings live in =~/.config/orgstar/= and survive rebuilds.
 
 * Uninstalling
 
-Delete =orgstar.app=. To remove your settings as well, delete =~/.config/orgstar/=.
+Delete =orgstar.app=, or run =brew uninstall --cask orgstar=. To remove your settings as
+well, delete =~/.config/orgstar/= (=brew uninstall --zap --cask orgstar= does both).
 Your org files are never stored inside the app.
