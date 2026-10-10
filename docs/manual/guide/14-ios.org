@@ -21,7 +21,7 @@ orgstar on iOS works on folders you choose, in iCloud Drive or in another app's 
 1. Open the Folders tab and tap Add Folder (the folder icon with a plus).
 2. Choose a folder in the picker.
 
-orgstar keeps access to the folder across launches. Each folder appears as a section listing its =.org= files by their path inside the folder. Remove Folder at the end of a section removes it from orgstar; the files stay where they are.
+orgstar keeps access to the folder across launches. Each folder appears as a section listing its =.org= files by their path inside the folder. Remove Folder at the end of a section removes it from orgstar; the files stay where they are. An added folder that is empty also has Delete Folder…, which deletes it from disk too.
 
 Swipe left on a file, or touch and hold it, to delete it. orgstar asks first. A file in iCloud Drive goes to Recently Deleted in the Files app; elsewhere it is removed. New File… and New Folder… under + at the top right make one in the folder shown, or with several added folders, in the one you pick; a file name without an extension gets =.org=. Empty folders are listed too and delete the same way; a folder with anything in it other than hidden files can't be deleted from orgstar.
 
@@ -36,7 +36,7 @@ There is no way to open a single file from the Files app. Add the folder that co
 Tap a file in Folders, Search or the agenda to read it.
 
 - Tap a heading to fold or unfold it, as =TAB= cycles it on the Mac. A chevron marks headings with content.
-- The file opens with the visibility its =#+STARTUP= line asks for, then each heading's =VISIBILITY= property when =#+STARTUP= sets a visibility. Drawers and blocks are folded as =org-cycle-hide-drawer-startup= and =org-cycle-hide-block-startup= say, or as the file's =#+STARTUP= says (=hidedrawers=, =nohideblocks= and the like).
+- The file opens with the visibility its =#+STARTUP= line asks for, then each heading's =VISIBILITY= property when =#+STARTUP= sets a visibility. Drawers and blocks are folded as =org-cycle-hide-drawer-startup= and =org-cycle-hide-block-startup= say, or as the file's =#+STARTUP= says (=hidedrawers=, =nohideblocks= and the like). Tap a folded drawer's first line or its =…= to open it, and the first line again to fold it.
 - Text is styled as in the editor, in the theme's colours, font, size, line spacing and heading sizes, on the theme's background: TODO keywords, priorities, tags, emphasis, code, timestamps, links, and the code in src blocks. Text can be selected and copied.
 - The reader follows the editor's display settings (see Themes and display below): Show Markup, hidden emphasis markers, pretty entities, indentation, leading stars, inline images and truncated lines. Tables show at full width, without narrowed columns.
 - Tap a link to follow it. Links to headings and files in your folders open in the reader; web links open in the browser.
@@ -46,7 +46,7 @@ Tap a file in Folders, Search or the agenda to read it.
 
 Tap Edit in the reader. The title shows the buffer name, with =•= while there are unsaved changes. The tab bar is hidden while you edit.
 
-The editor folds headings, drawers and blocks, styles text with the theme from the configuration folder (see Themes and display below), and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows =spell-check= in =config.toml= and is off by default.
+The editor folds headings, drawers and blocks (tap a fold's =…= to open it, and an open drawer's first line to fold it), styles text with the theme from the configuration folder (see Themes and display below), and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows =spell-check= in =config.toml= and is off by default.
 
 The toolbar has:
 

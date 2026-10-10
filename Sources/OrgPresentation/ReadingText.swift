@@ -14,8 +14,9 @@ public enum ReadingText {
         public var offset: Int
         /// A pretty sub/superscript's body: true raised, false lowered.
         public var superscript: Bool?
-        /// A fold's `…`: where the hidden range it stands for starts.
-        public var unfolds: Int?
+        /// A drawer's opening line, and a folded one's `…`: where the hidden range they fold
+        /// and unfold starts.
+        public var toggles: Int?
     }
 
     /// How the text shows, as the editor's display settings make it.
@@ -34,8 +35,11 @@ public enum ReadingText {
         }
     }
 
-    /// `folded` are drawers' and blocks' hidden ranges (`Wrapper.hidden`).
-    public static func segments(_ tree: OrgTree, in range: Range<Int>, folded: [Range<Int>] = [], display: Display = Display()) -> [Segment] {
+    /// `folded` are drawers' and blocks' hidden ranges (`Wrapper.hidden`); `open` are those of
+    /// unfolded ones whose opening line folds them.
+    public static func segments(
+        _ tree: OrgTree, in range: Range<Int>, folded: [Range<Int>] = [], open: [Range<Int>] = [], display: Display = Display()
+    ) -> [Segment] {
         let text = tree.text as NSString
         // A fold hides from the end of the opening line through the closing line, so the
         // marker sits on the opening line.
@@ -78,7 +82,13 @@ public enum ReadingText {
                 }
             }
         }
+        // Opening lines that fold or unfold, a wider target than a `…`.
+        let lineStart = { (end: Int) in text.lineRange(for: NSRange(location: end, length: 0)).location }
+        let openings = folds.map { (line: lineStart($0.lowerBound)..<$0.lowerBound, start: $0.lowerBound + 1) }
+            + open.filter { $0.lowerBound > range.lowerBound && $0.lowerBound <= range.upperBound }
+                .map { (line: lineStart($0.lowerBound - 1)..<($0.lowerBound - 1), start: $0.lowerBound) }
         var bounds: Set<Int> = [range.lowerBound, range.upperBound]
+        for opening in openings { bounds.formUnion([max(range.lowerBound, opening.line.lowerBound), opening.line.upperBound]) }
         let replacedRanges = replaced.keys.map { $0..<($0 + 1) }
         for r in runs.map(\.range) + hidden + replacedRanges + scripts.map(\.range) {
             bounds.insert(max(range.lowerBound, min(range.upperBound, r.lowerBound)))
@@ -87,7 +97,7 @@ public enum ReadingText {
         let points = bounds.sorted()
         var segments: [Segment] = []
         func append(_ segment: Segment) {
-            if var last = segments.last, last.roles == segment.roles, last.link == segment.link, last.superscript == segment.superscript, last.unfolds == segment.unfolds,
+            if var last = segments.last, last.roles == segment.roles, last.link == segment.link, last.superscript == segment.superscript, last.toggles == segment.toggles,
                last.offset + (last.text as NSString).length == segment.offset {
                 last.text += segment.text
                 segments[segments.count - 1] = last
@@ -112,19 +122,17 @@ public enum ReadingText {
         var scriptAt = [Bool?](repeating: nil, count: intervals)
         for script in scripts { for k in covered(script.range) where scriptAt[k] == nil { scriptAt[k] = script.superscript } }
         let foldStarts = Set(folds.map(\.lowerBound))
-        // A fold's opening line opens it too, a wider target than its `…`.
-        let openings = folds.map { (line: text.lineRange(for: NSRange(location: $0.lowerBound, length: 0)).location..<$0.lowerBound, start: $0.lowerBound + 1) }
         for (k, (a, b)) in zip(points, points.dropFirst()).enumerated() {
             if foldStarts.contains(a) {
-                segments.append(Segment(text: "…", roles: [.metadata], link: nil, offset: a, unfolds: a + 1))
+                segments.append(Segment(text: "…", roles: [.metadata], link: nil, offset: a, toggles: a + 1))
             }
             if hiddenAt[k] { continue }
             let roles = rolesAt[k]
             let link = roles.contains(.link) ? Links.link(at: a, text: tree.text, tree: tree)?.link : nil
             let superscript = scriptAt[k]
             let shown = replaced[a] ?? text.substring(with: NSRange(location: a, length: b - a))
-            let unfolds = openings.first { $0.line.contains(a) }?.start
-            let segment = Segment(text: shown, roles: roles, link: link, offset: a, superscript: superscript, unfolds: unfolds)
+            let toggles = openings.first { $0.line.contains(a) }?.start
+            let segment = Segment(text: shown, roles: roles, link: link, offset: a, superscript: superscript, toggles: toggles)
             if replaced[a] != nil { segments.append(segment) } else { append(segment) }
         }
         return segments

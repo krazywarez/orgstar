@@ -13,6 +13,8 @@ struct FoldersScreen: View {
     /// Counts deletions and new folders, so the list reads the empty folders on disk again.
     @State private var changes = 0
     @State private var creating: NewItem?
+    /// The added folder whose deletion from disk is being confirmed.
+    @State private var deletingRoot: String?
 
     var body: some View {
         List {
@@ -20,6 +22,9 @@ struct FoldersScreen: View {
                 Section((root as NSString).lastPathComponent) {
                     FolderContents(workspace: workspace, root: root, folder: "", deleting: $deleting, changes: changes)
                     Button("Remove Folder", role: .destructive) { try? workspace.removeRoot(path: root) }
+                    if isEmptyFolder(root) {
+                        Button("Delete Folder…", role: .destructive) { deletingRoot = root }
+                    }
                 }
             }
             if let error = workspace.lastError {
@@ -27,6 +32,23 @@ struct FoldersScreen: View {
             }
         }
         .navigationTitle("Folders")
+        .confirmationDialog("Delete “\(deletingRoot.map { ($0 as NSString).lastPathComponent } ?? "")”?",
+                            isPresented: Binding { deletingRoot != nil } set: { if !$0 { deletingRoot = nil } }, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                guard let root = deletingRoot else { return }
+                deletingRoot = nil
+                Task {
+                    do {
+                        try await workspace.trash(root)
+                        try workspace.removeRoot(path: root)
+                    } catch {
+                        workspace.lastError = "Can't delete \((root as NSString).lastPathComponent): \(error.localizedDescription)"
+                    }
+                }
+            }
+        } message: {
+            Text("The empty folder is removed from disk and from orgstar.")
+        }
         .navigationDestination(for: FolderRoute.self) { route in
             FolderPage(workspace: workspace, session: session, route: route)
         }
@@ -186,6 +208,12 @@ extension FoldersScreen {
     }
 }
 
+/// A folder with nothing in it but dotfiles.
+private func isEmptyFolder(_ path: String) -> Bool {
+    guard let inside = try? FileManager.default.contentsOfDirectory(atPath: path) else { return false }
+    return inside.allSatisfy { $0.hasPrefix(".") }
+}
+
 /// A subfolder to show, relative to its root.
 struct FolderRoute: Hashable {
     let root: String
@@ -212,9 +240,8 @@ private struct FolderContents: View {
         guard let names = try? fm.contentsOfDirectory(atPath: url.path) else { return [] }
         return names.filter { name in
             var isFolder: ObjCBool = false
-            guard !name.hasPrefix("."), fm.fileExists(atPath: url.appendingPathComponent(name).path, isDirectory: &isFolder), isFolder.boolValue,
-                  let inside = try? fm.contentsOfDirectory(atPath: url.appendingPathComponent(name).path) else { return false }
-            return inside.allSatisfy { $0.hasPrefix(".") }
+            let path = url.appendingPathComponent(name).path
+            return !name.hasPrefix(".") && fm.fileExists(atPath: path, isDirectory: &isFolder) && isFolder.boolValue && isEmptyFolder(path)
         }
     }
 

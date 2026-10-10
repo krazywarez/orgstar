@@ -28,6 +28,8 @@ struct ReaderScreen: View {
     let session: DocumentSession
     @State private var fold = FoldState()
     @State private var folded: [Range<Int>] = []
+    /// Drawers and blocks the file opens with folded, which fold and unfold from their first line.
+    @State private var foldable: [Range<Int>] = []
     @State private var loadedPath: String?
     /// The file's display: indentation, leading stars, inline images, truncation.
     @State private var startup: StartupDisplay?
@@ -186,7 +188,7 @@ struct ReaderScreen: View {
                         .frame(maxWidth: image.width.map { CGFloat($0) } ?? image.picture.size.width, alignment: .leading)
                         .accessibilityLabel((image.path as NSString).lastPathComponent)
                 } else {
-                    lineText(attributed(ReadingText.segments(tree, in: part.range, folded: folded, display: display), heading: nil, theme).trimmingTrailingNewlines(), theme)
+                    lineText(attributed(ReadingText.segments(tree, in: part.range, folded: folded, open: foldable.filter { !folded.contains($0) }, display: display), heading: nil, theme).trimmingTrailingNewlines(), theme)
                         .textSelection(.enabled)
                 }
             }
@@ -273,7 +275,7 @@ struct ReaderScreen: View {
                 // Found again by position when followed.
                 part.link = URL(string: "orgstar-link:\(segment.offset)")
             }
-            if let start = segment.unfolds { part.link = URL(string: "orgstar-unfold:\(start)") }
+            if let start = segment.toggles { part.link = URL(string: "orgstar-fold:\(start)") }
             if let superscript = segment.superscript {
                 // Raised or lowered as the editor draws `org-pretty-entities` scripts.
                 part.baselineOffset = (superscript ? 0.3 : -0.3) * font.pointSize
@@ -316,6 +318,7 @@ struct ReaderScreen: View {
         let display = Presentation.startupDisplay(tree, options: session.options)
         startup = display
         folded = display.wrappers.map(\.hidden)
+        foldable = folded
         guard loadedPath != session.path else { return }
         loadedPath = session.path
         fold = display.folds
@@ -334,8 +337,12 @@ struct ReaderScreen: View {
     }
 
     private func follow(_ url: URL) -> OpenURLAction.Result {
-        if url.scheme == "orgstar-unfold", let start = Int(url.absoluteString.dropFirst("orgstar-unfold:".count)) {
-            folded.removeAll { $0.lowerBound == start }
+        if url.scheme == "orgstar-fold", let start = Int(url.absoluteString.dropFirst("orgstar-fold:".count)) {
+            if folded.contains(where: { $0.lowerBound == start }) {
+                folded.removeAll { $0.lowerBound == start }
+            } else if let range = foldable.first(where: { $0.lowerBound == start }) {
+                folded.append(range)
+            }
             return .handled
         }
         guard url.scheme == "orgstar-link", let offset = Int(url.absoluteString.dropFirst("orgstar-link:".count)),

@@ -11,8 +11,13 @@ struct ReadingTextTests {
         let segments = ReadingText.segments(tree, in: 0..<(text as NSString).length, folded: folded)
         #expect(segments.map(\.text).joined() == "* TODO H :t:\n:PROPERTIES:…\nSee the site and *b* c.org.\n")
         // The drawer's first line and its `…` name the hidden range they open.
-        #expect(segments.filter { $0.unfolds != nil }.map(\.text).joined() == ":PROPERTIES:…")
-        #expect(segments.first { $0.text == "…" }?.unfolds == folded.first?.lowerBound)
+        #expect(segments.filter { $0.toggles != nil }.map(\.text).joined() == ":PROPERTIES:…")
+        #expect(segments.first { $0.text == "…" }?.toggles == folded.first?.lowerBound)
+        // Opened, its first line folds it again.
+        let opened = ReadingText.segments(tree, in: 0..<(text as NSString).length, open: folded)
+        #expect(opened.filter { $0.toggles != nil }.map(\.text).joined() == ":PROPERTIES:")
+        #expect(opened.first { $0.toggles != nil }?.toggles == folded.first?.lowerBound)
+        #expect(!opened.contains { $0.text.contains("…") })
         let site = segments.first { $0.text == "the site" }
         #expect(site?.link?.raw == "https://a.org" && site?.roles.contains(.link) == true)
         #expect(segments.first { $0.text == "TODO" }?.roles.contains(.todo) == true)

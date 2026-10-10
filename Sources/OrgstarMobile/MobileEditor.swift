@@ -917,27 +917,30 @@ extension MobileEditor: UITextViewDelegate {
 }
 
 extension MobileEditor: UIGestureRecognizerDelegate {
-    /// The start of the folded line whose `…` is at `point`: the space after its text.
-    private func foldedLine(at point: CGPoint) -> Int? {
+    /// The drawer or block a tap at `point` folds or unfolds: a folded one's `…`, the space after
+    /// its first line, or anywhere on an open drawer's first line.
+    private func foldToggle(at point: CGPoint) -> Int? {
         guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return nil }
         let inContainer = CGPoint(x: point.x - textView.textContainerInset.left, y: point.y - textView.textContainerInset.top)
         guard let fragment = manager.textLayoutFragment(for: inContainer), let range = fragment.textElement?.elementRange else { return nil }
         let start = content.offset(from: content.documentRange.location, to: range.location)
-        guard hidden.isFolded(start),
-              let line = fragment.textLineFragments.first(where: { $0.characterRange.length > 0 }) ?? fragment.textLineFragments.first
-        else { return nil }
-        return inContainer.x - fragment.layoutFragmentFrame.minX >= line.typographicBounds.maxX ? start : nil
+        guard let line = fragment.textLineFragments.first(where: { $0.characterRange.length > 0 }) ?? fragment.textLineFragments.first else { return nil }
+        if hidden.isFolded(start) { return inContainer.x - fragment.layoutFragmentFrame.minX >= line.typographicBounds.maxX ? start : nil }
+        guard Wrappers.starting(at: start, in: document.tree)?.kind == .drawer,
+              inContainer.y - fragment.layoutFragmentFrame.minY < line.typographicBounds.maxY else { return nil }
+        return start
     }
 
-    /// A tap on a fold's `…` opens it, as TAB on its line does.
+    /// A tap on a fold's `…` opens it, and one on an open drawer's first line folds it, as TAB
+    /// on the line does.
     @objc fileprivate func tappedFold(_ tap: UITapGestureRecognizer) {
-        guard let start = foldedLine(at: tap.location(in: textView)),
+        guard let start = foldToggle(at: tap.location(in: textView)),
               let next = Presentation.cycle(at: start, in: document.tree, fold) else { return }
         setFolds(next)
     }
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        foldedLine(at: gestureRecognizer.location(in: textView)) != nil
+        foldToggle(at: gestureRecognizer.location(in: textView)) != nil
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
