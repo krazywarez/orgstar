@@ -19,8 +19,6 @@ struct FoldersScreen: View {
             ForEach(workspace.rootPaths, id: \.self) { root in
                 Section((root as NSString).lastPathComponent) {
                     FolderContents(workspace: workspace, root: root, folder: "", deleting: $deleting, changes: changes)
-                    Button("New File…", systemImage: "doc.badge.plus") { creating = NewItem(folder: root, isFolder: false) }
-                    Button("New Folder…", systemImage: "folder.badge.plus") { creating = NewItem(folder: root, isFolder: true) }
                     Button("Remove Folder", role: .destructive) { try? workspace.removeRoot(path: root) }
                 }
             }
@@ -48,6 +46,20 @@ struct FoldersScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Add Folder", systemImage: "folder.badge.plus") { importing = true }
+            }
+            if !workspace.rootPaths.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu("New", systemImage: "plus") {
+                        // One added folder takes them directly; several each get a submenu.
+                        if workspace.rootPaths.count == 1, let root = workspace.rootPaths.first {
+                            newItems(in: root)
+                        } else {
+                            ForEach(workspace.rootPaths, id: \.self) { root in
+                                Menu((root as NSString).lastPathComponent) { newItems(in: root) }
+                            }
+                        }
+                    }
+                }
             }
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.folder]) { result in
@@ -163,6 +175,14 @@ private extension View {
         } message: {
             Text(folder ? "The empty folder is removed." : "The whole file is removed. Files in iCloud Drive go to Recently Deleted in the Files app.")
         }
+    }
+}
+
+extension FoldersScreen {
+    @ViewBuilder
+    private func newItems(in folder: String) -> some View {
+        Button("New File…", systemImage: "doc.badge.plus") { creating = NewItem(folder: folder, isFolder: false) }
+        Button("New Folder…", systemImage: "folder.badge.plus") { creating = NewItem(folder: folder, isFolder: true) }
     }
 }
 
