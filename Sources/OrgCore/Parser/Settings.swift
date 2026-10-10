@@ -125,7 +125,7 @@ enum SettingsScanner {
         }
         let sequences = types + todos + seqs
         var radio: [String] = []
-        for line in lines where line.content.contains("<<<") {
+        for line in lines where line.content.utf8.contains(UInt8(ascii: "<")) && line.content.contains("<<<") {
             for m in String(line.content).matches(of: /<<<([^<>\n\r \t](?:[^<>\n\r]*[^<>\n\r \t])?)>>>/) where !radio.contains(String(m.1)) {
                 radio.append(String(m.1))
             }

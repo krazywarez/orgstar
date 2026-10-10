@@ -95,7 +95,7 @@ public enum ExportPreprocess {
     /// `#+INCLUDE: "file" [example|export FORMAT|src LANG] [:lines "A-B"] [:minlevel N]`, with
     /// `file::*Heading` or `file::#custom-id` for one subtree. Relative to `directory`.
     public static func includes(_ text: String, directory: URL?, depth: Int = 0) -> String {
-        guard depth < 8, text.range(of: "#+INCLUDE:", options: .caseInsensitive) != nil else { return text }
+        guard depth < 8, text.containsIgnoringASCIICase("#+INCLUDE:") else { return text }
         var lines: [String] = []
         for line in text.components(separatedBy: "\n") {
             guard let m = line.firstMatch(of: #/(?i)^[ \t]*#\+INCLUDE:[ \t]+"([^"]+)"(.*)$/#) else {

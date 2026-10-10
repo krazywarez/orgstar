@@ -12,7 +12,7 @@ public enum SetupFile {
     }
 
     private static func lines(in text: String, directory: String, read: (String) -> String?, own: Bool, seen: Set<String>) -> String {
-        guard own || text.range(of: "#+setupfile:", options: .caseInsensitive) != nil else { return "" }
+        guard own || text.containsIgnoringASCIICase("#+setupfile:") else { return "" }
         var out = ""
         for node in OrgParser.parse(text).root.descendants() where node.kind == .keyword {
             let line = node.text.trimmingCharacters(in: .whitespacesAndNewlines)

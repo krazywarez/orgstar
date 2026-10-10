@@ -79,7 +79,7 @@ struct CiteProcessor {
     /// The text with nocite citations removed, and the blanks before them, as
     /// `org-cite--set-previous-post-blank` leaves it.
     static func removingNocite(_ text: String) -> String {
-        guard text.range(of: "[cite", options: .caseInsensitive) != nil else { return text }
+        guard text.containsIgnoringASCIICase("[cite") else { return text }
         let defaultStyle = exportSettings(text)?.citeStyle
         let regex = try! NSRegularExpression(pattern: "[ \\t]*(\\[cite[/:][^\\]]*\\])")
         var out = text
@@ -383,7 +383,7 @@ struct CiteProcessor {
     /// The citations of `text` (as written, nocite citations included) worked out in document
     /// order, then the bibliography; nil when the export leaves citations alone.
     init?(text: String, directory: URL?) {
-        guard text.range(of: "[cite", options: .caseInsensitive) != nil else { return nil }
+        guard text.containsIgnoringASCIICase("[cite") else { return nil }
         let settings = Self.exportSettings(text)
         if let settings, settings.processor != "basic" { return nil }
         // Each `#+bibliography:` names one file.

@@ -233,6 +233,8 @@ extension Agenda {
 
 /// `org-make-tags-matcher`: `+work-boss|LEVEL>2+TODO="WAIT"/!NEXT`.
 public struct TagsMatcher: Sendable {
+    static let slashesRegex = try! NSRegularExpression(pattern: "/+")
+
     indirect enum Term: Sendable {
         case tag(String)
         case tagRegex(String)
@@ -262,7 +264,7 @@ public struct TagsMatcher: Sendable {
         var tagsPart = match
         var todoPart: String?
         let ns = match as NSString
-        let slashes = try! NSRegularExpression(pattern: "/+")
+        let slashes = Self.slashesRegex
         if let last = slashes.matches(in: match, range: NSRange(location: 0, length: ns.length)).last,
            !ns.substring(from: last.range.location).contains("\"") {
             tagsPart = ns.substring(to: last.range.location)

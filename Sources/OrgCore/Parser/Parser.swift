@@ -382,24 +382,23 @@ struct Parser {
         let bullet = rest.prefix { $0 != " " && $0 != "\t" }
         builder.token(.bullet, bullet)
         rest = whitespace(rest.dropFirst(bullet.count))
-        if let counter = rest.prefixMatch(of: /\[@(?:start:)?(?:[0-9]+|[A-Za-z])\]/) {
-            builder.token(.counter, rest[counter.range])
-            rest = whitespace(rest[counter.range.upperBound...])
+        if let counter = Self.counter(rest) {
+            builder.token(.counter, counter)
+            rest = whitespace(rest[counter.endIndex...])
         }
         if let box = checkbox(rest) {
             builder.token(.checkbox, box)
             rest = whitespace(rest.dropFirst(box.count))
         }
         // A description item's tag: up to the last ` ::` on the line, for `-`, `+` and `*`.
-        if "-+*".contains(bullet), let m = rest.prefixMatch(of: /(.*)([ \t]+::)(?:[ \t]+|$)/.anchorsMatchLineEndings()) {
+        if "-+*".contains(bullet), let (tag, separator) = Self.descriptionTag(rest) {
             builder.start(.itemTag)
-            inline(rest[m.1.startIndex..<m.1.endIndex])
+            inline(tag)
             builder.finish()
-            let separator = rest[m.2.startIndex..<m.2.endIndex]
             let blank = separator.prefix { $0 == " " || $0 == "\t" }
             builder.token(.whitespace, blank)
             builder.token(.marker, separator.dropFirst(blank.count))
-            rest = whitespace(rest[m.2.endIndex...])
+            rest = whitespace(rest[separator.endIndex...])
         }
         // The rest of the bullet line and its continuation lines are the item's first paragraph.
         var end = i + 1
@@ -432,6 +431,42 @@ struct Parser {
     }
 
     /// `[ ]`, `[X]`, `[x]` or `[-]`, followed by whitespace or end of line.
+    /// A counter cookie at the start of `s`: `[@3]`, `[@start:3]`, `[@b]`.
+    static func counter(_ s: Substring) -> Substring? {
+        guard s.hasPrefix("[@") else { return nil }
+        func value(from start: Substring.Index) -> Substring.Index? {
+            var j = start
+            while j < s.endIndex, s[j].isASCII, s[j].isNumber { j = s.index(after: j) }
+            if j == start {
+                guard j < s.endIndex, s[j].isASCII, s[j].isLetter else { return nil }
+                j = s.index(after: j)
+            }
+            return j < s.endIndex && s[j] == "]" ? s.index(after: j) : nil
+        }
+        let afterAt = s.index(s.startIndex, offsetBy: 2)
+        if s[afterAt...].hasPrefix("start:"), let end = value(from: s.index(afterAt, offsetBy: 6)) { return s[..<end] }
+        return value(from: afterAt).map { s[..<$0] }
+    }
+
+    /// A description item's tag and separator: the text before the last ` ::` on the line
+    /// that ends it or has blanks after it, and that blank with the `::`.
+    static func descriptionTag(_ s: Substring) -> (tag: Substring, separator: Substring)? {
+        let line = s.prefix { $0 != "\n" && $0 != "\r" }
+        var k = line.endIndex
+        while k > line.startIndex {
+            k = line.index(before: k)
+            guard line[k] == ":", k > line.startIndex else { continue }
+            let colon = line.index(before: k)
+            guard line[colon] == ":", colon > line.startIndex else { continue }
+            let blank = line.index(before: colon)
+            guard line[blank] == " " || line[blank] == "\t" else { continue }
+            let after = line.index(after: k)
+            guard after == line.endIndex || line[after] == " " || line[after] == "\t" else { continue }
+            return (line[..<blank], line[blank...k])
+        }
+        return nil
+    }
+
     func checkbox(_ s: Substring) -> Substring? {
         guard s.count >= 3, s.first == "[", "Xx -".contains(s.dropFirst().first!),
               s.dropFirst(2).first == "]" else { return nil }

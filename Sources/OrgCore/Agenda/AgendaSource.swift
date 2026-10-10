@@ -3,6 +3,12 @@ import Foundation
 /// What the agenda needs from one file, read once from its text: headings with their planning,
 /// and the active timestamps and date ranges org's agenda would consider. Positions are UTF-16.
 public struct AgendaSource: Sendable {
+    static let planningRegex = try! NSRegularExpression(pattern: "\\b(SCHEDULED|DEADLINE): *<([^>]+)>")
+    static let planningAnyRegex = try! NSRegularExpression(pattern: "\\b(SCHEDULED|DEADLINE|CLOSED): *([\\[<]\(Self.tsInternal)[\\]>])")
+    static let activeRangeRegex = try! NSRegularExpression(pattern: "<(\(Self.tsInternal))>--?-?<(\(Self.tsInternal))>")
+    static let inactiveRegex = try! NSRegularExpression(pattern: "\\[([0-9]{4}-[0-9]{2}-[0-9]{2}( +[^\\]+0-9>\\r\\n -]+)?( +([0-9]{1,2}):([0-9]{2}))?)\\]")
+    static let dateRangeRegex = try! NSRegularExpression(pattern: "[\\[<](\(tsInternal))[\\]>]--?-?[\\[<](\(tsInternal))[\\]>]")
+
     public let path: String
     /// The file names `#+SETUPFILE`s.
     public let readsSetupFiles: Bool
@@ -110,7 +116,7 @@ public struct AgendaSource: Sendable {
     /// setting is on.
     public init(path: String, text: String, defaults: OrgSettings = .default, checksBlocking: Bool = true) {
         self.path = path
-        readsSetupFiles = text.range(of: "#+setupfile:", options: .caseInsensitive) != nil
+        readsSetupFiles = text.containsIgnoringASCIICase("#+setupfile:")
         let tree = OrgParser.parse(text, defaults: defaults)
         let model = DocumentModel(tree: tree)
         let ns = text as NSString
@@ -215,13 +221,13 @@ public struct AgendaSource: Sendable {
             let afterHeading = info.headingRange.upperBound
             if let planning = planningLines.first(where: { $0.lowerBound == afterHeading }) {
                 let planningText = ns.substring(with: NSRange(location: planning.lowerBound, length: planning.count))
-                let regex = try! NSRegularExpression(pattern: "\\b(SCHEDULED|DEADLINE): *<([^>]+)>")
+                let regex = Self.planningRegex
                 let pns = planningText as NSString
                 for m in regex.matches(in: planningText, range: NSRange(location: 0, length: pns.length)) {
                     let value = (pns.substring(with: m.range(at: 2)), planning.lowerBound + m.range(at: 2).location - 1)
                     if pns.substring(with: m.range(at: 1)) == "SCHEDULED" { scheduled = scheduled ?? value } else { deadline = deadline ?? value }
                 }
-                let any = try! NSRegularExpression(pattern: "\\b(SCHEDULED|DEADLINE|CLOSED): *([\\[<]\(Self.tsInternal)[\\]>])")
+                let any = Self.planningAnyRegex
                 for m in any.matches(in: planningText, range: NSRange(location: 0, length: pns.length)) {
                     let key = pns.substring(with: m.range(at: 1))
                     if planningValues[key] == nil { planningValues[key] = pns.substring(with: m.range(at: 2)) }
@@ -314,7 +320,7 @@ public struct AgendaSource: Sendable {
 
         // Ranges: org scans the raw text, skipping comment lines, skipped trees and src blocks.
         var blocks: [Block] = []
-        let range = try! NSRegularExpression(pattern: "<(\(Self.tsInternal))>--?-?<(\(Self.tsInternal))>")
+        let range = Self.activeRangeRegex
         for m in range.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
             let point = NSMaxRange(m.range)
             let line = ns.substring(with: ns.lineRange(for: NSRange(location: point, length: 0)))
@@ -328,7 +334,7 @@ public struct AgendaSource: Sendable {
         // Log lines: org searches the raw text, then the heading above each match.
         let keywordPattern = keywords.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
         let logLine = try! NSRegularExpression(pattern: "(\\bCLOSED:|\\bCLOCK:|- +State \"(\(keywordPattern.isEmpty ? "(?!)" : keywordPattern))\".*?) *\\[([0-9]{4}-[0-9]{2}-[0-9]{2})")
-        let inactive = try! NSRegularExpression(pattern: "\\[([0-9]{4}-[0-9]{2}-[0-9]{2}( +[^\\]+0-9>\\r\\n -]+)?( +([0-9]{1,2}):([0-9]{2}))?)\\]")
+        let inactive = Self.inactiveRegex
         let clockEnd = try! NSRegularExpression(pattern: "([0-9]{1,2}:[0-9]{2})\\].*?([0-9]{1,2}:[0-9]{2})")
         let stateNote = try! NSRegularExpression(pattern: ".*\\\\\\n[ \\t]*([^-\\n \\t].*?)[ \\t]*$", options: .anchorsMatchLines)
         let clockNote = try! NSRegularExpression(pattern: ".*\\n[ \\t]*-[ \\t]+([^-\\n \\t].*?)[ \\t]*$", options: .anchorsMatchLines)
@@ -380,7 +386,7 @@ public struct AgendaSource: Sendable {
     static func inDateRange(_ offset: Int, _ ns: NSString) -> Bool {
         let point = offset + 11
         let line = ns.lineRange(for: NSRange(location: offset, length: 0))
-        let regex = try! NSRegularExpression(pattern: "[\\[<](\(tsInternal))[\\]>]--?-?[\\[<](\(tsInternal))[\\]>]")
+        let regex = Self.dateRangeRegex
         for m in regex.matches(in: ns as String, range: line) {
             if m.range.location > point { break }
             if NSMaxRange(m.range) >= point { return true }

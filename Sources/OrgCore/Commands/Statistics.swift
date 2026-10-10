@@ -51,7 +51,8 @@ extension EmacsBuffer {
         guard let start = try? backToHeading() else { return nil }
         let level = headingLevel(atLine: start)!
         var at = start
-        while let previous = previousHeadingStart(before: at) {
+        // A top-level heading has no parent; without this the walk goes to the top of the file.
+        while level > 1, let previous = previousHeadingStart(before: at) {
             at = previous
             if let parentLevel = headingLevel(atLine: previous), parentLevel < level {
                 point = previous

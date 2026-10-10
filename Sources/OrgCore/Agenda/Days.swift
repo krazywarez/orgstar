@@ -3,6 +3,8 @@ import Foundation
 /// Calendar days as Emacs numbers them (`calendar-absolute-from-gregorian`): 1 is
 /// 1 January of year 1, proleptic Gregorian.
 public enum Days {
+    static let hourRegex = try! NSRegularExpression(pattern: "^( +[^\\]+0-9>\\r\\n -]+)?( +([0-9]{1,2}):([0-9]{2}))")
+
     /// Out-of-range days and months roll over, as with `encode-time`.
     public static func absolute(year: Int, month: Int, day: Int) -> Int {
         let monthIndex = month - 1
@@ -65,7 +67,7 @@ public enum Days {
         guard let date = dateRegex.firstMatch(in: string, range: NSRange(location: 0, length: ns.length)) else { return 0 }
         let rest = NSRange(location: NSMaxRange(date.range), length: ns.length - NSMaxRange(date.range))
         // org-ts-regexp0: a day name may sit between the date and the time.
-        let pattern = try! NSRegularExpression(pattern: "^( +[^\\]+0-9>\\r\\n -]+)?( +([0-9]{1,2}):([0-9]{2}))")
+        let pattern = Self.hourRegex
         guard let m = pattern.firstMatch(in: string, range: rest) else { return 0 }
         return Int(ns.substring(with: m.range(at: 3)))!
     }

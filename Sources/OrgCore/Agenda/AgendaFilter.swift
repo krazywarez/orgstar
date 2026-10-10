@@ -4,6 +4,8 @@ import Foundation
 /// each a list of `+x` (keep) and `-x` (drop) terms. Lines without an entry (the time grid)
 /// always show.
 public struct AgendaFilter: Sendable, Equatable {
+    static let wordRegex = try! NSRegularExpression(pattern: "^[ \\t]*([-+])?(([^-+<>=/ \\t]+)|([<>=][0-9:]+)|(/([^/]+)/?))")
+
     public var categories: [String] = []
     public var tags: [String] = []
     public var efforts: [String] = []
@@ -42,7 +44,7 @@ public struct AgendaFilter: Sendable, Equatable {
         s = s.replacingOccurrences(of: "\"([^\"]*)-([^\"]*)\"", with: "\"$1~~~$2\"", options: .regularExpression)
         var result = keep ? self : AgendaFilter()
         var ignored: [String] = []
-        let regex = try! NSRegularExpression(pattern: "^[ \\t]*([-+])?(([^-+<>=/ \\t]+)|([<>=][0-9:]+)|(/([^/]+)/?))")
+        let regex = Self.wordRegex
         func append(_ term: String, to list: inout [String]) { if !list.contains(term) { list.append(term) } }
         while true {
             let ns = s as NSString

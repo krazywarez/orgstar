@@ -7,6 +7,8 @@ import Foundation
 /// width with an optional `.N` limit on categories, and a punctuation character added after a
 /// non-empty value. `%(…)` forms run Lisp; they are empty here.
 public struct PrefixFormat: Sendable, Equatable {
+    static let directiveRegex = try! NSRegularExpression(pattern: "%(\\?)?([-+]?[0-9.]*)([ .;,:!?=|/<>]?)([cltseibT]|\\(.+?\\))")
+
     enum Piece: Sendable, Equatable {
         case literal(String)
         case field(key: Character, optional: Bool, width: String, punctuation: String)
@@ -19,7 +21,7 @@ public struct PrefixFormat: Sendable, Equatable {
     let categoryMaxLength: Int?
 
     public init(_ format: String) {
-        let regex = try! NSRegularExpression(pattern: "%(\\?)?([-+]?[0-9.]*)([ .;,:!?=|/<>]?)([cltseibT]|\\(.+?\\))")
+        let regex = Self.directiveRegex
         let ns = format as NSString
         var pieces: [Piece] = []
         var hasTime = false

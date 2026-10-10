@@ -132,7 +132,7 @@ public struct FileRecord: Sendable, Equatable {
     /// The settings version a file's rows are built under: the index's, with the keywords of
     /// the setup files it names mixed in, so a changed setup file indexes it again.
     public static func settingsVersion(_ settings: IndexSettings, text: String, setupKeywords: String) -> Int {
-        guard text.range(of: "#+setupfile:", options: .caseInsensitive) != nil else { return settings.version }
+        guard text.containsIgnoringASCIICase("#+setupfile:") else { return settings.version }
         var hash: UInt64 = 0xcbf29ce484222325
         for byte in setupKeywords.utf8 {
             hash ^= UInt64(byte)
@@ -144,7 +144,7 @@ public struct FileRecord: Sendable, Equatable {
     /// `settingsVersion` for a file's bytes, reading the setup files it names.
     public static func settingsVersion(_ settings: IndexSettings, bytes: [UInt8], path: String) -> Int {
         let text = SourceText(bytes: bytes).text
-        guard text.range(of: "#+setupfile:", options: .caseInsensitive) != nil else { return settings.version }
+        guard text.containsIgnoringASCIICase("#+setupfile:") else { return settings.version }
         let keywords = settings.org.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile).setupKeywords
         return settingsVersion(settings, text: text, setupKeywords: keywords)
     }
