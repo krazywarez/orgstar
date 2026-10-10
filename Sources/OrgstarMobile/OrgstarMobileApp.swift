@@ -12,6 +12,9 @@ struct OrgstarMobileApp: App {
     @State private var model = MobileModel.shared
 
     init() {
+        #if DEBUG
+        Perf.watchMainThread()
+        #endif
         LiveClock.install()
     }
 

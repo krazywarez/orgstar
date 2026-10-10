@@ -100,6 +100,8 @@ final class MobileModel {
     }
 
     func reloadConfig() {
+        let interval = Perf.begin("config.reload")
+        defer { interval.end() }
         UserConfig.directoryOverride = configFolder
         let (problems, colors) = Self.readConfig(configFolder)
         configProblems = problems
@@ -227,6 +229,8 @@ final class MobileModel {
 
     /// Notifications for the next week's timed entries, at most 64, as iOS allows.
     func updateReminders() async {
+        let interval = Perf.begin("reminders.update")
+        defer { interval.end() }
         guard let workspace else { return }
         guard OrgPreferences.reminders() else {
             await scheduler.clear()
@@ -242,6 +246,8 @@ final class MobileModel {
     /// The widgets' agenda: today and the next days in the app group's container, with the
     /// widgets reloaded when it changed.
     func updateWidgets() async {
+        let interval = Perf.begin("widgets.update")
+        defer { interval.end() }
         guard let workspace, let file = AgendaSnapshot.file() else { return }
         let days = AgendaModel(workspace: workspace)
         days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)

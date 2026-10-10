@@ -196,6 +196,8 @@ public final class DocumentSession {
 
     /// Shows the buffer of `path`, opening the file if it isn't open.
     public func open(_ path: String) {
+        let interval = Perf.begin("session.open")
+        defer { interval.end((path as NSString).lastPathComponent) }
         if let existing = entry(path) {
             activate(existing)
             return
@@ -293,6 +295,8 @@ public final class DocumentSession {
     }
 
     private func refresh(outline updateOutline: Bool = true) {
+        let interval = Perf.begin("session.refresh")
+        defer { interval.end() }
         refreshLists()
         guard let buffer else { return }
         let state = buffer.document
@@ -349,6 +353,8 @@ public final class DocumentSession {
 
     @discardableResult
     private func save(_ entry: Entry) -> Bool {
+        let interval = Perf.begin("session.save")
+        defer { interval.end((entry.path as NSString).lastPathComponent) }
         entry.autosave?.cancel()
         let name = (entry.path as NSString).lastPathComponent
         guard entry.buffer.document.isDirty else { return true }
@@ -869,6 +875,8 @@ public final class DocumentSession {
     /// Called when the workspace sees a file change on disk: an open buffer of it takes the
     /// change in.
     public func fileChanged(_ path: String) {
+        let interval = Perf.begin("session.fileChanged")
+        defer { interval.end((path as NSString).lastPathComponent) }
         guard let entry = entry(path), let bytes = try? fileSystem.read(URL(fileURLWithPath: path)) else { return }
         let buffer = entry.buffer
         guard bytes != buffer.document.mergeBase else { return }

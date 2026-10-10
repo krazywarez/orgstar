@@ -1,4 +1,5 @@
 #if os(iOS)
+import OrgApp
 import OrgCore
 import OrgDocument
 import OrgHighlight
@@ -442,6 +443,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     /// Applies `edits` (against the current text) through the text view as one undo step.
     func applyEdits(_ edits: [TextEdit]) {
+        let interval = Perf.begin("editor.applyEdits")
+        defer { interval.end() }
         guard !edits.isEmpty else { return }
         applyingEdits = true
         defer { applyingEdits = false }
@@ -473,6 +476,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// The storage changed (typing, a command, undo): the document takes the same edit, and
     /// folds and styles follow.
     fileprivate func storageEdited(range: NSRange, delta: Int) {
+        let interval = Perf.begin("editor.edit")
+        defer { interval.end() }
         guard !loading else { return }
         let old = range.location..<(range.location + range.length - delta)
         let replacement = (textView.textStorage.string as NSString).substring(with: range)
@@ -570,6 +575,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     /// Styles the whole file again.
     private func restyleAll() {
+        let interval = Perf.begin("editor.restyleAll")
+        defer { interval.end() }
         restyle(0..<textView.textStorage.length)
         if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
     }
@@ -600,6 +607,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     /// Sets attributes for the whole lines in `range`, as the Mac editor does.
     private func restyle(_ range: Range<Int>) {
+        let interval = Perf.begin("editor.restyle")
+        defer { interval.end() }
         let storage = textView.textStorage
         let ns = storage.string as NSString
         guard ns.length > 0 else { return }
@@ -858,6 +867,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     /// The caret left hidden text (a tap past a fold): what hides it opens.
     fileprivate func selectionChanged() {
+        let interval = Perf.begin("editor.selection")
+        defer { interval.end() }
         redrawSelectedBlocks()
         let caret = textView.selectedRange.location
         if hidden.containing(caret) != nil { unfold(around: caret) }

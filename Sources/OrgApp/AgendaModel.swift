@@ -52,6 +52,8 @@ public final class AgendaModel {
 
     /// Recomputes the days. `open` is the open buffers' text by path.
     public func refresh(open: [String: String], now: Date = Date(), calendar: Calendar = .current) async {
+        let interval = Perf.begin("agenda.refresh")
+        defer { interval.end("\(files.count) files") }
         generation += 1
         let id = generation
         isComputing = true
@@ -113,6 +115,8 @@ public final class AgendaModel {
     /// The agenda files' sources: the open file's from its text, the others from the cache
     /// while their modification date and size are unchanged.
     private func sources(open: [String: String]) async -> [AgendaSource] {
+        let interval = Perf.begin("agenda.sources")
+        defer { interval.end("\(files.count) files") }
         let defaults = workspace.settings.org
         let blocking = options.dimBlockedTasks != .off && (options.enforceTodoDependencies || options.enforceTodoCheckboxDependencies)
         var reads: [(path: String, cached: AgendaSource?, mtime: Date, size: Int, text: String?)] = []

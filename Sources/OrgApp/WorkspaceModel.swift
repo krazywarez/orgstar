@@ -140,6 +140,8 @@ public final class WorkspaceModel {
 
     /// Reconciles every root off the main thread, then reloads the file list.
     public func refresh() async {
+        let interval = Perf.begin("workspace.refresh")
+        defer { interval.end() }
         isIndexing = true
         defer { isIndexing = false }
         let reconciler = Reconciler(index: index, settings: settings, rules: scanRules)
@@ -323,6 +325,8 @@ public final class WorkspaceModel {
     /// Brings the index up to date for the root holding `path` now, rather than when the
     /// file events arrive.
     private func rescan(containing path: String) async {
+        let interval = Perf.begin("workspace.rescan")
+        defer { interval.end() }
         guard let root = rootURL(containing: path) else { return }
         await filesChanged([], rescan: [root])
     }

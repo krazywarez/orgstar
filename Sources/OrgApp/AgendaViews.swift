@@ -47,6 +47,8 @@ public enum AgendaViewLoader {
 
     /// The built-in views followed by the user's, and the problems found in the file.
     public static func load(userFile: URL = userFile) -> (views: [AgendaViewDefinition], problems: [String]) {
+        let interval = Perf.begin("views.load")
+        defer { interval.end() }
         guard let text = try? String(contentsOf: userFile, encoding: .utf8) else { return (builtIn, []) }
         let tables: [TOML.Table]
         do {

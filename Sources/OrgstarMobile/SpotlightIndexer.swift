@@ -29,6 +29,8 @@ final class SpotlightIndexer {
     }
 
     func update(_ files: [FileEntry]) async {
+        let interval = Perf.begin("spotlight.update")
+        defer { interval.end("\(files.count) files") }
         guard !running else { return waiting = files }
         running = true
         defer { running = false }

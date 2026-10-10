@@ -76,7 +76,7 @@ struct AgendaScreen: View {
             if workspace.rootPaths.isEmpty {
             } else if case .agenda = agenda.mode {
                 let _ = model.settingsVersion
-                ForEach(agenda.groups(showAllDates: OrgPreferences.agendaShowAllDates(), keep: filter.keeps)) { group in
+                ForEach(Perf.measure("agenda.groups") { agenda.groups(showAllDates: OrgPreferences.agendaShowAllDates(), keep: filter.keeps) }) { group in
                     Section {
                         day(group)
                     } header: {
