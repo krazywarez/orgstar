@@ -161,7 +161,7 @@ The Agenda tab shows the agenda over all your folders, with the span and start d
 - Tap :: an entry to read it, at its heading.
 - Swipe left :: on a TODO entry for Done, which sets the first done keyword of its sequence, or Next State.
 - Swipe right :: for Tomorrow, Next Week (next Monday) or Pick Date, which move the entry's scheduled date, or its deadline on a deadline row.
-- Touch and hold :: an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive…. Refile… lists files; the entry goes to the end of the one you choose. Refiling under a heading is Mac only.
+- Touch and hold :: an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, Archive…, and Delete…. Delete… removes the heading and every line under it, after asking. Refile… lists files; the entry goes to the end of the one you choose. Refiling under a heading is Mac only.
 
 Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.
 

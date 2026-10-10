@@ -29,6 +29,7 @@ struct AgendaScreen: View, Equatable {
     @State private var prompt: EditorScreen.PromptRequest?
     @State private var refiling: AgendaItem?
     @State private var archiving: AgendaItem?
+    @State private var deleting: AgendaItem?
     /// The day, week or month shown; nil for `org-agenda-span` and `org-agenda-start-day`.
     @State private var range: SpanRange?
     /// The mode `range` set, to notice when something else changes the view.
@@ -184,6 +185,15 @@ struct AgendaScreen: View, Equatable {
             }
         } message: {
             Text(archiving?.text ?? "")
+        }
+        .confirmationDialog("Delete this entry?", isPresented: Binding { deleting != nil } set: { if !$0 { deleting = nil } }, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                // `org-cut-subtree`: the heading and everything under it.
+                if let item = deleting { run(CopySubtree(cut: true), on: item) }
+                deleting = nil
+            }
+        } message: {
+            Text("\(deleting?.text ?? "")\n\nThe heading and every line under it are removed from the file.")
         }
         .refreshable {
             await workspace.refresh()
@@ -509,6 +519,9 @@ struct AgendaScreen: View, Equatable {
                 Divider()
                 Button("Refile…", systemImage: "arrow.turn.down.right") { refiling = item }
                 Button("Archive…", systemImage: "archivebox") { archiving = item }
+                if item.headingLine != nil {
+                    Button("Delete…", systemImage: "trash", role: .destructive) { deleting = item }
+                }
             }
         }
     }

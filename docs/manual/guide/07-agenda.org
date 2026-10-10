@@ -569,7 +569,7 @@ The Agenda tab shows the same views from the same files, using the settings in t
 - Tap an entry to open it. Tap a calendar event to open Calendar on the event's day; iOS can't open Calendar at one event.
 - Swipe left on an open TODO entry for Done, which sets the first done keyword of its sequence, and Next State, which moves to the next keyword. The sequence is the one the file defines: the default keywords from =config.toml=, the file's own =#+TODO= lines, and those of its setup files, with unsaved edits in an open buffer included.
 - Swipe right on a scheduled entry, a deadline, a habit or a TODO entry, when it isn't done, for Tomorrow, Next Week and Pick Date. Tomorrow is the day after today and Next Week is next Monday. On a deadline row these move the deadline; on other rows they set the scheduled date. A timed row keeps its times.
-- Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile… and Archive….
+- Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, Archive… and Delete…, which removes the heading and everything under it.
 - Marking an entry done and rescheduling one give haptic feedback.
 - Log Mode, in the span menu, turns log mode on and off. The widgets never show log mode's entries.
 - There are no keyboard commands or bulk marks.
