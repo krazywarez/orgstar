@@ -1184,7 +1184,7 @@ struct AgendaRowView: View {
                 .fill(row.event.map { event in theme.dynamic(.systemPurple) { [theme] in theme.eventColor(event, dark: $0) } }
                     ?? theme.dynamic { [theme, row] in theme.categoryColor(row.category, dark: $0) })
                 .frame(width: 6, height: 6)
-            Text(row.category + (row.event?.location.map { " · " + $0 } ?? ""))
+            Text(row.category)
                 .font(.system(size: 11))
                 .foregroundStyle(theme.color("agenda-category") ?? .secondary)
                 .lineLimit(1)

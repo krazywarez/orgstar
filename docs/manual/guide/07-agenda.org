@@ -134,7 +134,7 @@ A note under a clock line (a list item directly below it) is added to the title 
 Each row shows, from left to right:
 
 - The time or status described above, with an icon below it on the Mac and before it on iOS: a calendar for scheduled entries, a flag for deadlines, arrows in a circle for habits, a clock or a calendar for timestamps, and a dot or a calendar for calendar events. An overdue entry shows a warning sign instead, and on the Mac a done entry shows a check mark.
-- The category, with a colored dot, above the title. For a calendar event this is the calendar's name, with the event's location.
+- The category, with a colored dot, above the title. For a calendar event this is the calendar's name.
 - The title: the heading without its TODO keyword, priority cookie, statistics cookies, timestamps and tags, with links shown as their descriptions. A done entry's title is struck through.
 - The value of the first statistics cookie (=1/3=, =50%=) and the tags, inherited tags first, as small capsules. iOS shows at most three tags.
 - The habit's consistency graph, for habits.

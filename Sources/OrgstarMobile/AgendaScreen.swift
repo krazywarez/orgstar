@@ -654,9 +654,6 @@ struct AgendaRowView: View {
                     .font(.body)
                     .strikethrough(row.isDone)
                     .foregroundStyle(row.isDone ? .secondary : .primary)
-                if let location = row.event?.location {
-                    Label(location, systemImage: "mappin").font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
                 if let habit = row.item?.habit {
                     HabitStrip(cells: habit.graph(today: day), theme: theme, dark: dark).padding(.top, 3)
                 }
