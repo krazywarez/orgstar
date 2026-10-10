@@ -129,6 +129,21 @@ final class MobileModel {
         settingsVersion += 1
     }
 
+    /// The folder's `config.toml`, read in coordination with the app that syncs it.
+    func configText() -> String? {
+        configFolder.flatMap { Self.read($0.appendingPathComponent("config.toml")) }
+    }
+
+    /// Writes the folder's `config.toml` and applies it.
+    func saveConfig(_ text: String) {
+        guard let configFolder else { return }
+        var error: NSError?
+        NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: configFolder.appendingPathComponent("config.toml"), options: [], error: &error) { url in
+            try? text.write(to: url, atomically: true, encoding: .utf8)
+        }
+        reloadConfig()
+    }
+
     /// Changes a setting from the app: in the folder's config.toml when there is a folder, as
     /// the Mac's Settings write it, else in this device's settings.
     func set(_ defaultsKey: String, to value: TOML.Value) {

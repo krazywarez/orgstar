@@ -24,6 +24,7 @@ struct SettingsScreen: View {
                 LabeledContent("Folder", value: model.configFolder?.lastPathComponent ?? "None")
                 Button(model.configFolder == nil ? "Choose Folder…" : "Choose Another Folder…") { choosing = true }
                 if model.configFolder != nil {
+                    NavigationLink("Edit config.toml") { ConfigFileEditor(model: model) }
                     Button("Stop Using This Folder", role: .destructive) { model.setConfigFolder(nil) }
                 }
                 ForEach(model.configProblems, id: \.self) { Text($0).foregroundStyle(.red) }
@@ -156,6 +157,78 @@ struct SettingsScreen: View {
     private var todoKeywords: String {
         OrgPreferences.orgSettings().todoSequences.map { ($0.active.map(\.name) + ["|"] + $0.done.map(\.name)).joined(separator: " ") }
             .joined(separator: "; ")
+    }
+}
+/// The configuration folder's `config.toml` as plain text, saved when you tap Save or leave.
+struct ConfigFileEditor: View {
+    let model: MobileModel
+    @State private var text = ""
+    @State private var saved: String?
+
+    var body: some View {
+        PlainTextView(text: $text)
+            .navigationTitle("config.toml")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                Button("Save") { save() }.disabled(text == saved)
+            }
+            .safeAreaInset(edge: .bottom) {
+                let _ = model.settingsVersion
+                if !model.configProblems.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(model.configProblems, id: \.self) { Text($0) }
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.bar)
+                }
+            }
+            .onAppear {
+                guard saved == nil else { return }
+                text = model.configText() ?? UserConfig.defaultTemplate
+                saved = text
+            }
+            .onDisappear { save() }
+    }
+
+    private func save() {
+        guard text != saved else { return }
+        model.saveConfig(text)
+        saved = text
+    }
+}
+
+/// A monospaced text view without smart quotes, dashes or autocorrection, which would break TOML.
+private struct PlainTextView: UIViewRepresentable {
+    @Binding var text: String
+
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
+        view.font = .monospacedSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .footnote).pointSize, weight: .regular)
+        view.adjustsFontForContentSizeCategory = true
+        view.autocorrectionType = .no
+        view.autocapitalizationType = .none
+        view.smartQuotesType = .no
+        view.smartDashesType = .no
+        view.smartInsertDeleteType = .no
+        view.spellCheckingType = .no
+        view.keyboardDismissMode = .interactive
+        view.delegate = context.coordinator
+        return view
+    }
+
+    func updateUIView(_ view: UITextView, context: Context) {
+        if view.text != text { view.text = text }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var text: Binding<String>
+        init(text: Binding<String>) { self.text = text }
+        func textViewDidChange(_ view: UITextView) { text.wrappedValue = view.text }
     }
 }
 #endif

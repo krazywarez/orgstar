@@ -309,6 +309,8 @@ The iOS app reads its settings from a configuration folder: a folder holding =co
 
 Changes to the files apply as they sync, and again each time you return to the app. Problems in the files show in red under the folder. "No config.toml in /folder/; the defaults apply" means the folder has no =config.toml=, for example because it was removed after you chose the folder.
 
+Edit config.toml opens the folder's =config.toml= as plain text, with smart quotes and dashes off. Save, or going back, writes it and applies it at once; problems show in red below the text.
+
 Stop Using This Folder returns every setting to its default.
 
 The Agenda, TODO Dependencies and Calendar sections are the only places the app changes a setting itself:
