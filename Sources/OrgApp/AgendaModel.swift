@@ -9,6 +9,8 @@ import OrgPresentation
 @MainActor
 public final class AgendaSourceCache {
     var entries: [String: (mtime: Date, size: Int, defaults: OrgSettings, blocking: Bool, source: AgendaSource)] = [:]
+    /// Open buffers' sources, kept while their text is the same.
+    var open: [String: (defaults: OrgSettings, blocking: Bool, source: AgendaSource)] = [:]
 
     public init() {}
 }
@@ -101,11 +103,12 @@ public final class AgendaModel {
             return (days, list, events)
         }.value
         guard id == generation else { return }
-        days = result.0
-        list = result.1
-        events = result.2
-        self.today = today
-        self.calendar = calendar
+        // Unchanged results leave the views alone: a new value redraws the whole list.
+        if days != result.0 { days = result.0 }
+        if list != result.1 { list = result.1 }
+        if events != result.2 { events = result.2 }
+        if self.today != today { self.today = today }
+        if self.calendar != calendar { self.calendar = calendar }
         isComputing = false
     }
 
@@ -131,7 +134,15 @@ public final class AgendaModel {
         var reads: [(path: String, cached: AgendaSource?, mtime: Date, size: Int, text: String?)] = []
         for path in files {
             if let text = open[path] {
-                reads.append((path, nil, .distantPast, -1, text))
+                // The same text parsed before, as the buffer or as the file on disk.
+                func reusable(_ source: AgendaSource?, _ parsedWith: OrgSettings?, _ parsedBlocking: Bool?) -> AgendaSource? {
+                    guard let source, parsedWith == defaults, parsedBlocking == blocking, !source.readsSetupFiles, source.text == text else { return nil }
+                    return source
+                }
+                let fromOpen = cache.open[path]
+                let fromDisk = cache.entries[path]
+                let cached = reusable(fromOpen?.source, fromOpen?.defaults, fromOpen?.blocking) ?? reusable(fromDisk?.source, fromDisk?.defaults, fromDisk?.blocking)
+                reads.append((path, cached, .distantPast, -1, text))
                 continue
             }
             let attributes = try? FileManager.default.attributesOfItem(atPath: path)
@@ -147,7 +158,7 @@ public final class AgendaModel {
             var sources: [(path: String, mtime: Date, size: Int, source: AgendaSource, fromDisk: Bool)] = []
             for read in reads {
                 if let cached = read.cached {
-                    sources.append((read.path, read.mtime, read.size, cached, true))
+                    sources.append((read.path, read.mtime, read.size, cached, read.text == nil))
                 } else if let text = read.text {
                     sources.append((read.path, read.mtime, read.size, AgendaSource(path: read.path, text: text, defaults: defaults.resolvingSetupFiles(in: text, path: read.path, read: OrgSettings.readFile), checksBlocking: blocking), false))
                 } else if let data = FileManager.default.contents(atPath: read.path) {
@@ -157,8 +168,12 @@ public final class AgendaModel {
             }
             return sources
         }.value
-        for source in loaded where source.fromDisk {
-            cache.entries[source.path] = (source.mtime, source.size, defaults, blocking, source.source)
+        for source in loaded {
+            if source.fromDisk {
+                cache.entries[source.path] = (source.mtime, source.size, defaults, blocking, source.source)
+            } else {
+                cache.open[source.path] = (defaults, blocking, source.source)
+            }
         }
         return loaded.map(\.source)
     }
@@ -168,6 +183,26 @@ public final class AgendaModel {
     public func groups(showAllDates: Bool = false, keep: (AgendaItem) -> Bool = { _ in true }) -> [AgendaDayGroup] {
         AgendaRows.groups(days, events: events, today: today, showAllDates: showAllDates, calendar: calendar, keep: keep)
     }
+
+    /// `groups` with `filter`, kept while the days, events and arguments are the same, as
+    /// views ask on every redraw.
+    public func groups(showAllDates: Bool, filter: AgendaFilter) -> [AgendaDayGroup] {
+        let key = GroupsKey(days: days, events: events, today: today, showAllDates: showAllDates, filter: filter)
+        if let groupsMemo, groupsMemo.key == key { return groupsMemo.groups }
+        let groups = groups(showAllDates: showAllDates, keep: filter.keeps)
+        groupsMemo = (key, groups)
+        return groups
+    }
+
+    private struct GroupsKey: Equatable {
+        let days: [AgendaDay]
+        let events: [AgendaEvent]
+        let today: Int
+        let showAllDates: Bool
+        let filter: AgendaFilter
+    }
+
+    @ObservationIgnored private var groupsMemo: (key: GroupsKey, groups: [AgendaDayGroup])?
 
     nonisolated static func date(_ day: Int, calendar: Calendar) -> Date {
         let d = Days.date(day)

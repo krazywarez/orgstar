@@ -1,3 +1,5 @@
+import Foundation
+
 /// A view of a green node at an absolute offset, with a parent link. Created on demand.
 public final class SyntaxNode: Sendable {
     public let green: GreenNode
@@ -112,7 +114,29 @@ public struct SyntaxToken: Sendable, Equatable {
 public struct OrgTree: Sendable {
     public let green: GreenNode
     public let settings: OrgSettings
+    private let textCache = TextCache()
+
+    public init(green: GreenNode, settings: OrgSettings) {
+        self.green = green
+        self.settings = settings
+    }
 
     public var root: SyntaxNode { SyntaxNode(green: green, offset: 0, parent: nil) }
-    public var text: String { green.text }
+    /// Built from the tree on first use, then kept: views read it once per heading.
+    public var text: String { textCache.text(of: green) }
+}
+
+/// An `OrgTree`'s text, built once.
+private final class TextCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var text: String?
+
+    func text(of green: GreenNode) -> String {
+        lock.withLock {
+            if let text { return text }
+            let built = green.text
+            text = built
+            return built
+        }
+    }
 }

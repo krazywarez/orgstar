@@ -1,3 +1,5 @@
+import Foundation
+
 /// Drawers and blocks, the elements org folds on their own (`org-fold-hide-drawer-toggle`,
 /// `org-fold-hide-block-toggle`).
 public struct Wrapper: Sendable, Equatable {
@@ -21,18 +23,19 @@ public enum Wrappers {
         }
     }
 
-    static func wrapper(_ node: SyntaxNode) -> Wrapper? {
+    /// `text` is the document's, read in place rather than copying the node's text.
+    static func wrapper(_ node: SyntaxNode, in text: NSString) -> Wrapper? {
         guard let kind = kind(node.kind) else { return nil }
-        let units = Array(node.text.utf16)
+        let start = node.range.lowerBound
         // Blank lines after the element belong to it in the tree, not to the fold.
-        var end = units.count
-        while end > 0, [9, 10, 13, 32].contains(units[end - 1]) { end -= 1 }
-        guard let firstNewline = units.firstIndex(of: 10), firstNewline < end else { return nil }
+        var end = node.range.upperBound
+        while end > start, [9, 10, 13, 32].contains(text.character(at: end - 1)) { end -= 1 }
+        let firstNewline = text.range(of: "\n", options: .literal, range: NSRange(start..<end)).location
+        guard firstNewline != NSNotFound else { return nil }
         var closeStart = end
-        while closeStart > 0, units[closeStart - 1] != 10 { closeStart -= 1 }
-        let hiddenEnd = end < units.count ? end + 1 : end
-        return Wrapper(kind: kind, start: node.range.lowerBound, closeLine: node.range.lowerBound + closeStart,
-                       hidden: (node.range.lowerBound + firstNewline + 1)..<(node.range.lowerBound + hiddenEnd))
+        while closeStart > start, text.character(at: closeStart - 1) != 10 { closeStart -= 1 }
+        let hiddenEnd = end < node.range.upperBound ? end + 1 : end
+        return Wrapper(kind: kind, start: start, closeLine: closeStart, hidden: (firstNewline + 1)..<hiddenEnd)
     }
 
     /// Elements a drawer or block can sit in.
@@ -41,9 +44,10 @@ public enum Wrappers {
     /// Every drawer and block, in document order, nested ones included.
     public static func all(_ tree: OrgTree) -> [Wrapper] {
         var result: [Wrapper] = []
+        let text = tree.text as NSString
         func walk(_ node: SyntaxNode) {
             for child in node.children {
-                if let wrapper = wrapper(child) { result.append(wrapper) }
+                if let wrapper = wrapper(child, in: text) { result.append(wrapper) }
                 if containers.contains(child.kind) { walk(child) }
             }
         }
@@ -55,7 +59,7 @@ public enum Wrappers {
     public static func starting(at offset: Int, in tree: OrgTree) -> Wrapper? {
         var node = tree.root
         while let child = node.child(containing: offset) {
-            if child.range.lowerBound == offset, let wrapper = wrapper(child) { return wrapper }
+            if child.range.lowerBound == offset, let wrapper = wrapper(child, in: tree.text as NSString) { return wrapper }
             node = child
         }
         return nil
@@ -67,7 +71,7 @@ public enum Wrappers {
         var node = tree.root
         var found: Wrapper?
         while let child = node.child(containing: offset) {
-            if let wrapper = wrapper(child), offset < wrapper.hidden.lowerBound || (wrapper.closeLine..<wrapper.hidden.upperBound).contains(offset) {
+            if let wrapper = wrapper(child, in: tree.text as NSString), offset < wrapper.hidden.lowerBound || (wrapper.closeLine..<wrapper.hidden.upperBound).contains(offset) {
                 found = wrapper
             }
             node = child

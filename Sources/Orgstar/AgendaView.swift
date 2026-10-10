@@ -159,7 +159,7 @@ struct AgendaView: View {
     }
 
     private var groups: [AgendaDayGroup] {
-        isAgenda ? agenda.groups(showAllDates: showAllDates, keep: filter.keeps) : []
+        isAgenda ? agenda.groups(showAllDates: showAllDates, filter: filter) : []
     }
 
     private var listRows: [AgendaRow] {

@@ -8,7 +8,7 @@ import SwiftUI
 /// The agenda over the workspace's agenda files: the day/week view, the TODO list, tag and
 /// property matches, text search and the views in `views.toml`, with Org's filters and the
 /// agenda's actions on each entry.
-struct AgendaScreen: View {
+struct AgendaScreen: View, Equatable {
     let workspace: WorkspaceModel
     let session: DocumentSession
     @Bindable var agenda: AgendaModel
@@ -67,6 +67,11 @@ struct AgendaScreen: View {
         var logMode: Bool
     }
 
+    /// The same models: the root redrawing for navigation leaves the list alone.
+    nonisolated static func == (a: Self, b: Self) -> Bool {
+        a.workspace === b.workspace && a.session === b.session && a.agenda === b.agenda && a.scheduler === b.scheduler
+    }
+
     private var isDark: Bool { colorScheme == .dark }
     private var theme: ThemeSpec { model.theme }
 
@@ -76,7 +81,7 @@ struct AgendaScreen: View {
             if workspace.rootPaths.isEmpty {
             } else if case .agenda = agenda.mode {
                 let _ = model.settingsVersion
-                ForEach(Perf.measure("agenda.groups") { agenda.groups(showAllDates: OrgPreferences.agendaShowAllDates(), keep: filter.keeps) }) { group in
+                ForEach(Perf.measure("agenda.groups") { agenda.groups(showAllDates: OrgPreferences.agendaShowAllDates(), filter: filter) }) { group in
                     Section {
                         day(group)
                     } header: {
@@ -203,14 +208,30 @@ struct AgendaScreen: View {
             guard OrgPreferences.calendarEvents(), !CalendarEvents.isAuthorized else { return }
             if await model.calendarEvents.requestAccess() { tick += 1 }
         }
-        .task(id: Key(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, tick: tick,
-                      mode: agenda.mode, start: agenda.start, span: agenda.span, startOffset: agenda.startOffset,
-                      subfolders: agenda.includeSubfolders, settings: model.settingsVersion, logMode: logMode)) {
-            // Changes come in bursts (a folder scan, typing); a newer one cancels this wait.
-            try? await Task.sleep(for: .milliseconds(150))
-            guard !Task.isCancelled else { return }
-            agenda.options.logMode = logMode
-            await agenda.refresh(open: session.openTexts)
+        .background { Refresher(workspace: workspace, session: session, agenda: agenda, model: model, tick: tick, logMode: logMode) }
+    }
+
+    /// Refreshes the agenda when files, edits or settings change. Its own view, so that what it
+    /// watches redraws only it, not the whole list.
+    private struct Refresher: View {
+        let workspace: WorkspaceModel
+        let session: DocumentSession
+        let agenda: AgendaModel
+        let model: MobileModel
+        let tick: Int
+        let logMode: Bool
+
+        var body: some View {
+            Color.clear
+                .task(id: Key(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, tick: tick,
+                              mode: agenda.mode, start: agenda.start, span: agenda.span, startOffset: agenda.startOffset,
+                              subfolders: agenda.includeSubfolders, settings: model.settingsVersion, logMode: logMode)) {
+                    // Changes come in bursts (a folder scan, typing); a newer one cancels this wait.
+                    try? await Task.sleep(for: .milliseconds(150))
+                    guard !Task.isCancelled else { return }
+                    agenda.options.logMode = logMode
+                    await agenda.refresh(open: session.openTexts)
+                }
         }
     }
 

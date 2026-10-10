@@ -35,7 +35,6 @@ public enum ReadingText {
     /// `folded` are drawers' and blocks' hidden ranges (`Wrapper.hidden`).
     public static func segments(_ tree: OrgTree, in range: Range<Int>, folded: [Range<Int>] = [], display: Display = Display()) -> [Segment] {
         let text = tree.text as NSString
-        let runs = Presentation.styles(tree, in: range, highlighter: display.highlighter)
         // A fold hides from the end of the opening line through the closing line, so the
         // marker sits on the opening line.
         let folds = folded.compactMap { r -> Range<Int>? in
@@ -43,17 +42,28 @@ public enum ReadingText {
             let end = r.upperBound > r.lowerBound && r.upperBound <= text.length && text.character(at: r.upperBound - 1) == 10 ? r.upperBound - 1 : r.upperBound
             return (r.lowerBound - 1)..<min(end, range.upperBound)
         }
+        // Styled only where shown: a folded drawer can hold most of a section.
+        var visible: [Range<Int>] = []
+        var from = range.lowerBound
+        for fold in folds.sorted(by: { $0.lowerBound < $1.lowerBound }) where fold.upperBound > from {
+            if fold.lowerBound > from { visible.append(from..<fold.lowerBound) }
+            from = fold.upperBound
+        }
+        if from < range.upperBound || visible.isEmpty { visible.append(from..<max(from, range.upperBound)) }
+        let runs = visible.flatMap { Presentation.styles(tree, in: $0, highlighter: display.highlighter) }
         var hidden = runs.filter { !display.showMarkup && Presentation.hidesWithMarkup($0.role, options: display.options) }.map(\.range) + folds
         // `org-pretty-entities`: an entity's last character shows its character, the rest hidden.
         var replaced: [Int: String] = [:]
         var scripts: [(range: Range<Int>, superscript: Bool)] = []
         if !display.showMarkup, display.options.prettyEntities {
             let blocks = Presentation.shadedBlocks(tree)
-            let pretty = Presentation.prettyRuns(
-                text, in: range, revealedLine: nil, inBlock: { offset in blocks.contains { $0.contains(offset) } },
-                scriptExclusions: runs.filter { Presentation.excludesScripts($0.role) }.map(\.range),
-                subSuperscriptsNeedBraces: display.options.subSuperscriptsNeedBraces
-            )
+            let exclusions = runs.filter { Presentation.excludesScripts($0.role) }.map(\.range)
+            let pretty = visible.flatMap { part in
+                Presentation.prettyRuns(
+                    text, in: part, revealedLine: nil, inBlock: { offset in blocks.contains { $0.contains(offset) } },
+                    scriptExclusions: exclusions, subSuperscriptsNeedBraces: display.options.subSuperscriptsNeedBraces
+                )
+            }
             for (lineStart, run) in pretty {
                 switch run {
                 case .entity(let r, let shown):
@@ -83,14 +93,31 @@ public enum ReadingText {
                 segments.append(segment)
             }
         }
-        for (a, b) in zip(points, points.dropFirst()) where a < b {
-            if folds.contains(where: { $0.lowerBound == a }) {
+        // What covers each interval between consecutive points, marked range by range rather
+        // than tested interval by interval, which grows with the square of a long section.
+        let intervals = max(points.count - 1, 0)
+        var position: [Int: Int] = [:]
+        for (k, point) in points.enumerated() { position[point] = k }
+        func covered(_ r: Range<Int>) -> Range<Int> {
+            let lo = position[max(range.lowerBound, min(range.upperBound, r.lowerBound))]!
+            let hi = position[max(range.lowerBound, min(range.upperBound, r.upperBound))]!
+            return lo..<max(lo, hi)
+        }
+        var rolesAt = [Set<StyleRole>](repeating: [], count: intervals)
+        for run in runs { for k in covered(run.range) { rolesAt[k].insert(run.role) } }
+        var hiddenAt = [Bool](repeating: false, count: intervals)
+        for r in hidden { for k in covered(r) { hiddenAt[k] = true } }
+        var scriptAt = [Bool?](repeating: nil, count: intervals)
+        for script in scripts { for k in covered(script.range) where scriptAt[k] == nil { scriptAt[k] = script.superscript } }
+        let foldStarts = Set(folds.map(\.lowerBound))
+        for (k, (a, b)) in zip(points, points.dropFirst()).enumerated() {
+            if foldStarts.contains(a) {
                 segments.append(Segment(text: "…", roles: [.metadata], link: nil, offset: a))
             }
-            if hidden.contains(where: { $0.lowerBound <= a && b <= $0.upperBound }) { continue }
-            let roles = Set(runs.filter { $0.range.lowerBound <= a && b <= $0.range.upperBound }.map(\.role))
+            if hiddenAt[k] { continue }
+            let roles = rolesAt[k]
             let link = roles.contains(.link) ? Links.link(at: a, text: tree.text, tree: tree)?.link : nil
-            let superscript = scripts.first { $0.range.lowerBound <= a && b <= $0.range.upperBound }?.superscript
+            let superscript = scriptAt[k]
             let shown = replaced[a] ?? text.substring(with: NSRange(location: a, length: b - a))
             let segment = Segment(text: shown, roles: roles, link: link, offset: a, superscript: superscript)
             if replaced[a] != nil { segments.append(segment) } else { append(segment) }

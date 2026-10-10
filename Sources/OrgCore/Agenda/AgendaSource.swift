@@ -109,7 +109,7 @@ public struct AgendaSource: Sendable {
     /// Each keyword's first done keyword in the first sequence that has it.
     let firstDone: [String: String]
     /// The file's text, for the search view.
-    let text: String
+    public let text: String
     let priorities: Priorities
 
     /// `checksBlocking` false leaves every heading unblocked, for when neither enforce

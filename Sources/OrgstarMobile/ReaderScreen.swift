@@ -38,6 +38,21 @@ struct ReaderScreen: View {
 
     private var outline: [OutlineEntry] { session.outline }
 
+    /// The file this reader shows. Readers lower in the stack stay alive while the session
+    /// shows another file, and draw nothing then.
+    private var path: String {
+        switch route {
+        case .file(let path), .offset(let path, _): path
+        case .heading(let location): location.path
+        }
+    }
+
+    /// The session shows this reader's file; it opens files by their resolved paths.
+    private var showsOwnFile: Bool {
+        guard let current = session.path else { return false }
+        return current == path || current == URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+    }
+
     var body: some View {
         let _ = session.editVersion
         // Read again when settings or the Dynamic Type size change.
@@ -47,11 +62,14 @@ struct ReaderScreen: View {
         ScrollViewReader { proxy in
             ScrollView(truncated ? [.vertical, .horizontal] : .vertical) {
                 LazyVStack(alignment: .leading, spacing: 8) {
-                    if let tree = session.document?.tree {
-                        let preambleEnd = outline.first?.start ?? (tree.text as NSString).length
+                    if let tree = session.document?.tree, showsOwnFile {
+                        let length = (tree.text as NSString).length
+                        let preambleEnd = min(outline.first?.start ?? length, length)
                         if preambleEnd > 0 { textView(tree, 0..<preambleEnd, theme) }
                         ForEach(Array(outline.enumerated()), id: \.element.start) { index, entry in
-                            if isShown(index) {
+                            // While another file opens, rows can update with the last file's
+                            // entries for a moment; those don't fit this text.
+                            if index < outline.count, outline[index] == entry, entry.end <= length, isShown(index) {
                                 heading(tree, entry, theme).id(entry.start)
                                 if !fold.folds.contains(entry.start), !fold.bodyFolds.contains(entry.start) {
                                     let body = bodyRange(index, tree)
@@ -293,7 +311,7 @@ struct ReaderScreen: View {
     /// The file's startup display, as the editor opens it; its heading folds are kept while
     /// the same file is open.
     private func loadFolds() {
-        guard let tree = session.document?.tree else { return }
+        guard let tree = session.document?.tree, showsOwnFile else { return }
         let display = Presentation.startupDisplay(tree, options: session.options)
         startup = display
         folded = display.wrappers.map(\.hidden)

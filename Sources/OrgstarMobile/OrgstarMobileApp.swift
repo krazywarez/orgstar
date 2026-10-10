@@ -99,6 +99,37 @@ struct RootView: View {
 
     private var session: DocumentSession { model.session }
 
+    /// Reminders, widgets and Spotlight following the files. Its own view, so that edits redraw
+    /// only it, not the tabs.
+    private struct BackgroundWork: View {
+        let model: MobileModel
+        let workspace: WorkspaceModel
+        let agenda: AgendaModel
+        let active: Bool
+        let hour: Int
+
+        private var session: DocumentSession { model.session }
+
+        var body: some View {
+            Color.clear
+                // Reminders follow the files, the settings, coming back to the app and the hour.
+                .task(id: ReminderKey(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
+                                      settings: model.settingsVersion, active: active, hour: hour)) {
+                    guard active else { return }
+                    try? await Task.sleep(for: .seconds(1))
+                    // After the agenda's refresh, whose parsed files these share.
+                    while agenda.isComputing, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(100)) }
+                    guard !Task.isCancelled else { return }
+                    await model.updateReminders()
+                    await model.updateWidgets()
+                }
+                // Spotlight follows the files and saved edits.
+                .task(id: SpotlightKey(files: workspace.files.count, changed: workspace.changedFile?.version, saved: session.dirtyPaths.count)) {
+                    await model.spotlight.update(workspace.files)
+                }
+        }
+    }
+
     private struct SpotlightKey: Equatable {
         var files: Int
         var changed: Int?
@@ -119,6 +150,7 @@ struct RootView: View {
             Tab("Agenda", systemImage: "calendar", value: .agenda) {
                 NavigationStack(path: $agendaPath) {
                     AgendaScreen(workspace: workspace, session: session, agenda: agenda, scheduler: model.scheduler)
+                        .equatable()
                         .toolbar { captureButton }
                         .readerDestination(workspace: workspace, session: session)
                 }
@@ -197,21 +229,7 @@ struct RootView: View {
                 hour += 1
             }
         }
-        // Reminders follow the files, the settings, coming back to the app and the hour.
-        .task(id: ReminderKey(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
-                              settings: model.settingsVersion, active: scenePhase == .active, hour: hour)) {
-            guard scenePhase == .active else { return }
-            try? await Task.sleep(for: .seconds(1))
-            // After the agenda's refresh, whose parsed files these share.
-            while agenda.isComputing, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(100)) }
-            guard !Task.isCancelled else { return }
-            await model.updateReminders()
-            await model.updateWidgets()
-        }
-        // Spotlight follows the files and saved edits.
-        .task(id: SpotlightKey(files: workspace.files.count, changed: workspace.changedFile?.version, saved: session.dirtyPaths.count)) {
-            await model.spotlight.update(workspace.files)
-        }
+        .background { BackgroundWork(model: model, workspace: workspace, agenda: agenda, active: scenePhase == .active, hour: hour) }
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
             if let path = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String { model.openRequest = .file(path) }
         }

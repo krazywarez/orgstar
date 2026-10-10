@@ -1,4 +1,5 @@
 import OrgCore
+import os
 
 /// What a range of text is, for styling. Platform adapters map roles to attributes.
 public enum StyleRole: Hashable, Sendable {
@@ -208,7 +209,19 @@ public enum Presentation {
     }
 
     /// Blocks and fixed-width areas, drawn on a shaded band the width of the view. Sorted.
+    /// The last tree's are kept: the reader asks once per section.
     public static func shadedBlocks(_ tree: OrgTree) -> [Range<Int>] {
+        shadedBlocksCache.withLock { last in
+            if let last, last.green === tree.green { return last.ranges }
+            let ranges = computeShadedBlocks(tree)
+            last = (tree.green, ranges)
+            return ranges
+        }
+    }
+
+    private static let shadedBlocksCache = OSAllocatedUnfairLock<(green: GreenNode, ranges: [Range<Int>])?>(initialState: nil)
+
+    private static func computeShadedBlocks(_ tree: OrgTree) -> [Range<Int>] {
         var ranges: [Range<Int>] = []
         func walk(_ node: SyntaxNode) {
             for child in node.children {

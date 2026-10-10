@@ -524,6 +524,21 @@ enum StateBufferCaret {
 
 @MainActor
 struct AgendaModelTests {
+    @Test func openBuffersFollowTheirText() async throws {
+        let notes = try Folder()
+        let file = try notes.write("a.org", "* TODO One\n")
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.mode = .todo(keywords: nil)
+        for text in ["* TODO One\n", "* TODO Two\n", "* TODO One\n", "* TODO Two\n"] {
+            await agenda.refresh(open: [file.path: text])
+            #expect(agenda.list.map(\.text) == [String(text.dropFirst(2).dropLast())])
+        }
+        await agenda.refresh(open: [:])
+        #expect(agenda.list.map(\.text) == ["TODO One"])
+    }
+
     @Test func entriesKnowTheirDoneKeyword() async throws {
         let notes = try Folder()
         try notes.write("setup.org", "#+TODO: NEXT | FINISHED\n")
