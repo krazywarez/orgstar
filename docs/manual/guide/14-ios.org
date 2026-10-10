@@ -262,6 +262,8 @@ With =reminders= on, orgstar schedules a notification before each timed agenda e
 
 iOS lets an app schedule at most 64 notifications, and orgstar schedules more only while it runs. It updates them when files or settings change, when you return to the app, and every hour while it is open. The agenda's status line says how far ahead reminders are set ("Reminders are set through …"), or that notifications are off for orgstar in the system Settings app.
 
+The app icon's badge counts the entries in the agenda's Overdue section that aren't done: past their scheduled day or their deadline, habits left out. An entry past both counts once. orgstar sets each of the next six midnights' counts ahead, so the badge stays right while the app is closed. Turn it off in Settings ▸ Notifications ▸ orgstar ▸ Badges.
+
 * Export
 
 Export (in the reader's toolbar and the editor's More menu) offers HTML and Markdown. Either opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's HTML and Markdown export does.

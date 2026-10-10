@@ -77,7 +77,14 @@ public struct SystemReminderCenter: ReminderCenter {
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .authorized, .provisional: return true
-        case .notDetermined: return (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+        case .notDetermined:
+            // iOS shows the overdue count on the icon.
+            #if os(iOS)
+            let options: UNAuthorizationOptions = [.alert, .sound, .badge]
+            #else
+            let options: UNAuthorizationOptions = [.alert, .sound]
+            #endif
+            return (try? await center.requestAuthorization(options: options)) ?? false
         default: return false
         }
     }

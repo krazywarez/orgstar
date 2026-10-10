@@ -7,6 +7,7 @@ import OrgIndex
 import OrgPresentation
 import OrgWorkspace
 import UIKit
+import UserNotifications
 import WidgetKit
 
 /// The app's models, and the settings from the configuration folder: a folder you choose
@@ -246,11 +247,11 @@ final class MobileModel {
     }
 
     /// The widgets' agenda: today and the next days in the app group's container, with the
-    /// widgets reloaded when it changed.
+    /// widgets reloaded when it changed; and the icon's overdue badge.
     func updateWidgets() async {
         let interval = Perf.begin("widgets.update")
         defer { interval.end() }
-        guard let workspace, let file = AgendaSnapshot.file() else { return }
+        guard let workspace else { return }
         let days = AgendaModel(workspace: workspace, cache: agenda?.cache ?? AgendaSourceCache())
         days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
         if let agenda {
@@ -261,8 +262,30 @@ final class MobileModel {
             days.calendarNames = agenda.calendarNames
         }
         await days.refresh(open: session.openTexts)
+        await updateBadge(OverdueBadge.counts(days.groups(), today: days.today, days: AgendaSnapshot.dayCount))
+        guard let file = AgendaSnapshot.file() else { return }
         let snapshot = AgendaSnapshot(groups: days.groups(), today: days.today, theme: theme, generated: Date())
         if (try? snapshot.write(to: file)) == true { WidgetCenter.shared.reloadAllTimelines() }
     }
+
+    /// Today's count on the icon, and each later day's set for its midnight by a notification
+    /// that only changes the badge.
+    private func updateBadge(_ counts: [Int]) async {
+        let center = UNUserNotificationCenter.current()
+        guard await SystemReminderCenter().authorize(), await center.notificationSettings().badgeSetting == .enabled else { return }
+        try? await center.setBadgeCount(counts.first ?? 0)
+        center.removePendingNotificationRequests(withIdentifiers: (1..<AgendaSnapshot.dayCount).map(Self.badgeID))
+        let today = Calendar.current.startOfDay(for: Date())
+        for (offset, count) in counts.enumerated().dropFirst() {
+            guard let midnight = Calendar.current.date(byAdding: .day, value: offset, to: today) else { continue }
+            let content = UNMutableNotificationContent()
+            content.badge = NSNumber(value: count)
+            let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: midnight)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            try? await center.add(UNNotificationRequest(identifier: Self.badgeID(offset), content: content, trigger: trigger))
+        }
+    }
+
+    static func badgeID(_ offset: Int) -> String { "badge.\(offset)" }
 }
 #endif
