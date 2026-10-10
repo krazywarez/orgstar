@@ -89,7 +89,7 @@ private struct ReparseContext {
                 break
             }
         }
-        return movesBoundary && Self.settingsKeys.contains { newText.range(of: "#+\($0):", options: .caseInsensitive) != nil }
+        return movesBoundary && Self.settingsKeys.contains { newText.containsIgnoringASCIICase("#+\($0):") }
     }
 
     // MARK: - Element

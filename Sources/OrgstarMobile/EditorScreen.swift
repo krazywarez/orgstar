@@ -436,10 +436,12 @@ struct CommandPalette: View {
         ("org.table.expand", "Expand Table Columns"),
     ]
 
+    /// The commands that apply at the caret and their keys, worked out once when the palette
+    /// opens rather than on every keystroke in the search field.
+    @State private var applicable: [(id: String, title: String, keys: String?)]?
+
     var body: some View {
-        let context = editor.editContext()
-        let all = Self.viewCommands + Commands.everything.map { ($0.id, $0.title) }
-        let shown = all.filter { editor.applies($0.id, in: context) && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)) }
+        let shown = (applicable ?? []).filter { query.isEmpty || $0.title.localizedCaseInsensitiveContains(query) }
         NavigationStack {
             List(shown, id: \.id) { command in
                 Button {
@@ -449,7 +451,7 @@ struct CommandPalette: View {
                     HStack {
                         Text(command.title).foregroundStyle(.primary)
                         Spacer()
-                        if let keys = editor.keymap.keyLabels(for: command.id).first {
+                        if let keys = command.keys {
                             Text(keys).font(.caption.monospaced()).foregroundStyle(.secondary)
                         }
                     }
@@ -459,6 +461,13 @@ struct CommandPalette: View {
             .navigationTitle("Commands")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+        }
+        .onAppear {
+            guard applicable == nil else { return }
+            let context = editor.editContext()
+            applicable = (Self.viewCommands + Commands.everything.map { ($0.id, $0.title) })
+                .filter { editor.applies($0.id, in: context) }
+                .map { ($0.id, $0.title, editor.keymap.keyLabels(for: $0.id).first) }
         }
     }
 }

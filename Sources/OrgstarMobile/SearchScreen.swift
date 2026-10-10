@@ -23,7 +23,7 @@ struct SearchScreen: View {
                         }
                     }
                 }
-                let headings = workspace.search(trimmed, overlay: workspace.overlay(session.openDocuments))
+                let headings = Perf.measure("search.headings") { workspace.search(trimmed, overlay: workspace.overlay(session.openDocuments)) }
                 Section("Headings") {
                     if headings.isEmpty { Text("No headings match").foregroundStyle(.secondary) }
                     ForEach(headings, id: \.self) { location in

@@ -12,8 +12,11 @@ struct OrgstarMobileApp: App {
     @State private var model = MobileModel.shared
 
     init() {
+        // Debug builds, and runs from Xcode, whose scheme sets ORGSTAR_PERF.
         #if DEBUG
         Perf.watchMainThread()
+        #else
+        if ProcessInfo.processInfo.environment["ORGSTAR_PERF"] != nil { Perf.watchMainThread() }
         #endif
         LiveClock.install()
     }

@@ -91,7 +91,7 @@ struct AgendaScreen: View, Equatable {
             } else {
                 let rows = agenda.list.filter(filter.keeps).compactMap { AgendaRow(item: $0, day: agenda.today, today: agenda.today) }
                 if rows.isEmpty, !agenda.isComputing { Text("No entries").foregroundStyle(.secondary) }
-                ForEach(rows) { row($0, day: agenda.today) }
+                ForEach(rows) { item in Deferred { row(item, day: agenda.today) } }
             }
             if let reminderStatus {
                 Section { } footer: { Text(reminderStatus) }
@@ -276,7 +276,7 @@ struct AgendaScreen: View, Equatable {
                 }
                 .buttonStyle(.plain)
                 if overdueExpanded {
-                    ForEach(group.overdue) { row($0, day: group.day) }
+                    ForEach(group.overdue) { item in Deferred { row(item, day: group.day) } }
                 }
             }
             if group.isEmpty {
@@ -286,7 +286,7 @@ struct AgendaScreen: View, Equatable {
             ForEach(lines(group)) { line in
                 switch line {
                 case .now: NowLine(time: now, color: todayColor)
-                case .row(let item): row(item, day: group.day)
+                case .row(let item): Deferred { row(item, day: group.day) }
                 }
             }
         }
@@ -917,5 +917,12 @@ struct RefileSheet: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { choose(nil) } } }
         }
     }
+}
+/// A view built when the list draws it: a list makes every row's view up front, and a row's
+/// actions and menus cost more than the row.
+private struct Deferred<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View { content() }
 }
 #endif
