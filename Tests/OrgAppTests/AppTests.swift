@@ -234,19 +234,6 @@ struct DocumentSessionTests {
         #expect(session.document?.tree.settings.todoKeywordNames.contains("NEXT") == true)
     }
 
-    @Test func settingsForAFileUseDefaultsAndSetupFiles() throws {
-        let notes = try Folder()
-        try notes.write("setup.org", "#+TODO: NEXT | FINISHED\n")
-        let viaSetup = try notes.write("a.org", "#+SETUPFILE: setup.org\n* NEXT One\n")
-        let plain = try notes.write("b.org", "* WAIT Two\n")
-        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
-        session.defaults = try #require(OrgSettings.default.withTodoKeywords("WAIT | OK"))
-        #expect(session.settings(for: viaSetup.path)?.todoSequences.first?.done.first?.name == "FINISHED")
-        #expect(session.settings(for: plain.path)?.todoSequences.first?.done.first?.name == "OK")
-        session.open(plain.path)
-        #expect(session.settings(for: plain.path)?.todoSequences.first?.done.first?.name == "OK")
-        #expect(session.settings(for: notes.url.appendingPathComponent("missing.org").path) == nil)
-    }
 
     @Test func keywordCtrlCCtrlCRereadsSetupFiles() throws {
         let notes = try Folder()
@@ -537,6 +524,22 @@ enum StateBufferCaret {
 
 @MainActor
 struct AgendaModelTests {
+    @Test func entriesKnowTheirDoneKeyword() async throws {
+        let notes = try Folder()
+        try notes.write("setup.org", "#+TODO: NEXT | FINISHED\n")
+        try notes.write("a.org", "#+SETUPFILE: setup.org\n* NEXT One\n")
+        let plain = try notes.write("b.org", "* WAIT Two\n")
+        let model = try WorkspaceModel(directory: nil)
+        model.settings = .with(todoKeywords: try #require(OrgSettings.default.withTodoKeywords("WAIT | OK")))
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.mode = .todo(keywords: nil)
+        await agenda.refresh(open: [:])
+        #expect(Dictionary(uniqueKeysWithValues: agenda.list.map { ($0.todo ?? "", $0.doneKeyword) }) == ["NEXT": "FINISHED", "WAIT": "OK"])
+        await agenda.refresh(open: [plain.path: "#+TODO: WAIT | GONE\n* WAIT Two\n"])
+        #expect(agenda.list.first { $0.todo == "WAIT" }?.doneKeyword == "GONE")
+    }
+
     @Test func topLevelFilesAndTheOpenBuffer() async throws {
         let notes = try Folder()
         try notes.write("a.org", "* TODO Pay rent\nSCHEDULED: <2026-10-05 Mon>\n")

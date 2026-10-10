@@ -54,6 +54,8 @@ public struct AgendaItem: Sendable, Equatable {
     public var planningDay: Int?
     /// Blocked from becoming done, for `org-agenda-dim-blocked-tasks`.
     public var isBlocked = false
+    /// The first done keyword of the sequence the entry's keyword belongs to.
+    public var doneKeyword: String?
     var blockedByCheckboxes = false
     var blockedByHierarchy = false
 }
@@ -410,6 +412,7 @@ public enum Agenda {
         )
         item.blockedByCheckboxes = heading.blockedByCheckboxes
         item.blockedByHierarchy = heading.blockedByHierarchy
+        item.doneKeyword = heading.todo.flatMap { source.firstDone[$0] }
         return item
     }
 

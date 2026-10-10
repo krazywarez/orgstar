@@ -237,8 +237,10 @@ final class MobileModel {
             return
         }
         guard !workspace.files.isEmpty else { return }
-        let agenda = AgendaModel(workspace: workspace)
+        // The agenda's cache and options, so files it has read aren't read again.
+        let agenda = AgendaModel(workspace: workspace, cache: self.agenda?.cache ?? AgendaSourceCache())
         agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
+        if let options = self.agenda?.options { agenda.options = options }
         let reminders = await agenda.reminders(open: session.openTexts, lead: OrgPreferences.reminderLead())
         await scheduler.reconcile(reminders)
     }
@@ -249,7 +251,7 @@ final class MobileModel {
         let interval = Perf.begin("widgets.update")
         defer { interval.end() }
         guard let workspace, let file = AgendaSnapshot.file() else { return }
-        let days = AgendaModel(workspace: workspace)
+        let days = AgendaModel(workspace: workspace, cache: agenda?.cache ?? AgendaSourceCache())
         days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
         if let agenda {
             days.includeSubfolders = agenda.includeSubfolders

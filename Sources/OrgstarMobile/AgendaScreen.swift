@@ -206,6 +206,9 @@ struct AgendaScreen: View {
         .task(id: Key(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, tick: tick,
                       mode: agenda.mode, start: agenda.start, span: agenda.span, startOffset: agenda.startOffset,
                       subfolders: agenda.includeSubfolders, settings: model.settingsVersion, logMode: logMode)) {
+            // Changes come in bursts (a folder scan, typing); a newer one cancels this wait.
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
             agenda.options.logMode = logMode
             await agenda.refresh(open: session.openTexts)
         }
@@ -258,13 +261,31 @@ struct AgendaScreen: View {
             if group.isEmpty {
                 Text("Nothing scheduled").font(.subheadline).foregroundStyle(.secondary)
             }
-            let nowAt = nowIndex(group)
-            ForEach(Array(group.rows.enumerated()), id: \.element.id) { index, item in
-                if index == nowAt { NowLine(time: now, color: todayColor) }
-                row(item, day: group.day)
+            // One view per element, so the list counts its rows without building them.
+            ForEach(lines(group)) { line in
+                switch line {
+                case .now: NowLine(time: now, color: todayColor)
+                case .row(let item): row(item, day: group.day)
+                }
             }
-            if let nowAt, nowAt == group.rows.count { NowLine(time: now, color: todayColor) }
         }
+    }
+
+    /// A day's rows, with the now line among them as a line of its own.
+    private enum DayLine: Identifiable {
+        case now
+        case row(AgendaRow)
+
+        var id: String {
+            if case .row(let row) = self { return row.id }
+            return "now"
+        }
+    }
+
+    private func lines(_ group: AgendaDayGroup) -> [DayLine] {
+        var lines = group.rows.map(DayLine.row)
+        if let at = nowIndex(group) { lines.insert(.now, at: at) }
+        return lines
     }
 
     private func nowIndex(_ group: AgendaDayGroup) -> Int? {
@@ -433,7 +454,7 @@ struct AgendaScreen: View {
             }
         }
         .swipeActions(edge: .trailing) {
-            if let item = row.item, item.todo != nil, !item.isDone, doneKeyword(for: item) != nil {
+            if let item = row.item, item.todo != nil, !item.isDone, item.doneKeyword != nil {
                 Button("Done", systemImage: "checkmark") { markDone(item) }.tint(.green)
                 Button("Next State", systemImage: "arrow.right.circle") { run("org.todo.next", on: item) }.tint(.blue)
             }
@@ -535,14 +556,8 @@ struct AgendaScreen: View {
         tick += 1
     }
 
-    /// The first done keyword of the item's TODO sequence.
-    private func doneKeyword(for item: AgendaItem) -> String? {
-        guard let todo = item.todo, let path = item.path, let settings = session.settings(for: path) else { return nil }
-        return settings.todoSequences.first { ($0.active + $0.done).contains { $0.name == todo } }?.done.first?.name
-    }
-
     private func markDone(_ item: AgendaItem) {
-        guard let keyword = doneKeyword(for: item) else { return }
+        guard let keyword = item.doneKeyword else { return }
         run(SetTodo(keyword: keyword), on: item)
         done += 1
     }

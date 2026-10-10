@@ -100,17 +100,16 @@ public struct AgendaSource: Sendable {
     let keywords: [String]
     /// The active ones (`org-not-done-keywords`).
     let notDoneKeywords: [String]
+    /// Each keyword's first done keyword in the first sequence that has it.
+    let firstDone: [String: String]
     /// The file's text, for the search view.
     let text: String
-    /// Whether the headings' blocked flags were worked out.
-    public let checksBlocking: Bool
     let priorities: Priorities
 
     /// `checksBlocking` false leaves every heading unblocked, for when neither enforce
     /// setting is on.
     public init(path: String, text: String, defaults: OrgSettings = .default, checksBlocking: Bool = true) {
         self.path = path
-        self.checksBlocking = checksBlocking
         readsSetupFiles = text.range(of: "#+setupfile:", options: .caseInsensitive) != nil
         let tree = OrgParser.parse(text, defaults: defaults)
         let model = DocumentModel(tree: tree)
@@ -118,6 +117,12 @@ public struct AgendaSource: Sendable {
         let settings = tree.settings
         keywords = settings.todoSequences.flatMap { $0.active.map(\.name) + $0.done.map(\.name) }
         notDoneKeywords = settings.todoSequences.flatMap { $0.active.map(\.name) }
+        var firstDone: [String: String] = [:]
+        for sequence in settings.todoSequences {
+            guard let done = sequence.done.first?.name else { continue }
+            for keyword in sequence.active + sequence.done where firstDone[keyword.name] == nil { firstDone[keyword.name] = done }
+        }
+        self.firstDone = firstDone
         self.text = text
         priorities = settings.priorities
 

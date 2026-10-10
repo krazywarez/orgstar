@@ -53,17 +53,22 @@ final class SpotlightIndexer {
     private func index(_ files: [FileEntry]) async {
         let generation = Data(state.generation.uuidString.utf8)
         let stamps = (try? await index.fetchLastClientState()) == generation ? state.stamps : [:]
-        var current: [String: Date] = [:]
-        var items: [CSSearchableItem] = []
-        for file in files where file.kind == .org {
-            guard let date = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.modificationDate] as? Date else { continue }
-            if stamps[file.path] == date {
-                current[file.path] = date
-            } else if let text = try? String(contentsOfFile: file.path, encoding: .utf8) {
-                items.append(Self.item(file, text: text))
-                current[file.path] = date
+        // Reading and summarizing files stays off the main thread.
+        let (current, changed) = await Task.detached {
+            var current: [String: Date] = [:]
+            var changed: [(file: FileEntry, text: String, summary: FileSummary)] = []
+            for file in files where file.kind == .org {
+                guard let date = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.modificationDate] as? Date else { continue }
+                if stamps[file.path] == date {
+                    current[file.path] = date
+                } else if let text = try? String(contentsOfFile: file.path, encoding: .utf8) {
+                    changed.append((file, text, FileSummary(text)))
+                    current[file.path] = date
+                }
             }
-        }
+            return (current, changed)
+        }.value
+        let items = changed.map { Self.item($0.file, text: $0.text, summary: $0.summary) }
         let gone = stamps.keys.filter { current[$0] == nil }
         guard !items.isEmpty || !gone.isEmpty else { return }
         submit(items, removing: gone)
@@ -76,8 +81,7 @@ final class SpotlightIndexer {
         try? JSONEncoder().encode(state).write(to: stateFile, options: .atomic)
     }
 
-    private static func item(_ file: FileEntry, text: String) -> CSSearchableItem {
-        let summary = FileSummary(text)
+    private static func item(_ file: FileEntry, text: String, summary: FileSummary) -> CSSearchableItem {
         let attributes = CSSearchableItemAttributeSet(contentType: .text)
         attributes.title = summary.title ?? (file.name as NSString).deletingPathExtension
         attributes.displayName = attributes.title

@@ -4,9 +4,17 @@ import OrgCore
 import OrgIndex
 import OrgPresentation
 
+/// Parsed agenda files by path, kept while the file's modification date and size and the
+/// settings it was parsed with hold. Agenda models over one workspace can share one.
+@MainActor
+public final class AgendaSourceCache {
+    var entries: [String: (mtime: Date, size: Int, defaults: OrgSettings, blocking: Bool, source: AgendaSource)] = [:]
+
+    public init() {}
+}
+
 /// The day/week agenda over the workspace's agenda files. Sources are read from disk and
-/// cached by modification date and size; the open file's come from its buffer, so the agenda
-/// shows unsaved edits.
+/// cached in `cache`; the open file's come from its buffer, so the agenda shows unsaved edits.
 @MainActor
 @Observable
 public final class AgendaModel {
@@ -33,11 +41,12 @@ public final class AgendaModel {
     @ObservationIgnored private var calendar = Calendar.current
 
     private let workspace: WorkspaceModel
-    @ObservationIgnored private var cache: [String: (mtime: Date, size: Int, source: AgendaSource)] = [:]
+    @ObservationIgnored public let cache: AgendaSourceCache
     @ObservationIgnored private var generation = 0
 
-    public init(workspace: WorkspaceModel) {
+    public init(workspace: WorkspaceModel, cache: AgendaSourceCache = AgendaSourceCache()) {
         self.workspace = workspace
+        self.cache = cache
     }
 
     /// Org files directly in each folder (or below it, with `includeSubfolders`), by path, as
@@ -113,7 +122,7 @@ public final class AgendaModel {
     }
 
     /// The agenda files' sources: the open file's from its text, the others from the cache
-    /// while their modification date and size are unchanged.
+    /// while they and the settings are unchanged.
     private func sources(open: [String: String]) async -> [AgendaSource] {
         let interval = Perf.begin("agenda.sources")
         defer { interval.end("\(files.count) files") }
@@ -129,7 +138,9 @@ public final class AgendaModel {
             let mtime = attributes?[.modificationDate] as? Date ?? .distantPast
             let size = (attributes?[.size] as? NSNumber)?.intValue ?? -1
             // A file reading setup files is read again: they may have changed.
-            let cached = cache[path].flatMap { $0.mtime == mtime && $0.size == size && !$0.source.readsSetupFiles && $0.source.checksBlocking == blocking ? $0.source : nil }
+            let cached = cache.entries[path].flatMap { entry in
+                entry.mtime == mtime && entry.size == size && entry.defaults == defaults && entry.blocking == blocking && !entry.source.readsSetupFiles ? entry.source : nil
+            }
             reads.append((path, cached, mtime, size, nil))
         }
         let loaded = await Task.detached {
@@ -147,7 +158,7 @@ public final class AgendaModel {
             return sources
         }.value
         for source in loaded where source.fromDisk {
-            cache[source.path] = (source.mtime, source.size, source.source)
+            cache.entries[source.path] = (source.mtime, source.size, defaults, blocking, source.source)
         }
         return loaded.map(\.source)
     }

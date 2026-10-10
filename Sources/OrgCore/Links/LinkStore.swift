@@ -130,12 +130,13 @@ extension Links {
         }
     }
 
+    static let bracketLink = try! NSRegularExpression(pattern: "\\[\\[((?:[^\\]\\[\\\\]|\\\\(?:\\\\\\\\)*[\\]\\[]|\\\\+[^\\]\\[])+)\\](?:\\[((?:.|\\n)+?)\\])?\\]")
+
     /// `org-link-display-format`: bracket links become their descriptions.
     static func displayFormat(_ s: String) -> String {
-        let regex = try! NSRegularExpression(pattern: "\\[\\[((?:[^\\]\\[\\\\]|\\\\(?:\\\\\\\\)*[\\]\\[]|\\\\+[^\\]\\[])+)\\](?:\\[((?:.|\\n)+?)\\])?\\]")
         let ns = s as NSString
         var out = s
-        for m in regex.matches(in: s, range: NSRange(location: 0, length: ns.length)).reversed() {
+        for m in bracketLink.matches(in: s, range: NSRange(location: 0, length: ns.length)).reversed() {
             let group = m.range(at: 2).location != NSNotFound ? m.range(at: 2) : m.range(at: 1)
             out = (out as NSString).replacingCharacters(in: m.range, with: ns.substring(with: group))
         }

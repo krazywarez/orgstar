@@ -138,8 +138,28 @@ public final class WorkspaceModel {
         }
     }
 
-    /// Reconciles every root off the main thread, then reloads the file list.
+    /// Reconciles every root off the main thread, then reloads the file list. A call while a
+    /// refresh runs waits for it and one more pass, which covers every such call.
     public func refresh() async {
+        if let refreshing {
+            refreshAgain = true
+            return await refreshing.value
+        }
+        let task = Task {
+            repeat {
+                refreshAgain = false
+                await refreshOnce()
+            } while refreshAgain
+        }
+        refreshing = task
+        await task.value
+        refreshing = nil
+    }
+
+    @ObservationIgnored private var refreshing: Task<Void, Never>?
+    @ObservationIgnored private var refreshAgain = false
+
+    private func refreshOnce() async {
         let interval = Perf.begin("workspace.refresh")
         defer { interval.end() }
         isIndexing = true

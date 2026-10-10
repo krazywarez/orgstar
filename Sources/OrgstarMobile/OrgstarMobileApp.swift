@@ -202,6 +202,8 @@ struct RootView: View {
                               settings: model.settingsVersion, active: scenePhase == .active, hour: hour)) {
             guard scenePhase == .active else { return }
             try? await Task.sleep(for: .seconds(1))
+            // After the agenda's refresh, whose parsed files these share.
+            while agenda.isComputing, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(100)) }
             guard !Task.isCancelled else { return }
             await model.updateReminders()
             await model.updateWidgets()

@@ -82,14 +82,6 @@ public final class DocumentSession {
         DocumentState(bytes: bytes, defaults: defaults.resolvingSetupFiles(in: SourceText(bytes: bytes).text, path: path, read: readText))
     }
 
-    /// The settings of the file at `path` as the editor sees them: its open buffer's, or its
-    /// text on disk with the defaults and the setup files it names.
-    public func settings(for path: String) -> OrgSettings? {
-        if let entry = entry(path) { return entry.buffer.document.tree.settings }
-        guard let bytes = (try? fileSystem.read(URL(fileURLWithPath: path))).flatMap({ $0 }) else { return nil }
-        return loaded(bytes, path: path).tree.settings
-    }
-
     /// A file's text, for setup files.
     func readText(_ file: String) -> String? {
         (try? fileSystem.read(URL(fileURLWithPath: file))).flatMap { $0 }.flatMap { String(bytes: $0, encoding: .utf8) }
