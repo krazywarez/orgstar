@@ -88,6 +88,7 @@ final class MobileModel {
         if let url {
             _ = url.startAccessingSecurityScopedResource()
             if let bookmark = try? url.bookmarkData() { UserDefaults.standard.set(bookmark, forKey: Self.bookmarkKey) }
+            Self.createConfig(in: url)
         } else {
             UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
             // What the folder set no longer applies.
@@ -177,6 +178,16 @@ final class MobileModel {
 
     /// Applies the folder's `config.toml` to the settings; returns its problems and the theme's
     /// colors.
+    /// Writes `config.toml` with every setting at its default when the folder has none.
+    private static func createConfig(in folder: URL) {
+        let file = folder.appendingPathComponent("config.toml")
+        var error: NSError?
+        NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: file, options: [], error: &error) { url in
+            guard !FileManager.default.fileExists(atPath: url.path) else { return }
+            try? UserConfig.defaultTemplate.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+
     private static func readConfig(_ folder: URL?) -> ([String], ThemeSpec) {
         guard let folder else { return ([], .default) }
         guard let text = read(folder.appendingPathComponent("config.toml")) else {

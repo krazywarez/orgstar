@@ -305,9 +305,9 @@ See [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]] for
 The iOS app reads its settings from a configuration folder: a folder holding =config.toml= and =capture.toml=, such as a copy of the Mac's =~/.config/orgstar= synced through iCloud Drive or another app.
 
 1. Open the Settings tab.
-2. Tap Choose Folder… and choose the folder.
+2. Tap Choose Folder… and choose the folder. If it has no =config.toml=, Orgstar writes one with every setting at its default, each with a comment, as the Mac does.
 
-Changes to the files apply as they sync, and again each time you return to the app. Problems in the files show in red under the folder. "No config.toml in /folder/; the defaults apply" means the folder has no =config.toml=.
+Changes to the files apply as they sync, and again each time you return to the app. Problems in the files show in red under the folder. "No config.toml in /folder/; the defaults apply" means the folder has no =config.toml=, for example because it was removed after you chose the folder.
 
 Stop Using This Folder returns every setting to its default.
 

@@ -371,6 +371,13 @@ public enum UserConfig {
 
     /// A commented file with every setting at its current value.
     public static func template(from defaults: UserDefaults) -> String {
+        template { value($0, in: defaults) }
+    }
+
+    /// A commented file with every setting at its default.
+    public static var defaultTemplate: String { template(\.fallback) }
+
+    private static func template(_ value: (Setting) -> TOML.Value) -> String {
         var out = """
             # Orgstar settings. The Settings window writes its changes here, and edits made here
             # apply while Orgstar runs. Keys go in keymap.toml, capture templates in capture.toml
@@ -385,7 +392,7 @@ public enum UserConfig {
                 section = setting.section
                 out += "\n[\(section)]\n"
             }
-            out += "\(setting.key) = \(format(value(setting, in: defaults)))  # \(setting.comment)\n"
+            out += "\(setting.key) = \(format(value(setting)))  # \(setting.comment)\n"
         }
         return out
     }

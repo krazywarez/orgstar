@@ -32,6 +32,15 @@ struct UserConfigTests {
         #expect(target.bool(forKey: "showLineNumbers") == false)
     }
 
+    @Test func defaultTemplateHasEveryDefault() {
+        #expect(UserConfig.defaultTemplate == UserConfig.template(from: defaults()))
+        let target = defaults()
+        #expect(UserConfig.apply(UserConfig.defaultTemplate, to: target).isEmpty)
+        for setting in UserConfig.settings {
+            #expect(UserConfig.value(setting, in: target) == setting.fallback, "\(setting.key)")
+        }
+    }
+
     @Test func problemsAndRemovedLines() {
         let target = defaults()
         target.set(60, forKey: "fillColumn")
