@@ -22,6 +22,8 @@ orgstar on iOS works on folders you choose, in iCloud Drive or in another app's 
 
 orgstar keeps access to the folder across launches. Each folder appears as a section listing its =.org= files by their path inside the folder. Remove Folder at the end of a section removes it from orgstar; the files stay where they are.
 
+Swipe left on a file, or touch and hold it, to delete it. orgstar asks first. A file in iCloud Drive goes to Recently Deleted in the Files app; elsewhere it is removed.
+
 Files that iCloud hasn't downloaded to the device yet appear in grey with a cloud icon. orgstar asks iCloud to download them and lists them as files once they arrive.
 
 orgstar sees changes made by iCloud and by apps that use the system's file coordination, and reads every folder again each time you return to the app, since not every sync app reports its changes. An open file takes in changes from disk as described in [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]].
@@ -159,7 +161,7 @@ The Agenda tab shows the agenda over all your folders, with the span and start d
 - Filter :: keep or leave out tags and categories of the entries shown, or type a filter as Org's =/= takes it: =+keep= and =-drop= tags or categories, =<0:30= for effort, =/regexp/=. The filter in use shows above the bar.
 - + on a day's header :: captures an entry scheduled on that day (see [[file:08-capture.org][Capture]]).
 - Tap :: an entry to read it, at its heading.
-- Swipe left :: on a TODO entry for Done, which sets the first done keyword of its sequence, or Next State.
+- Swipe left :: on a TODO entry for Done, which sets the first done keyword of its sequence, or Next State; on any entry with a heading for Delete, which asks first.
 - Swipe right :: for Tomorrow, Next Week (next Monday) or Pick Date, which move the entry's scheduled date, or its deadline on a deadline row.
 - Touch and hold :: an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, Archive…, and Delete…. Delete… removes the heading and every line under it, after asking. Refile… lists files; the entry goes to the end of the one you choose. Refiling under a heading is Mac only.
 

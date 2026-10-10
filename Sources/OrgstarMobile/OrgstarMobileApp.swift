@@ -162,7 +162,7 @@ struct RootView: View {
             }
             Tab("Folders", systemImage: "folder", value: .folders) {
                 NavigationStack {
-                    FoldersScreen(workspace: workspace)
+                    FoldersScreen(workspace: workspace, session: session)
                         .toolbar { captureButton }
                         .readerDestination(workspace: workspace, session: session)
                 }

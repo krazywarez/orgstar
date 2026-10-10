@@ -491,6 +491,10 @@ struct AgendaScreen: View, Equatable {
                 Button("Done", systemImage: "checkmark") { markDone(item) }.tint(.green)
                 Button("Next State", systemImage: "arrow.right.circle") { run("org.todo.next", on: item) }.tint(.blue)
             }
+            // Last, so a full swipe doesn't reach it; it asks first.
+            if let item = row.item, item.path != nil, item.headingLine != nil {
+                Button("Delete", systemImage: "trash") { deleting = item }.tint(.red)
+            }
         }
         .swipeActions(edge: .leading) {
             if canReschedule(row), let item = row.item {

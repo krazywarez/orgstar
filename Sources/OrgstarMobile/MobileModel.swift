@@ -65,6 +65,10 @@ final class MobileModel {
         let settings = OrgPreferences.orgSettings()
         do {
             let workspace = try WorkspaceModel(directory: WorkspaceModel.defaultDirectory, settings: .with(todoKeywords: settings))
+            // Recently Deleted where the folder's provider keeps one (iCloud Drive); otherwise gone.
+            workspace.trasher = { url in
+                do { try FileManager.default.trashItem(at: url, resultingItemURL: nil) } catch { try FileManager.default.removeItem(at: url) }
+            }
             self.workspace = workspace
             agenda = AgendaModel(workspace: workspace)
             failure = nil
