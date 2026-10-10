@@ -119,6 +119,25 @@ struct UserConfigTests {
         #expect(store.integer(forKey: "agendaStartOffset") == 0)
         #expect(sync.problems.isEmpty)
     }
+
+    /// A config.toml linked to another folder's (as the iOS app's) stays a link when the
+    /// Settings window writes it.
+    @Test func writesThroughASymlink() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-config-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let shared = folder.appendingPathComponent("notes/config.toml")
+        let link = folder.appendingPathComponent("orgstar/config.toml")
+        try FileManager.default.createDirectory(at: shared.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: link.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "fill-column = 80\n".write(to: shared, atomically: true, encoding: .utf8)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: shared)
+        let store = defaults()
+        let sync = ConfigSync(url: link, defaults: store)
+        sync.start(watch: false)
+        store.set(66, forKey: "fillColumn")
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path) == shared.path)
+        #expect(try String(contentsOf: shared, encoding: .utf8).contains("fill-column = 66"))
+    }
 }
 
 @MainActor

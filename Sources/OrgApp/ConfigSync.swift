@@ -29,6 +29,9 @@ public final class ConfigSync {
     @ObservationIgnored private var observer: NSObjectProtocol?
     @ObservationIgnored private var serial = 0
 
+    /// Where `url` leads: a symlinked config.toml is written through, not replaced by a file.
+    private var target: URL { url.resolvingSymlinksInPath() }
+
     public init(url: URL = UserConfig.configFile, defaults: UserDefaults = .standard) {
         self.url = url
         self.defaults = defaults
@@ -49,13 +52,13 @@ public final class ConfigSync {
                 let migrated = UserConfig.usesLegacyNames(text) ? UserConfig.migratingLegacyNames(text) : text
                 let completed = UserConfig.addingMissingSections(migrated, from: defaults)
                 if completed != text {
-                    try? completed.write(to: url, atomically: true, encoding: .utf8)
+                    try? completed.write(to: target, atomically: true, encoding: .utf8)
                     self.text = completed
                 }
             }
         } else {
             let template = UserConfig.template(from: defaults)
-            try? template.write(to: url, atomically: true, encoding: .utf8)
+            try? template.write(to: target, atomically: true, encoding: .utf8)
             text = template
         }
         observer = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: defaults, queue: .main) { [weak self] _ in
@@ -63,10 +66,13 @@ public final class ConfigSync {
         }
         guard watch else { return }
         let directory = url.deletingLastPathComponent().resolvingSymlinksInPath()
+        // The linked file's folder too, when config.toml is a symlink.
+        let linked = target.deletingLastPathComponent().resolvingSymlinksInPath()
+        let watchesLinked = linked.path != directory.path
         // Files still read from where earlier versions kept them reload when edited there too.
         let legacy = UserConfig.legacyDirectory.resolvingSymlinksInPath()
         let watchesLegacy = legacy.path != directory.path && FileManager.default.fileExists(atPath: legacy.path)
-        watcher = FSEventsWatcher(roots: [directory] + (watchesLegacy ? [legacy] : [])) { [weak self] events in
+        watcher = FSEventsWatcher(roots: [directory] + (watchesLinked ? [linked] : []) + (watchesLegacy ? [legacy] : [])) { [weak self] events in
             let changed = Set(events.compactMap { event -> URL? in
                 if case .changed(let url) = event { return url }
                 return nil
@@ -130,7 +136,7 @@ public final class ConfigSync {
         }
         guard current != original else { return }
         text = current
-        try? current.write(to: url, atomically: true, encoding: .utf8)
+        try? current.write(to: target, atomically: true, encoding: .utf8)
     }
 }
 #endif
