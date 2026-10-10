@@ -21,6 +21,10 @@ struct FoldersScreen: View {
             }
         }
         .navigationTitle("Folders")
+        .navigationDestination(for: FolderRoute.self) { route in
+            List { FolderContents(workspace: workspace, root: route.root, folder: route.folder) }
+                .navigationTitle((route.folder as NSString).lastPathComponent)
+        }
         .overlay {
             if workspace.rootPaths.isEmpty {
                 ContentUnavailableView {
@@ -51,6 +55,12 @@ struct FoldersScreen: View {
         }
     }
 }
+/// A subfolder to show, relative to its root.
+struct FolderRoute: Hashable {
+    let root: String
+    let folder: String
+}
+
 /// One folder's subfolders, which open their own contents, then its org files and the files
 /// still downloading into it. `folder` is relative to `root`, empty for the root itself.
 private struct FolderContents: View {
@@ -72,10 +82,8 @@ private struct FolderContents: View {
             path.firstIndex(of: "/").map { String(path[..<$0]) }
         }).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
         ForEach(subfolders, id: \.self) { name in
-            NavigationLink {
-                List { FolderContents(workspace: workspace, root: root, folder: prefix + name) }
-                    .navigationTitle(name)
-            } label: {
+            // A value, as the files' links are: a stack mixing the two kinds pushes wrongly.
+            NavigationLink(value: FolderRoute(root: root, folder: prefix + name)) {
                 Label(name, systemImage: "folder")
             }
         }
