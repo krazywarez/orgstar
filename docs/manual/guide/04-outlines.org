@@ -584,9 +584,11 @@ whose value is =[ ]= or =[X]= toggles between them.
 
 ** Inheritance
 
-orgstar inherits properties as Org does with =org-use-property-inheritance= at its
-default of =nil=: a property applies only to the entry that has it, with these
-exceptions:
+orgstar inherits properties as Org does with =org-use-property-inheritance=, set in
+=config.toml=: =nil= (the default), =t= for all properties, or property names separated
+by spaces, such as ="STYLE TEAM"=. An inherited property comes from the nearest ancestor
+that has it, or from a =#+PROPERTY:= line. At =nil=, a property applies only to the entry
+that has it, with these exceptions:
 
 - =CATEGORY=, =ARCHIVE=, =COLUMNS=, =LOGGING= and the =header-args= properties are
   always inherited from ancestors and =#+PROPERTY:= lines.
@@ -594,7 +596,8 @@ exceptions:
 - =KEY_ALL= allowed values and =COOKIE_DATA= for TODO statistics are looked up through
   the ancestors.
 
-orgstar has no setting for =org-use-property-inheritance=.
+The setting applies to property lookups, agenda matches and habits (=STYLE=), as
+Org's =selective= inheritance does.
 
 ** Special properties
 

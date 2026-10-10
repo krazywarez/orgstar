@@ -47,6 +47,8 @@ public struct OrgSettings: Sendable, Equatable {
     public var radioTargets: [String] = []
     /// `org-list-allow-alphabetical`: `a.` and `A)` are bullets.
     public var listAllowAlphabetical = false
+    /// `org-use-property-inheritance`.
+    public var propertyInheritance: SemanticSettings.PropertyInheritance = .none
     /// Keyword lines from the file's `#+SETUPFILE`s, as `#+KEY: value` lines: they count as
     /// the file's own, before them.
     public var setupKeywords = ""
@@ -133,6 +135,7 @@ enum SettingsScanner {
         var settings = OrgSettings(todoSequences: sequences.isEmpty ? defaults.todoSequences : sequences, priorities: priorities,
                                    radioTargets: radio.sorted { $0.count > $1.count })
         settings.listAllowAlphabetical = defaults.listAllowAlphabetical
+        settings.propertyInheritance = defaults.propertyInheritance
         settings.setupKeywords = defaults.setupKeywords
         settings.startup = startup
         return settings

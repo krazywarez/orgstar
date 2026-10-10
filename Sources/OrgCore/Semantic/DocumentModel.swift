@@ -21,8 +21,9 @@ public struct DocumentModel: Sendable {
 
     private typealias PendingBlock = (node: SyntaxNode, heading: Int?, affiliated: [SyntaxNode])
 
-    public init(tree: OrgTree, settings: SemanticSettings = .default) {
-        self.settings = settings
+    /// `settings` default to the tree's property inheritance.
+    public init(tree: OrgTree, settings: SemanticSettings? = nil) {
+        self.settings = settings ?? SemanticSettings(propertyInheritance: tree.settings.propertyInheritance)
         self.orgSettings = tree.settings
         for (key, value) in SetupFile.keywords(tree.settings.setupKeywords) { fileKeyword(key, value.trimmingCharacters(in: .whitespaces)) }
         var pending: [PendingBlock] = []

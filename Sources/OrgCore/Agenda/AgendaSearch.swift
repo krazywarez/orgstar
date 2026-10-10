@@ -385,7 +385,7 @@ public struct TagsMatcher: Sendable {
             case "SCHEDULED", "DEADLINE", "CLOSED": return heading.planning[name]
             case "TIMESTAMP": return heading.firstActive
             case "TIMESTAMP_IA": return heading.firstInactive
-            default: return heading.properties[name]
+            default: return heading.matchProperties[name]
             }
         }
         func evaluate(_ term: Term) -> Bool {

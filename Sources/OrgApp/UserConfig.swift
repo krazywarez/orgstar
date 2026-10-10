@@ -99,6 +99,8 @@ public enum UserConfig {
                 comment: "M-RET adds the new heading after the subtree", legacy: "editor.insert-heading-respect-content"),
         Setting(section: "", key: "org-M-RET-may-split-line", defaultsKey: "splitLine", kind: .bool, fallback: .bool(false),
                 comment: "M-RET splits the line at the caret", legacy: "editor.meta-return-may-split-line"),
+        Setting(section: "", key: "org-use-property-inheritance", defaultsKey: "propertyInheritance", kind: .string, fallback: .string("nil"),
+                comment: "nil, t, or property names that inherit, separated by spaces, such as \"STYLE\"", legacy: ""),
         Setting(section: "", key: "org-list-allow-alphabetical", defaultsKey: "alphabeticalLists", kind: .bool, fallback: .bool(true),
                 comment: "lists can use a. b. c.", legacy: "editor.list-allow-alphabetical"),
         Setting(section: "", key: "org-hide-emphasis-markers", defaultsKey: "hiddenMarkers", kind: .bool, fallback: .bool(true),

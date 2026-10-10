@@ -12,6 +12,7 @@ public enum OrgPreferences {
         let line = defaults.string(forKey: "todoKeywords") ?? defaultTodoKeywords
         var settings = OrgSettings.default.withTodoKeywords(line) ?? .default
         settings.listAllowAlphabetical = bool("alphabeticalLists", defaults)
+        settings.propertyInheritance = .init(string("propertyInheritance", defaults))
         return settings
     }
 

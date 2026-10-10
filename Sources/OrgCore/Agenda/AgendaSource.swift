@@ -26,6 +26,8 @@ public struct AgendaSource: Sendable {
         let localTags: [String]
         /// Upper-cased keys of the entry's own drawer.
         let properties: [String: String]
+        /// `properties` with inherited ones (`org-use-property-inheritance`), for matches.
+        let matchProperties: [String: String]
         /// Planning timestamps with brackets, for property matches.
         let planning: [String: String]
         /// The first active and inactive timestamps in the entry (`TIMESTAMP`, `TIMESTAMP_IA`).
@@ -252,7 +254,16 @@ public struct AgendaSource: Sendable {
                 }
             }
             let ownStamps = sectionStamps(index)
-            let isHabit = properties["STYLE"]?.trimmingCharacters(in: .whitespaces) == "habit"
+            // Matches and `org-is-habit-p` read properties with `org-use-property-inheritance`:
+            // inherited values first, the entry's own over them.
+            var matchProperties = properties
+            if model.settings.propertyInheritance != .none {
+                let keys = Set((model.fileProperties + model.ancestors(of: index).flatMap { model.headings[$0].properties }).map { $0.key.uppercased() })
+                for key in keys where matchProperties[key] == nil && model.inherits(key) {
+                    if let value = model.property(key, of: index)?.value { matchProperties[key] = value }
+                }
+            }
+            let isHabit = matchProperties["STYLE"]?.trimmingCharacters(in: .whitespaces) == "habit"
             var habit: Habit?
             if isHabit, let scheduled {
                 let end = index + 1 < model.headings.count ? model.headings[index + 1].headingRange.lowerBound : ns.length
@@ -269,7 +280,7 @@ public struct AgendaSource: Sendable {
             headings.append(Heading(
                 start: info.headingRange.lowerBound, level: info.level, skipped: skipped[index],
                 title: info.title.trimmingCharacters(in: .whitespaces), priority: info.priority, localTags: info.localTags,
-                properties: properties, planning: planningValues,
+                properties: properties, matchProperties: matchProperties, planning: planningValues,
                 firstActive: ownStamps.first { $0.hasPrefix("<") }, firstInactive: ownStamps.first { $0.hasPrefix("[") },
                 line: line.trimmingCharacters(in: .newlines), head: head, todo: info.todo, isDone: info.isDone,
                 tags: tags, category: category, scheduled: scheduled, deadline: deadline, isHabit: isHabit, habit: habit,

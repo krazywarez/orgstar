@@ -243,6 +243,8 @@ SCHEDULED: <2026-10-05 Mon .+2d/4d>
 - State "DONE"       from "TODO"       [2026-10-01 Thu 07:05]
 #+END_SRC
 
+To make every entry of a file a habit, put =#+PROPERTY: STYLE habit= at the top of the file and set =org-use-property-inheritance = "STYLE"= in =config.toml=. As in Org, the =#+PROPERTY= line counts only when STYLE inherits; set the same variable in Emacs, =(setq org-use-property-inheritance '("STYLE"))=, for Emacs to agree.
+
 The repeater can be =+=, =++= or =.+=, with an optional =/Nd= maximum interval. Days the habit was done are read from =- State "DONE" … [date]= lines (for any done keyword) and =CLOSING NOTE [date]= lines in the entry.
 
 A habit appears only on today's agenda and not once it is done for the day. Its row carries the consistency graph: one cell per day for the 21 days before today and the 7 after (=org-habit-preceding-days= and =org-habit-following-days=). On the Mac the graph is at the right of the row, with =*= on days the habit was done and =!= on today; on iOS it is a strip under the title, with a dot on days it was done and today outlined. Cell colors follow org-habit's faces:
@@ -323,7 +325,7 @@ Names are case-insensitive. Prefix a character in a name with =\= to use it lite
 | =SCHEDULED=, =DEADLINE=, =CLOSED= | The planning timestamp                |
 | =TIMESTAMP=, =TIMESTAMP_IA= | The entry's first active or inactive timestamp |
 
-Properties are not inherited in matches (=org-use-property-inheritance= is nil). With a date value, =<>= and its synonyms match dates that are equal, as orgstar's comparison mirrors =org-time<>= in Org 9.8.7; use =<= and =>= for date ranges.
+Properties inherit in matches as =org-use-property-inheritance= says: by default they don't, so =TEAM="ops"= matches only the entry with the property; with =org-use-property-inheritance = "TEAM"= it matches the entries under it too, and =#+PROPERTY= lines count. With a date value, =<>= and its synonyms match dates that are equal, as orgstar's comparison mirrors =org-time<>= in Org 9.8.7; use =<= and =>= for date ranges.
 
 ** TODO keywords
 

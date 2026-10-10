@@ -6,6 +6,19 @@ public struct SemanticSettings: Sendable, Equatable {
         case all
         /// Upper-cased property keys that inherit.
         case only(Set<String>)
+
+        /// `org-use-property-inheritance` as `config.toml` writes it: empty or `nil` for none,
+        /// `t` for all, or property names separated by spaces.
+        public init(_ text: String) {
+            let names = text.split(whereSeparator: \.isWhitespace).map { $0.uppercased() }
+            if names.isEmpty || names == ["NIL"] {
+                self = .none
+            } else if names == ["T"] {
+                self = .all
+            } else {
+                self = .only(Set(names))
+            }
+        }
     }
 
     public var tagInheritance: Bool
