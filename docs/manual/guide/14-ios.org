@@ -176,18 +176,27 @@ See [[file:07-agenda.org][The agenda]] for the rows, the views and matches, and 
 
 ** Widgets
 
-orgstar has two widgets. Add them as any widget: touch and hold the Home Screen or the Lock Screen, and choose orgstar in the widget gallery.
+orgstar has four widgets. Add them as any widget: touch and hold the Home Screen or the Lock Screen, and choose orgstar in the widget gallery.
 
 | Widget | Sizes                                        | Shows                                                                                       |
 |--------+----------------------------------------------+---------------------------------------------------------------------------------------------|
 | Today  | Small, medium and large (Home Screen)        | The date, the count of open entries, and what's left of today: 3 rows (small), 4 rows (medium), or 6 rows and tomorrow's entries (large). Medium and large also count overdue entries. |
 | Up Next | Rectangular, inline and circular (Lock Screen) | The next entry's time or status and title (rectangular, inline), or the count of open entries today (circular, and inline when nothing is left) |
+| Habits  | Small, medium and large (Home Screen)        | Each habit (=STYLE: habit=) in your agenda files that isn't done, with its consistency graph, as the agenda draws it: the last week (small, 3 habits), or the last three weeks and the next one (medium, 4 habits; large, 9), and how many were done today. |
+| Capture | Circular and rectangular (Lock Screen)       | A button that opens the capture sheet with the template you choose when you edit the widget, or the first template. |
 
 What's left of today is today's entries and calendar events that aren't done, without timed ones that have ended (or started, when they have no end), followed by the overdue entries. The open count is today's entries not done, overdue ones included, without calendar events. The widgets use the theme's colours for the status, the keyword, the priority and the category.
 
-Tapping a row in the medium or large Today widget opens that entry; tapping elsewhere opens the agenda. Tapping Up Next opens the next entry, or the agenda when there is none.
+Tapping a row in the medium or large Today widget opens that entry; tapping elsewhere opens the agenda. Tapping Up Next opens the next entry, or the agenda when there is none. Tapping a habit opens it.
 
-Widgets can't read your folders, so the app writes the next seven days of the agenda (today included) for them to read: while it is open, when files, edits or settings change, when you return to the app, and every hour. Between those times the widgets move on by themselves as timed entries end and at midnight, but they show nothing new until you open orgstar. Until the app has written the agenda once, they say =Open orgstar to show your agenda here.= The widgets ignore the agenda's filter and show no days without entries.
+Widgets can't read your folders, so the app writes the next seven days of the agenda (today included) for them to read: while it is open, when files, edits or settings change, when you return to the app, and every hour. Between those times the widgets move on by themselves as timed entries end and at midnight, but they show nothing new until you open orgstar. Until the app has written the agenda once, they say =Open orgstar to show your agenda here.= The widgets ignore the agenda's filter and show no days without entries. The Habits widget's graphs move on at midnight by themselves.
+
+** Controls
+
+orgstar has two controls for Control Center, the Lock Screen and the Action button. Add them as any control: in Control Center, touch and hold an empty space and tap Add a Control, then choose orgstar.
+
+- Capture :: opens the capture sheet. Touch and hold it while editing Control Center to choose a template; without one it uses the first.
+- Clock :: on while a clock runs, showing its entry. Turning it off clocks out; turning it on clocks in to the entry clocked last (Clock In Last). If a clock was left running elsewhere, orgstar asks in the app how to resolve it.
 
 ** The clock's Live Activity
 

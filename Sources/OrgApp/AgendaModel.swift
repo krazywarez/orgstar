@@ -118,6 +118,13 @@ public final class AgendaModel {
         return await Task.detached { Reminders.upcoming(all, now: now, calendar: calendar, days: days, lead: lead) }.value
     }
 
+    /// The habits of the agenda files, file by file.
+    public func habits(open: [String: String]) async -> [HabitSnapshot.Entry] {
+        await sources(open: open).flatMap { source in
+            source.habits.map { HabitSnapshot.Entry(title: $0.title, path: source.path, offset: $0.offset, habit: $0.habit) }
+        }
+    }
+
     /// Entries for the table and kanban views, and the keywords their files use.
     public func board(open: [String: String], match: String) async -> (entries: [BoardEntry], keywords: [String]) {
         let all = await sources(open: open)

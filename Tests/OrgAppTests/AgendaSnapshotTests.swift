@@ -112,7 +112,7 @@ struct AgendaSnapshotTests {
     }
 
     @Test func linksRoundTrip() {
-        for link in [AppLink.agenda, .clock, .entry(path: "/notes/a b&c+d/ünï.org", offset: 42)] {
+        for link in [AppLink.agenda, .clock, .capture(template: nil), .capture(template: "t"), .entry(path: "/notes/a b&c+d/ünï.org", offset: 42)] {
             #expect(AppLink(url: link.url) == link)
         }
         #expect(AppLink.agenda.url.absoluteString == "orgstar://agenda")

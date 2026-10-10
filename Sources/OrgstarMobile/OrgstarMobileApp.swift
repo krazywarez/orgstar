@@ -213,11 +213,13 @@ struct RootView: View {
             // An open file takes in what changed on disk.
             if let path = workspace.changedFile?.path { session.fileChanged(path) }
         }
-        .onChange(of: model.captureRequest?.id) {
+        // Initially too: the capture control may have launched the app.
+        .onChange(of: model.captureRequest?.id, initial: true) {
             guard let request = model.captureRequest else { return }
             model.captureRequest = nil
             capture = request
         }
+
         .sheet(item: $capture, onDismiss: showWaiting) { request in
             CaptureScreen(workspace: workspace, session: session, request: request)
         }
@@ -260,8 +262,12 @@ struct RootView: View {
             }
         }
         // The Live Activity follows the clock, wherever it starts or stops.
-        .task { await LiveClock.sync(model.clock.running) }
+        .task {
+            LiveClock.publish(model.clock)
+            await LiveClock.sync(model.clock.running)
+        }
         .onChange(of: model.clock.running) {
+            LiveClock.publish(model.clock)
             Task { await LiveClock.sync(model.clock.running) }
         }
     }
@@ -286,6 +292,8 @@ struct RootView: View {
             model.openRequest = .offset(path, offset)
         case .clock:
             clock("app.clock.goto")
+        case .capture(let template):
+            capture = CaptureRequest(template: template)
         }
     }
 

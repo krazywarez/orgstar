@@ -2,6 +2,7 @@
 import ActivityKit
 import AppIntents
 import OrgApp
+import WidgetKit
 
 /// The running clock's Live Activity: one while a clock runs, started when it starts and
 /// ended when it stops, however that happens.
@@ -28,15 +29,38 @@ enum LiveClock {
         )
     }
 
-    /// The Clock Out button's work, in the app's process.
+    /// The clock control's state: the running clock, and the entry Clock In Last would take.
+    static func publish(_ clock: ClockModel) {
+        let snapshot = ClockSnapshot(running: clock.running?.heading, startedAt: clock.running?.startedAt, last: clock.history.first?.title)
+        if (try? snapshot.write()) == true { ControlCenter.shared.reloadControls(ofKind: "sh.krz.orgstar.clock-control") }
+    }
+
+    /// The Clock Out button's work, in the app's process, and the capture and clock controls'.
     static func install() {
-        ClockOutIntent.handler = {
+        ClockOutIntent.handler = clockOut
+        ClockToggleIntent.handler = { on in
+            guard on else { return await clockOut() }
+            // Asks in the app if a dangling clock needs resolving.
             let model = MobileModel.shared
-            let path = model.clock.running?.path
-            _ = model.clock.clockOut(model.session)
-            if let path, model.session.dirtyPaths.contains(path) { _ = model.session.save(path) }
+            guard let workspace = model.workspace else { return }
+            let paths = workspace.files.filter { $0.kind == .org }.map(\.path)
+            _ = await model.clock.clockIn(model.session, target: .last, paths: paths, ask: model.clockPrompts.ask)
+            for path in model.session.dirtyPaths { _ = model.session.save(path) }
             await sync(model.clock.running)
+            publish(model.clock)
         }
+        OpenCaptureIntent.handler = { template in
+            MobileModel.shared.captureRequest = CaptureRequest(template: template)
+        }
+    }
+
+    private static func clockOut() async {
+        let model = MobileModel.shared
+        let path = model.clock.running?.path
+        _ = model.clock.clockOut(model.session)
+        if let path, model.session.dirtyPaths.contains(path) { _ = model.session.save(path) }
+        await sync(model.clock.running)
+        publish(model.clock)
     }
 }
 

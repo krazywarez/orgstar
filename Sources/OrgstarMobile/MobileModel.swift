@@ -34,7 +34,7 @@ final class MobileModel {
     var openRequest: ReaderRoute?
     /// Agenda days to show, from a followed timestamp: the first (a `Days` number) and how many.
     var agendaRequest: AgendaDays?
-    /// A capture to show, from the agenda.
+    /// A capture to show, from the agenda or the capture control.
     var captureRequest: CaptureRequest?
     /// Calendar's events for the agenda, with `calendar-events`.
     let calendarEvents = CalendarEvents()
@@ -251,7 +251,8 @@ final class MobileModel {
     }
 
     /// The widgets' agenda: today and the next days in the app group's container, with the
-    /// widgets reloaded when it changed; and the icon's overdue badge.
+    /// widgets reloaded when it changed; their habits and capture templates; and the icon's
+    /// overdue badge.
     func updateWidgets() async {
         let interval = Perf.begin("widgets.update")
         defer { interval.end() }
@@ -266,9 +267,12 @@ final class MobileModel {
             days.calendarNames = agenda.calendarNames
         }
         await days.refresh(open: session.openTexts)
-        await updateBadge(OverdueBadge.counts(days.groups(), today: days.today, days: AgendaSnapshot.dayCount))
+        let groups = days.groups()
+        await updateBadge(OverdueBadge.counts(groups, today: days.today, days: AgendaSnapshot.dayCount))
+        if (try? HabitSnapshot(habits: await days.habits(open: session.openTexts), theme: theme).write()) == true { WidgetCenter.shared.reloadTimelines(ofKind: "sh.krz.orgstar.habits") }
+        _ = try? TemplateList(templates: CaptureTemplates.load().templates.map { .init(key: $0.key, name: $0.name) }).write()
         guard let file = AgendaSnapshot.file() else { return }
-        let snapshot = AgendaSnapshot(groups: days.groups(), today: days.today, theme: theme, generated: Date())
+        let snapshot = AgendaSnapshot(groups: groups, today: days.today, theme: theme, generated: Date())
         if (try? snapshot.write(to: file)) == true { WidgetCenter.shared.reloadAllTimelines() }
     }
 

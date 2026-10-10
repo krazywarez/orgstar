@@ -2,7 +2,7 @@ import Foundation
 
 /// An entry with `STYLE: habit` (org-habit.el, Org 9.8.7), as `org-habit-parse-todo` reads
 /// it, with `org-log-states-order-reversed` t.
-public struct Habit: Sendable, Equatable {
+public struct Habit: Sendable, Equatable, Codable {
     /// Days are absolute day numbers (`Days`).
     public let scheduled: Int
     public let scheduledRepeat: Int
@@ -12,6 +12,17 @@ public struct Habit: Sendable, Equatable {
     public let doneDates: [Int]
     /// `+`, `++` or `.+`.
     public let repeatType: String
+
+    public init(
+        scheduled: Int, scheduledRepeat: Int, deadlineDay: Int? = nil, deadlineRepeatDays: Int? = nil, doneDates: [Int], repeatType: String = ".+"
+    ) {
+        self.scheduled = scheduled
+        self.scheduledRepeat = scheduledRepeat
+        self.deadlineDay = deadlineDay
+        self.deadlineRepeatDays = deadlineRepeatDays
+        self.doneDates = doneDates
+        self.repeatType = repeatType
+    }
 
     public static let precedingDays = 21
     public static let followingDays = 7
