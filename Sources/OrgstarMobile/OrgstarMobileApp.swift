@@ -57,7 +57,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
 }
 
-enum AppTab: Hashable { case agenda, folders, settings, search }
+enum AppTab: Hashable { case agenda, folders, settings }
+
+/// The search screen, pushed from the Agenda and Folders tabs.
+struct SearchRoute: Hashable {}
 
 extension View {
     /// Readers pushed for `ReaderRoute`s.
@@ -67,6 +70,9 @@ extension View {
         }
         .navigationDestination(for: EditorRoute.self) { route in
             EditorScreen(path: route.path, offset: route.offset, workspace: workspace, session: session)
+        }
+        .navigationDestination(for: SearchRoute.self) { _ in
+            SearchScreen(workspace: workspace, session: session)
         }
     }
 }
@@ -156,21 +162,14 @@ struct RootView: View {
                 NavigationStack(path: $agendaPath) {
                     AgendaScreen(workspace: workspace, session: session, agenda: agenda, scheduler: model.scheduler)
                         .equatable()
-                        .toolbar { captureButton }
+                        .toolbar { searchButton; captureButton }
                         .readerDestination(workspace: workspace, session: session)
                 }
             }
             Tab("Folders", systemImage: "folder", value: .folders) {
                 NavigationStack {
                     FoldersScreen(workspace: workspace, session: session)
-                        .toolbar { captureButton }
-                        .readerDestination(workspace: workspace, session: session)
-                }
-            }
-            // An ordinary tab, not the search role, which the tab bar always puts last.
-            Tab("Search", systemImage: "magnifyingglass", value: .search) {
-                NavigationStack {
-                    SearchScreen(workspace: workspace, session: session)
+                        .toolbar { searchButton; captureButton }
                         .readerDestination(workspace: workspace, session: session)
                 }
             }
@@ -295,6 +294,12 @@ struct RootView: View {
             showingClockReport = true
         } else {
             _ = MobileClock.run(id, model: model, workspace: workspace) { message = $0 }
+        }
+    }
+
+    private var searchButton: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            NavigationLink(value: SearchRoute()) { Label("Search", systemImage: "magnifyingglass") }
         }
     }
 

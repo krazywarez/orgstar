@@ -4,12 +4,13 @@
 
 * Overview
 
-The app has four tabs:
+The app has three tabs:
 
 - Agenda :: the agenda over your folders, with capture.
 - Folders :: the folders of org files you added. Each shows its subfolders and org files; tap a subfolder to open it.
-- Search :: file names and the words of headings.
 - Settings :: where the app's settings come from.
+
+The search button (the magnifying glass) at the top right of Agenda and Folders opens Search.
 
 Files open in a reader first. The Edit button in the reader opens the editor. Both use the same open file, so an edit in the editor shows in the reader when you go back.
 
@@ -145,7 +146,7 @@ See [[file:03-keys.org][Keys and commands]] for the Emacs bindings.
 
 * Search
 
-The Search tab finds:
+Search finds:
 
 - Files :: up to eight org files whose path matches what you type, ranked as Quick Open ranks them on the Mac.
 - Headings :: headings whose title or text contains your words, including unsaved edits in the open file.
