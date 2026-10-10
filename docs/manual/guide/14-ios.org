@@ -7,9 +7,9 @@
 The app has four tabs:
 
 - Agenda :: the agenda over your folders, with capture.
-- Folders :: the folders of org files you added, and their files.
-- Settings :: where the app's settings come from.
+- Folders :: the folders of org files you added. Each shows its subfolders and org files; tap a subfolder to open it.
 - Search :: file names and the words of headings.
+- Settings :: where the app's settings come from.
 
 Files open in a reader first. The Edit button in the reader opens the editor. Both use the same open file, so an edit in the editor shows in the reader when you go back.
 
@@ -161,7 +161,7 @@ The Agenda tab shows the agenda over all your folders, with the span and start d
 - Tap :: an entry to read it, at its heading.
 - Swipe left :: on a TODO entry for Done, which sets the first done keyword of its sequence, or Next State.
 - Swipe right :: for Tomorrow, Next Week (next Monday) or Pick Date, which move the entry's scheduled date, or its deadline on a deadline row.
-- Touch and hold :: an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive….
+- Touch and hold :: an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, and Archive…. Refile… lists files; the entry goes to the end of the one you choose. Refiling under a heading is Mac only.
 
 Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.
 
@@ -208,7 +208,7 @@ Tap Capture (the pencil icon) in the Agenda or Folders tab.
 
 1. Choose a template. The first template is selected.
 2. Answer the template's questions (=%^{…}=, =%^g=, =%^t= and the like), then tap Continue. A template without questions skips this step.
-3. Edit the text. The caret is where =%?= was.
+3. Edit the text. The caret is where =%?= was. When the text has a heading, the rows below it set the entry's State (its TODO keyword), Priority, Scheduled and Deadline dates (Today, Tomorrow, In a Week, or Pick Date…, with an optional time; Remove takes the date off) and Tags (the target file's and the workspace's, or new ones). They change the text as the editor's commands would, without logging a reschedule.
 4. Tap File.
 
 Templates come from =capture.toml= in the configuration folder (see Settings below). Without one, the two default templates apply. A template with =immediate-finish= files as soon as its questions are answered, and one with =jump-to-captured= opens the captured entry. =%^g= offers the target file's tags as choices.
@@ -323,7 +323,7 @@ The Agenda, TODO Dependencies and Calendar sections are the only places the app 
 
 These write =config.toml= in the configuration folder, as the Mac's Settings window does, so the Mac sees the change too. Without a configuration folder they are kept on the device.
 
-The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting 3 days before today=), the reminder lead time, the capture template keys, the theme (=Default=, or the theme file's name), and the font with its size. When =font= names a family that isn't installed on the device, Font shows the system's font with a note, as =System monospaced, 13 pt (JetBrains Mono isn't installed)=.
+The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting today=), the reminder lead time, the capture template keys, the theme (=Default=, or the theme file's name), and the font with its size. When =font= names a family that isn't installed on the device, Font shows the system's font with a note, as =System monospaced, 13 pt (JetBrains Mono isn't installed)=.
 
 These settings from =config.toml= apply on iOS:
 

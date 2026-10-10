@@ -10,7 +10,7 @@ struct OrgPreferencesTests {
         // Nothing set: the file's fallbacks, which match the Mac's.
         #expect(OrgPreferences.orgSettings(defaults).todoSequences.first?.active.map(\.name) == ["TODO", "PROJ", "LOOP", "STRT", "WAIT", "HOLD", "IDEA"])
         #expect(OrgPreferences.options(defaults).logDone == nil && OrgPreferences.options(defaults).tagsColumn == -77)
-        #expect(OrgPreferences.agendaSpan(defaults) == 10 && OrgPreferences.agendaStartOffset(defaults) == -3)
+        #expect(OrgPreferences.agendaSpan(defaults) == 10 && OrgPreferences.agendaStartOffset(defaults) == 0)
         #expect(OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 12)
         let fallbacks = OrgPreferences.options(defaults)
         #expect(!fallbacks.metaReturnMaySplitLine && fallbacks.hideEmphasisMarkers && fallbacks.prettyEntities && fallbacks.subSuperscriptsNeedBraces)

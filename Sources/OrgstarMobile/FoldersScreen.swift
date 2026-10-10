@@ -12,17 +12,7 @@ struct FoldersScreen: View {
         List {
             ForEach(workspace.rootPaths, id: \.self) { root in
                 Section((root as NSString).lastPathComponent) {
-                    let files = workspace.files.filter { $0.root == root && $0.kind == .org }
-                    ForEach(files) { file in
-                        NavigationLink(value: ReaderRoute.file(file.path)) {
-                            Label(file.relativePath, systemImage: "doc.text")
-                        }
-                    }
-                    let pending = workspace.downloading.filter { $0.hasPrefix(root + "/") }.sorted()
-                    ForEach(pending, id: \.self) { path in
-                        Label(String(path.dropFirst(root.count + 1)), systemImage: "icloud.and.arrow.down")
-                            .foregroundStyle(.secondary)
-                    }
+                    FolderContents(workspace: workspace, root: root, folder: "")
                     Button("Remove Folder", role: .destructive) { try? workspace.removeRoot(path: root) }
                 }
             }
@@ -58,6 +48,44 @@ struct FoldersScreen: View {
                     workspace.lastError = "Can't add \(url.lastPathComponent): \(error.localizedDescription)"
                 }
             }
+        }
+    }
+}
+/// One folder's subfolders, which open their own contents, then its org files and the files
+/// still downloading into it. `folder` is relative to `root`, empty for the root itself.
+private struct FolderContents: View {
+    let workspace: WorkspaceModel
+    let root: String
+    let folder: String
+
+    private var prefix: String { folder.isEmpty ? "" : folder + "/" }
+
+    /// Paths below this folder, relative to it.
+    private func below(_ relativePaths: [String]) -> [String] {
+        relativePaths.filter { $0.hasPrefix(prefix) }.map { String($0.dropFirst(prefix.count)) }
+    }
+
+    var body: some View {
+        let files = workspace.files.filter { $0.root == root && $0.kind == .org && $0.relativePath.hasPrefix(prefix) }
+        let pending = below(workspace.downloading.filter { $0.hasPrefix(root + "/") }.map { String($0.dropFirst(root.count + 1)) })
+        let subfolders = Set((below(files.map(\.relativePath)) + pending).compactMap { path in
+            path.firstIndex(of: "/").map { String(path[..<$0]) }
+        }).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        ForEach(subfolders, id: \.self) { name in
+            NavigationLink {
+                List { FolderContents(workspace: workspace, root: root, folder: prefix + name) }
+                    .navigationTitle(name)
+            } label: {
+                Label(name, systemImage: "folder")
+            }
+        }
+        ForEach(files.filter { !$0.relativePath.dropFirst(prefix.count).contains("/") }) { file in
+            NavigationLink(value: ReaderRoute.file(file.path)) {
+                Label(file.name, systemImage: "doc.text")
+            }
+        }
+        ForEach(pending.filter { !$0.contains("/") }, id: \.self) { name in
+            Label(name, systemImage: "icloud.and.arrow.down").foregroundStyle(.secondary)
         }
     }
 }

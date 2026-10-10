@@ -1,6 +1,7 @@
 #if os(iOS)
 import OrgApp
 import OrgCore
+import OrgDocument
 import SwiftUI
 
 /// Capture with a template: its questions (`%^{…}`, `%^g`, `%^t`…), then its text to edit,
@@ -35,10 +36,13 @@ struct CaptureScreen: View {
                     Section {
                         TextEditor(text: $text, selection: $selection)
                             .font(.body.monospaced())
-                            .frame(minHeight: 200)
+                            .frame(minHeight: 120)
                             .focused($focused)
                     } footer: {
                         if let problem { Text(problem).foregroundStyle(.red) }
+                    }
+                    if let entry = CaptureEntry(text: text, defaults: session.defaults) {
+                        EntryFields(entry: entry, tagChoices: Array(Set(context.allTags + context.fileTags)).sorted(), change: change)
                     }
                 } else {
                     ForEach(questions.indices, id: \.self) { index in
@@ -107,6 +111,17 @@ struct CaptureScreen: View {
             if template.options.immediateFinish { file() }
         case .failure(.message(let message)):
             problem = message
+        }
+    }
+
+    /// The entry's text after `command`, as the editor runs it. Changing a date here isn't a
+    /// reschedule, so it isn't logged as one.
+    private func change(_ command: any OrgCommand, _ answers: [String: String]) {
+        var options = session.options
+        options.logReschedule = nil
+        options.logRedeadline = nil
+        if let changed = CaptureEntry.applying(command, answers: answers, to: text, defaults: session.defaults, options: options, now: context.now) {
+            text = changed
         }
     }
 
@@ -203,6 +218,173 @@ struct QuestionField: View {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = withTime ? "yyyy-MM-dd HH:mm" : "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+}
+/// The captured entry's keyword, priority, dates and tags, set without editing its text.
+private struct EntryFields: View {
+    let entry: CaptureEntry
+    let tagChoices: [String]
+    let change: (any OrgCommand, [String: String]) -> Void
+    @State private var planning: Planning?
+    @State private var choosingTags = false
+
+    private enum Planning: String, Identifiable {
+        case scheduled = "Scheduled", deadline = "Deadline"
+        var id: Self { self }
+    }
+
+    var body: some View {
+        Section {
+            Picker("State", selection: Binding { entry.todo ?? "" } set: { change(SetTodo(keyword: $0.isEmpty ? nil : $0), [:]) }) {
+                Text("None").tag("")
+                ForEach(entry.keywords, id: \.self) { Text($0).tag($0) }
+            }
+            if !entry.priorities.isEmpty {
+                Picker("Priority", selection: Binding { entry.priority ?? "" } set: { change(SetPriority(), ["priority": $0.isEmpty ? " " : $0]) }) {
+                    Text("None").tag("")
+                    ForEach(entry.priorities, id: \.self) { Text($0).tag($0) }
+                }
+            }
+            date(.scheduled, entry.scheduled)
+            date(.deadline, entry.deadline)
+            Button {
+                choosingTags = true
+            } label: {
+                LabeledContent("Tags", value: entry.tags.isEmpty ? "None" : entry.tags.joined(separator: " "))
+            }
+            .tint(.primary)
+        }
+        .sheet(item: $planning) { which in
+            DateTimeSheet(title: which.rawValue, initial: initial(which == .scheduled ? entry.scheduled : entry.deadline)) { answer in
+                planning = nil
+                if let answer { change(SetPlanning(deadline: which == .deadline), ["date": answer]) }
+            }
+        }
+        .sheet(isPresented: $choosingTags) {
+            TagsSheet(selected: entry.tags, choices: tagChoices) { tags in
+                choosingTags = false
+                if let tags { change(SetTags(), ["tags": tags.joined(separator: ":")]) }
+            }
+        }
+    }
+
+    private func date(_ which: Planning, _ stamp: Timestamp?) -> some View {
+        Menu {
+            Button("Today") { set(which, 0) }
+            Button("Tomorrow") { set(which, 1) }
+            Button("In a Week") { set(which, 7) }
+            Button("Pick Date…") { planning = which }
+            if stamp != nil {
+                Button("Remove", role: .destructive) { change(RemovePlanning(deadline: which == .deadline), [:]) }
+            }
+        } label: {
+            LabeledContent(which.rawValue, value: stamp.map(Self.text) ?? "None")
+        }
+        .tint(.primary)
+    }
+
+    private func set(_ which: Planning, _ days: Int) {
+        let day = Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date()
+        change(SetPlanning(deadline: which == .deadline), ["date": QuestionField.stamp(day, withTime: false)])
+    }
+
+    private func initial(_ stamp: Timestamp?) -> Date {
+        guard let stamp else { return Date() }
+        let point = stamp.start
+        return Calendar.current.date(from: DateComponents(year: point.year, month: point.month, day: point.day, hour: point.hour, minute: point.minute)) ?? Date()
+    }
+
+    /// `Sat 12 Oct`, with the time when it has one.
+    private static func text(_ stamp: Timestamp) -> String {
+        let point = stamp.start
+        let date = Calendar.current.date(from: DateComponents(year: point.year, month: point.month, day: point.day)) ?? Date()
+        let day = date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        guard let hour = point.hour else { return day }
+        return day + String(format: " %02d:%02d", hour, point.minute ?? 0)
+    }
+}
+
+/// A date and, when switched on, a time; the answer as a date prompt takes it.
+private struct DateTimeSheet: View {
+    let title: String
+    let initial: Date
+    let done: (String?) -> Void
+    @State private var date = Date()
+    @State private var withTime = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                DatePicker(title, selection: $date, displayedComponents: .date).datePickerStyle(.graphical)
+                Toggle("Time", isOn: $withTime)
+                if withTime { DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute) }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { done(nil) } }
+                ToolbarItem(placement: .confirmationAction) { Button("Set") { done(QuestionField.stamp(date, withTime: withTime)) } }
+            }
+        }
+        .presentationDetents([.large])
+        .onAppear { date = initial }
+    }
+}
+
+/// Tags to toggle, from the file and the workspace, and new ones typed in.
+private struct TagsSheet: View {
+    let choices: [String]
+    let done: ([String]?) -> Void
+    @State private var selected: [String]
+    @State private var typed = ""
+
+    init(selected: [String], choices: [String], done: @escaping ([String]?) -> Void) {
+        _selected = State(initialValue: selected)
+        self.choices = choices
+        self.done = done
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    TextField("New tag", text: $typed)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .onSubmit(add)
+                }
+                Section {
+                    ForEach(Array(Set(choices + selected)).sorted(), id: \.self) { tag in
+                        Button {
+                            if selected.contains(tag) { selected.removeAll { $0 == tag } } else { selected.append(tag) }
+                        } label: {
+                            HStack {
+                                Text(tag).foregroundStyle(.primary)
+                                Spacer()
+                                if selected.contains(tag) { Image(systemName: "checkmark").foregroundStyle(Color.accentColor) }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Tags")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { done(nil) } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Set") {
+                        add()
+                        done(selected)
+                    }
+                }
+            }
+        }
+    }
+
+    /// The typed tags, `:` or spaces between several, added and checked.
+    private func add() {
+        for tag in typed.split(whereSeparator: { $0 == ":" || $0 == " " }).map(String.init) where !selected.contains(tag) { selected.append(tag) }
+        typed = ""
     }
 }
 #endif

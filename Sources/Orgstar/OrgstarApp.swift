@@ -522,7 +522,7 @@ struct SettingsView: View {
     @AppStorage("enforceTodoDependencies") private var enforceTodoDependencies = false
     @AppStorage("enforceTodoCheckboxDependencies") private var enforceTodoCheckboxDependencies = false
     @AppStorage("agendaSpan") private var agendaSpan = 10
-    @AppStorage("agendaStartOffset") private var agendaStartOffset = -3
+    @AppStorage("agendaStartOffset") private var agendaStartOffset = 0
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @AppStorage("agendaShowAllDates") private var agendaShowAllDates = false
     @AppStorage("agendaDimBlockedTasks") private var agendaDimBlockedTasks = "t"

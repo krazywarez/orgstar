@@ -198,7 +198,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-cycle-hide-block-startup=       | boolean | =false= | Fold blocks when a file opens. =#+STARTUP: hideblocks= / =nohideblocks= override it. Mirrors =org-cycle-hide-block-startup=. |
 | =display-line-numbers-type=          | boolean | =true=  | Line numbers in the editor's gutter. Orgstar numbers lines absolutely; there is no relative or visual mode.    |
 | =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
-| =org-agenda-start-day=               | string  | ="-3d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
+| =org-agenda-start-day=               | string  | ="+0d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
 | =org-agenda-show-all-dates=          | boolean | =false= | Show days without entries in the agenda; today always shows. Emacs's default is =t=. Mirrors =org-agenda-show-all-dates=. |
 | =org-agenda-skip-scheduled-if-done=  | boolean | =false= | Leave a done entry's scheduled date out of the agenda, even on its own day. Mirrors =org-agenda-skip-scheduled-if-done=. |
 | =org-agenda-skip-deadline-if-done=   | boolean | =false= | Leave a done entry's deadline out of the agenda, even on its own day. Mirrors =org-agenda-skip-deadline-if-done=. |

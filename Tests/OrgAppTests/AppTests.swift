@@ -563,6 +563,7 @@ struct AgendaModelTests {
         let model = try WorkspaceModel(directory: nil)
         try await model.addRoot(notes.url)
         let agenda = AgendaModel(workspace: model)
+        agenda.startOffset = -3
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(identifier: "UTC")!
         let now = try #require(utc.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9)))

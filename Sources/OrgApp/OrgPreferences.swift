@@ -96,7 +96,7 @@ public enum OrgPreferences {
         defaults.string(forKey: key) ?? fallback(key)?.string ?? ""
     }
 
-    /// Integers, and day offsets stored as integers with `"-3d"` as the fallback.
+    /// Integers, and day offsets stored as integers with a string such as `"+0d"` as the fallback.
     private static func integer(_ key: String, _ defaults: UserDefaults) -> Int {
         if let value = defaults.object(forKey: key) as? Int { return value }
         switch fallback(key) {

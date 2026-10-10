@@ -68,7 +68,7 @@ struct AgendaView: View {
     @State private var hovered: String?
     @FocusState private var focused: Bool
     @AppStorage("agendaSpan") private var span = 10
-    @AppStorage("agendaStartOffset") private var startOffset = -3
+    @AppStorage("agendaStartOffset") private var startOffset = 0
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
     @AppStorage("agendaShowAllDates") private var showAllDates = false
     @AppStorage("calendarEvents") private var calendarEventsOn = false

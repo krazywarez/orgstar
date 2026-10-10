@@ -143,7 +143,7 @@ public enum UserConfig {
                 comment: "line numbers (View ▸ Show Line Numbers)", legacy: "editor.line-numbers"),
         Setting(section: "", key: "org-agenda-span", defaultsKey: "agendaSpan", kind: .integer, fallback: .integer(10),
                 comment: "days the agenda shows", legacy: "agenda.span"),
-        Setting(section: "", key: "org-agenda-start-day", defaultsKey: "agendaStartOffset", kind: .dayOffset, fallback: .string("-3d"),
+        Setting(section: "", key: "org-agenda-start-day", defaultsKey: "agendaStartOffset", kind: .dayOffset, fallback: .string("+0d"),
                 comment: "the agenda's first day: \"-3d\", \"+0d\"", legacy: "agenda.start-offset"),
         Setting(section: "", key: "org-agenda-show-all-dates", defaultsKey: "agendaShowAllDates", kind: .bool, fallback: .bool(false),
                 comment: "show days with no entries (Emacs's default is t; Orgstar hides them); today always shows", legacy: ""),

@@ -347,6 +347,8 @@ struct AgendaScreen: View, Equatable {
 
     private var firstDay: Int { shown.first }
 
+    private var todayShown: Bool { (shown.first..<(shown.first + shown.span)).contains(agenda.today) }
+
     /// The span: `Thu 8 Oct`, `Week of 5 Oct`, `October 2026`, or the days, `5 – 14 Oct`.
     private var title: String {
         guard case .agenda = agenda.mode else { return viewName }
@@ -423,7 +425,7 @@ struct AgendaScreen: View, Equatable {
                     barButton("Today", "smallcircle.filled.circle") { goToday() }
                     barButton("Go to Date", "calendar") { jumping = true }
                     Menu {
-                        Picker("Span", selection: Binding { range } set: { show($0, around: $0 == nil ? agenda.today : firstDay) }) {
+                        Picker("Span", selection: Binding { range } set: { show($0, around: $0 == nil || todayShown ? agenda.today : firstDay) }) {
                             ForEach(SpanRange.allCases) { Text($0.title).tag(Optional($0)) }
                             Text("\(agenda.span) Days").tag(SpanRange?.none)
                         }
@@ -900,7 +902,7 @@ struct FilterSheet: View {
     }
 }
 
-/// Where to refile: the targets `org-refile` offers, searchable.
+/// Files to refile an entry to, at their end, searchable. Headings within them aren't offered.
 struct RefileSheet: View {
     let targets: [RefileTarget]
     let choose: (RefileTarget?) -> Void
@@ -908,7 +910,7 @@ struct RefileSheet: View {
 
     var body: some View {
         NavigationStack {
-            List(targets.filter { query.isEmpty || $0.label.localizedCaseInsensitiveContains(query) }, id: \.self) { target in
+            List(targets.filter { $0.start == nil && (query.isEmpty || $0.label.localizedCaseInsensitiveContains(query)) }, id: \.self) { target in
                 Button(target.label) { choose(target) }.foregroundStyle(.primary)
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always))

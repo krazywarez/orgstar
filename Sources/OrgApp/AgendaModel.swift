@@ -27,8 +27,8 @@ public final class AgendaModel {
     /// The first day shown, as `Days` numbers it; nil follows today.
     public var start: Int?
     public var span = 10
-    /// Where the view starts relative to today, as Doom's `org-agenda-start-day "-3d"`.
-    public var startOffset = -3
+    /// Where the view starts relative to today, as `org-agenda-start-day` (`"-3d"` is -3).
+    public var startOffset = 0
     /// Files below the top level of each folder are agenda files too.
     public var includeSubfolders = false
     public var options = AgendaOptions()

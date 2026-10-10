@@ -191,7 +191,7 @@ Orgstar's defaults follow a common Doom Emacs setup rather than plain Emacs in s
 | =org-startup-truncated=              | =false=                             | =t=                             |
 | =electric-pair-mode=                 | =true=                              | off                             |
 | =org-agenda-span=                    | 10 days                             | a week                          |
-| =org-agenda-start-day=               | ="-3d"=                             | today                           |
+| =org-agenda-start-day=               | ="+0d"=                             | today                           |
 | =org-agenda-show-all-dates=          | =false=                             | =t=                             |
 
 =org-hide-emphasis-markers= and =org-pretty-entities= matter for files you also edit in Emacs: Orgstar aligns tags and tables, and fills paragraphs, by the width text has on screen in your Emacs. If they don't match your Emacs, tags and tables that Orgstar aligns look misaligned in Emacs.

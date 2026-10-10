@@ -22,7 +22,7 @@ struct UserConfigTests {
         let text = UserConfig.template(from: source)
         #expect(text.contains("keymap = \"doom\""))
         #expect(text.contains("\nfill-column = 72"))
-        #expect(text.contains("org-agenda-start-day = \"-3d\""))
+        #expect(text.contains("org-agenda-start-day = \"+0d\""))
         #expect(text.contains("option-as-meta = \"both\""))
         let target = defaults()
         #expect(UserConfig.apply(text, to: target).isEmpty)

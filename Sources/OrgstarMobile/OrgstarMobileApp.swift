@@ -165,14 +165,15 @@ struct RootView: View {
                         .readerDestination(workspace: workspace, session: session)
                 }
             }
-            Tab("Settings", systemImage: "gearshape", value: .settings) {
-                NavigationStack { SettingsScreen(model: model) }
-            }
-            Tab(value: .search, role: .search) {
+            // An ordinary tab, not the search role, which the tab bar always puts last.
+            Tab("Search", systemImage: "magnifyingglass", value: .search) {
                 NavigationStack {
                     SearchScreen(workspace: workspace, session: session)
                         .readerDestination(workspace: workspace, session: session)
                 }
+            }
+            Tab("Settings", systemImage: "gearshape", value: .settings) {
+                NavigationStack { SettingsScreen(model: model) }
             }
         }
         .clockAccessory(model.clock, perform: clock)
