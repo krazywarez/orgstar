@@ -449,11 +449,11 @@ public struct EmacsImport: Sendable {
                 continue
             }
             guard let command = Self.commands[commandName] else {
-                unsupported.append(Note(id: id(), name: "\(binding.keys) → \(commandName)", reason: "Orgstar has no such command", source: binding.source))
+                unsupported.append(Note(id: id(), name: "\(binding.keys) → \(commandName)", reason: "orgstar has no such command", source: binding.source))
                 continue
             }
             guard let keys = KeySequence.parse(binding.keys).map(KeySequence.format) else {
-                unsupported.append(Note(id: id(), name: binding.keys, reason: "keys Orgstar can't read", source: binding.source))
+                unsupported.append(Note(id: id(), name: binding.keys, reason: "keys orgstar can't read", source: binding.source))
                 continue
             }
             let modes = isDoom ? binding.modes.map { $0 ?? "normal" } : binding.modes
@@ -510,7 +510,7 @@ public struct EmacsImport: Sendable {
         case "org-log-into-drawer":
             if let s = value.string { add(name, .string(s)) } else { add(name, .string(truthy ? "LOGBOOK" : "")) }
         case "display-line-numbers-type":
-            add(name, .bool(truthy), truthy && value.symbol != "t" ? "display-line-numbers-type = true (Orgstar numbers lines absolutely)" : nil)
+            add(name, .bool(truthy), truthy && value.symbol != "t" ? "display-line-numbers-type = true (orgstar numbers lines absolutely)" : nil)
         case "org-agenda-span":
             let days: Int? = value.integer ?? ["day": 1, "week": 7, "fortnight": 14, "month": 30, "year": 365][value.symbol ?? ""]
             guard let days else { return note("unknown span \(value.description)") }
@@ -545,13 +545,13 @@ public struct EmacsImport: Sendable {
         case "org-capture-templates":
             for entry in value.elements ?? [] { captureTemplate(entry, source: source, env: env, id: id) }
         case "doom-font":
-            note("not a font-spec Orgstar can read")
+            note("not a font-spec orgstar can read")
         case "doom-variable-pitch-font":
-            note("Orgstar uses one font; set it with doom-font or [theme] font")
+            note("orgstar uses one font; set it with doom-font or [theme] font")
         case "doom-theme":
             note("Emacs themes aren't read; set colors under [theme] in config.toml")
         default:
-            note("Orgstar has no equivalent")
+            note("orgstar has no equivalent")
         }
     }
 

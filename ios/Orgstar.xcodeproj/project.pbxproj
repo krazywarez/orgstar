@@ -481,8 +481,6 @@
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Orgstar/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = orgstar;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -565,8 +563,6 @@
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Orgstar/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = orgstar;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

@@ -5,7 +5,7 @@
 * Add a folder
 
 Choose File ▸ Add Folder… (=⇧⌘O=) and pick the folder that holds your org files.
-It appears in the sidebar, and Orgstar indexes every org file under it for search,
+It appears in the sidebar, and orgstar indexes every org file under it for search,
 the agenda and links. You can add several folders. Nothing is copied or moved.
 
 If you don't have org files yet, add an empty folder and create =notes.org= in it from
@@ -13,7 +13,7 @@ Finder or the sidebar.
 
 * Choose your keys
 
-Open Orgstar ▸ Settings… (=⌘,=) and pick *Keys* under General:
+Open orgstar ▸ Settings… (=⌘,=) and pick *Keys* under General:
 
 - *Emacs*: Org's own bindings, =C-c C-t= and friends. The default.
 - *Mac*: standard Mac editing keys, with Org commands on =⌃⌘= combinations.

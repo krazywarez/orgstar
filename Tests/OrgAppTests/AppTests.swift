@@ -1062,7 +1062,7 @@ struct LinkFollowTests {
         #expect(follow("file:pic.png") == .message("No file " + (notes.url.appendingPathComponent("sub/pic.png").path as NSString).standardizingPath))
         #expect(follow("https://orgmode.org/a b") == .openExternally(URL(string: "https://orgmode.org/a%20b")!))
         #expect(follow("doi:10.1000/182") == .openExternally(URL(string: "https://doi.org/10.1000/182")!))
-        #expect(follow("shell:rm -rf x") == .message("Orgstar doesn't run shell links"))
+        #expect(follow("shell:rm -rf x") == .message("orgstar doesn't run shell links"))
     }
 
     @Test func followsAttachmentAndRadioLinks() throws {

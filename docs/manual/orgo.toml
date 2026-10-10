@@ -1,8 +1,8 @@
-# The Orgstar user manual, built with orgo and published to the pages branch by
+# The orgstar user manual, built with orgo and published to the pages branch by
 # scripts/publish-docs.sh.
 
 [site]
-title = "Orgstar"
+title = "orgstar"
 description = "A native macOS and iOS editor for org-mode files."
 language = "en"
 base_url = ""

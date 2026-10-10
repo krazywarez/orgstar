@@ -656,7 +656,7 @@ struct AgendaView: View {
     /// How far ahead notifications are set, as the design asks the agenda to show.
     private var reminderStatus: String? {
         guard let scheduler, remindersEnabled else { return nil }
-        if !scheduler.isAuthorized { return "Notifications are off for Orgstar in System Settings." }
+        if !scheduler.isAuthorized { return "Notifications are off for orgstar in System Settings." }
         guard let through = scheduler.scheduledThrough else { return nil }
         return "Reminders are set through " + through.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()) + "."
     }

@@ -1,10 +1,10 @@
 #+TITLE: Links
-#+DESCRIPTION: Link syntax, the link types Orgstar follows, storing and inserting links, IDs, backlinks and inline images.
+#+DESCRIPTION: Link syntax, the link types orgstar follows, storing and inserting links, IDs, backlinks and inline images.
 #+LEDE: Write links as Org does, follow them with a key or a click, and see which headings link to the one you are reading.
 
 * Link syntax
 
-Orgstar reads links the way =org-element-link-parser= does. There are three forms.
+orgstar reads links the way =org-element-link-parser= does. There are three forms.
 
 | Form          | Example                                   | Notes                                                       |
 |---------------+-------------------------------------------+-------------------------------------------------------------|
@@ -18,7 +18,7 @@ custom ID. Anything without a known =type:= prefix is a search for text in the
 current file (a "fuzzy" link). A link may run over a line break; the break and
 surrounding blanks read as one space.
 
-Backslashes before brackets are escaped as in =org-link-escape=: when Orgstar writes
+Backslashes before brackets are escaped as in =org-link-escape=: when orgstar writes
 a link it doubles backslashes that come before a bracket or the end, and it reads them
 back the same way.
 
@@ -60,10 +60,10 @@ A message in the echo area explains a link that can't be followed.
 | Heading                                      | =[[*Weekly review]]=                 | Moves to the heading in this file with that title.                                         |
 | Text                                         | =[[budget table]]=                   | Searches this file: a =<<budget table>>= target, then =#+NAME: budget table=, then a heading. |
 | Coderef                                      | =[[(ref)]]=                          | Not supported. The echo area says so.                                                      |
-| =shell=, =elisp=                             | =[[shell:ls]]=                       | Not run. Orgstar never executes these links.                                               |
+| =shell=, =elisp=                             | =[[shell:ls]]=                       | Not run. orgstar never executes these links.                                               |
 | =attachment=                                 | =[[attachment:scan.pdf]]=            | Opens the file in the entry's attachment folder; see /Attachment links/ below.             |
 | Radio link                                   | Text matching a =<<<radio target>>>= | Moves to the radio target.                                                                 |
-| =info=, =help=, others                       |                                      | Not followed. The echo area says Orgstar can't open the type.                              |
+| =info=, =help=, others                       |                                      | Not followed. The echo area says orgstar can't open the type.                              |
 
 The text search follows =org-link-search=. A dedicated =<<target>>= matches its words
 case-insensitively, with any run of blanks between them. A heading matches when its
@@ -84,8 +84,8 @@ files in different sidebar folders work the same way, for example
 
 What happens depends on the file:
 
-- An =.org= or =.org_archive= file opens as a buffer in Orgstar.
-- Another text file opens in Orgstar as a plain buffer.
+- An =.org= or =.org_archive= file opens as a buffer in orgstar.
+- Another text file opens in orgstar as a plain buffer.
 - Anything else (images, PDFs, archives, media) is handed to macOS, which opens it in
   the default app for that type.
 
@@ -163,7 +163,7 @@ A stored link that you insert is removed from the stored list, as with
 
 ** File paths in inserted links
 
-When the inserted link is a =file:= link, Orgstar rewrites it as
+When the inserted link is a =file:= link, orgstar rewrites it as
 =org-link-make-string-for-buffer= does:
 
 - A link to a heading or target in the file you are editing loses its =file:= part
@@ -201,7 +201,7 @@ folder, followed by a search option chosen as Org does with
 5. Before the first heading, the link searches for the text of the current line.
 
 The echo area shows =Stored:= and the description or link. Storing the same link again
-moves it to the front of the list. Stored links last until you quit Orgstar; they
+moves it to the front of the list. Stored links last until you quit orgstar; they
 aren't saved between sessions, as in Emacs.
 
 * IDs
@@ -327,7 +327,7 @@ every file when it opens. In a file, =#+STARTUP: inlineimages= or
 
 * org-protocol store-link
 
-Orgstar handles =org-protocol://store-link= URLs, in the new form
+orgstar handles =org-protocol://store-link= URLs, in the new form
 ~org-protocol://store-link?url=…&title=…~ and the old form
 =org-protocol://store-link:/URL/TITLE=. The URL is added to your stored links with
 the title as its description, and is also copied to the clipboard. Insert it with

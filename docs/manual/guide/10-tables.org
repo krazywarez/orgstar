@@ -1,6 +1,6 @@
 #+TITLE: Tables
 #+DESCRIPTION: Creating and editing Org tables, column widths, import and export, and spreadsheet formulas.
-#+LEDE: Org tables are plain text that Orgstar keeps aligned, edits by row and column, and recalculates with the same formulas Emacs uses.
+#+LEDE: Org tables are plain text that orgstar keeps aligned, edits by row and column, and recalculates with the same formulas Emacs uses.
 
 * Tables in Org
 
@@ -14,14 +14,14 @@ that starts with =|-= is a horizontal rule:
 | Pear  |  12 |  0.75 |
 #+END_SRC
 
-Orgstar follows =org-table.el= from Org 9.8.7, with =org-table-automatic-realign= on,
+orgstar follows =org-table.el= from Org 9.8.7, with =org-table-automatic-realign= on,
 =org-table-tab-jumps-over-hlines= on, and formulas adjusted without asking when rows
 and columns move (=org-table-fix-formulas-confirm= nil). Tables inside dynamic blocks
 count as tables; tables inside other blocks don't.
 
 * Creating a table
 
-Type =|=, a few field names separated by =|=, and press =TAB=: Orgstar aligns the line
+Type =|=, a few field names separated by =|=, and press =TAB=: orgstar aligns the line
 as a table and moves to the next field, adding a row after the last one. Type =|-= on
 the line below a row and press =TAB= to turn it into a full-width rule.
 
@@ -167,7 +167,7 @@ Import and export are Mac only.
 
 * Formulas
 
-Orgstar evaluates Org's spreadsheet formulas, =org-table-recalculate= and
+orgstar evaluates Org's spreadsheet formulas, =org-table-recalculate= and
 =org-table-eval-formula=, natively: Calc expressions in a reimplementation of the part
 of Emacs Calc that tables use, and Lisp formulas in a small Emacs Lisp evaluator. What
 falls outside them is handed to Emacs on the Mac (see /When Emacs is needed/).
@@ -451,7 +451,7 @@ field, as does a Calc error.
 
 There are three ways to set a formula.
 
-*In the field.* Type ~=expr~ in a field and press =TAB= or =RET=: Orgstar stores
+*In the field.* Type ~=expr~ in a field and press =TAB= or =RET=: orgstar stores
 ~$N=expr~ as the column's formula and evaluates it, as
 =org-table-maybe-eval-formula= does. Type ~:=expr~ instead to store a field formula
 ~@R$C=expr~.
@@ -467,7 +467,7 @@ formula in the formula editor below or from the =#+TBLFM:= line.
 | Org ▸ Set Column Formula      | ~C-c =~  | Org ▸ Set Column Formula    | ~C-c =~  |
 | Org ▸ Set Field Formula       | none     | Org ▸ Set Field Formula     | none     |
 
-Org's ~C-u C-c =~ for field formulas has no equivalent key, because Orgstar has no
+Org's ~C-u C-c =~ for field formulas has no equivalent key, because orgstar has no
 prefix argument; use the menu item or type ~:=~ in the field.
 
 *In the formula editor.* =C-c '= in a table or on its =#+TBLFM:= line
@@ -514,7 +514,7 @@ what it was and the Mac recalculates the table in Emacs instead. This happens fo
 - Lisp functions not listed above.
 
 The echo area shows =Recalculating in Emacs (reason)…=, then =Recalculated in Emacs=.
-Orgstar runs =emacs -Q --batch= on a copy of the file, so your Emacs init file,
+orgstar runs =emacs -Q --batch= on a copy of the file, so your Emacs init file,
 packages and customizations are not loaded, then replaces the table with Emacs's
 result. It looks for Emacs at the path in the =ORGSTAR_EMACS= environment variable,
 then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=,
@@ -522,7 +522,7 @@ then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=,
 =/usr/bin/emacs=. If none is found, the echo area says Emacs isn't installed and the
 table is unchanged. Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local/bin=,
 =/Library/TeX/texbin=, =/usr/bin= and =/bin= added, as code blocks and export do, so
-programs a formula starts are found when Orgstar was opened from the Dock. The run
+programs a formula starts are found when orgstar was opened from the Dock. The run
 stops after 60 seconds. If you edit the table while Emacs is working, its result is
 discarded.
 
@@ -530,7 +530,7 @@ Edit ▸ Cancel Running Task (=⌘.=) stops the recalculation; the echo area sho
 =Recalculation canceled= and the table is unchanged. Starting another recalculation or
 export in Emacs cancels the one that is running.
 
-If the table's formulas contain Lisp, Orgstar asks first:
+If the table's formulas contain Lisp, orgstar asks first:
 =This table's formulas run Lisp. Run them? (yes, no, always)=. =always= trusts this
 table's text in this file, so the question isn't asked again until the text changes.
 
@@ -540,8 +540,8 @@ left as it was; the echo area shows =The formula was stored; recalculating it ne
 Emacs= and the reason. =TAB= and =RET= still move to the next field. Recalculate the
 table to run the formula in Emacs.
 
-For how Orgstar and Emacs share files, see
-[[file:15-alongside-emacs.org][Using Orgstar alongside Emacs]].
+For how orgstar and Emacs share files, see
+[[file:15-alongside-emacs.org][Using orgstar alongside Emacs]].
 
 * table.el tables
 
@@ -556,13 +556,13 @@ them, are recognized and kept as written:
 +-------+-------+
 #+END_SRC
 
-Orgstar doesn't edit them as tables: =TAB=, alignment and formulas don't apply. HTML
+orgstar doesn't edit them as tables: =TAB=, alignment and formulas don't apply. HTML
 export renders them as tables, with cells that span rows and columns, and Markdown
 export writes them as a code block. See [[file:12-export.org][Export]].
 
 * Plotting
 
-=#+PLOT:= lines are recognized and completed as keywords, but Orgstar doesn't draw
+=#+PLOT:= lines are recognized and completed as keywords, but orgstar doesn't draw
 plots (=org-plot/gnuplot= is not available).
 
 * On iOS

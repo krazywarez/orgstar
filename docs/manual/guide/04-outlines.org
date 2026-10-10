@@ -46,12 +46,12 @@ the file's TODO sequence. If the parent has a statistics cookie, it is updated.
 Two settings change where Insert Heading puts the heading. Both are in Settings ▸
 Editing and in =config.toml= under the Emacs variable names:
 
-| Setting (=config.toml=)              | Settings ▸ Editing                            | Orgstar default | Org default |
+| Setting (=config.toml=)              | Settings ▸ Editing                            | orgstar default | Org default |
 |--------------------------------------+-----------------------------------------------+-----------------+-------------|
 | =org-insert-heading-respect-content= | M-RET adds the new heading after the subtree  | =true=          | =nil=       |
 | =org-M-RET-may-split-line=           | M-RET splits the line at the caret            | =false=         | =t=         |
 
-With =org-insert-heading-respect-content= on (the Orgstar default), Insert Heading
+With =org-insert-heading-respect-content= on (the orgstar default), Insert Heading
 behaves as Insert Heading After Subtree: the new heading goes after the end of the
 current subtree, at the current level. Insert Heading also does this when the caret is
 in folded text.
@@ -65,7 +65,7 @@ With it off, Insert Heading works where the caret is:
 - In body text, a new heading line is started below. With =org-M-RET-may-split-line=
   on, the line is split at the caret first.
 
-Orgstar follows Org's =org-blank-before-new-entry= default of =auto= for headings: if
+orgstar follows Org's =org-blank-before-new-entry= default of =auto= for headings: if
 the heading the caret is in is preceded by a blank line, the new heading is too.
 
 Insert Heading After Subtree always inserts after the subtree:
@@ -114,7 +114,7 @@ The subtree at the caret swaps places with the previous or next sibling subtree.
 can't move past its parent or the start or end of the file. The caret keeps its column.
 
 On a list item the same keys move the item; in a table they move the row. On other
-lines they do nothing. Orgstar has no =org-drag-element= for paragraphs.
+lines they do nothing. orgstar has no =org-drag-element= for paragraphs.
 
 ** Moving between headings
 
@@ -305,7 +305,7 @@ sparse view.
 
 * Plain lists
 
-Orgstar's list commands are ports of =org-list.el=. A list item starts with a bullet:
+orgstar's list commands are ports of =org-list.el=. A list item starts with a bullet:
 =-=, =+=, =*= (not at the left margin, where it would be a heading), or a number
 followed by =.= or =)=. With alphabetical lists on, =a.=, =A.=, =a)= and =A)= are bullets
 too. A description item has =::= after its term:
@@ -315,10 +315,10 @@ too. A description item has =::= after its term:
 - eggs
   1. free range
   2. brown
-- Orgstar :: an org editor for macOS and iOS
+- orgstar :: an org editor for macOS and iOS
 #+END_SRC
 
-| Setting (=config.toml=)       | Settings ▸ Editing               | Orgstar default | Org default |
+| Setting (=config.toml=)       | Settings ▸ Editing               | orgstar default | Org default |
 |-------------------------------+----------------------------------+-----------------+-------------|
 | =org-list-allow-alphabetical= | Lists can use letters (a. b. c.) | =true=          | =nil=       |
 
@@ -340,7 +340,7 @@ too. A description item has =::= after its term:
 Insert Item works anywhere inside an item. The new item gets the next bullet: the same
 symbol, the next number or the next letter. In a description list the new item has an
 empty term followed by =::=, with the caret on the term. With =org-M-RET-may-split-line= on, text after the caret moves
-to the new item; with it off (the Orgstar default), the new item goes after the current
+to the new item; with it off (the orgstar default), the new item goes after the current
 one. At the start of an item, the new item is inserted before it. If the list's items
 are separated by blank lines, so is the new one.
 
@@ -368,7 +368,7 @@ list (=org-cycle-list-bullet=) through:
 
 =*= is skipped for a list at the left margin. Description lists skip the numbered and
 lettered bullets. Lettered bullets are offered only when the list has 26 items or
-fewer. Org also cycles bullets with =S-<left>= and =S-<right>= on an item; Orgstar
+fewer. Org also cycles bullets with =S-<left>= and =S-<right>= on an item; orgstar
 does not bind those on items.
 
 Numbered and lettered lists are renumbered whenever a list command changes them, and
@@ -436,7 +436,7 @@ The =COOKIE_DATA= property changes what a heading's cookie counts, as in Org:
 | =recursive= | count all descendants, not only direct children                |
 
 For TODO statistics, =COOKIE_DATA= is read with inheritance, from the parent or an
-ancestor. Orgstar counts TODO children hierarchically, as Org does with
+ancestor. orgstar counts TODO children hierarchically, as Org does with
 =org-hierarchical-todo-statistics= at its default.
 
 * Blocks
@@ -468,7 +468,7 @@ Doom presets) asks for a block type, one keystroke:
 | =v= | =verse=         |
 
 Press =TAB= to type any other type. These are Org's default
-=org-structure-template-alist=; Orgstar does not read a custom one. The block is
+=org-structure-template-alist=; orgstar does not read a custom one. The block is
 inserted at the caret's indentation. With a selection, the block wraps the selected
 lines, and for =src=, =example=, =export= and =comment= blocks, lines that would read as
 headings or keywords are protected with a leading comma. For =src= and =export=, the
@@ -507,7 +507,7 @@ separate editor. See [[file:11-code-blocks.org][Code blocks]].
 
 * Drawers
 
-A drawer is a named group of lines between =:NAME:= and =:END:=. Orgstar writes the
+A drawer is a named group of lines between =:NAME:= and =:END:=. orgstar writes the
 =PROPERTIES= drawer for properties and, depending on =org-log-into-drawer=, a =LOGBOOK=
 drawer for state notes and clock lines (see [[file:05-todos-and-tags.org][TODOs and tags]] and
 [[file:06-dates-and-clocking.org][Dates and clocking]]). You can write any other drawer by hand:
@@ -571,7 +571,7 @@ from every entry in the file and reports how many it changed. Property Action, r
 ** Allowed values
 
 A property =KEY_ALL= lists the values =KEY= may take, separated by spaces, with quotes
-around values that contain spaces. Orgstar looks for it on the entry, then its
+around values that contain spaces. orgstar looks for it on the entry, then its
 ancestors, then the file:
 
 #+BEGIN_SRC org
@@ -584,7 +584,7 @@ whose value is =[ ]= or =[X]= toggles between them.
 
 ** Inheritance
 
-Orgstar inherits properties as Org does with =org-use-property-inheritance= at its
+orgstar inherits properties as Org does with =org-use-property-inheritance= at its
 default of =nil=: a property applies only to the entry that has it, with these
 exceptions:
 
@@ -594,11 +594,11 @@ exceptions:
 - =KEY_ALL= allowed values and =COOKIE_DATA= for TODO statistics are looked up through
   the ancestors.
 
-Orgstar has no setting for =org-use-property-inheritance=.
+orgstar has no setting for =org-use-property-inheritance=.
 
 ** Special properties
 
-Org computes some properties instead of reading them from a drawer. Orgstar treats
+Org computes some properties instead of reading them from a drawer. orgstar treats
 these as special and doesn't offer them as allowed-value lists: =ALLTAGS=, =BLOCKED=,
 =CLOCKSUM=, =CLOCKSUM_T=, =CLOSED=, =DEADLINE=, =FILE=, =ITEM=, =PRIORITY=, =SCHEDULED=,
 =TAGS=, =TIMESTAMP=, =TIMESTAMP_IA= and =TODO=. Column view computes =ITEM=, =TODO=,
@@ -641,7 +641,7 @@ heading). Column View of File shows every entry in the file. Click a row to go t
 heading. Done (or Escape) closes the sheet.
 
 The sheet is read-only. Org's column view lets you edit values in place and writes
-parent summaries back into the file; Orgstar's does neither. Change values with Set
+parent summaries back into the file; orgstar's does neither. Change values with Set
 Property, or edit the drawer.
 
 ** The Columns inspector
@@ -708,7 +708,7 @@ is created when needed (Org's =org-footnote-section=):
 
 #+BEGIN_SRC org
 ,* Notes
-Orgstar reads org files.[fn:1]
+orgstar reads org files.[fn:1]
 
 ,* Footnotes
 
@@ -750,7 +750,7 @@ subtree are shifted to match, and tags are realigned. A subtree can't be refiled
 itself.
 
 For the open file, targets come from the buffer, including unsaved edits. When the
-target is another file, Orgstar writes that file first, into its open buffer if it has
+target is another file, orgstar writes that file first, into its open buffer if it has
 one, otherwise through the normal save path, and removes the subtree from the source
 only after that succeeds. If the target file changed on disk in the meantime, nothing
 is refiled.
@@ -758,7 +758,7 @@ is refiled.
 This matches Org with =org-refile-targets= set to headings of maximum level 3 in all
 files, =org-refile-use-outline-path= set to =file=, =org-reverse-note-order= =nil= (new
 entries go last), =org-log-refile= =nil= and =org-refile-keep= =nil=. None of these is
-configurable in Orgstar. Refiling from the agenda is covered in [[file:07-agenda.org][Agenda]].
+configurable in orgstar. Refiling from the agenda is covered in [[file:07-agenda.org][Agenda]].
 
 * Archiving
 
@@ -789,7 +789,7 @@ Within the same file, tags it inherited are added to its heading. After the subt
 leaves, the parent's statistics cookies are updated. The entry's TODO state is not
 changed.
 
-If the archive file is open, the subtree goes into its buffer. Otherwise Orgstar writes
+If the archive file is open, the subtree goes into its buffer. Otherwise orgstar writes
 the archive file first and removes the subtree from the source only after that
 succeeds. Org's option =org-archive-location= in Emacs is not read; use the =ARCHIVE=
 property or =#+ARCHIVE:=. Archiving from the agenda is covered in [[file:07-agenda.org][Agenda]].
@@ -817,7 +817,7 @@ The outline pane, to the left of the editor, lists the headings of the open org 
 indented by level. Click a heading to go to it; folded text around it opens. A heading
 with no title is shown as =(untitled)=.
 
-Show or hide it with the toolbar button or View ▸ Show or Hide Outline. Orgstar
+Show or hide it with the toolbar button or View ▸ Show or Hide Outline. orgstar
 remembers the choice for org files; for other files the pane starts hidden and shows
 "Only org files have an outline." Drag the divider to resize it. While the search field
 has text, the pane shows search results instead. The backlinks pane, when shown, sits
@@ -875,7 +875,7 @@ The full list is in [[file:03-keys.org][Keys]].
 
 * Not supported
 
-These Org structure features are not in Orgstar:
+These Org structure features are not in orgstar:
 
 - =org-insert-drawer=, =org-copy= (refile a copy) and =org-refile= with a prefix
   (jump to a target).

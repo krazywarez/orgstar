@@ -18,7 +18,7 @@ View ▸ Show Markup (=⇧⌘M=; palette: Show or Hide Markup) is off by default
 
 The line with the caret always shows its markup, so you can edit it. Moving to another line hides it again. Turn Show Markup on to see all markup everywhere. The =config.toml= setting is =show-markup= in =[orgstar]=.
 
-The two Org options are in Settings ▸ Editing as "Emacs hides emphasis markers (org-hide-emphasis-markers)" and "Emacs shows entities as characters (org-pretty-entities)", and in =config.toml= as =org-hide-emphasis-markers= and =org-pretty-entities=. They also tell Orgstar how wide your Emacs displays text, so tag alignment, table alignment and =M-q= produce the same file Emacs would. Set them to match your Emacs.
+The two Org options are in Settings ▸ Editing as "Emacs hides emphasis markers (org-hide-emphasis-markers)" and "Emacs shows entities as characters (org-pretty-entities)", and in =config.toml= as =org-hide-emphasis-markers= and =org-pretty-entities=. They also tell orgstar how wide your Emacs displays text, so tag alignment, table alignment and =M-q= produce the same file Emacs would. Set them to match your Emacs.
 
 ** Styling
 
@@ -135,7 +135,7 @@ With no =#+STARTUP= visibility option, a file opens with every heading shown. Dr
 #+STARTUP: content hideblocks
 #+END_SRC
 
-When the file sets a visibility (=overview=, =content=, =showall=, =showNlevels= and the like, but not =showeverything=), Orgstar then applies each heading's =VISIBILITY= property and folds subtrees tagged =ARCHIVE=, as =org-cycle-set-visibility-according-to-property= and =org-cycle-hide-archived-subtrees= do. =VISIBILITY= takes =folded=, =children=, =content= or =all=:
+When the file sets a visibility (=overview=, =content=, =showall=, =showNlevels= and the like, but not =showeverything=), orgstar then applies each heading's =VISIBILITY= property and folds subtrees tagged =ARCHIVE=, as =org-cycle-set-visibility-according-to-property= and =org-cycle-hide-archived-subtrees= do. =VISIBILITY= takes =folded=, =children=, =content= or =all=:
 
 #+BEGIN_SRC org
 ,* Reference
@@ -252,9 +252,9 @@ Electric pairs are on by default and work in org files only. Set =electric-pair-
 
 Spell checking is off by default. Turn it on for the current buffer with Check Spelling While Typing from the palette (=SPC t s= in Doom normal state); the echo area says whether it is now on or off. To have it on in every file, set =spell-check = true= in =config.toml=.
 
-Misspelt words are underlined, using the macOS spelling dictionary. In org files, Orgstar doesn't mark words where spell-fu skips them: code, verbatim, links, timestamps, tags, TODO keywords, priorities, list bullets, checkboxes, keywords and affiliated keywords, planning and clock lines, property drawers, the first and last lines of drawers and blocks, the whole of src, example, export and comment blocks, LaTeX, entities, macros, targets, footnote references, citations, table formulas and fixed-width lines.
+Misspelt words are underlined, using the macOS spelling dictionary. In org files, orgstar doesn't mark words where spell-fu skips them: code, verbatim, links, timestamps, tags, TODO keywords, priorities, list bullets, checkboxes, keywords and affiliated keywords, planning and clock lines, property drawers, the first and last lines of drawers and blocks, the whole of src, example, export and comment blocks, LaTeX, entities, macros, targets, footnote references, citations, table formulas and fixed-width lines.
 
-Orgstar never corrects spelling on its own; automatic spelling correction, text replacement and smart quotes and dashes are off.
+orgstar never corrects spelling on its own; automatic spelling correction, text replacement and smart quotes and dashes are off.
 
 On iOS, spell checking follows =spell-check= in the synced =config.toml=, and is off by default.
 
@@ -270,7 +270,7 @@ Long lines wrap at the edge of the editor by default. View ▸ Truncate or Wrap 
 
 To truncate lines in every file, turn on Settings ▸ Editing ▸ "Long lines run off the edge instead of wrapping", or set =org-startup-truncated = true= in =config.toml=. The default is to wrap, as Doom does; Emacs's own default is to truncate.
 
-Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (=org-fill-paragraph=), which breaks the paragraph's lines at the fill column: =M-q= in the Emacs preset and in every Doom state, =⌃⌘P= in the Mac preset. With a selection, it fills every paragraph the selection touches. In Doom's normal and visual states, =gq= and =gw= with a motion fill the paragraphs in the lines it covers (=gqq= and =gww= for the current lines); =gq= leaves the caret on the last line, =gw= where it was. Unlike Fill Paragraph, =gq= and =gw= keep extra spaces between words and at the ends of lines, as Doom does. See [[file:03-keys.org][Keys and commands]]. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or =fill-column= in =config.toml=. Orgstar has no auto-fill: lines are not broken as you type.
+Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (=org-fill-paragraph=), which breaks the paragraph's lines at the fill column: =M-q= in the Emacs preset and in every Doom state, =⌃⌘P= in the Mac preset. With a selection, it fills every paragraph the selection touches. In Doom's normal and visual states, =gq= and =gw= with a motion fill the paragraphs in the lines it covers (=gqq= and =gww= for the current lines); =gq= leaves the caret on the last line, =gw= where it was. Unlike Fill Paragraph, =gq= and =gw= keep extra spaces between words and at the ends of lines, as Doom does. See [[file:03-keys.org][Keys and commands]]. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or =fill-column= in =config.toml=. orgstar has no auto-fill: lines are not broken as you type.
 
 * View toggles
 
@@ -290,7 +290,7 @@ Line numbers show in a margin left of the text, as =display-line-numbers-mode= s
 
 * Themes
 
-The editor's font, size, line spacing and heading sizes are in Settings ▸ Appearance. Colours for the editor, the sidebar, the modeline, line numbers, the selection and the caret come from =config.toml=, under =[theme]= for both appearances, =[theme.light]= and =[theme.dark]= for one, and =[theme.todo]= for colours of TODO keywords. Settings ▸ Appearance ▸ Show Default Theme opens =default-theme.toml=, which lists every colour with its default value. Changes apply while Orgstar runs. See [[file:13-configuration.org][Configuration]].
+The editor's font, size, line spacing and heading sizes are in Settings ▸ Appearance. Colours for the editor, the sidebar, the modeline, line numbers, the selection and the caret come from =config.toml=, under =[theme]= for both appearances, =[theme.light]= and =[theme.dark]= for one, and =[theme.todo]= for colours of TODO keywords. Settings ▸ Appearance ▸ Show Default Theme opens =default-theme.toml=, which lists every colour with its default value. Changes apply while orgstar runs. See [[file:13-configuration.org][Configuration]].
 
 The iOS editor uses the same theme and display settings, read from the synced =config.toml=; see [[file:14-ios.org][iPhone and iPad]].
 

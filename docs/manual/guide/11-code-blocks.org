@@ -1,6 +1,6 @@
 #+TITLE: Code blocks
-#+DESCRIPTION: Source blocks in Orgstar: highlighting, editing, running with Babel, results, header arguments, noweb and tangling.
-#+LEDE: Orgstar runs and tangles source blocks the way Org Babel does, and refuses anything it would run differently.
+#+DESCRIPTION: Source blocks in orgstar: highlighting, editing, running with Babel, results, header arguments, noweb and tangling.
+#+LEDE: orgstar runs and tangles source blocks the way Org Babel does, and refuses anything it would run differently.
 
 * Source blocks
 
@@ -12,7 +12,7 @@ return 6 * 7
 ,#+end_src
 #+END_SRC
 
-Orgstar reads the same syntax Org does: the language after =#+begin_src=, then any switches such as =-i= or =-r=, then header arguments. A =#+NAME:= line above a block names it, so other blocks, =#+CALL:= lines and =:var= references can refer to it.
+orgstar reads the same syntax Org does: the language after =#+begin_src=, then any switches such as =-i= or =-r=, then header arguments. A =#+NAME:= line above a block names it, so other blocks, =#+CALL:= lines and =:var= references can refer to it.
 
 Lines inside a block that start with =*= or =#+= are protected with a leading comma, as Org does (=org-escape-code-in-region=). The comma is removed when the block runs, tangles or exports, and when you edit the block apart.
 
@@ -82,7 +82,7 @@ The block's text is remembered when the run starts. If you edit the block while 
 
 ** Languages that run
 
-On the Mac, Orgstar starts each interpreter through =/usr/bin/env=. Because an app opened from the Dock does not see your shell's =PATH=, Orgstar adds =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin= to the end of it.
+On the Mac, orgstar starts each interpreter through =/usr/bin/env=. Because an app opened from the Dock does not see your shell's =PATH=, orgstar adds =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin= to the end of it.
 
 | Language                                                         | Program run                                         |
 |------------------------------------------------------------------+-----------------------------------------------------|
@@ -105,7 +105,7 @@ A run that takes longer than five minutes is stopped. Runs in a =:session= have 
 
 ** Compiled languages
 
-On the Mac, =C=, =C++=, =cpp=, =D=, =java=, =fortran= and =clojure= blocks run as Org's =ob-C=, =ob-java=, =ob-fortran= and =ob-clojure= run them. Orgstar writes the body, expanded as tangling writes it (see Tangling below), to a source file in a temporary folder, compiles it and runs the program in the file's folder or =:dir=, with a newline on standard input. What the compiler prints is dropped.
+On the Mac, =C=, =C++=, =cpp=, =D=, =java=, =fortran= and =clojure= blocks run as Org's =ob-C=, =ob-java=, =ob-fortran= and =ob-clojure= run them. orgstar writes the body, expanded as tangling writes it (see Tangling below), to a source file in a temporary folder, compiles it and runs the program in the file's folder or =:dir=, with a newline on standard input. What the compiler prints is dropped.
 
 | Language        | Commands                                                                         |
 |-----------------+----------------------------------------------------------------------------------|
@@ -135,21 +135,21 @@ When =:imports= is absent, a D block reads the =IMPORTS= property where it is, a
 
 Java's defaults are =:results output= and =:dir .= (=org-babel-default-header-args:java=). The =.java= and =.class= files are written in the folder the block runs in, under folders for the class's package (=org/ex/Hello.java= for =:classname org.ex.Hello=), and are left there. The class is =:classname=, the body's own class with its =package=, or =Main=.
 
-Any other Clojure backend is refused: "The cider backend for clojure needs Emacs; Orgstar runs babashka or clojure-cli."
+Any other Clojure backend is refused: "The cider backend for clojure needs Emacs; orgstar runs babashka or clojure-cli."
 
-Before a run, Orgstar checks that each program it needs is on the =PATH= described above. If not, the block fails with "gcc isn't installed, so C blocks can't run." (=g++= for C++, =rdmd=, =gfortran=, or the commands =:javac= and =:java= name). For Clojure without a =:backend=, the message is "Neither bb nor clojure is installed, so clojure blocks can't run."
+Before a run, orgstar checks that each program it needs is on the =PATH= described above. If not, the block fails with "gcc isn't installed, so C blocks can't run." (=g++= for C++, =rdmd=, =gfortran=, or the commands =:javac= and =:java= name). For Clojure without a =:backend=, the message is "Neither bb nor clojure is installed, so clojure blocks can't run."
 
 ** The trust prompt
 
-Before a block runs, Orgstar asks "Run this /language/ block? (yes, no, always)", as =org-confirm-babel-evaluate= does.
+Before a block runs, orgstar asks "Run this /language/ block? (yes, no, always)", as =org-confirm-babel-evaluate= does.
 
 - =yes= runs it this once.
 - =no= does not run it.
 - =always= runs it and remembers the block, so it runs without asking next time.
 
-A remembered block is identified by the file's path and the exact text of the block. Any change to the block, or moving the file, makes Orgstar ask again. The remembered hashes are kept in =trusted.json= in Orgstar's Application Support folder (=~/Library/Application Support/Orgstar= on the Mac). The same file records table formulas you allowed to run Lisp. To forget every choice, delete the file while Orgstar is not running.
+A remembered block is identified by the file's path and the exact text of the block. Any change to the block, or moving the file, makes orgstar ask again. The remembered hashes are kept in =trusted.json= in orgstar's Application Support folder (=~/Library/Application Support/Orgstar= on the Mac). The same file records table formulas you allowed to run Lisp. To forget every choice, delete the file while orgstar is not running.
 
-When a block's =:var= or =:stdin= refers to other blocks that have to run first, you are asked once for all of them. The prompt covers the block you ran and every block its references reach. If any of those blocks changes while the chain runs, Orgstar stops with "The blocks changed while running; nothing more was run."
+When a block's =:var= or =:stdin= refers to other blocks that have to run first, you are asked once for all of them. The prompt covers the block you ran and every block its references reach. If any of those blocks changes while the chain runs, orgstar stops with "The blocks changed while running; nothing more was run."
 
 ** =:eval=
 
@@ -159,7 +159,7 @@ When a block's =:var= or =:stdin= refers to other blocks that have to run first,
 | =query=                                  | Asks every time, with only =yes= and =no=. A block reached through =:var= with =:eval query= makes the whole chain ask every time. |
 | anything else, or absent                 | Runs after the trust prompt.                                |
 
-=never-export= and =no-export= only stop evaluation during export in Org. Orgstar does not run blocks during export, so with these values the block runs from =C-c C-c= like any other.
+=never-export= and =no-export= only stop evaluation during export in Org. orgstar does not run blocks during export, so with these values the block runs from =C-c C-c= like any other.
 
 ** Cancelling a run
 
@@ -302,7 +302,7 @@ echo hello
 
 ** Where they come from
 
-Orgstar merges header arguments in this order, each layer overriding the ones before it (=org-babel-get-src-block-info=):
+orgstar merges header arguments in this order, each layer overriding the ones before it (=org-babel-get-src-block-info=):
 
 1. =#+PROPERTY: header-args …= in the file, then =header-args= properties of the block's headings, from the outermost heading inwards.
 2. =header-args:LANG= the same way, for blocks in language =LANG=.
@@ -330,7 +330,7 @@ Without any of these, a block has =:results replace=, =:exports code=, =:session
 
 ** Lisp in header values
 
-A header value that starts with =(=, ='=, =`= or =[= and is not in quotes is Lisp, as in =org-babel-read=. Orgstar evaluates it with its own Emacs Lisp interpreter, which also knows =buffer-file-name=, =default-directory=, =system-type= and the functions =expand-file-name=, =file-name-directory=, =file-name-nondirectory=, =file-name-sans-extension= and =file-name-as-directory=.
+A header value that starts with =(=, ='=, =`= or =[= and is not in quotes is Lisp, as in =org-babel-read=. orgstar evaluates it with its own Emacs Lisp interpreter, which also knows =buffer-file-name=, =default-directory=, =system-type= and the functions =expand-file-name=, =file-name-directory=, =file-name-nondirectory=, =file-name-sans-extension= and =file-name-as-directory=.
 
 #+BEGIN_SRC org
 ,#+begin_src sh :dir (concat "/" "usr") :results output
@@ -375,7 +375,7 @@ A string or number takes the place of the form. Lisp that the interpreter cannot
 
 ** Arguments that are refused
 
-Orgstar does not run a block whose arguments it would handle differently from Emacs. Instead it says why and runs nothing.
+orgstar does not run a block whose arguments it would handle differently from Emacs. Instead it says why and runs nothing.
 
 | Argument                    | Refused for                                     | Message                                                  |
 |-----------------------------+-------------------------------------------------+----------------------------------------------------------|
@@ -479,7 +479,7 @@ for a in "$@"; do echo "[$a]"; done
 - A session starts in the block's =:dir=, or the file's folder, the first time it is used.
 - A shell session's output is what the block prints. =:results value= gives the exit status of the last command.
 - A Python session runs the block at top level. Its value is the value of the last expression, so =return= is not used.
-- Sessions stop when you quit Orgstar, or when you cancel a block running in one.
+- Sessions stop when you quit orgstar, or when you cancel a block running in one.
 
 #+BEGIN_SRC org
 ,#+begin_src python :session py :results output
@@ -494,7 +494,7 @@ a * 3
 
 * Caching
 
-With =:cache yes=, Orgstar computes a SHA-1 hash of the block's header arguments and expanded body, as =org-babel-sha1-hash= does, and writes it on the results line: =#+RESULTS[hash]:=. When you run the block again and the hash matches, nothing runs and the message area shows the cached value ("Cached: …").
+With =:cache yes=, orgstar computes a SHA-1 hash of the block's header arguments and expanded body, as =org-babel-sha1-hash= does, and writes it on the results line: =#+RESULTS[hash]:=. When you run the block again and the hash matches, nothing runs and the message area shows the cached value ("Cached: …").
 
 Change the block or its arguments and it runs again. Results inserted with =append= or =prepend= carry no hash. Inline blocks are not cached. A cached block that has Lisp in its header arguments the interpreter cannot evaluate is refused.
 
@@ -583,9 +583,9 @@ An inline call, =call_double(n=6)=, has the same parts as a =#+CALL:= line: =cal
 
 * Emacs Lisp blocks
 
-On the Mac, an =emacs-lisp= or =elisp= block runs in a new =emacs -Q --batch= for each run, with lexical binding on. =-Q= means your init file and packages are not loaded, and nothing carries over between runs. Orgstar looks for Emacs at =ORGSTAR_EMACS=, then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and =/usr/bin/emacs=. Without Emacs, the block fails with "Emacs isn't installed, so Emacs Lisp blocks can't run."
+On the Mac, an =emacs-lisp= or =elisp= block runs in a new =emacs -Q --batch= for each run, with lexical binding on. =-Q= means your init file and packages are not loaded, and nothing carries over between runs. orgstar looks for Emacs at =ORGSTAR_EMACS=, then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and =/usr/bin/emacs=. Without Emacs, the block fails with "Emacs isn't installed, so Emacs Lisp blocks can't run."
 
-On iOS, Emacs Lisp blocks run in Orgstar's own Emacs Lisp interpreter. It covers ordinary list, string, number and control forms, =princ= and =message=. A block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, on the Mac." A Lisp error fails the run, as it does in Emacs.
+On iOS, Emacs Lisp blocks run in orgstar's own Emacs Lisp interpreter. It covers ordinary list, string, number and control forms, =princ= and =message=. A block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, on the Mac." A Lisp error fails the run, as it does in Emacs.
 
 Variables are bound with =let= around the body. =:results output= collects what the block prints with =princ=, =prin1=, =print= and =terpri=.
 
@@ -688,7 +688,7 @@ Block switches also apply. =-r= removes coderef labels such as =(ref:name)=, usi
 
 The link is relative to the tangled file's folder. /name/ is the block's =#+NAME=, or the heading's title and the block's number under that heading, such as =Setup:2=.
 
-Comments need the language's comment syntax. Orgstar knows it for: =emacs-lisp=, =elisp=, =lisp=, =scheme=, =asm= (=;;=); =python=, =ruby=, =perl=, =conf=, =toml=, =makefile=, =awk=, =tcl=, =m4=, =icon=, =desktop= and the shells except =fish= (=#=); =js=, =javascript=, =java=, =cpp=, =C++=, =objc=, =csharp=, =idl=, =pike=, =antlr=, =verilog= (=//=); =c=, =C=, =css= (=/* */=); =lua=, =sql=, =sqlite=, =vhdl= (=--=); =latex=, =tex=, =prolog= (=%%=); =ps=, =metapost= (=%=); =f90=, =dcl= (=!=); =html=, =xml=, =nxml=, =mhtml=, =sgml= (=<!-- -->=); =octave= (=##=); =pascal= (={ }=); =texinfo= (=@c=); =bibtex= (=@Comment=); =nroff= (=\"=); =bat= (=rem=). For any other language, =:comments= other than =no= stops tangling with a message.
+Comments need the language's comment syntax. orgstar knows it for: =emacs-lisp=, =elisp=, =lisp=, =scheme=, =asm= (=;;=); =python=, =ruby=, =perl=, =conf=, =toml=, =makefile=, =awk=, =tcl=, =m4=, =icon=, =desktop= and the shells except =fish= (=#=); =js=, =javascript=, =java=, =cpp=, =C++=, =objc=, =csharp=, =idl=, =pike=, =antlr=, =verilog= (=//=); =c=, =C=, =css= (=/* */=); =lua=, =sql=, =sqlite=, =vhdl= (=--=); =latex=, =tex=, =prolog= (=%%=); =ps=, =metapost= (=%=); =f90=, =dcl= (=!=); =html=, =xml=, =nxml=, =mhtml=, =sgml= (=<!-- -->=); =octave= (=##=); =pascal= (={ }=); =texinfo= (=@c=); =bibtex= (=@Comment=); =nroff= (=\"=); =bat= (=rem=). For any other language, =:comments= other than =no= stops tangling with a message.
 
 ** Writing the files
 
@@ -710,11 +710,11 @@ Tangling stops, writes nothing and says why when:
 
 * On iOS
 
-- Only Emacs Lisp blocks run, in Orgstar's own interpreter. Any other language, compiled languages included, fails with "/language/ blocks need the Mac to run." (for example "C blocks need the Mac to run."), and so does an Emacs Lisp block whose =:var= refers to a block in another language.
+- Only Emacs Lisp blocks run, in orgstar's own interpreter. Any other language, compiled languages included, fails with "/language/ blocks need the Mac to run." (for example "C blocks need the Mac to run."), and so does an Emacs Lisp block whose =:var= refers to a block in another language.
 - There are no sessions and no graphics.
 - The trust prompt works the same way, with its own =trusted.json= on the device.
 - There is no cancel command.
-- Tangling works, for files in folders Orgstar can write to.
+- Tangling works, for files in folders orgstar can write to.
 - Edit Block opens a plain text sheet without highlighting.
 
 See [[file:14-ios.org][iOS]] for the rest of the iOS app.

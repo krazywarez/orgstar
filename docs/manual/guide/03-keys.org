@@ -1,10 +1,10 @@
 #+TITLE: Keys and commands
 #+DESCRIPTION: The three key presets, prefix keys and key hints, the echo area, the command palette, Option as Meta, keymap.toml, Vim editing in the Doom preset, and every binding.
-#+LEDE: Every action in Orgstar is a named command; a keymap preset decides which keys run which commands, and keymap.toml lets you change that.
+#+LEDE: Every action in orgstar is a named command; a keymap preset decides which keys run which commands, and keymap.toml lets you change that.
 
 * Commands and keymaps
 
-Each action has a command id such as =org.todo.cycle= and a title such as /Cycle TODO State/. Keys, the Org menu, the command palette and the iOS key bar all run commands by id. A keymap maps key sequences to command ids. Orgstar ships three keymaps, called presets, and reads your own bindings from =keymap.toml= on top of the one you choose.
+Each action has a command id such as =org.todo.cycle= and a title such as /Cycle TODO State/. Keys, the Org menu, the command palette and the iOS key bar all run commands by id. A keymap maps key sequences to command ids. orgstar ships three keymaps, called presets, and reads your own bindings from =keymap.toml= on top of the one you choose.
 
 Ids starting with =org.= are Org commands and run only in Org files. Ids starting with =edit.= are text-system actions (movement, killing, find). Ids starting with =app.= are carried out by the app: saving, buffers, windows, export. =editor.= ids change how the editor behaves. The [[*Key reference][key reference]] at the end of this chapter lists every bound command with its keys in each preset.
 
@@ -39,7 +39,7 @@ Option pressed together with Control or Command always counts as Meta, whatever 
 
 ** Contexts
 
-One key can run different commands depending on where the caret is. In the Emacs preset =M-<right>= demotes a heading, indents a list item and moves a table column right. Each binding can name a context, and Orgstar tries the bindings for a key from the highest priority down. The first one whose context holds and whose command can run at the caret wins.
+One key can run different commands depending on where the caret is. In the Emacs preset =M-<right>= demotes a heading, indents a list item and moves a table column right. Each binding can name a context, and orgstar tries the bindings for a key from the highest priority down. The first one whose context holds and whose command can run at the caret wins.
 
 | Context | Holds when |
 |-+-|
@@ -65,9 +65,9 @@ In a file that is not an Org file, =org.= commands never apply, so their keys fa
 
 ** Prefix keys and key hints
 
-A prefix is a key that starts longer sequences, such as =C-c=, =C-c C-x=, =C-x n= or, in the Doom preset, =SPC= and =SPC m=. After a prefix, Orgstar waits for the next key and shows the keys typed so far in the echo area, followed by a dash: =C-c C-x-=.
+A prefix is a key that starts longer sequences, such as =C-c=, =C-c C-x=, =C-x n= or, in the Doom preset, =SPC= and =SPC m=. After a prefix, orgstar waits for the next key and shows the keys typed so far in the echo area, followed by a dash: =C-c C-x-=.
 
-If you pause on a prefix for 0.6 seconds, a panel of key hints opens above the echo area. It lists each key that can follow, sorted by key, with the title of the command it runs, or =+prefix= when it leads to a longer sequence. This is Orgstar's version of =which-key=. The hints follow the current keymap, including your =keymap.toml=, and in the Doom preset the current evil state. When a key has several contexts (=C-c C-c= is the common case), the hint shows the command that would run at the caret; where none of them applies, it shows the highest-priority one.
+If you pause on a prefix for 0.6 seconds, a panel of key hints opens above the echo area. It lists each key that can follow, sorted by key, with the title of the command it runs, or =+prefix= when it leads to a longer sequence. This is orgstar's version of =which-key=. The hints follow the current keymap, including your =keymap.toml=, and in the Doom preset the current evil state. When a key has several contexts (=C-c C-c= is the common case), the hint shows the command that would run at the caret; where none of them applies, it shows the highest-priority one.
 
 =C-g= during a prefix cancels it; in the Emacs and Mac presets the echo area shows =Quit=. A sequence that nothing binds shows, for example, =C-c z is undefined= and does nothing. In the Doom preset this holds for sequences that start with =SPC= or with a Control or Meta key; see [[*How keys are handled][How keys are handled]] for the others.
 
@@ -104,8 +104,8 @@ These come from the menu bar and work in every preset. In the Doom preset, keys 
 
 | Menu | Item | Key |
 |-+-+-|
-| Orgstar | Settings… | =⌘,= |
-| Orgstar | Edit Config File | =⌥⌘,= |
+| orgstar | Settings… | =⌘,= |
+| orgstar | Edit Config File | =⌥⌘,= |
 | File | Add Folder… | =⇧⌘O= |
 | File | Quick Open… | =⌘P= |
 | File | Command Palette… | =⇧⌘P= |
@@ -164,9 +164,9 @@ command = "org.todo.cycle"
 | =when= | no | A context from the table in [[*Contexts][Contexts]]. Without it the binding holds everywhere. |
 | =mode= | no | An evil state for the Doom preset: ="normal"=, ="insert"= or ="visual"=. |
 
-The [[*Key reference][key reference]] gives each command's id after its title. Commands no preset binds are listed under [[*Unbound commands][Unbound commands]]. A binding whose command id Orgstar does not know is skipped and reported when the file loads (see [[*Reloading and errors][Reloading and errors]]).
+The [[*Key reference][key reference]] gives each command's id after its title. Commands no preset binds are listed under [[*Unbound commands][Unbound commands]]. A binding whose command id orgstar does not know is skipped and reported when the file loads (see [[*Reloading and errors][Reloading and errors]]).
 
-Orgstar reads a subset of TOML: =[[bind]]= headers, =key = value= lines, basic ="..."= and literal ='...'= strings, =true= and =false=, integers, and =#= comments. Arrays, inline tables and multi-line strings are not supported.
+orgstar reads a subset of TOML: =[[bind]]= headers, =key = value= lines, basic ="..."= and literal ='...'= strings, =true= and =false=, integers, and =#= comments. Arrays, inline tables and multi-line strings are not supported.
 
 ** Key notation
 
@@ -275,17 +275,17 @@ command = "app.reload-keymap"
 
 ** Reloading and errors
 
-Orgstar watches the configuration folder and reloads =keymap.toml= when you save it. It also reloads when you change the preset, and when you run Reload Keymap (=app.reload-keymap=, in the palette, and =SPC h r r= in Doom normal state), which shows =Keymap reloaded=.
+orgstar watches the configuration folder and reloads =keymap.toml= when you save it. It also reloads when you change the preset, and when you run Reload Keymap (=app.reload-keymap=, in the palette, and =SPC h r r= in Doom normal state), which shows =Keymap reloaded=.
 
-Problems are reported in the echo area with the line number, for example =keymap.toml: line 12: unknown context tabel (and 1 more)=. A binding with bad or missing =keys=, a missing =command=, a command id Orgstar does not know, an unknown =when= or =mode=, or a table other than =[[bind]]= is skipped; the rest of the file still applies. A file that is not valid TOML is ignored as a whole and the error is shown; the preset alone applies until you fix it.
+Problems are reported in the echo area with the line number, for example =keymap.toml: line 12: unknown context tabel (and 1 more)=. A binding with bad or missing =keys=, a missing =command=, a command id orgstar does not know, an unknown =when= or =mode=, or a table other than =[[bind]]= is skipped; the rest of the file still applies. A file that is not valid TOML is ignored as a whole and the error is shown; the preset alone applies until you fix it.
 
 ** Importing from Emacs
 
-Settings ▸ General ▸ Import from Emacs… reads your Emacs or Doom configuration and offers, among other things, the key bindings it finds: =global-set-key=, =keymap-global-set=, =define-key=, =keymap-set=, =evil-define-key= and Doom's =map!= with =:leader=, =:localleader=, state keywords and =:prefix=. Bindings to commands Orgstar has are appended to =keymap.toml= under a =# Imported from Emacs.= comment, leaving out bindings the file already has. Keys written as vectors, such as =[f5]=, are skipped. See [[file:15-alongside-emacs.org][Alongside Emacs]].
+Settings ▸ General ▸ Import from Emacs… reads your Emacs or Doom configuration and offers, among other things, the key bindings it finds: =global-set-key=, =keymap-global-set=, =define-key=, =keymap-set=, =evil-define-key= and Doom's =map!= with =:leader=, =:localleader=, state keywords and =:prefix=. Bindings to commands orgstar has are appended to =keymap.toml= under a =# Imported from Emacs.= comment, leaving out bindings the file already has. Keys written as vectors, such as =[f5]=, are skipped. See [[file:15-alongside-emacs.org][Alongside Emacs]].
 
 * Vim editing (Doom preset)
 
-The Doom preset edits modally, as Doom Emacs does with =evil=, =evil-org=, =evil-surround=, =evil-snipe= and =evil-nerd-commenter=. Orgstar implements these itself; none of them are Emacs packages running inside it. The caret is a block in normal and visual states and a bar in insert state, and the modeline shows the state.
+The Doom preset edits modally, as Doom Emacs does with =evil=, =evil-org=, =evil-surround=, =evil-snipe= and =evil-nerd-commenter=. orgstar implements these itself; none of them are Emacs packages running inside it. The caret is a block in normal and visual states and a bar in insert state, and the modeline shows the state.
 
 ** How keys are handled
 
@@ -414,7 +414,7 @@ A count is digits before a command; =0= only counts after another digit. A regis
 
 Pasting from the clipboard is linewise when its text is what the last linewise yank or delete put there; text copied in another app pastes as characters. Numbered registers ="1= to ="9=, and the read-only registers such as ="%=, are not available.
 
-Registers and macros are shared by every buffer, as in evil: a yank into ="a= in one file pastes with ="ap= in another. Lowercase marks and the jump list belong to the buffer and are gone when it closes. Nothing is kept when Orgstar quits.
+Registers and macros are shared by every buffer, as in evil: a yank into ="a= in one file pastes with ="ap= in another. Lowercase marks and the jump list belong to the buffer and are gone when it closes. Nothing is kept when orgstar quits.
 
 ** Repeat
 
@@ -558,7 +558,7 @@ Besides the leader, the preset binds these evil-org and Doom keys in normal stat
 | =SPC h r r= | Reload Keymap (=app.reload-keymap=) |
 | =SPC n l= | Store Link (=org.link.store=) |
 | =SPC o a= | Agenda (=app.agenda=) |
-| =SPC q q= | Quit Orgstar (=app.quit=) |
+| =SPC q q= | Quit orgstar (=app.quit=) |
 | =SPC s p= | Search Notes (=app.search=) |
 | =SPC s s= | Find (=edit.find=) |
 | =SPC SPC= | Quick Open… (=app.quick-open=) |
@@ -624,12 +624,12 @@ Besides the leader, the preset binds these evil-org and Doom keys in normal stat
 
 ** Ex commands
 
-=:= opens a prompt in the echo area. Orgstar understands these:
+=:= opens a prompt in the echo area. orgstar understands these:
 
 | Command | Does |
 |-+-|
 | =:w=, =:write= | Saves the file. |
-| =:q=, =:quit=, =:q!= | Closes the window. Closing the last window quits Orgstar, which asks about unsaved changes as usual. |
+| =:q=, =:quit=, =:q!= | Closes the window. Closing the last window quits orgstar, which asks about unsaved changes as usual. |
 | =:wq=, =:wq!=, =:x= | Saves, then closes the window. |
 | =:e= /file/, =:edit= /file/ | Opens /file/, relative to the current file's folder; =~= is expanded. |
 | =:e=, =:e!=, =:edit=, =:edit!= | Reloads the file from disk; unsaved changes go to the recovery versions. |
@@ -646,7 +646,7 @@ Anything else shows =Not an editor command=. Ranges other than =%=, the =c= flag
 
 ** Not available
 
-Things evil users may reach for that Orgstar does not have: =zz=, =zt= and the other scroll and fold =z= commands except =za=, =zc=, =zo= and =zA=; =C-a= and =C-x= to increment numbers; =gi=, =g;=, =gJ=; replace state (=R=); =&=; =q:=; the numbered and read-only registers; tag and sentence text objects.
+Things evil users may reach for that orgstar does not have: =zz=, =zt= and the other scroll and fold =z= commands except =za=, =zc=, =zo= and =zA=; =C-a= and =C-x= to increment numbers; =gi=, =g;=, =gJ=; replace state (=R=); =&=; =q:=; the numbered and read-only registers; tag and sentence text objects.
 
 * Keys in other windows
 
@@ -961,7 +961,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Reload Keymap (=app.reload-keymap=) | — | — | =SPC h r r= (N) | Reads =keymap.toml= again. |
 | Check Spelling While Typing (=editor.toggle-spell-check=) | — | — | =SPC t s= (N) | Turns spell checking while typing on or off. |
 | Truncate or Wrap Long Lines (=editor.toggle-truncate-lines=) | =C-x x t= | — | =SPC t w= (N) | Switches between wrapping and truncating long lines (=toggle-truncate-lines=). |
-| Quit Orgstar (=app.quit=) | — | — | =SPC q q= (N) | Quits Orgstar (=save-buffers-kill-terminal=). |
+| Quit orgstar (=app.quit=) | — | — | =SPC q q= (N) | Quits orgstar (=save-buffers-kill-terminal=). |
 
 ** Unbound commands
 

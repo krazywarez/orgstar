@@ -409,7 +409,7 @@ public enum Capture {
                 }
                 consumed = j - i
             case "(":
-                return .failure(.message("Template escapes like %( run Emacs Lisp, which Orgstar doesn't."))
+                return .failure(.message("Template escapes like %( run Emacs Lisp, which orgstar doesn't."))
             case "[":
                 return .failure(.message("Template escapes like %[file] aren't supported yet."))
             default:

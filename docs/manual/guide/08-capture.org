@@ -12,7 +12,7 @@ Capture mirrors =org-capture=. Start it from anywhere in the app:
 | Emacs  | =C-c c= or =⇧⌘N=                       |
 | Doom   | =SPC X= (normal state), =C-c c= or =⇧⌘N= |
 
-=⌃⌥Space= opens the capture window from any app, with Orgstar in the background. Turn it off in Settings ▸ Capture, or in =config.toml=:
+=⌃⌥Space= opens the capture window from any app, with orgstar in the background. Turn it off in Settings ▸ Capture, or in =config.toml=:
 
 #+BEGIN_SRC toml
 [orgstar]
@@ -51,7 +51,7 @@ The + at the right of a day's header in the agenda, or =k= in the Mac agenda (=o
 - An empty answer to a date prompt (=%^t= and the others) is that day.
 - With =datetree = true=, the entry goes under that day in the date tree.
 
-When the filled template is a heading without an active timestamp, Orgstar adds =SCHEDULED:= with that day on the line after the heading, or at the end of the planning line when the template has one:
+When the filled template is a heading without an active timestamp, orgstar adds =SCHEDULED:= with that day on the line after the heading, or at the end of the planning line when the template has one:
 
 #+BEGIN_SRC org
 ,* TODO Call the bank
@@ -239,7 +239,7 @@ With =olp=, the tree goes under that outline path, one level down, instead of at
 
 * org-protocol
 
-Orgstar registers the =org-protocol:= URL scheme and handles the two handlers browser bookmarklets use, as =org-protocol.el= does in Org 9.8.7. Both the =?key=value= form and the older =:/a/b/c= form work.
+orgstar registers the =org-protocol:= URL scheme and handles the two handlers browser bookmarklets use, as =org-protocol.el= does in Org 9.8.7. Both the =?key=value= form and the older =:/a/b/c= form work.
 
 ** capture
 
@@ -264,7 +264,7 @@ org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=Example
 
 This stores the link, so =C-c C-l= in the editor offers it (see [[file:09-links.org][Links]]), and puts the URL on the clipboard.
 
-Other handlers, such as =open-source=, report that Orgstar handles only capture and store-link.
+Other handlers, such as =open-source=, report that orgstar handles only capture and store-link.
 
 ** Bookmarklets
 
@@ -291,16 +291,16 @@ template = "* %:description\n:PROPERTIES:\n:URL: %:link\n:END:\n%U\n%i\n%?"
 
 * Shortcuts
 
-The Shortcuts action Capture to Orgstar files text with a template, without the capture window. It has two parameters:
+The Shortcuts action Capture to orgstar files text with a template, without the capture window. It has two parameters:
 
 | Parameter    | Meaning                                                                 |
 |--------------+-------------------------------------------------------------------------|
 | Text         | The text, inserted as =%i=                                              |
 | Template Key | A template's =key= in =capture.toml=; the first template when empty     |
 
-Every prompt in the template takes its default (an empty answer: today for dates, no tags), and =%?= is ignored. =%a= is empty. On the Mac, =%c= is the clipboard and =%n= your name; on iOS both are empty, because reading the pasteboard would ask for permission on every run. The action returns a message, =Captured to …= with the target on the Mac and =Captured with …= with the template name on iOS, or fails with the same messages as the capture window. You can also say "Capture to Orgstar" to Siri.
+Every prompt in the template takes its default (an empty answer: today for dates, no tags), and =%?= is ignored. =%a= is empty. On the Mac, =%c= is the clipboard and =%n= your name; on iOS both are empty, because reading the pasteboard would ask for permission on every run. The action returns a message, =Captured to …= with the target on the Mac and =Captured with …= with the template name on iOS, or fails with the same messages as the capture window. You can also say "Capture to orgstar" to Siri.
 
-On the Mac, the action opens Orgstar if it isn't running and waits up to five seconds for it to be ready.
+On the Mac, the action opens orgstar if it isn't running and waits up to five seconds for it to be ready.
 
 * Capture on iOS
 
@@ -316,15 +316,15 @@ Differences from the Mac: there is no selection, clipboard, current file, user n
 
 ** The share sheet
 
-In another app, share a web page or text and choose Orgstar. The share form has:
+In another app, share a web page or text and choose orgstar. The share form has:
 
 - a Template picker, with the templates the app read the last time it ran;
 - for a link, its title (editable) and address;
 - a Text field, filled with shared text.
 
-Capture saves the item in the app group's capture inbox. The next time you open Orgstar, it opens the capture sheet with the item as an org-protocol capture: the link becomes =%a= and =%:link=, the title =%:description=, and the text =%i=. Several waiting items open one after another, oldest first. If the extension says Orgstar's shared folder isn't available, the app group is missing from the build and nothing can be saved.
+Capture saves the item in the app group's capture inbox. The next time you open orgstar, it opens the capture sheet with the item as an org-protocol capture: the link becomes =%a= and =%:link=, the title =%:description=, and the text =%i=. Several waiting items open one after another, oldest first. If the extension says orgstar's shared folder isn't available, the app group is missing from the build and nothing can be saved.
 
-The share form lists no templates until Orgstar has run once with your configuration folder; the capture sheet then starts on the first template.
+The share form lists no templates until orgstar has run once with your configuration folder; the capture sheet then starts on the first template.
 
 * Importing templates from Emacs
 
@@ -346,4 +346,4 @@ Import from Emacs (see [[file:13-configuration.org][Configuration]] and [[file:1
 
 A file name given as a variable or a simple form is evaluated where the importer can. The import report lists what it left out: other targets, templates that aren't strings, unknown =:tree-type= values, and other properties such as =:time-prompt=, =:kill-buffer= or =:unnarrowed=. Template groups are skipped.
 
-Emacs resolves relative target files against =org-directory=; Orgstar resolves them against the first folder in the sidebar. If =org-directory= isn't your first folder, edit the imported =file= values or make them absolute.
+Emacs resolves relative target files against =org-directory=; orgstar resolves them against the first folder in the sidebar. If =org-directory= isn't your first folder, edit the imported =file= values or make them absolute.

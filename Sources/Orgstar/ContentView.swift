@@ -212,7 +212,7 @@ struct ContentView: View {
                     }
             }
         }
-        .navigationTitle(previewPath.map { ($0 as NSString).lastPathComponent } ?? session.path.map(session.bufferName) ?? "Orgstar")
+        .navigationTitle(previewPath.map { ($0 as NSString).lastPathComponent } ?? session.path.map(session.bufferName) ?? "orgstar")
         .navigationSubtitle(session.isReadOnly ? "Read-only: not UTF-8" : "")
         .searchable(text: $query, placement: .toolbar, prompt: "Search notes")
         .searchFocused($searchFocused)
@@ -333,7 +333,7 @@ struct ContentView: View {
                 commands.showingQuickOpen = false
             }
         }
-        .alert("Orgstar", isPresented: errorShown) {
+        .alert("orgstar", isPresented: errorShown) {
             Button("OK") {
                 workspace.lastError = nil
                 session.lastError = nil

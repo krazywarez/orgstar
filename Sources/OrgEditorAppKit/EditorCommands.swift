@@ -59,7 +59,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.block.cancel", title: "Leave Block", action: .app),
 
         EditorCommand(id: "app.save", title: "Save", action: .app),
-        EditorCommand(id: "app.quit", title: "Quit Orgstar", action: .app),
+        EditorCommand(id: "app.quit", title: "Quit orgstar", action: .app),
         EditorCommand(id: "app.save-all", title: "Save All Buffers", action: .app),
         EditorCommand(id: "app.buffer.switch", title: "Switch to Buffer…", action: .app),
         EditorCommand(id: "app.buffer.kill", title: "Close Buffer", action: .app),

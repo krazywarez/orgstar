@@ -1,6 +1,6 @@
 #+TITLE: iPhone and iPad
 #+DESCRIPTION: The iOS app: folders, reading and editing, search, the agenda, widgets, capture, clocking, reminders, export and settings.
-#+LEDE: Orgstar for iPhone and iPad reads and edits the same org files as the Mac, with the agenda, capture and search.
+#+LEDE: orgstar for iPhone and iPad reads and edits the same org files as the Mac, with the agenda, capture and search.
 
 * Overview
 
@@ -15,16 +15,16 @@ Files open in a reader first. The Edit button in the reader opens the editor. Bo
 
 * Folders and file access
 
-Orgstar on iOS works on folders you choose, in iCloud Drive or in another app's storage (for example a folder kept by a Syncthing client).
+orgstar on iOS works on folders you choose, in iCloud Drive or in another app's storage (for example a folder kept by a Syncthing client).
 
 1. Open the Folders tab and tap Add Folder (the folder icon with a plus).
 2. Choose a folder in the picker.
 
-Orgstar keeps access to the folder across launches. Each folder appears as a section listing its =.org= files by their path inside the folder. Remove Folder at the end of a section removes it from Orgstar; the files stay where they are.
+orgstar keeps access to the folder across launches. Each folder appears as a section listing its =.org= files by their path inside the folder. Remove Folder at the end of a section removes it from orgstar; the files stay where they are.
 
-Files that iCloud hasn't downloaded to the device yet appear in grey with a cloud icon. Orgstar asks iCloud to download them and lists them as files once they arrive.
+Files that iCloud hasn't downloaded to the device yet appear in grey with a cloud icon. orgstar asks iCloud to download them and lists them as files once they arrive.
 
-Orgstar sees changes made by iCloud and by apps that use the system's file coordination, and reads every folder again each time you return to the app, since not every sync app reports its changes. An open file takes in changes from disk as described in [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]].
+orgstar sees changes made by iCloud and by apps that use the system's file coordination, and reads every folder again each time you return to the app, since not every sync app reports its changes. An open file takes in changes from disk as described in [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]].
 
 There is no way to open a single file from the Files app. Add the folder that contains it.
 
@@ -173,7 +173,7 @@ See [[file:07-agenda.org][The agenda]] for the rows, the views and matches, and 
 
 ** Widgets
 
-Orgstar has two widgets. Add them as any widget: touch and hold the Home Screen or the Lock Screen, and choose Orgstar in the widget gallery.
+orgstar has two widgets. Add them as any widget: touch and hold the Home Screen or the Lock Screen, and choose orgstar in the widget gallery.
 
 | Widget | Sizes                                        | Shows                                                                                       |
 |--------+----------------------------------------------+---------------------------------------------------------------------------------------------|
@@ -184,13 +184,13 @@ What's left of today is today's entries and calendar events that aren't done, wi
 
 Tapping a row in the medium or large Today widget opens that entry; tapping elsewhere opens the agenda. Tapping Up Next opens the next entry, or the agenda when there is none.
 
-Widgets can't read your folders, so the app writes the next seven days of the agenda (today included) for them to read: while it is open, when files, edits or settings change, when you return to the app, and every hour. Between those times the widgets move on by themselves as timed entries end and at midnight, but they show nothing new until you open Orgstar. Until the app has written the agenda once, they say =Open Orgstar to show your agenda here.= The widgets ignore the agenda's filter and show no days without entries.
+Widgets can't read your folders, so the app writes the next seven days of the agenda (today included) for them to read: while it is open, when files, edits or settings change, when you return to the app, and every hour. Between those times the widgets move on by themselves as timed entries end and at midnight, but they show nothing new until you open orgstar. Until the app has written the agenda once, they say =Open orgstar to show your agenda here.= The widgets ignore the agenda's filter and show no days without entries.
 
 ** The clock's Live Activity
 
 While a clock runs, it shows on the Lock Screen and in the Dynamic Island: the heading, the time so far, and a Clock Out button. Clock Out stops the clock as Clock Out does in the app, and saves the file. Tapping the Live Activity opens the clocked entry.
 
-The Live Activity starts when you clock in in the app and ends when the clock stops, however it stops. It needs Live Activities allowed for Orgstar in the Settings app (Settings ▸ Orgstar ▸ Live Activities).
+The Live Activity starts when you clock in in the app and ends when the clock stops, however it stops. It needs Live Activities allowed for orgstar in the Settings app (Settings ▸ orgstar ▸ Live Activities).
 
 ** orgstar:// links
 
@@ -217,17 +217,17 @@ Templates come from =capture.toml= in the configuration folder (see Settings bel
 
 ** From the share sheet
 
-Orgstar appears in the share sheet of other apps for a web link or text.
+orgstar appears in the share sheet of other apps for a web link or text.
 
-1. Share a page or text and choose Orgstar.
+1. Share a page or text and choose orgstar.
 2. Choose a template, edit the link's title, and add text.
 3. Tap Capture.
 
-The share extension doesn't file the entry itself. It leaves it for the app, which opens its capture sheet with the link and text the next time it becomes active. Several shared items open one after another. If the extension shows "Orgstar's shared folder isn't available", the app and its extension can't share data, and Capture is disabled.
+The share extension doesn't file the entry itself. It leaves it for the app, which opens its capture sheet with the link and text the next time it becomes active. Several shared items open one after another. If the extension shows "orgstar's shared folder isn't available", the app and its extension can't share data, and Capture is disabled.
 
 ** From Shortcuts
 
-Shortcuts has a Capture to Orgstar action, and Siri responds to "Capture to Orgstar". The action takes:
+Shortcuts has a Capture to orgstar action, and Siri responds to "Capture to orgstar". The action takes:
 
 - Text :: the text to capture, available to the template as =%i=.
 - Template Key :: a key from =capture.toml=; empty uses the first template.
@@ -258,9 +258,9 @@ See [[file:06-dates-and-clocking.org][Dates and clocking]].
 
 * Reminders
 
-With =reminders= on, Orgstar schedules a notification before each timed agenda entry in the next week, =appt-message-warning-time= minutes ahead (or the entry's =APPT_WARNTIME=). Tap a notification to open its entry. Notifications show while the app is open too.
+With =reminders= on, orgstar schedules a notification before each timed agenda entry in the next week, =appt-message-warning-time= minutes ahead (or the entry's =APPT_WARNTIME=). Tap a notification to open its entry. Notifications show while the app is open too.
 
-iOS lets an app schedule at most 64 notifications, and Orgstar schedules more only while it runs. It updates them when files or settings change, when you return to the app, and every hour while it is open. The agenda's status line says how far ahead reminders are set ("Reminders are set through …"), or that notifications are off for Orgstar in the system Settings app.
+iOS lets an app schedule at most 64 notifications, and orgstar schedules more only while it runs. It updates them when files or settings change, when you return to the app, and every hour while it is open. The agenda's status line says how far ahead reminders are set ("Reminders are set through …"), or that notifications are off for orgstar in the system Settings app.
 
 * Export
 
@@ -272,12 +272,12 @@ PDF, ODT, LaTeX and plain-text export need Emacs and aren't available on iOS. Se
 
 =C-c C-c= on a source block asks whether to run it (yes, no, or always for this block), as on the Mac.
 
-On iOS, only Emacs Lisp blocks run. Orgstar evaluates them with its own Emacs Lisp interpreter, which covers a subset of the language. Other results:
+On iOS, only Emacs Lisp blocks run. orgstar evaluates them with its own Emacs Lisp interpreter, which covers a subset of the language. Other results:
 
 - A block in another language: "/language/ blocks need the Mac to run."
 - Emacs Lisp the interpreter doesn't have: "This block uses Emacs Lisp that runs only in Emacs, on the Mac."
 
-Table formulas that Orgstar computes itself work on iOS. A table whose formulas need Emacs reports "This table needs Emacs, which runs on the Mac", with the reason, and isn't changed.
+Table formulas that orgstar computes itself work on iOS. A table whose formulas need Emacs reports "This table needs Emacs, which runs on the Mac", with the reason, and isn't changed.
 
 Tangling (=C-c C-v t=, in Commands) works on iOS and writes the tangled files next to the org file, or where =:tangle= says.
 
@@ -285,7 +285,7 @@ See [[file:11-code-blocks.org][Code blocks]] and [[file:10-tables.org][Tables]].
 
 * Conflicts and versions
 
-When a file changes on disk while you have unsaved edits, Orgstar merges the change into your edits. When the changes overlap, the conflict sheet opens. It shows the difference (lines marked - are on disk, + in your version) and offers:
+When a file changes on disk while you have unsaved edits, orgstar merges the change into your edits. When the changes overlap, the conflict sheet opens. It shows the difference (lines marked - are on disk, + in your version) and offers:
 
 - Keep Mine :: write your version over the disk version.
 - Use Disk Version :: replace your edits with the disk version.
@@ -305,7 +305,7 @@ See [[file:15-alongside-emacs.org][Working alongside Emacs and other tools]] for
 The iOS app reads its settings from a configuration folder: a folder holding =config.toml= and =capture.toml=, such as a copy of the Mac's =~/.config/orgstar= synced through iCloud Drive or another app.
 
 1. Open the Settings tab.
-2. Tap Choose Folder… and choose the folder. If it has no =config.toml=, Orgstar writes one with every setting at its default, each with a comment, as the Mac does.
+2. Tap Choose Folder… and choose the folder. If it has no =config.toml=, orgstar writes one with every setting at its default, each with a comment, as the Mac does.
 
 Changes to the files apply as they sync, and again each time you return to the app. Problems in the files show in red under the folder. "No config.toml in /folder/; the defaults apply" means the folder has no =config.toml=, for example because it was removed after you chose the folder.
 
@@ -318,7 +318,7 @@ The Agenda, TODO Dependencies and Calendar sections are the only places the app 
 - Show days without entries :: turns =org-agenda-show-all-dates= on or off.
 - Blocked entries :: Dimmed, Hidden or Shown as usual (=org-agenda-dim-blocked-tasks=).
 - TODO Dependencies :: Not done before TODO children (=org-enforce-todo-dependencies=) and Not done with unchecked boxes (=org-enforce-todo-checkbox-dependencies=).
-- Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; Orgstar only reads. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
+- Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; orgstar only reads. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
 - The calendars :: tap one to show or hide its events (=calendar-event-calendars=). With every calendar checked the setting is empty, so calendars added later show too.
 
 These write =config.toml= in the configuration folder, as the Mac's Settings window does, so the Mac sees the change too. Without a configuration folder they are kept on the device.
@@ -345,13 +345,13 @@ These settings from =config.toml= apply on iOS:
 
 * Spotlight and Quick Look
 
-Orgstar adds the org files in your folders to Spotlight with their title (=#+TITLE=, else the file name), author, description, tags, headings and text. A file is indexed again when it changes. Tap a Spotlight result to open the file in Orgstar's reader.
+orgstar adds the org files in your folders to Spotlight with their title (=#+TITLE=, else the file name), author, description, tags, headings and text. A file is indexed again when it changes. Tap a Spotlight result to open the file in orgstar's reader.
 
 Quick Look in the Files app shows org files as the HTML export renders them.
 
 * What the Mac has that iOS doesn't
 
-- Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond Orgstar's interpreter, and tables that need Emacs.
+- Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond orgstar's interpreter, and tables that need Emacs.
 - PDF, ODT, LaTeX and plain-text export.
 - The Mac and Doom keymaps, Vim keys, and =keymap.toml=.
 - Idle detection while a clock runs.

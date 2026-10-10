@@ -121,7 +121,7 @@ final class AppCommands {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(link, forType: .string)
         case nil:
-            show("Orgstar handles org-protocol capture and store-link")
+            show("orgstar handles org-protocol capture and store-link")
         }
     }
 
@@ -302,7 +302,7 @@ struct OrgstarApp: App {
     }
 
     var body: some Scene {
-        Window("Orgstar", id: "main") {
+        Window("orgstar", id: "main") {
             switch workspace {
             case .success(let model):
                 ContentView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)
@@ -568,7 +568,7 @@ struct SettingsView: View {
             Section {
                 LabeledContent("config.toml") {
                     HStack {
-                        Button("Edit in Orgstar") { editConfig() }
+                        Button("Edit in orgstar") { editConfig() }
                         Button("Open with Default App") { NSWorkspace.shared.open(UserConfig.configFile) }
                         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([UserConfig.configFile]) }
                     }
@@ -636,7 +636,7 @@ struct SettingsView: View {
             Section {
                 TextField("Default TODO keywords", text: $todoKeywords, axis: .vertical)
             } footer: {
-                Text("For files without #+TODO, in #+TODO syntax, one sequence per line. Takes effect when Orgstar restarts.")
+                Text("For files without #+TODO, in #+TODO syntax, one sequence per line. Takes effect when orgstar restarts.")
                     .settingsFooter()
             }
             Section {
@@ -703,7 +703,7 @@ struct SettingsView: View {
                 Toggle("Show events from Calendar", isOn: $calendarEvents)
                 if calendarEvents {
                     if calendars.isEmpty {
-                        Text(CalendarEvents.isAuthorized ? "No calendars." : "Allow Orgstar to read your calendars in System Settings ▸ Privacy & Security ▸ Calendars.")
+                        Text(CalendarEvents.isAuthorized ? "No calendars." : "Allow orgstar to read your calendars in System Settings ▸ Privacy & Security ▸ Calendars.")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(calendars, id: \.id) { calendar in

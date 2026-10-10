@@ -25,7 +25,7 @@ struct TodayView: View {
             if let snapshot = entry.snapshot {
                 content(snapshot)
             } else {
-                Text("Open Orgstar to show your agenda here.")
+                Text("Open orgstar to show your agenda here.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

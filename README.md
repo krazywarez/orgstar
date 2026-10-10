@@ -1,8 +1,8 @@
-# Orgstar
+# orgstar
 
 A native macOS editor for org-mode files, with an iOS app for iPhone and iPad.
 
-The files are the source of truth: Orgstar edits them in place and leaves
+The files are the source of truth: orgstar edits them in place and leaves
 every byte you didn't change as it was, so Emacs and sync tools can work on
 the same folder.
 
@@ -17,13 +17,13 @@ and tangling, Simulator builds only so far.
 Requires macOS 26 and Xcode 27 (Swift 6.2 tools).
 
 ```sh
-scripts/build-app.sh          # builds .build/app/Orgstar.app, signed ad hoc
-open .build/app/Orgstar.app
+scripts/build-app.sh          # builds .build/app/orgstar.app, signed ad hoc
+open .build/app/orgstar.app
 ```
 
 Add a folder with File > Add Folder… (⇧⌘O). ⌘P opens a file by name, ⇧⌘F
 searches, ⇧⌘A shows the agenda. In the editor, TAB on a heading cycles its
-folding and Shift-TAB cycles the whole file. Orgstar opens `.org` files from
+folding and Shift-TAB cycles the whole file. orgstar opens `.org` files from
 Finder once the app has been launched.
 
 C-c C-v t tangles the file's source blocks into the files their `:tangle`
@@ -32,7 +32,7 @@ header names, as `org-babel-tangle` does.
 `org-protocol://capture?template=…&url=…&title=…&body=…` and
 `org-protocol://store-link?url=…&title=…` links work as in Emacs, so browser
 bookmarklets written for org-protocol work unchanged. Shortcuts has a
-"Capture to Orgstar" action that files text with a capture template.
+"Capture to orgstar" action that files text with a capture template.
 
 The iOS app (iOS 26) is the "Orgstar iOS" scheme in `ios/Orgstar.xcodeproj`, with the
 share and Quick Look extensions. It builds from the package's sources and signs
@@ -40,15 +40,15 @@ automatically with the team set in the project; choose a device or Simulator and
 For the Simulator without Xcode:
 
 ```sh
-scripts/build-ios-app.sh      # builds .build/ios-app/Orgstar.app
-xcrun simctl install booted .build/ios-app/Orgstar.app
+scripts/build-ios-app.sh      # builds .build/ios-app/orgstar.app
+xcrun simctl install booted .build/ios-app/orgstar.app
 ```
 
-On iOS, Orgstar in the share sheet takes a page or text with a template; the
+On iOS, orgstar in the share sheet takes a page or text with a template; the
 app opens its capture sheet with it when it's next active. Shortcuts has the
-same "Capture to Orgstar" action as on the Mac.
+same "Capture to orgstar" action as on the Mac.
 
-Settings live in `~/.config/orgstar/config.toml` (Orgstar ▸ Edit Config File),
+Settings live in `~/.config/orgstar/config.toml` (orgstar ▸ Edit Config File),
 with keys in `keymap.toml` and capture templates in `capture.toml` beside it.
 Settings ▸ General ▸ Import from Emacs reads an existing Emacs or Doom
 configuration.

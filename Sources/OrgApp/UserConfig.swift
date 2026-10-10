@@ -146,7 +146,7 @@ public enum UserConfig {
         Setting(section: "", key: "org-agenda-start-day", defaultsKey: "agendaStartOffset", kind: .dayOffset, fallback: .string("+0d"),
                 comment: "the agenda's first day: \"-3d\", \"+0d\"", legacy: "agenda.start-offset"),
         Setting(section: "", key: "org-agenda-show-all-dates", defaultsKey: "agendaShowAllDates", kind: .bool, fallback: .bool(false),
-                comment: "show days with no entries (Emacs's default is t; Orgstar hides them); today always shows", legacy: ""),
+                comment: "show days with no entries (Emacs's default is t; orgstar hides them); today always shows", legacy: ""),
         Setting(section: "", key: "org-agenda-skip-scheduled-if-done", defaultsKey: "agendaSkipScheduledIfDone", kind: .bool, fallback: .bool(false),
                 comment: "leave done entries out of the agenda even on the day they are scheduled", legacy: ""),
         Setting(section: "", key: "org-agenda-skip-deadline-if-done", defaultsKey: "agendaSkipDeadlineIfDone", kind: .bool, fallback: .bool(false),
@@ -379,8 +379,8 @@ public enum UserConfig {
 
     private static func template(_ value: (Setting) -> TOML.Value) -> String {
         var out = """
-            # Orgstar settings. The Settings window writes its changes here, and edits made here
-            # apply while Orgstar runs. Keys go in keymap.toml, capture templates in capture.toml
+            # orgstar settings. The Settings window writes its changes here, and edits made here
+            # apply while orgstar runs. Keys go in keymap.toml, capture templates in capture.toml
             # and saved agenda views in views.toml, all in this folder.
 
             # Emacs variables, by their Emacs names.

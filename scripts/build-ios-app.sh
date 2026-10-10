@@ -1,12 +1,12 @@
 #!/bin/sh
-# Builds Orgstar.app for the iOS Simulator in .build/ios-app from the OrgstarMobile product,
-# signed ad hoc. Install with `xcrun simctl install booted .build/ios-app/Orgstar.app`.
+# Builds orgstar.app for the iOS Simulator in .build/ios-app from the OrgstarMobile product,
+# signed ad hoc. Install with `xcrun simctl install booted .build/ios-app/orgstar.app`.
 # Usage: scripts/build-ios-app.sh [version]
 set -eu
 
 cd "$(dirname "$0")/.."
 version="${1:-0.1.0}"
-app=".build/ios-app/Orgstar.app"
+app=".build/ios-app/orgstar.app"
 products=".build/ios/Build/Products/Debug-iphonesimulator"
 
 # The entitlements (the app group the share extension leaves captures in) go where the
@@ -32,9 +32,11 @@ cat > "$app/Info.plist" <<PLIST
     <key>CFBundleIdentifier</key>
     <string>sh.krz.orgstar</string>
     <key>CFBundleName</key>
-    <string>Orgstar</string>
+    <string>orgstar</string>
     <key>CFBundleDisplayName</key>
-    <string>Orgstar</string>
+    <string>orgstar</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
     <key>CFBundleExecutable</key>
     <string>OrgstarMobile</string>
     <key>CFBundlePackageType</key>
@@ -48,7 +50,7 @@ cat > "$app/Info.plist" <<PLIST
     <key>MinimumOSVersion</key>
     <string>26.0</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>The agenda shows your calendar events alongside your Org entries. Orgstar only reads them.</string>
+    <string>The agenda shows your calendar events alongside your Org entries. orgstar only reads them.</string>
     <key>UIDeviceFamily</key>
     <array><integer>1</integer><integer>2</integer></array>
     <key>UILaunchScreen</key>
@@ -128,7 +130,7 @@ appex() { # name, bundle id suffix, extension point, principal class, attributes
     <key>CFBundleName</key>
     <string>$1</string>
     <key>CFBundleDisplayName</key>
-    <string>Orgstar</string>
+    <string>orgstar</string>
     <key>CFBundleExecutable</key>
     <string>$1</string>
     <key>CFBundlePackageType</key>

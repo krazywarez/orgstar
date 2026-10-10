@@ -225,7 +225,7 @@ public struct ThemeSpec: Equatable, Sendable {
     /// The default theme written out, to copy colors from.
     public static func defaultThemeFile() -> String {
         var out = """
-            # Orgstar's default theme, for reference: Orgstar writes this file again each time it
+            # orgstar's default theme, for reference: orgstar writes this file again each time it
             # starts, so change colors in config.toml. A key set under [theme] colors both
             # appearances; [theme.light] and [theme.dark] set one. Colors are "#rrggbb" or
             # "#rrggbbaa". [theme.todo] colors TODO keywords by name, as org-todo-keyword-faces:

@@ -45,16 +45,16 @@ extension DocumentSession {
         case "coderef":
             return .message("Coderef links aren't supported")
         case "shell", "elisp":
-            return .message("Orgstar doesn't run \(link.type) links")
+            return .message("orgstar doesn't run \(link.type) links")
         default:
-            return .message("Orgstar can't open \(link.type) links")
+            return .message("orgstar can't open \(link.type) links")
         }
     }
 
     static func url(_ string: String) -> LinkFollow {
         let allowed = CharacterSet.urlFragmentAllowed.union(.urlQueryAllowed).union(CharacterSet(charactersIn: "#%"))
         guard let url = URL(string: string.addingPercentEncoding(withAllowedCharacters: allowed) ?? string) else {
-            return .message("Not a link Orgstar can open: \(string)")
+            return .message("Not a link orgstar can open: \(string)")
         }
         return .openExternally(url)
     }

@@ -4,16 +4,16 @@
 
 * Where settings live
 
-Orgstar keeps its settings in a configuration folder:
+orgstar keeps its settings in a configuration folder:
 
 - =$XDG_CONFIG_HOME/orgstar= when =XDG_CONFIG_HOME= is set and not empty,
 - otherwise =~/.config/orgstar=.
 
-The environment variable =ORGSTAR_CONFIG_DIR= overrides both. If a file is missing from the configuration folder but exists in =~/Library/Application Support/Orgstar= (where earlier versions kept it), Orgstar reads it from there, and reloads it when you edit it there.
+The environment variable =ORGSTAR_CONFIG_DIR= overrides both. If a file is missing from the configuration folder but exists in =~/Library/Application Support/Orgstar= (where earlier versions kept it), orgstar reads it from there, and reloads it when you edit it there.
 
 The folder holds these files:
 
-| File                 | What it holds                                                    | Written by Orgstar                    |
+| File                 | What it holds                                                    | Written by orgstar                    |
 |----------------------+------------------------------------------------------------------+---------------------------------------|
 | =config.toml=        | Every setting of the Settings window, and the theme              | Yes, when you change a setting        |
 | =keymap.toml=        | Your key bindings, on top of the preset                          | Only by Import from Emacs             |
@@ -21,20 +21,20 @@ The folder holds these files:
 | =views.toml=         | Saved agenda views                                               | No                                    |
 | =default-theme.toml= | The default theme's colors, for reference                        | Yes, at every launch                  |
 
-=config.toml= is the source of truth. The Settings window writes each change into it, keeping your comments and the order of lines, and edits you make to the file apply while Orgstar runs. If the file doesn't exist at launch, Orgstar creates it with every setting at its current value and a comment after each one.
+=config.toml= is the source of truth. The Settings window writes each change into it, keeping your comments and the order of lines, and edits you make to the file apply while orgstar runs. If the file doesn't exist at launch, orgstar creates it with every setting at its current value and a comment after each one.
 
-When you add the folder to a dotfiles repository, keep =default-theme.toml= out of it or ignore its changes: Orgstar rewrites it whenever its contents differ from the built-in theme.
+When you add the folder to a dotfiles repository, keep =default-theme.toml= out of it or ignore its changes: orgstar rewrites it whenever its contents differ from the built-in theme.
 
 ** Opening config.toml
 
-- Orgstar ▸ Edit Config File (=⌥⌘,=) opens =config.toml= as a buffer in the main window. The command palette has the same command as Edit Config File.
-- Settings ▸ General has three buttons for the file: Edit in Orgstar, Open with Default App, and Show in Finder.
+- orgstar ▸ Edit Config File (=⌥⌘,=) opens =config.toml= as a buffer in the main window. The command palette has the same command as Edit Config File.
+- Settings ▸ General has three buttons for the file: Edit in orgstar, Open with Default App, and Show in Finder.
 
 Saving the buffer applies the file, the same as saving it from another editor.
 
 ** Problems in the files
 
-If =config.toml= has a line Orgstar can't use, the problem shows in the message line under the editor, with a count when there are more. Each problem names the file and the key:
+If =config.toml= has a line orgstar can't use, the problem shows in the message line under the editor, with a count when there are more. Each problem names the file and the key:
 
 - =config.toml: unknown setting editor.foo=
 - =config.toml: org-log-done must be one of nil, time, note=
@@ -45,13 +45,13 @@ A file that isn't valid TOML is reported with its parse error, and none of it ap
 
 * The Settings window
 
-Open it with Orgstar ▸ Settings (=⌘,=). It has five panes. Each control writes the =config.toml= key named in the tables below; the config.toml reference below gives the type and the Emacs variable.
+Open it with orgstar ▸ Settings (=⌘,=). It has five panes. Each control writes the =config.toml= key named in the tables below; the config.toml reference below gives the type and the Emacs variable.
 
 ** General
 
 | Control                                    | Choices                                                                      | Default                         | Key              |
 |--------------------------------------------+------------------------------------------------------------------------------+---------------------------------+------------------|
-| config.toml: Edit in Orgstar               | Opens the file in the main window                                            |                                 |                  |
+| config.toml: Edit in orgstar               | Opens the file in the main window                                            |                                 |                  |
 | config.toml: Open with Default App         | Opens the file in the app macOS uses for =.toml=                             |                                 |                  |
 | config.toml: Show in Finder                | Selects the file in Finder                                                   |                                 |                  |
 | Emacs: Import from Emacs…                  | Opens the import sheet; see Import from Emacs below|                                 |                  |
@@ -78,13 +78,13 @@ Automatic saving writes a file one second after you stop typing. The keymap pres
 | Entries can't be done before their TODO children (org-enforce-todo-dependencies) | On or off                 | Off                 | =org-enforce-todo-dependencies=      |
 | Entries can't be done with unchecked boxes (org-enforce-todo-checkbox-dependencies) | On or off              | Off                 | =org-enforce-todo-checkbox-dependencies= |
 
-The two "Emacs hides" and "Emacs shows" switches describe your Emacs, not Orgstar's display. Tag alignment, table alignment and =M-q= measure text the way your Emacs displays it, so a file edited in both keeps the same layout. Set them to match your Emacs configuration. They also control whether Orgstar hides markers and shows entities when markup is hidden.
+The two "Emacs hides" and "Emacs shows" switches describe your Emacs, not orgstar's display. Tag alignment, table alignment and =M-q= measure text the way your Emacs displays it, so a file edited in both keeps the same layout. Set them to match your Emacs configuration. They also control whether orgstar hides markers and shows entities when markup is hidden.
 
 The Tags picker offers two values. =config.toml= accepts any integer; with a value other than =-77= or =0= the picker shows no selection.
 
 The long-lines switch applies to files as they open; View ▸ Truncate or Wrap Long Lines switches the file in front.
 
-Default TODO keywords apply to files without a =#+TODO= line. Orgstar reads them at launch, so a change takes effect after you quit and reopen Orgstar.
+Default TODO keywords apply to files without a =#+TODO= line. orgstar reads them at launch, so a change takes effect after you quit and reopen orgstar.
 
 The two dependency switches are described under Dependencies in [[file:05-todos-and-tags.org][TODOs and tags]].
 
@@ -120,7 +120,7 @@ See Themes and Fonts below.
 
 An entry's =APPT_WARNTIME= property overrides the lead time. The agenda is covered in [[file:07-agenda.org][The agenda]].
 
-The calendar checkboxes appear once Show events from Calendar is on and Orgstar may read your calendars; turning the switch on asks for that access. While every calendar is checked, =calendar-event-calendars= is empty, so calendars you add later show too. The last checked calendar can't be unchecked; turn off Show events from Calendar instead.
+The calendar checkboxes appear once Show events from Calendar is on and orgstar may read your calendars; turning the switch on asks for that access. While every calendar is checked, =calendar-event-calendars= is empty, so calendars you add later show too. The last checked calendar can't be unchecked; turn off Show events from Calendar instead.
 
 Turning on the idle question sets =org-clock-idle-time= to 15 minutes; turning it off sets it to =0=. The minutes stepper is disabled while the question is off. Idle time and the clock history are covered in [[file:06-dates-and-clocking.org][Dates and clocking]].
 
@@ -177,8 +177,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-insert-heading-respect-content= | boolean | =true=  | =M-RET= adds the new heading after the current subtree. Mirrors =org-insert-heading-respect-content=.        |
 | =org-M-RET-may-split-line=           | boolean | =false= | =M-RET= in the middle of a line splits it at the caret. Mirrors the =default= entry of =org-M-RET-may-split-line=. |
 | =org-list-allow-alphabetical=        | boolean | =true=  | =a.=, =b)=, =A.= are list bullets. Mirrors =org-list-allow-alphabetical=.                                     |
-| =org-hide-emphasis-markers=          | boolean | =true=  | Your Emacs hides =*bold*= and ~=code=~ markers; Orgstar hides them when markup is hidden and measures text without them. Mirrors =org-hide-emphasis-markers=. |
-| =org-pretty-entities=                | boolean | =true=  | Your Emacs shows =\alpha= as α and lowers =x_{1}=; Orgstar does the same when markup is hidden. Mirrors =org-pretty-entities=. |
+| =org-hide-emphasis-markers=          | boolean | =true=  | Your Emacs hides =*bold*= and ~=code=~ markers; orgstar hides them when markup is hidden and measures text without them. Mirrors =org-hide-emphasis-markers=. |
+| =org-pretty-entities=                | boolean | =true=  | Your Emacs shows =\alpha= as α and lowers =x_{1}=; orgstar does the same when markup is hidden. Mirrors =org-pretty-entities=. |
 | =org-todo-keywords=                  | string  | see below | Keywords for files without =#+TODO=, in =#+TODO= syntax; separate sequences with =\n=. Letters in parentheses turn on fast selection. Read at launch. Mirrors =org-todo-keywords=. |
 | =org-log-done=                       | string  | ="nil"= | =nil=, =time= (a =CLOSED= timestamp) or =note= (=CLOSED= and a note). Mirrors =org-log-done=.                |
 | =org-log-reschedule=                 | string  | ="nil"= | =nil=, =time= or =note=: log changing or removing a =SCHEDULED= date. Mirrors =org-log-reschedule=.          |
@@ -196,7 +196,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-use-speed-commands=             | boolean | =false= | Single keys at the start of a heading line run commands (=n=, =p=, =t=, =c=, …). Mirrors =org-use-speed-commands=. |
 | =org-cycle-hide-drawer-startup=      | boolean | =true=  | Fold drawers when a file opens. =#+STARTUP: hidedrawers= / =nohidedrawers= override it. Mirrors =org-cycle-hide-drawer-startup=. |
 | =org-cycle-hide-block-startup=       | boolean | =false= | Fold blocks when a file opens. =#+STARTUP: hideblocks= / =nohideblocks= override it. Mirrors =org-cycle-hide-block-startup=. |
-| =display-line-numbers-type=          | boolean | =true=  | Line numbers in the editor's gutter. Orgstar numbers lines absolutely; there is no relative or visual mode.    |
+| =display-line-numbers-type=          | boolean | =true=  | Line numbers in the editor's gutter. orgstar numbers lines absolutely; there is no relative or visual mode.    |
 | =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
 | =org-agenda-start-day=               | string  | ="+0d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
 | =org-agenda-show-all-dates=          | boolean | =false= | Show days without entries in the agenda; today always shows. Emacs's default is =t=. Mirrors =org-agenda-show-all-dates=. |
@@ -206,8 +206,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-search-view-force-full-words= | boolean | =false= | Text search snippets match whole words only, as a leading =:= does. Mirrors =org-agenda-search-view-force-full-words=. |
 | =org-agenda-dim-blocked-tasks=       | string  | ="t"=   | =t= dims entries the two enforce settings block, =invisible= hides them (entries blocked only by checkboxes are still dimmed), =nil= shows them as usual. Mirrors =org-agenda-dim-blocked-tasks=. |
 | =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
-| =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before Orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
-| =org-clock-history-length=           | integer | =5=     | How many recently clocked entries Orgstar remembers. Mirrors =org-clock-history-length=.                     |
+| =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
+| =org-clock-history-length=           | integer | =5=     | How many recently clocked entries orgstar remembers. Mirrors =org-clock-history-length=.                     |
 
 The default =org-todo-keywords= is the first sequence of Doom Emacs's default:
 
@@ -289,11 +289,11 @@ save = "explicit"
 
 ** Names from earlier versions
 
-Earlier versions used keys such as =editor.fill-column= and =agenda.span=. Orgstar still reads them. At launch, each such key in the file is renamed in place to its current name and moved to its current section; the rest of the file, and the comments on those lines, stay as they are. When a setting is in the file under both names, the current name wins and the old line is removed. A section the move leaves empty is removed. A file that lacks a whole section (such as =[theme]=) gets that section added at the end.
+Earlier versions used keys such as =editor.fill-column= and =agenda.span=. orgstar still reads them. At launch, each such key in the file is renamed in place to its current name and moved to its current section; the rest of the file, and the comments on those lines, stay as they are. When a setting is in the file under both names, the current name wins and the old line is removed. A section the move leaves empty is removed. A file that lacks a whole section (such as =[theme]=) gets that section added at the end.
 
 * keymap.toml and capture.toml
 
-=keymap.toml= holds =[[bind]]= tables with =keys=, =command=, and optionally =mode= and =when=. They layer over the preset chosen in Keys. Orgstar reloads the file when it changes. See [[file:03-keys.org][Keys and commands]].
+=keymap.toml= holds =[[bind]]= tables with =keys=, =command=, and optionally =mode= and =when=. They layer over the preset chosen in Keys. orgstar reloads the file when it changes. See [[file:03-keys.org][Keys and commands]].
 
 #+BEGIN_SRC toml
 [[bind]]
@@ -301,15 +301,15 @@ keys = "C-c a"
 command = "app.agenda"
 #+END_SRC
 
-=capture.toml= holds =[[template]]= tables. Without the file, Orgstar uses two templates: =t= (Personal todo, under =Inbox= in =todo.org=) and =n= (Personal notes, under =Inbox= in =notes.org=). See [[file:08-capture.org][Capture]].
+=capture.toml= holds =[[template]]= tables. Without the file, orgstar uses two templates: =t= (Personal todo, under =Inbox= in =todo.org=) and =n= (Personal notes, under =Inbox= in =notes.org=). See [[file:08-capture.org][Capture]].
 
 =views.toml= holds =[[view]]= tables for the agenda; see [[file:07-agenda.org][The agenda]].
 
 * In-file settings
 
-Keyword lines in a file set options for that file, as in Emacs. Orgstar reads them outside blocks; for =#+STARTUP= only keyword lines count, so a =#+STARTUP= line inside a paragraph or a block changes nothing: not folding, logging or inline images.
+Keyword lines in a file set options for that file, as in Emacs. orgstar reads them outside blocks; for =#+STARTUP= only keyword lines count, so a =#+STARTUP= line inside a paragraph or a block changes nothing: not folding, logging or inline images.
 
-** Keywords Orgstar reads
+** Keywords orgstar reads
 
 | Keyword                     | Effect                                                                                                                                          |
 |-----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -361,7 +361,7 @@ After you change a keyword line, press =C-c C-c= on it to read the file's settin
 | =logredeadline=, =lognoteredeadline=, =nologredeadline= | The same, when a deadline changes.                             |
 | =logdrawer=, =nologdrawer=                    | Notes go in =LOGBOOK=, or under the heading.                             |
 
-After the startup visibility, Orgstar applies each heading's =VISIBILITY= property and folds subtrees tagged =ARCHIVE=, unless =showeverything= is set.
+After the startup visibility, orgstar applies each heading's =VISIBILITY= property and folds subtrees tagged =ARCHIVE=, unless =showeverything= is set.
 
 Completion offers every option of =org-startup-options=. Options not in the table above, such as =odd=, =entitiespretty=, =latexpreview=, =constSI= and the footnote options, are accepted and ignored.
 
@@ -374,7 +374,7 @@ Completion offers every option of =org-startup-options=. Options not in the tabl
 - URLs (anything starting with =scheme://=) aren't fetched.
 - A setup file that can't be read, or isn't UTF-8, is skipped without a message.
 
-Keywords from setup files count for TODO keywords, priorities, =#+STARTUP=, =#+TAGS=, =#+FILETAGS=, =#+PROPERTY=, =#+CATEGORY=, =#+ARCHIVE=, =#+COLUMNS=, =#+LINK=, =#+CONSTANTS= and export. Orgstar reads setup files when a file opens, when you press =C-c C-c= on a keyword line, and when the file changes on disk. If you edit only the setup file, press =C-c C-c= on a keyword line of each open file that uses it.
+Keywords from setup files count for TODO keywords, priorities, =#+STARTUP=, =#+TAGS=, =#+FILETAGS=, =#+PROPERTY=, =#+CATEGORY=, =#+ARCHIVE=, =#+COLUMNS=, =#+LINK=, =#+CONSTANTS= and export. orgstar reads setup files when a file opens, when you press =C-c C-c= on a keyword line, and when the file changes on disk. If you edit only the setup file, press =C-c C-c= on a keyword line of each open file that uses it.
 
 * Import from Emacs
 
@@ -383,8 +383,8 @@ Import from Emacs reads your Emacs or Doom Emacs configuration and offers to car
 ** Running it
 
 1. Open Settings ▸ General and click Import from Emacs…, or run Import from Emacs… from the command palette (=⇧⌘P=).
-2. Orgstar looks for a configuration in these places, in order, and reads the first it finds: =$DOOMDIR=, =~/.config/doom=, =~/.doom.d=, =~/.config/emacs=, =~/.emacs.d=, =~/.emacs=. A folder counts when it holds =init.el=, =config.el= or =custom.el=. Doom's own installation folder (one with =lisp/doom.el=) is skipped.
-3. To read another configuration, click Choose… and pick a file or a folder. For a folder, Orgstar reads =init.el=, =config.el= and =custom.el= in it.
+2. orgstar looks for a configuration in these places, in order, and reads the first it finds: =$DOOMDIR=, =~/.config/doom=, =~/.doom.d=, =~/.config/emacs=, =~/.emacs.d=, =~/.emacs=. A folder counts when it holds =init.el=, =config.el= or =custom.el=. Doom's own installation folder (one with =lisp/doom.el=) is skipped.
+3. To read another configuration, click Choose… and pick a file or a folder. For a folder, orgstar reads =init.el=, =config.el= and =custom.el= in it.
 4. The sheet lists what it found under Settings, Folders, Capture templates and Key bindings, each with the line it came from (=config.el:27=, or =Doom default=). Everything is selected; clear what you don't want.
 5. Click Import. The sheet then summarizes what was imported and any problems.
 
@@ -395,21 +395,21 @@ What Import does with each kind of item:
 - Capture templates are appended to =capture.toml=, except those whose key is already in the file.
 - Key bindings are appended to =keymap.toml=, except those already in the file with the same keys, command and state. Running the import again adds no duplicates.
 
-The Not imported section lists what Orgstar read but can't use, with the reason: settings it has no equivalent for, values it can't work out without running Emacs, bindings to code rather than a command, and files it couldn't read. The footer counts variables that aren't about org, which are left alone.
+The Not imported section lists what orgstar read but can't use, with the reason: settings it has no equivalent for, values it can't work out without running Emacs, bindings to code rather than a command, and files it couldn't read. The footer counts variables that aren't about org, which are left alone.
 
 A literate configuration (=config.org=) isn't read. Point Choose… at the =config.el= it tangles to.
 
 ** Doom Emacs
 
-A configuration counts as Doom when it contains =(doom!=, =(map! = or =(after! =. Orgstar then also reads Doom's own org defaults, from the Doom installation in =$EMACSDIR=, =~/.config/emacs= or =~/.emacs.d=: =modules/lang/org/config.el= and =lisp/doom-emacs.el=. Your configuration overrides them. Doom defaults Orgstar has no use for are counted in the footer rather than listed.
+A configuration counts as Doom when it contains =(doom!=, =(map! = or =(after! =. orgstar then also reads Doom's own org defaults, from the Doom installation in =$EMACSDIR=, =~/.config/emacs= or =~/.emacs.d=: =modules/lang/org/config.el= and =lisp/doom-emacs.el=. Your configuration overrides them. Doom defaults orgstar has no use for are counted in the footer rather than listed.
 
 A Doom configuration, or any configuration that enables =evil=, adds =keymap = "doom"=.
 
 ** What it reads
 
-Orgstar reads the configuration as Lisp data; it never runs it. It looks at these forms:
+orgstar reads the configuration as Lisp data; it never runs it. It looks at these forms:
 
-| Form                                                                 | What Orgstar takes                                                              |
+| Form                                                                 | What orgstar takes                                                              |
 |----------------------------------------------------------------------+---------------------------------------------------------------------------------|
 | =setq=, =setq-default=, =setq!=, =setopt=, =csetq=                   | Each variable and value                                                         |
 | =defvar=, =defcustom=                                                | The value, below every other assignment                                         |
@@ -423,7 +423,7 @@ Orgstar reads the configuration as Lisp data; it never runs it. It looks at thes
 
 When a variable is set more than once, the last assignment wins, with assignments inside =after!= and similar forms winning over plain ones, and those over Doom's defaults.
 
-Orgstar works out a value when it is a literal, a quoted or backquoted form (with =,= and =,@=), a variable set earlier in the configuration, or a call to =list=, =concat=, =expand-file-name=, =file-name-concat= or =file-name-as-directory= on such values. Anything else, such as a function call or a value computed from the environment, is listed under Not imported as worked out when Emacs runs.
+orgstar works out a value when it is a literal, a quoted or backquoted form (with =,= and =,@=), a variable set earlier in the configuration, or a call to =list=, =concat=, =expand-file-name=, =file-name-concat= or =file-name-as-directory= on such values. Anything else, such as a function call or a value computed from the environment, is listed under Not imported as worked out when Emacs runs.
 
 Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =fill-column=, =evil-=, =doom-font=, =doom-variable-pitch-font=, =doom-theme= or =calendar-week-start-day= are considered.
 
@@ -448,7 +448,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-agenda-files=                                                 | A folder for each entry; for a =.org= file, its folder                                        |
 | =org-capture-templates=                                            | Templates for =capture.toml=; see below                                                       |
 | =doom-font=                                                        | =font= and =font-size=, from =(font-spec :family … :size …)= or ="Family-14"=                 |
-| =doom-variable-pitch-font=                                         | Not imported: Orgstar uses one font                                                           |
+| =doom-variable-pitch-font=                                         | Not imported: orgstar uses one font                                                           |
 | =doom-theme=                                                       | Not imported: set colors under =[theme]=                                                      |
 | =evil-mode= in use, or Doom                                        | =keymap = "doom"=                                                                             |
 
@@ -456,7 +456,7 @@ Any other =org-= or =appt-= variable is listed as having no equivalent.
 
 Capture templates are imported when their type is =entry=, =item=, =checkitem=, =plain= or =table-line=, their template is a string, and their target is =file=, =file+headline=, =file+olp=, =file+olp+datetree=, =file+datetree=, =file+weektree=, =id= or =clock=. The properties =:prepend=, =:immediate-finish=, =:jump-to-captured=, =:clock-in=, =:clock-keep=, =:clock-resume=, =:empty-lines=, =:empty-lines-before=, =:empty-lines-after=, =:tree-type= (=day=, =week=, =month=) and =:table-line-pos= carry over; others are listed as left out. Template groups (a key and a name only) are skipped.
 
-Key bindings are imported when the command is one Orgstar has a counterpart for, such as =org-todo=, =org-schedule=, =org-refile=, =org-capture= or =save-buffer=. The clock commands =org-clock-in=, =org-clock-out=, =org-clock-cancel=, =org-clock-goto=, =org-clock-in-last=, =org-resolve-clocks= and =org-clock-mark-default-task= map to Clock In, Clock Out, Cancel Clock, Go to Clocked Entry, Clock In to Last Entry, Resolve Open Clocks… and Mark as Default Clock Task. Keys must be a string or =(kbd "…")=; bindings with key vectors such as =[f5]= are skipped. In a Doom configuration, bindings without a state go to the =normal= state.
+Key bindings are imported when the command is one orgstar has a counterpart for, such as =org-todo=, =org-schedule=, =org-refile=, =org-capture= or =save-buffer=. The clock commands =org-clock-in=, =org-clock-out=, =org-clock-cancel=, =org-clock-goto=, =org-clock-in-last=, =org-resolve-clocks= and =org-clock-mark-default-task= map to Clock In, Clock Out, Cancel Clock, Go to Clocked Entry, Clock In to Last Entry, Resolve Open Clocks… and Mark as Default Clock Task. Keys must be a string or =(kbd "…")=; bindings with key vectors such as =[f5]= are skipped. In a Doom configuration, bindings without a state go to the =normal= state.
 
 ** Limits of the Lisp reader
 
@@ -467,7 +467,7 @@ Key bindings are imported when the command is one Orgstar has a counterpart for,
 
 * Themes
 
-Orgstar has one built-in theme, the default theme, with light and dark colors after GitHub's light and dark themes for text and code. TODO keywords, priorities and the agenda's statuses use the system's red, orange, blue and green, as iOS and macOS show them. You change it by setting colors in =config.toml=, or by keeping a theme in its own file.
+orgstar has one built-in theme, the default theme, with light and dark colors after GitHub's light and dark themes for text and code. TODO keywords, priorities and the agenda's statuses use the system's red, orange, blue and green, as iOS and macOS show them. You change it by setting colors in =config.toml=, or by keeping a theme in its own file.
 
 Colors are strings in the form ="#rrggbb"= or ="#rrggbbaa"=. They go in these tables:
 
@@ -520,7 +520,7 @@ To keep a theme in its own file, put it in the configuration folder with the sam
 theme-file = "solarized.toml"
 #+END_SRC
 
-The colors stack in this order, each over the one before: the default theme, the theme file, then the colors in =config.toml=. The path is relative to the configuration folder and may name a subfolder, as =themes/solarized.toml=. Orgstar reloads the theme file when it changes. Only colors are read from a theme file; =font= and the other type keys in its =[theme]= table are ignored.
+The colors stack in this order, each over the one before: the default theme, the theme file, then the colors in =config.toml=. The path is relative to the configuration folder and may name a subfolder, as =themes/solarized.toml=. orgstar reloads the theme file when it changes. Only colors are read from a theme file; =font= and the other type keys in its =[theme]= table are ignored.
 
 ** Color keys
 
@@ -593,7 +593,7 @@ An unknown color key, a value that isn't a color, or an unknown table such as =[
 
 * Appearance
 
-Orgstar follows the system's light or dark appearance (System Settings ▸ Appearance). There is no setting to fix one appearance; to use the same colors in both, set them under =[theme]= rather than =[theme.light]= or =[theme.dark]=.
+orgstar follows the system's light or dark appearance (System Settings ▸ Appearance). There is no setting to fix one appearance; to use the same colors in both, set them under =[theme]= rather than =[theme.light]= or =[theme.dark]=.
 
 * Fonts
 

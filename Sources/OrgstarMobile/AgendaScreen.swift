@@ -249,10 +249,10 @@ struct AgendaScreen: View, Equatable {
     /// at most 64, and sets no more while the app isn't opened.
     private var reminderStatus: String? {
         guard OrgPreferences.reminders() else { return nil }
-        if !scheduler.isAuthorized { return "Notifications are off for Orgstar in Settings." }
+        if !scheduler.isAuthorized { return "Notifications are off for orgstar in Settings." }
         guard let through = scheduler.scheduledThrough else { return nil }
         return "Reminders are set through " + through.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute())
-            + ". Open Orgstar to set later ones."
+            + ". Open orgstar to set later ones."
     }
 
     // MARK: - Days

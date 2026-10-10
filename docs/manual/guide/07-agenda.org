@@ -22,7 +22,7 @@ On iOS the agenda is the first tab. See [[*The agenda on iOS][The agenda on iOS]
 
 * Agenda files
 
-Orgstar has no =org-agenda-files= list. The agenda reads every =.org= file at the top level of each folder you have added (see [[file:01-files-and-folders.org][Files and folders]]). Files whose names start with a dot are left out, as =org-agenda-file-regexp= leaves them out.
+orgstar has no =org-agenda-files= list. The agenda reads every =.org= file at the top level of each folder you have added (see [[file:01-files-and-folders.org][Files and folders]]). Files whose names start with a dot are left out, as =org-agenda-file-regexp= leaves them out.
 
 To include files in subfolders as well, turn on Settings ▸ Agenda ▸ Include files in subfolders, or set this in =config.toml=:
 
@@ -157,7 +157,7 @@ With =org-enforce-todo-dependencies= or =org-enforce-todo-checkbox-dependencies=
 
 * Calendar events
 
-The agenda can show events from the system Calendar app (EventKit) among your entries. They are read-only: Orgstar never changes your calendars. It is off by default. To turn it on:
+The agenda can show events from the system Calendar app (EventKit) among your entries. They are read-only: orgstar never changes your calendars. It is off by default. To turn it on:
 
 - On the Mac, turn on Settings ▸ Agenda ▸ Show events from Calendar, and check the calendars to show.
 - On iOS, turn on Settings ▸ Calendar ▸ Show Calendar Events, and tap the calendars to show.
@@ -171,7 +171,7 @@ calendar-event-calendars = "Work, Family"
 
 =calendar-event-calendars= names calendars by title or identifier, separated by commas; =""= (the default) shows every calendar, including calendars added later. While every calendar is checked in Settings, the key stays empty.
 
-The first time events are turned on, Orgstar asks for access to your calendars. The system asks for full access, because Calendar has no read-only level of access. If you declined, allow it in System Settings ▸ Privacy & Security ▸ Calendars on the Mac, or in the Settings app on iOS.
+The first time events are turned on, orgstar asks for access to your calendars. The system asks for full access, because Calendar has no read-only level of access. If you declined, allow it in System Settings ▸ Privacy & Security ▸ Calendars on the Mac, or in the Settings app on iOS.
 
 Events appear only in the day, week and month view:
 
@@ -185,7 +185,7 @@ On the Mac, double-click an event, or select it and press =RET=, to open it in C
 
 * Done keywords the agenda doesn't know
 
-A keyword that isn't in =org-todo-keywords= or the file's =#+TODO= lines is not a keyword to Orgstar, as to Org: it is part of the title. A heading such as =SKIPPED Call the bank= with a =SCHEDULED= date last week is therefore an open entry, and shows as overdue. To make such a word a done state, add it after the ~|~:
+A keyword that isn't in =org-todo-keywords= or the file's =#+TODO= lines is not a keyword to orgstar, as to Org: it is part of the title. A heading such as =SKIPPED Call the bank= with a =SCHEDULED= date last week is therefore an open entry, and shows as overdue. To make such a word a done state, add it after the ~|~:
 
 #+BEGIN_SRC toml
 org-todo-keywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k) SKIPPED"
@@ -207,7 +207,7 @@ The agenda evaluates diary sexps as =org-diary-sexp-entry= does. They can appear
 <%%(org-class 2026 9 7 2026 12 18 1 41)>
 #+END_SRC
 
-Lines before the first heading are ignored. A sexp that uses a function Orgstar doesn't have, or signals an error, doesn't apply on any day, as Emacs reports a bad sexp and moves on.
+Lines before the first heading are ignored. A sexp that uses a function orgstar doesn't have, or signals an error, doesn't apply on any day, as Emacs reports a bad sexp and moves on.
 
 | Function                                   | Applies                                                            | Date order        |
 |--------------------------------------------+--------------------------------------------------------------------+-------------------|
@@ -323,7 +323,7 @@ Names are case-insensitive. Prefix a character in a name with =\= to use it lite
 | =SCHEDULED=, =DEADLINE=, =CLOSED= | The planning timestamp                |
 | =TIMESTAMP=, =TIMESTAMP_IA= | The entry's first active or inactive timestamp |
 
-Properties are not inherited in matches (=org-use-property-inheritance= is nil). With a date value, =<>= and its synonyms match dates that are equal, as Orgstar's comparison mirrors =org-time<>= in Org 9.8.7; use =<= and =>= for date ranges.
+Properties are not inherited in matches (=org-use-property-inheritance= is nil). With a date value, =<>= and its synonyms match dates that are equal, as orgstar's comparison mirrors =org-time<>= in Org 9.8.7; use =<= and =>= for date ranges.
 
 ** TODO keywords
 
@@ -450,7 +450,7 @@ The =\= prompt reads every word as a tag, whether or not a line has it; there, =
 
 * Prefix format and colors
 
-The rows look the same whatever =org-agenda-prefix-format= says. Orgstar reads the =[org-agenda-prefix-format]= table in =config.toml= (see [[file:13-configuration.org][Configuration]]), but the only effect is on times written in heading text: when the =agenda= format contains =%t=, as the default =" %i %-12:c%?-12t% s"= does, a time such as =9:30am= in =Call Ada 9:30am= moves out of the title into the left column, as =org-agenda-remove-times-when-in-prefix= does. Without =%t=, the title keeps it.
+The rows look the same whatever =org-agenda-prefix-format= says. orgstar reads the =[org-agenda-prefix-format]= table in =config.toml= (see [[file:13-configuration.org][Configuration]]), but the only effect is on times written in heading text: when the =agenda= format contains =%t=, as the default =" %i %-12:c%?-12t% s"= does, a time such as =9:30am= in =Call Ada 9:30am= moves out of the title into the left column, as =org-agenda-remove-times-when-in-prefix= does. Without =%t=, the title keeps it.
 
 The agenda's colors come from these theme keys (see [[file:13-configuration.org][Configuration]]):
 
@@ -519,7 +519,7 @@ Each action finds the entry again by its heading line before it changes anything
 
 * Reminders
 
-Orgstar can post a notification before each timed entry, as =org-agenda-to-appt= hands entries to =appt=. Reminders cover the next 7 days and include deadline, scheduled, plain timestamp and range lines that have a time of day and are not done. Overdue items and upcoming-deadline warnings don't get reminders.
+orgstar can post a notification before each timed entry, as =org-agenda-to-appt= hands entries to =appt=. Reminders cover the next 7 days and include deadline, scheduled, plain timestamp and range lines that have a time of day and are not done. Overdue items and upcoming-deadline warnings don't get reminders.
 
 | Setting                       | Default | =config.toml=                      |
 |-------------------------------+---------+------------------------------------|
@@ -530,7 +530,7 @@ Both are in Settings ▸ Agenda. An entry's =APPT_WARNTIME= property, in minutes
 
 The notification's title is the heading; its body is the time, Org's leader text (=Scheduled:=, =Deadline:=) if any, and the category, such as =14:00 · Scheduled: · work=. Clicking it shows the entry in the main window.
 
-On the Mac, reminders are updated two seconds after edits stop, when files change, and every hour. At most 64 are set, the earliest first. The agenda's status line says how far ahead they are set, or that notifications are off for Orgstar in System Settings. Turning reminders off removes the pending ones.
+On the Mac, reminders are updated two seconds after edits stop, when files change, and every hour. At most 64 are set, the earliest first. The agenda's status line says how far ahead they are set, or that notifications are off for orgstar in System Settings. Turning reminders off removes the pending ones.
 
 * The board
 
@@ -573,6 +573,6 @@ The Agenda tab shows the same views from the same files, using the settings in t
 - Marking an entry done and rescheduling one give haptic feedback.
 - Log Mode, in the span menu, turns log mode on and off. The widgets never show log mode's entries.
 - There are no keyboard commands or bulk marks.
-- Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open Orgstar to set later ones.
+- Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open orgstar to set later ones.
 
 The Today and Up Next widgets show the agenda on the Home Screen and the Lock Screen; see [[file:14-ios.org][iPhone and iPad]].

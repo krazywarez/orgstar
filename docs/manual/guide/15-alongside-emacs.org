@@ -1,31 +1,31 @@
 #+TITLE: Working alongside Emacs and other tools
-#+DESCRIPTION: How Orgstar reads and writes files shared with Emacs and sync tools, merges outside changes, keeps recovery versions, calls Emacs, and differs from Emacs Org.
-#+LEDE: Orgstar works on plain org files in ordinary folders, so Emacs, other apps and sync tools can work on the same files.
+#+DESCRIPTION: How orgstar reads and writes files shared with Emacs and sync tools, merges outside changes, keeps recovery versions, calls Emacs, and differs from Emacs Org.
+#+LEDE: orgstar works on plain org files in ordinary folders, so Emacs, other apps and sync tools can work on the same files.
 
-* How Orgstar treats files
+* How orgstar treats files
 
 ** Bytes on disk
 
-Orgstar edits the file's text directly; there is no separate document format. When it saves, text you didn't change is written back exactly as it was read:
+orgstar edits the file's text directly; there is no separate document format. When it saves, text you didn't change is written back exactly as it was read:
 
 - A file with no changes is never rewritten.
 - Untouched lines keep their bytes, including trailing whitespace, tabs, and the presence or absence of a final newline.
-- Line endings are kept as they are. A file with CRLF line endings keeps them, and on the Mac the modeline shows =CRLF= for such a file. Orgstar doesn't convert line endings; new lines that Orgstar's commands insert end with LF.
+- Line endings are kept as they are. A file with CRLF line endings keeps them, and on the Mac the modeline shows =CRLF= for such a file. orgstar doesn't convert line endings; new lines that orgstar's commands insert end with LF.
 
 ** Encodings
 
-Orgstar edits UTF-8 files, with or without a byte order mark. A file that starts with a BOM keeps it.
+orgstar edits UTF-8 files, with or without a byte order mark. A file that starts with a BOM keeps it.
 
-A file that isn't valid UTF-8 (UTF-16, Latin-1, or a file with invalid bytes) opens read-only. The window's subtitle says "Read-only: not UTF-8", undecodable bytes show as replacement characters, and commands that would change the file report that it "isn't UTF-8, so it can't be changed". Orgstar never converts such a file.
+A file that isn't valid UTF-8 (UTF-16, Latin-1, or a file with invalid bytes) opens read-only. The window's subtitle says "Read-only: not UTF-8", undecodable bytes show as replacement characters, and commands that would change the file report that it "isn't UTF-8, so it can't be changed". orgstar never converts such a file.
 
 ** How a save works
 
 Saving replaces the file through a temporary file in the same folder (named =.name.org.orgstar-…=), under the system's file coordination, so iCloud and other coordinating apps see a complete file. The steps are:
 
-1. Read the file on disk. If it changed since Orgstar last read or wrote it, keep both versions in the recovery folder and merge the change into your edits (see below).
+1. Read the file on disk. If it changed since orgstar last read or wrote it, keep both versions in the recovery folder and merge the change into your edits (see below).
 2. Read the file again. If it changed in the meantime, start over, up to three times.
 3. Replace the file. If another program replaced it between the check and the write, its version goes to the recovery folder and is merged into your edits.
-4. Read the file back. If it changed right after the write, Orgstar's version goes to the recovery folder and the new disk version is merged in.
+4. Read the file back. If it changed right after the write, orgstar's version goes to the recovery folder and the new disk version is merged in.
 
 Emacs and Syncthing don't use file coordination, so these checks can't lock them out. They narrow the window in which two writers can collide, and every version a save displaces is kept in the recovery folder.
 
@@ -33,19 +33,19 @@ If the file keeps changing through all three attempts, the save fails with an er
 
 ** Automatic and explicit saving
 
-With =save = "automatic"= (the default), Orgstar saves a file one second after you stop typing. With ="explicit"=, only =⌘S= (Save) and =⌥⌘S= (Save All) save. See [[file:13-configuration.org][Configuration]]. The iOS app always saves automatically.
+With =save = "automatic"= (the default), orgstar saves a file one second after you stop typing. With ="explicit"=, only =⌘S= (Save) and =⌥⌘S= (Save All) save. See [[file:13-configuration.org][Configuration]]. The iOS app always saves automatically.
 
-* Changes made outside Orgstar
+* Changes made outside orgstar
 
-Orgstar watches your folders. On the Mac it uses FSEvents; on iOS it is told of changes by file coordination and reads the folders again when you return to the app. When a file that is open in Orgstar changes on disk:
+orgstar watches your folders. On the Mac it uses FSEvents; on iOS it is told of changes by file coordination and reads the folders again when you return to the app. When a file that is open in orgstar changes on disk:
 
-- If you have no unsaved edits in it, Orgstar reloads it. Undo history for the file is cleared.
-- If you have unsaved edits, Orgstar merges the disk version into them and saves the result.
+- If you have no unsaved edits in it, orgstar reloads it. Undo history for the file is cleared.
+- If you have unsaved edits, orgstar merges the disk version into them and saves the result.
 - If the changes conflict, nothing is saved and the conflict sheet opens.
 
-The merge is a line-based three-way merge between the version Orgstar last read or wrote, your edits, and the disk version. A run of lines changed on one side only takes that side; changed the same way on both, it is taken once; changed differently on both, it is a conflict. Lines keep their endings, so CRLF files and a missing final newline survive a merge. A disk version that isn't valid UTF-8 always conflicts.
+The merge is a line-based three-way merge between the version orgstar last read or wrote, your edits, and the disk version. A run of lines changed on one side only takes that side; changed the same way on both, it is taken once; changed differently on both, it is a conflict. Lines keep their endings, so CRLF files and a missing final newline survive a merge. A disk version that isn't valid UTF-8 always conflicts.
 
-After a reload or merge, Orgstar also reads the file's setup files again.
+After a reload or merge, orgstar also reads the file's setup files again.
 
 ** The conflict sheet
 
@@ -64,11 +64,11 @@ On the Mac, Revert to File on Disk (in the command palette) loads the disk versi
 
 ** iCloud Drive
 
-Orgstar reads and writes files under file coordination, which is how iCloud expects apps to work. Files iCloud hasn't downloaded yet (=.name.org.icloud= placeholders) aren't indexed; Orgstar asks iCloud to download them and indexes them when they arrive. On iOS they appear in the Folders tab with a cloud icon until then.
+orgstar reads and writes files under file coordination, which is how iCloud expects apps to work. Files iCloud hasn't downloaded yet (=.name.org.icloud= placeholders) aren't indexed; orgstar asks iCloud to download them and indexes them when they arrive. On iOS they appear in the Folders tab with a cloud icon until then.
 
 ** Syncthing
 
-Syncthing writes files without file coordination. Orgstar sees its changes through file watching and merges them as described above.
+Syncthing writes files without file coordination. orgstar sees its changes through file watching and merges them as described above.
 
 - Syncthing's temporary files (=.syncthing.*=) are ignored.
 - Its folders =.stfolder= and =.stversions= are in the default =ignored-folders=.
@@ -86,11 +86,11 @@ Each choice then moves the copy to the recovery folder and deletes it from the f
 
 ** Dropbox and other tools
 
-Any program that writes files in your folders is treated the same way: Orgstar sees the change, reloads or merges, and keeps displaced versions. Programs that write through file coordination (iCloud, File Provider apps on iOS) are seen as they write; others are seen through FSEvents on the Mac and when you return to the app on iOS.
+Any program that writes files in your folders is treated the same way: orgstar sees the change, reloads or merges, and keeps displaced versions. Programs that write through file coordination (iCloud, File Provider apps on iOS) are seen as they write; others are seen through FSEvents on the Mac and when you return to the app on iOS.
 
-** Files Orgstar ignores
+** Files orgstar ignores
 
-When scanning folders, Orgstar skips Emacs lock files (=.#name=), backups (=name~=) and auto-save files (=#name#=), its own temporary and backup files (names containing =.orgstar-=), =.DS_Store=, =.localized=, and the folders in =ignored-folders=. With =show-hidden-files = false=, every dotfile and dot folder is skipped. Orgstar doesn't create or honour Emacs lock files.
+When scanning folders, orgstar skips Emacs lock files (=.#name=), backups (=name~=) and auto-save files (=#name#=), its own temporary and backup files (names containing =.orgstar-=), =.DS_Store=, =.localized=, and the folders in =ignored-folders=. With =show-hidden-files = false=, every dotfile and dot folder is skipped. orgstar doesn't create or honour Emacs lock files.
 
 * Recovery versions
 
@@ -104,7 +104,7 @@ Each file has a subfolder named from a hash of its path, holding its last 20 kep
 | Label           | Kept when                                                                     |
 |-----------------+-------------------------------------------------------------------------------|
 | =external=      | A version written by another program was replaced or merged                   |
-| =local=         | Orgstar's version was replaced, or set aside by Use Disk Version, Merge with Markers or Restore |
+| =local=         | orgstar's version was replaced, or set aside by Use Disk Version, Merge with Markers or Restore |
 | =sync-conflict= | A Syncthing conflict copy was resolved                                        |
 
 Recovery Versions… in the command palette (More ▸ Recovered Versions on iOS) lists the open file's kept versions, newest first, each compared with the buffer (lines marked - in the buffer, + in the kept version). Restore puts a version's text in the buffer as an edit you can undo; the buffer as it was goes to the recovery folder first. On the Mac, Show in Finder selects the version's file.
@@ -116,15 +116,15 @@ Some features run Emacs in batch mode on the Mac. Everything else works without 
 | Feature                                                        | What runs                                                                                     |
 |----------------------------------------------------------------+-----------------------------------------------------------------------------------------------|
 | Emacs Lisp source blocks (=emacs-lisp=, =elisp=)               | The block, in =emacs -Q --batch=                                                              |
-| Table formulas outside what Orgstar computes itself            | =org-table-recalculate= on a copy of the file; the table's new text replaces the old one if the table didn't change meanwhile |
-| Lisp table formulas that Orgstar's Emacs Lisp interpreter can't evaluate | The same; Orgstar first asks whether to run Lisp (yes, no, always)                  |
+| Table formulas outside what orgstar computes itself            | =org-table-recalculate= on a copy of the file; the table's new text replaces the old one if the table didn't change meanwhile |
+| Lisp table formulas that orgstar's Emacs Lisp interpreter can't evaluate | The same; orgstar first asks whether to run Lisp (yes, no, always)                  |
 | Export to PDF, ODT, LaTeX and plain text                       | =org-latex-export-to-pdf=, =org-odt-export-to-odt=, =org-latex-export-to-latex= or =org-ascii-export-to-ascii= |
 
 HTML and Markdown export don't use Emacs. See [[file:11-code-blocks.org][Code blocks]], [[file:10-tables.org][Tables]] and [[file:12-export.org][Export]].
 
 ** How Emacs is found
 
-Orgstar uses the first of these that is an executable file:
+orgstar uses the first of these that is an executable file:
 
 1. the path in the environment variable =ORGSTAR_EMACS=,
 2. =/opt/homebrew/bin/emacs=,
@@ -133,52 +133,52 @@ Orgstar uses the first of these that is an executable file:
 5. =/run/current-system/sw/bin/emacs=,
 6. =/usr/bin/emacs=.
 
-An app started from the Dock doesn't see your shell's =PATH=, which is why Orgstar looks in fixed places. Without Emacs, these features report "Emacs isn't installed, so …" and change nothing.
+An app started from the Dock doesn't see your shell's =PATH=, which is why orgstar looks in fixed places. Without Emacs, these features report "Emacs isn't installed, so …" and change nothing.
 
 ** What Emacs sees
 
 - Emacs runs with =-Q=: your =init.el=, packages and customizations aren't loaded. Org and the exporters are the versions bundled with that Emacs.
-- Orgstar writes a snapshot of the buffer to a temporary folder and runs Emacs on it, so unsaved edits are included. The working directory is the file's folder.
+- orgstar writes a snapshot of the buffer to a temporary folder and runs Emacs on it, so unsaved edits are included. The working directory is the file's folder.
 - File-local variables marked safe apply (=enable-local-variables= is =:safe=).
 - Export doesn't run source blocks (=org-export-use-babel= is =nil=). The exported file is written next to the org file, as Emacs writes it, or moved to the place you chose.
-- For export and table recalculation, Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin= added, as source blocks do, so the programs it starts, such as =pdflatex=, are found when Orgstar was opened from the Dock.
+- For export and table recalculation, Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin= added, as source blocks do, so the programs it starts, such as =pdflatex=, are found when orgstar was opened from the Dock.
 - PDF export needs a LaTeX installation that Org's LaTeX exporter can run.
 - A table recalculation that takes more than 60 seconds, or an export that takes more than 120 seconds, is stopped. Source blocks have a limit of 300 seconds. =⌘.= (Cancel Running Task) stops a running block, export or table recalculation sooner.
 
 * Quick Look
 
-Orgstar includes a Quick Look extension for org files (=.org= and =.org_archive=). Pressing Space on an org file in Finder, or in the Files app on iOS, shows the file as the HTML export renders it, with its =#+SETUPFILE= keywords applied. The preview reads only UTF-8 files.
+orgstar includes a Quick Look extension for org files (=.org= and =.org_archive=). Pressing Space on an org file in Finder, or in the Files app on iOS, shows the file as the HTML export renders it, with its =#+SETUPFILE= keywords applied. The preview reads only UTF-8 files.
 
-Inside Orgstar, selecting a file in the sidebar that isn't text shows a Quick Look preview, with Open with Default App and Show in Finder below it.
+Inside orgstar, selecting a file in the sidebar that isn't text shows a Quick Look preview, with Open with Default App and Show in Finder below it.
 
 * Spotlight
 
-On the Mac, Orgstar includes a Spotlight importer for org files. Spotlight indexes each file's text, its title (=#+TITLE=, else the file name), =#+AUTHOR=, =#+DESCRIPTION=, and its tags (=#+FILETAGS= and heading tags) and headings as keywords. The importer reads only UTF-8 files.
+On the Mac, orgstar includes a Spotlight importer for org files. Spotlight indexes each file's text, its title (=#+TITLE=, else the file name), =#+AUTHOR=, =#+DESCRIPTION=, and its tags (=#+FILETAGS= and heading tags) and headings as keywords. The importer reads only UTF-8 files.
 
 On iOS, the app adds the files in your folders to Spotlight itself; see [[file:14-ios.org][iPhone and iPad]].
 
 * Finder
 
-Orgstar declares the =org.orgmode.org= file type for the extensions =.org= and =.org_archive=, and registers as an editor for it, and as an alternate editor for plain text. Double-clicking an org file in Finder, dropping files on Orgstar's Dock icon, or running =open -a Orgstar file.org= opens each file as a buffer. Files opened while Orgstar is starting open once its window is ready. To make Orgstar the app that opens org files, use Finder's Get Info ▸ Open with ▸ Change All.
+orgstar declares the =org.orgmode.org= file type for the extensions =.org= and =.org_archive=, and registers as an editor for it, and as an alternate editor for plain text. Double-clicking an org file in Finder, dropping files on orgstar's Dock icon, or running =open -a orgstar file.org= opens each file as a buffer. Files opened while orgstar is starting open once its window is ready. To make orgstar the app that opens org files, use Finder's Get Info ▸ Open with ▸ Change All.
 
 * org-protocol and Shortcuts
 
-Orgstar registers the =org-protocol:= URL scheme on the Mac and iOS, and handles two sub-protocols, in both the =?key=value= form and the older =:/a/b/c= form:
+orgstar registers the =org-protocol:= URL scheme on the Mac and iOS, and handles two sub-protocols, in both the =?key=value= form and the older =:/a/b/c= form:
 
 - =org-protocol://capture= opens Capture with the link's template, URL, title and body.
 - =org-protocol://store-link= stores the link for =C-c C-l= and copies it to the clipboard.
 
-Other sub-protocols, such as =open-source=, show "Orgstar handles org-protocol capture and store-link".
+Other sub-protocols, such as =open-source=, show "orgstar handles org-protocol capture and store-link".
 
-The Shortcuts action Capture to Orgstar, on the Mac and iOS, files text with a capture template without opening the capture window. See [[file:08-capture.org][Capture]].
+The Shortcuts action Capture to orgstar, on the Mac and iOS, files text with a capture template without opening the capture window. See [[file:08-capture.org][Capture]].
 
 * Compatibility notes
 
 ** Defaults that differ from Emacs
 
-Orgstar's defaults follow a common Doom Emacs setup rather than plain Emacs in several places. If you use plain Emacs on the same files, set these in =config.toml= to match your Emacs, or use Import from Emacs; see [[file:13-configuration.org][Configuration]].
+orgstar's defaults follow a common Doom Emacs setup rather than plain Emacs in several places. If you use plain Emacs on the same files, set these in =config.toml= to match your Emacs, or use Import from Emacs; see [[file:13-configuration.org][Configuration]].
 
-| Setting                              | Orgstar default                     | Plain Emacs default             |
+| Setting                              | orgstar default                     | Plain Emacs default             |
 |--------------------------------------+-------------------------------------+---------------------------------|
 | =fill-column=                        | 80                                  | 70                              |
 | =org-todo-keywords=                  | =TODO PROJ LOOP STRT WAIT HOLD IDEA=, done =DONE KILL= | =TODO=, done =DONE= |
@@ -194,7 +194,7 @@ Orgstar's defaults follow a common Doom Emacs setup rather than plain Emacs in s
 | =org-agenda-start-day=               | ="+0d"=                             | today                           |
 | =org-agenda-show-all-dates=          | =false=                             | =t=                             |
 
-=org-hide-emphasis-markers= and =org-pretty-entities= matter for files you also edit in Emacs: Orgstar aligns tags and tables, and fills paragraphs, by the width text has on screen in your Emacs. If they don't match your Emacs, tags and tables that Orgstar aligns look misaligned in Emacs.
+=org-hide-emphasis-markers= and =org-pretty-entities= matter for files you also edit in Emacs: orgstar aligns tags and tables, and fills paragraphs, by the width text has on screen in your Emacs. If they don't match your Emacs, tags and tables that orgstar aligns look misaligned in Emacs.
 
 These behave as Emacs's defaults and can't be changed: =org-log-repeat= is =time=, fast TODO selection is on when keywords have keys, priorities are =A= to =C= with =B= as default unless =#+PRIORITIES= says otherwise, and =org-use-sub-superscripts= is ={}= for display (only =x_{1}= and =x^{2}= are lowered and raised).
 
@@ -209,7 +209,7 @@ The agenda selects the same entries as Org's, but shows them its own way (see [[
 
 ** Known differences from Emacs Org
 
-Orgstar refuses some things with a message rather than doing something different from Emacs. These are the ones found in the current version.
+orgstar refuses some things with a message rather than doing something different from Emacs. These are the ones found in the current version.
 
 Code blocks (see [[file:11-code-blocks.org][Code blocks]]):
 
@@ -218,7 +218,7 @@ Code blocks (see [[file:11-code-blocks.org][Code blocks]]):
 - =:session= is supported only for shells and Python. C, C++, D, Java, Fortran and Clojure ignore it, as in Org.
 - Clojure runs with babashka or the Clojure CLI only; other =:backend= values are refused.
 - =:var= isn't supported for Ruby, JavaScript, R and awk blocks.
-- Header arguments, =:var= values and =:cache= that need Lisp evaluated by Emacs are refused when Orgstar's interpreter can't evaluate them: "… is Lisp that only Emacs can evaluate; nothing was run."
+- Header arguments, =:var= values and =:cache= that need Lisp evaluated by Emacs are refused when orgstar's interpreter can't evaluate them: "… is Lisp that only Emacs can evaluate; nothing was run."
 - Noweb references that run a block aren't supported.
 - Tangling refuses =:var= that would run a block, and tables and lists in =:var= for some languages.
 - On iOS, only Emacs Lisp blocks run.
@@ -235,7 +235,7 @@ Capture templates (see [[file:08-capture.org][Capture]]):
 
 Tables and dynamic blocks (see [[file:10-tables.org][Tables]] and [[file:06-dates-and-clocking.org][Dates and clocking]]):
 
-- Formulas outside Orgstar's own calculator go to Emacs on the Mac and are refused on iOS.
+- Formulas outside orgstar's own calculator go to Emacs on the Mac and are refused on iOS.
 - Clock tables support the scopes =nil=, =file=, =subtree= and =treeN=; other scopes, =:match= and =:step= aren't supported.
 - Dynamic blocks other than =clocktable= and =columnview= aren't supported. Column views of other files aren't supported.
 

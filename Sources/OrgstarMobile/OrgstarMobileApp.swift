@@ -306,6 +306,6 @@ struct RootView: View {
 /// The iOS app has nothing to run elsewhere.
 @main
 enum OrgstarMobileUnavailable {
-    static func main() { print("Orgstar for iOS runs on iPhone and iPad.") }
+    static func main() { print("orgstar for iOS runs on iPhone and iPad.") }
 }
 #endif

@@ -1,12 +1,12 @@
 #!/bin/sh
-# Builds Orgstar.app in .build/app from the release binary, signed ad hoc for local use. The
+# Builds orgstar.app in .build/app from the release binary, signed ad hoc for local use. The
 # icon is drawn by scripts/make-icon.swift.
 # Usage: scripts/build-app.sh [version]
 set -eu
 
 cd "$(dirname "$0")/.."
 version="${1:-0.1.0}"
-app=".build/app/Orgstar.app"
+app=".build/app/orgstar.app"
 
 swift build -c release --product Orgstar
 swift build -c release --product OrgstarQuickLook
@@ -29,9 +29,9 @@ cat > "$app/Contents/Info.plist" <<EOF
     <key>CFBundleIdentifier</key>
     <string>sh.krz.orgstar</string>
     <key>CFBundleName</key>
-    <string>Orgstar</string>
+    <string>orgstar</string>
     <key>CFBundleDisplayName</key>
-    <string>Orgstar</string>
+    <string>orgstar</string>
     <key>CFBundleExecutable</key>
     <string>Orgstar</string>
     <key>CFBundlePackageType</key>
@@ -95,7 +95,7 @@ cat > "$app/Contents/Info.plist" <<EOF
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.productivity</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>The agenda shows your calendar events alongside your Org entries. Orgstar only reads them.</string>
+    <string>The agenda shows your calendar events alongside your Org entries. orgstar only reads them.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>

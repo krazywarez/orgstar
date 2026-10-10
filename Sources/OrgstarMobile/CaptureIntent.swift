@@ -7,7 +7,7 @@ import OrgCore
 /// sheet. Prompts in the template take their defaults, and `%c` is empty: reading the
 /// pasteboard would ask for permission on every run.
 struct CaptureIntent: AppIntent {
-    static let title: LocalizedStringResource = "Capture to Orgstar"
+    static let title: LocalizedStringResource = "Capture to orgstar"
     static let description = IntentDescription("Files text with one of your capture templates.")
 
     @Parameter(title: "Text")
@@ -24,7 +24,7 @@ struct CaptureIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let model = MobileModel.shared
-        guard let workspace = model.workspace else { throw Failure(message: model.failure ?? "Orgstar isn't ready") }
+        guard let workspace = model.workspace else { throw Failure(message: model.failure ?? "orgstar isn't ready") }
         let placed = model.session.capture(
             text, templateKey: template, templates: CaptureTemplates.load().templates, workspace: workspace, clock: model.clock,
             clipboard: "", userName: ""

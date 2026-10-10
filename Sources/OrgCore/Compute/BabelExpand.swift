@@ -518,7 +518,7 @@ extension Babel {
                 run = "echo | clojure -M \(file)\n"
                 programs = ["clojure"]
             case let backend?:
-                throw Failure.message("The \(backend) backend for clojure needs Emacs; Orgstar runs babashka or clojure-cli.")
+                throw Failure.message("The \(backend) backend for clojure needs Emacs; orgstar runs babashka or clojure-cli.")
             }
             return CompiledRun(source: expanded, script: start + "cat > \(file)\n" + run + end, programs: [programs])
         default:

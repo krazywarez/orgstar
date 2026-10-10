@@ -220,6 +220,6 @@ struct BabelCompiledTests {
             Issue.record("planned cider")
             return
         }
-        #expect(message == "The cider backend for clojure needs Emacs; Orgstar runs babashka or clojure-cli.")
+        #expect(message == "The cider backend for clojure needs Emacs; orgstar runs babashka or clojure-cli.")
     }
 }

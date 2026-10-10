@@ -56,7 +56,7 @@ struct UpNextView: View {
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Agenda").font(.headline).widgetAccentable()
-                    Text(entry.snapshot == nil ? "Open Orgstar" : "Nothing left today").font(.body)
+                    Text(entry.snapshot == nil ? "Open orgstar" : "Nothing left today").font(.body)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

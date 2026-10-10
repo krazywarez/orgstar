@@ -1,6 +1,6 @@
 #+TITLE: Export
-#+DESCRIPTION: Exporting Org files from Orgstar to HTML and Markdown, and to PDF, LaTeX, ODT and plain text through Emacs.
-#+LEDE: Orgstar exports HTML and Markdown itself, and hands PDF, LaTeX, ODT and plain text to Emacs on the Mac.
+#+DESCRIPTION: Exporting Org files from orgstar to HTML and Markdown, and to PDF, LaTeX, ODT and plain text through Emacs.
+#+LEDE: orgstar exports HTML and Markdown itself, and hands PDF, LaTeX, ODT and plain text to Emacs on the Mac.
 
 * Exporting a file
 
@@ -38,7 +38,7 @@ The Export menu offers HTML and Markdown. It is under More in the editor, and in
 
 * HTML export
 
-Orgstar writes a complete HTML page: a small built-in stylesheet that follows the system's light or dark appearance, the title, an author and date line, the table of contents, then the document. It does not use Emacs, and its output is close to, but not the same as, =ox-html=.
+orgstar writes a complete HTML page: a small built-in stylesheet that follows the system's light or dark appearance, the title, an author and date line, the table of contents, then the document. It does not use Emacs, and its output is close to, but not the same as, =ox-html=.
 
 ** Title, author and date
 
@@ -95,7 +95,7 @@ The built-in stylesheet is always included first. Other =#+HTML_…= keywords ar
 
 ** Math
 
-LaTeX fragments (=\(…\)=, =\[…\]=, =$…$=, =$$…$$=) and LaTeX environments are left in the page for MathJax. When the page has any, Orgstar adds MathJax 3 from =cdn.jsdelivr.net=, so the page needs a network connection to show math. Entities such as =\alpha= become their characters.
+LaTeX fragments (=\(…\)=, =\[…\]=, =$…$=, =$$…$$=) and LaTeX environments are left in the page for MathJax. When the page has any, orgstar adds MathJax 3 from =cdn.jsdelivr.net=, so the page needs a network connection to show math. Entities such as =\alpha= become their characters.
 
 ** Includes
 
@@ -130,7 +130,7 @@ A file that cannot be read is replaced by an empty line.
 | ={{{n}}}=, ={{{n(name)}}}=   | A counter, increased at each use. =n(name,-)= repeats the current value; =n(name,5)= sets it to 5. |
 | ={{{time(format)}}}=         | The current time, formatted as =format-time-string= does.             |
 
-Arguments are separated by commas; write =\,= for a literal comma. Macros defined with =(eval …)=, and macros Orgstar does not know, become empty. =#+MACRO:= definitions in setup files count.
+Arguments are separated by commas; write =\,= for a literal comma. Macros defined with =(eval …)=, and macros orgstar does not know, become empty. =#+MACRO:= definitions in setup files count.
 
 ** Footnotes
 
@@ -152,9 +152,9 @@ Links to =.org= files point to the =.html= file of the same name. Links to headi
 
 ** Source blocks and their results
 
-A source block is exported as =<pre><code class="language-LANG">=, with the code escaped and its common indentation removed. Orgstar does not color the code; the class lets a script or stylesheet in =#+HTML_HEAD= highlight it. Noweb references are shown as written. Line-number switches are ignored.
+A source block is exported as =<pre><code class="language-LANG">=, with the code escaped and its common indentation removed. orgstar does not color the code; the class lets a script or stylesheet in =#+HTML_HEAD= highlight it. Noweb references are shown as written. Line-number switches are ignored.
 
-The block's =:exports= header argument decides what appears. Orgstar resolves it as running the block would: from the =#+begin_src= line, =#+HEADER:= lines, =header-args= properties and =#+PROPERTY:= lines (see [[file:11-code-blocks.org][Code blocks]]). Without one, it is =results= for =dot=, =plantuml=, =ditaa=, =gnuplot=, =latex= and =lilypond= blocks, as their Org defaults set it, and =code= for other languages.
+The block's =:exports= header argument decides what appears. orgstar resolves it as running the block would: from the =#+begin_src= line, =#+HEADER:= lines, =header-args= properties and =#+PROPERTY:= lines (see [[file:11-code-blocks.org][Code blocks]]). Without one, it is =results= for =dot=, =plantuml=, =ditaa=, =gnuplot=, =latex= and =lilypond= blocks, as their Org defaults set it, and =code= for other languages.
 
 | =:exports=       | Exported                                  |
 |------------------+-------------------------------------------|
@@ -220,12 +220,12 @@ On the Mac, PDF, LaTeX, ODT and plain text exports are done by Emacs, with the =
 | ODT        | =org-odt-export-to-odt=     |
 | Plain text | =org-ascii-export-to-ascii= |
 
-Orgstar runs =emacs -Q --batch= in the Org file's folder. It opens the file, replaces its contents with the editor's current text without saving, and calls the function. Emacs writes the result beside the file, as it would itself; with a destination chosen in the export dialog, Orgstar then moves it there. The message area shows "Exporting with Emacs…" and then "Exported to /name/".
+orgstar runs =emacs -Q --batch= in the Org file's folder. It opens the file, replaces its contents with the editor's current text without saving, and calls the function. Emacs writes the result beside the file, as it would itself; with a destination chosen in the export dialog, orgstar then moves it there. The message area shows "Exporting with Emacs…" and then "Exported to /name/".
 
 What you need:
 
 - Emacs, at =ORGSTAR_EMACS= or one of =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= or =/usr/bin/emacs=. Without it the export fails with "Emacs isn't installed, so this format can't be exported."
-- For PDF, a TeX installation that Emacs's LaTeX export can run. Emacs runs with your =PATH= plus =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin=, the same as code blocks get, so =latexmk= and =pdflatex= from MacTeX or Homebrew are found when Orgstar was opened from the Dock.
+- For PDF, a TeX installation that Emacs's LaTeX export can run. Emacs runs with your =PATH= plus =/opt/homebrew/bin=, =/usr/local/bin=, =/Library/TeX/texbin=, =/usr/bin= and =/bin=, the same as code blocks get, so =latexmk= and =pdflatex= from MacTeX or Homebrew are found when orgstar was opened from the Dock.
 
 Things to know:
 
@@ -236,7 +236,7 @@ Things to know:
 - Edit ▸ Cancel Running Task (=⌘.=) stops the export and shows "Export canceled". Starting another export or table recalculation in Emacs cancels the one that is running.
 - If Emacs fails, the message area shows the last line of its error output.
 
-To use your own Emacs configuration, or formats Orgstar does not list, export from Emacs itself; see [[file:15-alongside-emacs.org][Alongside Emacs]].
+To use your own Emacs configuration, or formats orgstar does not list, export from Emacs itself; see [[file:15-alongside-emacs.org][Alongside Emacs]].
 
 * Citations
 
@@ -260,7 +260,7 @@ Each =#+bibliography:= line names one file, relative to the Org file, optionally
 =#+cite_export: PROCESSOR [BIBLIOGRAPHY-STYLE [CITATION-STYLE]]=.
 
 - With no =#+cite_export:=, or with =basic=, citations are processed.
-- With any other processor, such as =csl= or =biblatex=, Orgstar leaves citations as they are written.
+- With any other processor, such as =csl= or =biblatex=, orgstar leaves citations as they are written.
 - The citation style, which may include a variant (=text/bare=), is the default for citations that do not name one.
 
 ** Citation styles

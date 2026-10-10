@@ -1,5 +1,5 @@
 #+TITLE: TODOs and tags
-#+DESCRIPTION: TODO keywords, state logging, priorities, tags and progress cookies in Orgstar.
+#+DESCRIPTION: TODO keywords, state logging, priorities, tags and progress cookies in orgstar.
 #+LEDE: Mark headings as tasks, record when their state changes, rank them, and label them with tags.
 
 * TODO keywords
@@ -21,7 +21,7 @@ Files without a =#+TODO= line use the keywords in Settings ▸ Editing ▸ Defau
 TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)
 #+END_SRC
 
-The value uses =#+TODO= syntax. To define more than one sequence, put one per line (=\n= in =config.toml=). Orgstar reads this setting at launch, so a change takes effect after you restart the app. See [[file:13-configuration.org][Configuration]] for the file itself and for keyword colors under =[theme.todo]=.
+The value uses =#+TODO= syntax. To define more than one sequence, put one per line (=\n= in =config.toml=). orgstar reads this setting at launch, so a change takes effect after you restart the app. See [[file:13-configuration.org][Configuration]] for the file itself and for keyword colors under =[theme.todo]=.
 
 ** Keywords in the file
 
@@ -95,7 +95,7 @@ Insert TODO Heading (=org-insert-todo-heading=, =M-S-RET= in Emacs and Doom, ⌘
 
 ** Dependencies
 
-With =org-enforce-todo-dependencies= on, an entry can't move to a done keyword while one of its descendants has an active keyword. Descendants without a keyword don't count. Orgstar refuses the change with Org's message:
+With =org-enforce-todo-dependencies= on, an entry can't move to a done keyword while one of its descendants has an active keyword. Descendants without a keyword don't count. orgstar refuses the change with Org's message:
 
 #+BEGIN_EXAMPLE
 TODO state change from TODO to DONE blocked (by "TODO Pack the kitchen")
@@ -122,11 +122,11 @@ Both settings are off by default, as in Org. They are under Settings ▸ Editing
 
 * Logging state changes
 
-Orgstar logs state changes as =org-todo= does in Org 9.8.
+orgstar logs state changes as =org-todo= does in Org 9.8.
 
 ** CLOSED
 
-When =org-log-done= is =time= and an entry moves from an active keyword to a done one, Orgstar adds a =CLOSED= stamp to its planning line:
+When =org-log-done= is =time= and an entry moves from an active keyword to a done one, orgstar adds a =CLOSED= stamp to its planning line:
 
 #+BEGIN_SRC org
 ,* DONE Book the venue
@@ -160,11 +160,11 @@ The headings are Org's default =org-log-note-headings=:
 | New deadline          | =New deadline from "[old date]" on [timestamp]=      |
 | Deadline removed      | =Removed deadline, was "[old date]" on [timestamp]=  |
 
-Rescheduling and deadline notes are covered in [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]]. Orgstar has no command to add a free note to an entry (=org-add-note=).
+Rescheduling and deadline notes are covered in [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]]. orgstar has no command to add a free note to an entry (=org-add-note=).
 
 ** The LOGBOOK drawer
 
-With =org-log-into-drawer= set to a drawer name, notes go at the top of that drawer, which Orgstar creates when it is missing:
+With =org-log-into-drawer= set to a drawer name, notes go at the top of that drawer, which orgstar creates when it is missing:
 
 #+BEGIN_SRC org
 ,* DONE Book the venue
@@ -283,11 +283,11 @@ The view shows the inherited tags, the current selection, and each tag with its 
 - Tags without a key get one: their first letter if it is free, otherwise the next free character from =a–z=, =A–Z= and ={|}~=.
 - The selected tags are written in the order of the =#+TAGS= lines, followed by any others.
 
-=#+TAGS= lines come only from the file and its setup files. Orgstar has no global tag list (=org-tag-alist=); the workspace's tags are used for completion only.
+=#+TAGS= lines come only from the file and its setup files. orgstar has no global tag list (=org-tag-alist=); the workspace's tags are used for completion only.
 
 ** Inheritance
 
-An entry inherits the tags of its ancestors and the file's =#+FILETAGS= (=org-use-tag-inheritance= =t=). Fast selection lists inherited tags separately. Agenda matches and clock tables with =:tags t= use the inherited tags too. Orgstar has no setting to limit inheritance (=org-tags-exclude-from-inheritance=).
+An entry inherits the tags of its ancestors and the file's =#+FILETAGS= (=org-use-tag-inheritance= =t=). Fast selection lists inherited tags separately. Agenda matches and clock tables with =:tags t= use the inherited tags too. orgstar has no setting to limit inheritance (=org-tags-exclude-from-inheritance=).
 
 #+BEGIN_SRC org
 ,#+FILETAGS: :home:
@@ -300,7 +300,7 @@ Here "Prune the roses" has the tags =home= and =outdoor= through inheritance.
 
 ** Alignment
 
-Orgstar aligns tags whenever it changes a heading line: setting tags, changing the TODO keyword or the priority, and updating a statistics cookie. The column is =org-tags-column=, under Settings ▸ Editing ▸ Tags:
+orgstar aligns tags whenever it changes a heading line: setting tags, changing the TODO keyword or the priority, and updating a statistics cookie. The column is =org-tags-column=, under Settings ▸ Editing ▸ Tags:
 
 | Value      | Placement                                          |
 |------------+----------------------------------------------------|
@@ -322,7 +322,7 @@ A =[/]= or =[%]= cookie in a heading shows how many of its children are done:
 ,** TODO Forward the mail
 #+END_SRC
 
-Orgstar updates the cookie whenever a child's TODO keyword changes (=org-update-parent-todo-statistics=, with =org-hierarchical-todo-statistics= =t=). Only direct children with a TODO keyword count; children without one are ignored. =C-c C-c= on a cookie updates it by hand.
+orgstar updates the cookie whenever a child's TODO keyword changes (=org-update-parent-todo-statistics=, with =org-hierarchical-todo-statistics= =t=). Only direct children with a TODO keyword count; children without one are ignored. =C-c C-c= on a cookie updates it by hand.
 
 The =COOKIE_DATA= property changes what the parent's cookie counts:
 

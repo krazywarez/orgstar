@@ -1,9 +1,9 @@
-#+TITLE: Orgstar
+#+TITLE: orgstar
 #+DESCRIPTION: A native macOS and iOS editor for org-mode files.
-#+LEDE: Orgstar edits org files in place, alongside Emacs and the sync tools you already use.
+#+LEDE: orgstar edits org files in place, alongside Emacs and the sync tools you already use.
 #+OPTIONS: toc:nil
 
-Orgstar is an editor for [[https://orgmode.org][Org mode]] files on the Mac, with an app for
+orgstar is an editor for [[https://orgmode.org][Org mode]] files on the Mac, with an app for
 iPhone and iPad. It reads and writes the same plain-text files Emacs does, behaves the
 way Org does where the two overlap, and leaves every byte you didn't change as it was.
 
@@ -39,10 +39,10 @@ reminders, export and tangling.
 
 * Principles
 
-- *The files are the source of truth.* There is no database of your notes. Orgstar
+- *The files are the source of truth.* There is no database of your notes. orgstar
   keeps an index for search and the agenda, rebuilt from the files whenever they change.
 - *Only your edits are written.* Saving rewrites the bytes you changed and nothing
   else: indentation, line endings, encoding marks and unusual spacing elsewhere stay.
 - *Org's behaviour, not a lookalike.* Commands follow what Org 9.8 does, and are
-  checked against Emacs in the test suite. Where Orgstar can't do something the way
+  checked against Emacs in the test suite. Where orgstar can't do something the way
   Org would, it says so and leaves the file alone rather than guessing.

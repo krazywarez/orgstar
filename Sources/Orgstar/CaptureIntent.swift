@@ -6,7 +6,7 @@ import OrgCore
 /// Shortcuts' "Capture to Orgstar": files text with a capture template without the capture
 /// window. Prompts in the template take their defaults.
 struct CaptureIntent: AppIntent {
-    static let title: LocalizedStringResource = "Capture to Orgstar"
+    static let title: LocalizedStringResource = "Capture to orgstar"
     static let description = IntentDescription("Files text with one of your capture templates.")
 
     @Parameter(title: "Text")
@@ -27,7 +27,7 @@ struct CaptureIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         // Launched for the intent, the window sets the models up shortly.
         for _ in 0..<50 where Self.environment == nil { try? await Task.sleep(for: .milliseconds(100)) }
-        guard let (workspace, session, clock, commands) = Self.environment else { throw Failure(message: "Orgstar isn't ready") }
+        guard let (workspace, session, clock, commands) = Self.environment else { throw Failure(message: "orgstar isn't ready") }
         let placed = session.capture(
             text, templateKey: template, templates: CaptureTemplates.load().templates, workspace: workspace, clock: clock,
             clipboard: NSPasteboard.general.string(forType: .string) ?? "", userName: NSFullUserName()

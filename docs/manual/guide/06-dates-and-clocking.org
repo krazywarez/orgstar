@@ -1,5 +1,5 @@
 #+TITLE: Dates, scheduling and clocking
-#+DESCRIPTION: Timestamps, the date prompt, SCHEDULED and DEADLINE, repeating tasks, effort, clocking, clock tables, habits and reminders in Orgstar.
+#+DESCRIPTION: Timestamps, the date prompt, SCHEDULED and DEADLINE, repeating tasks, effort, clocking, clock tables, habits and reminders in orgstar.
 #+LEDE: Put dates on entries, plan work with scheduled dates and deadlines, and record the time you spend.
 
 * Timestamps
@@ -16,7 +16,7 @@ A timestamp is a date, optionally with a time, in angle brackets (active) or squ
 
 - Active timestamps put the entry on the agenda for that day. Inactive ones are records only.
 - =10:00-11:30= is a time range within one day. =<…>--<…>= is a range of days; both ends must be of the same kind.
-- Orgstar writes day names in English. When reading, it accepts a day name in any language, as Org does.
+- orgstar writes day names in English. When reading, it accepts a day name in any language, as Org does.
 
 ** Repeaters and warning periods
 
@@ -44,7 +44,7 @@ Units are =h= (hours), =d=, =w=, =m= and =y=. What happens when a repeating task
 
 ** Diary sexps
 
-The agenda also reads =<%%(…)>= timestamps and =%%(…)= lines with Emacs diary expressions such as =diary-float=, =diary-anniversary=, =diary-block= and =diary-cyclic=, and their =org-= counterparts. See [[file:07-agenda.org][The agenda]] for the functions that are supported. Orgstar does not insert or edit these.
+The agenda also reads =<%%(…)>= timestamps and =%%(…)= lines with Emacs diary expressions such as =diary-float=, =diary-anniversary=, =diary-block= and =diary-cyclic=, and their =org-= counterparts. See [[file:07-agenda.org][The agenda]] for the functions that are supported. orgstar does not insert or edit these.
 
 * Inserting timestamps
 
@@ -67,7 +67,7 @@ Every command that asks for a date shows the same prompt (=org-read-date=): a te
 - =RET= accepts. An empty answer takes the default: the date of the timestamp being changed, or today.
 - =Esc= cancels.
 
-Orgstar reads the answer as Org 9.8 does, with =org-read-date-prefer-future= =t=: a date given without a year, or without a month, is taken to be the next such date from today.
+orgstar reads the answer as Org 9.8 does, with =org-read-date-prefer-future= =t=: a date given without a year, or without a month, is taken to be the next such date from today.
 
 | You type           | Result                                                    |
 |--------------------+-----------------------------------------------------------|
@@ -144,7 +144,7 @@ DEADLINE: <2026-10-31 Sat -7d> SCHEDULED: <2026-10-20 Tue>
 
 Schedule and Set Deadline ask for a date, starting from the entry's current one and its time. They replace an existing date, keep its repeater and warning, and remove a =CLOSED= stamp from the entry. Remove Schedule and Remove Deadline have no default keys; run them from the Org menu or the command palette ([[file:03-keys.org][Keys]]).
 
-With =org-log-reschedule= or =org-log-redeadline= set to =time= or =note= in =config.toml=, or the matching =#+STARTUP= words, Orgstar logs each change of an existing date and each removal:
+With =org-log-reschedule= or =org-log-redeadline= set to =time= or =note= in =config.toml=, or the matching =#+STARTUP= words, orgstar logs each change of an existing date and each removal:
 
 #+BEGIN_SRC org
 ,* TODO Submit the tax return
@@ -156,7 +156,7 @@ Where these notes go, and the =#+STARTUP= words, are covered in [[file:05-todos-
 
 * Repeating tasks
 
-When an entry with a repeater in an active timestamp changes from an active TODO keyword to a done one (=org-auto-repeat-maybe=), Orgstar does not leave it done:
+When an entry with a repeater in an active timestamp changes from an active TODO keyword to a done one (=org-auto-repeat-maybe=), orgstar does not leave it done:
 
 1. The keyword returns to the first keyword of its sequence. In a =#+TYP_TODO= sequence it returns to the keyword it had. A =REPEAT_TO_STATE= property, inherited from ancestors, names another keyword to use.
 2. =CLOSED= is removed.
@@ -184,7 +184,7 @@ SCHEDULED: <2026-10-10 Sat .+3d>
 - State "DONE"       from "TODO"       [2026-10-07 Wed 18:02]
 #+END_SRC
 
-A repeater of =0= (=+0d=) does not repeat. An hourly repeater needs a time in the timestamp; without one, Orgstar reports "Cannot repeat in N hour(s) because no hour has been set". Inactive timestamps never repeat.
+A repeater of =0= (=+0d=) does not repeat. An hourly repeater needs a time in the timestamp; without one, orgstar reports "Cannot repeat in N hour(s) because no hour has been set". Inactive timestamps never repeat.
 
 To turn the repeat note off for a file, use =#+STARTUP: nologrepeat=; =lognoterepeat= asks for a note instead.
 
@@ -202,7 +202,7 @@ Set Effort asks for a value, such as =0:30= or =2:00=, starting with the current
 ,#+PROPERTY: Effort_ALL 0:15 0:30 1:00 2:00 4:00
 #+END_SRC
 
-Effort appears in column view and in clock tables with =:properties ("Effort")=. Orgstar does not compare the running clock with the effort estimate.
+Effort appears in column view and in clock tables with =:properties ("Effort")=. orgstar does not compare the running clock with the effort estimate.
 
 * Clocking
 
@@ -222,7 +222,7 @@ Clocking records the time you work on an entry as =CLOCK:= lines in its =LOGBOOK
 
 The Emacs keys are Org's own, and work in the Doom preset too, as every =C-c= key does. Commands without a key in your preset are in the command palette and in Org ▸ Clock, which lists every clock command with its keys, followed by the recent entries. In the agenda, =I=, =O= and =X= clock in, out and cancel for the entry at the line ([[file:07-agenda.org][The agenda]]). Capture templates can clock in too ([[file:08-capture.org][Capture]]).
 
-Orgstar has no =C-u= forms of these commands. Clock In to Recent Entry… and Go to Recent Clocked Entry… stand for =C-u C-c C-x C-i= and =C-u C-c C-x C-j=.
+orgstar has no =C-u= forms of these commands. Clock In to Recent Entry… and Go to Recent Clocked Entry… stand for =C-u C-c C-x C-i= and =C-u C-c C-x C-j=.
 
 ** Clocking in and out
 
@@ -245,17 +245,17 @@ CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 15:30] =>  1:30
 
 With no clock running, Clock In first asks about open clocks; see Open clocks below. So do the agenda's =I= and a capture template's =clock-in=.
 
-Orgstar remembers the running clock and the clock history across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
+orgstar remembers the running clock and the clock history across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
 
 These parts of Org's clocking are not implemented:
 
-- sharing the running clock with Emacs: Orgstar does not read or write Emacs's =org-clock-persist= file, so a clock started in one is not known to the other, although both see the open =CLOCK:= line;
+- sharing the running clock with Emacs: orgstar does not read or write Emacs's =org-clock-persist= file, so a clock started in one is not known to the other, although both see the open =CLOCK:= line;
 - rounding, changing the TODO state on clock-in (=org-clock-in-switch-to-state=), and clocking out when the entry is marked done (=org-clock-out-when-done=): the clock keeps running;
 - a =CLOCK_INTO_DRAWER= property or another drawer name: clocks always go into =LOGBOOK=.
 
 ** The running clock
 
-While a clock runs, Orgstar shows it in three places, refreshed every 30 seconds:
+While a clock runs, orgstar shows it in three places, refreshed every 30 seconds:
 
 - the mode line under the editor: =⏱ 0:42 Write the report=;
 - the window's toolbar;
@@ -265,7 +265,7 @@ The time shown is the time since you clocked in, not the entry's total. Each of 
 
 ** Recent entries
 
-Orgstar keeps a clock history, as =org-clock-history=. Every clock-in, including one from the agenda or a capture template, puts the entry first in the history and removes its other entries there. The history holds =org-clock-history-length= entries (5 by default); the oldest go first.
+orgstar keeps a clock history, as =org-clock-history=. Every clock-in, including one from the agenda or a capture template, puts the entry first in the history and removes its other entries there. The history holds =org-clock-history-length= entries (5 by default); the oldest go first.
 
 Entries are found again after edits by their =ID= property, else by the heading's position among the file's headings together with its title, else by the title alone. An entry that can't be found is dropped from the history the next time an entry is added, and left out of the selection.
 
@@ -282,13 +282,13 @@ Type a key to choose. =q=, =x= or =Esc= leave the question. With an empty histor
 
 Clock In to Last Entry clocks in to the first entry of the history, the same as =1=. With no clock running it says "Clocking back: Write the report (in work.org)"; with an empty history, "No last clock".
 
-Mark as Default Clock Task makes the heading at the caret the =d= entry and says "Default clock task: Write the report"; Org sets it without a message. As in Org, the default task lasts until you quit Orgstar.
+Mark as Default Clock Task makes the heading at the caret the =d= entry and says "Default clock task: Write the report"; Org sets it without a message. As in Org, the default task lasts until you quit orgstar.
 
 ** Open clocks
 
-An open clock is a =CLOCK:= line with a start and no end. Org calls one that isn't the running clock dangling, for example after Orgstar or Emacs quit while it ran, or a line synced from another machine.
+An open clock is a =CLOCK:= line with a start and no end. Org calls one that isn't the running clock dangling, for example after orgstar or Emacs quit while it ran, or a line synced from another machine.
 
-When you clock in with no clock running, Orgstar first looks for open clocks in the org files of your folders and in the open buffers (=org-clock-auto-clock-resolution= set to =when-no-clock-is-running=), and asks about each one:
+When you clock in with no clock running, orgstar first looks for open clocks in the org files of your folders and in the open buffers (=org-clock-auto-clock-resolution= set to =when-no-clock-is-running=), and asks about each one:
 
 #+BEGIN_EXAMPLE
 Dangling clock started 95 mins ago [jkKtTgGSscCiq]?
@@ -298,7 +298,7 @@ Clocking in from the agenda (=I=) or from a capture template with =clock-in= ask
 
 Resolve Open Clocks… asks the same about every open clock, the running one included, and says "No open clocks" when there are none.
 
-Unlike Org, Orgstar doesn't show the clock's line while it asks; =j= opens it afterwards, except while clocking in.
+Unlike Org, orgstar doesn't show the clock's line while it asks; =j= opens it afterwards, except while clocking in.
 
 The answer is a key, as in =org-clock-resolve=. The idle time is the time since the clock started, for an open clock, or since you stopped using the Mac, for an idle one (see Idle time below).
 
@@ -336,7 +336,7 @@ You stopped another clock 12 mins ago; start this one from then? (y or n)
 
 On the Mac, set =org-clock-idle-time= to a number of minutes, or turn on Settings ▸ Agenda ▸ "Ask what to do with idle time while clocked in", to be asked about time away from the Mac. The default, =0=, never asks, as =nil= does in Emacs.
 
-While a clock runs, Orgstar checks every minute how long the Mac has had no keyboard or mouse input, in any app. Past the limit, it requests your attention, which bounces its Dock icon while another app is active, and asks in the echo area:
+While a clock runs, orgstar checks every minute how long the Mac has had no keyboard or mouse input, in any app. Past the limit, it requests your attention, which bounces its Dock icon while another app is active, and asks in the echo area:
 
 #+BEGIN_EXAMPLE
 Clocked in & idle for 17.3 mins [jkKtTgGSscCiq]?
@@ -346,7 +346,7 @@ The keys are those in the table above, with the idle time starting when input st
 
 ** Editing clock lines
 
-You can edit clock lines by hand. =S-<up>=, =S-<down>=, =S-<left>= and =S-<right>= change their timestamps as anywhere else, and then write the duration after ~=>~ again, as =H:MM=. After typing changes yourself, press =C-c C-c= (or =C-c C-y=) on the line: Orgstar fixes both day names and writes the duration again (=org-clock-update-time-maybe=).
+You can edit clock lines by hand. =S-<up>=, =S-<down>=, =S-<left>= and =S-<right>= change their timestamps as anywhere else, and then write the duration after ~=>~ again, as =H:MM=. After typing changes yourself, press =C-c C-c= (or =C-c C-y=) on the line: orgstar fixes both day names and writes the duration again (=org-clock-update-time-maybe=).
 
 =C-c .= on a clock line's range replaces one of its timestamps, as in any range of days (see "Inserting timestamps").
 
@@ -377,7 +377,7 @@ Copy puts it on the clipboard; Save writes it to a file.
 
 * Clock tables
 
-A clock table is a dynamic block that Orgstar fills with a summary of clocked time (=org-clocktable-write-default=).
+A clock table is a dynamic block that orgstar fills with a summary of clocked time (=org-clocktable-write-default=).
 
 | Command                         | Org command          | Emacs, Doom     |
 |---------------------------------+----------------------+-----------------|
@@ -468,14 +468,14 @@ How habits appear in the agenda, with the graph covering 21 days back and 7 ahea
 
 * Reminders
 
-Orgstar can post a macOS notification before entries that have a time of day, as Emacs's =appt= does with =org-agenda-to-appt=.
+orgstar can post a macOS notification before entries that have a time of day, as Emacs's =appt= does with =org-agenda-to-appt=.
 
 - It covers the agenda's files and the next 7 days: scheduled items, deadlines, plain active timestamps and date ranges with a time, that are not done.
 - Each reminder comes the lead time before the entry's time: 12 minutes by default (=appt-message-warning-time=). An =APPT_WARNTIME= property on the entry, in minutes, overrides it.
-- If the warning time has already passed when Orgstar sets a reminder but the entry has not started, the notification comes at once.
+- If the warning time has already passed when orgstar sets a reminder but the entry has not started, the notification comes at once.
 - At most 64 reminders are pending at a time, the earliest first.
-- The notification shows the entry's text, its time, and its category. Clicking it opens the entry. Notifications also show while Orgstar is the active app.
+- The notification shows the entry's text, its time, and its category. Clicking it opens the entry. Notifications also show while orgstar is the active app.
 
-Orgstar updates the reminders a couple of seconds after you stop editing, when files change, and every hour. The agenda window shows how far ahead reminders are set. Reminders already set still arrive after you quit Orgstar; changes to your files are taken into account the next time it runs.
+orgstar updates the reminders a couple of seconds after you stop editing, when files change, and every hour. The agenda window shows how far ahead reminders are set. Reminders already set still arrive after you quit orgstar; changes to your files are taken into account the next time it runs.
 
-Turn reminders on or off, and set the lead time from 0 to 120 minutes, in Settings ▸ Agenda; in =config.toml= the keys are =reminders= under =[orgstar]= (default =true=) and =appt-message-warning-time=. The first time, macOS asks whether Orgstar may post notifications; if you decline, the agenda says so, and you can change it in System Settings ▸ Notifications. The iOS app's reminders are described in [[file:14-ios.org][iOS]].
+Turn reminders on or off, and set the lead time from 0 to 120 minutes, in Settings ▸ Agenda; in =config.toml= the keys are =reminders= under =[orgstar]= (default =true=) and =appt-message-warning-time=. The first time, macOS asks whether orgstar may post notifications; if you decline, the agenda says so, and you can change it in System Settings ▸ Notifications. The iOS app's reminders are described in [[file:14-ios.org][iOS]].

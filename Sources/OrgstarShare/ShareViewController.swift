@@ -70,7 +70,7 @@ struct ShareForm: View {
         NavigationStack {
             Form {
                 if !available {
-                    Text("Orgstar's shared folder isn't available.").foregroundStyle(.red)
+                    Text("orgstar's shared folder isn't available.").foregroundStyle(.red)
                 }
                 if !templates.isEmpty {
                     Picker("Template", selection: $template) {
@@ -88,10 +88,10 @@ struct ShareForm: View {
                 }
                 Section {
                 } footer: {
-                    Text("Orgstar files it with the template when you next open it.")
+                    Text("orgstar files it with the template when you next open it.")
                 }
             }
-            .navigationTitle("Orgstar")
+            .navigationTitle("orgstar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { finish(nil) } }
