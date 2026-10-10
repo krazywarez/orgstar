@@ -22,6 +22,9 @@ struct CaptureScreen: View {
     @State private var text = ""
     @State private var selection: TextSelection?
     @State private var problem: String?
+    /// The entry's date or tags sheet: on the form, not its section, which may not be in the window.
+    @State private var planning: EntryPlanning?
+    @State private var choosingTags = false
     @FocusState private var focused: Bool
 
     private var template: CaptureTemplate? { templates.first { $0.key == key } }
@@ -42,13 +45,26 @@ struct CaptureScreen: View {
                         if let problem { Text(problem).foregroundStyle(.red) }
                     }
                     if let entry = CaptureEntry(text: text, defaults: session.defaults) {
-                        EntryFields(entry: entry, tagChoices: Array(Set(context.allTags + context.fileTags)).sorted(), change: change)
+                        EntryFields(entry: entry, change: change, planning: $planning, choosingTags: $choosingTags)
                     }
                 } else {
                     ForEach(questions.indices, id: \.self) { index in
                         QuestionField(question: questions[index], answer: $answers[index], defaultDate: request.day.map(Self.date))
                     }
                     if let problem { Text(problem).foregroundStyle(.red) }
+                }
+            }
+            .sheet(item: $planning) { which in
+                let entry = CaptureEntry(text: text, defaults: session.defaults)
+                DateTimeSheet(title: which.rawValue, initial: EntryFields.initial(which == .scheduled ? entry?.scheduled : entry?.deadline)) { answer in
+                    planning = nil
+                    if let answer { change(SetPlanning(deadline: which == .deadline), ["date": answer]) }
+                }
+            }
+            .sheet(isPresented: $choosingTags) {
+                TagsSheet(selected: CaptureEntry(text: text, defaults: session.defaults)?.tags ?? [], choices: Array(Set(context.allTags + context.fileTags)).sorted()) { tags in
+                    choosingTags = false
+                    if let tags { change(SetTags(), ["tags": tags.joined(separator: ":")]) }
                 }
             }
             .navigationTitle("Capture")
@@ -220,18 +236,18 @@ struct QuestionField: View {
         return formatter.string(from: date)
     }
 }
+/// Which date of the captured entry is being picked.
+private enum EntryPlanning: String, Identifiable {
+    case scheduled = "Scheduled", deadline = "Deadline"
+    var id: Self { self }
+}
+
 /// The captured entry's keyword, priority, dates and tags, set without editing its text.
 private struct EntryFields: View {
     let entry: CaptureEntry
-    let tagChoices: [String]
     let change: (any OrgCommand, [String: String]) -> Void
-    @State private var planning: Planning?
-    @State private var choosingTags = false
-
-    private enum Planning: String, Identifiable {
-        case scheduled = "Scheduled", deadline = "Deadline"
-        var id: Self { self }
-    }
+    @Binding var planning: EntryPlanning?
+    @Binding var choosingTags: Bool
 
     var body: some View {
         Section {
@@ -254,21 +270,9 @@ private struct EntryFields: View {
             }
             .tint(.primary)
         }
-        .sheet(item: $planning) { which in
-            DateTimeSheet(title: which.rawValue, initial: initial(which == .scheduled ? entry.scheduled : entry.deadline)) { answer in
-                planning = nil
-                if let answer { change(SetPlanning(deadline: which == .deadline), ["date": answer]) }
-            }
-        }
-        .sheet(isPresented: $choosingTags) {
-            TagsSheet(selected: entry.tags, choices: tagChoices) { tags in
-                choosingTags = false
-                if let tags { change(SetTags(), ["tags": tags.joined(separator: ":")]) }
-            }
-        }
     }
 
-    private func date(_ which: Planning, _ stamp: Timestamp?) -> some View {
+    private func date(_ which: EntryPlanning, _ stamp: Timestamp?) -> some View {
         Menu {
             Button("Today") { set(which, 0) }
             Button("Tomorrow") { set(which, 1) }
@@ -283,12 +287,12 @@ private struct EntryFields: View {
         .tint(.primary)
     }
 
-    private func set(_ which: Planning, _ days: Int) {
+    private func set(_ which: EntryPlanning, _ days: Int) {
         let day = Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date()
         change(SetPlanning(deadline: which == .deadline), ["date": QuestionField.stamp(day, withTime: false)])
     }
 
-    private func initial(_ stamp: Timestamp?) -> Date {
+    static func initial(_ stamp: Timestamp?) -> Date {
         guard let stamp else { return Date() }
         let point = stamp.start
         return Calendar.current.date(from: DateComponents(year: point.year, month: point.month, day: point.day, hour: point.hour, minute: point.minute)) ?? Date()
