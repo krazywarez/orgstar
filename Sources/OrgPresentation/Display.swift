@@ -131,7 +131,7 @@ extension Presentation {
             location = NSMaxRange(line)
             if line.location == revealedLine || inBlock(line.location) { continue }
             let content = text.substring(with: line)
-            if content.range(of: "^[ \\t]*#([ +]|$)", options: .regularExpression) != nil { continue }
+            if Self.isCommentOrKeyword(content) { continue }
             for run in PrettyEntities.runs(in: content, subSuperscriptsNeedBraces: subSuperscriptsNeedBraces) {
                 if case .script(_, let body, _) = run {
                     let bodyStart = line.location + body.lowerBound
@@ -141,6 +141,15 @@ extension Presentation {
             }
         }
         return out
+    }
+
+    /// `^[ \t]*#([ +]|$)`: a comment or keyword line, which shows no entities.
+    static func isCommentOrKeyword(_ line: String) -> Bool {
+        let body = line.drop { $0 == " " || $0 == "\t" }
+        guard body.first == "#" else { return false }
+        let next = body.dropFirst().first
+        // `$` only at the end: the pattern ran on the line with its newline.
+        return next == nil || next == " " || next == "+"
     }
 
     /// Roles whose text keeps sub/superscript markers as written.

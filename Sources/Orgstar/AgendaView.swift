@@ -131,12 +131,54 @@ struct AgendaView: View {
         var tick: Int
     }
 
+    /// The settings part of the refresh key; `Refresher` adds the files and edits, so that
+    /// they redraw only it.
     private var refreshKey: RefreshKey {
         RefreshKey(
             mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags], logMode: logMode,
-            calendars: calendarEventsOn ? [calendarNames] : [], files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
-            path: session.path, tick: tick
+            calendars: calendarEventsOn ? [calendarNames] : [], files: 0, changed: nil, edits: 0, path: nil, tick: tick
         )
+    }
+
+    private func refresh() async {
+        agenda.span = span
+        agenda.startOffset = startOffset
+        agenda.includeSubfolders = includeSubfolders
+        agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
+        agenda.options.logMode = logMode
+        agenda.options = OrgPreferences.agendaOptions(agenda.options)
+        agenda.calendarNames = OrgPreferences.calendarEventCalendars()
+        if calendarEventsOn, isAgenda {
+            agenda.calendarEvents = await CalendarAccess.events.requestAccess() ? CalendarAccess.events : nil
+        } else {
+            agenda.calendarEvents = nil
+        }
+        await agenda.refresh(open: session.openTexts)
+    }
+
+    /// Refreshes the agenda when the settings, files or edits change, once a burst of them ends.
+    private struct Refresher: View {
+        let base: RefreshKey
+        let session: DocumentSession
+        let workspace: WorkspaceModel
+        let refresh: () async -> Void
+
+        private var key: RefreshKey {
+            var key = base
+            key.files = workspace.files.count
+            key.changed = workspace.changedFile?.version
+            key.edits = session.editVersion
+            key.path = session.path
+            return key
+        }
+
+        var body: some View {
+            Color.clear.task(id: key) {
+                try? await Task.sleep(for: .milliseconds(150))
+                guard !Task.isCancelled else { return }
+                await refresh()
+            }
+        }
     }
 
     private var isAgenda: Bool {
@@ -282,22 +324,7 @@ struct AgendaView: View {
         .onChange(of: viewName) { applyView() }
         .onChange(of: commands.agendaRequest?.start, initial: true) { showRequestedDays() }
         .onChange(of: commands.agendaRequest?.days) { showRequestedDays() }
-        .task(id: refreshKey) {
-            agenda.span = span
-            agenda.startOffset = startOffset
-            agenda.includeSubfolders = includeSubfolders
-            agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
-            agenda.options.logMode = logMode
-            agenda.options = OrgPreferences.agendaOptions(agenda.options)
-            agenda.calendarNames = OrgPreferences.calendarEventCalendars()
-            if calendarEventsOn, isAgenda {
-                agenda.calendarEvents = await CalendarAccess.events.requestAccess() ? CalendarAccess.events : nil
-            } else {
-                agenda.calendarEvents = nil
-            }
-            let open = session.openTexts
-            await agenda.refresh(open: open)
-        }
+        .background { Refresher(base: refreshKey, session: session, workspace: workspace, refresh: refresh) }
         .task {
             loadViews()
             // The now line moves each minute; a new day refreshes the statuses.

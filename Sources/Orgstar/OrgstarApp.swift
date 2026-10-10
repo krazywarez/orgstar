@@ -292,6 +292,15 @@ struct OrgstarApp: App {
         return session
     }()
 
+    init() {
+        // Debug builds, and runs with ORGSTAR_PERF set: main-thread stalls in the console.
+        #if DEBUG
+        Perf.watchMainThread()
+        #else
+        if ProcessInfo.processInfo.environment["ORGSTAR_PERF"] != nil { Perf.watchMainThread() }
+        #endif
+    }
+
     var body: some Scene {
         Window("Orgstar", id: "main") {
             switch workspace {
