@@ -11,6 +11,9 @@ struct SettingsScreen: View {
     let model: MobileModel
     @State private var choosing = false
     @State private var calendars: [CalendarChoice] = []
+    @State private var badges: Bool?
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
 
     private struct CalendarChoice {
         let id: String
@@ -59,6 +62,26 @@ struct SettingsScreen: View {
             } footer: {
                 Text("org-enforce-todo-dependencies and org-enforce-todo-checkbox-dependencies.")
             }
+            Section {
+                if badges == true {
+                    LabeledContent("Overdue Count on Icon", value: "On")
+                } else if badges == false {
+                    Button("Show Overdue Count on Icon…") {
+                        Task {
+                            if await model.badgesEnabled(asking: true) {
+                                badges = true
+                                await model.updateWidgets()
+                            } else if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                                openURL(url)
+                            }
+                        }
+                    }
+                }
+            } header: {
+                Text("Badge")
+            } footer: {
+                if badges == false { Text("Turn on Badges in orgstar's notification settings.") }
+            }
             calendarSection
             Section("In use") {
                 let _ = model.settingsVersion
@@ -71,6 +94,8 @@ struct SettingsScreen: View {
             }
         }
         .navigationTitle("Settings")
+        // Read again on return from the Settings app.
+        .task(id: scenePhase) { badges = await model.badgesEnabled(asking: false) }
         .fileImporter(isPresented: $choosing, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { model.setConfigFolder(url) }
         }

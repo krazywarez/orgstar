@@ -272,7 +272,7 @@ final class MobileModel {
     /// that only changes the badge.
     private func updateBadge(_ counts: [Int]) async {
         let center = UNUserNotificationCenter.current()
-        guard await SystemReminderCenter().authorize(), await center.notificationSettings().badgeSetting == .enabled else { return }
+        guard await badgesEnabled(asking: true) else { return }
         try? await center.setBadgeCount(counts.first ?? 0)
         center.removePendingNotificationRequests(withIdentifiers: (1..<AgendaSnapshot.dayCount).map(Self.badgeID))
         let today = Calendar.current.startOfDay(for: Date())
@@ -287,5 +287,16 @@ final class MobileModel {
     }
 
     static func badgeID(_ offset: Int) -> String { "badge.\(offset)" }
+
+    /// Whether iOS shows the icon's badge. Asking adds badges to the app's notification
+    /// settings, which an earlier grant without them leaves out; iOS prompts only the first time.
+    func badgesEnabled(asking: Bool) async -> Bool {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        if settings.badgeSetting == .enabled { return true }
+        guard asking, settings.authorizationStatus != .denied else { return false }
+        _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+        return await center.notificationSettings().badgeSetting == .enabled
+    }
 }
 #endif
