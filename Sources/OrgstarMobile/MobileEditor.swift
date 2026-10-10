@@ -16,6 +16,7 @@ final class LockedRanges: @unchecked Sendable {
     var all: [Range<Int>] { lock.withLock { ranges } }
     func covers(_ start: Int, _ end: Int) -> Bool { lock.withLock { ranges.contains { $0.lowerBound <= start && end <= $0.upperBound } } }
     func isFolded(_ start: Int) -> Bool { lock.withLock { starts.contains(start) } }
+    var folded: Set<Int> { lock.withLock { starts } }
     func containing(_ offset: Int) -> Range<Int>? { lock.withLock { ranges.first { $0.contains(offset) } } }
 }
 
@@ -210,6 +211,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
         textView.textStorage.delegate = self
         textView.textLayoutManager?.delegate = self
         (textView.textLayoutManager?.textContentManager as? NSTextContentStorage)?.delegate = self
+        let foldTap = UITapGestureRecognizer(target: self, action: #selector(tappedFold))
+        foldTap.delegate = self
+        textView.addGestureRecognizer(foldTap)
         let startup = Presentation.startupDisplay(document.tree, options: options)
         indented = startup.indented
         hideStars = startup.hideStars
@@ -820,10 +824,20 @@ final class MobileEditor: NSObject, DocumentBuffer {
     private func updateHidden() {
         let tree = document.tree
         let wrappers = fold.wrapperFolds.compactMap { Wrappers.starting(at: $0, in: tree)?.hidden }
+        let before = hidden.folded
         hidden.set(
             Presentation.hiddenRanges(tree, folds: fold.folds, bodyFolds: fold.bodyFolds, wrapperRanges: wrappers),
             folded: fold.folds.union(fold.bodyFolds).union(fold.wrapperFolds)
         )
+        // Lines that gain or lose their `…` are made again: TextKit keeps a shown line's fragment.
+        let storage = textView.textStorage
+        let changed = before.symmetricDifference(hidden.folded).filter { $0 < storage.length }
+        if !changed.isEmpty {
+            let text = storage.string as NSString
+            storage.beginEditing()
+            for start in changed { storage.edited(.editedAttributes, range: text.lineRange(for: NSRange(location: start, length: 0)), changeInLength: 0) }
+            storage.endEditing()
+        }
         if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
         textView.setNeedsDisplay()
     }
@@ -899,6 +913,35 @@ extension MobileEditor: UITextViewDelegate {
         guard command.applies(in: editContext()) else { return true }
         _ = perform(command)
         return false
+    }
+}
+
+extension MobileEditor: UIGestureRecognizerDelegate {
+    /// The start of the folded line whose `…` is at `point`: the space after its text.
+    private func foldedLine(at point: CGPoint) -> Int? {
+        guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return nil }
+        let inContainer = CGPoint(x: point.x - textView.textContainerInset.left, y: point.y - textView.textContainerInset.top)
+        guard let fragment = manager.textLayoutFragment(for: inContainer), let range = fragment.textElement?.elementRange else { return nil }
+        let start = content.offset(from: content.documentRange.location, to: range.location)
+        guard hidden.isFolded(start),
+              let line = fragment.textLineFragments.first(where: { $0.characterRange.length > 0 }) ?? fragment.textLineFragments.first
+        else { return nil }
+        return inContainer.x - fragment.layoutFragmentFrame.minX >= line.typographicBounds.maxX ? start : nil
+    }
+
+    /// A tap on a fold's `…` opens it, as TAB on its line does.
+    @objc fileprivate func tappedFold(_ tap: UITapGestureRecognizer) {
+        guard let start = foldedLine(at: tap.location(in: textView)),
+              let next = Presentation.cycle(at: start, in: document.tree, fold) else { return }
+        setFolds(next)
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        foldedLine(at: gestureRecognizer.location(in: textView)) != nil
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+        true
     }
 }
 

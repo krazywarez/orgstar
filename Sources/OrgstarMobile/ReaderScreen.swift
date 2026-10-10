@@ -273,6 +273,7 @@ struct ReaderScreen: View {
                 // Found again by position when followed.
                 part.link = URL(string: "orgstar-link:\(segment.offset)")
             }
+            if let start = segment.unfolds { part.link = URL(string: "orgstar-unfold:\(start)") }
             if let superscript = segment.superscript {
                 // Raised or lowered as the editor draws `org-pretty-entities` scripts.
                 part.baselineOffset = (superscript ? 0.3 : -0.3) * font.pointSize
@@ -333,6 +334,10 @@ struct ReaderScreen: View {
     }
 
     private func follow(_ url: URL) -> OpenURLAction.Result {
+        if url.scheme == "orgstar-unfold", let start = Int(url.absoluteString.dropFirst("orgstar-unfold:".count)) {
+            folded.removeAll { $0.lowerBound == start }
+            return .handled
+        }
         guard url.scheme == "orgstar-link", let offset = Int(url.absoluteString.dropFirst("orgstar-link:".count)),
               let tree = session.document?.tree, let link = Links.link(at: offset, text: tree.text, tree: tree)?.link else {
             return .systemAction

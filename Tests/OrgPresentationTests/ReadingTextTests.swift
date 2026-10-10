@@ -10,6 +10,9 @@ struct ReadingTextTests {
         let folded = Presentation.startupWrappers(tree).map(\.hidden)
         let segments = ReadingText.segments(tree, in: 0..<(text as NSString).length, folded: folded)
         #expect(segments.map(\.text).joined() == "* TODO H :t:\n:PROPERTIES:…\nSee the site and *b* c.org.\n")
+        // The drawer's first line and its `…` name the hidden range they open.
+        #expect(segments.filter { $0.unfolds != nil }.map(\.text).joined() == ":PROPERTIES:…")
+        #expect(segments.first { $0.text == "…" }?.unfolds == folded.first?.lowerBound)
         let site = segments.first { $0.text == "the site" }
         #expect(site?.link?.raw == "https://a.org" && site?.roles.contains(.link) == true)
         #expect(segments.first { $0.text == "TODO" }?.roles.contains(.todo) == true)
