@@ -10,14 +10,17 @@ struct FoldersScreen: View {
     @State private var importing = false
     /// The file whose deletion is being confirmed.
     @State private var deleting: String?
-    /// Counts deletions, so the list reads the empty folders on disk again.
-    @State private var deletions = 0
+    /// Counts deletions and new folders, so the list reads the empty folders on disk again.
+    @State private var changes = 0
+    @State private var creating: NewItem?
 
     var body: some View {
         List {
             ForEach(workspace.rootPaths, id: \.self) { root in
                 Section((root as NSString).lastPathComponent) {
-                    FolderContents(workspace: workspace, root: root, folder: "", deleting: $deleting, deletions: deletions)
+                    FolderContents(workspace: workspace, root: root, folder: "", deleting: $deleting, changes: changes)
+                    Button("New File…", systemImage: "doc.badge.plus") { creating = NewItem(folder: root, isFolder: false) }
+                    Button("New Folder…", systemImage: "folder.badge.plus") { creating = NewItem(folder: root, isFolder: true) }
                     Button("Remove Folder", role: .destructive) { try? workspace.removeRoot(path: root) }
                 }
             }
@@ -29,7 +32,8 @@ struct FoldersScreen: View {
         .navigationDestination(for: FolderRoute.self) { route in
             FolderPage(workspace: workspace, session: session, route: route)
         }
-        .confirmDeletion($deleting, workspace: workspace, session: session) { deletions += 1 }
+        .confirmDeletion($deleting, workspace: workspace, session: session) { changes += 1 }
+        .createItem($creating, workspace: workspace) { changes += 1 }
         .overlay {
             if workspace.rootPaths.isEmpty {
                 ContentUnavailableView {
@@ -60,22 +64,86 @@ struct FoldersScreen: View {
         }
     }
 }
-/// A subfolder's own list, asking about its own deletions.
+/// A subfolder's own list, asking about its own changes.
 private struct FolderPage: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     let route: FolderRoute
     @State private var deleting: String?
-    @State private var deletions = 0
+    @State private var changes = 0
+    @State private var creating: NewItem?
 
     var body: some View {
-        List { FolderContents(workspace: workspace, root: route.root, folder: route.folder, deleting: $deleting, deletions: deletions) }
+        let folder = route.root + "/" + route.folder
+        List { FolderContents(workspace: workspace, root: route.root, folder: route.folder, deleting: $deleting, changes: changes) }
             .navigationTitle((route.folder as NSString).lastPathComponent)
-            .confirmDeletion($deleting, workspace: workspace, session: session) { deletions += 1 }
+            .confirmDeletion($deleting, workspace: workspace, session: session) { changes += 1 }
+            .createItem($creating, workspace: workspace) { changes += 1 }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu("New", systemImage: "plus") {
+                        Button("New File…", systemImage: "doc.badge.plus") { creating = NewItem(folder: folder, isFolder: false) }
+                        Button("New Folder…", systemImage: "folder.badge.plus") { creating = NewItem(folder: folder, isFolder: true) }
+                    }
+                }
+            }
+    }
+}
+
+/// A file or folder to create in `folder`, named in an alert.
+private struct NewItem: Identifiable {
+    let folder: String
+    let isFolder: Bool
+    var id: String { folder + (isFolder ? "/" : "") }
+}
+
+/// The alert naming a new file or folder.
+private struct NewItemAlert: ViewModifier {
+    @Binding var creating: NewItem?
+    let workspace: WorkspaceModel
+    let created: () -> Void
+    @State private var name = ""
+
+    func body(content: Content) -> some View {
+        content.alert(creating?.isFolder == true ? "New Folder" : "New File", isPresented: Binding { creating != nil } set: { if !$0 { creating = nil } }) {
+            TextField("Name", text: $name)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+            Button("Create") {
+                guard let item = creating else { return }
+                let typed = name
+                name = ""
+                Task {
+                    do {
+                        if item.isFolder { try Self.makeFolder(typed, in: item.folder) } else { _ = try await workspace.createFile(named: typed, in: item.folder) }
+                        created()
+                    } catch {
+                        workspace.lastError = error.localizedDescription
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) { name = "" }
+        } message: {
+            if creating?.isFolder != true { Text("A name without an extension gets .org.") }
+        }
+    }
+
+    static func makeFolder(_ name: String, in folder: String) throws {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, !trimmed.contains("/"), !trimmed.hasPrefix(".") else {
+            throw WorkspaceModel.FileError(message: "Not a folder name: \(name)")
+        }
+        let url = URL(fileURLWithPath: folder).appendingPathComponent(trimmed)
+        guard !FileManager.default.fileExists(atPath: url.path) else { throw WorkspaceModel.FileError(message: "\(trimmed) already exists.") }
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
     }
 }
 
 private extension View {
+    func createItem(_ creating: Binding<NewItem?>, workspace: WorkspaceModel, created: @escaping () -> Void) -> some View {
+        modifier(NewItemAlert(creating: creating, workspace: workspace, created: created))
+    }
+
     /// Asks before deleting the file or empty folder in `deleting`, closing a file first.
     func confirmDeletion(_ deleting: Binding<String?>, workspace: WorkspaceModel, session: DocumentSession, deleted: @escaping () -> Void) -> some View {
         let name = deleting.wrappedValue.map { ($0 as NSString).lastPathComponent } ?? ""
@@ -112,7 +180,7 @@ private struct FolderContents: View {
     let folder: String
     @Binding var deleting: String?
     /// Changes after each deletion, which the index may not show, so empty folders are read again.
-    let deletions: Int
+    let changes: Int
 
     private var prefix: String { folder.isEmpty ? "" : folder + "/" }
 
