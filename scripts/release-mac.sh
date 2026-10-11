@@ -52,9 +52,19 @@ git push origin "$tag"
 gitbay release create krz/orgstar "$tag" --title "orgstar $version" --notes "Universal (Apple silicon and Intel), macOS 26 or later. Notarized."
 gitbay release asset add krz/orgstar "$tag" "orgstar-$version.dmg" < "$dmg"
 
-cask="$tap/Casks/orgstar.rb"
-sed -e "s/@VERSION@/$version/" -e "s/@SHA256@/$sha/" packaging/orgstar.rb > "$cask"
+# The cask goes in through a merge request, as every change to the tap's main does.
+branch="orgstar-$version"
+git -C "$tap" switch -q main
+git -C "$tap" pull -q --ff-only
+git -C "$tap" switch -q -c "$branch"
+sed -e "s/@VERSION@/$version/" -e "s/@SHA256@/$sha/" packaging/orgstar.rb > "$tap/Casks/orgstar.rb"
 git -C "$tap" add Casks/orgstar.rb
 git -C "$tap" commit -q -m "orgstar $version"
-git -C "$tap" push -q origin HEAD
-echo "Released $tag; cask updated in $tap"
+git -C "$tap" push -q -u origin "$branch"
+mr="$(cd "$tap" && gitbay mr create --source "$branch" --target main --title "orgstar $version" --body "Cask for orgstar $version." --json | sed -n 's/.*"number":\([0-9]*\).*/\1/p')"
+(cd "$tap" && gitbay mr merge "$mr" --strategy ff)
+git -C "$tap" switch -q main
+git -C "$tap" pull -q --ff-only
+git -C "$tap" branch -d "$branch"
+git -C "$tap" push -q origin --delete "$branch"
+echo "Released $tag; cask merged in krz/homebrew-tap!$mr"
