@@ -381,6 +381,11 @@ struct OrgstarApp: App {
                     }
                 }
                 .disabled(session.path == nil)
+                Menu("Publish") {
+                    ForEach(EditorCommands.all.filter { $0.id.hasPrefix("app.publish") }, id: \.id) { command in
+                        Button(command.title) { commands.run(command.id) }
+                    }
+                }
             }
             CommandGroup(replacing: .saveItem) {
                 Button("Close Buffer") {

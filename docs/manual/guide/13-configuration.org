@@ -15,7 +15,7 @@ The folder holds these files:
 
 | File                 | What it holds                                                    | Written by orgstar                    |
 |----------------------+------------------------------------------------------------------+---------------------------------------|
-| =config.toml=        | Every setting of the Settings window, and the theme              | Yes, when you change a setting        |
+| =config.toml=        | Every setting of the Settings window, the theme, and publishing projects | Yes, when you change a setting |
 | =keymap.toml=        | Your key bindings, on top of the preset                          | Only by Import from Emacs             |
 | =capture.toml=       | Capture templates                                                | Only by Import from Emacs             |
 | =views.toml=         | Saved agenda views                                               | No                                    |
@@ -315,6 +315,10 @@ py = "src python"
 
 Keys are letters, digits, =_= and =-=. Without the table, Org's templates apply. Emacs import adds entries here and so does nothing else in the app; remove one by deleting its line.
 
+** [[publish]]
+
+Publishing projects, one table each, as =org-publish-project-alist= has them. They're read when you publish; see [[file:12-export.org::*Publishing][Publishing]] for the keys. The Settings window leaves them as they are.
+
 ** [theme]
 
 | Key                 | Type    | Default | Effect                                                                                       |
@@ -536,6 +540,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-icalendar-use-deadline=, =org-icalendar-use-scheduled=        | The list's symbols, separated by spaces                                                       |
 | =org-icalendar-include-todo=                                       | =nil=, =t=, =all= or =unblocked=, or a list of keywords separated by spaces                  |
 | =org-icalendar-combined-agenda-file=                               | The file name, from a string or a simple form                                                 |
+| =org-publish-project-alist=                                        | A =[[publish]]= table in =config.toml= per project whose publishing functions are =org-html-publish-to-html=, =org-md-publish-to-md= or =org-publish-attachment=: the directories, =:base-extension=, =:recursive=, =:exclude=, =:include=, =:body-only=, the sitemap properties and =:components=. Other properties are reported as left out |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |
 | =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |
 | =display-line-numbers-type=                                        | =true= unless =nil=; =relative= and =visual= become absolute numbers                          |

@@ -370,8 +370,9 @@ public enum UserConfig {
                 if defaults.stringArray(forKey: structureTemplatesKey) != rows { defaults.set(rows, forKey: structureTemplatesKey) }
                 continue
             }
-            // Colors are the theme's to read.
+            // Colors are the theme's to read; publishing projects are `Publish`'s.
             if ThemeSpec.isThemeTable(table.name), table.name != "theme" { continue }
+            if table.name == "publish", table.isArrayElement { continue }
             for (key, value) in table.values.sorted(by: { $0.key < $1.key }) {
                 if table.name == "theme", !ThemeSpec.typeKeys.contains(key) { continue }
                 let name = path(table.name, key)
@@ -538,8 +539,9 @@ public enum UserConfig {
         var lastInSection: Int?
         for (index, line) in lines.enumerated() {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("[") && !trimmed.hasPrefix("[[") {
-                current = String(trimmed.dropFirst().prefix { $0 != "]" }).trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("[") {
+                // An array of tables, such as `[[publish]]`, is no section a setting is in.
+                current = trimmed.hasPrefix("[[") ? trimmed : String(trimmed.dropFirst().prefix { $0 != "]" }).trimmingCharacters(in: .whitespaces)
                 if current == section { lastInSection = index }
                 continue
             }

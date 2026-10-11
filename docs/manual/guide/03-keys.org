@@ -975,6 +975,10 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Export to iCalendar (=app.export.icalendar=) | =C-c C-e c f= | — | — | Exports to an =.ics= calendar (=org-icalendar-export-to-ics=). |
 | Export Agenda Files to iCalendar (=app.export.icalendar-agenda=) | =C-c C-e c a= | — | — | Writes an =.ics= beside each agenda file (=org-icalendar-export-agenda-files=). |
 | Combine Agenda Files into iCalendar (=app.export.icalendar-combined=) | =C-c C-e c c= | — | — | Writes the agenda files' entries to one calendar (=org-icalendar-combine-agenda-files=). |
+| Publish Project… (=app.publish=) | =C-c C-e P x= | — | — | Publishes a project from =config.toml= (=org-publish=). |
+| Publish All Projects (=app.publish.all=) | =C-c C-e P a= | — | — | Publishes every project (=org-publish-all=). |
+| Publish Current File (=app.publish.current-file=) | =C-c C-e P f= | — | — | Publishes the current file (=org-publish-current-file=). |
+| Publish Current Project (=app.publish.current-project=) | =C-c C-e P p= | — | — | Publishes the current file's project (=org-publish-current-project=). |
 
 ** Files, buffers and the app
 

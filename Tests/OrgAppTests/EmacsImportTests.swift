@@ -182,6 +182,42 @@ struct EmacsImportTests {
         #expect(s["org-icalendar-combined-agenda-file"] == .string("~/cal/org.ics"))
     }
 
+    @Test func readsPublishingProjects() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try #"""
+            (setq org-publish-project-alist
+                  `(("notes" :base-directory "~/notes" :base-extension "org" :publishing-directory ,(concat "~/public" "_html")
+                     :recursive t :publishing-function org-html-publish-to-html :auto-sitemap t :sitemap-style list
+                     :include ("extra.org") :html-head "<link>")
+                    ("static" :base-directory "~/notes" :base-extension "css\\|png" :publishing-directory "~/public_html"
+                     :publishing-function (org-publish-attachment))
+                    ("pdf" :base-directory "~/notes" :publishing-directory "~/pdf" :publishing-function org-latex-publish-to-pdf)
+                    ("site" :components ("notes" "static"))))
+            """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let result = EmacsImport.scan(EmacsImport.files(in: folder))
+        let projects = result.items.compactMap { if case .publish(let name, let toml) = $0.change { (name, toml) } else { nil } }
+        #expect(projects.map(\.0) == ["notes", "static", "site"])
+        #expect(projects[0].1 == "[[publish]]\nname = \"notes\"\nbase-directory = \"~/notes\"\nbase-extension = \"org\"\npublishing-directory = \"~/public_html\"\nrecursive = true\npublishing-function = \"org-html-publish-to-html\"\nauto-sitemap = true\nsitemap-style = \"list\"\ninclude = \"extra.org\"\n")
+        #expect(projects[1].1.contains("base-extension = \"css\\\\|png\"\n") && projects[1].1.contains("publishing-function = \"org-publish-attachment\"\n"))
+        #expect(projects[2].1 == "[[publish]]\nname = \"site\"\ncomponents = \"notes static\"\n")
+        #expect(result.unsupported.contains { $0.name == "publishing project \"pdf\"" })
+        #expect(result.unsupported.contains { $0.name == "publishing project \"notes\"" && $0.reason == ":html-head left out" })
+
+        let config = folder.appendingPathComponent("conf")
+        try FileManager.default.createDirectory(at: config, withIntermediateDirectories: true)
+        try "fill-column = 72\n".write(to: config.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+        let summary = await EmacsImport.apply(result.items.filter { if case .publish = $0.change { true } else { false } },
+                                              defaults: UserDefaults(suiteName: "orgstar-import-\(UUID().uuidString)")!, workspace: nil, directory: config)
+        #expect(summary == "Imported 3 publishing projects.")
+        let written = try String(contentsOf: config.appendingPathComponent("config.toml"), encoding: .utf8)
+        let loaded = await Publish.projects(fromConfig: written, root: nil)
+        #expect(loaded.problems.isEmpty && loaded.projects.map(\.name) == ["notes", "static", "site"])
+        #expect(UserConfig.setting(written, section: "", key: "fill-column", to: .integer(80)).hasPrefix("fill-column = 80\n"))
+        #expect(!UserConfig.setting(written, section: "theme", key: "font", to: .string("X")).contains("[[publish]]\nname = \"site\"\ncomponents = \"notes static\"\nfont"))
+    }
+
     @Test func readsCaptureTargetsFromVariablesAndForms() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

@@ -19,6 +19,8 @@ public struct EmacsImport: Sendable {
         case structureTemplate(key: String, type: String)
         /// A `[[view]]` table, with its blocks, for views.toml.
         case view(name: String, toml: String)
+        /// A `[[publish]]` table for config.toml.
+        case publish(name: String, toml: String)
     }
 
     public struct Item: Sendable, Identifiable {
@@ -663,6 +665,8 @@ public struct EmacsImport: Sendable {
             for entry in value.elements ?? [] { captureTemplate(entry, source: source, env: env, id: id) }
         case "org-agenda-custom-commands":
             for entry in value.elements ?? [] { agendaCommand(entry, source: source, id: id) }
+        case "org-publish-project-alist":
+            for entry in value.elements ?? [] { publishProject(entry, source: source, env: env, id: id) }
         case "doom-font":
             note("not a font-spec orgstar can read")
         case "doom-variable-pitch-font":
@@ -815,6 +819,49 @@ public struct EmacsImport: Sendable {
         items.append(Item(id: id(), name: "org-agenda-custom-commands \"\(key)\"", summary: "views.toml view \(name)", source: source, change: .view(name: name, toml: toml)))
     }
 
+    /// An `org-publish-project-alist` entry as a `[[publish]]` table, when its publishing
+    /// functions are ones orgstar has.
+    mutating func publishProject(_ entry: Sexp, source: String, env: [String: Sexp] = [:], id: () -> Int) {
+        guard let parts = entry.elements, let name = parts.first?.string else { return }
+        func note(_ reason: String) { unsupported.append(Note(id: id(), name: "publishing project \"\(name)\"", reason: reason, source: source)) }
+        func quoted(_ s: String) -> String { UserConfig.format(.string(s)) }
+        var toml = "[[publish]]\nname = \(quoted(name))\n"
+        var left: [String] = []
+        let rest = Array(parts.dropFirst())
+        for i in stride(from: 0, to: rest.count - 1, by: 2) {
+            guard let key = rest[i].symbol else { continue }
+            let value = rest[i + 1]
+            let truthy = value.symbol != "nil" && value.elements?.isEmpty != true
+            let strings = value.elements?.compactMap { $0.string ?? Self.evaluate($0, env)?.string }
+            let symbols = value.symbol.map { [$0] } ?? value.elements?.compactMap(\.symbol)
+            switch key {
+            case ":base-directory", ":publishing-directory", ":exclude", ":sitemap-filename", ":sitemap-title":
+                guard let s = value.string ?? Self.evaluate(value, env)?.string else { return note("\(key) isn't a string") }
+                toml += "\(key.dropFirst()) = \(quoted(s))\n"
+            case ":base-extension":
+                guard let s = value.string ?? value.symbol else { return note(":base-extension isn't a string") }
+                toml += "base-extension = \(quoted(s))\n"
+            case ":recursive", ":auto-sitemap", ":sitemap-ignore-case", ":body-only":
+                toml += "\(key.dropFirst()) = \(truthy)\n"
+            case ":include", ":components":
+                guard let strings, strings.count == value.elements?.count else { return note("\(key) isn't a list of names") }
+                toml += "\(key.dropFirst()) = \(quoted(strings.joined(separator: " ")))\n"
+            case ":publishing-function":
+                guard let symbols, !symbols.isEmpty, symbols.allSatisfy(PublishProject.functions.contains) else {
+                    return note("publishing function \(value.description) isn't one orgstar has")
+                }
+                toml += "publishing-function = \(quoted(symbols.joined(separator: " ")))\n"
+            case ":sitemap-style", ":sitemap-sort-files", ":sitemap-sort-folders":
+                guard let s = value.symbol else { return note("\(key) isn't a symbol") }
+                toml += "\(key.dropFirst()) = \(quoted(s))\n"
+            default:
+                left.append(key)
+            }
+        }
+        if !left.isEmpty { note("\(left.joined(separator: ", ")) left out") }
+        items.append(Item(id: id(), name: "publishing project \"\(name)\"", summary: "config.toml [[publish]] \(name)", source: source, change: .publish(name: name, toml: toml)))
+    }
+
     mutating func captureTemplate(_ entry: Sexp, source: String, env: [String: Sexp] = [:], id: () -> Int) {
         guard let parts = entry.elements, parts.count >= 2, let key = parts[0].string else { return }
         let name = parts[1].string ?? key
@@ -940,7 +987,7 @@ extension EmacsImport {
     public static func apply(
         _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory
     ) async -> String {
-        var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0, views = 0
+        var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0, views = 0, projects = 0
         var problems: [String] = []
         for item in items {
             guard case .setting(let key, let value) = item.change,
@@ -989,6 +1036,19 @@ extension EmacsImport {
             viewsText += (viewsText.isEmpty ? "# Agenda views. Imported from Emacs.\n" : "\n# Imported from Emacs.\n") + addedViews
             try? viewsText.write(to: viewsFile, atomically: true, encoding: .utf8)
         }
+        let configFile = directory.appendingPathComponent("config.toml")
+        var config = (try? String(contentsOf: configFile, encoding: .utf8)) ?? ""
+        var projectNames = Set((try? TOML.parse(config))?.filter { $0.name == "publish" }.compactMap { $0.values["name"]?.string } ?? [])
+        var addedProjects = ""
+        for item in items {
+            guard case .publish(let name, let toml) = item.change, projectNames.insert(name).inserted else { continue }
+            addedProjects += "\n" + toml
+            projects += 1
+        }
+        if !addedProjects.isEmpty {
+            config += (config.isEmpty || config.hasSuffix("\n") ? "" : "\n") + "\n# Publishing projects. Imported from Emacs.\n" + addedProjects
+            try? config.write(to: configFile, atomically: true, encoding: .utf8)
+        }
         let keymapFile = directory.appendingPathComponent("keymap.toml")
         var keymap = (try? String(contentsOf: keymapFile, encoding: .utf8)) ?? ""
         func binding(_ keys: String?, _ command: String?, _ mode: String?) -> String { [keys ?? "", command ?? "", mode ?? ""].joined(separator: "\u{0}") }
@@ -1017,7 +1077,7 @@ extension EmacsImport {
         if blocks > 0 { UserConfig.setStructureTemplates(rows, in: defaults) }
         func count(_ n: Int, _ word: String) -> String? { n == 0 ? nil : "\(n) \(word)\(n == 1 ? "" : "s")" }
         let done = [count(settings, "setting"), count(folders, "folder"), count(templates, "capture template"), count(bindings, "key binding"),
-                    count(blocks, "structure template"), count(views, "agenda view")].compactMap { $0 }
+                    count(blocks, "structure template"), count(views, "agenda view"), count(projects, "publishing project")].compactMap { $0 }
         var summary = done.isEmpty ? "Nothing new to import." : "Imported " + done.joined(separator: ", ") + "."
         if !problems.isEmpty { summary += " " + problems.joined(separator: "; ") + "." }
         return summary

@@ -125,7 +125,8 @@ public final class ConfigSync {
 
     /// Writes settings that differ from the file into it.
     func writeBack() {
-        guard !applying, var current = text ?? (try? String(contentsOf: url, encoding: .utf8)) else { return }
+        // The file as it is now, so that tables written into it since, as by Emacs import, stay.
+        guard !applying, var current = (try? String(contentsOf: url, encoding: .utf8)) ?? text else { return }
         let values = UserConfig.values(in: current)
         let original = current
         for setting in UserConfig.settings where defaults.object(forKey: setting.defaultsKey) != nil {

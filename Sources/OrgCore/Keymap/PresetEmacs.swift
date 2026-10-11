@@ -343,6 +343,18 @@ extension KeymapPreset {
         [[bind]]
         keys = "C-c C-e c c"
         command = "app.export.icalendar-combined"
+        [[bind]]
+        keys = "C-c C-e P x"
+        command = "app.publish"
+        [[bind]]
+        keys = "C-c C-e P a"
+        command = "app.publish.all"
+        [[bind]]
+        keys = "C-c C-e P f"
+        command = "app.publish.current-file"
+        [[bind]]
+        keys = "C-c C-e P p"
+        command = "app.publish.current-project"
 
         # Org
         [[bind]]

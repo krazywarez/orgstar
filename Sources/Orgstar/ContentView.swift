@@ -664,6 +664,49 @@ struct ContentView: View {
         }
     }
 
+    /// `org-publish`, `org-publish-all`, `org-publish-current-file` and
+    /// `org-publish-current-project`, with the projects in config.toml.
+    private func publish(_ id: String) {
+        let config = (try? String(contentsOf: UserConfig.file("config.toml"), encoding: .utf8)) ?? ""
+        let loaded = Publish.projects(fromConfig: config, root: workspace.rootPaths.first)
+        if let problem = loaded.problems.first { commands.show(problem) }
+        guard !loaded.projects.isEmpty else { return commands.show("No [[publish]] projects in config.toml") }
+        let read = { (path: String) -> String? in
+            session.openDocuments.first { $0.path == path }?.document.text ?? (try? String(contentsOfFile: path, encoding: .utf8))
+        }
+        let codeStyle = HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
+        func run(_ chosen: [PublishProject], only: String? = nil) {
+            do {
+                let report = try Publish.publish(chosen, all: loaded.projects, only: only, read: read) { function, text, path, bodyOnly in
+                    let settings = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
+                    if function == "org-md-publish-to-md" { return MarkdownExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly) }
+                    let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+                    return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, bodyOnly: bodyOnly, codeStyle: codeStyle)
+                }
+                commands.show("Published \(report.published.count) files" + (report.skipped.isEmpty ? "" : ", \(report.skipped.count) up to date"))
+            } catch {
+                commands.show("\(error)")
+            }
+        }
+        let current = session.path.map { Publish.projects(containing: $0, in: loaded.projects) } ?? []
+        switch id {
+        case "app.publish.all":
+            run(loaded.projects)
+        case "app.publish.current-file":
+            guard let path = session.path, !current.isEmpty else { return commands.show("File is not part of any known project") }
+            run([current[0]], only: path)
+        case "app.publish.current-project":
+            guard !current.isEmpty else { return commands.show("File is not part of any known project") }
+            run([current[0]])
+        default:
+            let names = loaded.projects.map(\.name)
+            commands.ask(Prompt(key: "project", message: "Publish project:", choices: names)) { answer in
+                guard let answer, let project = loaded.projects.first(where: { $0.name == answer }) else { return }
+                run([project])
+            }
+        }
+    }
+
     /// Work a command hands to the platform: tables recalculated in Emacs.
     private func runExternal(_ request: ExternalRequest) {
         switch request {
@@ -959,6 +1002,8 @@ struct ContentView: View {
             panel = .export(UUID(), URL(fileURLWithPath: path))
         case let id where id.hasPrefix("app.export."):
             export(String(id.dropFirst("app.export.".count)))
+        case let id where id.hasPrefix("app.publish"):
+            publish(id)
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }

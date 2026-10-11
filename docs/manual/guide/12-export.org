@@ -261,6 +261,65 @@ Export Agenda Files to iCalendar writes an =.ics= beside each agenda file (see [
 
 Differences from Org: diary sexps (=%%(…)= lines and =<%%(…)>= timestamps) are left out, as they need Emacs's =icalendar.el=. The other =org-icalendar-*= variables keep Org's defaults: alarms only from =APPT_WARNTIME=, categories =(local-tags category)=, the whole body as the description, and local times. Descriptions of tables with column groups or alignment cookies, center blocks and links to targets can differ from Org's in layout.
 
+* Publishing
+
+Publishing (=org-publish=) exports a folder of Org files to a folder of HTML or Markdown files, copies other files beside them, and can write a sitemap. Projects are =[[publish]]= tables in =config.toml=, as =org-publish-project-alist= entries are in Emacs:
+
+#+BEGIN_SRC toml
+[[publish]]
+name = "notes"
+base-directory = "~/notes"
+publishing-directory = "~/public_html"
+recursive = true
+auto-sitemap = true
+sitemap-title = "Notes"
+
+[[publish]]
+name = "static"
+base-directory = "~/notes"
+base-extension = "css\\|png\\|jpg"
+recursive = true
+publishing-directory = "~/public_html"
+publishing-function = "org-publish-attachment"
+
+[[publish]]
+name = "site"
+components = "notes static"
+#+END_SRC
+
+| Key                    | Value                                                                                       | Default                     |
+|------------------------+---------------------------------------------------------------------------------------------+-----------------------------|
+| =name=                 | The project's name                                                                          | required                    |
+| =base-directory=       | The folder of files to publish: absolute, =~/…=, or relative to the first folder in the sidebar | required                |
+| =publishing-directory= | Where the published files go, the same way                                                  | required                    |
+| =base-extension=       | The extension of the files to publish, an Emacs regexp such as ="css\\|png"=, or =any=   | ="org"=                     |
+| =recursive=            | Files in subfolders too                                                                     | =false=                     |
+| =exclude=              | An Emacs regexp on the file's path under =base-directory=; matching files are left out      |                             |
+| =include=              | More files, relative to =base-directory=, separated by spaces                              |                             |
+| =publishing-function=  | =org-html-publish-to-html=, =org-md-publish-to-md= or =org-publish-attachment= (copied as they are), several separated by spaces | =org-html-publish-to-html= |
+| =body-only=            | The export's body only                                                                      | =false=                     |
+| =auto-sitemap=         | Write a sitemap into =base-directory= and publish it with the rest                          | =false=                     |
+| =sitemap-filename=     | The sitemap's name                                                                          | ="sitemap.org"=             |
+| =sitemap-title=        | Its =#+TITLE=                                                                               | ="Sitemap for project NAME"= |
+| =sitemap-style=        | =tree= (folders nest) or =list=                                                             | ="tree"=                    |
+| =sitemap-sort-files=   | =alphabetically= (by title), =chronologically= or =anti-chronologically= (by =#+DATE=, else the file's date), or =nil= | ="alphabetically"= |
+| =sitemap-sort-folders= | In a =list= sitemap: =ignore= (no folders), =first=, =last= or =nil= (mixed)               | ="ignore"=                  |
+| =sitemap-ignore-case=  | Sort titles ignoring case                                                                   | =false=                     |
+| =components=           | For a project of projects: the projects' names, separated by spaces                        |                             |
+
+Files whose names start with a dot are left out. An Org file publishes to the same path under =publishing-directory=, named by =#+EXPORT_FILE_NAME= when it has one, with links to other =.org= files pointing to their =.html=. The sitemap lists each file as a link with its =#+TITLE= (or its name), as Org's default sitemap does.
+
+On the Mac, File ▸ Publish has the commands, which are also in the command palette:
+
+| Command                 | Emacs preset  | What it does                                               |
+|-------------------------+---------------+------------------------------------------------------------|
+| Publish Project…        | =C-c C-e P x= | Asks for a project and publishes it (=org-publish=)        |
+| Publish All Projects    | =C-c C-e P a= | =org-publish-all=                                          |
+| Publish Current File    | =C-c C-e P f= | The current file, in the first project that has it (=org-publish-current-file=) |
+| Publish Current Project | =C-c C-e P p= | The first project that has the current file (=org-publish-current-project=) |
+
+A file whose published copy is newer than it is skipped, as Org skips files that haven't changed; delete the copy to publish it again. The message area says how many files were published and how many were up to date. Differences from Org: preparation and completion functions, =:makeindex=, custom sitemap functions and the export options a project can set (=:with-toc=, =:html-head= and the rest) aren't read; set those with =#+OPTIONS= and the other keywords in the files, or a =#+SETUPFILE=. Publishing is on the Mac only.
+
 * Exporting through Emacs
 
 On the Mac, PDF, LaTeX, ODT and plain text exports are done by Emacs, with the =ox= functions Emacs's dispatcher uses:

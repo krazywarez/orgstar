@@ -125,6 +125,10 @@ public enum EditorCommands {
         EditorCommand(id: "app.export.icalendar", title: "Export to iCalendar", action: .app),
         EditorCommand(id: "app.export.icalendar-agenda", title: "Export Agenda Files to iCalendar", action: .app),
         EditorCommand(id: "app.export.icalendar-combined", title: "Combine Agenda Files into iCalendar", action: .app),
+        EditorCommand(id: "app.publish", title: "Publish Project…", action: .app),
+        EditorCommand(id: "app.publish.all", title: "Publish All Projects", action: .app),
+        EditorCommand(id: "app.publish.current-file", title: "Publish Current File", action: .app),
+        EditorCommand(id: "app.publish.current-project", title: "Publish Current Project", action: .app),
 
         movement("forward-char", "Forward Character", "moveForward:"),
         movement("backward-char", "Backward Character", "moveBackward:"),
