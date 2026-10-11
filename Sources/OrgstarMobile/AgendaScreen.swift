@@ -916,16 +916,46 @@ struct FilterSheet: View {
     }
 }
 
-/// Files to refile an entry to, at their end, searchable. Headings within them aren't offered.
+/// Where to refile an entry: each file, at its end, and the headings in it down to level 3,
+/// as the Mac's prompt offers them, searchable by their path.
 struct RefileSheet: View {
     let targets: [RefileTarget]
     let choose: (RefileTarget?) -> Void
     @State private var query = ""
 
+    /// Targets by file, in the order given, each file's own row first.
+    private var files: [(path: String, targets: [RefileTarget])] {
+        var order: [String] = []
+        var byPath: [String: [RefileTarget]] = [:]
+        for target in targets where query.isEmpty || target.label.localizedCaseInsensitiveContains(query) {
+            if byPath[target.path] == nil { order.append(target.path) }
+            byPath[target.path, default: []].append(target)
+        }
+        return order.map { ($0, byPath[$0] ?? []) }
+    }
+
     var body: some View {
         NavigationStack {
-            List(targets.filter { $0.start == nil && (query.isEmpty || $0.label.localizedCaseInsensitiveContains(query)) }, id: \.self) { target in
-                Button(target.label) { choose(target) }.foregroundStyle(.primary)
+            List {
+                ForEach(files, id: \.path) { file in
+                    Section {
+                        ForEach(file.targets, id: \.self) { target in
+                            Button {
+                                choose(target)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    if target.start == nil {
+                                        Image(systemName: "doc.text").foregroundStyle(.secondary)
+                                        Text(target.label)
+                                    } else {
+                                        Text(String(repeating: "    ", count: max(0, target.level - 1)) + target.title)
+                                    }
+                                }
+                            }
+                            .foregroundStyle(.primary)
+                        }
+                    }
+                }
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always))
             .navigationTitle("Refile to")
