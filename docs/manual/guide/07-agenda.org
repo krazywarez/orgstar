@@ -613,6 +613,8 @@ Each action finds the entry again by its heading line before it changes anything
 
 =B= offers =$= archive, =r= refile, =t= set a TODO state (typed; empty for none), =+= add a tag, =-= remove a tag, =s= schedule and =d= set a deadline. Type the letter and press OK. Entries that changed since they were marked are skipped and counted in the status line. An action that needs a further answer per entry, such as a state-change note, is not run in bulk; the status line tells you to run it on the entry.
 
+On iOS, tap Select in the bar at the bottom, or Select in an entry's menu, then tap entries to mark them. The bar then shows how many are selected, Actions and Done. Actions offers the same actions: TODO State…, Add Tag…, Remove Tag…, Schedule…, Deadline…, Refile… and Archive…, which asks first. After an action, or Done, the selection ends.
+
 * Reminders
 
 orgstar can post a notification before each timed entry, as =org-agenda-to-appt= hands entries to =appt=. Reminders cover the next 7 days and include deadline, scheduled, plain timestamp and range lines that have a time of day and are not done. Overdue items and upcoming-deadline warnings don't get reminders.
@@ -669,7 +671,7 @@ The Agenda tab shows the same views from the same files, using the settings in t
 - Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, Archive… and Delete…, which removes the heading and everything under it.
 - Marking an entry done and rescheduling one give haptic feedback.
 - Log Mode, in the span menu, turns log mode on and off. The widgets never show log mode's entries.
-- There are no keyboard commands or bulk marks.
+- There are no keyboard commands; bulk actions use Select instead of marks (see [[*Bulk actions][Bulk actions]]).
 - Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open orgstar to set later ones.
 
 The Today and Up Next widgets show the agenda on the Home Screen and the Lock Screen; see [[file:14-ios.org][iPhone and iPad]].

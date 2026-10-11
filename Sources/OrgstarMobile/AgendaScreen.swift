@@ -41,6 +41,29 @@ struct AgendaScreen: View, Equatable {
     @State private var moved = 0
     /// `org-agenda-log-mode`: closed entries and clocked time on each day.
     @State private var logMode = false
+    /// Selecting entries for bulk actions, as `m` marks them in Org's agenda, and those marked.
+    @State private var selecting = false
+    @State private var marked: [Mark] = []
+    @State private var bulkRefiling = false
+    @State private var bulkArchiving = false
+    @State private var bulkPlanning: BulkPlanning?
+
+    /// A marked entry: its heading line, to find it again.
+    private struct Mark: Hashable {
+        let path: String
+        let line: String
+        let offset: Int
+
+        init?(_ item: AgendaItem?) {
+            guard let item, let path = item.path, let line = item.headingLine, let offset = item.headingOffset else { return nil }
+            (self.path, self.line, self.offset) = (path, line, offset)
+        }
+    }
+
+    private enum BulkPlanning: String, Identifiable {
+        case schedule, deadline
+        var id: String { rawValue }
+    }
 
     /// A match typed for the tag and property view, or a search string.
     private enum Asking: Identifiable {
@@ -141,7 +164,36 @@ struct AgendaScreen: View, Equatable {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if !workspace.rootPaths.isEmpty { bottomBar }
+            if !workspace.rootPaths.isEmpty {
+                if selecting { bulkBar } else { bottomBar }
+            }
+        }
+        .sheet(isPresented: $bulkRefiling) {
+            RefileSheet(targets: workspace.refileTargets(openPath: session.path, document: session.document)) { target in
+                bulkRefiling = false
+                guard let target else { return }
+                bulk { path, offset in
+                    // Targets in the entry's own file from its text now, as earlier moves shift them.
+                    let document = session.openDocuments.first { $0.path == path }?.document
+                        ?? FileManager.default.contents(atPath: path).map { DocumentState(bytes: [UInt8]($0)) }
+                    guard let current = workspace.refileTargets(openPath: path, document: document).first(where: { $0.label == target.label }) else {
+                        return "Can't find \(target.label) any more."
+                    }
+                    return session.refile(to: current, from: (path, offset))
+                }
+            }
+        }
+        .sheet(item: $bulkPlanning) { kind in
+            DateSheet(title: kind == .deadline ? "Deadline" : "Schedule", action: "Set", initial: date(agenda.today)) { picked in
+                bulkPlanning = nil
+                guard let picked else { return }
+                let d = Days.date(Days.absolute(picked, calendar: .current))
+                let answer = String(format: "%04d-%02d-%02d", d.year, d.month, d.day)
+                bulk { perform(SetPlanning(deadline: kind == .deadline), $0, $1, answers: ["date": answer]) }
+            }
+        }
+        .confirmationDialog("Archive \(marked.count) \(marked.count == 1 ? "entry" : "entries")?", isPresented: $bulkArchiving, titleVisibility: .visible) {
+            Button("Archive", role: .destructive) { bulk { session.archive(from: ($0, $1)) } }
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -439,6 +491,43 @@ struct AgendaScreen: View, Equatable {
         if range == nil { show(nil, around: agenda.today) } else { show(range, around: agenda.today) }
     }
 
+    /// The bar while selecting: the count, the bulk actions (`B` in Org's agenda) and Done.
+    private var bulkBar: some View {
+        VStack(spacing: 8) {
+            if let message {
+                Text(message).font(.footnote).padding(.horizontal, 12).padding(.vertical, 6)
+                    .glassEffect(.regular, in: Capsule())
+                    .onTapGesture { self.message = nil }
+            }
+            HStack(spacing: 12) {
+                Text("\(marked.count) selected").font(.footnote.weight(.semibold).monospacedDigit()).padding(.leading, 12)
+                Menu {
+                    Button("TODO State…", systemImage: "checkmark.circle") { askBulkTodo() }
+                    Button("Add Tag…", systemImage: "tag") { askBulkTag(on: true) }
+                    Button("Remove Tag…", systemImage: "tag.slash") { askBulkTag(on: false) }
+                    Button("Schedule…", systemImage: "calendar") { bulkPlanning = .schedule }
+                    Button("Deadline…", systemImage: "calendar.badge.exclamationmark") { bulkPlanning = .deadline }
+                    Divider()
+                    Button("Refile…", systemImage: "arrow.turn.down.right") { bulkRefiling = true }
+                    Button("Archive…", systemImage: "archivebox", role: .destructive) { bulkArchiving = true }
+                } label: {
+                    Text("Actions").font(.body.weight(.semibold)).frame(minHeight: 44)
+                }
+                .disabled(marked.isEmpty)
+                Button("Done") {
+                    selecting = false
+                    marked = []
+                }
+                .font(.body.weight(.semibold))
+                .frame(minHeight: 44)
+                .padding(.trailing, 12)
+            }
+            .glassEffect(.regular.interactive(), in: Capsule())
+        }
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity)
+    }
+
     private var bottomBar: some View {
         VStack(spacing: 8) {
             if let status = message ?? (filter.isEmpty ? nil : "Filter: " + filter.description) {
@@ -452,6 +541,7 @@ struct AgendaScreen: View, Equatable {
                     barButton("Earlier", "chevron.left") { step(forward: false) }
                 }
                 barButton("Filter", filter.isEmpty ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill") { showingFilter = true }
+                barButton("Select", "checkmark.circle") { selecting = true }
                 if isAgenda {
                     barButton("Today", "smallcircle.filled.circle") { goToday() }
                     barButton("Go to Date", "calendar") { jumping = true }
@@ -493,7 +583,24 @@ struct AgendaScreen: View, Equatable {
 
     private func row(_ row: AgendaRow, day: Int) -> some View {
         Group {
-            if let item = row.item, let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
+            if selecting {
+                if let mark = Mark(row.item) {
+                    Button {
+                        if let index = marked.firstIndex(of: mark) { marked.remove(at: index) } else { marked.append(mark) }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: marked.contains(mark) ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(marked.contains(mark) ? Color.accentColor : .secondary)
+                                .font(.title3)
+                            AgendaRowView(row: row, day: day, theme: theme, dark: isDark)
+                        }
+                    }
+                    .tint(.primary)
+                    .accessibilityAddTraits(marked.contains(mark) ? .isSelected : [])
+                } else {
+                    AgendaRowView(row: row, day: day, theme: theme, dark: isDark).opacity(0.5)
+                }
+            } else if let item = row.item, let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
                 NavigationLink(value: ReaderRoute.offset(path, offset)) { AgendaRowView(row: row, day: day, theme: theme, dark: isDark) }
             } else if let event = row.event {
                 // Calendar can't be asked for one event by URL; it opens on the event's day.
@@ -526,6 +633,12 @@ struct AgendaScreen: View, Equatable {
         }
         .contextMenu {
             if let item = row.item, item.path != nil {
+                if let mark = Mark(item) {
+                    Button("Select", systemImage: "checkmark.circle") {
+                        selecting = true
+                        if !marked.contains(mark) { marked.append(mark) }
+                    }
+                }
                 Button("TODO State…", systemImage: "checkmark.circle") { run("org.todo.cycle", on: item) }
                 if canReschedule(row) {
                     Menu("Reschedule", systemImage: "calendar.badge.clock") {
@@ -615,6 +728,52 @@ struct AgendaScreen: View, Equatable {
             message = nil
         }
         tick += 1
+    }
+
+    // MARK: - Bulk actions
+
+    /// Runs `action` on each marked entry, found again first; later entries in a file first,
+    /// so earlier ones keep their place. Selection ends; the last message shows.
+    private func bulk(_ action: (String, Int) -> String?) {
+        var last: String?
+        var failed = 0
+        for mark in marked.sorted(by: { ($0.path, $1.offset) < ($1.path, $0.offset) }) {
+            guard let offset = session.locateHeading(path: mark.path, line: mark.line, near: mark.offset) else {
+                failed += 1
+                continue
+            }
+            last = action(mark.path, offset)
+        }
+        message = failed > 0 ? "\(failed) selected \(failed == 1 ? "entry" : "entries") changed and \(failed == 1 ? "was" : "were") skipped" : last
+        marked = []
+        selecting = false
+        tick += 1
+    }
+
+    /// `command` at the heading at `offset` in `path`; a message when it doesn't apply.
+    private func perform(_ command: any OrgCommand, _ path: String, _ offset: Int, answers: [String: String] = [:]) -> String? {
+        switch session.perform(command, path: path, at: offset, expect: nil, answers: answers) {
+        case .failed(let text): text
+        case .prompt: "\(command.title) needs an answer; run it on the entry itself"
+        case .external(let request): MobileEditor.unavailable(request, title: command.title)
+        case .commit: nil
+        }
+    }
+
+    private func askBulkTodo() {
+        let keywords = OrgPreferences.orgSettings().todoSequences.flatMap { $0.active.map(\.name) + $0.done.map(\.name) }
+        prompt = EditorScreen.PromptRequest(prompt: Prompt(key: "todo", message: "TODO state (empty for none):", choices: keywords)) { answer in
+            guard let answer else { return }
+            let word = answer.trimmingCharacters(in: .whitespaces)
+            bulk { perform(SetTodo(keyword: word.isEmpty ? nil : word), $0, $1) }
+        }
+    }
+
+    private func askBulkTag(on: Bool) {
+        prompt = EditorScreen.PromptRequest(prompt: Prompt(key: "tag", message: on ? "Tag to add:" : "Tag to remove:")) { answer in
+            guard let tag = answer?.trimmingCharacters(in: .whitespaces), !tag.isEmpty else { return }
+            bulk { perform(ToggleTag(tag: tag, on: on), $0, $1) }
+        }
     }
 
     private func markDone(_ item: AgendaItem) {
