@@ -116,6 +116,10 @@ public enum OrgPreferences {
         options.sortNoeffortIsHigh = bool("agendaSortNoeffortIsHigh", defaults)
         return options
     }
+    /// `org-agenda-files`, one entry per line.
+    public static func agendaFiles(_ defaults: UserDefaults = .standard) -> [String] {
+        string("agendaFiles", defaults).components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
     /// `org-stuck-projects`.
     public static func stuckProjects(_ defaults: UserDefaults = .standard) -> StuckProjects {
         StuckProjects(match: string("stuckProjectsMatch", defaults), todo: words(string("stuckProjectsTodo", defaults)),

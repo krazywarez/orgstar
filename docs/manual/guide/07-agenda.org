@@ -22,7 +22,7 @@ On iOS the agenda is the first tab. See [[*The agenda on iOS][The agenda on iOS]
 
 * Agenda files
 
-orgstar has no =org-agenda-files= list. The agenda reads every =.org= file at the top level of each folder you have added (see [[file:01-files-and-folders.org][Files and folders]]). Files whose names start with a dot are left out, as =org-agenda-file-regexp= leaves them out.
+By default the agenda reads every =.org= file at the top level of each folder you have added (see [[file:01-files-and-folders.org][Files and folders]]). Files whose names start with a dot are left out, as =org-agenda-file-regexp= leaves them out.
 
 To include files in subfolders as well, turn on Settings ▸ Agenda ▸ Include files in subfolders, or set this in =config.toml=:
 
@@ -30,6 +30,20 @@ To include files in subfolders as well, turn on Settings ▸ Agenda ▸ Include 
 [orgstar]
 agenda-include-subfolders = true
 #+END_SRC
+
+To read a list of files instead, as =org-agenda-files= does, set =org-agenda-files= in =config.toml=, entries separated by =\n=:
+
+#+BEGIN_SRC toml
+org-agenda-files = "~/notes/\n~/work/plan.org\n~/.agenda_files"
+#+END_SRC
+
+Each entry is one of:
+
+- a folder: its =.org= files whose names don't start with a dot, in name order, without subfolders;
+- an =.org= file;
+- another file: a list of entries, one per line, as Emacs reads the file named when =org-agenda-files= is a string. Files named in it are agenda files whatever their extension.
+
+Relative paths count from the first folder in the sidebar, standing in for =org-directory=. Entries that don't exist are left out. The agenda follows the order of the list. With a list, Include files in subfolders has no effect. The agenda refreshes on its own only for changes inside your folders; on iOS, files outside them can't be read.
 
 When a file is open in the editor, the agenda reads the buffer, so unsaved edits show. Other files are read from disk and cached until their modification date or size changes. A file that uses =#+SETUPFILE= is read again on every refresh, because its setup file may have changed.
 

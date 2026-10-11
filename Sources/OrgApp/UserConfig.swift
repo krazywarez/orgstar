@@ -203,6 +203,8 @@ public enum UserConfig {
                 comment: "t: marking the clocked entry done clocks out; nil: it doesn't; or keywords that clock out, separated by spaces", legacy: ""),
         Setting(section: "", key: "org-clock-history-length", defaultsKey: "clockHistoryLength", kind: .integer, fallback: .integer(5),
                 comment: "recently clocked entries to remember", legacy: ""),
+        Setting(section: "", key: "org-agenda-files", defaultsKey: "agendaFiles", kind: .string, fallback: .string(""),
+                comment: "files and folders the agenda reads, separated by \\n; a file that isn't .org lists more, one per line; \"\" reads the folders' files", legacy: ""),
         Setting(section: "", key: "org-agenda-use-time-grid", defaultsKey: "agendaUseTimeGrid", kind: .bool, fallback: .bool(true),
                 comment: "time grid lines among timed entries, as [org-agenda-time-grid] says", legacy: ""),
         Setting(section: "", key: "org-agenda-show-current-time-in-grid", defaultsKey: "agendaShowCurrentTime", kind: .bool, fallback: .bool(true),

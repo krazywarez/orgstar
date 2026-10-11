@@ -756,6 +756,28 @@ struct AgendaCommandTests {
         #expect(agenda.list.isEmpty && agenda.days.isEmpty)
     }
 
+    @Test func agendaFilesList() async throws {
+        let notes = try Folder()
+        try notes.write("a.org", "* TODO A\n")
+        try notes.write("b.org", "* TODO B\n")
+        try notes.write(".hidden.org", "* TODO Hidden\n")
+        try notes.write("sub/c.org", "* TODO C\n")
+        try notes.write("sub/d.org", "* TODO D\n")
+        try notes.write("sub/notes.txt", "x\n")
+        try notes.write("list", "sub/d.org\n\n  b.org\nmissing.org\nsub/notes.txt\n")
+        let root = notes.url.path
+        #expect(AgendaFiles.resolve(["sub"], base: root) == ["\(root)/sub/c.org", "\(root)/sub/d.org"])
+        #expect(AgendaFiles.resolve([root, "sub/c.org"], base: nil) == ["\(root)/a.org", "\(root)/b.org"])
+        #expect(AgendaFiles.resolve(["list", "a.org"], base: root) == ["\(root)/sub/d.org", "\(root)/b.org", "\(root)/sub/notes.txt", "\(root)/a.org"])
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.agendaFiles = ["sub/c.org", "b.org"]
+        agenda.mode = .todo(keywords: nil)
+        await agenda.refresh(open: [:])
+        #expect(agenda.list.map(\.text) == ["TODO C", "TODO B"])
+    }
+
     @Test func todoListMode() async throws {
         let notes = try Folder()
         try notes.write("a.org", "* TODO One :work:\n* DONE Two\n* TODO Three\n")

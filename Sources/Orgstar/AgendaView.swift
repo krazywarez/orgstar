@@ -71,6 +71,7 @@ struct AgendaView: View {
     @AppStorage("agendaStartOffset") var startOffset = 0
     @AppStorage("agendaStartOnWeekday") private var startOnWeekday = "1"
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
+    @AppStorage("agendaFiles") private var agendaFileList = ""
     @AppStorage("agendaShowAllDates") private var showAllDates = false
     @AppStorage("calendarEvents") private var calendarEventsOn = false
     @AppStorage("calendarEventCalendars") private var calendarNames = ""
@@ -151,7 +152,7 @@ struct AgendaView: View {
     private var refreshKey: RefreshKey {
         RefreshKey(
             mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags],
-            settings: [sortAgenda, sortTodo, sortTags, sortSearch, gridWhen, gridTimes, "\(useTimeGrid) \(showCurrentTime)", stuckMatch, stuckTodo, stuckTags, stuckRegexp],
+            settings: [sortAgenda, sortTodo, sortTags, sortSearch, gridWhen, gridTimes, "\(useTimeGrid) \(showCurrentTime)", stuckMatch, stuckTodo, stuckTags, stuckRegexp, agendaFileList],
             logMode: logMode,
             calendars: calendarEventsOn ? [calendarNames] : [], files: 0, changed: nil, edits: 0, path: nil, tick: tick
         )
@@ -162,6 +163,7 @@ struct AgendaView: View {
         agenda.startOffset = startOffset
         agenda.startOnWeekday = Int(startOnWeekday)
         agenda.includeSubfolders = includeSubfolders
+        agenda.agendaFiles = OrgPreferences.agendaFiles()
         agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
         agenda.options.logMode = logMode
         agenda.options = OrgPreferences.agendaOptions(agenda.options)

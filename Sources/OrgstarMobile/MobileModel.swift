@@ -146,6 +146,7 @@ final class MobileModel {
             agenda.startOffset = OrgPreferences.agendaStartOffset()
             agenda.startOnWeekday = OrgPreferences.agendaStartOnWeekday()
             agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
+            agenda.agendaFiles = OrgPreferences.agendaFiles()
             agenda.options = OrgPreferences.agendaOptions(agenda.options)
             agenda.calendarEvents = OrgPreferences.calendarEvents() ? calendarEvents : nil
             agenda.calendarNames = OrgPreferences.calendarEventCalendars()

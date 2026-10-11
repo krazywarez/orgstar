@@ -628,6 +628,9 @@ public struct EmacsImport: Sendable {
         case "org-agenda-files":
             let paths = (value.elements ?? [value]).compactMap(\.string)
             guard !paths.isEmpty else { return note("not a list of files or folders") }
+            add(name, .string(paths.joined(separator: "\n")))
+            // A file listing the files (the variable's string form) gives no folder.
+            if value.string != nil, !paths[0].hasSuffix(".org") { return }
             for path in paths {
                 let folder = path.hasSuffix(".org") ? (path as NSString).deletingLastPathComponent : path
                 items.append(Item(id: id(), name: name, summary: "add folder \(folder)", source: source, change: .folder(folder)))
