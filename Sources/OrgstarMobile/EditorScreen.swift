@@ -106,7 +106,7 @@ struct EditorScreen: View {
             case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
             case .recovery: RecoverySheet(session: session) { message = $0 }
             case .block(let edit):
-                BlockEditSheet(edit: edit) { content in
+                BlockEditSheet(edit: edit, theme: MobileTheme(model.theme)) { content in
                     self.sheet = nil
                     if let content, let editor { _ = editor.perform(ReplaceBlockLines(edit: edit, content: content)) }
                 }
@@ -387,30 +387,86 @@ struct PromptSheet: View {
 }
 
 /// `org-edit-special` and `org-table-edit-field`: the text edited apart, put back with Save.
+/// A src block's code is highlighted as its language.
 struct BlockEditSheet: View {
     let edit: BlockEdit
+    let theme: MobileTheme
     let finish: (String?) -> Void
-    @State private var text = ""
-    @FocusState private var focused: Bool
+    @State private var text: String?
 
     var body: some View {
         NavigationStack {
-            TextEditor(text: $text)
-                .font(.body.monospaced())
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .focused($focused)
-                .padding(.horizontal, 8)
-                .navigationTitle(edit.title.replacingOccurrences(of: "Editing ", with: "").capitalized(with: nil))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { finish(nil) } }
-                    ToolbarItem(placement: .confirmationAction) { Button("Save") { finish(text) } }
+            Group {
+                if let text {
+                    CodeTextView(text: text, language: edit.language, theme: theme) { self.text = $0 }
                 }
+            }
+            .padding(.horizontal, 8)
+            .navigationTitle(edit.title.replacingOccurrences(of: "Editing ", with: "").capitalized(with: nil))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { finish(nil) } }
+                ToolbarItem(placement: .confirmationAction) { Button("Save") { finish(text ?? edit.content) } }
+            }
         }
-        .onAppear {
-            text = edit.content
-            focused = true
+        .onAppear { text = edit.content }
+    }
+}
+
+/// A text view for code, restyled with the editor's highlighter after each change.
+struct CodeTextView: UIViewRepresentable {
+    let text: String
+    let language: String?
+    let theme: MobileTheme
+    let changed: (String) -> Void
+
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
+        view.autocorrectionType = .no
+        view.autocapitalizationType = .none
+        view.smartQuotesType = .no
+        view.smartDashesType = .no
+        view.spellCheckingType = .no
+        view.keyboardDismissMode = .interactive
+        view.backgroundColor = .clear
+        view.text = text
+        view.delegate = context.coordinator
+        context.coordinator.style(view)
+        DispatchQueue.main.async { view.becomeFirstResponder() }
+        return view
+    }
+
+    func updateUIView(_ view: UITextView, context: Context) {
+        context.coordinator.parent = self
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    @MainActor
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var parent: CodeTextView
+        init(_ parent: CodeTextView) { self.parent = parent }
+
+        func textViewDidChange(_ view: UITextView) {
+            parent.changed(view.text)
+            style(view)
+        }
+
+        /// The theme's font and color, then the language's token colors.
+        func style(_ view: UITextView) {
+            let storage = view.textStorage
+            let whole = NSRange(location: 0, length: storage.length)
+            let base: [NSAttributedString.Key: Any] = [.font: parent.theme.font, .foregroundColor: parent.theme.foreground]
+            storage.beginEditing()
+            storage.setAttributes(base, range: whole)
+            if let language = parent.language {
+                for run in MobileEditor.highlighter.highlights(language: language, code: storage.string) {
+                    guard let key = run.category.themeKey, let color = parent.theme.color(key), run.range.upperBound <= storage.length else { continue }
+                    storage.addAttribute(.foregroundColor, value: color, range: NSRange(location: run.range.lowerBound, length: run.range.count))
+                }
+            }
+            storage.endEditing()
+            view.typingAttributes = base
         }
     }
 }
