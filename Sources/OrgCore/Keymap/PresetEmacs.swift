@@ -195,6 +195,23 @@ extension KeymapPreset {
         command = "org.columns"
         [[bind]]
         keys = "S-<right>"
+        command = "org.item.bullet-next"
+        when = "item"
+        [[bind]]
+        keys = "S-<left>"
+        command = "org.item.bullet-previous"
+        when = "item"
+        [[bind]]
+        keys = "C-c C-x d"
+        command = "org.drawer.insert"
+        [[bind]]
+        keys = "M-<up>"
+        command = "org.element.drag-backward"
+        [[bind]]
+        keys = "M-<down>"
+        command = "org.element.drag-forward"
+        [[bind]]
+        keys = "S-<right>"
         command = "org.property.next-value"
         when = "property"
         [[bind]]
@@ -431,6 +448,12 @@ extension KeymapPreset {
         [[bind]]
         keys = "C-c C-w"
         command = "app.refile"
+        [[bind]]
+        keys = "C-u C-c C-w"
+        command = "app.refile.goto"
+        [[bind]]
+        keys = "C-c M-w"
+        command = "app.refile.copy"
         [[bind]]
         keys = "C-c C-x C-s"
         command = "app.archive"

@@ -32,13 +32,15 @@ struct EditorScreen: View {
 
     /// One sheet at a time: two presenters on this screen interfere.
     enum Sheet: Identifiable {
-        case palette, conflict, syncCopies, recovery, refile
+        case palette, conflict, syncCopies, recovery
+        /// `app.refile`, `app.refile.copy` or `app.refile.goto`.
+        case refile(String)
         case block(BlockEdit)
 
         var id: String {
             switch self {
             case .palette: "palette"
-            case .refile: "refile"
+            case .refile(let command): command
             case .conflict: "conflict"
             case .syncCopies: "syncCopies"
             case .recovery: "recovery"
@@ -106,10 +108,15 @@ struct EditorScreen: View {
             case .conflict: ConflictSheet(session: session)
             case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
             case .recovery: RecoverySheet(session: session) { message = $0 }
-            case .refile:
+            case .refile(let command):
                 RefileSheet(targets: workspace.refileTargets(openPath: session.path, document: session.document)) { target in
                     self.sheet = nil
-                    if let target { refile(to: target) }
+                    guard let target else { return }
+                    if command == "app.refile.goto" {
+                        model.openRequest = .offset(target.path, target.start ?? Int.max)
+                    } else {
+                        refile(to: target, keep: command == "app.refile.copy")
+                    }
                 }
             case .block(let edit):
                 BlockEditSheet(edit: edit, theme: MobileTheme(model.theme)) { content in
@@ -204,8 +211,8 @@ struct EditorScreen: View {
             editor.onAppCommand = { id in
                 if id == "app.save" {
                     _ = session.save(path)
-                } else if id == "app.refile" {
-                    sheet = .refile
+                } else if ["app.refile", "app.refile.copy", "app.refile.goto"].contains(id) {
+                    sheet = .refile(id)
                 } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
                 } else if MobileEditor.linkCommands.contains(id) {
@@ -229,14 +236,14 @@ struct EditorScreen: View {
 extension EditorScreen {
     /// `org-refile` of the entry at the caret, to a target worked out again from the files
     /// now, as the agenda's Refile… does.
-    func refile(to target: RefileTarget) {
+    func refile(to target: RefileTarget, keep: Bool = false) {
         guard let editor, let path = session.path else { return }
         let caret = editor.editContext().caret
         guard let current = workspace.refileTargets(openPath: path, document: session.document).first(where: { $0.label == target.label }) else {
             message = "Can't find \(target.label) any more."
             return
         }
-        message = session.refile(to: current, from: (path, caret))
+        message = session.refile(to: current, from: (path, caret), keep: keep)
     }
 }
 
@@ -514,7 +521,7 @@ struct CommandPalette: View {
         ("app.clock.goto", "Go to Clocked Entry"), ("app.clock.in-recent", "Clock In to Recent Entry…"),
         ("app.clock.in-last", "Clock In to Last Entry"), ("app.clock.goto-recent", "Go to Recent Clocked Entry…"),
         ("app.clock.default", "Mark as Default Clock Task"), ("app.clock.resolve", "Resolve Open Clocks…"),
-        ("app.refile", "Refile…"),
+        ("app.refile", "Refile…"), ("app.refile.copy", "Copy to Refile Target…"), ("app.refile.goto", "Go to Refile Target…"),
         ("app.toggle-markup", "Show or Hide Markup"),
         ("org.toggle-inline-images", "Show or Hide Inline Images"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
         ("org.table.toggle-column-width", "Shrink or Expand Table Column"), ("org.table.shrink", "Shrink Table Columns with Widths"),

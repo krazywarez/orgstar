@@ -604,19 +604,21 @@ public final class DocumentSession {
         return nil
     }
 
-    /// Moves the subtree at the caret, or at `from`, under `target`. For another file, that
-    /// file is written first, through the save path; the subtree leaves its file only once it
-    /// has. Returns a message for the echo area.
+    /// Moves the subtree at the caret, or at `from`, under `target`, or with `keep` copies it
+    /// there (`org-copy`). For another file, that file is written first, through the save
+    /// path; the subtree leaves its file only once it has. Returns a message for the echo area.
     @discardableResult
-    public func refile(to target: RefileTarget, from: (path: String, offset: Int)? = nil, now: Date = Date()) -> String? {
+    public func refile(to target: RefileTarget, from: (path: String, offset: Int)? = nil, keep: Bool = false, now: Date = Date()) -> String? {
         guard let (path, context) = source(from, now: now) else { return from == nil ? nil : "Can't read the entry's file." }
+        let done = (keep ? "Copied to " : "Refiled to ") + target.label
         if target.path == path {
             let answers = ["refile": target.start.map(String.init) ?? ""]
-            let step = from == nil ? buffer?.perform(RefileWithinFile(), now: now, answers: answers)
-                : perform(RefileWithinFile(), path: path, at: from!.offset, expect: nil, answers: answers, now: now)
+            let command = RefileWithinFile(keep: keep)
+            let step = from == nil ? buffer?.perform(command, now: now, answers: answers)
+                : perform(command, path: path, at: from!.offset, expect: nil, answers: answers, now: now)
             if case .failed(let message)? = step { return message }
             if from == nil { bufferChanged() }
-            return "Refiled to \(target.label)"
+            return done
         }
         let url = URL(fileURLWithPath: target.path)
         let targetName = (target.path as NSString).lastPathComponent
@@ -625,23 +627,23 @@ public final class DocumentSession {
             let state = open.buffer.document
             guard state.isEditable else { return "\(targetName) isn't UTF-8, so it can't be changed." }
             guard let start = target.locate(in: state) else { return "Can't find \(target.label) any more." }
-            guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
+            guard let result = Refile.toOtherFile(source: context, target: state.text, under: start, keep: keep) else { return "Can't refile from here." }
             let edit = EditResult(baseRevision: state.revision, edits: [result.target])
             if case .failed(let message) = open.buffer.perform(PrecomputedEdit(edit), now: now, answers: [:]) { return message }
             changed(open)
-            if let message = applySource(result.source, path: path, now: now) { return message }
-            return "Refiled to \(target.label)"
+            if !keep, let message = applySource(result.source, path: path, now: now) { return message }
+            return done
         }
         do {
             guard let bytes = try fileSystem.read(url) else { return "\(targetName) no longer exists." }
             var state = loaded(bytes, path: url.path)
             guard state.isEditable else { return "\(targetName) isn't UTF-8, so it can't be changed." }
             guard let start = target.locate(in: state) else { return "Can't find \(target.label) any more." }
-            guard let result = Refile.toOtherFile(source: context, target: state.text, under: start) else { return "Can't refile from here." }
+            guard let result = Refile.toOtherFile(source: context, target: state.text, under: start, keep: keep) else { return "Can't refile from here." }
             try state.apply([result.target], baseRevision: state.revision)
             if case .conflict = try saver.save(&state, to: url) { return "\(targetName) changed on disk; nothing was refiled." }
-            if let message = applySource(result.source, path: path, now: now) { return message }
-            return "Refiled to \(target.label)"
+            if !keep, let message = applySource(result.source, path: path, now: now) { return message }
+            return done
         } catch {
             return "Can't refile: \(error.localizedDescription)"
         }

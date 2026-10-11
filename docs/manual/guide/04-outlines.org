@@ -114,7 +114,10 @@ The subtree at the caret swaps places with the previous or next sibling subtree.
 can't move past its parent or the start or end of the file. The caret keeps its column.
 
 On a list item the same keys move the item; in a table they move the row. On other
-lines they do nothing. orgstar has no =org-drag-element= for paragraphs.
+elements (paragraphs, blocks, drawers, keywords) they drag the element past the one
+before or after it in the same section, drawer or greater block, as
+=org-drag-element-backward= and =org-drag-element-forward= do. The blank lines between
+the two stay where they were.
 
 ** Moving between headings
 
@@ -368,8 +371,8 @@ list (=org-cycle-list-bullet=) through:
 
 =*= is skipped for a list at the left margin. Description lists skip the numbered and
 lettered bullets. Lettered bullets are offered only when the list has 26 items or
-fewer. Org also cycles bullets with =S-<left>= and =S-<right>= on an item; orgstar
-does not bind those on items.
+fewer. =S-<right>= and =S-<left>= on an item (Doom =C-S-l= and =C-S-h=) cycle forward
+and backward.
 
 Numbered and lettered lists are renumbered whenever a list command changes them, and
 by =C-c C-c= on any item. To start a list at a given number, put a counter after the
@@ -528,7 +531,9 @@ file opens, as with Org's =org-cycle-hide-drawer-startup= (=true= by default in
 =config.toml=). =#+STARTUP: nohidedrawers= keeps them open in one file, and
 =#+STARTUP: hidedrawers= folds them when the setting is off.
 
-Org's =org-insert-drawer= (=C-c C-x d=) is not available; type the two lines yourself.
+Insert Drawer (=org-insert-drawer=, =C-c C-x d=) asks for a name. With no selection
+it inserts an empty drawer on a new line; with a selection it puts the selected lines
+in the drawer. A selection containing a heading is refused.
 
 * Properties
 
@@ -769,6 +774,10 @@ files, =org-refile-use-outline-path= set to =file=, =org-reverse-note-order= =ni
 entries go last), =org-log-refile= =nil= and =org-refile-keep= =nil=. None of these is
 configurable in orgstar. Refiling from the agenda is covered in [[file:07-agenda.org][Agenda]].
 
+Copy to Refile Target… (=org-copy=, =C-c M-w=) asks the same way and copies the
+subtree there, leaving it in place. Go to Refile Target… (=C-u C-c C-w=, Doom
+=SPC u SPC m r r=) asks the same way and jumps to the heading, or to the end of a file.
+
 * Archiving
 
 ** Archive Subtree
@@ -886,11 +895,7 @@ The full list is in [[file:03-keys.org][Keys]].
 
 These Org structure features are not in orgstar:
 
-- =org-insert-drawer=, =org-copy= (refile a copy) and =org-refile= with a prefix
-  (jump to a target).
 - Editing values in column view, and writing summaries from it; the
   =columnview= dynamic block does write summaries.
 - The =ORDERED= property, radio lists and timer list items in the list commands.
-- =S-<left>= and =S-<right>= to cycle bullets on an item; use =C-c -=.
-- =org-drag-element= (=M-<up>= and =M-<down>= on paragraphs).
 - Custom =org-refile-targets=.

@@ -293,7 +293,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "editor.toggle-truncate-lines": return true
         case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.clock.in-recent", "app.clock.in-last",
              "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
-        case "app.refile": return onAppCommand != nil && Presentation.heading(containing: context.caret, in: context.tree) != nil
+        case "app.refile.goto": return onAppCommand != nil
+        case "app.refile", "app.refile.copy": return onAppCommand != nil && Presentation.heading(containing: context.caret, in: context.tree) != nil
         case _ where Self.linkCommands.contains(id): return onAppCommand != nil
         case "org.link.open": return OpenLinkAtPoint().applies(in: context)
         case "org.table.toggle-column-width", "org.table.shrink", "org.table.expand":

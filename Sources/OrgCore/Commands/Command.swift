@@ -302,6 +302,7 @@ public enum Commands {
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(), TableEditField(), TangleCommand(.all), TangleCommand(.block), TangleCommand(.target),
         UpdateDynamicBlock(), ClockReportTable(), SetEffort(), CtrlCCtrlC(), EvaluateTimeRange(), FootnoteAction(), FootnoteAction(special: true), TableEvalFormula(named: false), TableEvalFormula(named: true), SortTableLines(), TransposeTable(), GotoHeading(), SparseTreeCommand(), SetPriority(), SetPriority(value: "A"), SetPriority(value: "B"), SetPriority(value: "C"), SetPriority(value: " "), ReadAndSetProperty(), DeleteProperty(), DeleteProperty(globally: true), PropertyAction(), NextAllowedValue(previous: false), NextAllowedValue(previous: true), InsertColumnView(), ShowColumnView(), ShowColumnView(global: true), ToggleArchiveTag(), ArchiveToSibling(), ToggleOrderedProperty(),
+        InsertDrawer(), DragElement(forward: true), DragElement(forward: false), CycleBullet(previous: false), CycleBullet(previous: true),
     ]
 
     public static var everything: [any OrgCommand] { all + TableCommand.Action.allCases.map(TableCommand.init) }

@@ -283,7 +283,7 @@ extension EmacsBuffer {
 
     /// `org-cycle-list-bullet`: the list's bullets go through `-`, `+`, `*` (not at the
     /// margin), `1.`, `1)` and, with alphabetical lists, `a.`, `A.`, `a)`, `A)`.
-    func cycleListBullet() throws {
+    func cycleListBullet(previous: Bool = false) throws {
         guard let item = inItem() else { throw UserError(message: "Not at an item") }
         let origin = marker(point)
         defer { release(origin) }
@@ -306,8 +306,8 @@ extension EmacsBuffer {
         if lookingAt("\\S") == nil { choices.append("*") }
         if !description { choices += ["1.", "1)"] }
         if alpha, !description { choices += ["a.", "A.", "a)", "A)"] }
-        let index = choices.firstIndex(of: current).map { $0 + 1 } ?? choices.count
-        let new = choices[index % choices.count]
+        let index = choices.firstIndex(of: current) ?? choices.count
+        let new = choices[((index + (previous ? -1 : 1)) % choices.count + choices.count) % choices.count]
         let old = structure
         structure.set(first) { $0.bullet = bulletString(new) }
         fixBullets(&structure, prevs)

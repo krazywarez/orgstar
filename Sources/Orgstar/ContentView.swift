@@ -716,7 +716,7 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
-        let orgOnly = ["app.refile", "app.archive", "app.clock.in", "app.clock.default", "app.copy-rich-text"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
+        let orgOnly = ["app.refile", "app.refile.copy", "app.archive", "app.clock.in", "app.clock.default", "app.copy-rich-text"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
         if orgOnly, !session.isOrg {
             commands.show("Not an org file")
             return
@@ -782,11 +782,19 @@ struct ContentView: View {
         case "app.reload-keymap":
             loadKeymap()
             commands.show("Keymap reloaded")
-        case "app.refile":
+        case "app.refile", "app.refile.copy":
+            let keep = id == "app.refile.copy"
             let targets = workspace.refileTargets(openPath: session.path, document: session.document)
-            commands.ask(Prompt(key: "refile", message: "Refile to:", choices: targets.map(\.label))) { answer in
+            commands.ask(Prompt(key: "refile", message: keep ? "Copy to:" : "Refile to:", choices: targets.map(\.label))) { answer in
                 guard let answer, let target = targets.first(where: { $0.label == answer }) else { return }
-                if let message = session.refile(to: target) { commands.show(message) }
+                if let message = session.refile(to: target, keep: keep) { commands.show(message) }
+            }
+        case "app.refile.goto":
+            // `C-u C-c C-w`: the target heading, or the end of a file.
+            let targets = workspace.refileTargets(openPath: session.path, document: session.document)
+            commands.ask(Prompt(key: "refile", message: "Goto:", choices: targets.map(\.label))) { answer in
+                guard let answer, let target = targets.first(where: { $0.label == answer }) else { return }
+                commands.jump(path: target.path, offset: target.start ?? Int.max)
             }
         case "app.archive":
             if let message = session.archive() { commands.show(message) }

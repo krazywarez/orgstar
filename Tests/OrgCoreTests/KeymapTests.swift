@@ -181,6 +181,19 @@ struct KeymapTests {
         }
     }
 
+    @Test func structureCommandsAreBound() {
+        let emacs = KeymapPreset.emacs.keymap, doom = KeymapPreset.doom.keymap
+        for (command, keys) in [("org.drawer.insert", "C-c C-x d"), ("app.refile.copy", "C-c M-w"), ("app.refile.goto", "C-u C-c C-w"),
+                                ("org.element.drag-forward", "M-<down>"), ("org.item.bullet-next", "S-<right>")] {
+            #expect(emacs.keyLabels(for: command).contains(keys), "\(command)")
+        }
+        #expect(doom.keyLabels(for: "app.refile.goto", modes: ["normal"]).contains("SPC u SPC m r r"))
+        #expect(doom.keyLabels(for: "org.element.drag-backward", modes: ["normal"]).contains("M-k"))
+        let labels = doom.keyLabels(for: "org.item.bullet-previous", modes: ["normal"], limit: 5)
+        #expect(labels.contains("C-H"), "\(labels)")
+        #expect(doom.keyLabels(for: "app.refile.copy", modes: ["normal"]).contains("C-c M-w"))
+    }
+
     @Test func shadowedBindingsShowNoKeys() throws {
         var problems: [String] = []
         let map = Keymap.layered([KeymapPreset.emacs.keymap, try Keymap(toml: "[[bind]]\nkeys = \"C-c C-t\"\ncommand = \"app.save\"\n", problems: &problems)])

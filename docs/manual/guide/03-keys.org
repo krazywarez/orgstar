@@ -537,7 +537,7 @@ Besides the leader, the preset binds these evil-org and Doom keys in normal stat
 | =] b=, =[ b= | Next or previous buffer. |
 | =M-h=, =M-j=, =M-k=, =M-l= | =M-<left>=, =M-<down>=, =M-<up>=, =M-<right>=: promote, move down, move up, demote on headings; the same for items; move columns and rows in tables. Also in insert and visual state. |
 | =M-H=, =M-J=, =M-K=, =M-L= | The =M-S-= arrow forms: subtree promote and demote, table row and column insert and delete. Also in insert and visual state. |
-| =C-S-h=, =C-S-j=, =C-S-k=, =C-S-l= | The =S-= arrow forms: TODO keyword, priority, timestamp and property value changes. Also in insert state. |
+| =C-S-h=, =C-S-j=, =C-S-k=, =C-S-l= | The =S-= arrow forms: TODO keyword, priority, timestamp, property value and list bullet changes. Also in insert state. |
 
 ** The leader
 
@@ -622,6 +622,7 @@ Besides the leader, the preset binds these evil-org and Doom keys in normal stat
 | =SPC m p u= | Raise Priority (=org.priority.up=) |
 | =SPC m q= | Set Tags (=org.tags.set=) |
 | =SPC m r r= | Refile… (=app.refile=) |
+| =SPC u SPC m r r= | Go to Refile Target… (=app.refile.goto=) |
 | =SPC m s A= | Archive Subtree (=app.archive=) |
 | =SPC m s N= | Widen (=org.widen=) |
 | =SPC m s S= | Sort Entries (=org.sort=) |
@@ -820,6 +821,11 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Toggle Heading (=org.heading.toggle=) | =C-c *= | — | =SPC m h= (N) | Outside a table, turns headings into text and lines or items into headings (=org-toggle-heading=). |
 | Toggle COMMENT (=org.heading.toggle-comment=) | =C-c ;= | — | — | Adds or removes the =COMMENT= keyword (=org-toggle-comment=). |
 | Refile… (=app.refile=) | =C-c C-w= | =⌃⌘W= | =SPC m r r= (N), =SPC m s r= (N) | Asks for a target heading in your folders and moves the subtree there (=org-refile=). |
+| Copy to Refile Target… (=app.refile.copy=) | =C-c M-w= | — | =C-c M-w= | Asks for a target and copies the subtree there (=org-copy=). |
+| Go to Refile Target… (=app.refile.goto=) | =C-u C-c C-w= | — | =SPC u SPC m r r= (N) | Asks for a target and jumps to it (=org-refile= with a prefix). |
+| Drag Element Backward (=org.element.drag-backward=) | =M-<up>= | — | =M-k= | Away from headings, items and tables, swaps the element with the one before it (=org-drag-element-backward=). |
+| Drag Element Forward (=org.element.drag-forward=) | =M-<down>= | — | =M-j= | Away from headings, items and tables, swaps the element with the one after it (=org-drag-element-forward=). |
+| Insert Drawer (=org.drawer.insert=) | =C-c C-x d= | — | =C-c C-x d= | Asks for a name and inserts a drawer, or puts the selected lines in one (=org-insert-drawer=). |
 | Archive Subtree (=app.archive=) | =C-c C-x C-s=, =C-c $= | =⌃⌘A= | =SPC m A= (N), =SPC m s A= (N) | Moves the subtree to the archive file (=org-archive-subtree=). |
 | Toggle ARCHIVE Tag (=org.archive.toggle-tag=) | =C-c C-x a= | — | =SPC m s a= (N) | Adds or removes the =ARCHIVE= tag (=org-toggle-archive-tag=). |
 | Archive to Archive Sibling (=org.archive.to-sibling=) | =C-c C-x A= | — | — | Moves the subtree under an =Archive= sibling heading (=org-archive-to-archive-sibling=). |
@@ -837,6 +843,8 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Move Item Up (=org.item.up=) | =M-<up>= | =⌃⌥⌘↑= | =M-k= | In a list, swaps the item with the one above (=org-move-item-up=). |
 | Move Item Down (=org.item.down=) | =M-<down>= | =⌃⌥⌘↓= | =M-j= | In a list, swaps the item with the one below (=org-move-item-down=). |
 | Toggle Checkbox (=org.checkbox.toggle=) | =C-c C-x C-b= | =⌃⌘C= | =SPC m x= (N) | Checks or unchecks the item's checkbox (=org-toggle-checkbox=). |
+| Next Bullet Type (=org.item.bullet-next=) | =S-<right>= | — | =C-S-l= (N, I) | On an item, gives the list the next bullet type (=org-cycle-list-bullet=). |
+| Previous Bullet Type (=org.item.bullet-previous=) | =S-<left>= | — | =C-S-h= (N, I) | On an item, gives the list the previous bullet type (=org-cycle-list-bullet= with =previous=). |
 | Toggle Item (=org.item.toggle=) | =C-c -= | — | =SPC m i= (N) | Outside a table: on an item, cycles the list's bullet style; elsewhere turns lines into items and items into text (=org-ctrl-c-minus=). |
 
 ** TODO, priority and tags

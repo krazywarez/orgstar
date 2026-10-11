@@ -86,8 +86,9 @@ extension EmacsBuffer {
         }
     }
 
-    /// `org-refile` to a heading in this buffer, or to its end when `target` is nil.
-    func refileWithinBuffer(to target: Int?) throws {
+    /// `org-refile` to a heading in this buffer, or to its end when `target` is nil; with
+    /// `keep`, `org-copy`, which leaves the subtree where it was.
+    func refileWithinBuffer(to target: Int?, keep: Bool = false) throws {
         let subtree = try subtreeRange()
         if let target, subtree.contains(target) {
             throw UserError(message: "Cannot refile to position inside the tree or region")
@@ -97,24 +98,27 @@ extension EmacsBuffer {
         defer { release(origin) }
         try refileInsert(tree, under: target)
         point = origin.position
+        if keep { return }
         let range = try subtreeRange()
         deleteRegion(range.lowerBound, range.upperBound)
     }
 }
 
 /// C-c C-w within one file: moves the subtree at the caret under the heading starting at the
-/// answer's offset, or to the end of the file for an empty answer.
+/// answer's offset, or to the end of the file for an empty answer. With `keep`, C-c M-w
+/// copies it there.
 public struct RefileWithinFile: OrgCommand {
-    public init() {}
-    public var id: String { "org.refile.local" }
-    public var title: String { "Refile Within File" }
+    public let keep: Bool
+    public init(keep: Bool = false) { self.keep = keep }
+    public var id: String { keep ? "org.refile.local-copy" : "org.refile.local" }
+    public var title: String { keep ? "Copy Within File" : "Refile Within File" }
     public func applies(in context: EditContext) -> Bool { entryHeading(at: context.caret, in: context.tree) != nil }
 
     public func run(in context: EditContext) -> CommandStep {
         guard let answer = context.answers["refile"] else {
             return .prompt(Prompt(key: "refile", message: "Refile to:"))
         }
-        return commitBuffer(context) { try $0.refileWithinBuffer(to: Int(answer)) }
+        return commitBuffer(context) { try $0.refileWithinBuffer(to: Int(answer), keep: keep) }
     }
 }
 
@@ -125,12 +129,14 @@ public enum Refile {
         public let target: TextEdit
     }
 
-    public static func toOtherFile(source context: EditContext, target text: String, under heading: Int?) -> Result? {
+    /// With `keep`, the source's edit leaves its text as it is.
+    public static func toOtherFile(source context: EditContext, target text: String, under heading: Int?, keep: Bool = false) -> Result? {
         let target = EmacsBuffer(text, point: 0, settings: context.tree.settings, options: context.options)
         var tree = ""
         let step = commitBuffer(context) { buffer in
             tree = try buffer.copySubtree()
             try target.refileInsert(tree, under: heading)
+            if keep { return }
             let range = try buffer.subtreeRange()
             buffer.deleteRegion(range.lowerBound, range.upperBound)
         }

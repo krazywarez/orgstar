@@ -746,7 +746,7 @@ public struct EmacsImport: Sendable {
         "org-babel-execute-src-block": "org.babel.execute", "org-clock-in": "app.clock.in", "org-clock-out": "app.clock.out",
         "org-clock-cancel": "app.clock.cancel", "org-clock-goto": "app.clock.goto", "org-clock-in-last": "app.clock.in-last",
         "org-resolve-clocks": "app.clock.resolve", "org-clock-mark-default-task": "app.clock.default",
-        "org-refile": "app.refile", "org-archive-subtree": "app.archive", "org-archive-subtree-default": "app.archive",
+        "org-refile": "app.refile", "org-copy": "app.refile.copy", "org-refile-copy": "app.refile.copy", "org-archive-subtree": "app.archive", "org-archive-subtree-default": "app.archive",
         "org-capture": "app.capture", "org-agenda": "app.agenda", "org-agenda-list": "app.agenda",
         "save-buffer": "app.save", "find-file": "app.quick-open", "projectile-find-file": "app.quick-open", "+default/find-file-under-here": "app.quick-open",
         "execute-extended-command": "app.palette", "counsel-M-x": "app.palette",

@@ -324,6 +324,10 @@ extension KeymapPreset {
         command = "app.refile"
         mode = "normal"
         [[bind]]
+        keys = "SPC u SPC m r r"
+        command = "app.refile.goto"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m s r"
         command = "app.refile"
         mode = "normal"
