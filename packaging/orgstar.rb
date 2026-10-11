@@ -11,7 +11,7 @@ cask "orgstar" do
   desc "Native org-mode editor and agenda"
   homepage "https://gitbay.org/krz/orgstar"
 
-  depends_on macos: ">= :tahoe"
+  depends_on macos: :tahoe
 
   app "orgstar.app"
 
