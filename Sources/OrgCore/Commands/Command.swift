@@ -44,6 +44,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     /// `org-archive-location`, for entries without an `ARCHIVE` property or `#+ARCHIVE:`; nil
     /// for Org's default, `%s_archive::`.
     public var archiveLocation: String?
+    /// The agenda files (`(org-agenda-files)`), for clock tables over `agenda` scopes; nil for none.
+    public var agendaFiles: [String]?
+    /// The file the buffer visits (`buffer-file-name`); nil for a buffer without one.
+    public var filePath: String?
     /// `org-track-ordered-property-with-tag`: the tag toggling `ORDERED` toggles too; nil for none.
     public var trackOrderedPropertyWithTag: String?
     /// `org-use-speed-commands`: single keys at the start of a heading line run commands.

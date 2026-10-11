@@ -24,6 +24,14 @@ struct EditorScreen: View {
     @Environment(MobileModel.self) private var model
     @Environment(\.openURL) private var openURL
 
+    /// The session's options with `buffer-file-name` and the agenda files, for clock tables.
+    private var editorOptions: EditingOptions {
+        var options = session.options
+        options.filePath = path
+        options.agendaFiles = workspace.agendaFilePaths()
+        return options
+    }
+
     struct PromptRequest: Identifiable {
         let id = UUID()
         let prompt: Prompt
@@ -145,7 +153,7 @@ struct EditorScreen: View {
             if let offset = session.revealRequest?.offset, session.path == path { editor?.reveal(offset) }
         }
         .onChange(of: model.settingsVersion) {
-            editor?.options = session.options
+            editor?.options = editorOptions
             editor?.themeSpec = model.theme
             editor?.keymap = model.keymap
             editor?.modal = model.modalKeys
@@ -196,7 +204,7 @@ struct EditorScreen: View {
         if session.path != path { session.open(path) }
         if editor == nil, let document = session.document {
             let editor = MobileEditor(
-                document: document, editable: document.isEditable, options: session.options, theme: model.theme,
+                document: document, editable: document.isEditable, options: editorOptions, theme: model.theme,
                 showMarkup: model.showMarkup, baseDirectory: URL(fileURLWithPath: path).deletingLastPathComponent()
             )
             editor.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }

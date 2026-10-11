@@ -207,6 +207,44 @@ public enum Archive {
         return .success(Destination(path: (path as NSString).standardizingPath, heading: heading.isEmpty ? nil : heading, isSameFile: path == sourcePath))
     }
 
+    /// The file part of an archive location for a file at `sourcePath`; the file itself when
+    /// the location names none.
+    static func archiveFile(_ spec: String, sourcePath: String) -> String? {
+        guard let separator = spec.range(of: "::") else { return nil }
+        let fileFormat = String(spec[..<separator.lowerBound])
+        guard fileFormat.contains(where: { !$0.isWhitespace }) else { return sourcePath }
+        let file = fileFormat.replacingOccurrences(of: "%s", with: (sourcePath as NSString).lastPathComponent)
+        let directory = (sourcePath as NSString).deletingLastPathComponent
+        let path = ((file as NSString).isAbsolutePath ? file : (directory as NSString).appendingPathComponent(file)).replacingOccurrences(of: "~", with: NSHomeDirectory(), options: .anchored)
+        return (path as NSString).standardizingPath
+    }
+
+    /// `org-all-archive-files`: the archive files of `text`, the file at `path`, that exist:
+    /// its `#+ARCHIVE:` or `org-archive-location`, then each `:ARCHIVE:` property's.
+    public static func allArchiveFiles(_ text: String, path: String, options: EditingOptions, fileManager: FileManager = .default) -> [String] {
+        let buffer = EmacsBuffer(text, point: 0, settings: OrgParser.parse(text).settings)
+        var specs = [buffer.keyword("ARCHIVE") ?? options.archiveLocation ?? "%s_archive::"]
+        let property = try! NSRegularExpression(pattern: "^[ \\t]*:ARCHIVE:[ \\t]+(.*?)[ \\t]*$", options: [.anchorsMatchLines, .caseInsensitive])
+        let ns = text as NSString
+        for m in property.matches(in: text, range: NSRange(location: 0, length: ns.length)) { specs.append(ns.substring(with: m.range(at: 1))) }
+        var files: [String] = []
+        for spec in specs {
+            guard let file = archiveFile(spec, sourcePath: path), !files.contains(file) else { continue }
+            files.append(file)
+        }
+        return files.filter { fileManager.fileExists(atPath: $0) }
+    }
+
+    /// `org-add-archive-files`: each existing file followed by its archive files, without repeats.
+    public static func addArchiveFiles(_ paths: [String], options: EditingOptions, read: (String) -> String?) -> [String] {
+        var out: [String] = []
+        for path in paths {
+            guard let text = read(path) else { continue }
+            for file in [path] + allArchiveFiles(text, path: path, options: options) where !out.contains(file) { out.append(file) }
+        }
+        return out
+    }
+
     public enum ArchiveError: Error, Equatable {
         case message(String)
     }

@@ -56,7 +56,7 @@ struct ContentView: View {
     @State private var defaultsChanges = 0
     private var options: EditingOptions {
         _ = defaultsChanges
-        return Preferences.options(
+        var options = Preferences.options(
             tagsColumn: tagsColumn, headingAfterSubtree: headingAfterSubtree, splitLine: splitLine, alphabeticalLists: alphabeticalLists,
             fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities, logDone: logDone, logIntoDrawer: logIntoDrawer,
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup, logReschedule: logReschedule, logRedeadline: logRedeadline,
@@ -65,6 +65,9 @@ struct ContentView: View {
             startupTruncated: startupTruncated, spellCheck: spellCheck, electricPair: electricPair,
             enforceTodoDependencies: enforceTodoDependencies, enforceTodoCheckboxDependencies: enforceTodoCheckboxDependencies
         )
+        // The agenda files, for clock tables over `agenda` scopes.
+        options.agendaFiles = workspace.agendaFilePaths()
+        return options
     }
     /// A block being edited apart (`org-edit-special`).
     @State private var blockEdit: BlockEditRequest?

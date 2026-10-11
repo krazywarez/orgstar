@@ -32,6 +32,10 @@ struct ClockTableTests {
         ":link t :maxlevel 3", ":narrow 20! :maxlevel 3", ":tags t :level t :maxlevel 3", ":properties (\"Effort\") :formula %",
         ":indent nil :maxlevel 3", ":block yesterday", ":block 2026-W36 :maxlevel 3", ":fileskip0 t :block 2025",
         ":maxlevel nil",
+        ":match \"work\" :maxlevel 3", ":match \"-work\" :maxlevel 3", ":match \"TODO=\\\"TODO\\\"\" :maxlevel 3",
+        ":match \"LEVEL=2\" :maxlevel 3", ":block 2026-09 :step week", ":block 2026-09 :step day :stepskip0 t",
+        ":tstart \"<2026-08-25>\" :tend \"<2026-09-15>\" :step week :wstart 0", ":block 2026 :step month :stepskip0 t",
+        ":block 2026 :step quarter", ":block 2026-09 :step semimonth :stepskip0 t",
     ]
 
     static func ours(_ text: String, caret: Int, command: any OrgCommand, answers: [String: String] = [:]) -> String {
@@ -85,5 +89,96 @@ struct ClockTableTests {
 
     @Test func durations() {
         #expect(ClockTable.duration(0) == "0:00" && ClockTable.duration(95) == "1:35" && ClockTable.duration(1560) == "1d 2:00")
+    }
+}
+
+/// Clock tables over several files, against Emacs visiting the same files.
+struct ClockTableScopeTests {
+    static let files: [(String, String)] = [
+        ("a.org", """
+        #+BEGIN: clocktable
+        #+END:
+        * Alpha :work:
+        CLOCK: [2026-09-07 Mon 09:00]--[2026-09-07 Mon 10:00] =>  1:00
+        ** Alpha child
+        CLOCK: [2026-09-08 Tue 09:00]--[2026-09-08 Tue 09:30] =>  0:30
+        * Beta
+        :PROPERTIES:
+        :ARCHIVE: old.org::
+        :END:
+
+        """),
+        ("a.org_archive", "* Archived :work:\nCLOCK: [2026-09-02 Wed 09:00]--[2026-09-02 Wed 11:00] =>  2:00\n"),
+        ("old.org", "* Old entry\nCLOCK: [2026-09-03 Thu 09:00]--[2026-09-03 Thu 09:15] =>  0:15\n"),
+        ("b.org", "#+TITLE: Bee file\n* Bee :work:\nCLOCK: [2026-09-09 Wed 13:00]--[2026-09-09 Wed 15:00] =>  2:00\n* Idle\n"),
+        ("sub/c.org", "* Sea\nCLOCK: [2026-08-01 Sat 13:00]--[2026-08-01 Sat 14:00] =>  1:00\n"),
+    ]
+
+    static let params = [
+        ":scope agenda", ":scope agenda-with-archives", ":scope file-with-archives", ":scope (\"b.org\" \"sub/c.org\")",
+        ":scope agenda :hidefiles t", ":scope agenda :block 2026-09 :fileskip0 t", ":scope (\"b.org\" \"sub/c.org\") :block 2026-09 :fileskip0 t",
+        ":scope agenda :link t", ":scope agenda :filetitle t :formula %", ":scope agenda :level t :tags t",
+        ":scope agenda :block 2026-09 :step week :stepskip0 t", ":scope agenda :match \"work\"",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func scopesLikeOrg() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-clocktable-\(UUID().uuidString)").standardizedFileURL
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        for param in Self.params {
+            for (name, text) in Self.files {
+                let url = folder.appendingPathComponent(name)
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try (name == "a.org" ? text.replacingOccurrences(of: "#+BEGIN: clocktable\n", with: "#+BEGIN: clocktable \(param)\n") : text)
+                    .write(to: url, atomically: true, encoding: .utf8)
+            }
+            let a = folder.appendingPathComponent("a.org").path
+            let b = folder.appendingPathComponent("b.org").path
+            let form = """
+            (progn
+              (require 'org) (require 'org-clock)
+              (add-to-list 'auto-mode-alist '("\\\\.org_archive\\\\'" . org-mode))
+              (setq org-agenda-files (list "\(a)" "\(b)"))
+              (find-file "\(a)")
+              (goto-char (point-min))
+              \(frozenClock(1_789_000_000, "(org-update-dblock)"))
+              (princ (buffer-string)))
+            """
+            let emacs = try EmacsOracle.run(["-Q", "--batch", "--eval", form], environment: ["TZ": "UTC"])
+            let text = try String(contentsOfFile: a, encoding: .utf8)
+            var options = EditingOptions.org
+            options.filePath = a
+            options.agendaFiles = [a, b]
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [0..<0],
+                                      now: Date(timeIntervalSince1970: 1_789_000_000), calendar: utc, options: options)
+            var ours = text
+            if case .commit(let result) = UpdateDynamicBlock().run(in: context) {
+                for edit in result.edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) { ours = edit.apply(to: ours) }
+            } else {
+                ours = "failed"
+            }
+            #expect(emacs.hasSuffix(ours), "\(param)\nours:\n\(ours)\nemacs:\n\(emacs)")
+        }
+    }
+}
+
+extension ClockTableScopeTests {
+    /// A folder in a `:scope` list gives its org files; Emacs takes only files there.
+    @Test func folderScopes() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-clocktable-\(UUID().uuidString)").standardizedFileURL
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("sub"), withIntermediateDirectories: true)
+        try "* Sea\nCLOCK: [2026-08-01 Sat 13:00]--[2026-08-01 Sat 14:00] =>  1:00\n".write(to: folder.appendingPathComponent("sub/c.org"), atomically: true, encoding: .utf8)
+        try "* Dee\nCLOCK: [2026-08-02 Sun 13:00]--[2026-08-02 Sun 13:30] =>  0:30\n".write(to: folder.appendingPathComponent("sub/d.org"), atomically: true, encoding: .utf8)
+        let text = "#+BEGIN: clocktable :scope (\"sub\")\n#+END:\n"
+        var options = EditingOptions.org
+        options.filePath = folder.appendingPathComponent("a.org").path
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [0..<0], options: options)
+        guard case .commit(let result) = UpdateDynamicBlock().run(in: context) else { Issue.record("no table"); return }
+        let table = result.edits[0].apply(to: text).replacingOccurrences(of: " +", with: " ", options: .regularExpression)
+        #expect(table.contains("| c.org | *File time* | *1:00*") && table.contains("| d.org | *File time* | *0:30*"), "\(table)")
+        #expect(table.contains("*1:30*"))
     }
 }

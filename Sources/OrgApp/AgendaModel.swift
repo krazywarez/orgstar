@@ -62,14 +62,7 @@ public final class AgendaModel {
 
     /// Org files directly in each folder (or below it, with `includeSubfolders`), by path, as
     /// Emacs lists a directory in `org-agenda-files`.
-    public var files: [String] {
-        if !agendaFiles.isEmpty { return AgendaFiles.resolve(agendaFiles, base: workspace.rootPaths.first) }
-        return workspace.files
-            // Dotfiles stay out, as `org-agenda-file-regexp` leaves them out.
-            .filter { $0.kind == .org && !$0.name.hasPrefix(".") && (includeSubfolders || !$0.relativePath.contains("/")) }
-            .map(\.path)
-            .sorted()
-    }
+    public var files: [String] { workspace.agendaFilePaths(list: agendaFiles, includeSubfolders: includeSubfolders) }
 
     /// Recomputes the days. `open` is the open buffers' text by path.
     public func refresh(open: [String: String], now: Date = Date(), calendar: Calendar = .current) async {

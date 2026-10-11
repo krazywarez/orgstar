@@ -1,12 +1,12 @@
 import Foundation
 
 // Clock tables (org-clock.el, Org 9.8.7): the `clocktable` dynamic block written by
-// `org-clocktable-write-default` from `org-clock-sum`, updated by `org-update-dblock` (C-c C-c
-// on its #+BEGIN line, C-c C-x C-u) and inserted by `org-clock-report` (C-c C-x C-r), with
-// `org-clocktable-defaults` and `org-duration-format` ((\"d\" . nil) (special . h:mm)).
-// Scopes within the file (file, subtree, tree, treeN); `:link` links within the file, as
-// Emacs does in a buffer without a file. `:match`, `:step`, `:formatter` and scopes over
-// other files aren't supported.
+// `org-clocktable-write-default` from `org-clock-get-table-data` and `org-clock-sum`, updated
+// by `org-update-dblock` (C-c C-c on its #+BEGIN line, C-c C-x C-u) and inserted by
+// `org-clock-report` (C-c C-x C-r), with `org-clocktable-defaults` and `org-duration-format`
+// ((\"d\" . nil) (special . h:mm)). Scopes within the file (file, subtree, tree, treeN), the
+// agenda files, archives and lists of files, `:match`, and `:step`. Other files are read from
+// disk. `:formatter` and scopes given as functions aren't supported.
 
 enum ClockTable {
     struct Params {
@@ -131,41 +131,67 @@ enum ClockTable {
         options: .anchorsMatchLines)
     static let nakedClock = try! NSRegularExpression(pattern: "^[ \\t]*CLOCK:[ \\t]*=>[ \\t]+([0-9]+):([0-9]+)", options: .anchorsMatchLines)
 
-    /// `org-clock-sum` over `region`: each heading's minutes with its subtree's, and the total.
-    static func sum(_ text: String, region: Range<Int>, tstart: Double?, tend: Double?, calendar: Calendar) -> (rows: [(start: Int, level: Int, minutes: Int)], total: Int) {
+    /// `org-clock-sum` over `region`: the minutes of each heading with its subtree's, and the
+    /// total. With `include`, headings it rejects add none of their own time, though their
+    /// ancestors still show the time of included descendants.
+    static func sum(_ text: String, region: Range<Int>, tstart: Double?, tend: Double?, calendar: Calendar,
+                    include: ((Int) -> Bool)? = nil) -> (rows: [(start: Int, level: Int, minutes: Int)], total: Int) {
         let ns = text as NSString
         let range = NSRange(region)
-        var own: [Int: Int] = [:] // heading start → minutes
-        let headings = (try! NSRegularExpression(pattern: "^(\\*+)[ \\t]", options: .anchorsMatchLines)).matches(in: text, range: range)
-            .map { (start: $0.range.location, level: $0.range(at: 1).length) }
-        func owner(_ offset: Int) -> Int? { headings.last { $0.start <= offset }?.start }
         func seconds(_ m: NSTextCheckingResult, _ first: Int) -> Double {
             let parts = (first..<(first + 5)).map { Int(ns.substring(with: m.range(at: $0)))! }
             return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: parts[3], minute: parts[4]))!.timeIntervalSince1970
         }
+        // Clock lines and headings, scanned from the end as Org does.
+        enum Mark { case heading(level: Int), clock(Int) }
+        var marks: [(offset: Int, mark: Mark)] = []
+        for m in headingLine.matches(in: text, range: range) { marks.append((m.range.location, .heading(level: m.range(at: 1).length))) }
         for m in clockRange.matches(in: text, range: range) {
-            guard let head = owner(m.range.location) else { continue }
             let ts = seconds(m, 1)
             let te = seconds(m, 6)
             let dt = (tend.map { min(te, $0) } ?? te) - (tstart.map { max(ts, $0) } ?? ts)
-            if dt > 0 { own[head, default: 0] += Int(floor(dt / 60)) }
+            marks.append((m.range.location, .clock(dt > 0 ? Int(floor(dt / 60)) : 0)))
         }
         for m in nakedClock.matches(in: text, range: range) {
-            guard let head = owner(m.range.location) else { continue }
-            own[head, default: 0] += Int(ns.substring(with: m.range(at: 1)))! * 60 + Int(ns.substring(with: m.range(at: 2)))!
+            marks.append((m.range.location, .clock(Int(ns.substring(with: m.range(at: 1)))! * 60 + Int(ns.substring(with: m.range(at: 2)))!)))
         }
+        marks.sort { $0.offset > $1.offset }
+        var ltimes = [Int](repeating: 0, count: 30)
+        var t1 = 0
+        var forced: Set<Int> = []
         var rows: [(Int, Int, Int)] = []
-        for (i, heading) in headings.enumerated() {
-            var minutes = own[heading.start] ?? 0
-            for later in headings[(i + 1)...] {
-                if later.level <= heading.level { break }
-                minutes += own[later.start] ?? 0
-            }
-            if minutes > 0 { rows.append((heading.start, heading.level, minutes)) }
+        let ordered: [(start: Int, level: Int)] = marks.reversed().compactMap { mark in
+            if case .heading(let level) = mark.mark { return (mark.offset, level) }
+            return nil
         }
-        let total = own.values.reduce(0, +)
-        return (rows.map { (start: $0.0, level: $0.1, minutes: $0.2) }, total)
+        for (offset, mark) in marks {
+            switch mark {
+            case .clock(let minutes): t1 += minutes
+            case .heading(let level):
+                while level >= ltimes.count { ltimes += [Int](repeating: 0, count: ltimes.count) }
+                let included = include?(offset) ?? true
+                if t1 > 0 || ltimes[level] > 0 {
+                    if included || forced.contains(offset) {
+                        if included { for l in 0...level { ltimes[l] += t1 } }
+                        rows.append((offset, level, ltimes[level]))
+                        if include != nil {
+                            // `org-clock-force-headline-inclusion` on the ancestors.
+                            var current = level
+                            for heading in ordered.reversed() where heading.start < offset && heading.level < current {
+                                forced.insert(heading.start)
+                                current = heading.level
+                            }
+                        }
+                    }
+                    t1 = 0
+                    for l in level..<ltimes.count { ltimes[l] = 0 }
+                }
+            }
+        }
+        return (rows.reversed().map { (start: $0.0, level: $0.1, minutes: $0.2) }, ltimes[0])
     }
+
+    static let headingLine = try! NSRegularExpression(pattern: "^(\\*+)[ \\t]", options: .anchorsMatchLines)
 
     /// `org-shorten-string`.
     static func shorten(_ s: String, _ max: Int) -> String {
@@ -177,43 +203,33 @@ enum ClockTable {
         return String(s.prefix(Swift.max(max - 3, 0))) + "..."
     }
 
-    /// The table `org-clocktable-write-default` writes, without its final newline.
-    static func write(_ buffer: EmacsBuffer, params: Params, region: Range<Int>, content: String) throws -> String {
-        let maxlevel = params.int(":maxlevel") ?? 3
-        let emph = params.flag(":emphasize")
-        let link = params.flag(":link")
-        let compact = params.flag(":compact")
-        let showLevel = !compact && params.flag(":level")
-        let showTags = params.flag(":tags")
-        let indent = compact || params.flag(":indent")
-        let percent = params.values[":formula"]?.symbol == "%"
-        let properties = params.values[":properties"]?.elements?.compactMap(\.string) ?? []
-        if params.values[":match"].map({ $0.symbol != "nil" }) ?? false { throw EmacsBuffer.UserError(message: "Clock tables with :match aren't supported yet") }
-        if params.values[":step"].map({ $0.symbol != "nil" }) ?? false { throw EmacsBuffer.UserError(message: "Clock tables with :step aren't supported yet") }
-        var narrow: Int?
-        var narrowCut = false
-        if let value = params.values[":narrow"] {
-            if let n = value.integer { narrow = n }
-            else if let s = value.symbol, let m = s.wholeMatch(of: /([0-9]+)!/) { narrow = Int(m.1); narrowCut = true }
-            else if value.symbol != "nil" { throw EmacsBuffer.UserError(message: "Invalid value \(value.description) of :narrow property in clock table") }
-        }
-        if compact, narrow == nil { narrow = 40; narrowCut = true }
-        if let n = narrow, !narrowCut, link { narrow = n; narrowCut = true }
+    /// What `org-clock-get-table-data` gives for one file: its name, its total and its rows.
+    struct FileTable {
+        let path: String?
+        let total: Int
+        let rows: [Row]
+    }
 
-        var tstart: Double?
-        var tend: Double?
-        var rangeText: String?
-        if let block = params.symbol(":block") ?? params.values[":block"]?.integer.map(String.init), block != "nil" {
-            let r = try range(block, now: buffer.now, calendar: buffer.calendar, wstart: params.int(":wstart") ?? 1, mstart: params.int(":mstart") ?? 1)
-            (tstart, tend, rangeText) = (r.0, r.1, r.2)
-        } else {
-            if let s = params.values[":tstart"]?.string { tstart = TagsMatcher.matcherTime(s, now: buffer.now, calendar: buffer.calendar) }
-            if let s = params.values[":tend"]?.string { tend = TagsMatcher.matcherTime(s, now: buffer.now, calendar: buffer.calendar) }
-        }
+    /// `org-clock-get-table-data` over `region` of `buffer`, the file at `path`, between
+    /// `tstart` and `tend` (seconds).
+    static func tableData(_ buffer: EmacsBuffer, path: String?, params: Params, region: Range<Int>, tstart: Double?, tend: Double?) -> FileTable {
+        let maxlevel = params.int(":maxlevel") ?? 3
+        let link = params.flag(":link")
+        let showTags = params.flag(":tags")
+        let properties = params.values[":properties"]?.elements?.compactMap(\.string) ?? []
         let text = buffer.string
-        let summed = sum(text, region: region, tstart: tstart, tend: tend, calendar: buffer.calendar)
+        // `:match`: a tags/property/TODO match each heading's own time must pass.
+        var include: ((Int) -> Bool)?
+        if let match = params.values[":match"]?.string {
+            let matcher = TagsMatcher(match)
+            let source = AgendaSource(path: path ?? "", text: text, defaults: buffer.settings, checksBlocking: false)
+            let byStart = Dictionary(source.headings.map { ($0.start, $0) }, uniquingKeysWith: { a, _ in a })
+            let now = buffer.now, calendar = buffer.calendar
+            include = { start in byStart[start].map { matcher.matches($0, in: source, now: now, calendar: calendar) } ?? false }
+        }
+        let summed = sum(text, region: region, tstart: tstart, tend: tend, calendar: buffer.calendar, include: include)
         var rows: [Row] = []
-        for entry in summed.rows where entry.level <= maxlevel {
+        for entry in summed.rows where entry.minutes > 0 && entry.level <= maxlevel {
             buffer.point = entry.start
             guard let match = buffer.lookingAt(buffer.complexHeadingPattern) else { continue }
             var title = match[4].map { buffer.substring($0.lowerBound, $0.upperBound) } ?? ""
@@ -222,7 +238,7 @@ enum ClockTable {
             if link {
                 let search = "*" + Links.normalize(title, context: false)
                 let description = Links.displayFormat(title.replacingOccurrences(of: "\\[[0-9]*(?:%|/[0-9]*)\\]", with: "", options: .regularExpression)).trimmingCharacters(in: .whitespaces)
-                headline = Links.makeString(search, description)
+                headline = Links.makeString(path.map { "file:\($0)::" + search } ?? search, description)
             }
             // `org-get-tags`: inherited ones first.
             let own = buffer.tags()
@@ -238,23 +254,75 @@ enum ClockTable {
             }
             rows.append(Row(level: entry.level, headline: headline, tags: tags, minutes: entry.minutes, properties: props))
         }
-        let total = summed.total
-        let columns = compact || maxlevel < 2 ? 1 : min(maxlevel, params.int(":tcolumns") ?? 100, rows.map(\.level).max() ?? 1)
+        return FileTable(path: path, total: summed.total, rows: rows)
+    }
 
-        let stamp = buffer.formatTimestamp(buffer.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: buffer.now), withTime: true, inactive: true)
-        var out = "#+CAPTION: Clock summary at \(stamp)\(rangeText.map { ", for \($0)." } ?? "")\n"
-        if let narrow, !narrowCut {
-            out += "|" + (showLevel ? "|" : "") + (showTags ? "|" : "") + String(repeating: "|", count: properties.count) + "<\(narrow)>| |\n"
+    /// The `:block`, or `:tstart` and `:tend`, as seconds, with the block's caption text.
+    static func timeRange(_ params: Params, now: Date, calendar: Calendar) throws -> (start: Double?, end: Double?, text: String?) {
+        if let block = params.symbol(":block") ?? params.values[":block"]?.integer.map(String.init), block != "nil" {
+            let r = try range(block, now: now, calendar: calendar, wstart: params.int(":wstart") ?? 1, mstart: params.int(":mstart") ?? 1)
+            return (r.0, r.1, r.2)
         }
-        out += "|" + (showLevel ? "L|" : "") + (showTags ? "Tags |" : "") + properties.map { $0 + "|" }.joined()
+        let start = params.values[":tstart"]?.string.map { TagsMatcher.matcherTime($0, now: now, calendar: calendar) }
+        let end = params.values[":tend"]?.string.map { TagsMatcher.matcherTime($0, now: now, calendar: calendar) }
+        return (start, end, nil)
+    }
+
+    /// The table `org-clocktable-write-default` writes for `tables`, without its final
+    /// newline. `multifile` adds the File column and a row per file.
+    static func write(_ buffer: EmacsBuffer, params: Params, tables: [FileTable], multifile: Bool, rangeText: String?, content: String) throws -> String {
+        let maxlevel = params.int(":maxlevel") ?? 3
+        let emph = params.flag(":emphasize")
+        let link = params.flag(":link")
+        let compact = params.flag(":compact")
+        let showLevel = !compact && params.flag(":level")
+        let showTags = params.flag(":tags")
+        let indent = compact || params.flag(":indent")
+        let percent = params.values[":formula"]?.symbol == "%"
+        let properties = params.values[":properties"]?.elements?.compactMap(\.string) ?? []
+        var narrow: Int?
+        var narrowCut = false
+        if let value = params.values[":narrow"] {
+            if let n = value.integer { narrow = n }
+            else if let s = value.symbol, let m = s.wholeMatch(of: /([0-9]+)!/) { narrow = Int(m.1); narrowCut = true }
+            else if value.symbol != "nil" { throw EmacsBuffer.UserError(message: "Invalid value \(value.description) of :narrow property in clock table") }
+        }
+        if compact, narrow == nil { narrow = 40; narrowCut = true }
+        if let n = narrow, !narrowCut, link { narrow = n; narrowCut = true }
+
+        let total = tables.reduce(0) { $0 + $1.total }
+        let levels = tables.filter { $0.total != 0 }.flatMap { $0.rows.map(\.level) }
+        let columns = compact || maxlevel < 2 ? 1 : min(maxlevel, params.int(":tcolumns") ?? 100, levels.max() ?? 1)
+        let file = multifile ? "|" : ""
+
+        var out: String
+        if let header = params.values[":header"]?.string {
+            out = header
+        } else {
+            let stamp = buffer.formatTimestamp(buffer.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: buffer.now), withTime: true, inactive: true)
+            out = "#+CAPTION: Clock summary at \(stamp)\(rangeText.map { ", for \($0)." } ?? "")\n"
+        }
+        if let narrow, !narrowCut {
+            out += "|" + file + (showLevel ? "|" : "") + (showTags ? "|" : "") + String(repeating: "|", count: properties.count) + "<\(narrow)>| |\n"
+        }
+        out += "|" + (multifile ? "File|" : "") + (showLevel ? "L|" : "") + (showTags ? "Tags |" : "") + properties.map { $0 + "|" }.joined()
             + "Headline|Time|" + String(repeating: "|", count: max(0, columns - 1)) + (percent ? "%|\n" : "\n")
-        out += "|-\n|" + (showLevel ? "|" : "") + (showTags ? "|" : "") + String(repeating: "|", count: properties.count)
+        out += "|-\n|" + (multifile ? "| ALL " : "") + (showLevel ? "|" : "") + (showTags ? "|" : "") + String(repeating: "|", count: properties.count)
             + "*Total time*| *\(duration(total))*|" + String(repeating: "|", count: max(0, columns - 1))
             + (percent ? (total == 0 ? "0.0|" : "100.0|") : "") + "\n"
         if total > 0 {
-            if total > 0 || !params.flag(":fileskip0") { out += "|-\n" }
-            if maxlevel > 0 {
-                for row in rows {
+            for table in tables where table.total > 0 || !params.flag(":fileskip0") {
+                out += "|-\n"
+                if multifile {
+                    let name = table.path.map { path in
+                        (params.flag(":filetitle") ? Self.title(path) : nil) ?? (path as NSString).lastPathComponent
+                    } ?? ""
+                    out += "| \(name) " + (showLevel ? "| " : "") + "| " + (showTags ? "| " : "") + String(repeating: "|", count: properties.count)
+                        + "*File time* | *\(duration(table.total))*|" + String(repeating: "|", count: max(0, columns - 1))
+                        + (percent ? String(format: " %.1f |", 100 * Double(table.total) / Double(total)) : "") + "\n"
+                }
+                guard maxlevel > 0 else { continue }
+                for row in table.rows {
                     var headline = row.headline
                     if narrowCut, let narrow {
                         if let m = headline.wholeMatch(of: /\[\[(.+?)\]\[(.+)\]\]/) {
@@ -267,7 +335,7 @@ enum ClockTable {
                         guard emph else { return f + " |" }
                         return row.level == 1 ? "*\(f)* |" : row.level == 2 ? "/\(f)/ |" : f + " |"
                     }
-                    out += "|" + (showLevel ? "\(row.level)|" : "") + (showTags ? row.tags.joined(separator: ", ") + "|" : "")
+                    out += "|" + file + (showLevel ? "\(row.level)|" : "") + (showTags ? row.tags.joined(separator: ", ") + "|" : "")
                         + properties.map { (row.properties[$0] ?? "") + "|" }.joined()
                         + (indent && row.level > 1 ? "\\_" + String(repeating: " ", count: 2 * (row.level - 1)) : "")
                         + field(headline) + String(repeating: "|", count: max(0, min(columns, row.level) - 1))
@@ -283,6 +351,16 @@ enum ClockTable {
             out += "\n" + content[tblfm]
         }
         return out
+    }
+
+    /// `org-get-title` of the file at `path`.
+    static func title(_ path: String) -> String? {
+        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
+        let titles = text.components(separatedBy: "\n").compactMap { line -> String? in
+            guard let r = line.range(of: "^#\\+(?i:title):[ \\t]*", options: .regularExpression) else { return nil }
+            return String(line[r.upperBound...]).trimmingCharacters(in: .whitespaces)
+        }
+        return titles.isEmpty ? nil : titles.joined(separator: " ")
     }
 }
 
@@ -322,12 +400,73 @@ extension EmacsBuffer {
         }
         guard name == "clocktable" else { throw UserError(message: "Dynamic blocks named \(name) aren't supported") }
         let params = try ClockTable.Params(paramText)
-        // The scope's text.
+        let range = try ClockTable.timeRange(params, now: now, calendar: calendar)
+        if let step = params.symbol(":step"), step != "nil" {
+            let table = try clockTableSteps(step, params: params, begin: begin, range: range, content: content)
+            try replaceDynamicBlockContent(at: begin, with: table, alignAll: true)
+            return
+        }
+        let tables = try clockTables(params, begin: begin, tstart: range.start, tend: range.end)
+        let table = try ClockTable.write(self, params: params, tables: tables.tables, multifile: tables.multifile, rangeText: range.text, content: content)
+        try replaceDynamicBlockContent(at: begin, with: table)
+    }
+
+    /// The files `:scope` names and each one's table data, and whether the table gets a File
+    /// column, as `org-dblock-write:clocktable` works them out.
+    func clockTables(_ params: ClockTable.Params, begin: Int, tstart: Double?, tend: Double?) throws -> (tables: [ClockTable.FileTable], multifile: Bool) {
+        let path = options.filePath
+        func read(_ file: String) -> String? {
+            file == path ? string : (try? String(contentsOfFile: file, encoding: .utf8))
+        }
+        let files: [String]?
+        let scopeValue = params.values[":scope"] ?? .symbol("file")
+        let scope = scopeValue.symbol ?? scopeValue.string ?? ""
+        if let list = scopeValue.elements, scopeValue.symbol == nil {
+            // A list of files; folders give their org files, as agenda entries do.
+            let base = path.map { ($0 as NSString).deletingLastPathComponent }
+            var expanded: [String] = []
+            for item in list {
+                guard let name = item.string else { throw UserError(message: "Unknown scope: \(scopeValue.description)") }
+                var file = (name as NSString).expandingTildeInPath
+                if !file.hasPrefix("/"), let base { file = (base as NSString).appendingPathComponent(file) }
+                file = (file as NSString).standardizingPath
+                var isDirectory: ObjCBool = false
+                if FileManager.default.fileExists(atPath: file, isDirectory: &isDirectory), isDirectory.boolValue {
+                    let names = (try? FileManager.default.contentsOfDirectory(atPath: file)) ?? []
+                    expanded += names.sorted().filter { !$0.hasPrefix(".") && $0.hasSuffix(".org") }.map { (file as NSString).appendingPathComponent($0) }
+                } else {
+                    expanded.append(file)
+                }
+            }
+            files = expanded
+        } else {
+            switch scope {
+            case "agenda": files = options.agendaFiles ?? []
+            case "agenda-with-archives": files = Archive.addArchiveFiles(options.agendaFiles ?? [], options: options, read: read)
+            case "file-with-archives": files = path.map { Archive.addArchiveFiles([$0], options: options, read: read) }
+            case "nil", "file", "subtree", "tree": files = nil
+            case let s where s.wholeMatch(of: /tree[0-9]+/) != nil: files = nil
+            default: throw UserError(message: "Unknown scope: \(scopeValue.description)")
+            }
+        }
+        if let files, scope != "file-with-archives" || path != nil {
+            var tables: [ClockTable.FileTable] = []
+            for file in files {
+                guard let text = read(file) else { continue }
+                let buffer = file == path ? self : EmacsBuffer(text, point: 0, settings: OrgParser.parse(text).settings, options: options)
+                buffer.now = now
+                buffer.calendar = calendar
+                let saved = point
+                tables.append(ClockTable.tableData(buffer, path: file, params: params, region: 0..<buffer.length, tstart: tstart, tend: tend))
+                point = saved
+            }
+            // `file-with-archives` counts as one extended file.
+            return (tables, !params.flag(":hidefiles") && scope != "file-with-archives")
+        }
+        // The scope's text in this buffer.
         point = begin
         let region: Range<Int>
-        switch params.symbol(":scope") ?? "file" {
-        case "nil", "file":
-            region = 0..<length
+        switch scope {
         case "subtree":
             guard !beforeFirstHeading, let r = try? subtreeRange() else { throw UserError(message: "Before first headline") }
             region = r
@@ -339,16 +478,71 @@ extension EmacsBuffer {
                 if let limit, outlineLevel <= limit { break }
             }
             region = try subtreeRange()
-        case let scope:
-            throw UserError(message: "Clock tables over \(scope) aren't supported yet")
+        default:
+            region = 0..<length
         }
-        let table = try ClockTable.write(self, params: params, region: region, content: content)
-        try replaceDynamicBlockContent(at: begin, with: table)
+        return ([ClockTable.tableData(self, path: path, params: params, region: region, tstart: tstart, tend: tend)], false)
+    }
+
+    /// `org-clocktable-steps`: a table per day, week, semimonth, month, quarter or year of the
+    /// range, each after a line naming its start; with `:stepskip0`, only those with time.
+    func clockTableSteps(_ step: String, params: ClockTable.Params, begin: Int, range: (start: Double?, end: Double?, text: String?), content: String) throws -> String {
+        let headers = ["day": "Daily report: ", "week": "Weekly report starting on: ", "semimonth": "Semimonthly report starting on: ",
+                       "month": "Monthly report starting on: ", "year": "Annual report starting on: ", "quarter": "Quarterly report starting on: "]
+        guard let stepHeader = headers[step] else { throw UserError(message: "Unknown `:step' specification: \(step)") }
+        guard let start = range.start, let end = range.end else {
+            throw UserError(message: "Clocktable `:step' can only be used with `:block' or `:tstart', `:tend'")
+        }
+        let weekStart = params.int(":wstart") ?? 1
+        let monthStart = params.int(":mstart") ?? 1
+        var stepParams = params
+        stepParams.values[":header"] = .string("")
+        stepParams.values[":step"] = nil
+        stepParams.values[":block"] = nil
+        // The block's contents as `org-clocktable-steps` builds them after `org-prepare-dblock`'s
+        // `open-line`, with point at `p`; `out` ends where the #+END line starts.
+        var out = "\n"
+        var p = 0
+        var at = Date(timeIntervalSince1970: start)
+        let stop = Date(timeIntervalSince1970: end)
+        while at < stop {
+            let c = calendar.dateComponents([.year, .month, .day, .weekday], from: at)
+            let (y, m, d, dow) = (c.year!, c.month!, c.day!, c.weekday! - 1)
+            func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
+                calendar.date(from: DateComponents(year: year, month: month, day: day))!
+            }
+            let next: Date = switch step {
+            case "day": date(y, m, d + 1)
+            case "week": date(y, m, d + (dow == weekStart ? 7 : ((weekStart - dow) % 7 + 7) % 7))
+            case "semimonth": d < 16 ? date(y, m, 16) : date(y, m + 1, 1)
+            case "month": date(y, m + 1, monthStart)
+            case "quarter": date(y, m + 3, monthStart)
+            default: date(y + 1, 1, 1)
+            }
+            let tables = try clockTables(stepParams, begin: begin, tstart: at.timeIntervalSince1970, tend: min(next, stop).timeIntervalSince1970)
+            let total = tables.tables.reduce(0) { $0 + $1.total }
+            let stamp = formatTimestamp(calendar.dateComponents([.year, .month, .day], from: at), withTime: false, inactive: true)
+            let table = try ClockTable.write(self, params: stepParams, tables: tables.tables, multifile: tables.multifile, rangeText: nil, content: content)
+            if p > 0, (out as NSString).character(at: p - 1) != 10 {
+                out = (out as NSString).replacingCharacters(in: NSRange(location: p, length: 0), with: "\n")
+                p += 1
+            }
+            let tableBegin = p + 1
+            out = (out as NSString).replacingCharacters(in: NSRange(location: p, length: 0), with: "\n" + stepHeader + stamp + "\n" + table)
+            // An empty table goes, from its header line to the #+END line.
+            if params.flag(":stepskip0"), total == 0 {
+                out = (out as NSString).substring(to: tableBegin)
+            }
+            // `(end-of-line 0)` from the #+END line.
+            p = max(0, (out as NSString).length - 1)
+            at = next
+        }
+        return String(out.dropLast())
     }
 
     /// Puts `table` between the #+BEGIN and #+END lines of the block at `begin`, indented like
     /// the #+BEGIN line as `org-update-dblock` does, and aligns it.
-    func replaceDynamicBlockContent(at begin: Int, with table: String, recalculate: Bool = false) throws {
+    func replaceDynamicBlockContent(at begin: Int, with table: String, recalculate: Bool = false, alignAll: Bool = false) throws {
         point = begin
         guard let start = lookingAt(Self.dblockStart) else { throw UserError(message: "Not at a dynamic block") }
         let indentation = currentIndentation
@@ -372,7 +566,9 @@ extension EmacsBuffer {
             insert(pad)
         }
         point = deleteFrom
-        if let bar = searchForward("^[ \\t]*\\|", caseInsensitive: false) {
+        let endMark = marker(deleteFrom + (table as NSString).length + 1)
+        defer { release(endMark) }
+        while let bar = searchForward("^[ \\t]*\\|", bound: endMark.position, caseInsensitive: false) {
             point = bar[0]!.upperBound
             // A table kept with formulas is recalculated, as the column view writer does.
             if recalculate {
@@ -383,6 +579,10 @@ extension EmacsBuffer {
                 }
             }
             tableAlign()
+            // `:step` writes a table per step, each aligned.
+            guard alignAll else { break }
+            point = lineStart(point)
+            while lookingAt("^[ \\t]*\\|") != nil, forwardLine(1) == 0 {}
         }
         point = begin
     }

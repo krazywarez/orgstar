@@ -63,7 +63,10 @@ struct PaneView: NSViewRepresentable {
             if editor.keymap != settings.keymap { editor.keymap = settings.keymap }
             editor.modal = settings.modal
             editor.optionAsMeta = settings.optionAsMeta
-            editor.options = settings.options
+            // `buffer-file-name`, for clock tables.
+            var options = settings.options
+            options.filePath = path
+            if editor.options != options { editor.options = options }
             editor.showMarkup = settings.showMarkup
             editor.showLineNumbers = settings.showLineNumbers
             editor.themeSpec = settings.theme

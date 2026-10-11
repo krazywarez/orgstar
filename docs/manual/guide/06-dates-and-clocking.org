@@ -423,7 +423,7 @@ Times are written as =H:MM=, with a day count such as =2d= before them for a day
 
 | Parameter         | Values                                         | Default   |
 |-------------------+------------------------------------------------+-----------|
-| =:scope=          | =file= (or =nil=), =subtree=, =tree=, =treeN=  | =file=    |
+| =:scope=          | =file= (or =nil=), =subtree=, =tree=, =treeN=, =agenda=, =agenda-with-archives=, =file-with-archives=, or a list of files such as =("work.org" "~/notes/")= | =file= |
 | =:maxlevel=       | Deepest heading level listed                   | =2=       |
 | =:block=          | A time block (see below)                       | none      |
 | =:tstart=, =:tend= | Start and end, such as ="<2026-09-01>"=, ="<today>"=, ="<-1w>"= | none |
@@ -439,7 +439,13 @@ Times are written as =H:MM=, with a day count such as =2d= before them for a day
 | =:properties=     | A list of property names, such as =("Effort")=, one column each | none |
 | =:tcolumns=       | Number of time columns                         | up to =:maxlevel= |
 | =:formula=        | =%= adds a percentage column; a string becomes the table's =#+TBLFM= | none |
-| =:fileskip0=      | Accepted; has no effect within one file        | =nil=     |
+| =:match=          | A tag and property match, as for the agenda; only matching headings' own time counts | none |
+| =:step=           | =day=, =week=, =semimonth=, =month=, =quarter= or =year=: a table per step of =:block= or =:tstart= to =:tend= | none |
+| =:stepskip0=      | =t=: leave out steps without time              | =nil=     |
+| =:fileskip0=      | =t=: leave out files without time              | =nil=     |
+| =:hidefiles=      | =t=: no File column over several files         | =nil=     |
+| =:filetitle=      | =t=: name files by their =#+TITLE=             | =nil=     |
+| =:header=         | Text written in place of the =#+CAPTION= line  | none      |
 
 =:scope tree= covers the top-level tree around the block; =tree2= the tree from its level-2 ancestor, and so on. =:block= takes precedence over =:tstart= and =:tend=. Clocks that cross the start or end of the range count only the part inside it.
 
@@ -457,7 +463,29 @@ Times are written as =H:MM=, with a day count such as =2d= before them for a day
 
 A =#+TBLFM= line already under the table is kept when the table is updated, unless =:formula= gives one.
 
-Not supported: scopes over other files (=agenda=, file lists, =file-with-archives=), =:match= and =:step=, which stop the update with a message, and =:formatter=, which is ignored along with other unknown parameters. Labels are in English only.
+** Other files
+
+=:scope agenda= sums the agenda files (see [[file:07-agenda.org][The agenda]]), and =agenda-with-archives= adds each one's archive files: the one its =#+ARCHIVE:= or =org-archive-location= names, and those its =ARCHIVE= properties name, where they exist. =file-with-archives= is this file with its archives, summed as one file. A list names files, relative to this file's folder; a folder in the list gives its =.org= files, which Org doesn't do. Over several files the table gets a File column and a row with each file's total before its headings:
+
+#+BEGIN_SRC org
+| File     | Headline         | Time   |      |
+|----------+------------------+--------+------|
+|          | ALL *Total time* | *3:30* |      |
+|----------+------------------+--------+------|
+| work.org | *File time*      | *1:30* |      |
+|          | Project Alpha    | 1:30   |      |
+|          | \_  Design       |        | 0:30 |
+#+END_SRC
+
+Other files are read from disk, so unsaved edits in another open file don't count; this file's buffer does. With =:link t=, headlines link to =file:PATH::*Heading=.
+
+** Steps
+
+=:step= writes a table for each day, week (from =:wstart=), half month, month (from =:mstart=), quarter or year of the range, each after a line such as =Daily report: [2026-10-05 Mon]= or =Weekly report starting on: [2026-10-05 Mon]=, without captions. It needs =:block=, or both =:tstart= and =:tend=.
+
+=:match= takes a match such as ="work"=, ="-home"= or ~"TODO=\"DONE\""~. Headings that don't match add none of their own time, but the headings above a matching one are still listed with its time.
+
+Not supported: =:formatter=, which is ignored along with other unknown parameters, and scopes given as functions. Labels are in English only.
 
 * Habits
 
