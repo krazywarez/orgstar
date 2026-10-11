@@ -1,6 +1,9 @@
 <!doctype html>
-<!-- Product page header, 3840x1646 (21:9). Rendered to header.jpg with headless Chromium:
-     Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=3840,1646 --screenshot=header.png header.html -->
+<!-- Product page header. header.html renders the 21:9 header (3840x1646), header.html#wide the
+     16:9 one (5244x2950), with headless Chromium, then the alpha channel is removed:
+     Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=3840,1646 --screenshot=header-21x9.png header.html
+     Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=5244,2950 --screenshot=header-16x9.png 'header.html#wide'
+     magick header-21x9.png -alpha off PNG24:header-21x9.png -->
 <html>
 <head>
 <meta charset="utf-8">
@@ -32,13 +35,25 @@
   .iphone img { border-radius: 90px; }
   .left { left: 440px; }
   .right { right: 440px; }
+
+  /* 16:9, 5244x2950. */
+  html.wide, .wide body { width: 5244px; height: 2950px; }
+  .wide .glow { width: 3800px; height: 2400px; }
+  .wide h1 { top: 260px; font-size: 220px; letter-spacing: -3px; }
+  .wide .ipad { width: 2100px; height: 2800px; left: 1524px; top: 680px; padding: 48px; border-radius: 126px; }
+  .wide .ipad img { border-radius: 80px; }
+  .wide .iphone { width: 860px; height: 1869px; top: 900px; padding: 32px; border-radius: 158px; }
+  .wide .iphone img { border-radius: 128px; }
+  .wide .left { left: 560px; }
+  .wide .right { right: 560px; }
 </style>
+<script>if (location.hash === "#wide") document.documentElement.className = "wide";</script>
 </head>
 <body>
   <div class="glow"></div>
   <h1>Your org files, <span>wherever you are.</span></h1>
   <div class="device ipad"><img src="screenshots/ipad/01-agenda.png"></div>
-  <div class="device iphone left"><img src="screenshots/iphone/02-reader.png"></div>
-  <div class="device iphone right"><img src="screenshots/iphone/05-capture.png"></div>
+  <div class="device iphone left"><img src="screenshots/iphone-6.9/02-reader.png"></div>
+  <div class="device iphone right"><img src="screenshots/iphone-6.9/05-capture.png"></div>
 </body>
 </html>
