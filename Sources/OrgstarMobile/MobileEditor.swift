@@ -106,6 +106,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var revealedLine: NSRange?
     /// `org-toggle-inline-images`: lines that are only an image link show the image.
     internal(set) var showsImages = false
+    /// `org-latex-preview`: LaTeX fragments show as typeset math.
+    internal(set) var showsLatex = false
     /// The view width images were last sized for.
     var imageWidth: CGFloat = 0
     /// The file's folder, for relative image paths.
@@ -153,6 +155,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         indented = startup.indented
         hideStars = startup.hideStars
         showsImages = startup.inlineImages
+        showsLatex = startup.latexPreview
         shrunk = ShrunkColumns.startup(document.tree)
         applyThemeToView()
         load(document.text)
@@ -269,6 +272,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.cycle-global": cycleGlobal()
         case "org.link.open": openLinkAtCaret()
         case "org.toggle-inline-images": toggleImages()
+        case "org.latex-preview": toggleLatex()
         case "editor.toggle-truncate-lines":
             truncatesLines.toggle()
             onMessage?(truncatesLines ? "Truncate long lines enabled" : "Truncate long lines disabled")
@@ -294,7 +298,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         switch id {
         case "org.cycle":
             return Presentation.heading(containing: context.caret, in: context.tree) != nil || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
-        case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "editor.toggle-truncate-lines": return true
+        case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "org.latex-preview", "editor.toggle-truncate-lines": return true
         case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.clock.in-recent", "app.clock.in-last",
              "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
         case "app.refile.goto", "app.table-import": return onAppCommand != nil
@@ -549,7 +553,8 @@ extension MobileEditor: NSTextLayoutManagerDelegate {
         let string = (textElement as? NSTextParagraph)?.attributedString
         let image = string.flatMap(OrgLineFragment.image)
         let entities = string.map(OrgLineFragment.hasEntities) ?? false
-        guard folded || band != nil || image != nil || entities else { return NSTextLayoutFragment(textElement: textElement, range: range) }
+        let latex = string.map(OrgLineFragment.hasLatex) ?? false
+        guard folded || band != nil || image != nil || entities || latex else { return NSTextLayoutFragment(textElement: textElement, range: range) }
         let fragment = OrgLineFragment(textElement: textElement, range: range)
         fragment.folded = folded
         fragment.band = band

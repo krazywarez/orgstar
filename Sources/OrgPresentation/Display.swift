@@ -13,6 +13,8 @@ public struct StartupDisplay: Sendable, Equatable {
     public var hideStars: Bool
     /// `org-startup-with-inline-images` (`inlineimages`, `noinlineimages`).
     public var inlineImages: Bool
+    /// `org-startup-with-latex-preview` (`latexpreview`, `nolatexpreview`).
+    public var latexPreview = false
     /// `org-startup-align-all-tables` (`align`, `noalign`).
     public var alignTables: Bool
     /// `org-startup-truncated`.
@@ -30,7 +32,7 @@ extension Presentation {
         }
         let wrappers = startupWrappers(tree, hideDrawers: options.hideDrawerStartup, hideBlocks: options.hideBlockStartup)
         folds.wrapperFolds = Set(wrappers.map(\.start))
-        return StartupDisplay(
+        var display = StartupDisplay(
             folds: folds, wrappers: wrappers,
             indented: words.contains("indent") ? true : words.contains("noindent") ? false : options.startupIndented,
             hideStars: words.contains("hidestars") ? true : words.contains("showstars") ? false : options.hideLeadingStars,
@@ -38,6 +40,8 @@ extension Presentation {
             alignTables: words.contains("align") || (options.startupAlignAllTables && !words.contains("noalign")),
             truncated: options.startupTruncated
         )
+        display.latexPreview = startupLatexPreview(tree) ?? options.startupWithLatexPreview
+        return display
     }
 
     /// Whether `role` hides while markup is hidden: link brackets and targets as with

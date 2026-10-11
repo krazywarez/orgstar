@@ -83,6 +83,7 @@ The editor and the reader apply these display settings; only the editor aligns t
 | =org-startup-indented=           | Bodies are indented under their headings                                       | =indent=, =noindent=             |
 | =org-hide-leading-stars=         | Without indentation, only a heading's last star shows                          | =hidestars=, =showstars=         |
 | =org-startup-with-inline-images= | Image links show as images                                                     | =inlineimages=, =noinlineimages= |
+| =org-startup-with-latex-preview= | LaTeX fragments show as typeset math; Show or Hide LaTeX Previews in Commands switches them | =latexpreview=, =nolatexpreview= |
 | =org-startup-align-all-tables=   | Every table is aligned                                                         | =align=, =noalign=               |
 | =org-startup-truncated=          | Long lines run off the right edge, and the editor scrolls sideways             |                                  |
 
@@ -278,9 +279,9 @@ The app icon's badge counts the entries in the agenda's Overdue section that are
 
 * Export
 
-Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Rich Text (RTF) and Plain Text, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.
+Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text and iCalendar, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.
 
-Word, ODT, LaTeX, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
+ODT, LaTeX, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
 
 * Code blocks and tables
 
@@ -344,7 +345,7 @@ These settings from =config.toml= apply on iOS:
 - =org-todo-keywords=, =org-list-allow-alphabetical=
 - =org-tags-column=, =org-insert-heading-respect-content=, =org-M-RET-may-split-line=, =fill-column=
 - =org-hide-emphasis-markers= and =org-pretty-entities=, for what hidden markup shows and for how tag and table alignment and filling measure text, as on the Mac
-- =show-markup=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-with-inline-images=, =org-startup-align-all-tables=, =org-startup-truncated=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=
+- =show-markup=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-with-inline-images=, =org-startup-with-latex-preview=, =org-startup-align-all-tables=, =org-startup-truncated=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=
 - =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
 - =org-enforce-todo-dependencies=, =org-enforce-todo-checkbox-dependencies=, =org-track-ordered-property-with-tag=, =org-agenda-dim-blocked-tasks=
@@ -368,7 +369,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 * What the Mac has that iOS doesn't
 
 - Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond orgstar's interpreter, and tables that need Emacs.
-- Word, ODT, LaTeX, ASCII and LaTeX-made PDF export.
+- ODT, LaTeX, ASCII and LaTeX-made PDF export, and publishing.
 - Idle detection while a clock runs.
 - Import from Emacs.
 - The Columns inspector, the backlinks pane, and the buffer list and tab bar. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).

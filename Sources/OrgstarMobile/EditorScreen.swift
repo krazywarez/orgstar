@@ -589,7 +589,7 @@ struct CommandPalette: View {
         ("app.clock.default", "Mark as Default Clock Task"), ("app.clock.resolve", "Resolve Open Clocks…"),
         ("app.refile", "Refile…"), ("app.refile.copy", "Copy to Refile Target…"), ("app.refile.goto", "Go to Refile Target…"),
         ("app.toggle-markup", "Show or Hide Markup"),
-        ("org.toggle-inline-images", "Show or Hide Inline Images"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
+        ("org.toggle-inline-images", "Show or Hide Inline Images"), ("org.latex-preview", "Show or Hide LaTeX Previews"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
         ("org.table.toggle-column-width", "Shrink or Expand Table Column"), ("org.table.shrink", "Shrink Table Columns with Widths"),
         ("org.table.expand", "Expand Table Columns"),
         ("app.table-import", "Import Table from File…"), ("app.table-export", "Export Table to File…"),

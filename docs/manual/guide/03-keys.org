@@ -792,6 +792,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Narrow to Subtree or Widen (=org.narrow.toggle=) | — | =⌃⌘N= | — | Narrows to the subtree, or widens when already narrowed (=org-toggle-narrow-to-subtree=). |
 | Sparse Tree… (=org.sparse-tree=) | =C-c /= | — | =SPC m s s= (N) | Asks for a match and shows only the matching entries and their context (=org-sparse-tree=). =C-c C-c= clears the highlights. |
 | Show or Hide Inline Images (=org.toggle-inline-images=) | =C-c C-x C-v= | — | — | Shows or hides image links as images (=org-toggle-inline-images=). |
+| Show or Hide LaTeX Previews (=org.latex-preview=) | =C-c C-x C-l= | — | — | Shows or hides LaTeX fragments as typeset math (=org-latex-preview=). |
 
 ** Outline: headings and subtrees
 

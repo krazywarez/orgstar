@@ -35,6 +35,7 @@ public enum OrgPreferences {
             spellCheck: bool("spellCheck", defaults)
         )
         options.electricPair = bool("electricPair", defaults)
+        options.startupWithLatexPreview = bool("startupWithLatexPreview", defaults)
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.archiveLocation = string("archiveLocation", defaults).nonEmpty

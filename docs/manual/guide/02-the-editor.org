@@ -72,9 +72,27 @@ A line shows as an image when it holds nothing but a link to an image file with 
 
 To show images when a file opens, add =#+STARTUP: inlineimages= to the file, or set =org-startup-with-inline-images = true= in =config.toml=. =#+STARTUP: noinlineimages= turns it off for one file.
 
+** LaTeX previews
+
+Show or Hide LaTeX Previews (=C-c C-x C-l= in the Emacs and Doom presets, and in the command palette) draws LaTeX fragments and environments as typeset math, as =org-latex-preview= does. The echo area reports how many fragments it previewed.
+
+#+BEGIN_SRC org
+The area is $\pi r^2$, and \(\sqrt{2}\) is irrational.
+\begin{equation}
+\int_0^1 x\,dx = \frac{1}{2}
+\end{equation}
+#+END_SRC
+
+- =$…$= and =\(…\)= are typeset as inline math, =$$…$$=, =\[…\]= and environments as display math. =equation=, =align=, =gather= and their starred forms are typeset as their bodies, aligned or gathered.
+- The math is typeset by orgstar itself, with the Latin Modern Math font, in the editor's text color and size; it needs no TeX installation and works on iOS. It reads the math commands LaTeX's =amsmath= has for formulas, not packages a file loads with =#+LATEX_HEADER=. A fragment it can't read stays as text.
+- The caret's line shows the source, so you can edit it.
+- Fragments in source and example blocks aren't previewed.
+
+The command switches previews for the whole buffer; Org's =C-u= forms, which act on the section at point, aren't there. To preview when a file opens, add =#+STARTUP: latexpreview= to the file, or set =org-startup-with-latex-preview = true= in =config.toml=. =#+STARTUP: nolatexpreview= turns it off for one file. After switching between light and dark appearance, switch previews off and on to redraw them in the new color.
+
 ** What isn't rendered
 
-LaTeX fragments and environments are coloured but not rendered as formulas. Images in links that have a description, and images on lines with other text, show as links.
+Images in links that have a description, and images on lines with other text, show as links.
 
 * Folding
 
@@ -128,6 +146,7 @@ With no =#+STARTUP= visibility option, a file opens with every heading shown. Dr
 | =indent=, =noindent=                   | Indent bodies under headings, or not                        |
 | =hidestars=, =showstars=               | Hide all stars but the last, or not                         |
 | =inlineimages=, =noinlineimages=       | Show image links as images, or not                          |
+| =latexpreview=, =nolatexpreview=       | Show LaTeX fragments as typeset math, or not                |
 | =align=, =noalign=                     | Align every table, or not (=org-startup-align-all-tables=)  |
 | =shrink=                               | Narrow table columns that have width cookies                |
 
@@ -287,6 +306,7 @@ Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Pa
 | Show Markup                   | View ▸ Show Markup            | =⇧⌘M=                                           | off     | =show-markup=                    | every buffer   |
 | Show Line Numbers             | View ▸ Show Line Numbers      | =⇧⌘L=                                           | on      | =display-line-numbers-type=      | every buffer   |
 | Inline images                 | Org ▸ Show or Hide Inline Images | =C-c C-x C-v= (Emacs, Doom)                  | off     | =org-startup-with-inline-images= | current buffer |
+| LaTeX previews                | palette                       | =C-c C-x C-l= (Emacs, Doom)                     | off     | =org-startup-with-latex-preview= | current buffer |
 | Spell checking                | palette                       | =SPC t s= (Doom)                                | off     | =spell-check=                    | current buffer |
 | Truncate long lines           | View ▸ Truncate or Wrap Long Lines | =C-x x t= (Emacs), =SPC t w= (Doom)             | off     | =org-startup-truncated=          | current buffer |
 

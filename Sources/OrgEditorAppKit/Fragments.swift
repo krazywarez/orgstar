@@ -1,5 +1,6 @@
 #if os(macOS)
 import AppKit
+import OrgPresentation
 
 /// A line of a block, on a band across the whole width of the view, as Emacs extends the
 /// `org-block` face.
@@ -46,6 +47,68 @@ extension NSAttributedString.Key {
     static let orgEntityDisplay = NSAttributedString.Key("OrgEntityDisplay")
     /// The image an image link's line shows under it.
     static let orgImage = NSAttributedString.Key("OrgImage")
+    /// A LaTeX fragment's typeset math, on its first character.
+    static let orgLatex = NSAttributedString.Key("OrgLatex")
+}
+
+final class LatexBox: NSObject, @unchecked Sendable {
+    let rendering: LatexPreview.Rendering
+    /// An environment's image sits at the start of its first line, under the line's top.
+    let environment: Bool
+    init(_ rendering: LatexPreview.Rendering, environment: Bool) {
+        self.rendering = rendering
+        self.environment = environment
+    }
+}
+
+/// A paragraph with LaTeX previews: each drawn where its hidden fragment starts, on the line's
+/// baseline, or at the top of an environment's first line.
+final class LatexFragment: NSTextLayoutFragment, @unchecked Sendable {
+    static func hasLatex(_ string: NSAttributedString) -> Bool {
+        var found = false
+        string.enumerateAttribute(.orgLatex, in: NSRange(location: 0, length: string.length)) { value, _, stop in
+            if value != nil { found = true; stop.pointee = true }
+        }
+        return found
+    }
+
+    /// Each preview and where it goes, in the fragment's coordinates.
+    private var boxes: [(box: LatexBox, frame: CGRect)] {
+        guard let string = (textElement as? NSTextParagraph)?.attributedString else { return [] }
+        var out: [(LatexBox, CGRect)] = []
+        string.enumerateAttribute(.orgLatex, in: NSRange(location: 0, length: string.length)) { value, range, _ in
+            guard let box = value as? LatexBox,
+                  let line = textLineFragments.first(where: { NSLocationInRange(range.location, $0.characterRange) }) else { return }
+            let bounds = line.typographicBounds
+            let size = box.rendering.size
+            if box.environment {
+                out.append((box, CGRect(x: bounds.minX + line.locationForCharacter(at: range.location).x, y: bounds.minY + 2, width: size.width, height: size.height)))
+            } else {
+                let baseline = bounds.minY + line.glyphOrigin.y
+                let top = max(bounds.minY, baseline - (size.height - box.rendering.descent))
+                out.append((box, CGRect(x: bounds.minX + line.locationForCharacter(at: range.location).x, y: top, width: size.width, height: size.height)))
+            }
+        }
+        return out
+    }
+
+    override var renderingSurfaceBounds: CGRect {
+        boxes.reduce(super.renderingSurfaceBounds) { $0.union($1.frame) }
+    }
+
+    override func draw(at point: CGPoint, in context: CGContext) {
+        super.draw(at: point, in: context)
+        EntityFragment.drawEntities(of: self, at: point, in: context)
+        for (box, frame) in boxes {
+            let rect = frame.offsetBy(dx: point.x, dy: point.y)
+            context.saveGState()
+            // The context is flipped; the image is drawn upright.
+            context.translateBy(x: rect.minX, y: rect.maxY)
+            context.scaleBy(x: 1, y: -1)
+            context.draw(box.rendering.image, in: CGRect(origin: .zero, size: rect.size))
+            context.restoreGState()
+        }
+    }
 }
 
 final class InlineImageBox: NSObject, @unchecked Sendable {

@@ -195,6 +195,7 @@ extension MobileEditor {
         if !showMarkup, options.prettyEntities { prettify(whole, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
         applyShrunk(whole, in: storage)
         applyImages(whole, in: storage, revealed: revealed)
+        applyLatex(whole, in: storage, revealed: revealed)
         storage.endEditing()
     }
 
@@ -235,7 +236,8 @@ extension MobileEditor {
 
     /// Moving to another line shows its markup and hides the last one's.
     func revealCaretLine() {
-        guard !showMarkup else { return }
+        // LaTeX previews show their source on the caret's line whether or not markup shows.
+        guard !showMarkup || showsLatex else { return }
         let line = caretLine
         guard line != revealedLine else { return }
         let text = textView.textStorage.string as NSString

@@ -145,6 +145,8 @@ public enum UserConfig {
                 comment: "type brackets, <> and quotes in pairs as electric-pair-mode does (off in plain Emacs; Doom pairs with smartparens)", legacy: ""),
         Setting(section: "", key: "org-startup-with-inline-images", defaultsKey: "startupWithInlineImages", kind: .bool, fallback: .bool(false),
                 comment: "show image links as images when a file opens; #+STARTUP: (no)inlineimages overrides", legacy: ""),
+        Setting(section: "", key: "org-startup-with-latex-preview", defaultsKey: "startupWithLatexPreview", kind: .bool, fallback: .bool(false),
+                comment: "show LaTeX fragments as typeset math when a file opens; #+STARTUP: (no)latexpreview overrides", legacy: ""),
         Setting(section: "", key: "org-use-speed-commands", defaultsKey: "useSpeedCommands", kind: .bool, fallback: .bool(false),
                 comment: "single keys at the start of a heading line run commands (n, p, t, c, …)", legacy: ""),
         Setting(section: "", key: "org-cycle-hide-drawer-startup", defaultsKey: "hideDrawerStartup", kind: .bool, fallback: .bool(true),

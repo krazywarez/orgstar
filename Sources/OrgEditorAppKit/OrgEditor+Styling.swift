@@ -47,6 +47,7 @@ extension OrgEditor {
         applyShrunk(range, in: storage)
         applyHighlights(range, in: storage)
         applyImages(range, in: storage, revealed: revealed)
+        applyLatex(range, in: storage, revealed: revealed)
     }
 
     /// `org-pretty-entities`: entities drawn as their character over the entity's last
@@ -78,7 +79,8 @@ extension OrgEditor {
 
     /// Moving to another line shows its markup and hides the last one's.
     func revealCaretLine() {
-        guard !showMarkup, isOrg else { return }
+        // LaTeX previews show their source on the caret's line whether or not markup shows.
+        guard !showMarkup || showsLatex, isOrg else { return }
         let line = caretLine
         guard line != revealedLine else { return }
         let text = textView.string as NSString

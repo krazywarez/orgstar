@@ -25,6 +25,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1"),
+        .package(url: "https://github.com/mgriebling/SwiftMath", exact: "1.7.3"),
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.7.0"),
         .package(url: "https://github.com/tree-sitter/swift-tree-sitter", from: "0.25.0"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-bash", exact: "0.25.1"),
@@ -49,7 +50,7 @@ let package = Package(
         .target(name: "OrgDocument", dependencies: ["OrgCore"]),
         .target(name: "OrgIndex", dependencies: ["OrgCore", .product(name: "GRDB", package: "GRDB.swift")]),
         .target(name: "OrgWorkspace", dependencies: ["OrgIndex"]),
-        .target(name: "OrgPresentation", dependencies: ["OrgCore"]),
+        .target(name: "OrgPresentation", dependencies: ["OrgCore", .product(name: "SwiftMath", package: "SwiftMath")]),
         .target(name: "OrgEditorAppKit", dependencies: ["OrgDocument", "OrgPresentation"]),
         .target(name: "TreeSitterElisp", path: "Sources/TreeSitterElisp", sources: ["src/parser.c"], cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterClojure", path: "Sources/TreeSitterClojure", sources: ["src/parser.c"], cSettings: [.headerSearchPath("src")]),

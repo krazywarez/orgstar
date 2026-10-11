@@ -40,6 +40,9 @@ ditto "$sparkle" "$app/Contents/Frameworks/Sparkle.framework"
 otool -l "$app/Contents/MacOS/Orgstar" | grep -q '@executable_path/../Frameworks' \
     || install_name_tool -add_rpath @executable_path/../Frameworks "$app/Contents/MacOS/Orgstar"
 
+# SwiftMath's math fonts, which it finds in the app's resources.
+cp -R "$(dirname "$binary")/SwiftMath_SwiftMath.bundle" "$app/Contents/Resources/"
+
 # Updates: the appcast and its signing key, for signed builds only; a dev build never checks.
 if [ "$sign" != "-" ]; then
     feed_keys="    <key>SUFeedURL</key>

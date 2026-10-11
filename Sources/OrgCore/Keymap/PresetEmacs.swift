@@ -191,6 +191,9 @@ extension KeymapPreset {
         keys = "C-c C-x C-v"
         command = "org.toggle-inline-images"
         [[bind]]
+        keys = "C-c C-x C-l"
+        command = "org.latex-preview"
+        [[bind]]
         keys = "C-c C-x C-c"
         command = "org.columns"
         [[bind]]

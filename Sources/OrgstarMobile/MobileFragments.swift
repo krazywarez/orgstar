@@ -104,6 +104,18 @@ extension NSAttributedString.Key {
     static let orgEntityColor = NSAttributedString.Key("OrgEntityColor")
     /// The image an image link's line shows under it.
     static let orgImage = NSAttributedString.Key("OrgImage")
+    /// A LaTeX fragment's typeset math, on its first character.
+    static let orgLatex = NSAttributedString.Key("OrgLatex")
+}
+
+final class LatexBox: NSObject, @unchecked Sendable {
+    let rendering: LatexPreview.Rendering
+    /// An environment's image sits at the start of its first line, under the line's top.
+    let environment: Bool
+    init(_ rendering: LatexPreview.Rendering, environment: Bool) {
+        self.rendering = rendering
+        self.environment = environment
+    }
 }
 
 final class InlineImageBox: NSObject, @unchecked Sendable {
@@ -157,6 +169,35 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
         return found
     }
 
+    static func hasLatex(_ string: NSAttributedString) -> Bool {
+        var found = false
+        string.enumerateAttribute(.orgLatex, in: NSRange(location: 0, length: string.length)) { value, _, stop in
+            if value != nil { found = true; stop.pointee = true }
+        }
+        return found
+    }
+
+    /// Each LaTeX preview and where it goes: on the line's baseline where its hidden fragment
+    /// starts, or at the top of an environment's first line.
+    private var latexBoxes: [(box: LatexBox, frame: CGRect)] {
+        guard let string = (textElement as? NSTextParagraph)?.attributedString else { return [] }
+        var out: [(LatexBox, CGRect)] = []
+        string.enumerateAttribute(.orgLatex, in: NSRange(location: 0, length: string.length)) { value, range, _ in
+            guard let box = value as? LatexBox,
+                  let line = textLineFragments.first(where: { NSLocationInRange(range.location, $0.characterRange) }) else { return }
+            let bounds = line.typographicBounds
+            let size = box.rendering.size
+            let x = bounds.minX + line.locationForCharacter(at: range.location).x
+            if box.environment {
+                out.append((box, CGRect(x: x, y: bounds.minY + 2, width: size.width, height: size.height)))
+            } else {
+                let baseline = bounds.minY + line.glyphOrigin.y
+                out.append((box, CGRect(x: x, y: max(bounds.minY, baseline - (size.height - box.rendering.descent)), width: size.width, height: size.height)))
+            }
+        }
+        return out
+    }
+
     static func hasEntities(_ string: NSAttributedString) -> Bool {
         var found = false
         string.enumerateAttribute(.orgEntityDisplay, in: NSRange(location: 0, length: string.length)) { value, _, stop in
@@ -182,7 +223,7 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
     override var renderingSurfaceBounds: CGRect {
         var bounds = super.renderingSurfaceBounds
         if folded { bounds = bounds.insetBy(dx: -40, dy: 0).offsetBy(dx: 40, dy: 0) }
-        for rect in [bandRect, imageRect].compactMap({ $0 }) { bounds = bounds.union(rect) }
+        for rect in [bandRect, imageRect].compactMap({ $0 }) + latexBoxes.map(\.frame) { bounds = bounds.union(rect) }
         return bounds
     }
 
@@ -199,6 +240,10 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
         defer { UIGraphicsPopContext() }
         drawEntities(at: point)
         if let image, let rect = imageRect { image.image.draw(in: rect.offsetBy(dx: point.x, dy: point.y)) }
+        for (box, frame) in latexBoxes {
+            UIImage(cgImage: box.rendering.image, scale: CGFloat(box.rendering.image.width) / max(1, box.rendering.size.width), orientation: .up)
+                .draw(in: frame.offsetBy(dx: point.x, dy: point.y))
+        }
         if folded, let line = textLineFragments.first(where: { $0.characterRange.length > 0 }) ?? textLineFragments.first {
             let bounds = line.typographicBounds
             let ellipsis = NSAttributedString(string: " …", attributes: [

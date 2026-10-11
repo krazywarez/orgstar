@@ -146,6 +146,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-hide-leading-stars=         |                            |
 | =org-startup-align-all-tables=   |                            |
 | =org-startup-with-inline-images= |                            |
+| =org-startup-with-latex-preview= |                            |
 | =org-cycle-hide-drawer-startup=  |                            |
 | =org-cycle-hide-block-startup=   |                            |
 | =org-use-speed-commands=         |                            |
@@ -213,6 +214,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =spell-check=                        | boolean | =false= | Check spelling while typing, outside code, links, dates, tags and keywords.                                     |
 | =electric-pair-mode=                 | boolean | =true=  | Type brackets, =<>= and quotes in pairs. Mirrors =electric-pair-mode=.                                          |
 | =org-startup-with-inline-images=     | boolean | =false= | Show image links as images when a file opens. =#+STARTUP: inlineimages= / =noinlineimages= override it. Mirrors =org-startup-with-inline-images=. |
+| =org-startup-with-latex-preview=     | boolean | =false= | Show LaTeX fragments as typeset math when a file opens. =#+STARTUP: latexpreview= / =nolatexpreview= override it. Mirrors =org-startup-with-latex-preview=. |
 | =org-use-speed-commands=             | boolean | =false= | Single keys at the start of a heading line run commands (=n=, =p=, =t=, =c=, …). Mirrors =org-use-speed-commands=. |
 | =org-cycle-hide-drawer-startup=      | boolean | =true=  | Fold drawers when a file opens. =#+STARTUP: hidedrawers= / =nohidedrawers= override it. Mirrors =org-cycle-hide-drawer-startup=. |
 | =org-cycle-hide-block-startup=       | boolean | =false= | Fold blocks when a file opens. =#+STARTUP: hideblocks= / =nohideblocks= override it. Mirrors =org-cycle-hide-block-startup=. |
@@ -446,6 +448,7 @@ After you change a keyword line, press =C-c C-c= on it to read the file's settin
 | =hidestars=, =showstars=                      | Hide leading stars or show them.                                         |
 | =align=, =noalign=                            | Align every table when the file opens, or don't.                         |
 | =inlineimages=, =noinlineimages=              | Show image links as images, or don't.                                    |
+| =latexpreview=, =nolatexpreview=              | Show LaTeX fragments as typeset math, or don't.                          |
 | =shrink=                                      | Shrink table columns that have a width cookie.                           |
 | =logdone=, =lognotedone=, =nologdone=         | Record a time, a note, or nothing when an entry becomes done.            |
 | =logrepeat=, =lognoterepeat=, =nologrepeat=   | The same, when a repeating entry is completed.                           |
@@ -455,7 +458,7 @@ After you change a keyword line, press =C-c C-c= on it to read the file's settin
 
 After the startup visibility, orgstar applies each heading's =VISIBILITY= property and folds subtrees tagged =ARCHIVE=, unless =showeverything= is set.
 
-Completion offers every option of =org-startup-options=. Options not in the table above, such as =odd=, =entitiespretty=, =latexpreview=, =constSI= and the footnote options, are accepted and ignored.
+Completion offers every option of =org-startup-options=. Options not in the table above, such as =odd=, =entitiespretty=, =constSI= and the footnote options, are accepted and ignored.
 
 ** Setup files
 
@@ -526,7 +529,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | Emacs variable                                                     | Becomes                                                                                       |
 |--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------|
 | =fill-column=, =org-tags-column=, =appt-message-warning-time=, =org-deadline-warning-days= | The same key, when the value is a number                              |
-| =org-insert-heading-respect-content=, =org-list-allow-alphabetical=, =org-hide-emphasis-markers=, =org-pretty-entities=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=, =org-use-speed-commands=, =org-startup-with-inline-images=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-align-all-tables=, =org-startup-truncated= | The same key: =nil= or an empty list is =false=, anything else =true= |
+| =org-insert-heading-respect-content=, =org-list-allow-alphabetical=, =org-hide-emphasis-markers=, =org-pretty-entities=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=, =org-use-speed-commands=, =org-startup-with-inline-images=, =org-startup-with-latex-preview=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-align-all-tables=, =org-startup-truncated= | The same key: =nil= or an empty list is =false=, anything else =true= |
 | =org-hide-drawer-startup=, =org-hide-block-startup=                | =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=                               |
 | =org-M-RET-may-split-line=                                         | =org-M-RET-may-split-line=, from the =default= entry of an alist; other per-context entries aren't supported |
 | =org-agenda-prefix-format=                                         | =[org-agenda-prefix-format]=: a string sets all three views; an alist sets =agenda=, =todo= and =tags= |

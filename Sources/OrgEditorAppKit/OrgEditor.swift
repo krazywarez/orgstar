@@ -120,6 +120,7 @@ public final class OrgEditor: NSObject {
             if startup.folds != FoldState() { setFolds(startup.folds, wrappers: startup.wrappers) }
             shrunk = ShrunkColumns.startup(document.tree)
             if startup.inlineImages { showsImages = true }
+            if startup.latexPreview { showsLatex = true }
             if startup.alignTables { _ = perform(AlignAllTables()) }
             if !indented || !hideStars { restyleOutsideEditing(0..<utf16Length) }
         }
@@ -532,6 +533,7 @@ public final class OrgEditor: NSObject {
             case "org.fold.toggle", "org.fold.open", "org.fold.close": fold(id)
             case "org.narrow.subtree", "org.narrow.block", "org.narrow.toggle", "org.widen": narrow(id)
             case "org.toggle-inline-images": toggleImages()
+            case "org.latex-preview": toggleLatex()
             case "editor.toggle-spell-check": toggleSpellCheck()
             case "editor.complete": completeAtPoint()
             case "editor.toggle-truncate-lines": toggleTruncateLines()
@@ -648,6 +650,8 @@ public final class OrgEditor: NSObject {
 
     /// `org-toggle-inline-images`: lines that are only an image link show the image.
     public internal(set) var showsImages = false
+    /// `org-latex-preview`: LaTeX fragments show as typeset math.
+    public internal(set) var showsLatex = false
     /// The file's folder, for relative image paths.
     public var baseDirectory: URL? {
         didSet { if showsImages, oldValue != baseDirectory { refreshImages() } }
@@ -908,6 +912,9 @@ extension OrgEditor: NSTextLayoutManagerDelegate {
             if shaded.containing(offset) != nil { return ShadedFragment(textElement: textElement, range: range) }
             if let paragraph = textElement as? NSTextParagraph, ImageFragment.image(paragraph.attributedString) != nil {
                 return ImageFragment(textElement: textElement, range: range)
+            }
+            if let paragraph = textElement as? NSTextParagraph, LatexFragment.hasLatex(paragraph.attributedString) {
+                return LatexFragment(textElement: textElement, range: range)
             }
             if let paragraph = textElement as? NSTextParagraph, EntityFragment.hasEntities(paragraph.attributedString) {
                 return EntityFragment(textElement: textElement, range: range)
