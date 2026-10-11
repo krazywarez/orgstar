@@ -278,9 +278,9 @@ The app icon's badge counts the entries in the agenda's Overdue section that are
 
 * Export
 
-Export (in the reader's toolbar and the editor's More menu) offers HTML and Markdown. Either opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's HTML and Markdown export does.
+Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Rich Text (RTF) and Plain Text, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.
 
-PDF, ODT, LaTeX and plain-text export need Emacs and aren't available on iOS. See [[file:12-export.org][Export]].
+Word, ODT, LaTeX, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
 
 * Code blocks and tables
 
@@ -366,7 +366,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 * What the Mac has that iOS doesn't
 
 - Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond orgstar's interpreter, and tables that need Emacs.
-- PDF, ODT, LaTeX and plain-text export.
+- Word, ODT, LaTeX, ASCII and LaTeX-made PDF export.
 - The Mac and Doom keymaps, Vim keys, and =keymap.toml=.
 - Idle detection while a clock runs.
 - Import from Emacs.
