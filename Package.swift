@@ -16,6 +16,7 @@ let package = Package(
         .library(name: "OrgEditorAppKit", targets: ["OrgEditorAppKit"]),
         .executable(name: "OrgstarSpike", targets: ["OrgstarSpike"]),
         .library(name: "OrgApp", targets: ["OrgApp"]),
+        .library(name: "OrgWatchData", targets: ["OrgWatchData"]),
         .library(name: "OrgHighlight", targets: ["OrgHighlight"]),
         .executable(name: "Orgstar", targets: ["Orgstar"]),
         .executable(name: "OrgstarMobile", targets: ["OrgstarMobile"]),

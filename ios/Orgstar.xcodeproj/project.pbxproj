@@ -19,6 +19,13 @@
 		9BE045FD696469CA8D19F22C /* OrgHighlight in Frameworks */ = {isa = PBXBuildFile; productRef = 47D54A361A74FE9E2B0722BB /* OrgHighlight */; };
 		A05D351FCD8FE36B6A58E035 /* OrgstarShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D128CD70D4E88FAA82D23FD9 /* OrgstarShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AB68F3B4EE90C0961355E986 /* OrgCore in Frameworks */ = {isa = PBXBuildFile; productRef = 64DF80C4FBF50B0AF5DC6E33 /* OrgCore */; };
+		FD3273B85979ABA4F4A956A6 /* OrgstarWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 03F7E491D72C8915E6CB2542 /* OrgstarWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E9F7A5030D53B1C85C74BBCE /* OrgstarWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 8A7A8B14798B54AA57D91D55 /* OrgstarWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		0A61626884F48A1B4963D767 /* OrgWatchData in Frameworks */ = {isa = PBXBuildFile; productRef = 925F6F580D155C1597A5F07B /* OrgWatchData */; };
+		C6824548013D3A2076EAF9C7 /* OrgWatchData in Frameworks */ = {isa = PBXBuildFile; productRef = 2EFA0D9CD8BD435F6283F3AA /* OrgWatchData */; };
+		625E39E946591E6D43200C02 /* OrgstarWatch/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C908C5209CABA6130FD12641 /* OrgstarWatch/Assets.xcassets */; };
+		B376F3ABC97B1DD45ACF72E6 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
+		19C76E12526FA2C682420D8D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,6 +50,20 @@
 			remoteGlobalIDString = BBA37636EB6BBA564493899D;
 			remoteInfo = OrgstarQuickLook;
 		};
+		FF4EF01204CC241C9F18DFE9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A7FEE6F7EC27BB417D26E08E;
+			remoteInfo = OrgstarWatchWidgets;
+		};
+		3CD251D01E4C9C2DC6EA4271 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9571051E69F5D60E9CDFD246;
+			remoteInfo = OrgstarWatch;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -57,6 +78,28 @@
 				76BC65EF4BE629390064AE36 /* OrgstarWidgets.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7BC0D090FB1FD14A791531B5 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FD3273B85979ABA4F4A956A6 /* OrgstarWatchWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2EBC267BEE9E23673AE8DADC /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				E9F7A5030D53B1C85C74BBCE /* OrgstarWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -75,6 +118,13 @@
 		D72184D78ACF70837216BCBF /* OrgstarShare/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = OrgstarShare/Info.plist; sourceTree = "<group>"; };
 		ECD4A6B56983444E4E07CE63 /* Orgstar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Orgstar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F05C9F05F8A61806F30E9328 /* Orgstar/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Orgstar/Info.plist; sourceTree = "<group>"; };
+		8A7A8B14798B54AA57D91D55 /* OrgstarWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OrgstarWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		03F7E491D72C8915E6CB2542 /* OrgstarWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OrgstarWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C908C5209CABA6130FD12641 /* OrgstarWatch/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = OrgstarWatch/Assets.xcassets; sourceTree = "<group>"; };
+		BE8B69F4602C51BD30DCEBE3 /* OrgstarWatch/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = OrgstarWatch/Info.plist; sourceTree = "<group>"; };
+		512F8C0EB67DE2C4AB5051D4 /* OrgstarWatchWidgets/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = OrgstarWatchWidgets/Info.plist; sourceTree = "<group>"; };
+		970E22E052046C63CA01A88F /* OrgstarWatch/OrgstarWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarWatch/OrgstarWatch.entitlements; sourceTree = "<group>"; };
+		F75B5AA8EBA6F457B6D124AC /* OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -121,6 +171,16 @@
 			path = ../Sources/OrgstarWidgets;
 			sourceTree = "<group>";
 		};
+		0D702B6721D2BC88F89E3883 /* ../Sources/OrgstarWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../Sources/OrgstarWatch;
+			sourceTree = "<group>";
+		};
+		C2450FF4F75DA4598ABE47D6 /* ../Sources/OrgstarWatchWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../Sources/OrgstarWatchWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +217,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		19E8368F7C3E6B0B873B86D7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A61626884F48A1B4963D767 /* OrgWatchData in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BCA36593052CBFAC52822B63 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C6824548013D3A2076EAF9C7 /* OrgWatchData in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -167,6 +243,8 @@
 				D128CD70D4E88FAA82D23FD9 /* OrgstarShare.appex */,
 				54F0339BC26341A6010C1386 /* OrgstarQuickLook.appex */,
 				B54C32C5D364C02EE21DB092 /* OrgstarWidgets.appex */,
+				8A7A8B14798B54AA57D91D55 /* OrgstarWatch.app */,
+				03F7E491D72C8915E6CB2542 /* OrgstarWatchWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,6 +256,8 @@
 				2412EC8ED6427B76498FCD18 /* ../Sources/OrgstarQuickLook */,
 				7E85FA5E5BA11D0F6891693E /* ../Sources/OrgstarMobile */,
 				DE99BDA1BB90EEDFA8FF4CC2 /* ../Sources/OrgstarWidgets */,
+				0D702B6721D2BC88F89E3883 /* ../Sources/OrgstarWatch */,
+				C2450FF4F75DA4598ABE47D6 /* ../Sources/OrgstarWatchWidgets */,
 				E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */,
 				40FCC6CF7BFC065FCDD48D4E /* Support */,
 				0A2C978E52A76F0AA9F68BB5 /* Products */,
@@ -195,6 +275,11 @@
 				48A21BB1AB1E70D4429DCDE4 /* OrgstarQuickLook/Info.plist */,
 				6C2E41672FBF640AB5554A2B /* OrgstarWidgets/Info.plist */,
 				C0AFAE84CB7F8B19772BF250 /* OrgstarWidgets/OrgstarWidgets.entitlements */,
+				C908C5209CABA6130FD12641 /* OrgstarWatch/Assets.xcassets */,
+				BE8B69F4602C51BD30DCEBE3 /* OrgstarWatch/Info.plist */,
+				970E22E052046C63CA01A88F /* OrgstarWatch/OrgstarWatch.entitlements */,
+				512F8C0EB67DE2C4AB5051D4 /* OrgstarWatchWidgets/Info.plist */,
+				F75B5AA8EBA6F457B6D124AC /* OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements */,
 			);
 			name = Support;
 			sourceTree = "<group>";
@@ -210,6 +295,7 @@
 				843FAAECD041CD2466904790 /* Frameworks */,
 				287027B677CE75B2D4715EE6 /* Resources */,
 				269605D45C104F12CBCDC8FB /* Embed Foundation Extensions */,
+				2EBC267BEE9E23673AE8DADC /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
@@ -217,6 +303,7 @@
 				7F4807D68646366ED2DCA5C2 /* PBXTargetDependency */,
 				B35F6E044645C7D88B689DC1 /* PBXTargetDependency */,
 				D82DF00DA5607ABDDF199065 /* PBXTargetDependency */,
+				33887935CE813E63D8EA2CE7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				7E85FA5E5BA11D0F6891693E /* ../Sources/OrgstarMobile */,
@@ -299,6 +386,54 @@
 			productReference = B54C32C5D364C02EE21DB092 /* OrgstarWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		9571051E69F5D60E9CDFD246 /* OrgstarWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F016DC0514ED09D03670EA41 /* Build configuration list for PBXNativeTarget "OrgstarWatch" */;
+			buildPhases = (
+				CACD414798C1FBC733B9DAEF /* Sources */,
+				19E8368F7C3E6B0B873B86D7 /* Frameworks */,
+				D80B89150108F9E7F9B977F1 /* Resources */,
+				7BC0D090FB1FD14A791531B5 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A7690BEF9D6EBF5AF8DD1750 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0D702B6721D2BC88F89E3883 /* ../Sources/OrgstarWatch */,
+			);
+			name = OrgstarWatch;
+			packageProductDependencies = (
+				925F6F580D155C1597A5F07B /* OrgWatchData */,
+			);
+			productName = OrgstarWatch;
+			productReference = 8A7A8B14798B54AA57D91D55 /* OrgstarWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A7FEE6F7EC27BB417D26E08E /* OrgstarWatchWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B3C4C78C0194125D7118FBE /* Build configuration list for PBXNativeTarget "OrgstarWatchWidgets" */;
+			buildPhases = (
+				56106460CED1CCEA1C324745 /* Sources */,
+				BCA36593052CBFAC52822B63 /* Frameworks */,
+				A068258849F81C306955A8BE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C2450FF4F75DA4598ABE47D6 /* ../Sources/OrgstarWatchWidgets */,
+			);
+			name = OrgstarWatchWidgets;
+			packageProductDependencies = (
+				2EFA0D9CD8BD435F6283F3AA /* OrgWatchData */,
+			);
+			productName = OrgstarWatchWidgets;
+			productReference = 03F7E491D72C8915E6CB2542 /* OrgstarWatchWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -331,6 +466,8 @@
 				92364A1473ECC9B162FEAE51 /* OrgstarShare */,
 				BBA37636EB6BBA564493899D /* OrgstarQuickLook */,
 				E87BE20AFDC99FD25E1A163F /* OrgstarWidgets */,
+				9571051E69F5D60E9CDFD246 /* OrgstarWatch */,
+				A7FEE6F7EC27BB417D26E08E /* OrgstarWatchWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -368,6 +505,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D80B89150108F9E7F9B977F1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B376F3ABC97B1DD45ACF72E6 /* Localizable.xcstrings in Resources */,
+				625E39E946591E6D43200C02 /* OrgstarWatch/Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A068258849F81C306955A8BE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				19C76E12526FA2C682420D8D /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -399,6 +553,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CACD414798C1FBC733B9DAEF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		56106460CED1CCEA1C324745 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -416,6 +584,16 @@
 			isa = PBXTargetDependency;
 			target = E87BE20AFDC99FD25E1A163F /* OrgstarWidgets */;
 			targetProxy = 21312AB4CA947625620BE69C /* PBXContainerItemProxy */;
+		};
+		A7690BEF9D6EBF5AF8DD1750 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A7FEE6F7EC27BB417D26E08E /* OrgstarWatchWidgets */;
+			targetProxy = FF4EF01204CC241C9F18DFE9 /* PBXContainerItemProxy */;
+		};
+		33887935CE813E63D8EA2CE7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9571051E69F5D60E9CDFD246 /* OrgstarWatch */;
+			targetProxy = 3CD251D01E4C9C2DC6EA4271 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -637,6 +815,104 @@
 			};
 			name = Debug;
 		};
+		6AC21F8B86F031937A6F9E32 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = OrgstarWatch/OrgstarWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		F6ADDCBD8237C9C35784A7FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = OrgstarWatch/OrgstarWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		6CF223EB551BAB4C0891E24F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SKIP_INSTALL = YES;
+				CODE_SIGN_ENTITLEMENTS = OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarWatchWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		234143503756280C53E4F843 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SKIP_INSTALL = YES;
+				CODE_SIGN_ENTITLEMENTS = OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarWatchWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -685,6 +961,24 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		F016DC0514ED09D03670EA41 /* Build configuration list for PBXNativeTarget "OrgstarWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6AC21F8B86F031937A6F9E32 /* Debug */,
+				F6ADDCBD8237C9C35784A7FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4B3C4C78C0194125D7118FBE /* Build configuration list for PBXNativeTarget "OrgstarWatchWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6CF223EB551BAB4C0891E24F /* Debug */,
+				234143503756280C53E4F843 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -719,6 +1013,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
 			productName = OrgApp;
+		};
+		925F6F580D155C1597A5F07B /* OrgWatchData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
+			productName = OrgWatchData;
+		};
+		2EFA0D9CD8BD435F6283F3AA /* OrgWatchData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
+			productName = OrgWatchData;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
