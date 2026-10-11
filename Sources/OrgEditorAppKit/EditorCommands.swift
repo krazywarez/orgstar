@@ -105,6 +105,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.export.html", title: "Export to HTML", action: .app),
         EditorCommand(id: "app.export.html-open", title: "Export to HTML and Open", action: .app),
         EditorCommand(id: "app.export.markdown", title: "Export to Markdown", action: .app),
+        EditorCommand(id: "app.export.print-pdf", title: "Export to PDF", action: .app),
         EditorCommand(id: "app.export.pdf", title: "Export to PDF with Emacs", action: .app),
         EditorCommand(id: "app.export.odt", title: "Export to ODT with Emacs", action: .app),
         EditorCommand(id: "app.export.latex", title: "Export to LaTeX with Emacs", action: .app),

@@ -446,6 +446,25 @@ struct ContentView: View {
             } catch {
                 commands.show("Can't write \(target.lastPathComponent): \(error.localizedDescription)")
             }
+        case "print-pdf":
+            let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
+            let target = destination ?? ExportScope.output(for: url, name: name, extension: "pdf")
+            let html = HTMLExport.page(
+                text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path,
+                codeStyle: HTMLCodeStyle(highlighter: EditorView.highlighter, theme: theme)
+            )
+            commands.show("Exporting to PDF…")
+            Task {
+                do {
+                    let data = try await PDFExport.pdf(html: html, directory: url.deletingLastPathComponent())
+                    try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try data.write(to: target, options: .atomic)
+                    commands.show("Exported to \(target.lastPathComponent)")
+                    if open { NSWorkspace.shared.open(target) }
+                } catch {
+                    commands.show("Can't export \(target.lastPathComponent): \(error)")
+                }
+            }
         default:
             let functions = ["pdf": "org-latex-export-to-pdf", "odt": "org-odt-export-to-odt", "latex": "org-latex-export-to-latex", "text": "org-ascii-export-to-ascii"]
             guard let function = functions[format] else { return }

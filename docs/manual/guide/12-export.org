@@ -1,6 +1,6 @@
 #+TITLE: Export
-#+DESCRIPTION: Exporting Org files from orgstar to HTML and Markdown, and to PDF, LaTeX, ODT and plain text through Emacs.
-#+LEDE: orgstar exports HTML and Markdown itself, and hands PDF, LaTeX, ODT and plain text to Emacs on the Mac.
+#+DESCRIPTION: Exporting Org files from orgstar to HTML, Markdown and PDF, and to LaTeX, ODT and plain text through Emacs.
+#+LEDE: orgstar exports HTML, Markdown and PDF itself, on the Mac and iOS, and hands LaTeX, ODT, plain text and LaTeX-made PDF to Emacs on the Mac.
 
 * Exporting a file
 
@@ -13,20 +13,21 @@ Export works on the file in the current editor, using its text as it is now, sav
 | HTML               | Export to HTML                   | =C-c C-e h h= | =SPC m e h h=, =C-c C-e h h= | no          |
 | HTML, then open it | Export to HTML and Open          | =C-c C-e h o= | =SPC m e h o=, =C-c C-e h o= | no          |
 | Markdown           | Export to Markdown               | =C-c C-e m m= | =SPC m e m m=, =C-c C-e m m= | no          |
-| PDF                | Export to PDF with Emacs         | =C-c C-e l p= | =SPC m e l p=, =C-c C-e l p= | yes         |
+| PDF                | Export to PDF                    | —             | —                             | no          |
+| PDF through LaTeX  | Export to PDF with Emacs         | =C-c C-e l p= | =SPC m e l p=, =C-c C-e l p= | yes         |
 | LaTeX              | Export to LaTeX with Emacs       | =C-c C-e l l= | =C-c C-e l l=                 | yes         |
 | ODT                | Export to ODT with Emacs         | =C-c C-e o o= | =C-c C-e o o=                 | yes         |
 | Plain text         | Export to Plain Text with Emacs  | =C-c C-e t u= | =C-c C-e t u=                 | yes         |
 
 The keys follow Emacs's export dispatcher (=org-export-dispatch=). =C-c C-e= on its own is only a prefix: pause after it and the key hints list the formats. The =SPC m e= keys work in normal state; the =C-c C-e= keys work in every Doom state. The Mac preset has no keys for the single formats; its =⇧⌘E= opens the export dialog.
 
-All seven commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.tex=, =.odt= or =.txt=. =#+EXPORT_FILE_NAME:= names it instead, as in Org: relative to the Org file's folder (or absolute, or starting with =~=), with its extension replaced by the format's, so =#+EXPORT_FILE_NAME: out/report= writes =out/report.html=. A file already there is replaced. The message area shows "Exported to /name/".
+All eight commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.tex=, =.odt= or =.txt=. =#+EXPORT_FILE_NAME:= names it instead, as in Org: relative to the Org file's folder (or absolute, or starting with =~=), with its extension replaced by the format's, so =#+EXPORT_FILE_NAME: out/report= writes =out/report.html=. A file already there is replaced. The message area shows "Exported to /name/".
 
 ** The export dialog
 
 *Export…* in the command palette, or =⇧⌘E= in the Mac preset, opens a dialog. The Emacs and Doom presets have no key for it; bind =app.export-dialog= in =keymap.toml= if you want one (see [[file:03-keys.org][Keys and commands]]). The dialog has:
 
-- *Format*: HTML, Markdown, PDF (Emacs), ODT (Emacs), LaTeX (Emacs) or Plain text (Emacs).
+- *Format*: HTML, Markdown, PDF, PDF via LaTeX (Emacs), ODT (Emacs), LaTeX (Emacs) or Plain text (Emacs).
 - *Scope*: the whole file, or the subtree at the caret (Org's =C-s= in the dispatcher). A subtree is exported as a document of its own: its heading is the title, its text the body, and its child headings move up a level. The file's =#+= keywords still apply, and the heading's =EXPORT_TITLE=, =EXPORT_AUTHOR=, =EXPORT_DATE=, =EXPORT_EMAIL=, =EXPORT_OPTIONS=, =EXPORT_SELECT_TAGS=, =EXPORT_EXCLUDE_TAGS=, =EXPORT_HTML_HEAD= and =EXPORT_HTML_HEAD_EXTRA= properties override them. Its planning line and property drawer are left out. The choice is available when the caret is under a heading.
 - *Body only*: leave out the title and the page around the text (Org's =C-b=). HTML is then the table of contents, the text and the footnotes, without =<html>=, =<head>= or the title; Markdown has no title heading. Not available for PDF and ODT.
 - *Destination*: where =#+EXPORT_FILE_NAME:= says, or the subtree's =EXPORT_FILE_NAME= property for a subtree, else beside the Org file. *Choose…* picks another place and name. Changing the format changes the extension.
@@ -36,7 +37,7 @@ The dialog remembers the format and the *Open after export* setting.
 
 ** On iOS
 
-The Export menu offers HTML and Markdown. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac. PDF, LaTeX, ODT and plain text are not available on iOS.
+The Export menu offers HTML, Markdown and PDF. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac. LaTeX, ODT, plain text and PDF through LaTeX are not available on iOS.
 
 * HTML export
 
@@ -192,6 +193,16 @@ Comments, drawers, property drawers, planning lines, clock lines and keywords ar
 ** Citations
 
 HTML and Markdown export handle citations the same way; see Citations below.
+
+* PDF export
+
+Export to PDF makes the HTML export into a PDF, laid out and split into pages by the system's web engine as printing does. It needs neither Emacs nor TeX, and works on iOS. The PDF has what the HTML export has: the title, the byline, the table of contents, colored code, tables, images and math (MathJax, which needs a network connection). For the page:
+
+- Colors are always the light ones, whatever the system's appearance.
+- Pages are US Letter where that is the usual size and A4 elsewhere; on the Mac, the paper size set for printing.
+- Code blocks, tables, figures and quotes are kept on one page when they fit, and a heading is not left at the bottom of a page.
+
+For typeset output with LaTeX's classes and packages, use Export to PDF with Emacs instead (see /Exporting through Emacs/).
 
 * Markdown export
 

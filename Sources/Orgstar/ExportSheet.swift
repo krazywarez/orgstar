@@ -17,14 +17,14 @@ struct ExportSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     static let formats: [(id: String, title: String, ext: String)] = [
-        ("html", "HTML", "html"), ("markdown", "Markdown", "md"), ("pdf", "PDF (Emacs)", "pdf"),
+        ("html", "HTML", "html"), ("markdown", "Markdown", "md"), ("print-pdf", "PDF", "pdf"), ("pdf", "PDF via LaTeX (Emacs)", "pdf"),
         ("odt", "ODT (Emacs)", "odt"), ("latex", "LaTeX (Emacs)", "tex"), ("text", "Plain text (Emacs)", "txt"),
     ]
 
     private var ext: String { Self.formats.first { $0.id == format }?.ext ?? "html" }
     private var chosen: URL { destination ?? target(ext, subtree) }
     /// PDF and ODT are whole documents.
-    private var allowsBodyOnly: Bool { !["pdf", "odt"].contains(format) }
+    private var allowsBodyOnly: Bool { !["pdf", "print-pdf", "odt"].contains(format) }
 
     var body: some View {
         Form {
