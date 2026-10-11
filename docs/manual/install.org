@@ -67,8 +67,11 @@ See [[file:guide/14-ios.org][iPhone and iPad]] for what it does.
 
 * Updating
 
-orgstar doesn't update itself. With Homebrew, run =brew upgrade --cask orgstar=; otherwise
-download the new DMG and replace the app. From source, pull and build again:
+orgstar checks for a new release once a day, after asking on its second launch whether it
+may; orgstar ▸ Check for Updates… checks now, and Settings ▸ General has the switch. An update
+downloads, is checked against the key the releases are signed with, and installs when you
+agree. With Homebrew, =brew upgrade --cask orgstar= works too; the cask leaves updating to the
+app otherwise. From source, pull and build again (a build without a Developer ID never checks):
 
 #+BEGIN_SRC sh
 git pull

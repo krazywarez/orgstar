@@ -9,6 +9,7 @@ cask "orgstar" do
   url "https://gitbay.org/krz/orgstar/releases/download/v#{version}/orgstar-#{version}.dmg"
   name "orgstar"
   desc "Native org-mode editor and agenda"
+  auto_updates true
   homepage "https://gitbay.org/krz/orgstar"
 
   depends_on macos: :tahoe

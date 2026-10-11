@@ -43,7 +43,7 @@
 - Modify: `Package.swift` (dependencies; `Orgstar` target)
 - Modify: `scripts/build-app.sh`
 
-- [ ] Add the dependency and the product to the app target:
+- [x] Add the dependency and the product to the app target:
 
 ```swift
 .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.7.0"),
@@ -51,7 +51,7 @@
 .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgEditorAppKit", "OrgHighlight", .product(name: "Sparkle", package: "Sparkle")]),
 ```
 
-- [ ] In `build-app.sh`, after copying the binary: copy the framework from the SwiftPM artifact and give the executable an rpath to it.
+- [x] In `build-app.sh`, after copying the binary: copy the framework from the SwiftPM artifact and give the executable an rpath to it.
 
 ```sh
 sparkle="$(find .build/artifacts -path '*Sparkle.xcframework/macos-*/Sparkle.framework' -maxdepth 6 | head -1)"
@@ -61,7 +61,7 @@ ditto "$sparkle" "$app/Contents/Frameworks/Sparkle.framework"
 install_name_tool -add_rpath @executable_path/../Frameworks "$app/Contents/MacOS/Orgstar"
 ```
 
-- [ ] Sign Sparkle's inner pieces before the app, with the same identity and flags (Sparkle's documented order), inside the final signing block:
+- [x] Sign Sparkle's inner pieces before the app, with the same identity and flags (Sparkle's documented order), inside the final signing block:
 
 ```sh
 fw="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
@@ -70,7 +70,7 @@ for item in "$fw/XPCServices/Installer.xpc" "$fw/XPCServices/Downloader.xpc" "$f
 done
 ```
 
-- [ ] Add `SUFeedURL` and `SUPublicEDKey` to the generated Info.plist only when `sign` is not `-`:
+- [x] Add `SUFeedURL` and `SUPublicEDKey` to the generated Info.plist only when `sign` is not `-`:
 
 ```sh
 if [ "$sign" != "-" ]; then
@@ -82,8 +82,8 @@ fi
 
 and `${feed_keys}` in the plist heredoc after `LSMinimumSystemVersion`. The public key is pasted into `scripts/release-mac.sh` as a default for `ORGSTAR_ED_PUBLIC_KEY` once Task 3 generates it.
 
-- [ ] Verify: `sh scripts/build-app.sh`, then `otool -l .build/app/orgstar.app/Contents/MacOS/Orgstar | grep -A2 LC_RPATH` shows the Frameworks rpath, `open .build/app/orgstar.app` launches, and `codesign --verify --strict --deep .build/app/orgstar.app` passes.
-- [ ] Commit "Link Sparkle and bundle its framework".
+- [x] Verify: `sh scripts/build-app.sh`, then `otool -l .build/app/orgstar.app/Contents/MacOS/Orgstar | grep -A2 LC_RPATH` shows the Frameworks rpath, `open .build/app/orgstar.app` launches, and `codesign --verify --strict --deep .build/app/orgstar.app` passes.
+- [x] Commit "Link Sparkle and bundle its framework".
 
 ### Task 2: Check for Updates… and the setting
 
@@ -91,7 +91,7 @@ and `${feed_keys}` in the plist heredoc after `LSMinimumSystemVersion`. The publ
 - Modify: `Sources/Orgstar/OrgstarApp.swift` (`AppDelegate` at line 151; `.commands`)
 - Modify: `Sources/Orgstar/OrgstarApp.swift` (`SettingsView`, the General tab at line 551)
 
-- [ ] In the app delegate, one controller for the process:
+- [x] In the app delegate, one controller for the process:
 
 ```swift
 import Sparkle
@@ -100,7 +100,7 @@ let updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegat
 
 Without a feed URL (dev builds) the updater logs that it can't start and `canCheckForUpdates` stays false; that is the intended dev behaviour.
 
-- [ ] Menu item after About, following Sparkle's SwiftUI sample:
+- [x] Menu item after About, following Sparkle's SwiftUI sample:
 
 ```swift
 CommandGroup(after: .appInfo) {
@@ -111,9 +111,9 @@ CommandGroup(after: .appInfo) {
 
 `canCheckForUpdates` is KVO-observable; wrap the updater in a small `@Observable` holder that observes it, so the button enables once the updater starts.
 
-- [ ] Settings ▸ General: a toggle bound to `updater.automaticallyChecksForUpdates`, shown only when `canCheckForUpdates` is true, labelled "Check for updates automatically".
-- [ ] Test by hand: a dev build shows the item disabled and no toggle; a `ORGSTAR_SIGN=<Developer ID>` build with a local feed (Task 4) shows both.
-- [ ] Commit "Check for Updates… and automatic checks".
+- [x] Settings ▸ General: a toggle bound to `updater.automaticallyChecksForUpdates`, shown only when `canCheckForUpdates` is true, labelled "Check for updates automatically".
+- [x] Test by hand: a dev build shows the item disabled and no toggle; a `ORGSTAR_SIGN=<Developer ID>` build with a local feed (Task 4) shows both.
+- [x] Commit "Check for Updates… and automatic checks".
 
 ### Task 3: Keys and the appcast file
 
@@ -122,8 +122,8 @@ CommandGroup(after: .appInfo) {
 - Create: `scripts/appcast-add.sh`
 - Modify: `docs/manual/orgo.toml` only if orgo needs the file listed to copy it (check with `scripts/publish-docs.sh --dry-run` and `ls` of the built site; `favicon.svg` and `style.css` are copied today, so it should not)
 
-- [ ] Generate the key pair once on the release Mac: `"$(find .build/artifacts -name generate_keys -type f | head -1)"`. The private key goes to the login keychain; paste the printed public key as the `ORGSTAR_ED_PUBLIC_KEY` default in `release-mac.sh`.
-- [ ] The empty appcast:
+- [ ] Generate the key pair once on the release Mac (not done here; it writes a private key to the login keychain): `"$(find .build/artifacts -name generate_keys -type f | head -1)"`. The private key goes to the login keychain; paste the printed public key as the `ORGSTAR_ED_PUBLIC_KEY` default in `release-mac.sh`.
+- [x] The empty appcast:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -135,7 +135,7 @@ CommandGroup(after: .appInfo) {
 </rss>
 ```
 
-- [ ] `scripts/appcast-add.sh <appcast> <version> <build> <dmg> <notes-file>`: runs `sign_update "$dmg"` (found under `.build/artifacts` like `generate_keys`), which prints `sparkle:edSignature="…" length="…"`, and inserts after `<link>…</link>` in the channel:
+- [x] `scripts/appcast-add.sh <appcast> <version> <build> <dmg> <notes-file>`: runs `sign_update "$dmg"` (found under `.build/artifacts` like `generate_keys`), which prints `sparkle:edSignature="…" length="…"`, and inserts after `<link>…</link>` in the channel:
 
 ```xml
     <item>
@@ -152,8 +152,8 @@ CommandGroup(after: .appInfo) {
 
 Insertion is a `sed`/`awk` on the first `</link>` after `<channel>`; the script refuses a version already present (`grep -q "<sparkle:shortVersionString>$version<"`) and ends with `xmllint --noout "$appcast"`.
 
-- [ ] Verify with a throwaway copy: `scripts/appcast-add.sh /tmp/a.xml 0.2.0 365 .build/release/orgstar-0.2.0.dmg notes.txt` twice; the second run exits non-zero naming the version.
-- [ ] Commit "Appcast file and appcast-add.sh".
+- [x] Verify with a throwaway copy: `scripts/appcast-add.sh /tmp/a.xml 0.2.0 365 .build/release/orgstar-0.2.0.dmg notes.txt` twice; the second run exits non-zero naming the version.
+- [x] Commit "Appcast file and appcast-add.sh".
 
 ### Task 4: Release script and cask
 
@@ -161,7 +161,7 @@ Insertion is a `sed`/`awk` on the first `</link>` after `<channel>`; the script 
 - Modify: `scripts/release-mac.sh`
 - Modify: `packaging/orgstar.rb`
 
-- [ ] After `gitbay release asset add` and before the tap section, add the appcast entry through a merge request, mirroring the tap block:
+- [x] After `gitbay release asset add` and before the tap section, add the appcast entry through a merge request, mirroring the tap block:
 
 ```sh
 notes="Universal (Apple silicon and Intel), macOS 26 or later. Notarized."
@@ -180,7 +180,14 @@ sh scripts/publish-docs.sh
 
 `$notes` replaces the literal string already passed to `gitbay release create`. With `ORGSTAR_PUBLISH=0` the script runs `appcast-add.sh` on a copy under `$out` and prints the entry instead, so a dry run shows the signature.
 
-- [ ] Cask: add `auto_updates true` after `desc`, so `brew upgrade` leaves updating to the app.
-- [ ] End-to-end check before the first real release: build with a Developer ID, point a running copy at a local appcast with `defaults write sh.krz.orgstar SUFeedURL file:///tmp/a.xml` (Sparkle reads the feed from user defaults ahead of Info.plist), Check for Updates… offers the entry and installs the DMG; then `defaults delete sh.krz.orgstar SUFeedURL`.
-- [ ] Manual: `docs/manual/guide/01-files-and-folders.org` or `install.org` gets a paragraph on updates (menu item, the setting, that the cask has `auto_updates`).
-- [ ] Commit "Release script writes the appcast; cask auto_updates".
+- [x] Cask: add `auto_updates true` after `desc`, so `brew upgrade` leaves updating to the app.
+- [ ] End-to-end check before the first real release (needs a Developer ID build and the key): build with a Developer ID, point a running copy at a local appcast with `defaults write sh.krz.orgstar SUFeedURL file:///tmp/a.xml` (Sparkle reads the feed from user defaults ahead of Info.plist), Check for Updates… offers the entry and installs the DMG; then `defaults delete sh.krz.orgstar SUFeedURL`.
+- [x] Manual: `docs/manual/guide/01-files-and-folders.org` or `install.org` gets a paragraph on updates (menu item, the setting, that the cask has `auto_updates`).
+- [x] Commit "Release script writes the appcast; cask auto_updates".
+
+## As built
+
+- Sparkle 2.10 from its SwiftPM package. `scripts/build-app.sh` copies the framework into `Contents/Frameworks`, adds the rpath, and for signed builds writes `SUFeedURL` and `SUPublicEDKey` (from `ORGSTAR_ED_PUBLIC_KEY`) into the Info.plist; a dev build has neither, so `Updates.start()` doesn't start the updater and Check for Updates… stays disabled.
+- `Sources/Orgstar/Updates.swift` holds the `SPUStandardUpdaterController`, `canCheck` through Sparkle's KVO publisher, and the automatic-checks setting, shown in Settings ▸ General only when the updater runs.
+- `scripts/appcast-add.sh` signs the DMG with `sign_update` and prepends the item; `SIGN_UPDATE` names another signer for a dry run. `scripts/release-mac.sh` runs it on a copy with `ORGSTAR_PUBLISH=0`, and for real after the DMG upload, through a merge request, then publishes the manual, which carries `docs/manual/appcast.xml`.
+- Checked: the dev bundle launches with the framework and passes `codesign --verify --strict --deep`; the appcast script with a stub signer, twice (the second run refuses the version); `release-mac.sh` parses. Not checked: a signed build against a local appcast, which needs the Developer ID and the generated key.

@@ -6,6 +6,11 @@
 #   ORGSTAR_NOTARY   notarytool keychain profile (default: orgstar)
 #   ORGSTAR_TAP      the homebrew-tap checkout (default: ../homebrew-tap)
 #   ORGSTAR_PUBLISH  0 builds and notarizes without tagging, uploading or touching the tap
+#   ORGSTAR_ED_PUBLIC_KEY  the Sparkle public key, as generate_keys printed it (the private key
+#                    is in the login keychain); passed on to build-app.sh and sign_update
+#
+# Updates: after the DMG is uploaded, the release goes into docs/manual/appcast.xml through a
+# merge request on main, and the manual is published, which serves the appcast.
 set -eu
 
 cd "$(dirname "$0")/.."
@@ -16,6 +21,9 @@ tap="${ORGSTAR_TAP:-../homebrew-tap}"
 publish="${ORGSTAR_PUBLISH:-1}"
 sign="${ORGSTAR_SIGN:-$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)}"
 [ -n "$sign" ] || { echo "No Developer ID Application identity in the keychain." >&2; exit 1; }
+: "${ORGSTAR_ED_PUBLIC_KEY:?set ORGSTAR_ED_PUBLIC_KEY to the key generate_keys printed}"
+export ORGSTAR_ED_PUBLIC_KEY
+notes="Universal (Apple silicon and Intel), macOS 26 or later. Notarized."
 
 if [ "$publish" != 0 ]; then
     [ -z "$(git status --porcelain)" ] || { echo "The working tree has changes." >&2; exit 1; }
@@ -44,13 +52,35 @@ xcrun stapler staple "$app"
 spctl --assess --type open --context context:primary-signature -v "$dmg"
 sha="$(shasum -a 256 "$dmg" | cut -d' ' -f1)"
 echo "$dmg $sha"
+printf '%s\n' "$notes" > "$out/notes.txt"
 
-[ "$publish" != 0 ] || exit 0
+if [ "$publish" = 0 ]; then
+    # The appcast entry on a copy, so a dry run shows the signature.
+    cp docs/manual/appcast.xml "$out/appcast.xml"
+    sh scripts/appcast-add.sh "$out/appcast.xml" "$version" "$build" "$dmg" "$out/notes.txt"
+    exit 0
+fi
 
 git tag -s "$tag" -m "orgstar $version"
 git push origin "$tag"
-gitbay release create krz/orgstar "$tag" --title "orgstar $version" --notes "Universal (Apple silicon and Intel), macOS 26 or later. Notarized."
+gitbay release create krz/orgstar "$tag" --title "orgstar $version" --notes "$notes"
 gitbay release asset add krz/orgstar "$tag" "orgstar-$version.dmg" < "$dmg"
+
+# The appcast goes in through a merge request, as every change to main does, after the DMG
+# it points at is up; then the manual, which serves it, is published.
+branch="appcast-$version"
+git switch -q -c "$branch"
+sh scripts/appcast-add.sh docs/manual/appcast.xml "$version" "$build" "$dmg" "$out/notes.txt"
+git add docs/manual/appcast.xml
+git commit -q -m "Appcast for $version"
+git push -q -u origin "$branch"
+mr="$(gitbay mr create --source "$branch" --target main --title "Appcast for $version" --body "Sparkle entry for orgstar $version." --json | sed -n 's/.*"number":\([0-9]*\).*/\1/p')"
+gitbay mr merge "$mr" --strategy ff
+git switch -q main
+git pull -q --ff-only
+git branch -d "$branch"
+git push -q origin --delete "$branch"
+sh scripts/publish-docs.sh
 
 # The cask goes in through a merge request, as every change to the tap's main does.
 branch="orgstar-$version"
