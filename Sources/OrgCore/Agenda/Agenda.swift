@@ -84,7 +84,13 @@ public struct AgendaDay: Sendable, Equatable {
 
 public struct AgendaOptions: Sendable, Equatable {
     public var deadlineWarningDays = 14
+    /// `org-agenda-use-time-grid`, and `org-agenda-time-grid`'s conditions (`daily`, `weekly`,
+    /// `today`, `require-timed`, `remove-match`) and times.
+    public var useTimeGrid = true
+    public var gridWhen: Set<String> = ["daily", "today", "require-timed"]
     public var gridTimes = [800, 1000, 1200, 1400, 1600, 1800, 2000]
+    /// `org-agenda-show-current-time-in-grid`.
+    public var showCurrentTimeInGrid = true
     public var gridTrailing = " ┄┄┄┄┄ "
     public var gridLine = "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
     public var currentTimeLine = "← now ───────────────────────────────────────────────"
@@ -184,8 +190,7 @@ public enum Agenda {
             var items: [AgendaItem] = []
             for source in sources { items += entries(source, day: day, today: today, options: options) }
             let isToday = day == today
-            if (isToday || days == 1), items.contains(where: { $0.timeOfDay != nil }) {
-                let grid = grid(day: day, isToday: isToday, now: now, options: options)
+            if let grid = grid(items, days: days, isToday: isToday, now: now, options: options) {
                 items = options.strategy("agenda").contains("time-up") ? grid + items : items + grid
             }
             return AgendaDay(day: day, isToday: isToday, header: header(day), items: AgendaSort.sort(markBlocked(items, options: options), view: "agenda", options: options))
@@ -634,8 +639,14 @@ public enum Agenda {
 
     // MARK: - Grid, sorting, headers
 
-    /// `org-agenda-add-time-grid-maybe`.
-    static func grid(day: Int, isToday: Bool, now: (hour: Int, minute: Int), options: AgendaOptions) -> [AgendaItem] {
+    /// `org-agenda-add-time-grid-maybe`: the grid lines for a day with `items`, or nil when
+    /// the day has no grid.
+    static func grid(_ items: [AgendaItem], days: Int, isToday: Bool, now: (hour: Int, minute: Int), options: AgendaOptions) -> [AgendaItem]? {
+        let when = options.gridWhen
+        guard options.useTimeGrid, (isToday && when.contains("today")) || (days == 1 && when.contains("daily")) || when.contains("weekly") else { return nil }
+        let have = Set(items.compactMap(\.timeOfDay))
+        if when.contains("require-timed"), have.isEmpty { return nil }
+        let remove = when.contains("remove-match")
         func item(_ kind: AgendaItem.Kind, _ text: String, _ dotime: String) -> AgendaItem {
             var txt = text
             let timed = timeFields(&txt, tagString: "", dotime: .string(dotime), trailing: options.gridTrailing)
@@ -648,10 +659,10 @@ public enum Agenda {
             grid.alpha = AgendaSort.alpha(txt, keywords: [])
             return grid
         }
-        var new = options.gridTimes.reversed().map { t in
+        var new = options.gridTimes.filter { !(remove && have.contains($0)) }.reversed().map { t in
             item(.timeGrid, options.gridLine, String(format: "%02d:%02d", t / 100, t % 100))
         }
-        if isToday {
+        if isToday, options.showCurrentTimeInGrid {
             new.insert(item(.currentTime, options.currentTimeLine, String(format: "%02d:%02d ", now.hour, now.minute)), at: 0)
         }
         return new

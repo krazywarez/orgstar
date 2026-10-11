@@ -488,7 +488,7 @@ public struct EmacsImport: Sendable {
              "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
              "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies",
              "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options", "org-clock-out-remove-zero-time-clocks",
-             "org-agenda-sort-notime-is-late", "org-agenda-sort-noeffort-is-high":
+             "org-agenda-sort-notime-is-late", "org-agenda-sort-noeffort-is-high", "org-agenda-use-time-grid", "org-agenda-show-current-time-in-grid":
             add(name, .bool(truthy))
         case "org-archive-location":
             guard let location = value.string, location.contains("::") else { return note("not a file::heading location") }
@@ -524,6 +524,12 @@ public struct EmacsImport: Sendable {
             } else {
                 add(name, .bool(truthy))
             }
+        case "org-agenda-time-grid":
+            // `((daily today require-timed) (800 1000 …) "......" "----------------")`: the
+            // strings are how Emacs draws the lines.
+            guard let parts = value.elements, parts.count >= 2, let when = parts[0].elements, let times = parts[1].elements else { return note("not a time grid") }
+            add("org-agenda-time-grid.when", .string(when.compactMap(\.symbol).joined(separator: " ")))
+            add("org-agenda-time-grid.times", .string(times.compactMap { $0.integer.map(String.init) ?? $0.string }.joined(separator: " ")))
         case "org-agenda-sorting-strategy":
             // `((agenda habit-down time-up) (todo urgency-down))`, or one list for every view.
             func keys(_ items: [Sexp]) -> String? {

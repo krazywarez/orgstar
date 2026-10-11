@@ -101,9 +101,16 @@ public enum OrgPreferences {
         options.todoIgnoreDeadlines = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreDeadlines", defaults), deadlines: true) ?? .off
         options.todoIgnoreTimestamp = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreTimestamp", defaults)) ?? .off
         options.tagsTodoHonorIgnoreOptions = bool("agendaTagsTodoHonorIgnore", defaults)
+        for (view, key) in [("agenda", "agendaPrefixAgenda"), ("todo", "agendaPrefixTodo"), ("tags", "agendaPrefixTags")] {
+            options.prefixFormat[view] = string(key, defaults)
+        }
         for (view, key) in [("agenda", "agendaSortAgenda"), ("todo", "agendaSortTodo"), ("tags", "agendaSortTags"), ("search", "agendaSortSearch")] {
             options.sortingStrategy[view] = sortingStrategy(string(key, defaults))
         }
+        options.useTimeGrid = bool("agendaUseTimeGrid", defaults)
+        options.showCurrentTimeInGrid = bool("agendaShowCurrentTime", defaults)
+        options.gridWhen = Set(string("agendaTimeGridWhen", defaults).split(whereSeparator: \.isWhitespace).map(String.init))
+        options.gridTimes = string("agendaTimeGridTimes", defaults).split(whereSeparator: \.isWhitespace).compactMap { Int($0) }
         options.sortNotimeIsLate = bool("agendaSortNotimeIsLate", defaults)
         options.sortNoeffortIsHigh = bool("agendaSortNoeffortIsHigh", defaults)
         return options

@@ -241,6 +241,24 @@ public struct AgendaDayGroup: Sendable, Equatable, Identifiable {
     /// Today only: deadlines and scheduled entries from before today, oldest first.
     public let overdue: [AgendaRow]
     public let rows: [AgendaRow]
+    /// `org-agenda-time-grid` lines: each time, before the row it precedes in Org's order
+    /// (`rows.count` for after the last).
+    public var grid: [GridLine] = []
+    /// Org puts the current-time line on this day.
+    public var showsNow = false
+
+    public struct GridLine: Sendable, Equatable {
+        public let before: Int
+        /// `HHMM`.
+        public let time: Int
+    }
+
+    /// What a day shows, in order: rows by index, grid lines and the now line.
+    public enum Line: Sendable, Equatable {
+        case row(Int)
+        case grid(Int)
+        case now
+    }
 
     public var id: Int { day }
     public var isEmpty: Bool { overdue.isEmpty && rows.isEmpty }
@@ -265,8 +283,24 @@ public struct AgendaDayGroup: Sendable, Equatable, Identifiable {
     /// `now` (`HHMM`), or after the last timed row when all have started. Nil on other days
     /// and when no row is timed, as Org adds the line only among timed entries.
     public func nowIndex(now: Int) -> Int? {
-        guard isToday else { return nil }
-        return AgendaRows.nowIndex(rows, now: now)
+        guard isToday, showsNow else { return nil }
+        return AgendaRows.nowIndex(rows, now: now) ?? (grid.isEmpty ? nil : 0)
+    }
+
+    /// The rows with the grid lines and, at `now` (`HHMM`), the now line among them; lines
+    /// before the same row go by time.
+    public func lines(now: Int) -> [Line] {
+        let nowAt = nowIndex(now: now)
+        var lines: [Line] = []
+        for index in 0...rows.count {
+            var marks = grid.filter { $0.before == index }.map { ($0.time, Line.grid($0.time)) }
+            if index == nowAt { marks.append((now, .now)) }
+            lines += marks.enumerated().sorted { a, b in
+                a.element.0 != b.element.0 ? a.element.0 < b.element.0 : a.offset < b.offset
+            }.map(\.element.1)
+            if index < rows.count { lines.append(.row(index)) }
+        }
+        return lines
     }
 }
 
@@ -290,8 +324,13 @@ public enum AgendaRows {
         for day in days {
             var overdue: [AgendaRow] = []
             var rows: [AgendaRow] = []
-            for item in day.items where keep(item) {
-                guard let row = AgendaRow(item: item, day: day.day, today: today) else { continue }
+            // Grid lines by the number of Org rows before them; filters leave them.
+            var grid: [(ordinal: Int, time: Int)] = []
+            var showsNow = false
+            for item in day.items {
+                if item.kind == .timeGrid, let time = item.timeOfDay { grid.append((rows.count, time)) }
+                if item.kind == .currentTime { showsNow = true }
+                guard keep(item), let row = AgendaRow(item: item, day: day.day, today: today) else { continue }
                 if day.day == today, item.habit == nil, let planning = row.planningDay, planning < today {
                     overdue.append(row)
                 } else {
@@ -303,7 +342,10 @@ public enum AgendaRows {
             }.map(\.element)
             let dayEvents = eventDays.filter { $0.1.contains(day.day) }.map { AgendaRow(event: $0.0, day: day.day, calendar: calendar) }
             rows = merge(rows, events: dayEvents)
-            let group = AgendaDayGroup(day: day.day, isToday: day.day == today, header: day.header, overdue: unique(overdue), rows: unique(rows))
+            let orgIndices = rows.indices.filter { !rows[$0].isEvent }
+            var group = AgendaDayGroup(day: day.day, isToday: day.day == today, header: day.header, overdue: unique(overdue), rows: unique(rows))
+            group.grid = grid.map { .init(before: $0.ordinal < orgIndices.count ? orgIndices[$0.ordinal] : rows.count, time: $0.time) }
+            group.showsNow = showsNow
             if group.isEmpty, !group.isToday, !showAllDates { continue }
             groups.append(group)
         }

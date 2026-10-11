@@ -114,7 +114,7 @@ org-agenda-show-all-dates = true
 
 Today's past deadlines and entries scheduled on earlier days, habits excepted, go in a group headed =Overdue= with their count, above today's other entries. The oldest date comes first; entries with the same date keep Org's order. Click or tap the header to collapse or expand the group; it stays as you left it.
 
-On today, a line marked with the current time sits between the timed entries: before the first entry that starts later, or after the last one when all have started. It shows only when today has timed entries, as Org's =now= line does. Org's time grid (the lines at 8:00, 10:00 and so on) isn't shown.
+Days with a time grid show dotted lines at the grid's times among the timed entries, as =org-agenda-time-grid= does: by default at 8:00, 10:00 and every two hours to 20:00, on today and in one-day views, when the day has a timed entry. An entry at a grid line's time comes before the line. On today, a line marked with the current time sits among them: before the first entry that starts later, or after the last one when all have started. The grid's days and times are set in =[org-agenda-time-grid]= in =config.toml=, =org-agenda-use-time-grid= turns the grid off, and =org-agenda-show-current-time-in-grid= the now line (see [[file:13-configuration.org][Configuration]]). With the grid off there is no now line, as in Org.
 
 ** Sorting
 

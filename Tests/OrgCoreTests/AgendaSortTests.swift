@@ -104,3 +104,53 @@ struct AgendaSortTests {
         }
     }
 }
+
+/// `org-agenda-time-grid` and `org-agenda-use-time-grid` against Emacs.
+struct AgendaTimeGridTests {
+    static let file = """
+    * Breakfast
+    <2026-10-05 Mon 09:00>
+    * Lunch
+    <2026-10-05 Mon 14:00>
+    * Untimed today
+    SCHEDULED: <2026-10-05 Mon>
+    * Tomorrow untimed
+    SCHEDULED: <2026-10-06 Tue>
+    * Yesterday timed
+    <2026-10-04 Sun 10:30>
+
+    """
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func gridsLikeOrg() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        let cases: [(use: Bool, when: [String], times: [Int], now: Bool, span: Int, start: Int)] = [
+            (true, ["daily", "today", "require-timed"], [800, 1000, 1200, 1400, 1600, 1800, 2000], true, 3, -1),
+            (false, ["daily", "today", "require-timed"], [800, 1000], true, 3, -1),
+            (true, ["weekly", "require-timed"], [900, 1200], true, 3, -1),
+            (true, ["weekly"], [900, 1200], false, 3, -1),
+            (true, ["daily", "today", "remove-match"], [900, 1000, 1100, 1400], true, 3, -1),
+            (true, ["daily"], [800, 1300], true, 1, 1),
+            (true, ["daily", "require-timed"], [800, 1300], true, 1, 1),
+            (true, ["today"], [800, 1300], true, 1, 0),
+        ]
+        for c in cases {
+            let date = Days.date(today + c.start)
+            let grid = "'((\(c.when.joined(separator: " "))) (\(c.times.map(String.init).joined(separator: " "))) \"......\" \"----------------\")"
+            let form = "(let ((org-agenda-use-time-grid \(c.use ? "t" : "nil")) (org-agenda-time-grid \(grid)) (org-agenda-show-current-time-in-grid \(c.now ? "t" : "nil"))) (org-agenda-list nil \"\(String(format: "%04d-%02d-%02d", date.year, date.month, date.day))\" \(c.span)))"
+            let emacs = try AgendaOracle.run(files: [("g.org", Self.file)], form: form, today: today, hour: 9, minute: 30)
+            let defaults = OrgSettings.default.withTodoKeywords(AgendaOracle.keywords)!
+            var options = AgendaOptions.terminal
+            options.useTimeGrid = c.use
+            options.gridWhen = Set(c.when)
+            options.gridTimes = c.times
+            options.showCurrentTimeInGrid = c.now
+            let ours = Agenda.list([AgendaSource(path: "g.org", text: Self.file, defaults: defaults)], start: today + c.start, days: c.span,
+                                   today: today, now: (9, 30), options: options)
+            #expect(ours.count == emacs.count)
+            for (o, e) in zip(ours, emacs) {
+                #expect(AgendaOracle.describe(o.items, today: today) == AgendaOracle.describe(e.items), "\(form) \(e.header)")
+            }
+        }
+    }
+}

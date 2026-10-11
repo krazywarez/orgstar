@@ -164,6 +164,30 @@ struct AgendaRowsTests {
         let later = AgendaRows.groups(Self.days(start: Self.today + 4), today: Self.today)[0]
         #expect(later.nowIndex(now: 900) == nil)
     }
+
+    @Test func gridLinesGoBeforeLaterRows() {
+        let today = AgendaRows.groups(Self.days(), today: Self.today)[0]
+        #expect(today.grid.map(\.time) == [800, 1000, 1200, 1400, 1600, 1800, 2000])
+        let lines = today.lines(now: 1100)
+        // Each grid line comes before the first timed row after its time, entries at the same
+        // time first, as `time-up urgency-down` orders them; the rest after the last timed row.
+        var last = -1
+        for line in lines {
+            switch line {
+            case .row(let index):
+                if let start = today.rows[index].start, today.rows[index].item?.habit == nil { #expect(start >= last) ; last = start }
+            case .grid(let time): #expect(time >= last); last = time
+            case .now: #expect(1100 >= last); last = 1100
+            }
+        }
+        #expect(lines.filter { if case .row = $0 { return true } else { return false } }.count == today.rows.count)
+        #expect(lines.contains(.now))
+        var options = AgendaOptions()
+        options.useTimeGrid = false
+        let source = AgendaSource(path: "life.org", text: Self.file, defaults: OrgSettings.default.withTodoKeywords("TODO | DONE")!)
+        let plain = AgendaRows.groups(Agenda.list([source], start: Self.today, days: 1, today: Self.today, now: (10, 0), options: options), today: Self.today)[0]
+        #expect(plain.grid.isEmpty && plain.nowIndex(now: 1100) == nil)
+    }
 }
 
 struct AgendaThemeTests {

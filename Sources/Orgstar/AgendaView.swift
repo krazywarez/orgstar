@@ -81,6 +81,10 @@ struct AgendaView: View {
     @AppStorage("agendaSortTodo") private var sortTodo = ""
     @AppStorage("agendaSortTags") private var sortTags = ""
     @AppStorage("agendaSortSearch") private var sortSearch = ""
+    @AppStorage("agendaUseTimeGrid") private var useTimeGrid = true
+    @AppStorage("agendaShowCurrentTime") private var showCurrentTime = true
+    @AppStorage("agendaTimeGridWhen") private var gridWhen = ""
+    @AppStorage("agendaTimeGridTimes") private var gridTimes = ""
     @Environment(\.openWindow) var openWindow
 
     static let match = "Match…"
@@ -143,7 +147,7 @@ struct AgendaView: View {
     private var refreshKey: RefreshKey {
         RefreshKey(
             mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags],
-            sorting: [sortAgenda, sortTodo, sortTags, sortSearch], logMode: logMode,
+            sorting: [sortAgenda, sortTodo, sortTags, sortSearch, gridWhen, gridTimes, "\(useTimeGrid) \(showCurrentTime)"], logMode: logMode,
             calendars: calendarEventsOn ? [calendarNames] : [], files: 0, changed: nil, edits: 0, path: nil, tick: tick
         )
     }
@@ -368,12 +372,27 @@ struct AgendaView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
         }
-        let nowAt = group.nowIndex(now: Self.hhmm(now))
-        ForEach(Array(group.rows.enumerated()), id: \.element.id) { index, row in
-            if index == nowAt { nowLine }
-            rowView(Line(id: "\(group.day):\(index)", row: row, day: group.day))
+        ForEach(Array(group.lines(now: Self.hhmm(now)).enumerated()), id: \.offset) { _, line in
+            switch line {
+            case .row(let index): rowView(Line(id: "\(group.day):\(index)", row: group.rows[index], day: group.day))
+            case .grid(let time): gridLine(time)
+            case .now: nowLine
+            }
         }
-        if let nowAt, nowAt == group.rows.count { nowLine }
+    }
+
+    /// An `org-agenda-time-grid` line.
+    private func gridLine(_ time: Int) -> some View {
+        HStack(spacing: 6) {
+            Text(String(format: "%02d:%02d", time / 100, time % 100))
+                .font(.system(size: 10).monospacedDigit())
+                .frame(width: AgendaRowView.gutterWidth, alignment: .leading)
+            GridRule().stroke(style: StrokeStyle(lineWidth: 0.5, dash: [2, 3])).frame(height: 1)
+        }
+        .foregroundStyle(.tertiary)
+        .padding(.horizontal, 16)
+        .frame(height: 10)
+        .accessibilityHidden(true)
     }
 
     private func header(@ViewBuilder _ content: () -> some View) -> some View {
@@ -522,5 +541,15 @@ struct AgendaView: View {
         let index = selection.flatMap { id in all.firstIndex { $0.id == id } }
         let next = index.map { min(max($0 + step, 0), all.count - 1) } ?? (step > 0 ? 0 : all.count - 1)
         selection = all[next].id
+    }
+}
+
+/// A horizontal line through the middle of its frame.
+struct GridRule: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        }
     }
 }

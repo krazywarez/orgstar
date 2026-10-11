@@ -297,32 +297,37 @@ struct AgendaScreen: View, Equatable {
             ForEach(lines(group)) { line in
                 switch line {
                 case .now: NowLine(time: now, color: todayColor)
+                case .grid(let time): GridLineRow(time: time)
                 case .row(let item): Deferred { row(item, day: group.day) }
                 }
             }
         }
     }
 
-    /// A day's rows, with the now line among them as a line of its own.
+    /// A day's rows, with the grid and now lines among them as lines of their own.
     private enum DayLine: Identifiable {
         case now
+        case grid(Int)
         case row(AgendaRow)
 
         var id: String {
-            if case .row(let row) = self { return row.id }
-            return "now"
+            switch self {
+            case .row(let row): row.id
+            case .grid(let time): "grid \(time)"
+            case .now: "now"
+            }
         }
     }
 
     private func lines(_ group: AgendaDayGroup) -> [DayLine] {
-        var lines = group.rows.map(DayLine.row)
-        if let at = nowIndex(group) { lines.insert(.now, at: at) }
-        return lines
-    }
-
-    private func nowIndex(_ group: AgendaDayGroup) -> Int? {
         let c = Calendar.current.dateComponents([.hour, .minute], from: now)
-        return group.nowIndex(now: (c.hour ?? 0) * 100 + (c.minute ?? 0))
+        return group.lines(now: (c.hour ?? 0) * 100 + (c.minute ?? 0)).map { line in
+            switch line {
+            case .row(let index): .row(group.rows[index])
+            case .grid(let time): .grid(time)
+            case .now: .now
+            }
+        }
     }
 
     private var todayColor: Color { themed(theme.color("agenda-today", dark: isDark), .accentColor) }
@@ -750,6 +755,24 @@ struct AgendaRowView: View {
     private var iconColor: Color {
         if row.isEvent { return categoryColor }
         return row.status == .normal ? Color(.tertiaryLabel) : statusColor
+    }
+}
+
+/// An `org-agenda-time-grid` line.
+struct GridLineRow: View {
+    let time: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(String(format: "%02d:%02d", time / 100, time % 100))
+                .font(.caption2.monospacedDigit())
+            Rectangle().fill(Color(.separator)).frame(height: 0.5)
+        }
+        .foregroundStyle(.tertiary)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowSeparator(.hidden)
+        .frame(height: 14)
+        .accessibilityHidden(true)
     }
 }
 
