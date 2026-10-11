@@ -162,6 +162,8 @@ public enum UserConfig {
                 comment: "leave done entries out of the agenda even on the day they are scheduled", legacy: ""),
         Setting(section: "", key: "org-agenda-skip-deadline-if-done", defaultsKey: "agendaSkipDeadlineIfDone", kind: .bool, fallback: .bool(false),
                 comment: "leave done entries out of the agenda even on the day they are due", legacy: ""),
+        Setting(section: "", key: "org-agenda-log-mode-items", defaultsKey: "agendaLogModeItems", kind: .string, fallback: .string("closed clock"),
+                comment: "what log mode shows, separated by spaces: closed, clock, state", legacy: ""),
         Setting(section: "", key: "org-agenda-todo-ignore-with-date", defaultsKey: "agendaTodoIgnoreWithDate", kind: .bool, fallback: .bool(false),
                 comment: "the TODO list leaves out entries with any active timestamp", legacy: ""),
         Setting(section: "", key: "org-agenda-todo-ignore-scheduled", defaultsKey: "agendaTodoIgnoreScheduled", kind: .string, fallback: .string("nil"),

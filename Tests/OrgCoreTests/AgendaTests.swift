@@ -115,12 +115,13 @@ enum AgendaOracle {
 
     static func compare(
         files: [(name: String, text: String)], start: Int, span: Int, today: Int, hour: Int = 9, minute: Int = 30,
-        prefix: [String: String]? = nil, logMode: Bool = false, skipIfDone: Bool = false
+        prefix: [String: String]? = nil, logMode: Bool = false, logItems: Set<String>? = nil, skipIfDone: Bool = false
     ) throws {
         let date = Days.date(start)
         var form = "(org-agenda-list nil \"\(String(format: "%04d-%02d-%02d", date.year, date.month, date.day))\" \(span))"
         if let prefix { form = "(let ((org-agenda-prefix-format \(prefixLisp(prefix)))) \(form))" }
         if logMode { form = "(let ((org-agenda-start-with-log-mode t)) \(form))" }
+        if let logItems { form = "(let ((org-agenda-log-mode-items '(\(logItems.sorted().joined(separator: " "))))) \(form))" }
         if skipIfDone { form = "(let ((org-agenda-skip-scheduled-if-done t) (org-agenda-skip-deadline-if-done t)) \(form))" }
         let emacs = try run(files: files, form: form, today: today, hour: hour, minute: minute)
         let defaults = OrgSettings.default.withTodoKeywords(keywords)!
@@ -128,6 +129,7 @@ enum AgendaOracle {
         var options = AgendaOptions.terminal
         if let prefix { options.prefixFormat = prefix }
         options.logMode = logMode
+        if let logItems { options.logItems = logItems }
         options.skipScheduledIfDone = skipIfDone
         options.skipDeadlineIfDone = skipIfDone
         let ours = Agenda.list(sources, start: start, days: span, today: today, now: (hour, minute), options: options)
@@ -501,6 +503,9 @@ struct AgendaLogModeTests {
     * DONE Ship release :work:
     CLOSED: [2026-10-05 Mon 16:20] SCHEDULED: <2026-10-05 Mon>
     :LOGBOOK:
+    - State "DONE"       from "NEXT"       [2026-10-05 Mon 16:20] \\
+      Shipped at last
+    - State "NEXT"       from "TODO"       [2026-10-04 Sun 08:15]
     CLOCK: [2026-10-05 Mon 14:00]--[2026-10-05 Mon 15:30] =>  1:30
     - Fixed the build
     CLOCK: [2026-10-04 Sun 22:00]--[2026-10-05 Mon 01:15] =>  3:15
@@ -523,6 +528,9 @@ struct AgendaLogModeTests {
         let today = Days.absolute(year: 2026, month: 10, day: 5)
         try AgendaOracle.compare(files: [("log.org", Self.file)], start: today - 1, span: 3, today: today, logMode: true)
         try AgendaOracle.compare(files: [("log.org", Self.file)], start: today - 1, span: 3, today: today, prefix: ["agenda": " %-8:c%?-12t%s %l"], logMode: true)
+        for items: Set<String> in [["closed", "clock", "state"], ["state"], ["closed"]] {
+            try AgendaOracle.compare(files: [("log.org", Self.file)], start: today - 1, span: 3, today: today, logMode: true, logItems: items)
+        }
     }
 }
 

@@ -81,6 +81,7 @@ public enum OrgPreferences {
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.dimBlockedTasks = AgendaOptions.DimBlocked(rawValue: string("agendaDimBlockedTasks", defaults)) ?? .dim
+        options.logItems = Set(string("agendaLogModeItems", defaults).split(whereSeparator: \.isWhitespace).map(String.init))
         options.todoIgnoreWithDate = bool("agendaTodoIgnoreWithDate", defaults)
         options.todoIgnoreScheduled = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreScheduled", defaults)) ?? .off
         options.todoIgnoreDeadlines = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreDeadlines", defaults), deadlines: true) ?? .off

@@ -47,6 +47,7 @@ struct EmacsImportTests {
             org-archive-location "archive/%s::"
             org-agenda-todo-ignore-scheduled 'future
             org-agenda-todo-ignore-deadlines 7
+            org-agenda-log-mode-items '(closed clock state)
             org-agenda-start-day "-3d"
             org-clock-idle-time 15
             org-clock-history-length 10
@@ -92,6 +93,7 @@ struct EmacsImportTests {
         #expect(s["org-agenda-start-on-weekday"] == .string("0"))
         #expect(s["org-track-ordered-property-with-tag"] == .string("t"))
         #expect(s["org-archive-location"] == .string("archive/%s::"))
+        #expect(s["org-agenda-log-mode-items"] == .string("closed clock state"))
         #expect(s["org-agenda-todo-ignore-scheduled"] == .string("future") && s["org-agenda-todo-ignore-deadlines"] == .string("7"))
         #expect(s["org-agenda-start-day"] == .string("-3d"))
         #expect(s["org-clock-idle-time"] == .integer(15))
@@ -184,7 +186,7 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 25 settings, 3 capture templates, 3 key bindings, 2 structure templates."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 26 settings, 3 capture templates, 3 key bindings, 2 structure templates."), "\(summary)")
         #expect(UserConfig.structureTemplates(defaults) == [.init(key: "el", type: "src emacs-lisp"), .init(key: "q", type: "QUOTE")])
         #expect(OrgPreferences.options(defaults).structureTemplates?.first { $0.key == "q" }?.type == "QUOTE")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")

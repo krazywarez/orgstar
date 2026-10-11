@@ -161,6 +161,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-deadline-warning-days=      |                            |
 | =org-agenda-skip-scheduled-if-done= |                         |
 | =org-agenda-skip-deadline-if-done=  |                         |
+| =org-agenda-log-mode-items=      |                            |
 | =org-agenda-todo-ignore-with-date=, =org-agenda-todo-ignore-scheduled=, =org-agenda-todo-ignore-deadlines=, =org-agenda-todo-ignore-timestamp=, =org-agenda-tags-todo-honor-ignore-options= | |
 | =org-agenda-search-view-always-boolean= |                     |
 | =org-agenda-search-view-force-full-words= |                   |
@@ -211,6 +212,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-show-all-dates=          | boolean | =false= | Show days without entries in the agenda; today always shows. Emacs's default is =t=. Mirrors =org-agenda-show-all-dates=. |
 | =org-agenda-skip-scheduled-if-done=  | boolean | =false= | Leave a done entry's scheduled date out of the agenda, even on its own day. Mirrors =org-agenda-skip-scheduled-if-done=. |
 | =org-agenda-skip-deadline-if-done=   | boolean | =false= | Leave a done entry's deadline out of the agenda, even on its own day. Mirrors =org-agenda-skip-deadline-if-done=. |
+| =org-agenda-log-mode-items=          | string  | ="closed clock"= | What log mode shows, separated by spaces: =closed=, =clock= and =state=. Mirrors =org-agenda-log-mode-items=. |
 | =org-agenda-todo-ignore-with-date=   | boolean | =false= | The TODO list leaves out entries with an active timestamp anywhere in their text. Mirrors =org-agenda-todo-ignore-with-date=. |
 | =org-agenda-todo-ignore-scheduled=   | string  | ="nil"= | The TODO list leaves out scheduled entries: ="all"= (or ="t"=) all of them, ="future"= those scheduled after today, ="past"= today or before, ="N"= N or more days ahead, ="-N"= N or more days ago. Mirrors =org-agenda-todo-ignore-scheduled=. |
 | =org-agenda-todo-ignore-deadlines=   | string  | ="nil"= | As the last, for deadlines: ="near"= (or ="t"=) those within their warning period, ="far"= those beyond it, ="all"=, ="future"=, ="past"=, ="N"=, ="-N"=. Mirrors =org-agenda-todo-ignore-deadlines=. |
@@ -471,6 +473,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-clock-history-length=                                         | The same key, when the value is a positive number                                             |
 | =org-agenda-start-day=                                             | A day offset such as ="-3d"=; =nil= becomes ="+0d"=. Other forms aren't supported.            |
 | =org-agenda-start-on-weekday=                                      | ="0"= to ="6"=, or ="nil"=                                                                    |
+| =org-agenda-log-mode-items=                                        | The symbols =closed=, =clock= and =state= of the list, separated by spaces                      |
 | =org-agenda-todo-ignore-scheduled=, =-deadlines=, =-timestamp=      | The symbol or number as a string; =org-agenda-todo-ignore-with-date= and =org-agenda-tags-todo-honor-ignore-options= as booleans |
 | =org-track-ordered-property-with-tag=                              | A tag name as given; =t= becomes ="t"=, =nil= ="nil"=                                         |
 | =org-archive-location=                                             | The same key, when the value is a =file::heading= string                                      |

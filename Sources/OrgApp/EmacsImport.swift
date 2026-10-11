@@ -494,6 +494,10 @@ public struct EmacsImport: Sendable {
             add(name, .string(location))
         case "org-track-ordered-property-with-tag":
             if let tag = value.string { add(name, .string(tag)) } else { add(name, .string(truthy ? "t" : "nil")) }
+        case "org-agenda-log-mode-items":
+            let items = (value.elements ?? []).compactMap(\.symbol).filter { ["closed", "clock", "state"].contains($0) }
+            guard !items.isEmpty || value.symbol == "nil" else { return note("not a list of closed, clock and state") }
+            add(name, .string(items.joined(separator: " ")))
         case "org-agenda-todo-ignore-scheduled", "org-agenda-todo-ignore-deadlines", "org-agenda-todo-ignore-timestamp":
             if let days = value.integer { add(name, .string("\(days)")) } else if let symbol = value.symbol, AgendaOptions.TodoIgnore(symbol) != nil { add(name, .string(symbol)) } else { note("unexpected value \(value.description)") }
         case "org-structure-template-alist":

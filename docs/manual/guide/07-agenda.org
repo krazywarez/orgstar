@@ -125,9 +125,10 @@ Days are sorted as =org-agenda-sorting-strategy= sorts them by default for the a
 Press =l= to turn log mode (=org-agenda-log-mode=) on or off; on iOS, use Log Mode in the span menu. Each day then also shows:
 
 - =Closed= entries whose =CLOSED:= timestamp is on that day;
-- =Clocked= entries for each =CLOCK:= line that starts on that day, with the clock's start and end times in the left column and the time clocked, such as =1:30=, after the title.
+- =Clocked= entries for each =CLOCK:= line that starts on that day, with the clock's start and end times in the left column and the time clocked, such as =1:30=, after the title;
+- with =state= in =org-agenda-log-mode-items=, =State:= entries for each state change logged that day (a =- State "DONE" from "TODO" [2026-10-05 Mon 16:20]= line), with the new state in parentheses and the note's first line after the title.
 
-A note under a clock line (a list item directly below it) is added to the title after a =-=. These are the default =org-agenda-log-mode-items=, =(closed clock)=; state changes are not shown and there is no setting for that.
+A note under a clock line (a list item directly below it) is added to the title after a =-=. =org-agenda-log-mode-items= in =config.toml= picks the kinds, separated by spaces; the default is Org's, ="closed clock"=.
 
 * Rows
 
