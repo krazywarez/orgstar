@@ -32,12 +32,13 @@ struct EditorScreen: View {
 
     /// One sheet at a time: two presenters on this screen interfere.
     enum Sheet: Identifiable {
-        case palette, conflict, syncCopies, recovery
+        case palette, conflict, syncCopies, recovery, refile
         case block(BlockEdit)
 
         var id: String {
             switch self {
             case .palette: "palette"
+            case .refile: "refile"
             case .conflict: "conflict"
             case .syncCopies: "syncCopies"
             case .recovery: "recovery"
@@ -105,6 +106,11 @@ struct EditorScreen: View {
             case .conflict: ConflictSheet(session: session)
             case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
             case .recovery: RecoverySheet(session: session) { message = $0 }
+            case .refile:
+                RefileSheet(targets: workspace.refileTargets(openPath: session.path, document: session.document)) { target in
+                    self.sheet = nil
+                    if let target { refile(to: target) }
+                }
             case .block(let edit):
                 BlockEditSheet(edit: edit, theme: MobileTheme(model.theme)) { content in
                     self.sheet = nil
@@ -192,7 +198,9 @@ struct EditorScreen: View {
             editor.onRefreshSetup = { session.refreshSetup() }
             editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
             editor.onAppCommand = { id in
-                if id == "app.toggle-markup" {
+                if id == "app.refile" {
+                    sheet = .refile
+                } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
                 } else if MobileEditor.linkCommands.contains(id) {
                     link(id)
@@ -209,6 +217,20 @@ struct EditorScreen: View {
         } else if case let copies = session.syncConflictCopies().count, copies > 0 {
             message = "\(copies) sync conflict \(copies == 1 ? "copy" : "copies") of this file; More › Sync Conflict Copies compares them."
         }
+    }
+}
+
+extension EditorScreen {
+    /// `org-refile` of the entry at the caret, to a target worked out again from the files
+    /// now, as the agenda's Refile… does.
+    func refile(to target: RefileTarget) {
+        guard let editor, let path = session.path else { return }
+        let caret = editor.editContext().caret
+        guard let current = workspace.refileTargets(openPath: path, document: session.document).first(where: { $0.label == target.label }) else {
+            message = "Can't find \(target.label) any more."
+            return
+        }
+        message = session.refile(to: current, from: (path, caret))
     }
 }
 
@@ -486,6 +508,7 @@ struct CommandPalette: View {
         ("app.clock.goto", "Go to Clocked Entry"), ("app.clock.in-recent", "Clock In to Recent Entry…"),
         ("app.clock.in-last", "Clock In to Last Entry"), ("app.clock.goto-recent", "Go to Recent Clocked Entry…"),
         ("app.clock.default", "Mark as Default Clock Task"), ("app.clock.resolve", "Resolve Open Clocks…"),
+        ("app.refile", "Refile…"),
         ("app.toggle-markup", "Show or Hide Markup"),
         ("org.toggle-inline-images", "Show or Hide Inline Images"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
         ("org.table.toggle-column-width", "Shrink or Expand Table Column"), ("org.table.shrink", "Shrink Table Columns with Widths"),

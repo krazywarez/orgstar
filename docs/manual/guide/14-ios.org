@@ -376,4 +376,4 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 - The global capture hotkey and the Settings window.
 - Explicit saving.
 
-Commands the iOS app can't carry out show a message instead, such as "Not available on iOS yet" or "/Command/ isn't available on iPhone and iPad." Only tables that need Emacs say that Emacs is needed. Commands that only appear on the Mac, such as Refile from the editor, aren't listed in Commands; refile and archive from the agenda instead.
+Commands the iOS app can't carry out show a message instead, such as "Not available on iOS yet" or "/Command/ isn't available on iPhone and iPad." Only tables that need Emacs say that Emacs is needed. Commands that only appear on the Mac aren't listed in Commands. Refile… in Commands (or =C-c C-w= with a hardware keyboard) refiles the entry at the caret, choosing the target as the agenda's Refile… does.
