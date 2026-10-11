@@ -8,17 +8,17 @@
 
 /* Begin PBXBuildFile section */
 		0C3C75F379379A9A6CE73594 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
-		66B4CC5BE465CB078976E641 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
-		D2A6A2AF120C4594370B7128 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
 		1B78003BBCE8A4B809333342 /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = A2BE626BBE45EA52880B6169 /* OrgApp */; };
 		1E5861C0EFE1D96CDC21A22F /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = BA239181876756F7732397EB /* OrgApp */; };
 		2BE799BF03ED43EAA6849F53 /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = EDEF22C5B4F393296F1D17BB /* OrgApp */; };
+		66B4CC5BE465CB078976E641 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
 		67AD8B4FFD1ED43852CFC2CA /* Orgstar/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0B6845EF9D6D0093A0394C43 /* Orgstar/Assets.xcassets */; };
 		76BC65EF4BE629390064AE36 /* OrgstarWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B54C32C5D364C02EE21DB092 /* OrgstarWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		80E85E72A5B727A15D7123D4 /* OrgstarQuickLook.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 54F0339BC26341A6010C1386 /* OrgstarQuickLook.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9BE045FD696469CA8D19F22C /* OrgHighlight in Frameworks */ = {isa = PBXBuildFile; productRef = 47D54A361A74FE9E2B0722BB /* OrgHighlight */; };
 		A05D351FCD8FE36B6A58E035 /* OrgstarShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D128CD70D4E88FAA82D23FD9 /* OrgstarShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AB68F3B4EE90C0961355E986 /* OrgCore in Frameworks */ = {isa = PBXBuildFile; productRef = 64DF80C4FBF50B0AF5DC6E33 /* OrgCore */; };
+		D2A6A2AF120C4594370B7128 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,7 +62,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Localizable.xcstrings; path = ../l10n/Localizable.xcstrings; sourceTree = "<group>"; };
 		008B67FA6385670637488313 /* Orgstar/Orgstar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Orgstar/Orgstar.entitlements; sourceTree = "<group>"; };
 		0B6845EF9D6D0093A0394C43 /* Orgstar/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Orgstar/Assets.xcassets; sourceTree = "<group>"; };
 		1025FACEDEC31014F0AFA230 /* OrgstarShare/OrgstarShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarShare/OrgstarShare.entitlements; sourceTree = "<group>"; };
@@ -73,6 +72,7 @@
 		C0AFAE84CB7F8B19772BF250 /* OrgstarWidgets/OrgstarWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarWidgets/OrgstarWidgets.entitlements; sourceTree = "<group>"; };
 		D128CD70D4E88FAA82D23FD9 /* OrgstarShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OrgstarShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D72184D78ACF70837216BCBF /* OrgstarShare/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = OrgstarShare/Info.plist; sourceTree = "<group>"; };
+		E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Localizable.xcstrings; path = ../l10n/Localizable.xcstrings; sourceTree = "<group>"; };
 		ECD4A6B56983444E4E07CE63 /* Orgstar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Orgstar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F05C9F05F8A61806F30E9328 /* Orgstar/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Orgstar/Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
