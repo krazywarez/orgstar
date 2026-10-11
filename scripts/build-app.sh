@@ -27,6 +27,8 @@ swift build -c release $arch_flags --product OrgstarQuickLook
 # shellcheck disable=SC2086
 swift build -c release $arch_flags --product OrgstarSpotlight
 # shellcheck disable=SC2086
+swift build -c release $arch_flags --product OrgstarWidgets
+# shellcheck disable=SC2086
 binary="$(swift build -c release $arch_flags --show-bin-path)/Orgstar"
 
 rm -rf "$app"
@@ -119,7 +121,7 @@ cat > "$app/Contents/Info.plist" <<EOF
             <key>CFBundleURLName</key>
             <string>org-protocol</string>
             <key>CFBundleURLSchemes</key>
-            <array><string>org-protocol</string></array>
+            <array><string>org-protocol</string><string>orgstar</string></array>
         </dict>
     </array>
     <key>CFBundleShortVersionString</key>
@@ -156,8 +158,9 @@ echo "$PWD/$objects/Orgstar-primary.swiftconstvalues" > "$work/constvalues.txt"
     --swift-const-vals-list "$work/constvalues.txt" --output "$app/Contents/Resources" --force > /dev/null 2>&1
 rm -rf "$work"
 
-# App extensions: Quick Look previews and the Spotlight importer. They run sandboxed.
-appex() { # name, extension point, principal class, attributes
+# App extensions: Quick Look previews, the Spotlight importer and the widgets. They run
+# sandboxed.
+appex() { # name, extension point, principal class (or ""), attributes, extra entitlements
     dir="$app/Contents/PlugIns/$1.appex/Contents"
     mkdir -p "$dir/MacOS"
     cp "$(dirname "$binary")/$1" "$dir/MacOS/$1"
@@ -184,8 +187,7 @@ appex() { # name, extension point, principal class, attributes
     <dict>
         <key>NSExtensionPointIdentifier</key>
         <string>$2</string>
-        <key>NSExtensionPrincipalClass</key>
-        <string>$3</string>
+$([ -n "$3" ] && printf '        <key>NSExtensionPrincipalClass</key>\n        <string>%s</string>\n' "$3")
         <key>NSExtensionAttributes</key>
         <dict>$4</dict>
     </dict>
@@ -199,6 +201,7 @@ PLIST
 <dict>
     <key>com.apple.security.app-sandbox</key>
     <true/>
+${5:-}
 </dict>
 </plist>
 PLIST
@@ -210,6 +213,10 @@ appex OrgstarQuickLook com.apple.quicklook.preview PreviewProvider \
     "<key>QLSupportedContentTypes</key><array><string>org.orgmode.org</string></array><key>QLIsDataBasedPreview</key><true/>"
 appex OrgstarSpotlight com.apple.spotlight.import ImportExtension \
     "<key>CSSupportedContentTypes</key><array><string>org.orgmode.org</string></array>"
+# The widgets read what the app writes in ~/Library/Application Support/Orgstar/Widgets.
+appex OrgstarWidgets com.apple.widgetkit-extension "" "" \
+    "    <key>com.apple.security.temporary-exception.files.home-relative-path.read-only</key>
+    <array><string>/Library/Application Support/Orgstar/Widgets/</string></array>"
 
 # Sparkle's inner pieces are signed first, as its documentation has it, then the framework.
 fw="$app/Contents/Frameworks/Sparkle.framework/Versions/B"

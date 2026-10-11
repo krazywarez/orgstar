@@ -60,7 +60,11 @@ struct HabitsView: View {
             }
         }
         .widgetURL(AppLink.agenda.url)
+        #if os(macOS)
+        .containerBackground(for: .widget) { Color(nsColor: .windowBackgroundColor) }
+        #else
         .containerBackground(for: .widget) { Color(uiColor: .systemBackground) }
+        #endif
     }
 
     private func content(_ snapshot: HabitSnapshot) -> some View {

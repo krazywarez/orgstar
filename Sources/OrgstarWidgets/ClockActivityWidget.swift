@@ -1,3 +1,4 @@
+#if os(iOS)
 import ActivityKit
 import AppIntents
 import OrgApp
@@ -82,3 +83,4 @@ struct ClockOutButton: View {
 } contentStates: {
     ClockActivityAttributes.ContentState(heading: "Review the draft", startedAt: .now.addingTimeInterval(-3725))
 }
+#endif

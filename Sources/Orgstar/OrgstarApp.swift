@@ -120,8 +120,20 @@ final class AppCommands {
         captureRequest = (nil, [:], day, captureSerial)
     }
 
-    /// `org-protocol://capture` and `store-link`.
+    /// `org-protocol://capture` and `store-link`, and the widgets' `orgstar://` links.
     func handle(protocolURL url: String) {
+        if let link = URL(string: url).flatMap(AppLink.init(url:)) {
+            switch link {
+            case .agenda: run("app.agenda")
+            case .clock: run("app.clock.goto")
+            case .entry(let path, let offset): jump(path: path, offset: offset)
+            case .capture(let template):
+                captureSerial += 1
+                captureRequest = (template, [:], nil, captureSerial)
+                run("app.capture")
+            }
+            return
+        }
         switch OrgProtocol.parse(url) {
         case .capture(let template, let properties):
             captureSerial += 1
@@ -197,7 +209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     func application(_ application: NSApplication, open urls: [URL]) {
         let paths = urls.filter(\.isFileURL).map(\.path)
-        let links = urls.filter { $0.scheme == "org-protocol" }.map(\.absoluteString)
+        let links = urls.filter { $0.scheme == "org-protocol" || $0.scheme == AppLink.scheme }.map(\.absoluteString)
         guard let commands, let session else {
             Self.pendingOpens += paths
             Self.pendingLinks += links
@@ -208,7 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         for link in links { commands.handle(protocolURL: link) }
     }
 
-    /// org-protocol links that arrive before the window is ready.
+    /// org-protocol and orgstar:// links that arrive before the window is ready.
     static var pendingLinks: [String] = []
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }

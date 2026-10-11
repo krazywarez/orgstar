@@ -33,7 +33,11 @@ struct TodayView: View {
         }
         .widgetURL(AppLink.agenda.url)
         .containerBackground(for: .widget) {
+            #if os(macOS)
+            entry.snapshot?.color("agenda-background", scheme) ?? Color(nsColor: .windowBackgroundColor)
+            #else
             entry.snapshot?.color("agenda-background", scheme) ?? Color(uiColor: .systemBackground)
+            #endif
         }
     }
 

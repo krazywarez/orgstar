@@ -21,7 +21,8 @@ let package = Package(
         .executable(name: "OrgstarMobile", targets: ["OrgstarMobile"]),
         .executable(name: "OrgstarQuickLook", targets: ["OrgstarQuickLook"]),
         .executable(name: "OrgstarSpotlight", targets: ["OrgstarSpotlight"]),
-        .executable(name: "OrgstarShare", targets: ["OrgstarShare"])
+        .executable(name: "OrgstarShare", targets: ["OrgstarShare"]),
+        .executable(name: "OrgstarWidgets", targets: ["OrgstarWidgets"])
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1"),
@@ -92,6 +93,9 @@ let package = Package(
         .executableTarget(name: "OrgstarSpotlight", dependencies: ["OrgCore"], linkerSettings: extensionEntry),
         // The iOS share extension, bundled into the iOS app by scripts/build-ios-app.sh.
         .executableTarget(name: "OrgstarShare", dependencies: ["OrgApp"], linkerSettings: extensionEntry),
+        // The Mac's widget extension, bundled into the app by scripts/build-app.sh; the iOS one
+        // is built from the same sources by ios/Orgstar.xcodeproj.
+        .executableTarget(name: "OrgstarWidgets", dependencies: ["OrgApp"]),
         .testTarget(name: "OrgCoreTests", dependencies: ["OrgCore"], exclude: ["Conformance"]),
         .testTarget(name: "OrgDocumentTests", dependencies: ["OrgDocument"]),
         .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"]),

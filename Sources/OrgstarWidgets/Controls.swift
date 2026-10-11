@@ -1,3 +1,4 @@
+#if os(iOS)
 import AppIntents
 import OrgApp
 import SwiftUI
@@ -98,3 +99,4 @@ struct CaptureView: View {
         .accessibilityLabel("Capture" + (entry.template.map { " with \($0.name)" } ?? ""))
     }
 }
+#endif

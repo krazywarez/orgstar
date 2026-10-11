@@ -198,11 +198,25 @@ public struct AgendaSnapshot: Codable, Equatable, Sendable {
 
     // MARK: - The file
 
-    /// `Widgets/agenda.json` in the app group's container; nil without the group.
+    /// `Widgets/agenda.json` in the app group's container; nil without the group. On the Mac,
+    /// in `~/Library/Application Support/Orgstar/Widgets`, which the sandboxed widget extension
+    /// reads by a sandbox exception, as an app group there needs a provisioning profile.
     public static func file(group: String = CaptureInbox.group) -> URL? {
+        #if os(macOS)
+        return macWidgetsFolder.appendingPathComponent("agenda.json")
+        #else
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)?
             .appendingPathComponent("Widgets").appendingPathComponent("agenda.json")
+        #endif
     }
+
+    #if os(macOS)
+    /// From the account's home folder, not a sandbox container's.
+    static var macWidgetsFolder: URL {
+        let home = getpwuid(getuid())?.pointee.pw_dir.map { String(cString: $0) } ?? NSHomeDirectory()
+        return URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/Orgstar/Widgets")
+    }
+    #endif
 
     public static func read(from file: URL) -> AgendaSnapshot? {
         guard let data = try? Data(contentsOf: file) else { return nil }

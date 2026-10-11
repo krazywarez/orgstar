@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 
 /// The agenda on the Lock Screen: the next entry (rectangular), the next entry or the count
-/// (inline), today's open entries (circular).
+/// (inline), today's open entries (circular). On the Mac, the next entry in a small widget.
 struct UpNextWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "sh.krz.orgstar.up-next", provider: AgendaProvider()) { entry in
@@ -11,7 +11,11 @@ struct UpNextWidget: Widget {
         }
         .configurationDisplayName("Up Next")
         .description("The next agenda entry, or how many are open today.")
+        #if os(macOS)
+        .supportedFamilies([.systemSmall])
+        #else
         .supportedFamilies([.accessoryRectangular, .accessoryInline, .accessoryCircular])
+        #endif
     }
 }
 
@@ -25,7 +29,11 @@ struct UpNextView: View {
     var body: some View {
         content
             .widgetURL((next?.link ?? .agenda).url)
+            #if os(macOS)
+            .containerBackground(for: .widget) { Color(nsColor: .windowBackgroundColor) }
+            #else
             .containerBackground(for: .widget) { Color.clear }
+            #endif
     }
 
     @ViewBuilder
@@ -64,6 +72,7 @@ struct UpNextView: View {
     }
 }
 
+#if os(iOS)
 #Preview("Rectangular", as: .accessoryRectangular) {
     UpNextWidget()
 } timeline: {
@@ -81,3 +90,4 @@ struct UpNextView: View {
 } timeline: {
     AgendaEntry(date: .now, snapshot: .sample(.now))
 }
+#endif

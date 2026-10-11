@@ -90,3 +90,16 @@ struct PropertyInheritanceTests {
         #expect(SemanticSettings.PropertyInheritance("style  Team") == .only(["STYLE", "TEAM"]))
     }
 }
+
+#if os(macOS)
+struct MacWidgetFolderTests {
+    /// The account's home, not a sandbox container's, so that the widget extension's sandbox
+    /// exception names the same folder.
+    @Test func widgetDataIsInApplicationSupport() throws {
+        let agenda = try #require(AgendaSnapshot.file())
+        #expect(agenda.path.hasSuffix("/Library/Application Support/Orgstar/Widgets/agenda.json"))
+        #expect(!agenda.path.contains("/Containers/"))
+        #expect(HabitSnapshot.file()?.deletingLastPathComponent() == agenda.deletingLastPathComponent())
+    }
+}
+#endif

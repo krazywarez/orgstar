@@ -7,6 +7,7 @@ import OrgWorkspace
 import OrgIndex
 import SwiftUI
 import UniformTypeIdentifiers
+import WidgetKit
 
 struct ContentView: View {
     let workspace: WorkspaceModel
@@ -19,6 +20,7 @@ struct ContentView: View {
     @AppStorage("clockIdleTime") private var clockIdleTime = 0
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @State private var reminderAgenda: AgendaModel?
+    @State private var widgetAgenda: AgendaModel?
     @State private var trust = TrustStore()
     @State private var hotKey: GlobalHotKey?
     @State private var statusItem: ClockStatusItem?
@@ -448,6 +450,7 @@ struct ContentView: View {
             changed: workspace.changedFile?.version, edits: session.editVersion, hour: hour
         )) {
             await updateReminders()
+            await updateWidgets()
         }
         .task {
             while !Task.isCancelled {
@@ -915,6 +918,32 @@ struct ContentView: View {
         let reminders = await agenda.reminders(open: open, lead: reminderLead)
         guard !Task.isCancelled else { return }
         await scheduler.reconcile(reminders)
+    }
+
+    /// The desktop widgets' agenda and habits, written where the widget extension reads them,
+    /// with the widgets reloaded when they changed.
+    private func updateWidgets() async {
+        guard !Task.isCancelled, !workspace.files.isEmpty, let file = AgendaSnapshot.file() else { return }
+        let days = widgetAgenda ?? AgendaModel(workspace: workspace)
+        widgetAgenda = days
+        days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
+        days.startOnWeekday = nil
+        days.includeSubfolders = agendaSubfolders
+        days.agendaFiles = OrgPreferences.agendaFiles()
+        days.options = OrgPreferences.agendaOptions(days.options)
+        days.options.logMode = false
+        days.calendarEvents = OrgPreferences.calendarEvents() && CalendarEvents.isAuthorized ? CalendarAccess.events : nil
+        days.calendarNames = OrgPreferences.calendarEventCalendars()
+        days.reminderLists = OrgPreferences.agendaReminders() && ReminderLists.isAuthorized ? CalendarAccess.reminders : nil
+        days.reminderListNames = OrgPreferences.agendaReminderLists()
+        let open = session.openTexts
+        await days.refresh(open: open)
+        guard !Task.isCancelled else { return }
+        if (try? HabitSnapshot(habits: await days.habits(open: open), theme: theme).write()) == true {
+            WidgetCenter.shared.reloadTimelines(ofKind: "sh.krz.orgstar.habits")
+        }
+        let snapshot = AgendaSnapshot(groups: days.groups(), today: days.today, theme: theme, generated: Date())
+        if (try? snapshot.write(to: file)) == true { WidgetCenter.shared.reloadAllTimelines() }
     }
 
     private func loadKeymap() {
