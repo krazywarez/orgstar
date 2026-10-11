@@ -211,7 +211,16 @@ struct RootView: View {
         }
         .onChange(of: workspace.changedFile?.version) {
             // An open file takes in what changed on disk.
-            if let path = workspace.changedFile?.path { session.fileChanged(path) }
+            if let path = workspace.changedFile?.path {
+                session.fileChanged(path)
+                // A clock started or stopped in Emacs or on another device.
+                if path.hasSuffix(".org"), let text = model.clock.sync(session, paths: [path]) { message = text }
+            }
+        }
+        // At launch and as folders load: open clocks in the agenda files.
+        .task(id: workspace.files.count) {
+            guard !workspace.files.isEmpty, let text = model.clock.sync(session, paths: workspace.agendaFilePaths()) else { return }
+            message = text
         }
         // Initially too: the capture control may have launched the app.
         .onChange(of: model.captureRequest?.id, initial: true) {

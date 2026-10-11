@@ -1119,6 +1119,31 @@ struct CaptureAppTests {
 
 @MainActor
 struct ClockModelTests {
+    /// A clock started in Emacs becomes the running one; stopped there, it ends here.
+    @Test func followsClocksStartedElsewhere() throws {
+        let notes = try Folder()
+        let work = try notes.write("work.org", "* Task\n:LOGBOOK:\nCLOCK: [2026-10-05 Mon 09:00]\n:END:\n* Older\nCLOCK: [2026-10-04 Sun 09:00]\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        let clock = ClockModel(file: notes.url.appendingPathComponent("clock.json"))
+        #expect(clock.sync(session, paths: [work.path]) == "Clock running in \"Task\" since [2026-10-05 Mon 09:00]")
+        #expect(clock.running?.path == work.path && clock.running?.start == "2026-10-05 Mon 09:00")
+        #expect(clock.history.first?.title == "Task")
+        #expect(clock.sync(session, paths: [work.path]) == nil)
+        // Emacs clocks out.
+        try "* Task\n:LOGBOOK:\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\n* Older\nCLOCK: [2026-10-04 Sun 09:00]\n"
+            .write(to: work, atomically: true, encoding: .utf8)
+        #expect(clock.sync(session, paths: [work.path]) == "The clock in \"Task\" was stopped elsewhere")
+        #expect(clock.running == nil)
+        // The dangling one stays for resolution; a clock Emacs starts later runs.
+        #expect(clock.sync(session, paths: [work.path]) == nil)
+        try "* Task\n:LOGBOOK:\nCLOCK: [2026-10-05 Mon 11:00]\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\n* Older\nCLOCK: [2026-10-04 Sun 09:00]\n"
+            .write(to: work, atomically: true, encoding: .utf8)
+        #expect(clock.sync(session, paths: [work.path]) == "Clock running in \"Task\" since [2026-10-05 Mon 11:00]")
+        // Another file's change says nothing about the running clock.
+        #expect(clock.sync(session, paths: [notes.url.appendingPathComponent("other.org").path]) == nil)
+        #expect(clock.running?.start == "2026-10-05 Mon 11:00")
+    }
+
     @Test func clocksInAndOutAcrossFiles() throws {
         let notes = try Folder()
         let work = try notes.write("work.org", "* Task\nBody\n")

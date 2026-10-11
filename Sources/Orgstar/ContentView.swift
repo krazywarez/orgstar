@@ -371,13 +371,26 @@ struct ContentView: View {
             commands.showingConflict = false
             if session.conflict != nil { panel = .conflict(UUID()) }
         }
-        .onChange(of: workspace.changedFile?.version) {
-            if let path = workspace.changedFile?.path { session.fileChanged(path) }
-        }
+        .onChange(of: workspace.changedFile?.version) { fileChangedOnDisk() }
+    }
+
+    /// An open file takes in what changed on disk, and a clock started or stopped in Emacs
+    /// becomes the one shown.
+    private func fileChangedOnDisk() {
+        guard let path = workspace.changedFile?.path else { return }
+        session.fileChanged(path)
+        if path.hasSuffix(".org") { syncClock(paths: [path]) }
+    }
+
+    /// Open clocks in `paths`: at launch and as folders load, the agenda files.
+    private func syncClock(paths: [String]) {
+        guard !workspace.files.isEmpty, let message = clock.sync(session, paths: paths) else { return }
+        commands.show(message)
     }
 
     var body: some View {
         main
+        .task(id: workspace.files.count) { syncClock(paths: workspace.agendaFilePaths()) }
         .onChange(of: ClockMenuState(running: clock.running, history: clock.history), initial: true) { _, state in
             if statusItem == nil { statusItem = ClockStatusItem { commands.run($0) } }
             statusItem?.update(state.running, recent: state.history.map(\.title))

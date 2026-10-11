@@ -53,6 +53,8 @@ public final class ClockModel {
     /// The clocked entry's heading line as last seen, and its keyword, for
     /// `org-clock-out-when-done`.
     @ObservationIgnored private var watched: (line: String, keyword: String?)?
+    /// The open clocks `sync` has seen, by path and start: only new ones start running.
+    @ObservationIgnored private var seenOpen: Set<String> = []
     private let file: URL
     private let defaults: UserDefaults
 
@@ -469,6 +471,41 @@ public final class ClockModel {
     private func headingStart(_ location: (path: String, offset: Int), _ session: DocumentSession) -> Int? {
         guard let text = Self.text(location.path, session) else { return nil }
         return DocumentModel(tree: OrgParser.parse(text)).headings.last { $0.headingRange.lowerBound <= location.offset }?.headingRange.lowerBound
+    }
+
+    // MARK: - Clocks started and stopped elsewhere
+
+    /// Brings the running clock in line with the open `CLOCK:` lines of `paths`, so that a
+    /// clock started or stopped in Emacs, or on another device, is the one orgstar knows: the
+    /// running clock ends when its line was closed or removed, and with none running, the most
+    /// recently started of the open clocks not seen before becomes the running one. Others stay
+    /// dangling, for `org-resolve-clocks` at the next clock in. Returns a message when
+    /// something changed.
+    @discardableResult
+    public func sync(_ session: DocumentSession, paths: [String]) -> String? {
+        guard !isResolving else { return nil }
+        let open = openClocks(session, paths: paths)
+        let fresh = open.filter { !seenOpen.contains($0.path + "\u{0}" + $0.start) }
+        seenOpen.formUnion(open.map { $0.path + "\u{0}" + $0.start })
+        if let running {
+            guard paths.contains(running.path) || session.openDocuments.contains(where: { $0.path == running.path }) else { return nil }
+            // Its line was closed or removed elsewhere; a file that can't be read says nothing.
+            guard !open.contains(where: isActive), Self.text(running.path, session) != nil else { return nil }
+            notifications?.remove([Self.effortReminderID])
+            self.running = nil
+            watched = nil
+            save()
+            return "The clock in \"\(running.heading)\" was stopped elsewhere"
+        }
+        guard let newest = fresh.max(by: { $0.startedAt < $1.startedAt }) else { return nil }
+        running = Running(path: newest.path, start: newest.start, heading: newest.heading, startedAt: newest.startedAt)
+        if let text = Self.text(newest.path, session), case let offset = (text as NSString).range(of: "CLOCK: [\(newest.start)]").location, offset != NSNotFound {
+            let heading = DocumentModel(tree: OrgParser.parse(text)).headings.last { $0.headingRange.lowerBound <= offset }?.headingRange.lowerBound
+            if let heading, let task = ClockTask.at(heading, in: text, path: newest.path) { push(task, session) }
+        }
+        save()
+        watched = clockedHeading(newest.path, session)
+        return "Clock running in \"\(newest.heading)\" since [\(newest.start)]"
     }
 
     // MARK: - Resolving clocks

@@ -251,9 +251,16 @@ With no clock running, Clock In first asks about open clocks; see Open clocks be
 
 orgstar remembers the running clock and the clock history across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
 
+orgstar follows the open =CLOCK:= lines in the files, so a clock started or stopped in Emacs, or on another device, is the one it shows:
+
+- At launch, and as your folders load, it looks for open clock lines in the agenda files; when a file changes on disk, in that file.
+- With no clock running, the most recently started open clock it hasn't seen before becomes the running clock, and the status line says so. Older open clocks stay dangling; Clock In asks about them, as described in Open clocks below.
+- When the running clock's line is closed (Emacs clocked out) or removed, the clock stops here too, with the message "The clock in … was stopped elsewhere".
+
+Clocking out in orgstar closes the line as Org does, so Emacs sees a finished clock when it reverts the file. orgstar does not read Emacs's =org-clock-persist= file, so Emacs learns of a clock started here only from the line, when it next resolves clocks.
+
 These parts of Org's clocking are not implemented:
 
-- sharing the running clock with Emacs: orgstar does not read or write Emacs's =org-clock-persist= file, so a clock started in one is not known to the other, although both see the open =CLOCK:= line;
 - =org-clock-in-switch-to-state= and =org-clock-out-switch-to-state= as functions, and =org-clock-sound=: the notification uses the system's sound.
 
 ** The clock drawer
