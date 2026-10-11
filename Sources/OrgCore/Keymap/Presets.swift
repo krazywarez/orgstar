@@ -75,6 +75,14 @@ public enum KeymapPreset: String, Sendable, CaseIterable {
         keys = "RET"
         command = "org.table.next-row"
         when = "table"
+        [[bind]]
+        keys = "TAB"
+        command = "org.table-el.next-cell"
+        when = "table-el"
+        [[bind]]
+        keys = "S-TAB"
+        command = "org.table-el.previous-cell"
+        when = "table-el"
 
         """
 

@@ -35,6 +35,8 @@ public struct CtrlCCtrlC: OrgCommand {
             }
             return TableRecalculate.inEmacs(step, form: "(org-ctrl-c-ctrl-c)", in: context)
         }
+        // Org says to edit table.el tables with C-c '; here their borders line up again.
+        if KeyContext.holds("table-el", in: context) { return TableElAlign().run(in: context) }
         if buffer.footnoteReferenceAtPoint() != nil
             || buffer.footnoteDefinitions().contains(where: { $0.begin <= context.caret && context.caret < ($0.contentsBegin ?? $0.end) }) {
             return FootnoteAction().run(in: context)

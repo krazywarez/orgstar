@@ -333,7 +333,7 @@ public enum Commands {
         TimerSetCountdown(), TimerShowRemaining(), TimerChangeTimes(),
         InsertTimestamp(), InsertTimestamp(inactive: true), SetPlanning(deadline: false), SetPlanning(deadline: true),
         RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
-        TableRecalculate(all: false), TableRecalculate(all: true), TableIterate(), ExecuteSrcBlock(), OrgDwim(),
+        TableRecalculate(all: false), TableRecalculate(all: true), TableIterate(), TableElMoveCell(forward: true), TableElMoveCell(forward: false), TableElAlign(), ExecuteSrcBlock(), OrgDwim(),
         ShiftTimestamp(up: true), ShiftTimestamp(up: false), ShiftTimestampDay(later: true), ShiftTimestampDay(later: false),
         OpenLinkAtPoint(), CreateID(), ToggleComment(), ToggleHeading(), ToggleItem(), MarkSubtree(),
         CopySubtree(cut: false), CopySubtree(cut: true), CloneSubtree(), SortEntries(), InsertStructureTemplate(), EditSpecial(), TableEditField(), TangleCommand(.all), TangleCommand(.block), TangleCommand(.target),

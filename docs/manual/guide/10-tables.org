@@ -566,8 +566,19 @@ them, are recognized and kept as written:
 +-------+-------+
 #+END_SRC
 
-orgstar doesn't edit them as tables: =TAB=, alignment and formulas don't apply. HTML
-export renders them as tables, with cells that span rows and columns, and Markdown
+Edit the text in the cells as usual. =TAB= and =S-TAB= line the borders up, then move to
+the next or previous cell, wrapping around at the ends of the table, as table.el's
+=table-forward-cell= and =table-backward-cell= do; the caret goes to the cell's first
+character. =C-c C-c= (Mac =⌃⌘X=) lines the borders up without moving. Lining up makes
+each column as wide as its widest text, and never narrower than its rules: text typed
+into a cell uses up the spaces at its end first, as table.el does when you type.
+
+Org edits table.el tables in table.el's own buffer, with =C-c '=, and says so for =TAB=
+and =C-c C-c=; orgstar does the editing in place instead. Tables with merged cells, which
+span rows or columns, can be moved through but not lined up ("Can't align a table.el
+table with merged cells"). Formulas, sorting and the other table commands don't apply.
+
+HTML export renders them as tables, with cells that span rows and columns, and Markdown
 export writes them as a code block. See [[file:12-export.org][Export]].
 
 * Plotting

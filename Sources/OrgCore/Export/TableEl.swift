@@ -10,11 +10,15 @@ enum TableEl {
         var rowspan: Int
     }
 
-    /// The cells in reading order, or nil when the drawing isn't a well-formed table.
-    static func cells(_ text: String) -> [Cell]? {
-        let raw = text.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        let indent = raw.map { $0.prefix { $0 == " " || $0 == "\t" }.count }.min() ?? 0
-        let grid = raw.map { Array($0.dropFirst(indent)) }
+    /// A cell's borders in the drawing: the lines of its top and bottom rules, and the
+    /// columns of its left and right bars.
+    struct Rect: Equatable {
+        var top: Int, left: Int, right: Int, bottom: Int
+    }
+
+    /// The cells' borders in reading order, with the grid rows and columns each spans, or nil
+    /// when the drawing isn't a well-formed table.
+    static func rects(_ grid: [[Character]]) -> [(rect: Rect, colspan: Int, rowspan: Int)]? {
         guard grid.count >= 3 else { return nil }
         func at(_ r: Int, _ c: Int) -> Character? { r >= 0 && r < grid.count && c >= 0 && c < grid[r].count ? grid[r][c] : nil }
         func vertical(_ r: Int, _ c: Int) -> Bool { at(r, c) == "|" || at(r, c) == "+" }
@@ -28,7 +32,7 @@ enum TableEl {
                 if horizontal(r, c + 1) || horizontal(r, c - 1) { if rows.last != r { rows.append(r) } }
             }
         }
-        var cells: [Cell] = []
+        var found: [(rect: Rect, colspan: Int, rowspan: Int)] = []
         for r in rows {
             for c in grid[r].indices where grid[r][c] == "+" && at(r, c + 1) == "-" && vertical(r + 1, c) {
                 // Right edge: the next corner along the top with a border below it.
@@ -39,15 +43,27 @@ enum TableEl {
                 var r2 = r + 1
                 while r2 < grid.count, !(at(r2, c) == "+" && horizontal(r2, c + 1)) { r2 += 1 }
                 guard r2 < grid.count, r2 > r + 1 else { return nil }
-                let lines = (r + 1..<r2).map { line -> String in
-                    let row = grid[line]
-                    let end = min(x2, row.count)
-                    return c + 1 < end ? String(row[(c + 1)..<end]).trimmingCharacters(in: .whitespaces) : ""
-                }
-                cells.append(Cell(row: r, lines: lines, colspan: columns.filter { $0 > c && $0 < x2 }.count + 1,
-                                  rowspan: rows.filter { $0 > r && $0 < r2 }.count + 1))
+                found.append((Rect(top: r, left: c, right: x2, bottom: r2), columns.filter { $0 > c && $0 < x2 }.count + 1,
+                              rows.filter { $0 > r && $0 < r2 }.count + 1))
             }
         }
-        return cells.isEmpty ? nil : cells
+        return found.isEmpty ? nil : found
+    }
+
+    /// The cells in reading order, or nil when the drawing isn't a well-formed table.
+    static func cells(_ text: String) -> [Cell]? {
+        let raw = text.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let indent = raw.map { $0.prefix { $0 == " " || $0 == "\t" }.count }.min() ?? 0
+        let grid = raw.map { Array($0.dropFirst(indent)) }
+        guard let rects = rects(grid) else { return nil }
+        return rects.map { found in
+            let rect = found.rect
+            let lines = (rect.top + 1..<rect.bottom).map { line -> String in
+                let row = grid[line]
+                let end = min(rect.right, row.count)
+                return rect.left + 1 < end ? String(row[(rect.left + 1)..<end]).trimmingCharacters(in: .whitespaces) : ""
+            }
+            return Cell(row: rect.top, lines: lines, colspan: found.colspan, rowspan: found.rowspan)
+        }
     }
 }

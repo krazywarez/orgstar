@@ -146,12 +146,13 @@ public struct Keymap: Sendable, Equatable {
 
 /// Context names a binding's `when` can use.
 public enum KeyContext {
-    public static let names: Set<String> = ["heading", "table", "item", "region", "timestamp", "tblfm", "src", "fold-line", "dblock", "speed", "property"]
+    public static let names: Set<String> = ["heading", "table", "table-el", "item", "region", "timestamp", "tblfm", "src", "fold-line", "dblock", "speed", "property"]
 
     public static func holds(_ name: String, in context: EditContext) -> Bool {
         switch name {
         case "heading": return headingOnLine(at: context.caret, in: context.tree) != nil
         case "table": return enclosing(.table, context) != nil
+        case "table-el": return enclosing(.tableEl, context) != nil
         case "item": return enclosing(.item, context) != nil
         case "region": return context.selection.contains { !$0.isEmpty }
         case "timestamp": return EmacsBuffer(context.text, point: context.caret).atTimestamp() != nil
