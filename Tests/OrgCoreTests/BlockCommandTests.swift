@@ -41,12 +41,43 @@ struct BlockCommandTests {
     }
 
     static func run(_ type: String, _ selection: Range<Int>) -> (String, Int) {
-        let key = InsertStructureTemplate.templates.first { $0.type == type }.map { String($0.key) } ?? "\t"
+        let key = StructureTemplate.defaults.first { $0.type == type }?.key ?? "\t"
         let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [selection], answers: ["template": key, "type": type])
         guard case .commit(let result) = InsertStructureTemplate().run(in: context) else { return (text, 0) }
         var new = text
         for edit in result.edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) { new = edit.apply(to: new) }
         return (new, result.selection?.first?.lowerBound ?? 0)
+    }
+
+    /// Keys of two letters take a second stroke; Tab picks the one-letter key of the same letter.
+    @Test func configuredTemplatesTakeTwoStrokes() throws {
+        var options = EditingOptions.org
+        options.structureTemplates = StructureTemplate.merged([.init(key: "el", type: "src emacs-lisp"), .init(key: "q", type: "QUOTE")])
+        func step(_ answers: [String: String]) -> CommandStep {
+            InsertStructureTemplate().run(in: EditContext(revision: 0, text: "x\n", tree: OrgParser.parse("x\n"), selection: [0..<0], answers: answers, options: options))
+        }
+        guard case .prompt(let top) = step([:]) else { Issue.record("no prompt"); return }
+        #expect(top.fast?.items.contains(.option(key: "e", name: "example, src emacs-lisp")) == true)
+        #expect(top.fast?.items.contains(.option(key: "q", name: "QUOTE")) == true)
+        guard case .prompt(let second) = step(["template": "e"]) else { Issue.record("no second prompt"); return }
+        #expect(second.key == "template2" && second.fast?.items == [.option(key: "\t", name: "example"), .option(key: "l", name: "src emacs-lisp")])
+        guard case .commit(let result) = step(["template": "e", "template2": "l"]) else { Issue.record("no commit"); return }
+        #expect(result.edits.reduce("x\n") { $1.apply(to: $0) } == "#+begin_src emacs-lisp\n#+end_src\nx\n")
+        guard case .commit(let quote) = step(["template": "q"]) else { Issue.record("no commit"); return }
+        #expect(quote.edits.reduce("x\n") { $1.apply(to: $0) }.hasPrefix("#+BEGIN_QUOTE\n"))
+    }
+
+    /// `org--insert-structure-template-unique-keys`.
+    @Test(.enabled(if: oracle))
+    func secondKeysLikeOrg() throws {
+        let sets = [["e", "el"], ["e", "el", "elisp", "ex"], ["py", "pl", "p"], ["abc", "abd", "ab"]]
+        for keys in sets {
+            let ours = InsertStructureTemplate.secondKeys(keys.map { StructureTemplate(key: $0, type: "x") })
+                .map { zip(keys, $0).map { String($0.first!) + String($1) } }
+            let form = "(list (mapconcat #'identity (org--insert-structure-template-unique-keys '(\(keys.map { lispString($0) }.joined(separator: " ")))) \"|\"))"
+            let theirs = try EmacsOracle.evaluate("", form)
+            #expect(ours?.joined(separator: "|") == theirs.first, "\(keys)")
+        }
     }
 
     static let blocks = """

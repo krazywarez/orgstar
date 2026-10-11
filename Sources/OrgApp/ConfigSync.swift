@@ -134,6 +134,10 @@ public final class ConfigSync {
                 current = UserConfig.setting(current, section: setting.section, key: setting.key, to: value)
             }
         }
+        // Templates added in the app, as by Emacs import; removing one is done in the file.
+        for template in UserConfig.structureTemplates(defaults) where values[UserConfig.path(UserConfig.structureTemplateTable, template.key)] != .string(template.type) {
+            current = UserConfig.setting(current, section: UserConfig.structureTemplateTable, key: template.key, to: .string(template.type))
+        }
         guard current != original else { return }
         text = current
         try? current.write(to: target, atomically: true, encoding: .utf8)

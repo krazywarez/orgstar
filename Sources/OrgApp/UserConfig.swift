@@ -283,7 +283,21 @@ public enum UserConfig {
         for setting in settings where !present.contains(setting.path) && !present.contains(setting.legacy) {
             if defaults.object(forKey: setting.defaultsKey) != nil { defaults.removeObject(forKey: setting.defaultsKey) }
         }
+        let templates = tables.first { $0.name == structureTemplateTable }
+        if templates == nil, defaults.object(forKey: structureTemplatesKey) != nil { defaults.removeObject(forKey: structureTemplatesKey) }
         for table in tables {
+            if table.name == structureTemplateTable {
+                var rows: [String] = []
+                for key in table.keys {
+                    guard let type = table.values[key]?.string, !type.isEmpty else {
+                        problems.append("config.toml: \(structureTemplateTable).\(key) must be a block type, such as \"src python\"")
+                        continue
+                    }
+                    rows.append(key + "\t" + type)
+                }
+                if defaults.stringArray(forKey: structureTemplatesKey) != rows { defaults.set(rows, forKey: structureTemplatesKey) }
+                continue
+            }
             // Colors are the theme's to read.
             if ThemeSpec.isThemeTable(table.name), table.name != "theme" { continue }
             for (key, value) in table.values.sorted(by: { $0.key < $1.key }) {
@@ -298,6 +312,23 @@ public enum UserConfig {
             }
         }
         return problems
+    }
+
+    /// `[org-structure-template-alist]`: block templates by key, over Org's, as
+    /// `key = "type"`. Kept in user defaults under `structureTemplatesKey` as `key<Tab>type`.
+    public static let structureTemplateTable = "org-structure-template-alist"
+    static let structureTemplatesKey = "structureTemplates"
+
+    /// The templates of `[org-structure-template-alist]`.
+    public static func structureTemplates(_ defaults: UserDefaults) -> [StructureTemplate] {
+        (defaults.stringArray(forKey: structureTemplatesKey) ?? []).compactMap { row in
+            guard let tab = row.firstIndex(of: "\t") else { return nil }
+            return StructureTemplate(key: String(row[..<tab]), type: String(row[row.index(after: tab)...]))
+        }
+    }
+
+    public static func setStructureTemplates(_ templates: [StructureTemplate], in defaults: UserDefaults) {
+        defaults.set(templates.map { $0.key + "\t" + $0.type }, forKey: structureTemplatesKey)
     }
 
     static func path(_ section: String, _ key: String) -> String { section.isEmpty ? key : section + "." + key }

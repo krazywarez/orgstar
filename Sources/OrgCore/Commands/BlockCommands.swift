@@ -1,27 +1,86 @@
 import Foundation
 
-// Blocks (Org 9.8.7): `org-insert-structure-template` (C-c C-,) with the default
+// Blocks (Org 9.8.7): `org-insert-structure-template` (C-c C-,) with
 // `org-structure-template-alist`, and `org-edit-special` (C-c ') on src, example and export
 // blocks with Doom's `org-src-preserve-indentation` t: the block's lines as they are, commas
 // that protect `*` and `#+` lines taken off while editing and put back after.
 
+/// An entry of `org-structure-template-alist`: a key and the block type it inserts.
+public struct StructureTemplate: Sendable, Equatable, Codable {
+    public var key: String
+    public var type: String
+
+    public init(key: String, type: String) {
+        self.key = key
+        self.type = type
+    }
+
+    /// Org's default `org-structure-template-alist`.
+    public static let defaults: [StructureTemplate] = [
+        .init(key: "a", type: "export ascii"), .init(key: "c", type: "center"), .init(key: "C", type: "comment"),
+        .init(key: "e", type: "example"), .init(key: "E", type: "export"), .init(key: "h", type: "export html"),
+        .init(key: "l", type: "export latex"), .init(key: "q", type: "quote"), .init(key: "s", type: "src"),
+        .init(key: "v", type: "verse"),
+    ]
+
+    /// The defaults with `extra` over them: an entry with a default's key takes its place, the
+    /// others follow.
+    public static func merged(_ extra: [StructureTemplate]) -> [StructureTemplate] {
+        defaults.map { entry in extra.first { $0.key == entry.key } ?? entry } + extra.filter { entry in !defaults.contains { $0.key == entry.key } }
+    }
+}
+
 /// C-c C-,: `org-insert-structure-template`. Asks for a block type by key (Tab to type one),
-/// then inserts an empty block, or wraps the selection.
+/// then inserts an empty block, or wraps the selection. Keys of more than one letter take two
+/// strokes, as `org--insert-structure-template-mks` makes them: the first letter, then the
+/// second (Tab for the one-letter key).
 public struct InsertStructureTemplate: OrgCommand {
     public init() {}
     public var id: String { "org.structure-template" }
     public var title: String { "Insert Structure Template" }
     public func applies(in context: EditContext) -> Bool { true }
 
-    /// `org-structure-template-alist`.
-    public static let templates: [(key: Character, type: String)] = [
-        ("a", "export ascii"), ("c", "center"), ("C", "comment"), ("e", "example"), ("E", "export"),
-        ("h", "export html"), ("l", "export latex"), ("q", "quote"), ("s", "src"), ("v", "verse"),
-    ]
+    /// The templates under each first letter, in the order the letters first appear.
+    static func groups(_ templates: [StructureTemplate]) -> [(letter: Character, templates: [StructureTemplate])] {
+        var groups: [(letter: Character, templates: [StructureTemplate])] = []
+        for template in templates {
+            guard let letter = template.key.first else { continue }
+            if let index = groups.firstIndex(where: { $0.letter == letter }) {
+                groups[index].templates.append(template)
+            } else {
+                groups.append((letter, [template]))
+            }
+        }
+        return groups
+    }
+
+    /// `org--insert-structure-template-unique-keys`: the second stroke of each key, Tab for a
+    /// one-letter key; nil when keys can't be told apart.
+    static func secondKeys(_ templates: [StructureTemplate]) -> [Character]? {
+        var used: [String: Int] = [:]
+        for (index, template) in templates.enumerated().sorted(by: { ($0.element.key.count, $0.offset) < ($1.element.key.count, $1.offset) }) {
+            let key = Array(template.key)
+            let candidate: String? = switch key.count {
+            case 1: String(key) + "\t"
+            case 2: String(key)
+            default: key.dropFirst().map { String(key[0]) + String($0) }.first { used[$0] == nil }
+            }
+            guard let candidate, used[candidate] == nil else { return nil }
+            used[candidate] = index
+        }
+        let byIndex = Dictionary(uniqueKeysWithValues: used.map { ($1, $0) })
+        return templates.indices.map { Array(byIndex[$0]!)[1] }
+    }
 
     public func run(in context: EditContext) -> CommandStep {
+        let templates = context.options.structureTemplates ?? StructureTemplate.defaults
+        let groups = Self.groups(templates)
         guard let key = context.answers["template"] else {
-            let items = Self.templates.map { FastSelection.Item.option(key: $0.key, name: $0.type) } + [.option(key: "\t", name: "other (Tab)")]
+            let items = groups.map { group -> FastSelection.Item in
+                let names = group.templates.map(\.type)
+                let name = names.count == 1 ? names[0] : names.prefix(3).joined(separator: ", ") + (names.count > 3 ? ", ..." : "")
+                return FastSelection.Item.option(key: group.letter, name: name)
+            } + [.option(key: "\t", name: "other (Tab)")]
             return .prompt(Prompt(key: "template", message: "Insert block: [key] or Tab to type one", fast: FastSelection(items: items, multiple: false)))
         }
         let type: String
@@ -30,8 +89,20 @@ public struct InsertStructureTemplate: OrgCommand {
             guard !typed.isEmpty else { return .failed("Empty structure type") }
             type = typed
         } else {
-            guard let found = Self.templates.first(where: { String($0.key) == key }) else { return .failed("Quit") }
-            type = found.type
+            guard let group = groups.first(where: { String($0.letter) == key }) else { return .failed("Quit") }
+            if group.templates.count == 1 {
+                type = group.templates[0].type
+            } else {
+                guard let seconds = Self.secondKeys(group.templates) else {
+                    return .failed("Could not make unique key for `\(group.templates.last!.key)'")
+                }
+                guard let second = context.answers["template2"] else {
+                    let items = zip(seconds, group.templates).map { FastSelection.Item.option(key: $0, name: $1.type) }
+                    return .prompt(Prompt(key: "template2", message: "Insert block: [key]", fast: FastSelection(items: items, multiple: false)))
+                }
+                guard let index = seconds.firstIndex(where: { String($0) == second }) else { return .failed("Quit") }
+                type = group.templates[index].type
+            }
         }
         let region = context.selection.first.flatMap { $0.isEmpty ? nil : $0 }
         return commitBuffer(context) { buffer in

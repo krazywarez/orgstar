@@ -15,6 +15,8 @@ public struct EmacsImport: Sendable {
         case capture(key: String, toml: String)
         /// A `[[bind]]` table for keymap.toml.
         case binding(keys: String, command: String, mode: String?)
+        /// An `[org-structure-template-alist]` entry for config.toml.
+        case structureTemplate(key: String, type: String)
     }
 
     public struct Item: Sendable, Identifiable {
@@ -146,6 +148,8 @@ public struct EmacsImport: Sendable {
     struct Scanner {
         var assignments: [Assignment] = []
         var bindings: [Binding] = []
+        /// `(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))` entries.
+        var addedTemplates: [(entry: Sexp, source: String)] = []
         var usesEvil = false
         var order = 0
 
@@ -165,6 +169,10 @@ public struct EmacsImport: Sendable {
                 while i + 1 < args.count {
                     if let name = args[i].symbol { assign(name, args[i + 1], source, priority: priority, deferred: deferred) }
                     i += 2
+                }
+            case "add-to-list":
+                if args.count >= 2, unquote(args[0])?.symbol == "org-structure-template-alist", let entry = unquote(args[1]) {
+                    addedTemplates.append((entry, source))
                 }
             case "defvar", "defcustom":
                 // Only sets a variable nothing set, so under every assignment.
@@ -436,6 +444,7 @@ public struct EmacsImport: Sendable {
                 unsupported.removeLast(unsupported.count - before)
             }
         }
+        for (entry, source) in scanner.addedTemplates { structureTemplates([entry], source: source, id: id) }
         // One item per folder.
         var folders: Set<String> = []
         items.removeAll { item in
@@ -484,6 +493,8 @@ public struct EmacsImport: Sendable {
             add(name, .string(location))
         case "org-track-ordered-property-with-tag":
             if let tag = value.string { add(name, .string(tag)) } else { add(name, .string(truthy ? "t" : "nil")) }
+        case "org-structure-template-alist":
+            structureTemplates(value.elements ?? [], source: source, id: id)
         case "org-agenda-dim-blocked-tasks":
             add(name, .string(value.symbol == "invisible" ? "invisible" : truthy ? "t" : "nil"))
         case "org-hide-drawer-startup", "org-hide-block-startup":
@@ -559,6 +570,24 @@ public struct EmacsImport: Sendable {
             note("Emacs themes aren't read; set colors under [theme] in config.toml")
         default:
             note("orgstar has no equivalent")
+        }
+    }
+
+    /// `("el" . "src emacs-lisp")` entries that aren't Org's own.
+    mutating func structureTemplates(_ entries: [Sexp], source: String, id: () -> Int) {
+        for entry in entries {
+            guard case .dotted(let head, let tail) = entry, head.count == 1, let key = head[0].string, let type = tail.string else {
+                unsupported.append(Note(id: id(), name: "org-structure-template-alist", reason: "an entry that isn't (\"key\" . \"type\")", source: source))
+                continue
+            }
+            if StructureTemplate.defaults.contains(StructureTemplate(key: key, type: type)) { continue }
+            guard !key.isEmpty, key.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }) else {
+                unsupported.append(Note(id: id(), name: "structure template \"\(key)\"", reason: "config.toml keys are letters, digits, _ and -", source: source))
+                continue
+            }
+            items.removeAll { if case .structureTemplate(key, _) = $0.change { true } else { false } }
+            items.append(Item(id: id(), name: "structure template \"\(key)\"", summary: "<\(key) inserts a \(type) block", source: source,
+                              change: .structureTemplate(key: key, type: type)))
         }
     }
 
@@ -675,7 +704,7 @@ extension EmacsImport {
     public static func apply(
         _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory
     ) async -> String {
-        var settings = 0, folders = 0, templates = 0, bindings = 0
+        var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0
         var problems: [String] = []
         for item in items {
             guard case .setting(let key, let value) = item.change,
@@ -728,8 +757,18 @@ extension EmacsImport {
             keymap += (keymap.isEmpty ? "" : "\n") + "# Imported from Emacs.\n" + addedKeys
             try? keymap.write(to: keymapFile, atomically: true, encoding: .utf8)
         }
+        // Into user defaults, from where ConfigSync writes them into config.toml.
+        var rows = UserConfig.structureTemplates(defaults)
+        for item in items {
+            guard case .structureTemplate(let key, let type) = item.change else { continue }
+            rows.removeAll { $0.key == key }
+            rows.append(StructureTemplate(key: key, type: type))
+            blocks += 1
+        }
+        if blocks > 0 { UserConfig.setStructureTemplates(rows, in: defaults) }
         func count(_ n: Int, _ word: String) -> String? { n == 0 ? nil : "\(n) \(word)\(n == 1 ? "" : "s")" }
-        let done = [count(settings, "setting"), count(folders, "folder"), count(templates, "capture template"), count(bindings, "key binding")].compactMap { $0 }
+        let done = [count(settings, "setting"), count(folders, "folder"), count(templates, "capture template"), count(bindings, "key binding"),
+                    count(blocks, "structure template")].compactMap { $0 }
         var summary = done.isEmpty ? "Nothing new to import." : "Imported " + done.joined(separator: ", ") + "."
         if !problems.isEmpty { summary += " " + problems.joined(separator: "; ") + "." }
         return summary

@@ -21,6 +21,8 @@ struct EmacsImportTests {
     (setq org-log-done 'note org-log-into-drawer t org-log-reschedule 'time)
     (setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s%b") (todo . " %-8:c")))
     (setq fill-column (+ 70 2))
+    (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+    (with-eval-after-load 'org (add-to-list 'org-structure-template-alist '("q" . "QUOTE")))
     (setq org-capture-templates
           '(("t" "Todo" entry (file+headline "~/notes/todo.org" "Inbox") "* TODO %?\n%a")
             ("j" "Journal" entry (file+olp+datetree "~/notes/journal.org") "* %?" :tree-type week :empty-lines 1 :time-prompt t)
@@ -179,7 +181,9 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 23 settings, 3 capture templates, 3 key bindings."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 23 settings, 3 capture templates, 3 key bindings, 2 structure templates."), "\(summary)")
+        #expect(UserConfig.structureTemplates(defaults) == [.init(key: "el", type: "src emacs-lisp"), .init(key: "q", type: "QUOTE")])
+        #expect(OrgPreferences.options(defaults).structureTemplates?.first { $0.key == "q" }?.type == "QUOTE")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
         #expect(defaults.integer(forKey: "themeFontSize") == 14)
 

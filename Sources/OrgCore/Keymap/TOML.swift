@@ -33,6 +33,8 @@ public enum TOML {
         public var values: [String: Value]
         /// 1-based line of the header.
         public var line: Int
+        /// The keys in the order they appear.
+        public var keys: [String] = []
     }
 
     public struct ParseError: Error, Equatable, CustomStringConvertible {
@@ -71,6 +73,7 @@ public enum TOML {
             guard rest.isEmpty || rest.first == "#" else { throw ParseError(line: number, message: "text after value") }
             guard tables[tables.count - 1].values[key] == nil else { throw ParseError(line: number, message: "duplicate key \(key)") }
             tables[tables.count - 1].values[key] = value
+            tables[tables.count - 1].keys.append(key)
         }
         return tables
     }

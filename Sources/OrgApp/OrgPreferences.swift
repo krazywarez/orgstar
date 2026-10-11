@@ -36,6 +36,8 @@ public enum OrgPreferences {
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.archiveLocation = string("archiveLocation", defaults).nonEmpty
+        let templates = UserConfig.structureTemplates(defaults)
+        options.structureTemplates = templates.isEmpty ? nil : StructureTemplate.merged(templates)
         options.trackOrderedPropertyWithTag = switch string("trackOrderedTag", defaults) {
         case "", "nil": nil
         case "t": "ORDERED"

@@ -86,6 +86,32 @@ struct UserConfigTests {
         #expect(text.contains("\nfill-column = 64") && text.contains("keymap = \"doom\"") && !text.contains("[editor]"))
     }
 
+    @Test func structureTemplatesTable() throws {
+        let store = defaults()
+        #expect(OrgPreferences.options(store).structureTemplates == nil)
+        let problems = UserConfig.apply("fill-column = 70\n[org-structure-template-alist]\npy = \"src python\"\ns = \"src sh\"\nn = 3\n", to: store)
+        #expect(problems == ["config.toml: org-structure-template-alist.n must be a block type, such as \"src python\""])
+        let templates = try #require(OrgPreferences.options(store).structureTemplates)
+        #expect(templates.first { $0.key == "s" }?.type == "src sh" && templates.last == StructureTemplate(key: "py", type: "src python"))
+        #expect(templates.count == StructureTemplate.defaults.count + 1)
+        // Without the table, Org's templates.
+        #expect(UserConfig.apply("fill-column = 70\n", to: store).isEmpty)
+        #expect(OrgPreferences.options(store).structureTemplates == nil)
+
+        // One added in the app goes into the file.
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-config-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("config.toml")
+        try "fill-column = 70\n[org-structure-template-alist]\npy = \"src python\"\n".write(to: url, atomically: true, encoding: .utf8)
+        let synced = defaults()
+        let sync = ConfigSync(url: url, defaults: synced)
+        sync.start(watch: false)
+        UserConfig.setStructureTemplates(UserConfig.structureTemplates(synced) + [.init(key: "el", type: "src emacs-lisp")], in: synced)
+        let text = try String(contentsOf: url, encoding: .utf8)
+        #expect(text.contains("[org-structure-template-alist]\npy = \"src python\"\nel = \"src emacs-lisp\"\n"), "\(text)")
+    }
+
     @Test func legacyNamesMoveInPlace() {
         let text = "# mine\n[editor]\n# my editor\nfill-column = 64  # narrow\n\n[agenda]\nspan = 7\n\n[theme]\nfont-size = 15\n"
         let migrated = UserConfig.migratingLegacyNames(text)

@@ -235,6 +235,18 @@ The startup settings (=org-startup-*=, =org-hide-leading-stars=, =org-cycle-hide
 
 These mirror the entries of =org-agenda-prefix-format=. The agenda's rows don't show a prefix, so the formats don't change how the agenda looks. The one effect left is that a time written in heading text leaves the title when the =agenda= format contains =%t=. See [[file:07-agenda.org][The agenda]].
 
+** [org-structure-template-alist]
+
+Block templates for Insert Structure Template (=C-c C-,=) and =<= completion, each a key and the block type it inserts. They go over Org's default =org-structure-template-alist=: a key Org has (=s=, =q=, …) gets the new type, and other keys are added after Org's.
+
+#+BEGIN_SRC toml
+[org-structure-template-alist]
+el = "src emacs-lisp"
+py = "src python"
+#+END_SRC
+
+Keys are letters, digits, =_= and =-=. Without the table, Org's templates apply. Emacs import adds entries here and so does nothing else in the app; remove one by deleting its line.
+
 ** [theme]
 
 | Key                 | Type    | Default | Effect                                                                                       |
@@ -423,6 +435,7 @@ orgstar reads the configuration as Lisp data; it never runs it. It looks at thes
 | =defvar=, =defcustom=                                                | The value, below every other assignment                                         |
 | =custom-set-variables=                                               | Each quoted =(variable value)=                                                  |
 | =after!=, =with-eval-after-load=, =eval-after-load=                  | The forms inside, ranked above plain assignments                                |
+| =add-to-list= on =org-structure-template-alist=                      | The entry added                                                                 |
 | =use-package=, =use-package!=                                        | Forms in =:config= and =:init=, and pairs in =:custom=                          |
 | =progn=, =when=, =unless=, =if=, =let=, =let*=, =with-no-warnings=   | The forms inside. Conditions aren't evaluated, so every branch is read.         |
 | =map!= (Doom)                                                        | Bindings, with =:leader= (=SPC=), =:localleader= (=SPC m=), =:prefix=, and state keywords such as =:n=, =:i=, =:v=, =:nv= |
@@ -439,7 +452,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 
 | Emacs variable                                                     | Becomes                                                                                       |
 |--------------------------------------------------------------------+-----------------------------------------------------------------------------------------------|
-| =fill-column=, =org-tags-column=, =appt-message-warning-time=      | The same key, when the value is a number                                                      |
+| =fill-column=, =org-tags-column=, =appt-message-warning-time=, =org-deadline-warning-days= | The same key, when the value is a number                              |
 | =org-insert-heading-respect-content=, =org-list-allow-alphabetical=, =org-hide-emphasis-markers=, =org-pretty-entities=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=, =org-use-speed-commands=, =org-startup-with-inline-images=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-align-all-tables=, =org-startup-truncated= | The same key: =nil= or an empty list is =false=, anything else =true= |
 | =org-hide-drawer-startup=, =org-hide-block-startup=                | =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=                               |
 | =org-M-RET-may-split-line=                                         | =org-M-RET-may-split-line=, from the =default= entry of an alist; other per-context entries aren't supported |
@@ -451,6 +464,10 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-clock-idle-time=                                             | Minutes; =nil= becomes =0= (never)                                                            |
 | =org-clock-history-length=                                         | The same key, when the value is a positive number                                             |
 | =org-agenda-start-day=                                             | A day offset such as ="-3d"=; =nil= becomes ="+0d"=. Other forms aren't supported.            |
+| =org-agenda-start-on-weekday=                                      | ="0"= to ="6"=, or ="nil"=                                                                    |
+| =org-track-ordered-property-with-tag=                              | A tag name as given; =t= becomes ="t"=, =nil= ="nil"=                                         |
+| =org-archive-location=                                             | The same key, when the value is a =file::heading= string                                      |
+| =org-structure-template-alist=                                     | =[org-structure-template-alist]=: each =("key" . "type")= entry that isn't one of Org's, from =setq= or =(add-to-list 'org-structure-template-alist …)= |
 | =org-todo-keywords=                                                | =org-todo-keywords=, one line per sequence. Keywords with spaces are left out; =type= sequences are read as sequences. |
 | =org-directory=                                                    | A folder to add                                                                               |
 | =org-agenda-files=                                                 | A folder for each entry; for a =.org= file, its folder                                        |

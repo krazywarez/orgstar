@@ -452,7 +452,7 @@ Text to quote.
 ** Structure templates
 
 Insert Structure Template (=org-insert-structure-template=, =C-c C-,= in the Emacs and
-Doom presets) asks for a block type, one keystroke:
+Doom presets) asks for a block type by key. Org's default keys are:
 
 | Key | Block           |
 |-----+-----------------|
@@ -467,8 +467,11 @@ Doom presets) asks for a block type, one keystroke:
 | =s= | =src=           |
 | =v= | =verse=         |
 
-Press =TAB= to type any other type. These are Org's default
-=org-structure-template-alist=; orgstar does not read a custom one. The block is
+Press =TAB= to type any other type. =[org-structure-template-alist]= in =config.toml=
+adds templates or changes these (see [[file:13-configuration.org][Configuration]]). As in Org, keys of two letters
+take two keystrokes: when several keys start with the same letter, that letter opens a
+second choice, where =TAB= picks the one-letter key, so with =el= for =src emacs-lisp=,
+=e TAB= inserts an example block and =e l= the Emacs Lisp block. The block is
 inserted at the caret's indentation. With a selection, the block wraps the selected
 lines, and for =src=, =example=, =export= and =comment= blocks, lines that would read as
 headings or keywords are protected with a leading comma. For =src= and =export=, the
@@ -485,7 +488,8 @@ expands it as =org-tempo= does. =<s= becomes:
 ,#+end_src
 #+END_SRC
 
-with the caret after =begin_src=. The keys are those of the table above, plus =<L=,
+with the caret after =begin_src=. The keys are those of the structure templates above,
+Org's and any in =config.toml=, plus =<L=,
 =<H=, =<A= and =<i=, which insert =#+latex:=, =#+html:=, =#+ascii:= and =#+index:=
 keyword lines.
 
@@ -887,4 +891,4 @@ These Org structure features are not in orgstar:
 - The =ORDERED= property, radio lists and timer list items in the list commands.
 - =S-<left>= and =S-<right>= to cycle bullets on an item; use =C-c -=.
 - =org-drag-element= (=M-<up>= and =M-<down>= on paragraphs).
-- Custom =org-structure-template-alist= and =org-refile-targets=.
+- Custom =org-refile-targets=.

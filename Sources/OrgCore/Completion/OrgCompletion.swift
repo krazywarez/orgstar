@@ -14,16 +14,18 @@ public struct Completion: Sendable, Equatable {
     public var range: Range<Int>
     /// Candidates starting with what's typed, sorted.
     public var candidates: [String]
+    /// The block templates `<` completes, for `.template`.
+    public var templates: [StructureTemplate] = []
 
     /// How the list shows `candidate`: a template with the block it makes.
     public func label(_ candidate: String) -> String {
-        guard kind == .template, let value = OrgCompletion.templateKeys.first(where: { "<" + $0.key == candidate })?.value else { return candidate }
+        guard kind == .template, let value = OrgCompletion.templateKeys(templates).first(where: { "<" + $0.key == candidate })?.value else { return candidate }
         return candidate + "  " + value
     }
 
     /// Text to insert for `candidate`, and where the caret goes in it.
     public func insertion(_ candidate: String) -> (text: String, caret: Int) {
-        guard kind == .template, let expansion = OrgCompletion.templateExpansion(candidate) else { return (candidate, candidate.utf16.count) }
+        guard kind == .template, let expansion = OrgCompletion.templateExpansion(candidate, templates: templates) else { return (candidate, candidate.utf16.count) }
         return expansion
     }
 }
@@ -63,8 +65,10 @@ public enum OrgCompletion {
         // Templates (org-tempo): `<` and a key after only blanks.
         if let m = matches("^[ \\t]*<[A-Za-z]*$", toHere, caseInsensitive: false) {
             // The expansion replaces the indentation too.
-            var completion = make(.template, from: start + (toHere as NSString).range(of: "<").location, templateKeys.map { "<" + $0.key })
+            let templates = context.options.structureTemplates ?? StructureTemplate.defaults
+            var completion = make(.template, from: start + (toHere as NSString).range(of: "<").location, templateKeys(templates).map { "<" + $0.key })
             completion.range = start..<(start + m.range.length)
+            completion.templates = templates
             return completion
         }
         if matches("^[ \\t]*#\\+BEGIN: clocktable[ \\t]", line) != nil {
@@ -220,18 +224,21 @@ public enum OrgCompletion {
         }
     }
 
-    static let templateKeys: [(key: String, value: String)] = [
-        ("a", "export ascii"), ("c", "center"), ("C", "comment"), ("e", "example"), ("E", "export"), ("h", "export html"),
-        ("l", "export latex"), ("q", "quote"), ("s", "src"), ("v", "verse"),
-        ("L", "latex"), ("H", "html"), ("A", "ascii"), ("i", "index"),
-    ]
+    /// `org-tempo-keywords-alist`.
+    static let keywordKeys: [(key: String, value: String)] = [("L", "latex"), ("H", "html"), ("A", "ascii"), ("i", "index")]
+
+    /// org-tempo's keys: the block templates', then the keywords'.
+    static func templateKeys(_ templates: [StructureTemplate]) -> [(key: String, value: String)] {
+        templates.map { ($0.key, $0.type) } + keywordKeys
+    }
 
     /// org-tempo's expansion of `<key`: a block, or for keywords a `#+key: ` line.
-    static func templateExpansion(_ candidate: String) -> (text: String, caret: Int)? {
+    static func templateExpansion(_ candidate: String, templates: [StructureTemplate]) -> (text: String, caret: Int)? {
         let key = String(candidate.dropFirst())
-        guard let index = templateKeys.firstIndex(where: { $0.key == key }) else { return nil }
-        let value = templateKeys[index].value
-        if index >= 10 {
+        let keys = templateKeys(templates)
+        guard let index = keys.firstIndex(where: { $0.key == key }) else { return nil }
+        let value = keys[index].value
+        if index >= templates.count {
             let text = "#+\(value): "
             return (text, text.utf16.count)
         }
