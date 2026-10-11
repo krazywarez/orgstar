@@ -104,6 +104,21 @@ struct ContentView: View {
         EditorSettings(keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme)
     }
 
+    /// The pane that had the focus when a sheet opened, to act on when it closes.
+    @State private var sheetTarget: EditorPane?
+
+    /// Puts the focus back on the pane a sheet was opened from.
+    private func restoreSheetTarget() {
+        guard let target = sheetTarget, session.panes.contains(where: { $0 === target }) else { return }
+        sheetTarget = nil
+        session.focused = target
+        if let window = commands.store.window(of: target.id) { window.focused = target.id }
+        if let path = target.path, let textView = commands.store.textView(for: target.id, path: path) {
+            textView.window?.makeFirstResponder(textView)
+            commands.editor = commands.store.editor(for: path)
+        }
+    }
+
     /// The window holding the focused pane: this one, or an editor window.
     private var paneWindow: WindowModel? {
         commands.store.window(of: session.focused.id) ?? window
@@ -270,11 +285,29 @@ struct ContentView: View {
         .onAppear {
             commands.externalHandler = runExternal
             commands.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
-            if window == nil {
-                let model = WindowModel(session: session, pane: session.panes[0])
-                window = model
-                commands.store.windows.append(model)
+            commands.mainWindowOpen = true
+            if let stale = window { commands.store.windows.removeAll { $0 === stale } }
+            // The session's first pane the first time; a new one showing the focused buffer
+            // when the window opens again.
+            let pane: EditorPane
+            if commands.store.window(of: session.panes[0].id) == nil, window == nil {
+                pane = session.panes[0]
+            } else {
+                pane = session.makePane()
+                if let path = session.focused.path { session.open(path, in: pane) }
             }
+            let model = WindowModel(session: session, pane: pane)
+            window = model
+            commands.store.windows.insert(model, at: 0)
+            model.focus(pane.id)
+        }
+        .onDisappear {
+            commands.mainWindowOpen = false
+            guard let model = window else { return }
+            for id in model.layout.panes { commands.store.releasePane(id) }
+            model.closeAll()
+            commands.store.windows.removeAll { $0 === model }
+            commands.editor = nil
         }
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
         .onChange(of: options, initial: true) { _, options in session.options = options }
@@ -306,10 +339,16 @@ struct ContentView: View {
         .sheet(isPresented: $commands.showingPalette) {
             PaletteView(commands: commands) { id in
                 commands.showingPalette = false
-                // After the sheet closes, so app commands can present their own.
-                DispatchQueue.main.async { perform(id) }
+                // After the sheet closes, so app commands can present their own, and in the
+                // pane that had the focus when it opened: closing a sheet makes this window key.
+                DispatchQueue.main.async {
+                    restoreSheetTarget()
+                    perform(id)
+                }
             }
         }
+        .onChange(of: commands.showingPalette) { _, showing in if showing { sheetTarget = session.focused } }
+        .onChange(of: commands.showingQuickOpen) { _, showing in if showing { sheetTarget = session.focused } }
         .onChange(of: session.conflict) { _, conflict in
             if conflict != nil { commands.showingConflict = true }
         }
@@ -333,7 +372,7 @@ struct ContentView: View {
             hotKey?.unregister()
             hotKey = enabled ? GlobalHotKey { perform("app.capture") } : nil
         }
-        .onChange(of: commands.runRequest?.serial) {
+        .onChange(of: commands.runRequest?.serial, initial: true) {
             if let id = commands.runRequest?.id { perform(id) }
         }
         .onChange(of: ConfigSync.shared.problems, initial: true) { _, problems in
@@ -366,8 +405,12 @@ struct ContentView: View {
         }
         .sheet(isPresented: $commands.showingQuickOpen) {
             QuickOpenView(workspace: workspace) { entry in
-                selectedFile = entry.path
                 commands.showingQuickOpen = false
+                DispatchQueue.main.async {
+                    restoreSheetTarget()
+                    selectedFile = entry.path
+                    if selectedFile == entry.path { session.open(entry.path) }
+                }
             }
         }
         .alert("orgstar", isPresented: errorShown) {

@@ -21,7 +21,7 @@ final class WindowModel: Identifiable {
     }
 
     func pane(_ id: PaneID) -> EditorPane? { panes[id] }
-    var focusedPane: EditorPane { panes[focused] ?? panes[layout.panes[0]]! }
+    var focusedPane: EditorPane { panes[focused] ?? panes[layout.panes[0]] ?? panes.values.first ?? session.focused }
     var paneCount: Int { layout.panes.count }
 
     /// A new pane after the focused one, showing the same buffer, as `split-window` does. The
@@ -61,13 +61,13 @@ final class WindowModel: Identifiable {
         session.focused = pane
     }
 
-    func setFraction(_ fraction: Double, ofSplitStartingWith id: PaneID) {
-        layout = layout.settingFraction(fraction, ofSplitStartingWith: id)
+    func setFraction(_ fraction: Double, ofSplitBetween before: PaneID, and after: PaneID) {
+        layout = layout.settingFraction(fraction, ofSplitBetween: before, and: after)
     }
 
-    /// Takes every pane out of the session, as the window closes.
+    /// Takes every pane out of the session, as the window closes. The panes stay listed here
+    /// so views still on screen can read them.
     func closeAll() {
         for pane in panes.values { session.closePane(pane) }
-        panes = [:]
     }
 }

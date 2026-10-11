@@ -24,6 +24,9 @@ final class AppCommands {
     var editor: OrgEditor?
     /// The editors and text views of every pane in every window.
     let store = EditorStore()
+    /// The main window is on screen. App commands run there, so an editor window reopens it
+    /// before asking for one.
+    var mainWindowOpen = false
     /// What every editor is set up with, from the settings; the main window keeps it current.
     var editorSettings = EditorSettings()
     /// Runs work outside the text (a table recalculation in Emacs); the main window sets it.
@@ -332,6 +335,7 @@ struct OrgstarApp: App {
             }
         }
         .defaultSize(width: 900, height: 700)
+        .commandsRemoved()
         Window("Agenda", id: "agenda") {
             if case .success(let model) = workspace {
                 AgendaView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)

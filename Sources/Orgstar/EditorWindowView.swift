@@ -9,16 +9,23 @@ struct EditorWindowView: View {
     let clock: ClockModel
     @AppStorage("showTabBar") private var showTabBar = false
     @State private var window: WindowModel?
+    @Environment(\.openWindow) private var openWindow
+
+    /// App commands run in the main window; it comes back if it was closed.
+    private func run(_ id: String) {
+        if !commands.mainWindowOpen { openWindow(id: "main") }
+        commands.run(id)
+    }
 
     var body: some View {
         Group {
             if let window {
                 PaneLayoutView(layout: window.layout, window: window) { pane in
-                    PaneCell(pane: pane, window: window, session: session, commands: commands, showTabBar: showTabBar) { commands.run($0) }
+                    PaneCell(pane: pane, window: window, session: session, commands: commands, showTabBar: showTabBar) { run($0) }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
-                        ModeLine(session: session, commands: commands, clock: clock) { commands.run($0) }
+                        ModeLine(session: session, commands: commands, clock: clock) { run($0) }
                         EchoArea(commands: commands)
                     }
                 }
@@ -39,6 +46,7 @@ struct EditorWindowView: View {
             for id in model.layout.panes { commands.store.releasePane(id) }
             model.closeAll()
             commands.store.windows.removeAll { $0 === model }
+            commands.editor = nil
             if let main = commands.store.windows.first { main.focus(main.focused) }
         }
     }

@@ -29,10 +29,15 @@ extension OrgEditor {
         view.wrapperFolds = Set(wrapperHidden.keys)
         updateHiddenAndLayout()
         redrawViews()
+        caretsOutOfHiddenText()
+    }
+
+    /// Every view's caret moved to just before the hidden text it sits in, if any.
+    func caretsOutOfHiddenText() {
         for view in textViews {
             let caret = view.selectedRange().location
             guard let range = hidden.containing(caret) else { continue }
-            if view === active { setCaret(range.lowerBound - 1) } else { view.setSelectedRange(NSRange(location: max(0, range.lowerBound - 1), length: 0)) }
+            if view === active { setCaret(max(0, range.lowerBound - 1)) } else { view.setSelectedRange(NSRange(location: max(0, range.lowerBound - 1), length: 0)) }
         }
     }
 
@@ -131,8 +136,7 @@ extension OrgEditor {
             restyleOutsideEditing(0..<utf16Length)
         }
         redrawViews()
-        let caret = textView.selectedRange().location
-        if let range = hidden.containing(caret) { setCaret(max(0, range.lowerBound - 1)) }
+        caretsOutOfHiddenText()
     }
 
     /// Leaves a sparse tree for ordinary folds: headings with something shown below them
@@ -194,6 +198,12 @@ extension OrgEditor {
         redrawViews()
         if let narrowed {
             setCaret(max(narrowed.lowerBound, min(caret, narrowed.upperBound)))
+            for view in textViews where view !== active {
+                let other = view.selectedRange().location
+                if !(narrowed.lowerBound...narrowed.upperBound).contains(other) {
+                    view.setSelectedRange(NSRange(location: max(narrowed.lowerBound, min(other, narrowed.upperBound)), length: 0))
+                }
+            }
             textView.scrollRangeToVisible(NSRange(location: narrowed.lowerBound, length: 0))
         } else {
             textView.scrollRangeToVisible(NSRange(location: caret, length: 0))

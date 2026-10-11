@@ -81,6 +81,24 @@ struct MultiViewTests {
         #expect(two.second.string == "XY* a\nbody\n")
     }
 
+    @Test func narrowingMovesEveryViewsCaretIntoTheRegion() {
+        let two = Two("* a\nbody\n* b\nmore\n")
+        two.second.setSelectedRange(NSRange(location: 0, length: 0))
+        two.editor.setCaret(9)
+        two.editor.run("org.narrow.subtree")
+        #expect(two.editor.narrowed?.lowerBound == 9)
+        #expect(two.second.selectedRange().location >= 9)
+    }
+
+    @Test func aViewTakingFocusLeavesHiddenText() {
+        let two = Two("* a\nbody\n* b\nmore\n")
+        two.second.setSelectedRange(NSRange(location: 5, length: 0))
+        two.editor.setCaret(0)
+        _ = two.editor.cycleAtCaret()
+        two.windows[1].makeFirstResponder(two.second)
+        #expect(two.editor.hidden.containing(two.second.selectedRange().location) == nil)
+    }
+
     @Test func removingAViewDetachesItsLayoutManager() {
         let two = Two("* a\n")
         let storage = two.editor.textView.textLayoutManager!.textContentManager!

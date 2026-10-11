@@ -16,7 +16,7 @@ struct PaneLayoutView<Content: View>: View {
                 let total = axis == .horizontal ? geometry.size.width : geometry.size.height
                 let firstSize = max(80, min(max(80, total - 80), total * fraction))
                 let divider = SplitDivider(axis: axis, firstSize: firstSize) { size in
-                    window.setFraction(size / max(total, 1), ofSplitStartingWith: first.panes[0])
+                    window.setFraction(size / max(total, 1), ofSplitBetween: first.panes[first.panes.count - 1], and: second.panes[0])
                 }
                 if axis == .horizontal {
                     HStack(spacing: 0) {
@@ -81,6 +81,7 @@ struct PaneCell: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         window.focus(pane.id)
+                        NSApp.keyWindow?.makeFirstResponder(nil)
                         commands.editor = nil
                     }
             }

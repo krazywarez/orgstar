@@ -46,15 +46,17 @@ public indirect enum PaneLayout: Equatable, Sendable {
         }
     }
 
-    /// The split whose first pane in reading order is `id`, with `fraction` for its first side.
-    public func settingFraction(_ fraction: Double, ofSplitStartingWith id: PaneID) -> PaneLayout {
+    /// The split whose divider lies between `before` (the last pane of its first side) and
+    /// `after` (the first pane of its second side), with `fraction` for its first side. Each
+    /// split is one such adjacency in reading order, so the pair names it.
+    public func settingFraction(_ fraction: Double, ofSplitBetween before: PaneID, and after: PaneID) -> PaneLayout {
         switch self {
         case .pane: self
         case .split(let axis, let first, let second, let old):
-            if first.panes.first == id {
+            if first.panes.last == before, second.panes.first == after {
                 .split(axis: axis, first: first, second: second, fraction: min(max(fraction, 0.1), 0.9))
             } else {
-                .split(axis: axis, first: first.settingFraction(fraction, ofSplitStartingWith: id), second: second.settingFraction(fraction, ofSplitStartingWith: id), fraction: old)
+                .split(axis: axis, first: first.settingFraction(fraction, ofSplitBetween: before, and: after), second: second.settingFraction(fraction, ofSplitBetween: before, and: after), fraction: old)
             }
         }
     }

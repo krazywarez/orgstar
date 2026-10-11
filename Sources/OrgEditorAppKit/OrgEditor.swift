@@ -137,8 +137,12 @@ public final class OrgEditor: NSObject {
         view.onFocusChange = { [weak self, unowned view] in
             guard let self, let layout = view.textLayoutManager else { return }
             let id = ObjectIdentifier(layout)
-            if view.window?.firstResponder === view {
+            if view.window?.firstResponder === view, self.active !== view {
                 self.active = view
+                // Its caret may sit in text another view folded or narrowed away since.
+                self.selectionChanged()
+                self.onFocus?(view)
+            } else if view.window?.firstResponder === view {
                 self.onFocus?(view)
             }
             if let window = view.window, window.isKeyWindow, window.firstResponder === view {
