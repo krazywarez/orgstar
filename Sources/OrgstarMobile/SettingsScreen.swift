@@ -11,6 +11,7 @@ struct SettingsScreen: View {
     let model: MobileModel
     @State private var choosing = false
     @State private var calendars: [CalendarChoice] = []
+    @State private var reminderLists: [CalendarChoice] = []
     @State private var badges: Bool?
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
@@ -86,6 +87,7 @@ struct SettingsScreen: View {
                 if badges == false { Text("Turn on Badges in orgstar's notification settings.") }
             }
             calendarSection
+            reminderSection
             Section("In use") {
                 let _ = model.settingsVersion
                 LabeledContent("TODO keywords", value: todoKeywords)
@@ -143,6 +145,58 @@ struct SettingsScreen: View {
         .task(id: on) { loadCalendars() }
     }
 
+    /// `agenda-reminders` and `agenda-reminder-lists`, written to config.toml.
+    private var reminderSection: some View {
+        let _ = model.settingsVersion
+        let on = OrgPreferences.agendaReminders()
+        let chosen = OrgPreferences.agendaReminderLists()
+        return Section {
+            Toggle("Show Reminders", isOn: Binding {
+                on
+            } set: { value in
+                model.set("agendaReminders", to: .bool(value))
+                if value { Task { await requestReminders() } }
+            })
+            if on {
+                if !ReminderLists.isAuthorized {
+                    Button("Allow Access to Reminders…") { Task { await requestReminders() } }
+                }
+                ForEach(reminderLists, id: \.id) { list in
+                    let shown = CalendarEvents.chooses(id: list.id, title: list.title, chosen: chosen)
+                    Button {
+                        toggle(list.title, shown: shown, chosen: chosen, among: reminderLists, key: "agendaReminderLists")
+                    } label: {
+                        HStack {
+                            Circle().fill(list.color?.swiftUI ?? .secondary).frame(width: 10, height: 10)
+                            Text(list.title).foregroundStyle(.primary)
+                            Spacer()
+                            if shown { Image(systemName: "checkmark").foregroundStyle(Color.accentColor) }
+                        }
+                    }
+                    .tint(.primary)
+                }
+            }
+        } header: {
+            Text("Reminders")
+        } footer: {
+            Text(on ? "Incomplete reminders with a due date from the checked lists show in the agenda, read-only; overdue ones under today."
+                 : "Show reminders from Reminders in the agenda, read-only.")
+        }
+        .task(id: on) { loadReminderLists() }
+    }
+
+    private func requestReminders() async {
+        _ = await model.reminderLists.requestAccess()
+        loadReminderLists()
+        model.reloadConfig()
+    }
+
+    private func loadReminderLists() {
+        reminderLists = model.reminderLists.lists()
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+            .map { CalendarChoice(id: $0.id, title: $0.title, color: $0.color) }
+    }
+
     private func requestCalendars() async {
         _ = await model.calendarEvents.requestAccess()
         loadCalendars()
@@ -155,15 +209,16 @@ struct SettingsScreen: View {
             .map { CalendarChoice(id: $0.id, title: $0.title, color: $0.color) }
     }
 
-    /// Shows or hides a calendar's events; with every calendar checked the setting is empty.
-    /// The last checked calendar stays checked, as an empty list means every calendar.
-    private func toggle(_ title: String, shown: Bool, chosen: [String]) {
-        var titles = calendars.filter { CalendarEvents.chooses(id: $0.id, title: $0.title, chosen: chosen) }.map(\.title)
+    /// Shows or hides a calendar's events or a list's reminders; with every one checked the
+    /// setting is empty. The last checked one stays checked, as an empty list means every one.
+    private func toggle(_ title: String, shown: Bool, chosen: [String], among choices: [CalendarChoice]? = nil, key: String = "calendarEventCalendars") {
+        let choices = choices ?? calendars
+        var titles = choices.filter { CalendarEvents.chooses(id: $0.id, title: $0.title, chosen: chosen) }.map(\.title)
         titles.removeAll { $0 == title }
         if !shown { titles.append(title) }
         guard !titles.isEmpty else { return }
-        let value = Set(titles) == Set(calendars.map(\.title)) ? "" : titles.joined(separator: ", ")
-        model.set("calendarEventCalendars", to: .string(value))
+        let value = Set(titles) == Set(choices.map(\.title)) ? "" : titles.joined(separator: ", ")
+        model.set(key, to: .string(value))
     }
 
     /// The span and start day, worded as the Mac's Settings word the start.

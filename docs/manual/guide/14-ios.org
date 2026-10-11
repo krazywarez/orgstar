@@ -179,7 +179,7 @@ The Agenda tab shows the agenda over all your folders, with the span and start d
 
 Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.
 
-With =calendar-events= on, the agenda also shows events from the Calendar app; see Settings below.
+With =calendar-events= on, the agenda also shows events from the Calendar app, and with =agenda-reminders= on, reminders from the Reminders app; see Settings below.
 
 See [[file:07-agenda.org][The agenda]] for the rows, the views and matches, and the differences from the Mac.
 
@@ -346,13 +346,14 @@ Import from Emacs reads an Emacs or Doom configuration folder, such as a synced 
 
 With a configuration folder, settings and structure templates are written to its =config.toml=, and capture templates, key bindings and agenda views to its =capture.toml=, =keymap.toml= and =views.toml=, so the Mac reads them too. Without one, settings are kept on the device. Folders from =org-agenda-files= name the Mac's paths and aren't offered.
 
-The Agenda, TODO Dependencies and Calendar sections are the only places the app changes a setting itself:
+The Agenda, TODO Dependencies, Calendar and Reminders sections are the only places the app changes a setting itself, besides Import from Emacs:
 
 - Show days without entries :: turns =org-agenda-show-all-dates= on or off.
 - Blocked entries :: Dimmed, Hidden or Shown as usual (=org-agenda-dim-blocked-tasks=).
 - TODO Dependencies :: Not done before TODO children (=org-enforce-todo-dependencies=) and Not done with unchecked boxes (=org-enforce-todo-checkbox-dependencies=).
 - Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; orgstar only reads. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
 - The calendars :: tap one to show or hide its events (=calendar-event-calendars=). With every calendar checked the setting is empty, so calendars added later show too.
+- Show Reminders :: turns on =agenda-reminders= and asks for access to your reminders; Allow Access to Reminders… shows while it is missing. Tap a list to show or hide its reminders (=agenda-reminder-lists=).
 
 These write =config.toml= in the configuration folder, as the Mac's Settings window does, so the Mac sees the change too. Without a configuration folder they are kept on the device.
 
@@ -374,7 +375,7 @@ These settings from =config.toml= apply on iOS:
 - =org-use-speed-commands=, with a hardware keyboard
 - =electric-pair-mode=, =spell-check=, =auto-fill-mode=
 - =org-agenda-span=, =org-agenda-start-day=, =org-agenda-start-on-weekday=, =org-deadline-warning-days=, =agenda-include-subfolders=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=, =org-agenda-search-view-always-boolean=, =org-agenda-search-view-force-full-words=, =org-agenda-log-mode-items=, the =org-agenda-todo-ignore-= settings, =org-agenda-tags-todo-honor-ignore-options=
-- =calendar-events=, =calendar-event-calendars=
+- =calendar-events=, =calendar-event-calendars=, =agenda-reminders=, =agenda-reminder-lists=
 - =reminders=, =appt-message-warning-time=
 - =org-clock-history-length=, =org-clock-into-drawer=, =org-clock-rounding-minutes=, =org-clock-out-remove-zero-time-clocks=, =org-clock-in-switch-to-state=, =org-clock-out-when-done=
 

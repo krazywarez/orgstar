@@ -38,6 +38,8 @@ final class MobileModel {
     var captureRequest: CaptureRequest?
     /// Calendar's events for the agenda, with `calendar-events`.
     let calendarEvents = CalendarEvents()
+    /// Reminders for the agenda, with `agenda-reminders`.
+    let reminderLists = ReminderLists()
 
     struct AgendaDays: Equatable {
         let start: Int
@@ -150,6 +152,8 @@ final class MobileModel {
             agenda.options = OrgPreferences.agendaOptions(agenda.options)
             agenda.calendarEvents = OrgPreferences.calendarEvents() ? calendarEvents : nil
             agenda.calendarNames = OrgPreferences.calendarEventCalendars()
+            agenda.reminderLists = OrgPreferences.agendaReminders() ? reminderLists : nil
+            agenda.reminderListNames = OrgPreferences.agendaReminderLists()
         }
         settingsVersion += 1
     }
@@ -284,6 +288,8 @@ final class MobileModel {
             days.options.logMode = false
             days.calendarEvents = agenda.calendarEvents
             days.calendarNames = agenda.calendarNames
+            days.reminderLists = agenda.reminderLists
+            days.reminderListNames = agenda.reminderListNames
         }
         await days.refresh(open: session.openTexts)
         let groups = days.groups()

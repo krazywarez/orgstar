@@ -133,6 +133,8 @@ ${feed_keys}
     <string>public.app-category.productivity</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>The agenda shows your calendar events alongside your Org entries. orgstar only reads them.</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>The agenda shows your reminders alongside your Org entries. orgstar only reads them.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>

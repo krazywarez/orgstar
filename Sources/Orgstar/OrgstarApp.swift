@@ -579,6 +579,9 @@ struct SettingsView: View {
     @AppStorage("calendarEvents") private var calendarEvents = false
     @AppStorage("calendarEventCalendars") private var calendarEventCalendars = ""
     @State private var calendars: [(id: String, title: String, color: RGBA?)] = []
+    @AppStorage("agendaReminders") private var agendaReminders = false
+    @AppStorage("agendaReminderLists") private var agendaReminderLists = ""
+    @State private var reminderLists: [(id: String, title: String, color: RGBA?)] = []
     @AppStorage("reminders") private var reminders = true
     @AppStorage("reminderLead") private var reminderLead = 12
     @AppStorage("clockIdleTime") private var clockIdleTime = 0
@@ -765,7 +768,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                     ForEach(calendars, id: \.id) { calendar in
-                        Toggle(isOn: calendarChosen(calendar)) {
+                        Toggle(isOn: chosen(calendar, among: calendars, setting: $calendarEventCalendars)) {
                             HStack(spacing: 6) {
                                 Circle()
                                     .fill(calendar.color.map { Color(.sRGB, red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) } ?? .secondary)
@@ -782,6 +785,32 @@ struct SettingsView: View {
             .task(id: calendarEvents) {
                 let allowed = calendarEvents ? await CalendarAccess.events.requestAccess() : false
                 calendars = allowed ? CalendarAccess.events.calendars() : []
+            }
+            Section {
+                Toggle("Show reminders from Reminders", isOn: $agendaReminders)
+                if agendaReminders {
+                    if reminderLists.isEmpty {
+                        Text(ReminderLists.isAuthorized ? "No lists." : "Allow orgstar to read your reminders in System Settings ▸ Privacy & Security ▸ Reminders.")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(reminderLists, id: \.id) { list in
+                        Toggle(isOn: chosen(list, among: reminderLists, setting: $agendaReminderLists)) {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(list.color.map { Color(.sRGB, red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) } ?? .secondary)
+                                    .frame(width: 8, height: 8)
+                                Text(list.title)
+                            }
+                        }
+                    }
+                }
+            } footer: {
+                Text("Incomplete reminders with a due date show in the agenda read-only, overdue ones under today; double-click one to open it in Reminders.")
+                    .settingsFooter()
+            }
+            .task(id: agendaReminders) {
+                let allowed = agendaReminders ? await CalendarAccess.reminders.requestAccess() : false
+                reminderLists = allowed ? CalendarAccess.reminders.lists() : []
             }
             Section {
                 Toggle("Notify before timed agenda entries", isOn: $reminders)
@@ -809,9 +838,12 @@ struct SettingsView: View {
         .frame(height: 560)
     }
 
-    /// `calendar-event-calendars`: empty for every calendar, else the titles checked.
-    private func calendarChosen(_ calendar: (id: String, title: String, color: RGBA?)) -> Binding<Bool> {
-        let chosen = calendarEventCalendars.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    /// `calendar-event-calendars` and `agenda-reminder-lists`: empty for every calendar or
+    /// list, else the titles checked.
+    private func chosen(
+        _ calendar: (id: String, title: String, color: RGBA?), among calendars: [(id: String, title: String, color: RGBA?)], setting: Binding<String>
+    ) -> Binding<Bool> {
+        let chosen = setting.wrappedValue.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         return Binding {
             CalendarEvents.chooses(id: calendar.id, title: calendar.title, chosen: chosen)
         } set: { on in
@@ -822,7 +854,7 @@ struct SettingsView: View {
             if on { titles.append(calendar.title) }
             // An empty list means every calendar; turning events off hides them all.
             guard !titles.isEmpty else { return }
-            calendarEventCalendars = Set(titles) == Set(calendars.map(\.title)) ? "" : titles.joined(separator: ", ")
+            setting.wrappedValue = Set(titles) == Set(calendars.map(\.title)) ? "" : titles.joined(separator: ", ")
         }
     }
 

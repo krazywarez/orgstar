@@ -112,6 +112,8 @@ See Themes and Fonts below.
 | Blocked entries                     | Dimmed; Hidden; Shown as usual | Dimmed | =org-agenda-dim-blocked-tasks= |
 | Show events from Calendar           | On or off              | Off          | =calendar-events=           |
 | A checkbox for each calendar        | On or off              | All on       | =calendar-event-calendars=  |
+| Show reminders from Reminders       | On or off              | Off          | =agenda-reminders=          |
+| A checkbox for each list            | On or off              | All on       | =agenda-reminder-lists=     |
 | Notify before timed agenda entries  | On or off              | On           | =reminders=                 |
 | N minutes before                    | 0 to 120               | 12           | =appt-message-warning-time= |
 | Ask what to do with idle time while clocked in | On or off   | Off          | =org-clock-idle-time=       |
@@ -120,7 +122,7 @@ See Themes and Fonts below.
 
 An entry's =APPT_WARNTIME= property overrides the lead time. The agenda is covered in [[file:07-agenda.org][The agenda]].
 
-The calendar checkboxes appear once Show events from Calendar is on and orgstar may read your calendars; turning the switch on asks for that access. While every calendar is checked, =calendar-event-calendars= is empty, so calendars you add later show too. The last checked calendar can't be unchecked; turn off Show events from Calendar instead.
+The calendar checkboxes appear once Show events from Calendar is on and orgstar may read your calendars; turning the switch on asks for that access. While every calendar is checked, =calendar-event-calendars= is empty, so calendars you add later show too. The last checked calendar can't be unchecked; turn off Show events from Calendar instead. The Reminders list checkboxes work the same way. See [[file:07-agenda.org][The agenda]].
 
 Turning on the idle question sets =org-clock-idle-time= to 15 minutes; turning it off sets it to =0=. The minutes stepper is disabled while the question is off. Idle time and the clock history are covered in [[file:06-dates-and-clocking.org][Dates and clocking]].
 
@@ -365,6 +367,8 @@ Any other key in =[theme]= is a color; see Themes below.
 | =reminders=                 | boolean | =true=        | Notify before timed entries.                                                            |
 | =calendar-events=           | boolean | =false=       | Show events from Calendar in the agenda, read-only.                                     |
 | =calendar-event-calendars=  | string  | =""=          | The calendars whose events show, by title or identifier, separated by commas; =""= for all. |
+| =agenda-reminders=          | boolean | =false=       | Show incomplete reminders with a due date from Reminders in the agenda, read-only.      |
+| =agenda-reminder-lists=     | string  | =""=          | The Reminders lists shown, by title or identifier, separated by commas; =""= for all.  |
 | =global-capture-hotkey=     | boolean | =true=        | =⌃⌥Space= opens Capture from any app.                                                   |
 
 The default =ignored-folders= is:

@@ -94,6 +94,7 @@ struct AgendaRowView: View {
         case .deadline: return "flag.fill"
         case .habit: return "repeat"
         case .event: return "circle.fill"
+        case .reminder: return "circle"
         case .timestamp: return row.start == nil ? "calendar" : "clock"
         }
     }

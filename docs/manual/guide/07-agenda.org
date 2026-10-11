@@ -217,6 +217,30 @@ Events appear only in the day, week and month view:
 
 On the Mac, double-click an event, or select it and press =RET=, to open it in Calendar; its context menu has Show in Calendar. Entry commands such as =t= don't apply to events.
 
+* Reminders
+
+The agenda can also show reminders from the Reminders app (EventKit), read-only. It is off by default. To turn it on:
+
+- On the Mac, turn on Settings ▸ Agenda ▸ Show reminders from Reminders, and check the lists to show.
+- On iOS, turn on Settings ▸ Reminders ▸ Show Reminders, and tap the lists to show.
+- Or set the keys in =config.toml=:
+
+#+BEGIN_SRC toml
+[orgstar]
+agenda-reminders = true
+agenda-reminder-lists = "Errands, Work"
+#+END_SRC
+
+=agenda-reminder-lists= names lists by title or identifier, separated by commas; =""= (the default) shows every list. The first time reminders are turned on, orgstar asks for full access to your reminders; if you declined, allow it in System Settings ▸ Privacy & Security ▸ Reminders on the Mac, or in the Settings app on iOS.
+
+Only incomplete reminders with a due date show, in the day, week and month view:
+
+- A reminder with a due time shows at that time among the timed entries, as a timed event does. One with only a due date shows =Reminder= with the all-day events.
+- A reminder due before today shows in today's Overdue group as =2d late=, among the overdue entries by date.
+- The row's category is the list's name, and the dot takes the list's color.
+
+Completing or editing a reminder is done in Reminders. On the Mac, double-click a reminder, or press =RET=, to open it in Reminders; its context menu has Show in Reminders. On iOS, tap it.
+
 * Done keywords the agenda doesn't know
 
 A keyword that isn't in =org-todo-keywords= or the file's =#+TODO= lines is not a keyword to orgstar, as to Org: it is part of the title. A heading such as =SKIPPED Call the bank= with a =SCHEDULED= date last week is therefore an open entry, and shows as overdue. To make such a word a done state, add it after the ~|~:

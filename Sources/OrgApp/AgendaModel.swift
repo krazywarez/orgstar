@@ -47,6 +47,10 @@ public final class AgendaModel {
     public private(set) var events: [AgendaEvent] = []
     public var calendarEvents: CalendarEvents?
     public var calendarNames: [String] = []
+    /// Reminders due by the last day shown, from `reminderLists` (nil reads none) and the lists
+    /// in `reminderListNames` (all when empty), among the events.
+    public var reminderLists: ReminderLists?
+    public var reminderListNames: [String] = []
     /// Today and the calendar of the last refresh.
     public private(set) var today = Days.absolute(Date(), calendar: .current)
     @ObservationIgnored private var calendar = Calendar.current
@@ -89,6 +93,11 @@ public final class AgendaModel {
         let provider = calendarEvents
         let names = calendarNames
         let all = await sources(open: open)
+        let agendaEnd = jobs.filter { if case .agenda = $0.mode { true } else { false } }.map { $0.first + $0.span }.max()
+        var reminders: [AgendaEvent] = []
+        if let agendaEnd, let reminderLists {
+            reminders = await reminderLists.reminders(before: Self.date(agendaEnd, calendar: calendar), chosen: reminderListNames, calendar: calendar)
+        }
         let results = await Task.detached {
             jobs.map { job in
                 var result = AgendaBlockResult(header: job.header, mode: job.mode)
@@ -99,6 +108,7 @@ public final class AgendaModel {
                         let from = Self.date(job.first, calendar: calendar)
                         result.events = provider.events(from: from, to: Self.date(job.first + job.span, calendar: calendar), chosen: names)
                     }
+                    result.events += reminders
                 case .todo(let keywords):
                     result.list = Agenda.todoList(all, keywords: keywords, options: job.options, today: today)
                 case .match(let match, let todoOnly):

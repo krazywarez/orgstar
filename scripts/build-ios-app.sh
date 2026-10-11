@@ -53,6 +53,8 @@ cat > "$app/Info.plist" <<PLIST
     <string>Face ID unlocks the passphrase of encrypted entries you asked orgstar to remember.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>The agenda shows your calendar events alongside your Org entries. orgstar only reads them.</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>The agenda shows your reminders alongside your Org entries. orgstar only reads them.</string>
     <key>UIDeviceFamily</key>
     <array><integer>1</integer><integer>2</integer></array>
     <key>UILaunchScreen</key>

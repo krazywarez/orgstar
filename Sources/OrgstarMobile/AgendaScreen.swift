@@ -294,10 +294,11 @@ struct AgendaScreen: View, Equatable {
                 if Days.absolute(now, calendar: .current) != agenda.today { tick += 1 }
             }
         }
-        // Calendar access is asked for when calendar-events is turned on.
+        // Calendar and Reminders access are asked for when calendar-events and
+        // agenda-reminders are turned on.
         .task(id: model.settingsVersion) {
-            guard OrgPreferences.calendarEvents(), !CalendarEvents.isAuthorized else { return }
-            if await model.calendarEvents.requestAccess() { tick += 1 }
+            if OrgPreferences.calendarEvents(), !CalendarEvents.isAuthorized, await model.calendarEvents.requestAccess() { tick += 1 }
+            if OrgPreferences.agendaReminders(), !ReminderLists.isAuthorized, await model.reminderLists.requestAccess() { tick += 1 }
         }
         .background { Refresher(workspace: workspace, session: session, agenda: agenda, model: model, tick: tick, logMode: logMode) }
     }
@@ -611,7 +612,8 @@ struct AgendaScreen: View, Equatable {
             } else if let event = row.event {
                 // Calendar can't be asked for one event by URL; it opens on the event's day.
                 Button {
-                    if let url = URL(string: "calshow:\(event.start.timeIntervalSinceReferenceDate)") { openURL(url) }
+                    let link = event.isReminder ? "x-apple-reminderkit://REMCDReminder/\(event.id)" : "calshow:\(event.start.timeIntervalSinceReferenceDate)"
+                    if let url = URL(string: link) { openURL(url) }
                 } label: {
                     AgendaRowView(row: row, day: day, theme: theme, dark: isDark)
                 }
@@ -935,6 +937,7 @@ struct AgendaRowView: View {
         case .deadline: row.status == .overdue ? "exclamationmark.triangle.fill" : "flag.fill"
         case .habit: "repeat"
         case .event: "calendar"
+        case .reminder: "circle"
         case .timestamp: "clock"
         case nil: nil
         }

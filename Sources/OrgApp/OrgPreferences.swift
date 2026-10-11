@@ -195,6 +195,12 @@ public enum OrgPreferences {
     public static func calendarEventCalendars(_ defaults: UserDefaults = .standard) -> [String] {
         string("calendarEventCalendars", defaults).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
+    /// `agenda-reminders`: Reminders' incomplete reminders show in the agenda.
+    public static func agendaReminders(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaReminders", defaults) }
+    /// `agenda-reminder-lists`: the lists chosen, by title or identifier; empty for all.
+    public static func agendaReminderLists(_ defaults: UserDefaults = .standard) -> [String] {
+        string("agendaReminderLists", defaults).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
     public static func reminders(_ defaults: UserDefaults = .standard) -> Bool { bool("reminders", defaults) }
     /// `appt-message-warning-time`, in minutes.
     public static func reminderLead(_ defaults: UserDefaults = .standard) -> Int { integer("reminderLead", defaults) }

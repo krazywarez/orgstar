@@ -10,10 +10,11 @@ enum AgendaSpan: String, CaseIterable {
     case day, week, month
 }
 
-/// The app's one reader of Calendar events, for the agenda and Settings.
+/// The app's one reader of Calendar events and of Reminders, for the agenda and Settings.
 @MainActor
 enum CalendarAccess {
     static let events = CalendarEvents()
+    static let reminders = ReminderLists()
 }
 
 /// The agenda window: the day/week agenda, the TODO list, tag matches, text search and saved views.
@@ -75,6 +76,8 @@ struct AgendaView: View {
     @AppStorage("agendaShowAllDates") private var showAllDates = false
     @AppStorage("calendarEvents") private var calendarEventsOn = false
     @AppStorage("calendarEventCalendars") private var calendarNames = ""
+    @AppStorage("agendaReminders") private var remindersOn = false
+    @AppStorage("agendaReminderLists") private var reminderListNames = ""
     @AppStorage("agendaPrefixAgenda") private var prefixAgenda = PrefixFormat.defaults["agenda"]!
     @AppStorage("agendaPrefixTodo") private var prefixTodo = PrefixFormat.defaults["todo"]!
     @AppStorage("agendaPrefixTags") private var prefixTags = PrefixFormat.defaults["tags"]!
@@ -154,7 +157,7 @@ struct AgendaView: View {
             mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags],
             settings: [sortAgenda, sortTodo, sortTags, sortSearch, gridWhen, gridTimes, "\(useTimeGrid) \(showCurrentTime)", stuckMatch, stuckTodo, stuckTags, stuckRegexp, agendaFileList],
             logMode: logMode,
-            calendars: calendarEventsOn ? [calendarNames] : [], files: 0, changed: nil, edits: 0, path: nil, tick: tick
+            calendars: (calendarEventsOn ? [calendarNames] : []) + (remindersOn ? ["reminders", reminderListNames] : []), files: 0, changed: nil, edits: 0, path: nil, tick: tick
         )
     }
 
@@ -172,6 +175,12 @@ struct AgendaView: View {
             agenda.calendarEvents = await CalendarAccess.events.requestAccess() ? CalendarAccess.events : nil
         } else {
             agenda.calendarEvents = nil
+        }
+        agenda.reminderListNames = OrgPreferences.agendaReminderLists()
+        if remindersOn, isAgenda || isBlocks {
+            agenda.reminderLists = await CalendarAccess.reminders.requestAccess() ? CalendarAccess.reminders : nil
+        } else {
+            agenda.reminderLists = nil
         }
         await agenda.refresh(open: session.openTexts)
     }
@@ -536,7 +545,7 @@ struct AgendaView: View {
     @ViewBuilder
     private func menu(_ line: Line) -> some View {
         if let event = line.row.event {
-            Button("Show in Calendar") { openEvent(event) }
+            Button(event.isReminder ? "Show in Reminders" : "Show in Calendar") { openEvent(event) }
         } else if line.row.item != nil {
             Button("Open") { selection = line.id; jump(line.id) }
             Divider()
@@ -561,14 +570,19 @@ struct AgendaView: View {
 
     func item(_ id: String) -> AgendaItem? { line(id)?.row.item }
 
-    /// Return and double click: the entry in the main window, or the event in Calendar.
+    /// Return and double click: the entry in the main window, or the event in Calendar or Reminders.
     func open(_ line: Line) {
         selection = line.id
         if let event = line.row.event { openEvent(event) } else { jump(line.id) }
     }
 
-    /// Calendar shows an event from its identifier (`AgendaEvent.id` adds `@` and the start).
+    /// Calendar shows an event from its identifier (`AgendaEvent.id` adds `@` and the start);
+    /// Reminders a reminder from its own.
     private func openEvent(_ event: AgendaEvent) {
+        if event.isReminder {
+            if let url = URL(string: "x-apple-reminderkit://REMCDReminder/\(event.id)") { NSWorkspace.shared.open(url) }
+            return
+        }
         let identifier = event.id.split(separator: "@").dropLast().joined(separator: "@")
         guard !identifier.isEmpty, let encoded = identifier.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
               let url = URL(string: "ical://ekevent/\(encoded)?method=show&options=more") else { return }

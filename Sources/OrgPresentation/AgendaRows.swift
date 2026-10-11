@@ -1,7 +1,9 @@
 import Foundation
 import OrgCore
 
-/// An event from the system Calendar, read-only (OrgApp's `CalendarEvents` reads them).
+/// An event from the system Calendar or a reminder from Reminders, read-only (OrgApp's
+/// `CalendarEvents` and `ReminderLists` read them). A reminder starts and ends at its due date;
+/// one without a time is all day.
 public struct AgendaEvent: Sendable, Equatable, Identifiable {
     public let id: String
     public let title: String
@@ -13,10 +15,11 @@ public struct AgendaEvent: Sendable, Equatable, Identifiable {
     public let end: Date
     public let isAllDay: Bool
     public let location: String?
+    public let isReminder: Bool
 
     public init(
         id: String, title: String, calendarID: String, calendarTitle: String, color: RGBA?, start: Date, end: Date,
-        isAllDay: Bool, location: String? = nil
+        isAllDay: Bool, location: String? = nil, isReminder: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -27,6 +30,7 @@ public struct AgendaEvent: Sendable, Equatable, Identifiable {
         self.end = end
         self.isAllDay = isAllDay
         self.location = location
+        self.isReminder = isReminder
     }
 
     /// The days (as `Days` numbers them) the event covers; an end at midnight ends the day before.
@@ -58,7 +62,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
     }
 
     public enum Icon: String, Sendable {
-        case scheduled, deadline, habit, event, timestamp
+        case scheduled, deadline, habit, event, timestamp, reminder
     }
 
     /// Unique within a day group.
@@ -164,6 +168,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
 
     /// The event's row on `day`: its times on the day it starts (the end only when it ends that
     /// day too), `Until 10:00` on the day a longer event ends, `All day` otherwise.
+    /// A reminder due before `day` shows as late, untimed.
     public init(event: AgendaEvent, day: Int, calendar: Calendar) {
         let days = event.days(calendar: calendar)
         func hhmm(_ date: Date) -> Int {
@@ -173,7 +178,16 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         var start: Int?
         var end: Int?
         let gutter: String
-        if event.isAllDay || (day != days.lowerBound && day != days.upperBound) {
+        if event.isReminder {
+            if days.lowerBound < day {
+                gutter = "\(AgendaAge.compact(day - days.lowerBound)) late"
+            } else if event.isAllDay {
+                gutter = "Reminder"
+            } else {
+                start = hhmm(event.start)
+                gutter = Self.timeText(start!, nil)
+            }
+        } else if event.isAllDay || (day != days.lowerBound && day != days.upperBound) {
             gutter = "All day"
         } else if day == days.lowerBound {
             start = hhmm(event.start)
@@ -182,10 +196,10 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         } else {
             gutter = "Until " + Self.timeText(hhmm(event.end), nil)
         }
-        self.id = "event\u{1f}" + event.id
+        self.id = (event.isReminder ? "reminder\u{1f}" : "event\u{1f}") + event.id
         self.gutter = gutter
-        self.status = .normal
-        self.icon = .event
+        self.status = event.isReminder && days.lowerBound < day ? .overdue : .normal
+        self.icon = event.isReminder ? .reminder : .event
         self.category = event.calendarTitle
         self.title = event.title
         self.tags = []
@@ -198,7 +212,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         self.prefixDetail = nil
         self.start = start
         self.end = end
-        self.planningDay = nil
+        self.planningDay = event.isReminder ? days.lowerBound : nil
         self.item = nil
         self.event = event
     }
@@ -313,7 +327,8 @@ public enum AgendaRows {
     ///   oldest date first, Org's order among the same date.
     /// - Other rows keep Org's order (timed by time, then untimed by urgency, habits last).
     ///   All-day events come first, timed events go among the timed entries by start time,
-    ///   after entries at the same time.
+    ///   after entries at the same time. Reminders due before today show in today's
+    ///   `overdue`.
     /// - `keep` filters the Org entries (an `AgendaFilter`); events are not filtered.
     public static func groups(
         _ days: [AgendaDay], events: [AgendaEvent] = [], today: Int, showAllDates: Bool = false, calendar: Calendar = .current,
@@ -337,11 +352,14 @@ public enum AgendaRows {
                     rows.append(row)
                 }
             }
+            let dayEvents = eventDays.filter { event, days in
+                days.contains(day.day) || (event.isReminder && day.day == today && days.upperBound < today)
+            }.map { AgendaRow(event: $0.0, day: day.day, calendar: calendar) }
+            overdue += dayEvents.filter { $0.status == .overdue }
             overdue = overdue.enumerated().sorted { a, b in
                 a.element.planningDay! != b.element.planningDay! ? a.element.planningDay! < b.element.planningDay! : a.offset < b.offset
             }.map(\.element)
-            let dayEvents = eventDays.filter { $0.1.contains(day.day) }.map { AgendaRow(event: $0.0, day: day.day, calendar: calendar) }
-            rows = merge(rows, events: dayEvents)
+            rows = merge(rows, events: dayEvents.filter { $0.status != .overdue })
             let orgIndices = rows.indices.filter { !rows[$0].isEvent }
             var group = AgendaDayGroup(day: day.day, isToday: day.day == today, header: day.header, overdue: unique(overdue), rows: unique(rows))
             group.grid = grid.map { .init(before: $0.ordinal < orgIndices.count ? orgIndices[$0.ordinal] : rows.count, time: $0.time) }
