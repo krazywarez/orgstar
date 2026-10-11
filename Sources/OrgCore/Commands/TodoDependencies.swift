@@ -3,7 +3,7 @@ import Foundation
 // TODO dependencies (Org 9.8.7): `org-block-todo-from-children-or-siblings-or-parent` with
 // `org-enforce-todo-dependencies`, `org-block-todo-from-checkboxes` with
 // `org-enforce-todo-checkbox-dependencies`, `org-entry-blocked-p` and
-// `org-toggle-ordered-property` with `org-track-ordered-property-with-tag` nil.
+// `org-toggle-ordered-property` with `org-track-ordered-property-with-tag`.
 
 extension EmacsBuffer {
     /// `org-not-done-heading-regexp`.
@@ -141,14 +141,28 @@ public struct ToggleOrderedProperty: OrgCommand {
     public var title: String { "Toggle ORDERED Property" }
     public func applies(in context: EditContext) -> Bool { entryHeading(at: context.caret, in: context.tree) != nil }
     public func run(in context: EditContext) -> CommandStep {
-        commitBuffer(context) { buffer in
+        let tag = context.options.trackOrderedPropertyWithTag
+        return commitBuffer(context) { buffer in
             try buffer.saveExcursion {
                 let heading = try buffer.backToHeading()
+                // `org-toggle-tag`: the tag goes on or off.
+                func toggle(_ on: Bool) throws {
+                    guard let tag else { return }
+                    var tags = try SetTags.tags(in: buffer)
+                    if on {
+                        if !tags.contains(tag) { tags.append(tag) }
+                    } else {
+                        tags.removeAll { $0 == tag }
+                    }
+                    try SetTags.set(tags, in: buffer)
+                }
                 if buffer.localProperty("ORDERED", heading: heading).map({ $0 != "nil" }) ?? false {
                     buffer.entryDelete("ORDERED")
+                    try toggle(false)
                     buffer.message = "Subtasks can be completed in arbitrary order"
                 } else {
                     buffer.entryPut("ORDERED", "t")
+                    try toggle(true)
                     buffer.message = "Subtasks must be completed in sequence"
                 }
             }

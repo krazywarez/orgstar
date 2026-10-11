@@ -479,6 +479,8 @@ public struct EmacsImport: Sendable {
              "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
              "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies":
             add(name, .bool(truthy))
+        case "org-track-ordered-property-with-tag":
+            if let tag = value.string { add(name, .string(tag)) } else { add(name, .string(truthy ? "t" : "nil")) }
         case "org-agenda-dim-blocked-tasks":
             add(name, .string(value.symbol == "invisible" ? "invisible" : truthy ? "t" : "nil"))
         case "org-hide-drawer-startup", "org-hide-block-startup":

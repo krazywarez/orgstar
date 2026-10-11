@@ -35,6 +35,11 @@ public enum OrgPreferences {
         options.electricPair = bool("electricPair", defaults)
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
+        options.trackOrderedPropertyWithTag = switch string("trackOrderedTag", defaults) {
+        case "", "nil": nil
+        case "t": "ORDERED"
+        case let tag: tag
+        }
         return options
     }
 

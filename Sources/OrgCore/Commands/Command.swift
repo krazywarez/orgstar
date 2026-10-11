@@ -27,6 +27,8 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var enforceTodoDependencies = false
     /// `org-enforce-todo-checkbox-dependencies`: an entry can't become done with unchecked boxes.
     public var enforceTodoCheckboxDependencies = false
+    /// `org-track-ordered-property-with-tag`: the tag toggling `ORDERED` toggles too; nil for none.
+    public var trackOrderedPropertyWithTag: String?
     /// `org-use-speed-commands`: single keys at the start of a heading line run commands.
     public var useSpeedCommands: Bool
     /// `org-startup-with-inline-images`.

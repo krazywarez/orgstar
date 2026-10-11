@@ -155,6 +155,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =tab-bar=                        | View ▸ Show Tab Bar        |
 | =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
 | =ignored-folders=                |                            |
+| =org-track-ordered-property-with-tag= |                       |
 | =org-agenda-start-on-weekday=    |                            |
 | =org-deadline-warning-days=      |                            |
 | =org-agenda-skip-scheduled-if-done= |                         |
@@ -188,6 +189,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-log-into-drawer=                | string  | =""=    | The drawer state notes go in. ="LOGBOOK"= is Emacs's =t=; =""= puts them under the heading. Mirrors =org-log-into-drawer=. |
 | =org-enforce-todo-dependencies=      | boolean | =false= | An entry can't become done while a descendant has an active TODO keyword, or under an =ORDERED= parent while an earlier sibling has one. Mirrors =org-enforce-todo-dependencies=. |
 | =org-enforce-todo-checkbox-dependencies= | boolean | =false= | An entry can't become done while its text has an unchecked checkbox. Mirrors =org-enforce-todo-checkbox-dependencies=. |
+| =org-track-ordered-property-with-tag= | string | ="nil"= | A tag that Toggle ORDERED Property adds and removes with the property: ="t"= for the tag =ORDERED=, or a tag name. Mirrors =org-track-ordered-property-with-tag=. |
 | =org-startup-indented=               | boolean | =true=  | Indent bodies under their headings, as =org-indent-mode=. =#+STARTUP: indent= / =noindent= override it. Mirrors =org-startup-indented=. |
 | =org-hide-leading-stars=             | boolean | =false= | Show only a heading's last star, without indentation. =#+STARTUP: hidestars= / =showstars= override it. Mirrors =org-hide-leading-stars=. |
 | =org-startup-align-all-tables=       | boolean | =false= | Align every table when a file opens. =#+STARTUP: align= / =noalign= override it. Mirrors =org-startup-align-all-tables=. |

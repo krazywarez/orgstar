@@ -112,7 +112,7 @@ The =ORDERED= property adds an order. Under a parent with =:ORDERED: t=, an entr
 ,** TODO Pack the kitchen
 #+END_SRC
 
-Here Pack the kitchen can't be done until Hire a van is. Toggle ORDERED Property (=org-toggle-ordered-property=, =C-c C-x o= in Emacs and Doom) adds =:ORDERED: t= to the entry's property drawer, or removes the property when it is set.
+Here Pack the kitchen can't be done until Hire a van is. Toggle ORDERED Property (=org-toggle-ordered-property=, =C-c C-x o= in Emacs and Doom) adds =:ORDERED: t= to the entry's property drawer, or removes the property when it is set. With =org-track-ordered-property-with-tag= set in =config.toml=, it adds or removes that tag too (=ORDERED= for ="t"=), so ordered entries show in the heading line.
 
 With =org-enforce-todo-checkbox-dependencies= on, an entry can't be done while its own text has an unchecked (=[ ]=) or partly checked (=[-]=) checkbox. Checkboxes in child entries and in src, example, export and verse blocks don't count. The message ends in =(by contained checkboxes)=; when both settings would refuse the change, it names the checkboxes.
 

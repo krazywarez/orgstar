@@ -121,6 +121,8 @@ public enum UserConfig {
                 comment: "an entry can't be done before its TODO children, or under an ORDERED parent before its earlier siblings", legacy: ""),
         Setting(section: "", key: "org-enforce-todo-checkbox-dependencies", defaultsKey: "enforceTodoCheckboxDependencies", kind: .bool, fallback: .bool(false),
                 comment: "an entry can't be done while it has unchecked boxes", legacy: ""),
+        Setting(section: "", key: "org-track-ordered-property-with-tag", defaultsKey: "trackOrderedTag", kind: .string, fallback: .string("nil"),
+                comment: "nil, t (the tag ORDERED) or a tag that Toggle ORDERED Property toggles too", legacy: ""),
         Setting(section: "", key: "org-startup-indented", defaultsKey: "startupIndented", kind: .bool, fallback: .bool(true),
                 comment: "indent bodies under their headings (org-indent-mode); #+STARTUP: (no)indent overrides", legacy: ""),
         Setting(section: "", key: "org-hide-leading-stars", defaultsKey: "hideLeadingStars", kind: .bool, fallback: .bool(false),

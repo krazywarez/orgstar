@@ -60,27 +60,41 @@ public struct SetTags: OrgCommand {
     /// `org-set-tags`: the entry's tags become `tags`, realigned.
     static func set(_ tags: [String], in context: EditContext) -> CommandStep {
         commitBuffer(context) { buffer in
-            try buffer.saveExcursion {
-                try buffer.backToHeading()
-                buffer.saveExcursion {
-                    let line = buffer.saveExcursion { buffer.lookingAt(Self.tagLine) }
-                    let old = line.flatMap { $0[2] }.map { buffer.substring($0.lowerBound, $0.upperBound).split(separator: ":").map(String.init) } ?? []
-                    if tags != old {
-                        buffer.point = line?[1]?.lowerBound ?? buffer.lineEnd(buffer.point)
-                        buffer.skipBackward(EmacsBuffer.blanks)
-                        buffer.deleteRegion(buffer.point, buffer.lineEnd(buffer.point))
-                        if !buffer.atHeading { buffer.insert(" ") }
-                        if !tags.isEmpty { buffer.saveExcursion { buffer.insert(" :" + tags.joined(separator: ":") + ":") } }
-                    }
-                    // Org realigns whenever there are tags, changed or not.
-                    if !tags.isEmpty { buffer.alignTags(onLineAt: buffer.point) }
-                }
-            }
+            try set(tags, in: buffer)
             let afterStars = buffer.saveExcursion { () -> Bool in
                 buffer.skipBackward([42])
                 return buffer.bolp
             }
             if afterStars, buffer.character(at: buffer.point) == 32 { buffer.point += 1 }
+        }
+    }
+
+    /// The tags of the entry at point.
+    static func tags(in buffer: EmacsBuffer) throws -> [String] {
+        try buffer.saveExcursion {
+            try buffer.backToHeading()
+            let line = buffer.lookingAt(Self.tagLine)
+            return line.flatMap { $0[2] }.map { buffer.substring($0.lowerBound, $0.upperBound).split(separator: ":").map(String.init) } ?? []
+        }
+    }
+
+    /// `org-set-tags` on the entry at point, which stays where it is.
+    static func set(_ tags: [String], in buffer: EmacsBuffer) throws {
+        try buffer.saveExcursion {
+            try buffer.backToHeading()
+            buffer.saveExcursion {
+                let line = buffer.saveExcursion { buffer.lookingAt(Self.tagLine) }
+                let old = line.flatMap { $0[2] }.map { buffer.substring($0.lowerBound, $0.upperBound).split(separator: ":").map(String.init) } ?? []
+                if tags != old {
+                    buffer.point = line?[1]?.lowerBound ?? buffer.lineEnd(buffer.point)
+                    buffer.skipBackward(EmacsBuffer.blanks)
+                    buffer.deleteRegion(buffer.point, buffer.lineEnd(buffer.point))
+                    if !buffer.atHeading { buffer.insert(" ") }
+                    if !tags.isEmpty { buffer.saveExcursion { buffer.insert(" :" + tags.joined(separator: ":") + ":") } }
+                }
+                // Org realigns whenever there are tags, changed or not.
+                if !tags.isEmpty { buffer.alignTags(onLineAt: buffer.point) }
+            }
         }
     }
 }

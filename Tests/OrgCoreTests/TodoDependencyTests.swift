@@ -146,6 +146,22 @@ struct TodoDependencyTests {
                                           form: Self.form("(org-toggle-ordered-property)", dependencies: false, checkboxes: false, keep: "Subtasks")))
             ours.append(Self.run(ToggleOrderedProperty(), text, caret: caret, options: .org))
         }
+        // org-track-ordered-property-with-tag: t is the tag ORDERED, a string names the tag.
+        let tracked = [
+            "* A¶\n", "* A :x:¶\n", "* A :x:ORDERED:¶\n:PROPERTIES:\n:ORDERED: t\n:END:\n",
+            "* TODO A    :seq:¶\n:PROPERTIES:\n:ORDERED: t\n:END:\n", "* A :ORDERED:¶\n",
+        ]
+        for (lisp, tag) in [("t", "ORDERED"), ("\"seq\"", "seq")] {
+            var options = EditingOptions.org
+            options.trackOrderedPropertyWithTag = tag
+            for marked in tracked {
+                let (text, caret) = Self.place(marked)
+                cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text),
+                                              form: Self.form("(let ((org-track-ordered-property-with-tag \(lisp))) (org-toggle-ordered-property))",
+                                                              dependencies: false, checkboxes: false, keep: "Subtasks")))
+                ours.append(Self.run(ToggleOrderedProperty(), text, caret: caret, options: options))
+            }
+        }
         for (i, theirs) in try EmacsOracle.run(cases).enumerated() {
             // Org's message also names the position it reached and the buffer.
             let before = "Before first headline"
