@@ -37,7 +37,9 @@ public struct SetTags: OrgCommand {
         }
         let currentText = HeadingLine(heading).tags.map { (context.text as NSString).substring(with: NSRange($0.range)) } ?? ""
         let current = currentText.split(separator: ":").map(String.init)
-        let table = FastSelection.tagTable(context.tree.settings.setupKeywords + context.text) ?? Self.bufferTags(context).map { .option(key: "\0", name: $0) }
+        let table = FastSelection.tagTable(context.tree.settings.setupKeywords + context.text)
+            ?? context.options.tagAlist.flatMap { alist in FastSelection.tagTable(alist.split(separator: "\n").map { "#+TAGS: " + $0 }.joined(separator: "\n")) }
+            ?? Self.bufferTags(context).map { .option(key: "\0", name: $0) }
         let tags: [String]
         if let fast = FastSelection.tags(table: table, current: current, inherited: inheritedTags(context)) {
             guard let answer = context.answers["tags"] else {

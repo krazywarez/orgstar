@@ -121,7 +121,7 @@ extension EmacsBuffer {
             while upHeadingSafe() != nil { ancestors.insert(lineTags(point), at: 0) }
             var inherited: [String] = []
             let fileTags = (keyword("FILETAGS") ?? "").split(whereSeparator: { $0 == ":" || $0 == " " || $0 == "\t" }).map(String.init)
-            for tag in fileTags + ancestors.flatMap({ $0 }) where !inherited.contains(tag) && !local.contains(tag) { inherited.append(tag) }
+            for tag in fileTags + ancestors.flatMap({ $0 }) where settings.inheritsTag(tag) && !inherited.contains(tag) && !local.contains(tag) { inherited.append(tag) }
             return (local, inherited)
         }
     }

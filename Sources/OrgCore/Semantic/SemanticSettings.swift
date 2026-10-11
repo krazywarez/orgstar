@@ -21,12 +21,47 @@ public struct SemanticSettings: Sendable, Equatable {
         }
     }
 
-    public var tagInheritance: Bool
+    /// `org-use-tag-inheritance`.
+    public enum TagInheritance: Sendable, Equatable {
+        case all, none
+        /// Only these tags.
+        case only(Set<String>)
+        /// Tags this regular expression matches.
+        case matching(String)
+
+        /// As `config.toml` writes it: `t`, `nil`, tag names separated by spaces, or a regular
+        /// expression in braces, `{^@}`.
+        public init(_ text: String) {
+            let trimmed = text.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed == "t" {
+                self = .all
+            } else if trimmed == "nil" {
+                self = .none
+            } else if trimmed.hasPrefix("{"), trimmed.hasSuffix("}"), trimmed.count >= 2 {
+                self = .matching(String(trimmed.dropFirst().dropLast()))
+            } else {
+                self = .only(Set(trimmed.split(whereSeparator: \.isWhitespace).map(String.init)))
+            }
+        }
+    }
+
+    public var tagInheritance: TagInheritance
     public var tagsExcludedFromInheritance: Set<String>
     public var propertyInheritance: PropertyInheritance
 
+    /// `org-remove-uninherited-tags` for one tag: whether `tag` passes to children.
+    public func inheritsTag(_ tag: String) -> Bool {
+        switch tagInheritance {
+        case .all: !tagsExcludedFromInheritance.contains(tag)
+        case .none: false
+        case .only(let tags): tags.contains(tag)
+        case .matching(let pattern):
+            tag.range(of: pattern, options: .regularExpression) != nil && !tagsExcludedFromInheritance.contains(tag)
+        }
+    }
+
     public init(
-        tagInheritance: Bool = true,
+        tagInheritance: TagInheritance = .all,
         tagsExcludedFromInheritance: Set<String> = [],
         propertyInheritance: PropertyInheritance = .none
     ) {

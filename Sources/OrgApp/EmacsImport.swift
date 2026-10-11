@@ -492,6 +492,15 @@ public struct EmacsImport: Sendable {
         case "org-archive-location":
             guard let location = value.string, location.contains("::") else { return note("not a file::heading location") }
             add(name, .string(location))
+        case "org-use-tag-inheritance":
+            if let regexp = value.string { add(name, .string("{\(regexp)}")) } else if let tags = value.elements, !tags.isEmpty {
+                add(name, .string(tags.compactMap(\.string).joined(separator: " ")))
+            } else { add(name, .string(truthy ? "t" : "nil")) }
+        case "org-tags-exclude-from-inheritance":
+            add(name, .string((value.elements ?? []).compactMap(\.string).joined(separator: " ")))
+        case "org-tag-alist":
+            guard let alist = Self.tagAlist(value.elements ?? []) else { return note("entries orgstar can't read") }
+            add(name, .string(alist))
         case "org-track-ordered-property-with-tag":
             if let tag = value.string { add(name, .string(tag)) } else { add(name, .string(truthy ? "t" : "nil")) }
         case "org-agenda-log-mode-items":
@@ -593,6 +602,36 @@ public struct EmacsImport: Sendable {
         default:
             note("orgstar has no equivalent")
         }
+    }
+
+    /// `org-tag-alist` in `#+TAGS` syntax: `("work" . ?w)` is `work(w)`, `(:startgroup)` `{`,
+    /// `(:startgrouptag)` `[`, `(:grouptags)` `:`, and `(:newline)` a new line.
+    static func tagAlist(_ entries: [Sexp]) -> String? {
+        var lines: [[String]] = [[]]
+        for entry in entries {
+            let marker = entry.elements?.first?.symbol ?? entry.symbol
+            switch marker {
+            case ":startgroup": lines[lines.count - 1].append("{")
+            case ":endgroup": lines[lines.count - 1].append("}")
+            case ":startgrouptag": lines[lines.count - 1].append("[")
+            case ":endgrouptag": lines[lines.count - 1].append("]")
+            case ":grouptags": lines[lines.count - 1].append(":")
+            case ":newline": lines.append([])
+            default:
+                if let tag = entry.string {
+                    lines[lines.count - 1].append(tag)
+                } else if case .dotted(let head, let key) = entry, head.count == 1, let tag = head[0].string {
+                    guard case .character(let code) = key, let scalar = Unicode.Scalar(code) else {
+                        lines[lines.count - 1].append(tag)
+                        continue
+                    }
+                    lines[lines.count - 1].append("\(tag)(\(Character(scalar)))")
+                } else {
+                    return nil
+                }
+            }
+        }
+        return lines.map { $0.joined(separator: " ") }.filter { !$0.isEmpty }.joined(separator: "\n")
     }
 
     /// `("el" . "src emacs-lisp")` entries that aren't Org's own.

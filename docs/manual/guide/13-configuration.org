@@ -156,6 +156,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
 | =ignored-folders=                |                            |
 | =org-archive-location=          |                            |
+| =org-use-tag-inheritance=, =org-tags-exclude-from-inheritance=, =org-tag-alist= | |
 | =org-track-ordered-property-with-tag= |                       |
 | =org-agenda-start-on-weekday=    |                            |
 | =org-deadline-warning-days=      |                            |
@@ -195,6 +196,9 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-enforce-todo-dependencies=      | boolean | =false= | An entry can't become done while a descendant has an active TODO keyword, or under an =ORDERED= parent while an earlier sibling has one. Mirrors =org-enforce-todo-dependencies=. |
 | =org-enforce-todo-checkbox-dependencies= | boolean | =false= | An entry can't become done while its text has an unchecked checkbox. Mirrors =org-enforce-todo-checkbox-dependencies=. |
 | =org-archive-location=               | string  | ="%s_archive::"= | Where Archive Subtree moves an entry that has no =ARCHIVE= property and whose file has no =#+ARCHIVE:=, as =file::heading=; =%s= is the file's name. Mirrors =org-archive-location=. |
+| =org-use-tag-inheritance=            | string  | ="t"=   | Which tags inherit: ="t"= all, ="nil"= none, tag names separated by spaces, or a regular expression in braces such as ="{^@}"=. Read at launch. Mirrors =org-use-tag-inheritance=. |
+| =org-tags-exclude-from-inheritance=  | string  | =""=    | Tags that never inherit, separated by spaces. Read at launch. Mirrors =org-tags-exclude-from-inheritance=. |
+| =org-tag-alist=                      | string  | =""=    | The tags Set Tags offers in files without =#+TAGS=, in =#+TAGS= syntax with keys and groups, rows separated by =\n=. Mirrors =org-tag-alist=. |
 | =org-track-ordered-property-with-tag= | string | ="nil"= | A tag that Toggle ORDERED Property adds and removes with the property: ="t"= for the tag =ORDERED=, or a tag name. Mirrors =org-track-ordered-property-with-tag=. |
 | =org-startup-indented=               | boolean | =true=  | Indent bodies under their headings, as =org-indent-mode=. =#+STARTUP: indent= / =noindent= override it. Mirrors =org-startup-indented=. |
 | =org-hide-leading-stars=             | boolean | =false= | Show only a heading's last star, without indentation. =#+STARTUP: hidestars= / =showstars= override it. Mirrors =org-hide-leading-stars=. |
@@ -481,6 +485,9 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-clock-into-drawer=                                            | A drawer name as given, a number as a string, =t= or =nil=                                    |
 | =org-clock-rounding-minutes=, =org-clock-out-remove-zero-time-clocks= | The same key                                                                                 |
 | =org-clock-in-switch-to-state=                                      | A keyword string; a function isn't supported                                                  |
+| =org-use-tag-inheritance=                                          | =t=, =nil=, a list of tags as names separated by spaces, or a regular expression in braces    |
+| =org-tags-exclude-from-inheritance=                                | The list's tags separated by spaces                                                           |
+| =org-tag-alist=                                                    | =#+TAGS= syntax: =("work" . ?w)= is =work(w)=; =:startgroup=, =:endgroup=, =:startgrouptag=, =:grouptags=, =:endgrouptag= and =:newline= become ={=, =}=, =[=, =:=, =]= and a new row |
 | =org-clock-out-when-done=                                           | =t=, =nil=, or a list of keywords as a string separated by spaces                            |
 | =org-agenda-start-day=                                             | A day offset such as ="-3d"=; =nil= becomes ="+0d"=. Other forms aren't supported.            |
 | =org-agenda-start-on-weekday=                                      | ="0"= to ="6"=, or ="nil"=                                                                    |

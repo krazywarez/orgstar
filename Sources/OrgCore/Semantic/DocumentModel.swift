@@ -21,9 +21,11 @@ public struct DocumentModel: Sendable {
 
     private typealias PendingBlock = (node: SyntaxNode, heading: Int?, affiliated: [SyntaxNode])
 
-    /// `settings` default to the tree's property inheritance.
+    /// `settings` default to the tree's tag and property inheritance.
     public init(tree: OrgTree, settings: SemanticSettings? = nil) {
-        self.settings = settings ?? SemanticSettings(propertyInheritance: tree.settings.propertyInheritance)
+        self.settings = settings ?? SemanticSettings(tagInheritance: tree.settings.tagInheritance,
+                                                     tagsExcludedFromInheritance: tree.settings.tagsExcludedFromInheritance,
+                                                     propertyInheritance: tree.settings.propertyInheritance)
         self.orgSettings = tree.settings
         for (key, value) in SetupFile.keywords(tree.settings.setupKeywords) { fileKeyword(key, value.trimmingCharacters(in: .whitespaces)) }
         var pending: [PendingBlock] = []
@@ -93,10 +95,10 @@ public struct DocumentModel: Sendable {
     public func tags(of index: Int) -> [Resolved<String>] {
         let local = headings[index].localTags
         var inherited: [Resolved<String>] = []
-        if settings.tagInheritance {
+        if settings.tagInheritance != .none {
             let layers = [(fileTags, ValueSource.file)] + ancestors(of: index).map { (headings[$0].localTags, ValueSource.heading($0)) }
             for (tags, source) in layers {
-                for tag in tags where !settings.tagsExcludedFromInheritance.contains(tag)
+                for tag in tags where settings.inheritsTag(tag)
                     && !local.contains(tag) && !inherited.contains(where: { $0.value == tag }) {
                     inherited.append(Resolved(tag, source))
                 }

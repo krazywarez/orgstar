@@ -216,9 +216,7 @@ public enum ColumnView {
         case "PRIORITY": return h.priority ?? model.orgSettings.priorities.default
         case "TAGS": return h.localTags.isEmpty ? "" : ":" + h.localTags.joined(separator: ":") + ":"
         case "ALLTAGS":
-            let tags = model.ancestors(of: index).flatMap { model.headings[$0].localTags } + h.localTags
-            var seen: Set<String> = []
-            let all = (model.fileTags + tags).filter { seen.insert($0).inserted }
+            let all = model.tags(of: index).map(\.value)
             return all.isEmpty ? "" : ":" + all.joined(separator: ":") + ":"
         case "DEADLINE", "SCHEDULED", "CLOSED":
             // From the planning line under the heading.
@@ -340,7 +338,7 @@ public enum ColumnView {
                 if others.isEmpty { continue }
             }
             if !excludeTags.isEmpty {
-                let tags = model.ancestors(of: i).flatMap { headings[$0].localTags } + headings[i].localTags + model.fileTags
+                let tags = model.tags(of: i).map(\.value)
                 if tags.contains(where: excludeTags.contains) { continue }
             }
             rows.append(Row(level: level, start: headings[i].headingRange.lowerBound, values: values))

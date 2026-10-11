@@ -158,9 +158,11 @@ enum AgendaOracle {
     }
 
     /// A TODO list or tags view: `form` runs it in Emacs, `ours` builds ours from the sources.
-    static func compareList(files: [(name: String, text: String)], form: String, today: Int, _ ours: ([AgendaSource]) -> [AgendaItem]) throws {
+    static func compareList(files: [(name: String, text: String)], form: String, today: Int, settings: (inout OrgSettings) -> Void = { _ in },
+                            _ ours: ([AgendaSource]) -> [AgendaItem]) throws {
         let emacs = try run(files: files, form: form, today: today, hour: 9, minute: 30)
-        let defaults = OrgSettings.default.withTodoKeywords(keywords)!
+        var defaults = OrgSettings.default.withTodoKeywords(keywords)!
+        settings(&defaults)
         let mine = ours(files.map { AgendaSource(path: $0.name, text: $0.text, defaults: defaults) })
         #expect(describe(mine) == describe(emacs.first?.items ?? []), "\(form)")
     }
@@ -670,5 +672,51 @@ struct TodoIgnoreTests {
                 today: today
             ) { Agenda.tagsMatch($0, match: "work", todoOnly: true, now: now, calendar: utc, options: options) }
         }
+    }
+}
+
+/// `org-use-tag-inheritance` and `org-tags-exclude-from-inheritance` in tag matches.
+struct TagInheritanceTests {
+    static let file = """
+    #+FILETAGS: :ft:
+    * Project :work:proj:@office:
+    ** TODO Child :home:
+    *** TODO Grandchild
+    * Other :@home:
+    ** TODO Under other
+
+    """
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func inheritsLikeOrg() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        let cases: [(String, String, SemanticSettings.TagInheritance, Set<String>)] = [
+            ("t", "nil", .all, []),
+            ("nil", "nil", .none, []),
+            ("'(\"work\" \"ft\")", "nil", .only(["work", "ft"]), []),
+            ("\"^@\"", "nil", .matching("^@"), []),
+            ("t", "'(\"proj\" \"ft\")", .all, ["proj", "ft"]),
+            ("\"^[a-z]\"", "'(\"proj\")", .matching("^[a-z]"), ["proj"]),
+        ]
+        for (inherit, exclude, mode, excluded) in cases {
+            for match in ["work", "proj", "ft", "@office|@home", "home"] {
+                try AgendaOracle.compareList(
+                    files: [("t.org", Self.file)],
+                    form: "(let ((org-use-tag-inheritance \(inherit)) (org-tags-exclude-from-inheritance \(exclude))) (org-tags-view nil \"\(match)\"))",
+                    today: today,
+                    settings: { $0.tagInheritance = mode; $0.tagsExcludedFromInheritance = excluded }
+                ) { Agenda.tagsMatch($0, match: match) }
+            }
+        }
+    }
+
+    @Test func tagAlistOffersFastKeys() {
+        let text = "* Task\n"
+        var options = EditingOptions.org
+        options.tagAlist = "work(w) home(h)\n{ @office(o) @home(H) }"
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2], options: options)
+        guard case .prompt(let prompt) = SetTags().run(in: context) else { Issue.record("no prompt"); return }
+        #expect(prompt.fast?.items.contains(.option(key: "w", name: "work")) == true)
+        #expect(prompt.fast?.items.contains(.option(key: "H", name: "@home")) == true)
     }
 }

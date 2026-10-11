@@ -27,6 +27,9 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var enforceTodoDependencies = false
     /// `org-enforce-todo-checkbox-dependencies`: an entry can't become done with unchecked boxes.
     public var enforceTodoCheckboxDependencies = false
+    /// `org-tag-alist` in `#+TAGS` syntax, a line for each `:newline`: the tags C-c C-q offers in
+    /// files without `#+TAGS`.
+    public var tagAlist: String?
     /// `org-clock-rounding-minutes`: clocks start and end on multiples of this many minutes.
     public var clockRoundingMinutes = 0
     /// `org-clock-out-remove-zero-time-clocks`.

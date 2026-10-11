@@ -75,7 +75,7 @@ struct InheritanceTests {
         let m = model(text, SemanticSettings(tagsExcludedFromInheritance: ["noinherit"]))
         #expect(m.tags(of: 1).map(\.value) == ["f", "x", "y"])
         #expect(m.tags(of: 1).map(\.source) == [.file, .heading(0), .heading(1)])
-        #expect(model(text, SemanticSettings(tagInheritance: false)).tags(of: 1).map(\.value) == ["y"])
+        #expect(model(text, SemanticSettings(tagInheritance: .none)).tags(of: 1).map(\.value) == ["y"])
     }
 
     @Test func ownTagWinsOverInherited() {

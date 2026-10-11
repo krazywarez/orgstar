@@ -259,6 +259,8 @@ Typing =:= at the end of a heading line also completes tags: from the =#+TAGS= l
 
 ** Fast tag selection
 
+A file without =#+TAGS= lines uses =org-tag-alist= from =config.toml= instead, written as a =#+TAGS= line; separate rows with =\n=: =org-tag-alist = "work(w) home(h)\n{ @office(o) @home(H) }"=.
+
 When a =#+TAGS= line gives at least one tag a key, Set Tags opens fast selection (=org-fast-tag-selection=):
 
 #+BEGIN_SRC org
@@ -287,7 +289,9 @@ The view shows the inherited tags, the current selection, and each tag with its 
 
 ** Inheritance
 
-An entry inherits the tags of its ancestors and the file's =#+FILETAGS= (=org-use-tag-inheritance= =t=). Fast selection lists inherited tags separately. Agenda matches and clock tables with =:tags t= use the inherited tags too. orgstar has no setting to limit inheritance (=org-tags-exclude-from-inheritance=).
+An entry inherits the tags of its ancestors and the file's =#+FILETAGS= (=org-use-tag-inheritance= =t=). Fast selection lists inherited tags separately. Agenda matches, column view's =ALLTAGS=, archiving and clock tables with =:tags t= use the inherited tags too.
+
+=org-use-tag-inheritance= in =config.toml= limits which tags inherit: ="nil"= none, tag names separated by spaces only those, or a regular expression in braces, ="{^@}"=, the tags it matches. =org-tags-exclude-from-inheritance= names tags that never inherit, such as =crypt=; as in Org, it applies when inheritance is =t= or a regular expression, not with a list of names. Both are read at launch.
 
 #+BEGIN_SRC org
 ,#+FILETAGS: :home:

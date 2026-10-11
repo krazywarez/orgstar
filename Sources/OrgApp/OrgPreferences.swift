@@ -14,6 +14,8 @@ public enum OrgPreferences {
         settings.listAllowAlphabetical = bool("alphabeticalLists", defaults)
         settings.propertyInheritance = .init(string("propertyInheritance", defaults))
         settings.deadlineWarningDays = integer("deadlineWarningDays", defaults)
+        settings.tagInheritance = .init(string("tagInheritance", defaults))
+        settings.tagsExcludedFromInheritance = Set(string("tagsExcludedFromInheritance", defaults).split(whereSeparator: \.isWhitespace).map(String.init))
         return settings
     }
 
@@ -37,6 +39,7 @@ public enum OrgPreferences {
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.archiveLocation = string("archiveLocation", defaults).nonEmpty
         options.clockIntoDrawer = string("clockIntoDrawer", defaults).nonEmpty
+        options.tagAlist = string("tagAlist", defaults).nonEmpty
         options.clockRoundingMinutes = integer("clockRoundingMinutes", defaults)
         options.clockOutRemoveZeroTimeClocks = bool("clockRemoveZeroTime", defaults)
         options.clockInSwitchToState = string("clockInSwitchToState", defaults).nonEmpty

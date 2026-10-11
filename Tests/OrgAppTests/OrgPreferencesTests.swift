@@ -38,6 +38,8 @@ struct OrgPreferencesTests {
             org-agenda-log-mode-items = "closed state"
             org-clock-into-drawer = "3"
             org-clock-rounding-minutes = 5
+            org-use-tag-inheritance = "work home"
+            org-tags-exclude-from-inheritance = "crypt"
             org-clock-in-switch-to-state = "STRT"
             org-clock-out-when-done = "DONE KILL"
             org-M-RET-may-split-line = true
@@ -60,6 +62,7 @@ struct OrgPreferencesTests {
         #expect(ignoring.logItems == ["closed", "state"] && OrgPreferences.options(defaults).clockIntoDrawer == "3")
         #expect(OrgPreferences.options(defaults).clockRoundingMinutes == 5 && OrgPreferences.options(defaults).clockInSwitchToState == "STRT")
         #expect(OrgPreferences.clockOutWhenDone(defaults) == ["DONE", "KILL"])
+        #expect(OrgPreferences.orgSettings(defaults).tagInheritance == .only(["work", "home"]) && OrgPreferences.orgSettings(defaults).tagsExcludedFromInheritance == ["crypt"])
         #expect(ignoring.todoIgnoreDeadlines == .near && ignoring.todoIgnoreScheduled == .days(-2) && ignoring.todoIgnoreTimestamp == .off)
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 5)
         #expect(!OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 30)

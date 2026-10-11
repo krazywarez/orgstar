@@ -213,6 +213,7 @@ public struct AgendaSource: Sendable {
 
             var itags: [String] = fileTags
             for ancestor in model.ancestors(of: index) { itags += model.headings[ancestor].localTags }
+            itags = itags.filter(settings.inheritsTag)
             var tags: [(String, Bool)] = itags.map { ($0, true) } + info.localTags.map { ($0, false) }
             // `delete-dups` over the reversed list: the most local copy of a tag stays.
             var seen: Set<String> = []

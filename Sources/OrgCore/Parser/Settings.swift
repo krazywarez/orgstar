@@ -51,6 +51,14 @@ public struct OrgSettings: Sendable, Equatable {
     public var propertyInheritance: SemanticSettings.PropertyInheritance = .none
     /// `org-deadline-warning-days`.
     public var deadlineWarningDays = 14
+    /// `org-use-tag-inheritance` and `org-tags-exclude-from-inheritance`.
+    public var tagInheritance: SemanticSettings.TagInheritance = .all
+    public var tagsExcludedFromInheritance: Set<String> = []
+
+    /// `org-remove-uninherited-tags` for one tag.
+    public func inheritsTag(_ tag: String) -> Bool {
+        SemanticSettings(tagInheritance: tagInheritance, tagsExcludedFromInheritance: tagsExcludedFromInheritance).inheritsTag(tag)
+    }
     /// Keyword lines from the file's `#+SETUPFILE`s, as `#+KEY: value` lines: they count as
     /// the file's own, before them.
     public var setupKeywords = ""
@@ -139,6 +147,8 @@ enum SettingsScanner {
         settings.listAllowAlphabetical = defaults.listAllowAlphabetical
         settings.propertyInheritance = defaults.propertyInheritance
         settings.deadlineWarningDays = defaults.deadlineWarningDays
+        settings.tagInheritance = defaults.tagInheritance
+        settings.tagsExcludedFromInheritance = defaults.tagsExcludedFromInheritance
         settings.setupKeywords = defaults.setupKeywords
         settings.startup = startup
         return settings

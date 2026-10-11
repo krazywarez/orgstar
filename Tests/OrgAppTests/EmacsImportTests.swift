@@ -51,6 +51,9 @@ struct EmacsImportTests {
             org-clock-into-drawer "CLOCKS"
             org-clock-rounding-minutes 5
             org-clock-out-when-done '("DONE" "KILL")
+            org-use-tag-inheritance "^@"
+            org-tags-exclude-from-inheritance '("proj" "crypt")
+            org-tag-alist '(("work" . ?w) ("home" . ?h) (:newline) (:startgroup) ("@office" . ?o) "@home" (:endgroup))
             org-agenda-start-day "-3d"
             org-clock-idle-time 15
             org-clock-history-length 10
@@ -97,6 +100,8 @@ struct EmacsImportTests {
         #expect(s["org-track-ordered-property-with-tag"] == .string("t"))
         #expect(s["org-archive-location"] == .string("archive/%s::"))
         #expect(s["org-agenda-log-mode-items"] == .string("closed clock state") && s["org-clock-into-drawer"] == .string("CLOCKS"))
+        #expect(s["org-use-tag-inheritance"] == .string("{^@}") && s["org-tags-exclude-from-inheritance"] == .string("proj crypt"))
+        #expect(s["org-tag-alist"] == .string("work(w) home(h)\n{ @office(o) @home }"))
         #expect(s["org-clock-rounding-minutes"] == .integer(5) && s["org-clock-out-when-done"] == .string("DONE KILL"))
         #expect(s["org-agenda-todo-ignore-scheduled"] == .string("future") && s["org-agenda-todo-ignore-deadlines"] == .string("7"))
         #expect(s["org-agenda-start-day"] == .string("-3d"))
@@ -190,7 +195,7 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 29 settings, 3 capture templates, 3 key bindings, 2 structure templates."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 32 settings, 3 capture templates, 3 key bindings, 2 structure templates."), "\(summary)")
         #expect(UserConfig.structureTemplates(defaults) == [.init(key: "el", type: "src emacs-lisp"), .init(key: "q", type: "QUOTE")])
         #expect(OrgPreferences.options(defaults).structureTemplates?.first { $0.key == "q" }?.type == "QUOTE")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
