@@ -846,7 +846,7 @@ struct DateSheet: View {
     }
 }
 
-extension AgendaItem: @retroactive Identifiable {
+extension AgendaItem: Identifiable {
     public var id: String { "\(path ?? "")|\(headingOffset ?? -1)|\(kind.rawValue)|\(text)" }
 
     /// An entry, not a time-grid line.

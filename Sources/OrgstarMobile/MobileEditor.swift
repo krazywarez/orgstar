@@ -548,13 +548,18 @@ final class MobileEditor: NSObject, DocumentBuffer {
         let range = selected.length > 0 ? selected.location..<NSMaxRange(selected) : nil
         let old = fragmentStyle.selection?.range
         fragmentStyle.set(selection: range, color: selectionColor)
-        guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return }
         let touched = [old, range].compactMap { $0 }
-        for block in shaded.all where touched.contains(where: { $0.overlaps(block) }) {
+        redraw(blocks: shaded.all.filter { block in touched.contains { $0.overlaps(block) } })
+    }
+
+    /// Lays `blocks` out again and asks their fragments, which are kept across layout passes,
+    /// to draw again.
+    private func redraw(blocks: [Range<Int>]) {
+        guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return }
+        for block in blocks {
             guard let start = content.location(content.documentRange.location, offsetBy: block.lowerBound),
                   let end = content.location(start, offsetBy: block.count),
                   let textRange = NSTextRange(location: start, end: end) else { continue }
-            // Fragments are kept across layout passes, so they are asked to draw again too.
             manager.invalidateRenderingAttributes(for: textRange)
             manager.invalidateLayout(for: textRange)
         }
@@ -562,7 +567,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
     }
 
     /// The band behind blocks spans the view's width, or the widest line's when truncated;
-    /// images are as wide as the view allows.
+    /// images are as wide as the view allows. Only the blocks read the band's width, so a
+    /// wider line in a truncated file, which widens the band on each layout pass, redraws
+    /// the blocks alone: laying the whole file out again moves the text under the view.
     private func viewResized() {
         let band = fragmentStyle.blockBand
         let width = max(textView.bounds.width, truncatesLines ? textView.contentSize.width : 0)
@@ -570,10 +577,16 @@ final class MobileEditor: NSObject, DocumentBuffer {
         guard band.width != width || resized else { return }
         fragmentStyle.set(blockBackground: band.color, width: width)
         imageWidth = textView.bounds.width
-        if showsImages, resized { restyle(0..<textView.textStorage.length) }
-        if let manager = textView.textLayoutManager {
-            manager.invalidateRenderingAttributes(for: manager.documentRange)
-            manager.invalidateLayout(for: manager.documentRange)
+        guard resized else {
+            redraw(blocks: shaded.all)
+            return
+        }
+        keepingTopLine {
+            if showsImages { restyle(0..<textView.textStorage.length) }
+            if let manager = textView.textLayoutManager {
+                manager.invalidateRenderingAttributes(for: manager.documentRange)
+                manager.invalidateLayout(for: manager.documentRange)
+            }
         }
     }
 
