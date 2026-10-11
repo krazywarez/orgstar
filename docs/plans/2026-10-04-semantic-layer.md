@@ -43,7 +43,7 @@ Merging `:results` values by group (collection, type, format, handling), languag
 **Interfaces:**
 - Produces: `SemanticSettings` (`.default`, `PropertyInheritance` `.none`/`.all`/`.only(Set<String>)` of upper-cased keys), `ValueSource` (`.defaults`, `.file`, `.heading(Int)`, `.element`), `Resolved<Value>(_:_:)`, `Property(key:value:additive:)` and internal `Property(line:)`, `Clock(start:end:minutes:)`, `HeadingInfo`, `displayWidth(_:)`, `TableModel` (internal `init(node:heading:)`), `SrcBlockInfo`, `HeaderArguments.defaults`, `HeaderArguments.parse(_:) -> [(key: String, value: String)]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -64,12 +64,12 @@ struct SemanticValueTests {
 }
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `swift test --filter SemanticValueTests`
 Expected: build failure, `cannot find 'HeaderArguments' in scope`.
 
-- [ ] **Step 3: Implement `SemanticSettings.swift`**
+- [x] **Step 3: Implement `SemanticSettings.swift`**
 
 ```swift
 /// App-wide settings that change what a document means without changing how it parses.
@@ -121,7 +121,7 @@ public struct Resolved<Value: Sendable & Equatable>: Sendable, Equatable {
 }
 ```
 
-- [ ] **Step 4: Implement `HeadingInfo.swift`**
+- [x] **Step 4: Implement `HeadingInfo.swift`**
 
 ```swift
 import Foundation
@@ -193,7 +193,7 @@ public struct HeadingInfo: Sendable, Equatable {
 }
 ```
 
-- [ ] **Step 5: Implement `DisplayWidth.swift`**
+- [x] **Step 5: Implement `DisplayWidth.swift`**
 
 ```swift
 /// Columns a string occupies in a monospaced table: East Asian wide and fullwidth characters
@@ -215,7 +215,7 @@ func displayWidth(of character: Character) -> Int {
 }
 ```
 
-- [ ] **Step 6: Implement `TableModel.swift`**
+- [x] **Step 6: Implement `TableModel.swift`**
 
 ```swift
 import Foundation
@@ -261,7 +261,7 @@ public struct TableModel: Sendable, Equatable {
 }
 ```
 
-- [ ] **Step 7: Implement `SrcBlockInfo.swift`**
+- [x] **Step 7: Implement `SrcBlockInfo.swift`**
 
 ```swift
 public struct SrcBlockInfo: Sendable, Equatable {
@@ -302,12 +302,12 @@ public enum HeaderArguments {
 }
 ```
 
-- [ ] **Step 8: Run to verify pass**
+- [x] **Step 8: Run to verify pass**
 
 Run: `swift test --filter SemanticValueTests`
 Expected: all pass.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add Sources/OrgCore/Semantic Tests/OrgCoreTests/SemanticValueTests.swift
@@ -326,7 +326,7 @@ git commit -m "Add semantic value types"
 - Consumes: Task 1 types, `OrgTree`, `SyntaxNode`, `Timestamp.parse`, `SettingsScanner.keywordValue`, `splitRawLines`.
 - Produces: `DocumentModel(tree:settings:)` with `headings`, `fileTags`, `fileProperties`, `tables`, `srcBlocks`, `ancestors(of:)`, `outlinePath(of:)`, `inherits(_:)`, `property(_:of:) -> Resolved<String>?`, `tags(of:) -> [Resolved<String>]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -490,12 +490,12 @@ struct TableModelTests {
 }
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `swift test --filter HeadingInfoTests`
 Expected: build failure, `cannot find 'DocumentModel' in scope`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```swift
 import Foundation
@@ -791,12 +791,12 @@ public struct DocumentModel: Sendable {
 }
 ```
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 Run: `swift test`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources/OrgCore/Semantic/DocumentModel.swift Tests/OrgCoreTests/SemanticTests.swift
@@ -810,7 +810,7 @@ git commit -m "Add document model with inheritance and header arguments"
 **Files:**
 - Modify: `Tests/OrgCoreTests/RoundTripTests.swift`
 
-- [ ] **Step 1: Build a model for every parsed document**
+- [x] **Step 1: Build a model for every parsed document**
 
 ```diff
 @@ -45,6 +45,7 @@ struct RoundTripTests {
@@ -831,12 +831,12 @@ git commit -m "Add document model with inheritance and header arguments"
  }
 ```
 
-- [ ] **Step 2: Run**
+- [x] **Step 2: Run**
 
 Run: `swift test` then `ORGSTAR_CORPUS=~/Documents/notes swift test --filter corpusRoundTrips`
 Expected: all pass, no crashes.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Tests/OrgCoreTests/RoundTripTests.swift

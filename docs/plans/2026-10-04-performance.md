@@ -48,7 +48,7 @@ Run the gates: `ORGSTAR_GATES=1 ORGSTAR_GATE_FILE=<a large real file> swift test
 **Files:**
 - Modify: `Sources/OrgCore/Parser/Inline.swift`, `Sources/OrgCore/Timestamp.swift`
 
-- [ ] **Step 1: Rewrite the scanner and the timestamp recognizer over `[Unicode.Scalar]`**
+- [x] **Step 1: Rewrite the scanner and the timestamp recognizer over `[Unicode.Scalar]`**
 
 The existing inline, timestamp and round-trip tests are the specification; they don't change.
 
@@ -572,7 +572,7 @@ index da5ac94..bd71851 100644
 +}
 ```
 
-- [ ] **Step 2: Run tests, the corpus and the reparse gate; commit**
+- [x] **Step 2: Run tests, the corpus and the reparse gate; commit**
 
 Run: `swift test`; `ORGSTAR_CORPUS=<folder> swift test -c release --filter corpusRoundTrips` for each local folder; `ORGSTAR_FUZZ_EDITS=100000 swift test -c release --filter incrementalEqualsFull`.
 
@@ -592,7 +592,7 @@ git commit -m "Scan inline objects over unicode scalars"
 **Interfaces:**
 - Produces: `ReparseStrategy.region`; `SyntaxNode.children(overlapping:)`, `child(containing:)`, `firstChild(_:)`; `GreenBuilder.node(_:)`; `Parser.reusableRows`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```diff
 @@ -49,8 +49,23 @@ struct IncrementalTests {
@@ -623,7 +623,7 @@ git commit -m "Scan inline objects over unicode scalars"
      @Test func runGrowsUntilAHeadingEndsIt() {
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```diff
 diff --git a/Sources/OrgCore/Parser/Incremental.swift b/Sources/OrgCore/Parser/Incremental.swift
@@ -909,7 +909,7 @@ index 3473728..0430409 100644
          [self] + children.flatMap { $0.descendants() }
 ```
 
-- [ ] **Step 3: Run the gate on several seeds; commit**
+- [x] **Step 3: Run the gate on several seeds; commit**
 
 Run: `ORGSTAR_FUZZ_SEED=<n> ORGSTAR_FUZZ_EDITS=100000 swift test -c release --filter incrementalEqualsFull` for at least five seeds.
 
@@ -929,7 +929,7 @@ git commit -m "Reparse structural edits within one section's body"
 **Interfaces:**
 - Produces: `OrgEditor.finishStyling()`, `OrgEditor.styledUpTo`, `OrgEditor.firstStyleChunk`, `OrgEditor.styleChunk`; test `Harness(_:layout:)`, `Harness.drainStyling()`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```diff
 @@ -10,13 +10,24 @@ final class Harness {
@@ -989,7 +989,7 @@ git commit -m "Reparse structural edits within one section's body"
 +}
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```diff
 diff --git a/Sources/OrgDocument/ViewState.swift b/Sources/OrgDocument/ViewState.swift
@@ -1179,7 +1179,7 @@ index 312d7f8..504e0b5 100644
              node = child
 ```
 
-- [ ] **Step 3: Run the restyle fuzz on several seeds; commit**
+- [x] **Step 3: Run the restyle fuzz on several seeds; commit**
 
 Run: `ORGSTAR_FUZZ_SEED=<n> ORGSTAR_RESTYLE_EDITS=1500 swift test -c release --filter RestyleFuzzTests` for at least three seeds.
 
@@ -1196,7 +1196,7 @@ git commit -m "Style the first screen first and narrow restyles"
 - Create: `Tests/OrgEditorAppKitTests/GateTests.swift`
 - Modify: `docs/design.md` (memory gate)
 
-- [ ] **Step 1: Add the gate suite**
+- [x] **Step 1: Add the gate suite**
 
 ```swift
 import AppKit
@@ -1306,7 +1306,7 @@ struct GateTests {
 }
 ```
 
-- [ ] **Step 2: Run the gates; commit**
+- [x] **Step 2: Run the gates; commit** (gates run on an M-series Mac, recorded in docs/design.md; the M1 Air run is owed)
 
 Run: `ORGSTAR_GATES=1 ORGSTAR_GATE_FILE=<large real file> swift test -c release --filter GateTests`
 

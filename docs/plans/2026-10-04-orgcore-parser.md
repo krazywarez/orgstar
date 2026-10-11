@@ -1,5 +1,7 @@
 # OrgCore Parser Foundation Implementation Plan
 
+Shipped as one squashed commit, f4591a4 "OrgCore parser foundation (!1)"; the commit names below are the steps as planned.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A Swift package, `OrgCore`, that turns org file bytes into a lossless syntax tree of block-level elements, with the byte and encoding contract from the design.
@@ -49,7 +51,7 @@ Inline objects (emphasis, links, timestamps), the semantic layer, incremental re
 **Interfaces:**
 - Produces: `SourceText(bytes: [UInt8])`, `SourceText(_ text: String)`, properties `originalBytes`, `hasBOM`, `isValidUTF8`, `isEditable`, `text`; `encode(_ newText: String) -> [UInt8]`.
 
-- [ ] **Step 1: Create the package**
+- [x] **Step 1: Create the package**
 
 ```swift
 // swift-tools-version: 6.2
@@ -68,7 +70,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```swift
 import Testing
@@ -113,12 +115,12 @@ struct SourceTextTests {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `swift test --filter SourceTextTests`
 Expected: build failure, `cannot find 'SourceText' in scope`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 ```swift
 import Foundation
@@ -163,12 +165,12 @@ public struct SourceText: Sendable {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `swift test --filter SourceTextTests`
 Expected: 5 tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Package.swift Sources Tests
@@ -188,7 +190,7 @@ git commit -m "Add OrgCore package and SourceText byte contract"
 **Interfaces:**
 - Produces: `SyntaxKind` (enum, `String` raw values), `GreenToken(kind:text:)`, `GreenNode(kind:children:)` with `.length`, `.text`; `GreenElement` (`.node`, `.token`); internal `GreenBuilder` with `start(_:)`, `token(_:_:)`, `finish()`, `build()`; `SyntaxNode` with `kind`, `range`, `text`, `children`, `tokens`, `descendants()`; `SyntaxToken`. `OrgTree` depends on `OrgSettings` (Task 4), so it is added in Task 5.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -238,12 +240,12 @@ struct SyntaxTreeTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `swift test --filter SyntaxTreeTests`
 Expected: build failure, `cannot find 'GreenBuilder' in scope`.
 
-- [ ] **Step 3: Implement `SyntaxKind.swift`**
+- [x] **Step 3: Implement `SyntaxKind.swift`**
 
 ```swift
 public enum SyntaxKind: String, Sendable {
@@ -260,7 +262,7 @@ public enum SyntaxKind: String, Sendable {
 }
 ```
 
-- [ ] **Step 4: Implement `GreenTree.swift`**
+- [x] **Step 4: Implement `GreenTree.swift`**
 
 ```swift
 public struct GreenToken: Sendable, Equatable {
@@ -352,7 +354,7 @@ struct GreenBuilder {
 }
 ```
 
-- [ ] **Step 5: Implement `SyntaxNode.swift`**
+- [x] **Step 5: Implement `SyntaxNode.swift`**
 
 ```swift
 /// A view of a green node at an absolute offset, with a parent link. Created on demand.
@@ -408,12 +410,12 @@ public struct SyntaxToken: Sendable, Equatable {
 }
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `swift test --filter SyntaxTreeTests`
 Expected: 4 tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Sources Tests
@@ -431,7 +433,7 @@ git commit -m "Add green and red syntax tree"
 **Interfaces:**
 - Produces (internal): `RawLine(content: Substring, ending: Substring)`, `splitRawLines(_ text: String) -> [RawLine]`, `LineClass` enum, `ClassifiedLine(cls:indent:)`, `classifyLine(_ line: Substring) -> ClassifiedLine`, `Substring.trimmingTrailingWhitespace`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -500,12 +502,12 @@ struct LinesTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `swift test --filter LinesTests`
 Expected: build failure, `cannot find 'splitRawLines' in scope`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```swift
 /// One line of source: its content and its terminator ("", "\n" or "\r\n"), both as slices of
@@ -663,12 +665,12 @@ extension Substring {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `swift test --filter LinesTests`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources Tests
@@ -687,7 +689,7 @@ git commit -m "Add line splitting and classification"
 - Consumes: `RawLine`, `ClassifiedLine`, `LineClass` (Task 3).
 - Produces: `TodoKeyword`, `TodoSequence`, `Priorities`, `OrgSettings` with `.default`, `todoKeywordNames: Set<String>`, `isDone(_:)`; internal `SettingsScanner.scan(lines:info:blockEnds:defaults:) -> OrgSettings`, where `blockEnds: [Int: Int]` maps a block's begin line index to its end line index.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -740,12 +742,12 @@ struct SettingsTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `swift test --filter SettingsTests`
 Expected: build failure, `cannot find 'SettingsScanner' in scope`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```swift
 public struct TodoKeyword: Sendable, Hashable {
@@ -879,12 +881,12 @@ enum SettingsScanner {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `swift test --filter SettingsTests`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources Tests
@@ -904,7 +906,7 @@ git commit -m "Add in-buffer TODO and priority settings"
 - Consumes: Tasks 2–4.
 - Produces: `public enum OrgParser { static func parse(_ text: String, defaults: OrgSettings = .default) -> OrgTree }`; `public struct OrgTree { green: GreenNode; settings: OrgSettings; root: SyntaxNode; text: String }`; internal `struct Parser` with `element(limit:floor:)` that Task 6 fills in. In this task `element` handles every class as a paragraph or a blank line.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -975,12 +977,12 @@ struct ParserSectionTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `swift test --filter ParserSectionTests`
 Expected: build failure, `cannot find 'OrgParser' in scope`.
 
-- [ ] **Step 3: Append `OrgTree` to `SyntaxNode.swift`**
+- [x] **Step 3: Append `OrgTree` to `SyntaxNode.swift`**
 
 ```swift
 public struct OrgTree: Sendable {
@@ -992,7 +994,7 @@ public struct OrgTree: Sendable {
 }
 ```
 
-- [ ] **Step 4: Implement `Parser.swift`**
+- [x] **Step 4: Implement `Parser.swift`**
 
 ```swift
 public enum OrgParser {
@@ -1226,12 +1228,12 @@ struct Parser {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `swift test --filter ParserSectionTests`
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources Tests
@@ -1250,7 +1252,7 @@ git commit -m "Parse document, sections and headings"
 - Consumes: Task 5's `Parser`.
 - Produces: nodes `block`, `dynamicBlock`, `drawer`, `keyword`, `affiliatedKeyword`, `comment`, `fixedWidth`, `horizontalRule`, `table`/`tableRow`/`tableFormula`, `footnoteDefinition`, `clock`, `plainList`/`item`, `planning` (after heading only), `propertyDrawer`/`nodeProperty`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -1334,12 +1336,12 @@ struct ParserElementTests {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `swift test --filter ParserElementTests`
 Expected: failures; every element parses as a paragraph.
 
-- [ ] **Step 3: Replace `element` and `continuesParagraph`, add the element parsers**
+- [x] **Step 3: Replace `element` and `continuesParagraph`, add the element parsers**
 
 ```swift
     static let affiliatedKeys: Set<String> = ["NAME", "CAPTION", "RESULTS", "HEADER", "PLOT"]
@@ -1479,12 +1481,12 @@ Expected: failures; every element parses as a paragraph.
     }
 ```
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 Run: `swift test`
 Expected: all pass, including Task 5's tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources Tests
@@ -1502,7 +1504,7 @@ git commit -m "Parse block-level elements"
 - Consumes: `SourceText`, `OrgParser`, `SyntaxNode`.
 - Produces: a seeded fuzz test (2,000 documents), a structural invariant check, and an opt-in corpus test driven by `ORGSTAR_CORPUS`.
 
-- [ ] **Step 1: Write the tests**
+- [x] **Step 1: Write the tests**
 
 ```swift
 import Foundation
@@ -1582,17 +1584,17 @@ struct RoundTripTests {
 }
 ```
 
-- [ ] **Step 2: Run the tests**
+- [x] **Step 2: Run the tests**
 
 Run: `swift test`
 Expected: all pass. The corpus test is skipped.
 
-- [ ] **Step 3: Run the private corpus locally**
+- [x] **Step 3: Run the private corpus locally**
 
 Run: `ORGSTAR_CORPUS=~/org swift test --filter corpusRoundTrips`
 Expected: pass. Any failure names the file; reduce it to a fuzz fragment or a unit test before fixing.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Tests

@@ -36,12 +36,12 @@
 
 ### Task 1: Buffer and structure commands
 
-- [ ] Port `org-insert-heading` (with `org--blank-before-heading-p`, `org-N-empty-lines-before-current`), `org-insert-todo-heading`, `org-move-subtree-down`, `org-promote-subtree`/`org-demote-subtree` (`org-map-tree`, `org-promote`, `org-demote`, `org-fix-position-after-promote`), `org-next-visible-heading`, `org-forward-heading-same-level`, `outline-up-heading`.
-- [ ] Oracle: every command at every caret of ten variants (levels, blank lines, tags, text before the first heading, no final newline, non-BMP) and over the corpus (`ORGSTAR_ORACLE_CORPUS`, files up to 20 KB).
-- [ ] Commit "Port heading structure commands from org".
+- [x] Port `org-insert-heading` (with `org--blank-before-heading-p`, `org-N-empty-lines-before-current`), `org-insert-todo-heading`, `org-move-subtree-down`, `org-promote-subtree`/`org-demote-subtree` (`org-map-tree`, `org-promote`, `org-demote`, `org-fix-position-after-promote`), `org-next-visible-heading`, `org-forward-heading-same-level`, `outline-up-heading`.
+- [x] Oracle: every command at every caret of ten variants (levels, blank lines, tags, text before the first heading, no final newline, non-BMP) and over the corpus (`ORGSTAR_ORACLE_CORPUS`, files up to 20 KB).
+- [x] Commit "Port heading structure commands from org".
 
 ### Task 2: Tags and prompts
 
-- [ ] `SetTags`: prompt with the current tags, then `org-set-tags` semantics (realign even when unchanged). Oracle with `completing-read-multiple` stubbed to the answer.
-- [ ] Editor `onPrompt`; app minibuffer field (Return answers, Escape cancels); key bindings in both presets.
-- [ ] Commit "Set tags through a prompt".
+- [x] `SetTags`: prompt with the current tags, then `org-set-tags` semantics (realign even when unchanged). Oracle with `completing-read-multiple` stubbed to the answer.
+- [x] Editor `onPrompt`; app minibuffer field (Return answers, Escape cancels); key bindings in both presets.
+- [x] Commit "Set tags through a prompt".

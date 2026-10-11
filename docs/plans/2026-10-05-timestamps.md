@@ -24,14 +24,14 @@
 
 ### Task 1: Date prompt
 
-- [ ] Port; oracle over 52 inputs (relative, weekdays, ISO weeks, US and European dates, am/pm, `HHhMM`, ranges, durations).
-- [ ] Commit "Port the date prompt".
+- [x] Port; oracle over 52 inputs (relative, weekdays, ISO weeks, US and European dates, am/pm, `HHhMM`, ranges, durations).
+- [x] Commit "Port the date prompt".
 
 ### Task 2: Timestamps, planning, repeats
 
-- [ ] Port; oracle over 7 texts × every caret × 9 commands × 6 answers, and 10 repeating entries.
-- [ ] Commit "Port timestamp and planning commands".
+- [x] Port; oracle over 7 texts × every caret × 9 commands × 6 answers, and 10 repeating entries.
+- [x] Commit "Port timestamp and planning commands".
 
 ### Task 3: Keys
 
-- [ ] Bind both presets; `timestamp` context.
+- [x] Bind both presets; `timestamp` context.

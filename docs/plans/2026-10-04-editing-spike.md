@@ -39,9 +39,9 @@ Two bugs the differential test found and the plan fixes: a line split off by an 
 Work for the performance plan: reparse structural edits within the innermost section instead of the top-level section; a faster parser (about 3x for the open gate); style the visible region first on open and the rest after.
 
 Manual VoiceOver checklist (run `swift run OrgstarSpike <file>`, turn on VoiceOver):
-- [ ] Line by line through a folded heading skips to the next visible heading.
-- [ ] Reading a heading with tags and a TODO keyword is understandable.
-- [ ] Selection announcements are correct across a fold.
+- [ ] Line by line through a folded heading skips to the next visible heading. — did not ship: the VoiceOver check is owed (see docs/design.md, phase 1)
+- [ ] Reading a heading with tags and a TODO keyword is understandable. — did not ship: the VoiceOver check is owed (see docs/design.md, phase 1)
+- [ ] Selection announcements are correct across a fold. — did not ship: the VoiceOver check is owed (see docs/design.md, phase 1)
 
 ## File structure
 
@@ -65,7 +65,7 @@ Manual VoiceOver checklist (run `swift run OrgstarSpike <file>`, turn on VoiceOv
 **Interfaces:**
 - Produces: `StyleRole`, `StyleRun`, `IndentRun`, `Presentation.styles(_:in:)`, `Presentation.indents(_:in:)`, `Presentation.hiddenRanges(_:folds:)`, `Presentation.heading(containing:in:)`, `Presentation.headings(_:)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import OrgCore
@@ -148,7 +148,7 @@ struct FoldTests {
 }
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```swift
 import OrgCore
@@ -324,7 +324,7 @@ public enum Presentation {
 }
 ```
 
-- [ ] **Step 3: Run, build for iOS, commit**
+- [x] **Step 3: Run, build for iOS, commit**
 
 Run: `swift test --filter OrgPresentationTests`, then `xcodebuild -scheme OrgPresentation -destination 'generic/platform=iOS' build`.
 
@@ -346,7 +346,7 @@ git commit -m "Add platform-free presentation policy"
 - Consumes: `DocumentState`, `ViewState`, `Saver`, `lineEdits` (OrgDocument); Task 1.
 - Produces: `OrgEditor(document:frame:)` with `textView`, `document`, `view`, `onEditTiming`, `makeScrollView()`, `setFolds(_:)`, `toggleFoldAtCaret()`, `toggleAllFolds()`, `save(using:to:)`.
 
-- [ ] **Step 1: Make pruning cheap**
+- [x] **Step 1: Make pruning cheap**
 
 ```diff
 @@ -22,11 +22,22 @@ public struct ViewState: Sendable, Equatable {
@@ -376,7 +376,7 @@ git commit -m "Add platform-free presentation policy"
  func mapOffset(_ offset: Int, _ sortedEdits: [TextEdit]) -> Int {
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 The tests drive a real `NSTextView` in an offscreen window. `RestyleFuzzTests` compares the incrementally styled storage with a fresh editor after every random edit.
 
@@ -631,7 +631,7 @@ struct RestyleFuzzTests {
 }
 ```
 
-- [ ] **Step 3: Implement `Theme.swift`**
+- [x] **Step 3: Implement `Theme.swift`**
 
 ```swift
 #if os(macOS)
@@ -710,7 +710,7 @@ struct Theme {
 #endif
 ```
 
-- [ ] **Step 4: Implement `OrgEditor.swift`**
+- [x] **Step 4: Implement `OrgEditor.swift`**
 
 ```swift
 #if os(macOS)
@@ -1062,7 +1062,7 @@ final class FoldedHeadingFragment: NSTextLayoutFragment, @unchecked Sendable {
 #endif
 ```
 
-- [ ] **Step 5: Run, including longer fuzz runs, then commit**
+- [x] **Step 5: Run, including longer fuzz runs, then commit**
 
 Run: `swift test`, then `ORGSTAR_RESTYLE_EDITS=1500 ORGSTAR_FUZZ_SEED=<n> swift test --filter RestyleFuzzTests` for several seeds.
 
@@ -1079,7 +1079,7 @@ git commit -m "Add TextKit 2 editor with folding and incremental restyle"
 - Modify: `Package.swift` (add the `OrgstarSpike` executable)
 - Create: `Sources/OrgstarSpike/main.swift`
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 ```swift
 #if os(macOS)
@@ -1173,7 +1173,7 @@ app.run()
 #endif
 ```
 
-- [ ] **Step 2: Run by hand, measure, commit**
+- [x] **Step 2: Run by hand, measure, commit** (measured; the VoiceOver checklist did not run)
 
 Run: `swift run -c release OrgstarSpike <large file>`; type, fold with TAB and Shift-TAB, save with ⌘S, watch the printed p50/p95; then the VoiceOver checklist above.
 

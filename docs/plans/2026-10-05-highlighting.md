@@ -25,5 +25,5 @@
 
 ### Task 1: Highlighting
 
-- [ ] Hook, highlighter, vendored grammars and scanners, embedded queries, theme colors; tests for categories in Python, shell and Emacs Lisp and for runs in a src block; app snapshot.
-- [ ] Commit "Highlight src blocks with tree-sitter".
+- [x] Hook, highlighter, vendored grammars and scanners, embedded queries, theme colors; tests for categories in Python, shell and Emacs Lisp and for runs in a src block; app snapshot.
+- [x] Commit "Highlight src blocks with tree-sitter".

@@ -24,10 +24,10 @@
 
 ### Task 1: Core
 
-- [ ] Port refile, archive and statistics; oracles: refile within a file and to another file (4 sources × every caret × every target, 5 target files), archive (7 sources × 4 archive files), TODO cycle and TODO-heading insert with parent cookies.
-- [ ] Commit "Port refile, archive and TODO statistics from org".
+- [x] Port refile, archive and statistics; oracles: refile within a file and to another file (4 sources × every caret × every target, 5 target files), archive (7 sources × 4 archive files), TODO cycle and TODO-heading insert with parent cookies.
+- [x] Commit "Port refile, archive and TODO statistics from org".
 
 ### Task 2: Session and app
 
-- [ ] `DocumentBuffer.selection` and `perform`; `PrecomputedEdit`; `DocumentSession.refile(to:)`, `archive()`; `WorkspaceModel.refileTargets`; prompt choices; keys and palette entries.
-- [ ] Commit "Refile and archive in the app".
+- [x] `DocumentBuffer.selection` and `perform`; `PrecomputedEdit`; `DocumentSession.refile(to:)`, `archive()`; `WorkspaceModel.refileTargets`; prompt choices; keys and palette entries.
+- [x] Commit "Refile and archive in the app".

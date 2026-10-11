@@ -46,7 +46,7 @@ Agenda queries (phase 3), security-scoped bookmark creation in a sandbox (the Ma
 - Consumes: `OrgParser`, `DocumentModel`, `SourceText`, `Timestamp`.
 - Produces: `FileKind`, `IndexSettings(version:org:semantic:)`, `FileRecord(path:root:kind:bytes:mtime:settings:)`, `FileRecord.hash(_:)`, `HeadingRecord`, `TagRow`, `PropertyRow`, `TimestampRow`, `ClockRow`, `LinkRow`.
 
-- [ ] **Step 1: Add the target**
+- [x] **Step 1: Add the target**
 
 ```swift
 // swift-tools-version: 6.2
@@ -74,7 +74,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```swift
 import OrgCore
@@ -144,7 +144,7 @@ struct FileRecordTests {
 }
 ```
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```swift
 import CryptoKit
@@ -358,7 +358,7 @@ public struct FileRecord: Sendable, Equatable {
 }
 ```
 
-- [ ] **Step 4: Run to verify pass, then commit**
+- [x] **Step 4: Run to verify pass, then commit**
 
 Run: `swift test --filter FileRecordTests`
 
@@ -379,7 +379,7 @@ git commit -m "Add index file records"
 - Consumes: `FileRecord` (Task 1).
 - Produces: `IndexStore(path:)`, `write(_:)`, `apply(_ change: IndexChange)`, `fileStates(root:) -> [String: FileState]`, `files()`, `search(_:overlay:limit:)`, `headings(withID:overlay:)`, `duplicateIDs(overlay:)`; `FileState`, `HeadingLocation`, `IndexChange`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import OrgCore
@@ -450,7 +450,7 @@ struct IndexStoreTests {
 }
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```swift
 import Foundation
@@ -770,7 +770,7 @@ public final class IndexStore: Sendable {
 }
 ```
 
-- [ ] **Step 3: Run to verify pass, then commit**
+- [x] **Step 3: Run to verify pass, then commit**
 
 Run: `swift test --filter IndexStoreTests`
 
@@ -792,7 +792,7 @@ git commit -m "Add SQLite index store with search and overlay"
 - Consumes: `FileKind` (Task 1).
 - Produces: `WorkspaceRoot(url:)` with `resolve()`, `DiscoveredFile`, `Discovery`, `FileClassification`, `WorkspaceScanner.classify(_:)`, `WorkspaceScanner.scan(_:)`, `AgendaScope(globs:)` with `contains(relativePath:kind:)`; test helper `Folder`.
 
-- [ ] **Step 1: Add the target**
+- [x] **Step 1: Add the target**
 
 ```swift
 // swift-tools-version: 6.2
@@ -823,7 +823,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```swift
 import Foundation
@@ -900,7 +900,7 @@ struct ScanTests {
 }
 ```
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```swift
 import Foundation
@@ -1015,7 +1015,7 @@ public struct AgendaScope: Sendable, Equatable {
 }
 ```
 
-- [ ] **Step 4: Run to verify pass, then commit**
+- [x] **Step 4: Run to verify pass, then commit**
 
 Run: `swift test --filter "ClassificationTests|ScanTests"`
 
@@ -1036,7 +1036,7 @@ git commit -m "Add workspace discovery and agenda scope"
 - Consumes: Tasks 1–3.
 - Produces: `Reconciler(index:settings:)` with `reconcile(root:)` and `reconcile(root:paths:)`, `ReconcileReport`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Foundation
@@ -1122,7 +1122,7 @@ struct ReconcileTests {
 }
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```swift
 import Foundation
@@ -1228,7 +1228,7 @@ public struct Reconciler: Sendable {
 }
 ```
 
-- [ ] **Step 3: Run to verify pass, then commit**
+- [x] **Step 3: Run to verify pass, then commit**
 
 Run: `swift test --filter ReconcileTests`
 
@@ -1248,7 +1248,7 @@ git commit -m "Add index reconciliation"
 **Interfaces:**
 - Produces (macOS): `WatchEvent` (`.changed(URL)`, `.rescan(URL)`), `FSEventsWatcher(roots:latency:handler:)` with `start()`, `stop()`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```swift
 import Foundation
@@ -1291,7 +1291,7 @@ final class Received: @unchecked Sendable {
 }
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```swift
 #if os(macOS)
@@ -1374,12 +1374,12 @@ public final class FSEventsWatcher: @unchecked Sendable {
 #endif
 ```
 
-- [ ] **Step 3: Run everything, the iOS build and the gates**
+- [x] **Step 3: Run everything, the iOS build and the gates** (gates run on an M-series Mac, recorded in docs/design.md; the M1 Air run is owed)
 
 Run: `swift test`, then `xcodebuild -scheme OrgWorkspace -destination 'generic/platform=iOS' build`.
 Gates: reconcile a folder of 10,000 org files into an empty index (under 30 s), then again with no changes (under 2 s), in a release build on the reference machine.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Sources/OrgWorkspace/FSEventsWatcher.swift Tests/OrgWorkspaceTests/WatcherTests.swift

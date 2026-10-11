@@ -41,7 +41,7 @@ Entities (`\alpha`), subscripts, `$...$` LaTeX, export snippets, citations, radi
 **Interfaces:**
 - Produces: `Timestamp` (`active`, `start: Point`, `end: Point?`, `repeater: Repeater?`, `warning: Warning?`), `Timestamp.parse(_:) -> Timestamp?`; internal `scanTimestamp(_ chars: [Character], at: Int, limit: Int) -> (stamp: Timestamp, end: Int)?`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -90,12 +90,12 @@ struct TimestampTests {
 }
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `swift test --filter TimestampTests`
 Expected: build failure, `cannot find 'Timestamp' in scope`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```swift
 public struct Timestamp: Sendable, Equatable {
@@ -281,12 +281,12 @@ private func scanSingleTimestamp(_ chars: [Character], at start: Int, limit: Int
 }
 ```
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `swift test --filter TimestampTests`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources/OrgCore/Timestamp.swift Tests/OrgCoreTests/TimestampTests.swift
@@ -306,7 +306,7 @@ git commit -m "Add timestamp recognizer and value type"
 - Consumes: `scanTimestamp` (Task 1), `GreenBuilder`, `Parser`.
 - Produces: `InlineScanner(chars:)` with `scan(_:into:inLink:)`; `Parser.inline(_ text: Substring)`; `Parser.span(from:through:)`; node kinds `title`, `tableCell`, `bold`, `italic`, `underline`, `strikeThrough`, `verbatim`, `code`, `link`, `linkDescription`, `timestamp`, `footnoteReference`, `statisticsCookie`, `target`, `macro`, `inlineSourceBlock`, `latexFragment`, `lineBreak`, `superscript`; token kinds `marker`, `linkPath`, `bullet`, `checkbox`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Testing
@@ -429,12 +429,12 @@ Update the two `ParserSectionTests` expectations that assumed `title` was a toke
      @Test func todoKeywordsComeFromSettings() {
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `swift test --filter InlineTests`
 Expected: build failure on the new `SyntaxKind` cases.
 
-- [ ] **Step 3: Replace `SyntaxKind.swift`**
+- [x] **Step 3: Replace `SyntaxKind.swift`**
 
 ```swift
 public enum SyntaxKind: String, Sendable {
@@ -457,7 +457,7 @@ public enum SyntaxKind: String, Sendable {
 }
 ```
 
-- [ ] **Step 4: Create `Inline.swift`**
+- [x] **Step 4: Create `Inline.swift`**
 
 ```swift
 /// Characters allowed before an emphasis opener, besides whitespace and the start of the run.
@@ -838,7 +838,7 @@ extension Parser {
 }
 ```
 
-- [ ] **Step 5: Wire the scanner into the parser**
+- [x] **Step 5: Wire the scanner into the parser**
 
 ```diff
 diff --git a/Sources/OrgCore/Parser/Lines.swift b/Sources/OrgCore/Parser/Lines.swift
@@ -1037,12 +1037,12 @@ index ac210ff..6460486 100644
          builder.token(.whitespace, parts.trailing)
 ```
 
-- [ ] **Step 6: Run all tests**
+- [x] **Step 6: Run all tests**
 
 Run: `swift test`
 Expected: all pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Sources Tests
@@ -1056,7 +1056,7 @@ git commit -m "Parse inline objects"
 **Files:**
 - Modify: `Tests/OrgCoreTests/RoundTripTests.swift` (fragment list)
 
-- [ ] **Step 1: Add inline fragments**
+- [x] **Step 1: Add inline fragments**
 
 ```diff
 @@ -20,6 +20,10 @@ let fragments = [
@@ -1072,12 +1072,12 @@ git commit -m "Parse inline objects"
  func randomDocument(_ rng: inout SeededGenerator) -> String {
 ```
 
-- [ ] **Step 2: Run the fuzz test and the private corpus**
+- [x] **Step 2: Run the fuzz test and the private corpus**
 
 Run: `swift test` then `ORGSTAR_CORPUS=~/Documents/notes swift test --filter corpusRoundTrips`
 Expected: all pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Tests

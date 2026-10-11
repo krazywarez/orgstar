@@ -63,9 +63,9 @@ extension OrgEditor: DocumentBuffer   // plus `public var onChange: (() -> Void)
 
 `OrgEditor.update` records the text and selection, runs the change, and if the text changed: computes `lineEdits(from:to:)`, reloads the storage, maps folds and the selection through the edits, and removes the text view's undo actions (they refer to the old text). `save(using:to:)` and `diskChanged(to:)` become `update` calls; `diskChanged` returns the `ExternalChange`.
 
-- [ ] Tests: `overwrite` writes ours and keeps the replaced version; editor `update` replacing text keeps the caret on the same line content, keeps folds, and leaves nothing to undo; typing calls `onChange`.
-- [ ] Implement; `swift test` green.
-- [ ] Commit "Add document buffers".
+- [x] Tests: `overwrite` writes ours and keeps the replaced version; editor `update` replacing text keeps the caret on the same line content, keeps folds, and leaves nothing to undo; typing calls `onChange`.
+- [x] Implement; `swift test` green.
+- [x] Commit "Add document buffers".
 
 ### Task 2: Session saving
 
@@ -99,9 +99,9 @@ extension WorkspaceModel {
 
 `fileChanged` calls `buffer.update { $0.diskChanged(to:) }` and sets `conflict` on a conflict; `diskBytes` goes away. `show(_:)` uses indexed offsets only when the buffer is clean.
 
-- [ ] Tests: edit then `save` writes and clears dirty; automatic mode saves after the delay, explicit does not; an external change merges into an edited buffer; a conflicting change sets `conflict`, blocks saving, and `keepMine` writes ours with theirs in recovery while `useDiskVersion` loads theirs with ours in recovery; search with the overlay finds an unsaved heading.
-- [ ] Implement; `swift test` green.
-- [ ] Commit "Save from the session".
+- [x] Tests: edit then `save` writes and clears dirty; automatic mode saves after the delay, explicit does not; an external change merges into an edited buffer; a conflicting change sets `conflict`, blocks saving, and `keepMine` writes ours with theirs in recovery while `useDiskVersion` loads theirs with ours in recovery; search with the overlay finds an unsaved heading.
+- [x] Implement; `swift test` green.
+- [x] Commit "Save from the session".
 
 ### Task 3: The app
 
@@ -112,5 +112,5 @@ extension WorkspaceModel {
 - File ▸ Save (⌘S); Settings (⌘,) with the save mode in `@AppStorage("saveMode")`.
 - Switching files and quitting with unsaved edits: save in automatic mode, ask in explicit mode; a failed save cancels.
 - Conflict alert with the three choices.
-- [ ] Verify in the built app with a scratch data dir: type, ⌘S, undo, external edit merges, conflicting external edit shows the alert, search finds unsaved text.
-- [ ] Commit "Edit and save in the app".
+- [x] Verify in the built app with a scratch data dir: type, ⌘S, undo, external edit merges, conflicting external edit shows the alert, search finds unsaved text.
+- [x] Commit "Edit and save in the app".

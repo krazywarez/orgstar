@@ -44,7 +44,7 @@ Per-window session objects and main-actor wiring (they belong to the app target)
 **Interfaces:**
 - Produces: `MergeConflict(base:ours:theirs:)`, `MergeResult` (`.merged`, `.conflict`), `threeWayMerge(base:ours:theirs:)`, `lineEdits(from:to:) -> [TextEdit]`; internal `textLines`, `matchingLines`.
 
-- [ ] **Step 1: Add the target**
+- [x] **Step 1: Add the target**
 
 ```swift
 // swift-tools-version: 6.2
@@ -66,7 +66,7 @@ let package = Package(
 )
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```swift
 import OrgCore
@@ -118,12 +118,12 @@ struct MergeTests {
 }
 ```
 
-- [ ] **Step 3: Run to verify failure**
+- [x] **Step 3: Run to verify failure**
 
 Run: `swift test --filter MergeTests`
 Expected: build failure, `cannot find 'threeWayMerge' in scope`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 ```swift
 import OrgCore
@@ -303,7 +303,7 @@ private func myers(_ a: [Int], _ b: [Int]) -> [(Int, Int)] {
 }
 ```
 
-- [ ] **Step 5: Run to verify pass, then commit**
+- [x] **Step 5: Run to verify pass, then commit**
 
 Run: `swift test --filter MergeTests`
 
@@ -324,7 +324,7 @@ git commit -m "Add OrgDocument target with three-way merge"
 - Consumes: `threeWayMerge`, `lineEdits` (Task 1); `OrgParser.reparse`, `SourceText`, `TextEdit`.
 - Produces: `DocumentState(bytes:defaults:)` with `source`, `text`, `tree`, `revision`, `mergeBase`, `isDirty`, `isEditable`, `canUndo`, `canRedo`, `encodedText()`, `apply(_:baseRevision:)`, `undo()`, `redo()`, `diskChanged(to:) -> ExternalChange`, `mergeOverwritten(_:base:)`, `didWrite(_:)`; `ViewState` with `mapped(through:)`, `pruned(to:)`; internal `mapOffset`, `utf16Slice`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import OrgCore
@@ -446,12 +446,12 @@ struct ViewStateTests {
 }
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `swift test --filter DocumentStateTests`
 Expected: build failure, `cannot find 'DocumentState' in scope`.
 
-- [ ] **Step 3: Implement `DocumentState.swift`**
+- [x] **Step 3: Implement `DocumentState.swift`**
 
 ```swift
 import OrgCore
@@ -612,7 +612,7 @@ func utf16Slice(_ text: String, _ range: Range<Int>) -> String {
 }
 ```
 
-- [ ] **Step 4: Implement `ViewState.swift`**
+- [x] **Step 4: Implement `ViewState.swift`**
 
 ```swift
 import OrgCore
@@ -658,7 +658,7 @@ func mapOffset(_ offset: Int, _ sortedEdits: [TextEdit]) -> Int {
 }
 ```
 
-- [ ] **Step 5: Run to verify pass, then commit**
+- [x] **Step 5: Run to verify pass, then commit**
 
 Run: `swift test --filter "DocumentStateTests|ViewStateTests"`
 
@@ -679,7 +679,7 @@ git commit -m "Add document state and view state"
 - Consumes: `DocumentState` (Task 2).
 - Produces: `FileSystem`, `RecoveryStore`, `SaveOutcome`, `SaveError`, `Saver(fileSystem:recovery:)` with `save(_:to:)`, `CoordinatedFileSystem`, `FileRecoveryStore(directory:limit:)` with `versions(for:)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The fault-injection cases put another writer's change in place before each read and before the replace, and check that both versions survive.
 
@@ -880,12 +880,12 @@ struct FileStorageTests {
 }
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `swift test --filter SaveTests`
 Expected: build failure, `cannot find type 'FileSystem' in scope`.
 
-- [ ] **Step 3: Implement `Saving.swift`**
+- [x] **Step 3: Implement `Saving.swift`**
 
 ```swift
 import Foundation
@@ -971,7 +971,7 @@ public struct Saver: Sendable {
 }
 ```
 
-- [ ] **Step 4: Implement `FileStorage.swift`**
+- [x] **Step 4: Implement `FileStorage.swift`**
 
 ```swift
 import CryptoKit
@@ -1068,12 +1068,12 @@ public struct FileRecoveryStore: RecoveryStore {
 }
 ```
 
-- [ ] **Step 5: Run everything, including the iOS build**
+- [x] **Step 5: Run everything, including the iOS build**
 
 Run: `swift test`, then `xcodebuild -scheme OrgDocument -destination 'generic/platform=iOS' build`
 Expected: all pass; `BUILD SUCCEEDED`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/OrgDocument/Saving.swift Sources/OrgDocument/FileStorage.swift Tests/OrgDocumentTests/SaveTests.swift

@@ -41,7 +41,7 @@ The spec reparses structural edits from the innermost enclosing section. This pl
 - Consumes: `Parser`, `splitRawLines`, `classifyLine`, `SyntaxNode`, `GreenNode`, `randomDocument`/`fragments`/`SeededGenerator` from `RoundTripTests.swift`.
 - Produces: `TextEdit(range:replacement:)` with `apply(to:)`; `OrgParser.reparse(_:oldText:edit:defaults:) -> OrgTree`; internal `OrgParser.reparseWithStrategy` returning `(tree, ReparseStrategy)` with `.element`, `.sections`, `.full`; `Parser(text:settings:)`; `Parser.reparseElement(_:text:settings:) -> GreenNode?`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```swift
 import Foundation
@@ -148,12 +148,12 @@ struct IncrementalTests {
 }
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `swift test --filter IncrementalTests`
 Expected: build failure, `cannot find 'TextEdit' in scope`.
 
-- [ ] **Step 3: Let the parser take known settings**
+- [x] **Step 3: Let the parser take known settings**
 
 ```diff
 @@ -16,10 +16,25 @@ struct Parser {
@@ -188,7 +188,7 @@ Expected: build failure, `cannot find 'TextEdit' in scope`.
      static func matchEnds(_ info: [ClassifiedLine]) -> [Int: Int] {
 ```
 
-- [ ] **Step 4: Implement `Incremental.swift`**
+- [x] **Step 4: Implement `Incremental.swift`**
 
 ```swift
 import Foundation
@@ -442,7 +442,7 @@ extension Parser {
 }
 ```
 
-- [ ] **Step 5: Run all tests, then the gate**
+- [x] **Step 5: Run all tests, then the gate**
 
 Run: `swift test`
 Expected: all pass.
@@ -450,7 +450,7 @@ Expected: all pass.
 Run: `ORGSTAR_FUZZ_EDITS=100000 swift test -c release --filter incrementalEqualsFull`, and again with `ORGSTAR_FUZZ_SEED=1`, `2`, `3`.
 Expected: pass. A failure prints the edit and the document; reduce it to a unit test before fixing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources Tests
