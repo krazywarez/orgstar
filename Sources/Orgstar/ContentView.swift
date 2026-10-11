@@ -395,6 +395,26 @@ struct ContentView: View {
         }
     }
 
+    /// The selection, or the whole file without one, on the clipboard as HTML, RTF and plain
+    /// text, to paste formatted into mail and documents.
+    private func copyRichText() {
+        guard let path = session.path, let whole = session.document?.text, let editor = commands.editor else { return commands.show("No file is open") }
+        let defaults = Preferences.orgSettings.resolvingSetupFiles(in: whole, path: path, read: OrgSettings.readFile)
+        let selection = editor.context().selection.first { !$0.isEmpty }
+        let selected = selection.map { (whole as NSString).substring(with: NSRange($0)) }
+        let url = URL(fileURLWithPath: path)
+        let html = HTMLExport.page(
+            selected ?? whole, fallbackTitle: url.deletingPathExtension().lastPathComponent, settings: defaults, path: path, bodyOnly: selected != nil,
+            codeStyle: HTMLCodeStyle(highlighter: EditorView.highlighter, theme: theme)
+        )
+        do {
+            try RichTextExport.copy(html: html, directory: url.deletingLastPathComponent())
+            commands.show(selected == nil ? "Copied the file as rich text" : "Copied the selection as rich text")
+        } catch {
+            commands.show("\(error)")
+        }
+    }
+
     /// Whether the caret is in a heading's subtree, which the export dialog can export alone.
     private var exportSubtreeAvailable: Bool {
         guard let text = session.document?.text, let caret = commands.editor?.context().caret else { return false }
@@ -446,17 +466,25 @@ struct ContentView: View {
             } catch {
                 commands.show("Can't write \(target.lastPathComponent): \(error.localizedDescription)")
             }
-        case "print-pdf":
+        case "print-pdf", "docx", "rtf", "plain-text":
+            let ext = ["print-pdf": "pdf", "plain-text": "txt"][format] ?? format
             let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
-            let target = destination ?? ExportScope.output(for: url, name: name, extension: "pdf")
+            let target = destination ?? ExportScope.output(for: url, name: name, extension: ext)
             let html = HTMLExport.page(
                 text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path,
                 codeStyle: HTMLCodeStyle(highlighter: EditorView.highlighter, theme: theme)
             )
-            commands.show("Exporting to PDF…")
+            let directory = url.deletingLastPathComponent()
+            if format == "print-pdf" { commands.show("Exporting to PDF…") }
             Task {
                 do {
-                    let data = try await PDFExport.pdf(html: html, directory: url.deletingLastPathComponent())
+                    let data: Data
+                    switch format {
+                    case "print-pdf": data = try await PDFExport.pdf(html: html, directory: directory)
+                    case "docx": data = try RichTextExport.docx(RichTextExport.attributed(html: html, directory: directory))
+                    case "rtf": data = try RichTextExport.rtf(RichTextExport.attributed(html: html, directory: directory))
+                    default: data = Data(RichTextExport.plain(try RichTextExport.attributed(html: html, directory: directory)).utf8)
+                    }
                     try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try data.write(to: target, options: .atomic)
                     commands.show("Exported to \(target.lastPathComponent)")
@@ -595,7 +623,7 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
-        let orgOnly = ["app.refile", "app.archive", "app.clock.in", "app.clock.default"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
+        let orgOnly = ["app.refile", "app.archive", "app.clock.in", "app.clock.default", "app.copy-rich-text"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
         if orgOnly, !session.isOrg {
             commands.show("Not an org file")
             return
@@ -735,6 +763,8 @@ struct ContentView: View {
         case "app.recovery":
             guard session.path != nil else { return commands.show("No file is open") }
             panel = .recovery(UUID())
+        case "app.copy-rich-text":
+            copyRichText()
         case "app.export-dialog":
             guard let path = session.path else { return commands.show("No file is open") }
             panel = .export(UUID(), URL(fileURLWithPath: path))

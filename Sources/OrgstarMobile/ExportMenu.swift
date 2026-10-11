@@ -9,13 +9,15 @@ import UniformTypeIdentifiers
 /// A file exported as HTML, Markdown or PDF, written when the share sheet takes it.
 struct OrgExport: Transferable {
     enum Format: CaseIterable {
-        case html, markdown, pdf
+        case html, markdown, pdf, rtf, plainText
 
         var name: String {
             switch self {
             case .html: "HTML"
             case .markdown: "Markdown"
             case .pdf: "PDF"
+            case .rtf: "Rich Text (RTF)"
+            case .plainText: "Plain Text"
             }
         }
 
@@ -24,6 +26,8 @@ struct OrgExport: Transferable {
             case .html: "html"
             case .markdown: "md"
             case .pdf: "pdf"
+            case .rtf: "rtf"
+            case .plainText: "txt"
             }
         }
     }
@@ -48,6 +52,10 @@ struct OrgExport: Transferable {
             .exportingCondition { $0.format == .markdown }
         FileRepresentation(exportedContentType: .pdf) { try await $0.write() }
             .exportingCondition { $0.format == .pdf }
+        FileRepresentation(exportedContentType: .rtf) { try await $0.write() }
+            .exportingCondition { $0.format == .rtf }
+        FileRepresentation(exportedContentType: .plainText) { try await $0.write() }
+            .exportingCondition { $0.format == .plainText }
     }
 
     private func write() async throws -> SentTransferredFile {
@@ -62,20 +70,28 @@ struct OrgExport: Transferable {
                 .write(to: url, atomically: true, encoding: .utf8)
         case .markdown:
             try MarkdownExport.document(text, settings: settings, path: path).write(to: url, atomically: true, encoding: .utf8)
-        case .pdf:
+        case .pdf, .rtf, .plainText:
             let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle)
             let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
-            try await PDFExport.pdf(html: html, directory: directory).write(to: url, options: .atomic)
+            let data: Data = switch format {
+            case .pdf: try await PDFExport.pdf(html: html, directory: directory)
+            case .rtf: try await RichTextExport.rtf(html: html, directory: directory)
+            default: Data(try await RichTextExport.plain(html: html, directory: directory).utf8)
+            }
+            try data.write(to: url, options: .atomic)
         }
         return SentTransferredFile(url)
     }
 }
 
-/// Sharing the file as HTML, Markdown or PDF: to another app, or saved with Save to Files.
+/// Sharing the file as HTML, Markdown, PDF, RTF or plain text: to another app, or saved with
+/// Save to Files; or copying it as rich text.
 struct ExportMenu: View {
     let path: String
     let text: String
     @Environment(MobileModel.self) private var model
+    /// Shows what happened, as the screen's message line does.
+    var report: (String) -> Void = { _ in }
 
     var body: some View {
         Menu("Export", systemImage: "square.and.arrow.up") {
@@ -84,6 +100,22 @@ struct ExportMenu: View {
                                        codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))
                 ShareLink(item: export, preview: SharePreview(export.fileName)) { Text(format.name) }
             }
+            Divider()
+            Button("Copy as Rich Text", systemImage: "doc.on.doc") { copy() }
+        }
+    }
+
+    /// The file on the clipboard as HTML, RTF and plain text, to paste formatted.
+    private func copy() {
+        let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+        let settings = OrgPreferences.orgSettings().resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
+        let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path,
+                                   codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))
+        do {
+            try RichTextExport.copy(html: html, directory: URL(fileURLWithPath: path).deletingLastPathComponent())
+            report("Copied as rich text")
+        } catch {
+            report("\(error)")
         }
     }
 }

@@ -938,6 +938,10 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Export to HTML and Open (=app.export.html-open=) | =C-c C-e h o= | — | =SPC m e h o= (N) | Exports to HTML and opens the result. |
 | Export to Markdown (=app.export.markdown=) | =C-c C-e m m= | — | =SPC m e m m= (N) | Exports to Markdown (=org-md-export-to-markdown=). |
 | Export to PDF (=app.export.print-pdf=) | — | — | — | Exports to PDF without Emacs, laid out as the HTML export. |
+| Export to Word (=app.export.docx=) | — | — | — | Exports to a Word document (=.docx=). |
+| Export to RTF (=app.export.rtf=) | — | — | — | Exports to Rich Text Format. |
+| Export to Plain Text (=app.export.plain-text=) | — | — | — | Exports the text without styles, without Emacs. |
+| Copy as Rich Text (=app.copy-rich-text=) | — | — | — | Copies the selection, or the file, as HTML, RTF and plain text. |
 | Export to PDF with Emacs (=app.export.pdf=) | =C-c C-e l p= | — | =SPC m e l p= (N) | Exports to PDF through Emacs (=org-latex-export-to-pdf=). |
 | Export to LaTeX with Emacs (=app.export.latex=) | =C-c C-e l l= | — | — | Exports to LaTeX through Emacs (=org-latex-export-to-latex=). |
 | Export to ODT with Emacs (=app.export.odt=) | =C-c C-e o o= | — | — | Exports to ODT through Emacs (=org-odt-export-to-odt=). |

@@ -71,7 +71,7 @@ struct EditorScreen: View {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                     RecentClockMenu(clock: clock) { editor?.run($0) }
-                    if let text = session.document?.text, session.path == path { ExportMenu(path: path, text: text) }
+                    if let text = session.document?.text, session.path == path { ExportMenu(path: path, text: text) { message = $0 } }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
                 }

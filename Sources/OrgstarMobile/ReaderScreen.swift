@@ -98,7 +98,7 @@ struct ReaderScreen: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button("Outline", systemImage: "list.bullet.indent") { showingOutline = true }.disabled(outline.isEmpty)
                 if let path = session.path {
-                    if let text = session.document?.text { ExportMenu(path: path, text: text) }
+                    if let text = session.document?.text { ExportMenu(path: path, text: text) { message = $0 } }
                     NavigationLink(value: EditorRoute(path: path, offset: nil)) { Label("Edit", systemImage: "square.and.pencil") }
                 }
             }
