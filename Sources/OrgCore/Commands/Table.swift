@@ -287,6 +287,7 @@ extension EmacsBuffer {
     /// `org-table-next-field`.
     func tableNextField() throws {
         try tableMaybeEvalFormula()
+        try tableMaybeRecalculateLine()
         moveIntoField()
         tableAlign()
         let end = tableEnd()
@@ -311,6 +312,7 @@ extension EmacsBuffer {
 
     /// `org-table-previous-field`.
     func tablePreviousField() throws {
+        try tableMaybeRecalculateLine()
         tableAlign()
         if atTableHline { endOfLine() }
         let start = tableBegin()
@@ -332,6 +334,7 @@ extension EmacsBuffer {
     /// `org-table-next-row`.
     func tableNextRow() throws {
         try tableMaybeEvalFormula()
+        try tableMaybeRecalculateLine()
         moveIntoField()
         tableAlign()
         let column = tableCurrentColumn()
@@ -600,8 +603,20 @@ public struct TableCommand: OrgCommand {
     public func applies(in context: EditContext) -> Bool { KeyContext.holds("table", in: context) }
 
     public func run(in context: EditContext) -> CommandStep {
-        tableCommand(context) { buffer in
+        let step = tableCommand(context) { buffer in
             guard buffer.atTable else { throw EmacsBuffer.UserError(message: "Not at a table") }
+            do {
+                try perform(buffer)
+            } catch let error as Calc.Unsupported {
+                throw EmacsBuffer.UserError(message: TableRecalculate.emacsMessage + error.reason)
+            }
+        }
+        // A row marked `#` that recalculates with formulas only Emacs can do.
+        let forms: [Action: String] = [.nextField: "(org-table-next-field)", .previousField: "(org-table-previous-field)", .nextRow: "(org-table-next-row)"]
+        return forms[action].map { TableRecalculate.inEmacs(step, form: $0, in: context) } ?? step
+    }
+
+    private func perform(_ buffer: EmacsBuffer) throws {
             switch action {
             case .align: buffer.tableAlign()
             case .nextField: try buffer.tableNextField()
@@ -617,7 +632,6 @@ public struct TableCommand: OrgCommand {
             case .insertRowAbove: try buffer.tableInsertRow(below: false)
             case .insertHline: try buffer.tableInsertHline(above: false)
             }
-        }
     }
 }
 

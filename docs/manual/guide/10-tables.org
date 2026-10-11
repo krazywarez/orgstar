@@ -489,6 +489,7 @@ The formulas are stored sorted the way =org-table-formula-less-p= sorts them.
 |----------------------------------+-----------------------------------+-------------------------------+-----------------------------+-------------------------------------|
 | Recalculate Table                | =org-table-recalculate= with =C-u= | =C-c C-c= on =#+TBLFM:=      | =⌃⌘X= on =#+TBLFM:=         | =SPC m b r=, =C-c C-c= on =#+TBLFM:= |
 | Recalculate Table Row            | =org-table-recalculate=           | =C-c *=                       | =⌃⌘*= (=⌃⇧⌘8= on a US keyboard) | =C-c *=                             |
+| Iterate Table Formulas           | =org-table-iterate=               | =C-u C-u C-c *=               | —                           | —                                   |
 
 In Doom's normal state, =RET= in a table recalculates it when it has a =#+TBLFM:=
 line and aligns it otherwise; on a =#+TBLFM:= line it recalculates.
@@ -497,12 +498,18 @@ When the table has a rule below its first data row, recalculating the whole tabl
 leaves the rows above that rule, the header, alone. With marked rows, the marks decide
 instead (see /Names, parameters and constants/). Each
 command evaluates the column formulas row by row, then the field formulas, then aligns
-the table. Formulas are evaluated once; Org's iterate-until-stable recalculation
-(=C-u C-u C-c *=) isn't available.
+the table. Each formula is evaluated once. Iterate Table Formulas recalculates the whole
+table again and again until it stops changing, for formulas that depend on each other's
+results, at most ten times. The echo area says =Convergence after 3 iterations=, or
+=Table was already stable=; after ten passes that still change the table it says =No
+convergence after 10 iterations=, and the ten passes stay. =C-u C-c *= also recalculates
+the whole table in the Emacs preset.
 
-Tables are not recalculated automatically. Rows marked =#= are not recalculated when
-you press =TAB= or =RET= in them, as =org-table-maybe-recalculate-line= would do in
-Emacs; recalculate with one of the commands above, or with =C-c C-c= (Mac =⌃⌘X=) in the row.
+A row marked =#= is recalculated when you press =TAB=, =S-TAB= or =RET= in it, before
+the caret moves (=org-table-maybe-recalculate-line=), and with =C-c C-c= (Mac =⌃⌘X=).
+Other rows are recalculated only by the commands above. Emacs skips a second automatic
+recalculation of the same row by the same command in a row; orgstar recalculates each
+time, which gives the same result unless a formula depends on its own value.
 
 * When Emacs is needed
 

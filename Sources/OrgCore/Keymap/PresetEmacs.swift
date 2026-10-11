@@ -653,6 +653,14 @@ extension KeymapPreset {
         command = "org.table.recalc"
         when = "table"
         [[bind]]
+        keys = "C-u C-c *"
+        command = "org.table.recalc-all"
+        when = "table"
+        [[bind]]
+        keys = "C-u C-u C-c *"
+        command = "org.table.iterate"
+        when = "table"
+        [[bind]]
         keys = "C-c C-c"
         command = "org.babel.execute"
         when = "src"

@@ -69,8 +69,52 @@ public struct TableRecalculate: OrgCommand {
     }
 }
 
+/// C-u C-u C-c *: `org-table-iterate`, the whole table recalculated until it stops changing,
+/// at most ten times.
+public struct TableIterate: OrgCommand {
+    public init() {}
+    public var id: String { "org.table.iterate" }
+    public var title: String { "Iterate Table Formulas" }
+    public func applies(in context: EditContext) -> Bool { KeyContext.holds("table", in: context) }
+
+    public func run(in context: EditContext) -> CommandStep {
+        var message = ""
+        var step = commitBuffer(context) { buffer in
+            guard buffer.atTable else { throw EmacsBuffer.UserError(message: "Not at a table") }
+            func table() -> String { buffer.substring(buffer.tableBegin(), buffer.tableEnd()) }
+            var last = table()
+            do {
+                for iteration in 1...10 {
+                    try buffer.tableRecalculate(all: true)
+                    let this = table()
+                    if this == last {
+                        message = iteration > 1 ? "Convergence after \(iteration) iterations" : "Table was already stable"
+                        return
+                    }
+                    last = this
+                }
+            } catch let error as Calc.Unsupported {
+                throw EmacsBuffer.UserError(message: TableRecalculate.emacsMessage + error.reason)
+            }
+            // The recalculations stay, as Emacs leaves them before its error.
+            message = "No convergence after 10 iterations"
+        }
+        if case .commit(let result) = step {
+            step = .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection, effects: result.effects + [.message(message)]))
+        }
+        return TableRecalculate.inEmacs(step, form: "(org-table-iterate)", in: context)
+    }
+}
+
 // Formulas typed in a field (`org-table-maybe-eval-formula`) and C-c = (`org-table-eval-formula`).
 extension EmacsBuffer {
+    /// `org-table-maybe-recalculate-line`: a row whose first field is `#` recalculated, as
+    /// TAB, S-TAB and RET in a table do first.
+    func tableMaybeRecalculateLine() throws {
+        guard lookingAtLine("^[ \\t]*\\| *# *(\\||$)") else { return }
+        try tableRecalculate(all: false)
+    }
+
     /// `org-table-formula-make-cmp-string`.
     static func formulaSortKey(_ lhs: String, analysis: TableAnalysis) -> String? {
         var a = lhs

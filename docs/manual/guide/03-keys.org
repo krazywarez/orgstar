@@ -930,7 +930,8 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Delete Table Row (=org.table.kill-row=) | =M-S-<up>= | =⌃⌥⌘↑= | =M-K=, =SPC m b d r= (N) | In a table, deletes the row (=org-table-kill-row=). |
 | Insert Table Rule (=org.table.insert-hline=) | =C-c -= | =⌃⌘-= | =SPC m b -= (N), =SPC m b i h= (N) | In a table, inserts a horizontal rule (=org-table-insert-hline=). |
 | Recalculate Table Row (=org.table.recalc=) | =C-c *= | =⌃⌘*= | — | In a table, recalculates the current row (=org-table-recalculate=). On a US keyboard, =⌃⌘*= is typed =⌃⇧⌘8=. |
-| Recalculate Table (=org.table.recalc-all=) | =C-c C-c= | =⌃⌘X= | =SPC m b r= (N) | Recalculates the whole table; =C-c C-c= and =⌃⌘X= run it on a =#+TBLFM= line (=org-table-recalculate= with =C-u=). |
+| Recalculate Table (=org.table.recalc-all=) | =C-c C-c=, =C-u C-c *= | =⌃⌘X= | =SPC m b r= (N) | Recalculates the whole table; =C-c C-c= and =⌃⌘X= run it on a =#+TBLFM= line (=org-table-recalculate= with =C-u=). |
+| Iterate Table Formulas (=org.table.iterate=) | =C-u C-u C-c *= | — | — | Recalculates the whole table until it stops changing, at most ten times (=org-table-iterate=). |
 | Set Column Formula (=org.table.column-formula=) | ~C-c =~ | — | — | Asks for the column's formula, offering the stored one (=org-table-eval-formula=). |
 | Edit Table Field (=org.table.edit-field=) | =C-c `= | — | — | In a table, edits the field in a separate editor (=org-table-edit-field=). |
 | Shrink or Expand Table Column (=org.table.toggle-column-width=) | =C-c TAB= | — | — | In a table, shrinks or expands the column (=org-table-toggle-column-width=). |
