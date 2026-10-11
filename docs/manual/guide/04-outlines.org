@@ -651,12 +651,32 @@ Subtrees tagged =ARCHIVE= and commented subtrees are left out.
 
 Column View opens a sheet with the entries from the view's top (the entry with the
 =COLUMNS= property, or the entry at the caret; the whole file before the first
-heading). Column View of File shows every entry in the file. Click a row to go to its
-heading. Done (or Escape) closes the sheet.
+heading). Column View of File shows every entry in the file. Done (or Escape) closes
+the sheet.
 
-The sheet is read-only. Org's column view lets you edit values in place and writes
-parent summaries back into the file; orgstar's does neither. Change values with Set
-Property, or edit the drawer.
+Click a cell to select it; the arrow keys move the selection. Go to Entry shows the
+selected entry's heading in the editor.
+
+| Key                     | Does                                                 | Org command                         |
+|-------------------------+------------------------------------------------------+-------------------------------------|
+| =e=, Return, double-click | Edits the value: type it, or pick an allowed value from the menu beside the field; Return sets it, Escape cancels | =org-columns-edit-value=  |
+| =n=                     | The next allowed value                               | =org-columns-next-allowed-value=    |
+| =p=                     | The previous allowed value                           | =org-columns-previous-allowed-value= |
+
+Editing goes through the commands Org uses: =ITEM= changes the headline, keeping its
+keyword, priority and tags (=org-edit-headline=); =TODO= sets the keyword, with logging
+and state notes (a note is asked for at the bottom of the sheet); =PRIORITY=, =TAGS=
+(tags separated by spaces or colons), =SCHEDULED= and =DEADLINE= set those, an empty value
+removing them; other columns set the property in the entry's drawer, under the column's
+name in upper case, as Org writes it. =CLOCKSUM=, =ALLTAGS=, =CLOSED= and the other computed
+columns can't be edited.
+
+The allowed values are the property's =_ALL= values from the entry, an ancestor or a
+=#+PROPERTY:= line, the TODO keywords (and none) for =TODO=, the priorities for
+=PRIORITY=, and =[ ]= and =[X]= for a column with an =X= summary. Without allowed values,
+=n= and =p= say so. On =SCHEDULED= and =DEADLINE= they move the date a day later or
+earlier; Org 9.8.7 signals an error there instead. After each change the sheet captures
+the view again, so summaries follow. Parent summaries are not written into the file.
 
 ** The Columns inspector
 

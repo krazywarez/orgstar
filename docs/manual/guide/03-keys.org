@@ -872,7 +872,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Next Allowed Value (=org.property.next-value=) | =S-<right>= | =⌃⇧⌘→= | =C-S-l= (N, I) | On a property line, sets the next allowed value (=org-property-next-allowed-value=). |
 | Previous Allowed Value (=org.property.previous-value=) | =S-<left>= | =⌃⇧⌘←= | =C-S-h= (N, I) | On a property line, sets the previous allowed value (=org-property-previous-allowed-value=). |
 | Set Effort (=org.effort.set=) | =C-c C-x e= | =⌃⇧⌘E= | =SPC m c E= (N) | Sets the =Effort= property, offering =Effort_ALL= values (=org-set-effort=). |
-| Column View (=org.columns=) | =C-c C-x C-c= | — | — | Shows the column view of the entries, read-only (=org-columns=). |
+| Column View (=org.columns=) | =C-c C-x C-c= | — | — | Shows the column view of the entries, where values can be edited (=org-columns=). |
 | Insert Column View Table (=org.columns.insert-dblock=) | =C-c C-x i= | — | — | Inserts a =columnview= dynamic block (=org-columns-insert-dblock=). |
 | Update Dynamic Block (=org.dblock.update=) | =C-c C-x C-u=, =C-c C-c= | =⌃⌘X= | — | Updates the dynamic block at point, such as a clock table; =C-c C-c= and =⌃⌘X= do it on the block's =#+BEGIN= line (=org-update-dblock=). |
 

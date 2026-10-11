@@ -18,11 +18,22 @@ public enum ColumnView {
         /// Start of the heading line.
         public let start: Int
         public let values: [String]
+        /// The values before formatting, as editing starts from them; summaries included.
+        public var raw: [String] = []
     }
 
     public struct View: Sendable, Equatable {
         public let specs: [Spec]
         public let rows: [Row]
+        /// The whole file, as `org-columns` with a prefix shows it.
+        public var global = false
+    }
+
+    /// The view captured again from `text` after an edit, over the same entries.
+    public static func refresh(_ view: View, text: String, tree: OrgTree, now: Date = Date(), calendar: Calendar = .current) throws -> View {
+        var new = try capture(text: text, tree: tree, at: view.global ? 0 : view.rows.first?.start ?? 0, global: view.global, now: now, calendar: calendar).view
+        new.global = view.global
+        return new
     }
 
     public static let defaultFormat = "%25ITEM %TODO %3PRIORITY %TAGS"
@@ -329,10 +340,10 @@ public enum ColumnView {
         for i in scope {
             let level = headings[i].level
             if let maxLevel, level > maxLevel { continue }
-            let values = specs.enumerated().map { column, spec -> String in
-                let raw = summaries[i]?[column] ?? value(spec.property, heading: i, model: model, text: ns, clocksum: clocksum)
-                return displayed(spec, raw)
+            let raw = specs.enumerated().map { column, spec -> String in
+                summaries[i]?[column] ?? value(spec.property, heading: i, model: model, text: ns, clocksum: clocksum)
             }
+            let values = zip(specs, raw).map { displayed($0.0, $0.1) }
             if skipEmpty {
                 let others = Set(zip(specs, values).filter { $0.0.property != "ITEM" }.map(\.1)).subtracting([""])
                 if others.isEmpty { continue }
@@ -341,7 +352,7 @@ public enum ColumnView {
                 let tags = model.tags(of: i).map(\.value)
                 if tags.contains(where: excludeTags.contains) { continue }
             }
-            rows.append(Row(level: level, start: headings[i].headingRange.lowerBound, values: values))
+            rows.append(Row(level: level, start: headings[i].headingRange.lowerBound, values: values, raw: raw))
         }
         return (View(specs: specs, rows: rows), updates)
     }

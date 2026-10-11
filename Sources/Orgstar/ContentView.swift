@@ -330,7 +330,9 @@ struct ContentView: View {
         .sheet(item: $panel) { panel in
             switch panel {
             case .columns(_, let view):
-                ColumnViewSheet(view: view) { offset in commands.editor?.reveal(offset) }
+                ColumnViewSheet(view: view, run: runInColumnView, document: { session.document.map { ($0.text, $0.tree) } }) { offset in
+                    commands.editor?.reveal(offset)
+                }
             case .export(_, let source):
                 ExportSheet(source: source, inSubtree: exportSubtreeAvailable, target: exportTarget) { format, destination, open, subtree, bodyOnly in
                     export(format, to: destination, open: open, subtree: subtree, bodyOnly: bodyOnly)
@@ -372,6 +374,12 @@ struct ContentView: View {
             if session.conflict != nil { panel = .conflict(UUID()) }
         }
         .onChange(of: workspace.changedFile?.version) { fileChangedOnDisk() }
+    }
+
+    /// A column view edit at the heading starting at `start` in the open file.
+    private func runInColumnView(_ command: any OrgCommand, _ start: Int, _ answers: [String: String]) -> CommandStep {
+        guard let path = session.path else { return .failed("No file is open") }
+        return session.perform(command, path: path, at: start, expect: nil, answers: answers)
     }
 
     /// An open file takes in what changed on disk, and a clock started or stopped in Emacs
