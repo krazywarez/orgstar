@@ -4,6 +4,7 @@ import OrgCore
 import OrgDocument
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 /// Editing a file: the text with Org's folding and styling, a bar of Org keys over the keyboard,
 /// and every command in a palette. The editor is the open file's live state, so autosave and
@@ -39,6 +40,11 @@ struct EditorScreen: View {
     }
 
     /// One sheet at a time: two presenters on this screen interfere.
+    /// `org-table-import`'s file picker is up.
+    @State private var importingTable = false
+    /// The table at the caret, for `org-table-export`'s save dialog.
+    @State private var exportedTable: TableFile?
+
     enum Sheet: Identifiable {
         case palette, conflict, syncCopies, recovery
         /// `app.refile`, `app.refile.copy` or `app.refile.goto`.
@@ -82,6 +88,11 @@ struct EditorScreen: View {
                     Button("Clock In", systemImage: "stopwatch") { editor?.run("app.clock.in") }
                     Button("Column View", systemImage: "tablecells") { editor?.run("org.columns") }
                     Button("Column View of File", systemImage: "tablecells.badge.ellipsis") { editor?.run("org.columns.global") }
+                    Menu("Table", systemImage: "tablecells") {
+                        Button("Import Table from File…", systemImage: "square.and.arrow.down") { importingTable = true }
+                        Button("Export Table as CSV…", systemImage: "square.and.arrow.up") { exportTable(csv: true) }
+                        Button("Export Table as TSV…", systemImage: "square.and.arrow.up") { exportTable(csv: false) }
+                    }
                     Toggle(isOn: Binding(get: { model.showMarkup }, set: { model.showMarkup = $0 })) {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
@@ -147,6 +158,14 @@ struct EditorScreen: View {
             case .columns(let view):
                 ColumnViewScreen(view: view, session: session, path: path) { offset in editor?.reveal(offset) }
             }
+        }
+        .fileImporter(isPresented: $importingTable, allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]) { result in
+            importTable(result)
+        }
+        .fileExporter(isPresented: Binding(get: { exportedTable != nil }, set: { if !$0 { exportedTable = nil } }),
+                      document: exportedTable, contentType: exportedTable?.type ?? .commaSeparatedText,
+                      defaultFilename: exportedTable?.type == .tabSeparatedText ? "table.tsv" : "table.csv") { result in
+            if case .failure(let error) = result { message = error.localizedDescription } else { message = "Export done." }
         }
         .onChange(of: session.conflict) { _, conflict in
             if conflict != nil, session.path == path { sheet = .conflict }
@@ -237,6 +256,10 @@ struct EditorScreen: View {
                     _ = session.save(path)
                 } else if ["app.refile", "app.refile.copy", "app.refile.goto"].contains(id) {
                     sheet = .refile(id)
+                } else if id == "app.table-import" {
+                    importingTable = true
+                } else if id == "app.table-export" {
+                    exportTable(csv: true)
                 } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
                 } else if MobileEditor.linkCommands.contains(id) {
@@ -258,6 +281,25 @@ struct EditorScreen: View {
 }
 
 extension EditorScreen {
+    /// `org-table-import`: a TSV, CSV or space-separated file becomes a table at the caret.
+    private func importTable(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result, let editor else { return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return message = "Can't read \(url.lastPathComponent)" }
+        _ = editor.perform(ImportTable(contents: contents))
+    }
+
+    /// `org-table-export` of the table at the caret, as CSV or TSV.
+    private func exportTable(csv: Bool) {
+        guard let editor else { return }
+        let context = editor.editContext()
+        guard let text = ImportTable.exportText(context.text, at: context.caret, path: csv ? "table.csv" : "table.tsv") else {
+            return message = "No table at point"
+        }
+        exportedTable = TableFile(text: text, type: csv ? .commaSeparatedText : .tabSeparatedText)
+    }
+
     /// `org-refile` of the entry at the caret, to a target worked out again from the files
     /// now, as the agenda's Refile… does.
     func refile(to target: RefileTarget, keep: Bool = false) {
@@ -550,6 +592,7 @@ struct CommandPalette: View {
         ("org.toggle-inline-images", "Show or Hide Inline Images"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
         ("org.table.toggle-column-width", "Shrink or Expand Table Column"), ("org.table.shrink", "Shrink Table Columns with Widths"),
         ("org.table.expand", "Expand Table Columns"),
+        ("app.table-import", "Import Table from File…"), ("app.table-export", "Export Table to File…"),
     ]
 
     /// The commands that apply at the caret and their keys, worked out once when the palette
@@ -585,6 +628,26 @@ struct CommandPalette: View {
                 .filter { editor.applies($0.id, in: context) }
                 .map { ($0.id, $0.title, editor.keymap.keyLabels(for: $0.id).first) }
         }
+    }
+}
+/// A table as CSV or TSV, for the save dialog.
+struct TableFile: FileDocument {
+    static var readableContentTypes: [UTType] { [.commaSeparatedText, .tabSeparatedText] }
+    let text: String
+    let type: UTType
+
+    init(text: String, type: UTType) {
+        self.text = text
+        self.type = type
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        text = configuration.file.regularFileContents.map { String(decoding: $0, as: UTF8.self) } ?? ""
+        type = configuration.contentType
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data(text.utf8))
     }
 }
 #endif

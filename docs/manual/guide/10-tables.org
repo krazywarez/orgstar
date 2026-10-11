@@ -153,7 +153,10 @@ tables at full width.
 | Import Table from File… (command palette) | =org-table-import= |
 | Export Table to File… (command palette)   | =org-table-export= |
 
-Open the command palette with =⇧⌘P= (=M-x= in the Emacs preset, =SPC := in Doom).
+Open the command palette with =⇧⌘P= (=M-x= in the Emacs preset, =SPC := in Doom). On
+iOS, both are under More › Table in the editor, as Import Table from File…, Export Table
+as CSV… and Export Table as TSV…, and in Commands; the file comes from, and goes to, the
+Files app.
 
 Import asks for a CSV, TSV or plain text file, inserts its contents at the caret on a
 line of its own, and converts them to a table with the separator guessed as for a

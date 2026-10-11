@@ -43,7 +43,7 @@ The dialog remembers the format and the *Open after export* setting.
 
 ** On iOS
 
-The Export menu offers HTML, Markdown, PDF, Rich Text (RTF), Plain Text and iCalendar, and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac. Word, LaTeX, ODT, ASCII and PDF through LaTeX are not available on iOS, nor are the agenda-file iCalendar exports; RTF opens in Word and Pages.
+The Export menu offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text and iCalendar, and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac. LaTeX, ODT, ASCII and PDF through LaTeX are not available on iOS, nor are the agenda-file iCalendar exports.
 
 * HTML export
 
@@ -212,7 +212,7 @@ For typeset output with LaTeX's classes and packages, use Export to PDF with Ema
 
 * Word, RTF and plain text
 
-Export to Word, Export to RTF and Export to Plain Text make the HTML export into a document of that kind, as the system reads HTML: headings, emphasis, links, colored keywords and code, lists, and tables. Word files (=.docx=) are written by orgstar itself, so tables come through as Word tables; RTF keeps them too. Plain text is the same text without its styles: list bullets and table cells are kept, separated by tabs. Fonts are Helvetica Neue for text and Menlo for code, and the colors are the light ones. Images are not included.
+Export to Word, Export to RTF and Export to Plain Text make the HTML export into a document of that kind, as the system reads HTML: headings, emphasis, links, colored keywords and code, lists, and tables. Word files (=.docx=) are written by orgstar itself, so tables come through as Word tables; RTF keeps them too on the Mac. On iOS, where the system's HTML reader keeps no tables, Word's tables are made from the HTML export's tables, with header cells bold and the cells' text without its styles; RTF and plain text there have the cells' text but no table. Plain text is the same text without its styles: list bullets and table cells are kept, separated by tabs. Fonts are Helvetica Neue for text and Menlo for code, and the colors are the light ones. Images are not included.
 
 For Org's own ASCII layout, with underlined headings and drawn tables, use Export to Plain Text with Emacs.
 

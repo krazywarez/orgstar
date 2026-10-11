@@ -1,13 +1,24 @@
+import Foundation
 #if os(macOS)
 import AppKit
-import Foundation
+typealias DocxFont = NSFont
+typealias DocxColor = NSColor
+#else
+import UIKit
+typealias DocxFont = UIFont
+typealias DocxColor = UIColor
+#endif
 
 /// Word's `.docx` from styled text: paragraphs with their runs' fonts, colors and links, and
-/// tables from the text's table blocks, which the system's own writer leaves out.
+/// tables from the text's table blocks, which the system's own writer leaves out. iOS's HTML
+/// import keeps no tables, so there `tables` holds them, each standing for a paragraph that is
+/// its `marker` alone.
 enum DocxWriter {
-    static func data(from text: NSAttributedString) -> Data {
+    static func marker(_ index: Int) -> String { "\u{E000}\(index)\u{E001}" }
+
+    static func data(from text: NSAttributedString, tables: [String] = []) -> Data {
         var links: [String] = []
-        let body = paragraphs(text, links: &links)
+        let body = paragraphs(text, tables: tables, links: &links)
         let document = """
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" \
@@ -42,33 +53,49 @@ enum DocxWriter {
     }
 
     /// Paragraphs in order, consecutive ones in the same table gathered into `<w:tbl>`.
-    private static func paragraphs(_ text: NSAttributedString, links: inout [String]) -> String {
+    /// A `<w:tbl>` of rows of cells, each cell its paragraphs.
+    static func table(_ rows: [[String]], columns: Int) -> String {
+        var out = "<w:tbl><w:tblPr><w:tblBorders>" + ["top", "left", "bottom", "right", "insideH", "insideV"].map {
+            "<w:\($0) w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"A0A0A0\"/>"
+        }.joined() + "</w:tblBorders><w:tblCellMar><w:left w:w=\"100\" w:type=\"dxa\"/><w:right w:w=\"100\" w:type=\"dxa\"/></w:tblCellMar></w:tblPr>"
+        out += "<w:tblGrid>" + String(repeating: "<w:gridCol/>", count: columns) + "</w:tblGrid>"
+        for row in rows {
+            out += "<w:tr>"
+            for column in 0..<columns {
+                out += "<w:tc><w:tcPr/>" + (column < row.count && !row[column].isEmpty ? row[column] : "<w:p/>") + "</w:tc>"
+            }
+            out += "</w:tr>"
+        }
+        return out + "</w:tbl>"
+    }
+
+    private static func paragraphs(_ text: NSAttributedString, tables: [String], links: inout [String]) -> String {
         let string = text.string as NSString
         var out = ""
+        #if os(macOS)
         var table: (block: NSTextTable, cells: [[Int: [String]]])?
         func flushTable() {
             guard let current = table else { return }
-            out += "<w:tbl><w:tblPr><w:tblBorders>" + ["top", "left", "bottom", "right", "insideH", "insideV"].map {
-                "<w:\($0) w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"A0A0A0\"/>"
-            }.joined() + "</w:tblBorders><w:tblCellMar><w:left w:w=\"100\" w:type=\"dxa\"/><w:right w:w=\"100\" w:type=\"dxa\"/></w:tblCellMar></w:tblPr>"
             let columns = max(current.block.numberOfColumns, current.cells.map { ($0.keys.max() ?? 0) + 1 }.max() ?? 1)
-            out += "<w:tblGrid>" + String(repeating: "<w:gridCol/>", count: columns) + "</w:tblGrid>"
-            for row in current.cells {
-                out += "<w:tr>"
-                for column in 0..<columns {
-                    out += "<w:tc><w:tcPr/>" + (row[column]?.joined() ?? "<w:p/>") + "</w:tc>"
-                }
-                out += "</w:tr>"
-            }
-            out += "</w:tbl>"
+            out += Self.table(current.cells.map { row in (0..<columns).map { row[$0]?.joined() ?? "" } }, columns: columns)
             table = nil
         }
+        #else
+        func flushTable() {}
+        #endif
         var location = 0
         while location < string.length {
             let range = string.paragraphRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(range)
+            let line = string.substring(with: range).trimmingCharacters(in: .whitespacesAndNewlines)
+            if let index = tables.indices.first(where: { line == marker($0) }) {
+                flushTable()
+                out += tables[index]
+                continue
+            }
             let style = text.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle
             let paragraph = self.paragraph(text, range, style, links: &links)
+            #if os(macOS)
             if let cell = style?.textBlocks.compactMap({ $0 as? NSTextTableBlock }).last {
                 if table?.block !== cell.table {
                     flushTable()
@@ -76,10 +103,11 @@ enum DocxWriter {
                 }
                 while table!.cells.count <= cell.startingRow { table!.cells.append([:]) }
                 table!.cells[cell.startingRow][cell.startingColumn, default: []].append(paragraph)
-            } else {
-                flushTable()
-                out += paragraph
+                continue
             }
+            #endif
+            flushTable()
+            out += paragraph
         }
         flushTable()
         return out
@@ -118,18 +146,18 @@ enum DocxWriter {
 
     private static func run(_ piece: String, _ attributes: [NSAttributedString.Key: Any]) -> String {
         var properties = ""
-        if let font = attributes[.font] as? NSFont {
-            let traits = font.fontDescriptor.symbolicTraits
-            let name = traits.contains(.monoSpace) ? "Menlo" : (font.familyName ?? "Helvetica Neue")
+        if let font = attributes[.font] as? DocxFont {
+            let traits = self.traits(font)
+            let name = traits.mono ? "Menlo" : traits.family
             properties += "<w:rFonts w:ascii=\"\(escape(name))\" w:hAnsi=\"\(escape(name))\" w:cs=\"\(escape(name))\"/>"
-            if traits.contains(.bold) { properties += "<w:b/>" }
-            if traits.contains(.italic) { properties += "<w:i/>" }
+            if traits.bold { properties += "<w:b/>" }
+            if traits.italic { properties += "<w:i/>" }
             properties += "<w:sz w:val=\"\(Int((font.pointSize * 2).rounded()))\"/>"
         }
-        if let color = (attributes[.foregroundColor] as? NSColor)?.usingColorSpace(.sRGB) { properties += "<w:color w:val=\"\(hex(color))\"/>" }
+        if let color = (attributes[.foregroundColor] as? DocxColor).flatMap(rgba) { properties += "<w:color w:val=\"\(hex(color))\"/>" }
         if (attributes[.underlineStyle] as? Int ?? 0) != 0 { properties += "<w:u w:val=\"single\"/>" }
         if (attributes[.strikethroughStyle] as? Int ?? 0) != 0 { properties += "<w:strike/>" }
-        if let background = (attributes[.backgroundColor] as? NSColor)?.usingColorSpace(.sRGB), background.alphaComponent > 0.05 {
+        if let background = (attributes[.backgroundColor] as? DocxColor).flatMap(rgba), background.a > 0.05 {
             properties += "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"\(hex(background))\"/>"
         }
         if let offset = attributes[.baselineOffset] as? Double, offset != 0 { properties += "<w:vertAlign w:val=\"\(offset > 0 ? "superscript" : "subscript")\"/>" }
@@ -151,11 +179,31 @@ enum DocxWriter {
         return "<w:r><w:rPr>\(properties)</w:rPr>\(content)</w:r>"
     }
 
+    private static func traits(_ font: DocxFont) -> (bold: Bool, italic: Bool, mono: Bool, family: String) {
+        let traits = font.fontDescriptor.symbolicTraits
+        #if os(macOS)
+        return (traits.contains(.bold), traits.contains(.italic), traits.contains(.monoSpace), font.familyName ?? "Helvetica Neue")
+        #else
+        return (traits.contains(.traitBold), traits.contains(.traitItalic), traits.contains(.traitMonoSpace), font.familyName)
+        #endif
+    }
+
+    /// The color's sRGB components and alpha.
+    private static func rgba(_ color: DocxColor) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? {
+        #if os(macOS)
+        guard let c = color.usingColorSpace(.sRGB) else { return nil }
+        return (c.redComponent, c.greenComponent, c.blueComponent, c.alphaComponent)
+        #else
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard color.getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
+        return (r, g, b, a)
+        #endif
+    }
+
     /// `#rrggbb` of the color laid on white paper: Word has no transparency.
-    private static func hex(_ color: NSColor) -> String {
-        let a = color.alphaComponent
-        func on(_ c: CGFloat) -> Int { Int(((c * a + (1 - a)) * 255).rounded()) }
-        return String(format: "%02X%02X%02X", on(color.redComponent), on(color.greenComponent), on(color.blueComponent))
+    private static func hex(_ color: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)) -> String {
+        func on(_ c: CGFloat) -> Int { Int(((c * color.a + (1 - color.a)) * 255).rounded()) }
+        return String(format: "%02X%02X%02X", on(color.r), on(color.g), on(color.b))
     }
 
     static func escape(_ s: String) -> String {
@@ -208,4 +256,3 @@ struct ZipWriter {
         return c ^ 0xFFFFFFFF
     }
 }
-#endif

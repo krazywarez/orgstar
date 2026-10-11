@@ -6,17 +6,18 @@ import OrgPresentation
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A file exported as HTML, Markdown, PDF, RTF, plain text or iCalendar, written when the share
-/// sheet takes it.
+/// A file exported as HTML, Markdown, PDF, Word, RTF, plain text or iCalendar, written when the
+/// share sheet takes it.
 struct OrgExport: Transferable {
     enum Format: CaseIterable {
-        case html, markdown, pdf, rtf, plainText, icalendar
+        case html, markdown, pdf, docx, rtf, plainText, icalendar
 
         var name: String {
             switch self {
             case .html: "HTML"
             case .markdown: "Markdown"
             case .pdf: "PDF"
+            case .docx: "Word"
             case .rtf: "Rich Text (RTF)"
             case .plainText: "Plain Text"
             case .icalendar: "iCalendar"
@@ -28,6 +29,7 @@ struct OrgExport: Transferable {
             case .html: "html"
             case .markdown: "md"
             case .pdf: "pdf"
+            case .docx: "docx"
             case .rtf: "rtf"
             case .plainText: "txt"
             case .icalendar: "ics"
@@ -55,6 +57,8 @@ struct OrgExport: Transferable {
             .exportingCondition { $0.format == .markdown }
         FileRepresentation(exportedContentType: .pdf) { try await $0.write() }
             .exportingCondition { $0.format == .pdf }
+        FileRepresentation(exportedContentType: UTType(filenameExtension: "docx") ?? .data) { try await $0.write() }
+            .exportingCondition { $0.format == .docx }
         FileRepresentation(exportedContentType: .rtf) { try await $0.write() }
             .exportingCondition { $0.format == .rtf }
         FileRepresentation(exportedContentType: .plainText) { try await $0.write() }
@@ -77,6 +81,9 @@ struct OrgExport: Transferable {
             try MarkdownExport.document(text, settings: settings, path: path).write(to: url, atomically: true, encoding: .utf8)
         case .icalendar:
             try ICalendarFiles.export(text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(), destination: url)
+        case .docx:
+            let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle)
+            try await RichTextExport.docx(html: html, directory: URL(fileURLWithPath: path).deletingLastPathComponent()).write(to: url, options: .atomic)
         case .pdf, .rtf, .plainText:
             let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle)
             let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
@@ -91,7 +98,7 @@ struct OrgExport: Transferable {
     }
 }
 
-/// Sharing the file as HTML, Markdown, PDF, RTF, plain text or iCalendar: to another app, or saved with
+/// Sharing the file as HTML, Markdown, PDF, Word, RTF, plain text or iCalendar: to another app, or saved with
 /// Save to Files; or copying it as rich text.
 struct ExportMenu: View {
     let path: String
