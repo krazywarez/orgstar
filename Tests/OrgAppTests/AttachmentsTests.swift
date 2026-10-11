@@ -208,3 +208,36 @@ struct AttachmentInboxTests {
         #expect(inbox.batches().isEmpty)
     }
 }
+
+struct AttachmentImageTests {
+    /// `attachment:` links resolve as following them does: an ID entry's folder under
+    /// `org-attach-id-dir`, a `DIR` property's folder, and the file's folder otherwise.
+    @Test func attachmentLinksResolveToTheEntrysFolder() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-attach-image-\(UUID().uuidString)").resolvingSymlinksInPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("data/202401/01T120000"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("imgs"), withIntermediateDirectories: true)
+        let text = """
+            * With ID
+            :PROPERTIES:
+            :ID:       20240101T120000
+            :END:
+            [[attachment:pic.png]]
+            * With DIR
+            :PROPERTIES:
+            :DIR:      imgs
+            :END:
+            [[attachment:pic.png]]
+
+            """
+        let path = folder.appendingPathComponent("notes.org").path
+        let tree = OrgParser.parse(text)
+        let ns = text as NSString
+        let first = ns.range(of: "[[attachment").location
+        let second = ns.range(of: "[[attachment", options: .backwards).location
+        #expect(DocumentSession.attachmentPath("pic.png", at: first, tree: tree, path: path) == folder.appendingPathComponent("data/202401/01T120000/pic.png").path)
+        #expect(DocumentSession.attachmentPath("pic.png", at: second, tree: tree, path: path) == folder.appendingPathComponent("imgs/pic.png").path)
+        #expect(InlineImages.image(atLine: second, in: ns, attachment: { DocumentSession.attachmentPath($0, at: $1, tree: tree, path: path) })?.path
+            == folder.appendingPathComponent("imgs/pic.png").path)
+    }
+}

@@ -1,7 +1,8 @@
 import Foundation
 
 /// Image links shown as images (`org-display-inline-images`, Org 9.8.7): a line that is only a
-/// link to an image file, without a description, and the width `#+ATTR_ORG: :width` asks for.
+/// `file:` or `attachment:` link to an image, without a description, and the width
+/// `#+ATTR_ORG: :width` asks for.
 public enum InlineImages {
     public struct Image: Sendable, Equatable {
         public let path: String
@@ -13,12 +14,17 @@ public enum InlineImages {
 
     /// The image on the line at `lineStart`, if the line is an image link; with `remote`,
     /// http and https links too (`org-display-remote-inline-images` other than `skip`).
-    public static func image(atLine lineStart: Int, in text: NSString, remote: Bool = false) -> Image? {
+    /// `attachment` gives an `attachment:` link's file from its name and offset, as
+    /// `org-attach-expand` does; without it those links don't show.
+    public static func image(atLine lineStart: Int, in text: NSString, remote: Bool = false, attachment: ((String, Int) -> String?)? = nil) -> Image? {
         let line = text.lineRange(for: NSRange(location: lineStart, length: 0))
         let content = text.substring(with: line).trimmingCharacters(in: .newlines)
         guard let m = pattern.firstMatch(in: content, range: NSRange(location: 0, length: (content as NSString).length)) else { return nil }
-        let path = (content as NSString).substring(with: m.range(at: 1))
-        guard !path.hasPrefix("attachment:") else { return nil }
+        var path = (content as NSString).substring(with: m.range(at: 1))
+        if path.hasPrefix("attachment:") {
+            guard let file = attachment?(String(path.dropFirst("attachment:".count)), line.location) else { return nil }
+            path = file
+        }
         if path.contains("://") {
             guard remote, path.range(of: "^https?://", options: [.regularExpression, .caseInsensitive]) != nil else { return nil }
         }

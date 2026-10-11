@@ -17,7 +17,7 @@ extension OrgEditor {
             var offset = 0
             while offset < ns.length {
                 let line = ns.lineRange(for: NSRange(location: offset, length: 0))
-                if let image = InlineImages.image(atLine: line.location, in: ns, remote: remote), loadImage(image.path) != nil { count += 1 }
+                if let image = InlineImages.image(atLine: line.location, in: ns, remote: remote, attachment: attachment), loadImage(image.path) != nil { count += 1 }
                 offset = NSMaxRange(line)
             }
             onMessage?("\(count) images displayed inline")
@@ -32,6 +32,13 @@ extension OrgEditor {
             invalidateAllLayout()
         }
         redrawViews()
+    }
+
+    /// `attachment:` links' files, for inline images.
+    private var attachment: ((String, Int) -> String?)? {
+        guard let attachmentPath else { return nil }
+        let tree = document.tree
+        return { attachmentPath($0, $1, tree) }
     }
 
     /// Whether http(s) links show, as `org-display-remote-inline-images` says.
@@ -67,7 +74,7 @@ extension OrgEditor {
         while location < range.upperBound, location < text.length {
             let line = text.lineRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(line)
-            guard let image = InlineImages.image(atLine: line.location, in: text, remote: remote), let picture = loadImage(image.path) else { continue }
+            guard let image = InlineImages.image(atLine: line.location, in: text, remote: remote, attachment: attachment), let picture = loadImage(image.path) else { continue }
             var width = image.width.map(CGFloat.init) ?? picture.size.width
             width = min(width, maxWidth)
             let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0

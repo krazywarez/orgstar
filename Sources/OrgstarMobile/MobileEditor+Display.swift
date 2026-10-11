@@ -60,7 +60,7 @@ extension MobileEditor {
             var offset = 0
             while offset < ns.length {
                 let line = ns.lineRange(for: NSRange(location: offset, length: 0))
-                if let image = InlineImages.image(atLine: line.location, in: ns, remote: options.remoteInlineImages != "skip"),
+                if let image = InlineImages.image(atLine: line.location, in: ns, remote: options.remoteInlineImages != "skip", attachment: attachment),
                    loadImage(image.path) != nil { count += 1 }
                 offset = NSMaxRange(line)
             }
@@ -68,6 +68,13 @@ extension MobileEditor {
         } else {
             onMessage?("Inline image display turned off")
         }
+    }
+
+    /// `attachment:` links' files, for inline images.
+    private var attachment: ((String, Int) -> String?)? {
+        guard let attachmentPath else { return nil }
+        let tree = document.tree
+        return { attachmentPath($0, $1, tree) }
     }
 
     /// An image link's image here: remote ones as `org-display-remote-inline-images` says,
@@ -114,7 +121,7 @@ extension MobileEditor {
         while location < range.upperBound, location < text.length {
             let line = text.lineRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(line)
-            guard let image = InlineImages.image(atLine: line.location, in: text, remote: options.remoteInlineImages != "skip"),
+            guard let image = InlineImages.image(atLine: line.location, in: text, remote: options.remoteInlineImages != "skip", attachment: attachment),
                   let picture = loadImage(image.path) else { continue }
             let width = min(image.width.map(CGFloat.init) ?? picture.size.width, maxWidth)
             let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0

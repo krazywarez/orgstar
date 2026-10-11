@@ -684,6 +684,9 @@ public final class OrgEditor: NSObject {
     public internal(set) var showsImages = false
     /// `org-latex-preview`: LaTeX fragments show as typeset math.
     public internal(set) var showsLatex = false
+    /// An `attachment:` link's file, from its name, offset and the tree: the app's
+    /// `org-attach-expand`. Nil leaves those links as text.
+    public var attachmentPath: ((String, Int, OrgTree) -> String?)?
     /// The file's folder, for relative image paths.
     public var baseDirectory: URL? {
         didSet { if showsImages, oldValue != baseDirectory { refreshImages() } }

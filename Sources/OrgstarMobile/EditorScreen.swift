@@ -384,10 +384,13 @@ struct EditorScreen: View {
 
     private func makeEditor() -> MobileEditor? {
         guard let document = session.document(of: path) else { return nil }
-        return MobileEditor(
+        let editor = MobileEditor(
             document: document, editable: document.isEditable, options: editorOptions, theme: model.theme,
             showMarkup: model.showMarkup, baseDirectory: URL(fileURLWithPath: path).deletingLastPathComponent()
         )
+        let path = path
+        editor.attachmentPath = { DocumentSession.attachmentPath($0, at: $1, tree: $2, path: path) }
+        return editor
     }
 
     /// The editor's callbacks go to this screen: it's shown here, or its view here took focus.

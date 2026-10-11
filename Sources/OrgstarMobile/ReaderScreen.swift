@@ -228,7 +228,8 @@ struct ReaderScreen: View {
         while location < range.upperBound {
             let line = ns.lineRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(line)
-            guard folded.allSatisfy({ !$0.contains(line.location) }), let image = InlineImages.image(atLine: line.location, in: ns, remote: remote != .skip),
+            guard folded.allSatisfy({ !$0.contains(line.location) }), let image = InlineImages.image(atLine: line.location, in: ns, remote: remote != .skip,
+                                                                                       attachment: { DocumentSession.attachmentPath($0, at: $1, tree: tree, path: path) }),
                   let picture = MobileEditor.loadImage(image.path, relativeTo: base, remote: remote) else { continue }
             if textStart < line.location { parts.append(Part(range: textStart..<line.location)) }
             parts.append(Part(range: line.location..<min(NSMaxRange(line), range.upperBound), image: (picture, image.path, image.width)))

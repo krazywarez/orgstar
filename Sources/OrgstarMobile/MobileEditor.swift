@@ -121,6 +121,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var imageWidth: CGFloat = 0
     /// The file's folder, for relative image paths.
     let baseDirectory: URL?
+    /// An `attachment:` link's file, from its name, offset and the tree; nil leaves those links
+    /// as text.
+    var attachmentPath: ((String, Int, OrgTree) -> String?)?
     static let imageCache = NSCache<NSString, UIImage>()
     var loading = false
     var restyleScheduled: Range<Int>?

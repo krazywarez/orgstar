@@ -91,6 +91,7 @@ struct PaneView: NSViewRepresentable {
         let store = commands.store
         editor.onChange = { [weak session] in session?.bufferChanged(path) }
         editor.baseDirectory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        editor.attachmentPath = { DocumentSession.attachmentPath($0, at: $1, tree: $2, path: path) }
         editor.onMessage = { [weak commands] in commands?.show($0) }
         editor.onKeysPending = { [weak commands] keys, next in
             commands?.pendingKeys = keys

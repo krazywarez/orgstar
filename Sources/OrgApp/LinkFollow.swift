@@ -83,7 +83,13 @@ extension DocumentSession {
         return searchCurrent(option)
     }
 
-    static func isDirectory(_ path: String) -> Bool {
+    /// An `attachment:` link's file in the file at `path` with `tree`, for inline images.
+    nonisolated public static func attachmentPath(_ name: String, at offset: Int, tree: OrgTree, path: String?) -> String? {
+        Links.attachmentFile(OrgLink(type: "attachment", path: name, raw: "attachment:" + name, position: offset), tree: tree, path: path,
+                             idDir: OrgPreferences.attachIDDir(), inherit: OrgPreferences.attachUseInheritance(), isDirectory: isDirectory)?.path
+    }
+
+    nonisolated static func isDirectory(_ path: String) -> Bool {
         var directory: ObjCBool = false
         return FileManager.default.fileExists(atPath: path, isDirectory: &directory) && directory.boolValue
     }
