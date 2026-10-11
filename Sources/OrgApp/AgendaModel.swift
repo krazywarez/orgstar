@@ -91,7 +91,7 @@ public final class AgendaModel {
                     events = provider.events(from: from, to: Self.date(first + span, calendar: calendar), chosen: names)
                 }
             case .todo(let keywords):
-                list = Agenda.todoList(all, keywords: keywords, options: options)
+                list = Agenda.todoList(all, keywords: keywords, options: options, today: today)
             case .match(let match, let todoOnly):
                 list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar, options: options)
             case .search(let string, let todoOnly):

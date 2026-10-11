@@ -81,6 +81,11 @@ public enum OrgPreferences {
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.dimBlockedTasks = AgendaOptions.DimBlocked(rawValue: string("agendaDimBlockedTasks", defaults)) ?? .dim
+        options.todoIgnoreWithDate = bool("agendaTodoIgnoreWithDate", defaults)
+        options.todoIgnoreScheduled = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreScheduled", defaults)) ?? .off
+        options.todoIgnoreDeadlines = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreDeadlines", defaults), deadlines: true) ?? .off
+        options.todoIgnoreTimestamp = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreTimestamp", defaults)) ?? .off
+        options.tagsTodoHonorIgnoreOptions = bool("agendaTagsTodoHonorIgnore", defaults)
         return options
     }
     /// `calendar-events`: Calendar's events show in the agenda.

@@ -96,6 +96,43 @@ public struct AgendaOptions: Sendable, Equatable {
     public var enforceTodoCheckboxDependencies = false
     /// `org-agenda-dim-blocked-tasks`.
     public var dimBlockedTasks = DimBlocked.dim
+    /// `org-agenda-todo-ignore-with-date`, `-scheduled`, `-deadlines` and `-timestamp`: TODO
+    /// entries the TODO list leaves out for their timestamps.
+    public var todoIgnoreWithDate = false
+    public var todoIgnoreScheduled = TodoIgnore.off
+    public var todoIgnoreDeadlines = TodoIgnore.off
+    public var todoIgnoreTimestamp = TodoIgnore.off
+    /// `org-agenda-tags-todo-honor-ignore-options`: the TODO-only match views leave them out too.
+    public var tagsTodoHonorIgnoreOptions = false
+
+    /// A value of the `org-agenda-todo-ignore-*` options.
+    public enum TodoIgnore: Sendable, Equatable {
+        case off
+        /// `t` or `all`; for deadlines `all` alone, as `t` means `near`.
+        case all
+        case future, past
+        /// Deadlines: within their warning period (`t`, `near`), or beyond it (`far`).
+        case near, far
+        /// More than n days ahead, or for a negative n, at least -n days ago.
+        case days(Int)
+
+        /// As `config.toml` writes it: `nil`, `t`, `all`, `future`, `past`, `near`, `far` or a
+        /// number of days. `t` is `near` for `deadlines`.
+        public init?(_ text: String, deadlines: Bool = false) {
+            switch text {
+            case "nil", "": self = .off
+            case "t": self = deadlines ? .near : .all
+            case "all": self = .all
+            case "future": self = .future
+            case "past": self = .past
+            case "near": self = .near
+            case "far": self = .far
+            default:
+                guard let n = Int(text) else { return nil }
+                self = .days(n)
+            }
+        }
+    }
 
     public enum DimBlocked: String, Sendable {
         case off = "nil", dim = "t", invisible

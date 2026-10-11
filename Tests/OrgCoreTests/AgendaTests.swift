@@ -598,3 +598,69 @@ struct AgendaFilterTests {
         #expect(negative.description == "-/call/")
     }
 }
+
+/// `org-agenda-todo-ignore-*` and `org-agenda-tags-todo-honor-ignore-options`.
+struct TodoIgnoreTests {
+    static let file = """
+    * TODO Sched past
+    SCHEDULED: <2026-10-01 Thu>
+    * TODO Sched today
+    SCHEDULED: <2026-10-05 Mon>
+    * TODO Sched future
+    SCHEDULED: <2026-10-20 Tue>
+    * TODO Deadline near
+    DEADLINE: <2026-10-10 Sat>
+    * TODO Deadline far
+    DEADLINE: <2026-12-01 Tue>
+    * TODO Deadline past
+    DEADLINE: <2026-09-01 Tue>
+    * TODO Deadline then scheduled
+    DEADLINE: <2026-10-06 Tue> SCHEDULED: <2026-10-04 Sun>
+    * TODO Scheduled then deadline
+    SCHEDULED: <2026-10-04 Sun> DEADLINE: <2026-10-06 Tue>
+    * TODO Stamp in heading <2026-11-01 Sun>
+    * TODO Stamp in body
+    Meeting <2026-09-20 Sun>
+    * TODO Inactive only [2026-10-01 Thu]
+    * TODO None :work:
+    * TODO Long warning :work:
+    DEADLINE: <2026-10-30 Fri -30d>
+
+    """
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func ignoresLikeOrg() throws {
+        let today = Days.absolute(year: 2026, month: 10, day: 5)
+        let files = [("i.org", Self.file)]
+        let settings: [(String, String, (inout AgendaOptions) -> Void)] = [
+            ("org-agenda-todo-ignore-with-date", "t", { $0.todoIgnoreWithDate = true }),
+        ] + ["t", "all", "future", "past", "3", "-3"].map { v in
+            ("org-agenda-todo-ignore-scheduled", v.first!.isNumber || v.first == "-" ? v : "'" + v, { $0.todoIgnoreScheduled = AgendaOptions.TodoIgnore(v)! })
+        } + ["t", "near", "far", "all", "future", "past", "10", "-10"].map { v in
+            ("org-agenda-todo-ignore-deadlines", v.first!.isNumber || v.first == "-" ? v : "'" + v, { $0.todoIgnoreDeadlines = AgendaOptions.TodoIgnore(v, deadlines: true)! })
+        } + ["t", "future", "past", "20"].map { v in
+            ("org-agenda-todo-ignore-timestamp", v.first!.isNumber ? v : "'" + v, { $0.todoIgnoreTimestamp = AgendaOptions.TodoIgnore(v)! })
+        }
+        for (name, value, set) in settings {
+            var options = AgendaOptions()
+            set(&options)
+            try AgendaOracle.compareList(files: files, form: "(let ((\(name) \(value))) (org-todo-list nil))", today: today) {
+                Agenda.todoList($0, options: options, today: today)
+            }
+        }
+        // TODO-only matches honor them only when asked.
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let now = Date(timeIntervalSince1970: Double((today - 719163) * 86400 + 9 * 3600 + 30 * 60))
+        for honor in [false, true] {
+            var options = AgendaOptions()
+            options.todoIgnoreDeadlines = .all
+            options.tagsTodoHonorIgnoreOptions = honor
+            try AgendaOracle.compareList(
+                files: files,
+                form: "(let ((org-agenda-todo-ignore-deadlines 'all) (org-agenda-tags-todo-honor-ignore-options \(honor ? "t" : "nil"))) (org-tags-view t \"work\"))",
+                today: today
+            ) { Agenda.tagsMatch($0, match: "work", todoOnly: true, now: now, calendar: utc, options: options) }
+        }
+    }
+}

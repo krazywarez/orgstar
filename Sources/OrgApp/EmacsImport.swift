@@ -486,13 +486,16 @@ public struct EmacsImport: Sendable {
         case "org-insert-heading-respect-content", "org-list-allow-alphabetical", "org-hide-emphasis-markers", "org-pretty-entities",
              "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup", "org-use-speed-commands", "org-startup-with-inline-images",
              "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
-             "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies":
+             "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies",
+             "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options":
             add(name, .bool(truthy))
         case "org-archive-location":
             guard let location = value.string, location.contains("::") else { return note("not a file::heading location") }
             add(name, .string(location))
         case "org-track-ordered-property-with-tag":
             if let tag = value.string { add(name, .string(tag)) } else { add(name, .string(truthy ? "t" : "nil")) }
+        case "org-agenda-todo-ignore-scheduled", "org-agenda-todo-ignore-deadlines", "org-agenda-todo-ignore-timestamp":
+            if let days = value.integer { add(name, .string("\(days)")) } else if let symbol = value.symbol, AgendaOptions.TodoIgnore(symbol) != nil { add(name, .string(symbol)) } else { note("unexpected value \(value.description)") }
         case "org-structure-template-alist":
             structureTemplates(value.elements ?? [], source: source, id: id)
         case "org-agenda-dim-blocked-tasks":

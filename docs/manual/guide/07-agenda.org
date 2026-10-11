@@ -263,7 +263,7 @@ Future days use lighter shades. On the Mac, hover a cell to see its date. Habits
 
 * The TODO list
 
-The built-in view TODO List is =org-todo-list=: every heading with a TODO keyword that is not a done keyword, sorted by urgency (priority first). The time-based skipping options (=org-agenda-todo-ignore-scheduled= and its relatives) are not supported; every open TODO appears, as with Org's defaults.
+The built-in view TODO List is =org-todo-list=: every heading with a TODO keyword that is not a done keyword, sorted by urgency (priority first). By default every open TODO appears, as in Org. =org-agenda-todo-ignore-scheduled=, =org-agenda-todo-ignore-deadlines=, =org-agenda-todo-ignore-timestamp= and =org-agenda-todo-ignore-with-date= in =config.toml= leave out entries for their timestamps, so that the TODO list shows only what isn't already on the calendar; see [[file:13-configuration.org][Configuration]]. As in Org, the searches look through the entry's text in order, so with both set, a =SCHEDULED= that doesn't leave the entry out hides a =DEADLINE= before it on the same line. With =org-agenda-tags-todo-honor-ignore-options=, TODO-only matches leave the same entries out.
 
 A saved view can list specific keywords instead, done ones included, with =keywords = "WAIT|HOLD"= (see [[*Views][Views]]). This mirrors =C-u M-x org-todo-list= with a keyword argument.
 

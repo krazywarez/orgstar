@@ -2,18 +2,20 @@ import Foundation
 
 extension Agenda {
     /// `org-todo-list`: unfinished entries, or with `keywords` (`WAIT|HOLD`) those with any of
-    /// the keywords.
-    public static func todoList(_ sources: [AgendaSource], keywords: String? = nil, options: AgendaOptions = AgendaOptions()) -> [AgendaItem] {
+    /// the keywords, without those the `todoIgnore` options leave out on `today`.
+    public static func todoList(_ sources: [AgendaSource], keywords: String? = nil, options: AgendaOptions = AgendaOptions(),
+                                today: Int = Days.absolute(Date(), calendar: .current)) -> [AgendaItem] {
         let selected = keywords.map { $0.split(separator: "|").map(String.init) }
         var items: [AgendaItem] = []
         for source in sources {
-            for heading in source.headings where !heading.skipped {
+            for (index, heading) in source.headings.enumerated() where !heading.skipped {
                 guard let todo = heading.todo else { continue }
                 if let selected {
                     guard selected.contains(todo) else { continue }
                 } else if heading.isDone {
                     continue
                 }
+                if ignoresTodo(source, index, options: options, today: today) { continue }
                 items.append(format(
                     source, heading, kind: .todo, marker: heading.start, extra: "", dotime: .headline, removing: nil,
                     trailing: "", prefix: options.prefix("todo"), urgency: { 1 + $0 }
@@ -30,11 +32,13 @@ extension Agenda {
         options: AgendaOptions = AgendaOptions()
     ) -> [AgendaItem] {
         let matcher = TagsMatcher(match, todoOnly: todoOnly)
+        let today = Days.absolute(now, calendar: calendar)
         var items: [AgendaItem] = []
         for source in sources {
-            for heading in source.headings {
+            for (index, heading) in source.headings.enumerated() {
                 if matcher.todoOnly, heading.todo == nil { continue }
                 guard matcher.matches(heading, in: source, now: now, calendar: calendar), !heading.skipped else { continue }
+                if matcher.todoOnly, options.tagsTodoHonorIgnoreOptions, ignoresTodo(source, index, options: options, today: today) { continue }
                 items.append(format(
                     source, heading, kind: .tagsMatch, marker: heading.start, extra: "", dotime: nil, removing: nil,
                     trailing: "", prefix: options.prefix("tags"), urgency: { $0 }
@@ -43,6 +47,64 @@ extension Agenda {
         }
         return sortByUrgency(markBlocked(items, options: options))
     }
+
+    /// `org-agenda-check-for-timestamp-as-reason-to-ignore-todo-item` for the entry of heading
+    /// `index`, from its heading line to the next heading. The searches go on from where the
+    /// last one matched, as Org's do.
+    static func ignoresTodo(_ source: AgendaSource, _ index: Int, options: AgendaOptions, today: Int) -> Bool {
+        guard options.todoIgnoreWithDate || options.todoIgnoreScheduled != .off || options.todoIgnoreDeadlines != .off
+            || options.todoIgnoreTimestamp != .off else { return false }
+        let ns = source.text as NSString
+        let start = source.headings[index].start
+        let end = index + 1 < source.headings.count ? source.headings[index + 1].start : ns.length
+        var point = start
+        func search(_ regex: NSRegularExpression) -> String? {
+            guard let m = regex.firstMatch(in: source.text, range: NSRange(location: point, length: end - point)) else { return nil }
+            point = NSMaxRange(m.range)
+            return ns.substring(with: m.range(at: 1))
+        }
+        func days(_ stamp: String) -> Int { (Days.absolute(of: stamp) ?? today) - today }
+        func custom(_ stamp: String, _ n: Int) -> Bool { n >= 0 ? days(stamp) >= n : days(stamp) <= n }
+        if options.todoIgnoreWithDate, search(Self.activeStampRegex) != nil { return true }
+        if options.todoIgnoreScheduled != .off, let stamp = search(Self.scheduledRegex) {
+            switch options.todoIgnoreScheduled {
+            case .future: if days(stamp) > 0 { return true }
+            case .past: if days(stamp) <= 0 { return true }
+            case .days(let n): if custom(stamp, n) { return true }
+            default: return true
+            }
+        }
+        if options.todoIgnoreDeadlines != .off, let stamp = search(Self.deadlineRegex) {
+            let close = days(stamp) <= Days.warningDays(stamp, delay: false, defaultDays: options.deadlineWarningDays) && !source.headings[index].isDone
+            switch options.todoIgnoreDeadlines {
+            case .all: return true
+            case .far: if !close { return true }
+            case .future: if days(stamp) > 0 { return true }
+            case .past: if days(stamp) <= 0 { return true }
+            case .days(let n): if custom(stamp, n) { return true }
+            default: if close { return true }
+            }
+        }
+        if options.todoIgnoreTimestamp != .off {
+            // The other timestamps, without SCHEDULED and DEADLINE ones.
+            let rest = Self.planningStampRegex.stringByReplacingMatches(in: ns.substring(with: NSRange(location: point, length: end - point)), range: NSRange(location: 0, length: end - point), withTemplate: "")
+            guard let m = Self.activeStampRegex.firstMatch(in: rest, range: NSRange(location: 0, length: (rest as NSString).length)) else { return false }
+            let stamp = (rest as NSString).substring(with: m.range(at: 1))
+            switch options.todoIgnoreTimestamp {
+            case .future: return days(stamp) > 0
+            case .past: return days(stamp) <= 0
+            case .days(let n): return custom(stamp, n)
+            default: return true
+            }
+        }
+        return false
+    }
+
+    /// `org-ts-regexp`, `org-scheduled-time-regexp` and `org-deadline-time-regexp`.
+    static let activeStampRegex = try! NSRegularExpression(pattern: "<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)>")
+    static let scheduledRegex = try! NSRegularExpression(pattern: "\\bSCHEDULED: *<([^>]+)>")
+    static let deadlineRegex = try! NSRegularExpression(pattern: "\\bDEADLINE: *<([^>]+)>")
+    static let planningStampRegex = try! NSRegularExpression(pattern: "\\bSCHEDULED: *<[^>]+>|\\bDEADLINE: *<[^>]+>")
 
     /// `org-search-view`: entries, heading and body, containing `string` as a phrase, or with
     /// a leading `+`, `-` or `{` (or `searchAlwaysBoolean`) matching each of its snippets. A

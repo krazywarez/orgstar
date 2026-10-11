@@ -32,6 +32,8 @@ struct OrgPreferencesTests {
             org-agenda-start-on-weekday = "nil"
             org-track-ordered-property-with-tag = "t"
             org-archive-location = "~/org/archive.org::* %s"
+            org-agenda-todo-ignore-deadlines = "t"
+            org-agenda-todo-ignore-scheduled = "-2"
             org-M-RET-may-split-line = true
             org-hide-emphasis-markers = false
             org-pretty-entities = false
@@ -48,6 +50,8 @@ struct OrgPreferencesTests {
         #expect(OrgPreferences.agendaStartOnWeekday(defaults) == nil)
         #expect(OrgPreferences.options(defaults).trackOrderedPropertyWithTag == "ORDERED")
         #expect(OrgPreferences.options(defaults).archiveLocation == "~/org/archive.org::* %s")
+        let ignoring = OrgPreferences.agendaOptions(AgendaOptions(), defaults)
+        #expect(ignoring.todoIgnoreDeadlines == .near && ignoring.todoIgnoreScheduled == .days(-2) && ignoring.todoIgnoreTimestamp == .off)
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 5)
         #expect(!OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 30)
         #expect(UserConfig.apply("org-agenda-start-on-weekday = \"0\"", to: defaults).isEmpty)
