@@ -21,6 +21,8 @@ public final class OrgEditor: NSObject {
     var layoutManagers: [NSTextLayoutManager] { textViews.compactMap(\.textLayoutManager) }
     /// One undo history for the buffer, whichever view edits it.
     public let undoManager = UndoManager()
+    /// A text view of this editor took keyboard focus.
+    public var onFocus: ((NSTextView) -> Void)?
     public private(set) var document: DocumentState
     public internal(set) var view = ViewState()
     /// Called with the time from a character edit to restyled text.
@@ -135,7 +137,10 @@ public final class OrgEditor: NSObject {
         view.onFocusChange = { [weak self, unowned view] in
             guard let self, let layout = view.textLayoutManager else { return }
             let id = ObjectIdentifier(layout)
-            if view.window?.firstResponder === view { self.active = view }
+            if view.window?.firstResponder === view {
+                self.active = view
+                self.onFocus?(view)
+            }
             if let window = view.window, window.isKeyWindow, window.firstResponder === view {
                 Theme.focusedLayouts.insert(id)
             } else {

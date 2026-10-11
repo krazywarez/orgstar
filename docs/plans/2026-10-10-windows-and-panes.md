@@ -76,7 +76,7 @@ extension OrgEditor {
 - [x] `active` follows first responder, key presses and clicks; layout invalidation, theme, line numbers, spell checking and the block cursor apply to every view; a disk change maps every view's selection; `textViewDidChangeSelection` ignores other views' carets.
 - [x] Commit "One editor, several text views".
 
-### Task 2: `EditorPane` and the session
+### Task 2: `EditorPane` and the session (done)
 
 **Files:**
 - Create: `Sources/OrgApp/EditorPane.swift`, `Sources/OrgApp/PaneLayout.swift`
@@ -113,14 +113,14 @@ public indirect enum PaneLayout: Equatable, Sendable {
 
 - `DocumentSession` gains `panes: [PaneID: EditorPane]`, `focused: EditorPane?`, `makePane() -> EditorPane`, `closePane(_:)`, `open(_ path: String, in pane: EditorPane)`, `show(_ path:, in:)`, `reveal(_ offset:, in:)`; `kill(path)` updates every pane. The old `path`, `outline`, `isDirty`, `conflict`, `revealRequest`, `editVersion`, `document`, `bufferChanged()` forward to `focused` with a doc comment saying so.
 
-- [ ] Write the failing `PaneLayout` tests: split right then split below the second pane gives three panes in reading order; removing the middle one leaves a two-pane split with the remaining fraction; `only` collapses; `next` wraps; removing the only pane returns nil.
-- [ ] Implement `PaneLayout`; run the tests.
-- [ ] Write the failing `EditorPane` tests with a `DocumentSession` over an in-memory `FileSystem` (as `DocumentSessionTests` do): opening a path in pane A then showing it in pane B leaves one `Entry`; killing it empties both panes' `path` and `shown`; a pane's `shown` keeps order and drops killed paths; `reveal(_:in:)` bumps only that pane's request; `dirtyPaths` counts a buffer once however many panes show it.
-- [ ] Implement `EditorPane` and the session changes: `Entry` keeps its `buffer` (the `OrgEditor`, attached once per path; `attach` becomes `attach(_ buffer:, for path:)`), `current` is replaced by `focused`, `history` moves into each pane. `bufferChanged(path)` refreshes every pane showing that path (outline per pane, since a pane's outline is the buffer's; compute once and assign to each).
-- [ ] Run the whole suite. `AppTests` that read `session.path` keep passing through the forwarders.
-- [ ] Commit "Editor panes and pane layout in the session".
+- [x] Write the failing `PaneLayout` tests: split right then split below the second pane gives three panes in reading order; removing the middle one leaves a two-pane split with the remaining fraction; `only` collapses; `next` wraps; removing the only pane returns nil.
+- [x] Implement `PaneLayout`; run the tests.
+- [x] Write the failing `EditorPane` tests with a `DocumentSession` over an in-memory `FileSystem` (as `DocumentSessionTests` do): opening a path in pane A then showing it in pane B leaves one `Entry`; killing it empties both panes' `path` and `shown`; a pane's `shown` keeps order and drops killed paths; `reveal(_:in:)` bumps only that pane's request; `dirtyPaths` counts a buffer once however many panes show it.
+- [x] Implement `EditorPane` and the session changes: `Entry` keeps its `buffer` (the `OrgEditor`, attached once per path; `attach` becomes `attach(_ buffer:, for path:)`), `current` is replaced by `focused`, `history` moves into each pane. `bufferChanged(path)` refreshes every pane showing that path (outline per pane, since a pane's outline is the buffer's; compute once and assign to each).
+- [x] Run the whole suite. `AppTests` that read `session.path` keep passing through the forwarders.
+- [x] Commit "Editor panes and pane layout in the session".
 
-### Task 3: Panes in the main window
+### Task 3: Panes in the main window (done)
 
 **Files:**
 - Create: `Sources/Orgstar/PaneView.swift` (one pane: `BufferTabs` + `EditorView` for that pane), `Sources/Orgstar/PaneLayoutView.swift` (recursive `HSplitView`/`VSplitView` over `PaneLayout`, using `PaneDivider` for the fraction), `Sources/Orgstar/WindowModel.swift`
@@ -139,11 +139,19 @@ public indirect enum PaneLayout: Equatable, Sendable {
 
 `AppCommands` keeps `editor` (the focused view) and gains `keyWindow: WindowModel?`, set from `NSWindow.didBecomeKeyNotification` by the window's root view; its four presentation booleans move to `WindowModel` and every menu action that set them goes through `keyWindow`.
 
-- [ ] `WindowGroup("orgstar", id: "main")` replaces `Window("orgstar", id: "main")`; the root view creates its `WindowModel` and one pane (`session.makePane()`) in `onAppear`, registers the model with `commands`, and on disappear closes its panes (`session.closePane`) so their text views are removed (`editor.removeView`). Buffers stay in the session.
-- [ ] `EditorView` keeps one `OrgEditor` per path and one text view per `(pane.id, path)` from `addView`, removed with `removeView` when the pane closes; a text view becoming first responder sets `commands.editor` and `session.focused = pane` (an `onFocus` callback on `OrgEditor`, from `becomeFirstResponder` on `OrgTextView` in `Sources/OrgEditorAppKit/Keys.swift`).
-- [ ] Outline column and sidebar selection follow `session.focused`.
-- [ ] Jump requests (`AppCommands.jumpRequest`) are handled by the key window's root view only: `commands.keyWindow === model`. With no main window open, `openWindow(id: "main")` first, then the request is delivered on the new window's first `onAppear`.
-- [ ] Commands, as `app.*` ids dispatched where `app.quick-open` is today: `app.split-below`, `app.split-right`, `app.pane-close`, `app.pane-only`, `app.pane-next`, `app.window-new`. Menu: File ▸ New Window; View ▸ Split Below, Split Right, Close Pane, Close Other Panes, Next Pane. Emacs preset: `C-x 2`, `C-x 3`, `C-x 0`, `C-x 1`, `C-x o`, `C-x 5 2`. Doom: `SPC w s`, `SPC w v`, `SPC w d`, `SPC w o`, `SPC w w`, and `C-w s/v/c/o/w` in normal state. Mac: shortcuts chosen after checking `macBindings`; proposal ⌥⌘N, ⌥⌘-, ⌥⌘\, ⌃⌘W, ⌃⌘1, ⌃⌘`.
-- [ ] Manual: a "Windows and panes" section in `docs/manual/guide/02-the-editor.org` and the keys in `03-keys.org`'s reference table.
-- [ ] Check by hand against the review focus list; the `ORGSTAR_SNAPSHOT` hook in `DevelopmentHooks.swift` gets a two-pane snapshot.
-- [ ] Commit "Windows and panes".
+- [x] `WindowGroup("orgstar", id: "main")` replaces `Window("orgstar", id: "main")`; the root view creates its `WindowModel` and one pane (`session.makePane()`) in `onAppear`, registers the model with `commands`, and on disappear closes its panes (`session.closePane`) so their text views are removed (`editor.removeView`). Buffers stay in the session.
+- [x] `EditorView` keeps one `OrgEditor` per path and one text view per `(pane.id, path)` from `addView`, removed with `removeView` when the pane closes; a text view becoming first responder sets `commands.editor` and `session.focused = pane` (an `onFocus` callback on `OrgEditor`, from `becomeFirstResponder` on `OrgTextView` in `Sources/OrgEditorAppKit/Keys.swift`).
+- [x] Outline column and sidebar selection follow `session.focused`.
+- [x] Jump requests (`AppCommands.jumpRequest`) are handled by the key window's root view only: `commands.keyWindow === model`. With no main window open, `openWindow(id: "main")` first, then the request is delivered on the new window's first `onAppear`.
+- [x] Commands, as `app.*` ids dispatched where `app.quick-open` is today: `app.split-below`, `app.split-right`, `app.pane-close`, `app.pane-only`, `app.pane-next`, `app.window-new`. Menu: File ▸ New Window; View ▸ Split Below, Split Right, Close Pane, Close Other Panes, Next Pane. Emacs preset: `C-x 2`, `C-x 3`, `C-x 0`, `C-x 1`, `C-x o`, `C-x 5 2`. Doom: `SPC w s`, `SPC w v`, `SPC w d`, `SPC w o`, `SPC w w`, and `C-w s/v/c/o/w` in normal state. Mac, after checking `macBindings`: ⌃⌘2, ⌃⌘3, ⌃⌘0, ⌃⌘1, ⌥⌘` and ⌥⌘N (⌃⌘W was Refile, ⌃⌘O Open Link).
+- [x] Manual: a "Windows and panes" section in `docs/manual/guide/02-the-editor.org` and the keys in `03-keys.org`'s reference table.
+- [x] Check by hand against the review focus list; the `ORGSTAR_SNAPSHOT` hook in `DevelopmentHooks.swift` gets a two-pane snapshot.
+- [x] Commit "Windows and panes".
+
+## As built
+
+- A second window is an editor-only window (`EditorWindowView`, `WindowGroup("Editor")`): panes, tabs, modeline and echo area, no sidebar or search. The main window stays a single `Window`, since its body carries the app's lifecycle (buffer restore, reminders, the global hotkey, development hooks), which must run once. Quick Open, the palette and the sheets stay on the main window and act on the focused pane wherever it is.
+- `EditorStore` (app) keeps one `OrgEditor` per open file and one text view per pane showing it; the first text view of an editor belongs to the first pane that showed the file and is handed on when that pane moves off it.
+- `WindowModel` (app) holds a window's `PaneLayout`, its panes and the focused one; `AppCommands.store.windows` lists them so pane commands find the window of the focused pane.
+- A split shows the same buffer in the new pane and keeps the focus, as `split-window` does. A pane with no buffer shows a placeholder.
+- Checked: `swift test` (691 tests); the main window with three panes and a fold shared by all of them, by snapshot; the window and pane commands run to completion under the development hooks.

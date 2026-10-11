@@ -240,6 +240,24 @@ extension KeymapPreset {
         keys = "C-x k"
         command = "app.buffer.kill"
         [[bind]]
+        keys = "C-x 2"
+        command = "app.split-below"
+        [[bind]]
+        keys = "C-x 3"
+        command = "app.split-right"
+        [[bind]]
+        keys = "C-x 0"
+        command = "app.pane-close"
+        [[bind]]
+        keys = "C-x 1"
+        command = "app.pane-only"
+        [[bind]]
+        keys = "C-x o"
+        command = "app.pane-next"
+        [[bind]]
+        keys = "C-x 5 2"
+        command = "app.window-new"
+        [[bind]]
         keys = "C-x <right>"
         command = "app.buffer.next"
         [[bind]]

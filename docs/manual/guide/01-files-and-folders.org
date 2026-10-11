@@ -166,10 +166,10 @@ These names show in the window title, the tab bar and Switch to Buffer.
 
 ** The tab bar
 
-View ▸ Show Tab Bar shows a row of tabs above the editor, one per open buffer, in buffer order. It is off by default; the setting is =tab-bar= in =config.toml=.
+View ▸ Show Tab Bar shows a row of tabs above each pane, one per buffer that pane has shown, in the order it first showed them. It is off by default; the setting is =tab-bar= in =config.toml=.
 
 - Click a tab to show its buffer. Hover to see the file's full path.
-- Click =×= to close a buffer. A dot replaces the =×= while the buffer has unsaved edits; clicking it also closes the buffer, with the same unsaved-changes handling as Close Buffer.
+- Click =×= to close a buffer, in every pane. A dot replaces the =×= while the buffer has unsaved edits; clicking it also closes the buffer, with the same unsaved-changes handling as Close Buffer.
 
 * Searching your notes
 

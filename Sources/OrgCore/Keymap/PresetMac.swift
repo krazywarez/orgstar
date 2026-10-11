@@ -7,6 +7,24 @@ extension KeymapPreset {
         keys = "C-S-TAB"
         command = "app.buffer.previous"
         [[bind]]
+        keys = "C-s-2"
+        command = "app.split-below"
+        [[bind]]
+        keys = "C-s-3"
+        command = "app.split-right"
+        [[bind]]
+        keys = "C-s-0"
+        command = "app.pane-close"
+        [[bind]]
+        keys = "C-s-1"
+        command = "app.pane-only"
+        [[bind]]
+        keys = "M-s-`"
+        command = "app.pane-next"
+        [[bind]]
+        keys = "M-s-n"
+        command = "app.window-new"
+        [[bind]]
         keys = "C-s-t"
         command = "org.todo.cycle"
         [[bind]]

@@ -46,7 +46,7 @@ struct CodeEditor: NSViewRepresentable {
     let done: (Bool) -> Void
 
     func makeNSView(context: Context) -> NSScrollView {
-        let editor = OrgEditor(document: DocumentState(bytes: [UInt8](text.utf8)), highlighter: EditorView.highlighter, mode: .plain(language: language))
+        let editor = OrgEditor(document: DocumentState(bytes: [UInt8](text.utf8)), highlighter: PaneView.highlighter, mode: .plain(language: language))
         editor.keymap = Keymap([
             KeyBinding(keys: KeySequence.parse("C-c '")!, command: "app.block.save"),
             KeyBinding(keys: KeySequence.parse("C-c C-k")!, command: "app.block.cancel"),

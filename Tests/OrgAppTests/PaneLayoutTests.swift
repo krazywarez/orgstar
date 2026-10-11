@@ -19,6 +19,14 @@ struct PaneLayoutTests {
         #expect(PaneLayout.pane(a).removing(a) == nil)
     }
 
+    @Test func settingAFractionFindsTheSplitByItsFirstPane() {
+        let a = PaneID(), b = PaneID(), c = PaneID()
+        let layout = PaneLayout.pane(a).splitting(a, axis: .horizontal, new: b).splitting(b, axis: .vertical, new: c)
+        let inner = layout.settingFraction(0.3, ofSplitStartingWith: b)
+        #expect(inner == .split(axis: .horizontal, first: .pane(a), second: .split(axis: .vertical, first: .pane(b), second: .pane(c), fraction: 0.3), fraction: 0.5))
+        #expect(layout.settingFraction(2, ofSplitStartingWith: a) == .split(axis: .horizontal, first: .pane(a), second: .split(axis: .vertical, first: .pane(b), second: .pane(c), fraction: 0.5), fraction: 0.9))
+    }
+
     @Test func onlyAndNext() {
         let a = PaneID(), b = PaneID(), c = PaneID()
         let layout = PaneLayout.pane(a).splitting(a, axis: .horizontal, new: b).splitting(b, axis: .vertical, new: c)

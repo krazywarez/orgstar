@@ -26,15 +26,17 @@ struct PaneDivider: View {
     }
 }
 
-/// A tab for each open buffer: click to show it, × to close it, a dot for unsaved edits.
+/// A tab for each buffer the pane has shown: click to show it, × to close it, a dot for
+/// unsaved edits.
 struct BufferTabs: View {
     let session: DocumentSession
+    let pane: EditorPane
     @Environment(\.orgTheme) private var theme
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 0) {
-                ForEach(session.openPaths, id: \.self) { path in
+                ForEach(pane.shown, id: \.self) { path in
                     tab(path)
                 }
             }
@@ -45,19 +47,15 @@ struct BufferTabs: View {
     }
 
     private func tab(_ path: String) -> some View {
-        let current = path == session.path
+        let current = path == pane.path
         return HStack(spacing: 6) {
             Text(session.bufferName(path))
                 .lineLimit(1)
                 .foregroundStyle(current ? .primary : .secondary)
                 .accessibilityAddTraits(current ? [.isButton, .isSelected] : .isButton)
-                .accessibilityAction { session.open(path) }
+                .accessibilityAction { session.open(path, in: pane) }
             Button {
-                if path == session.path {
-                    if UnsavedChanges.resolve(session) { session.kill(path) }
-                } else if UnsavedChanges.resolve(session, paths: [path]) {
-                    session.kill(path)
-                }
+                if UnsavedChanges.resolve(session, paths: [path]) { session.kill(path) }
             } label: {
                 Image(systemName: session.dirtyPaths.contains(path) ? "circle.fill" : "xmark")
                     .font(.system(size: session.dirtyPaths.contains(path) ? 6 : 9, weight: .semibold))
@@ -74,7 +72,7 @@ struct BufferTabs: View {
         .background { Rectangle().fill(current ? theme.color("background") ?? Color(nsColor: .textBackgroundColor) : .clear) }
         .overlay(alignment: .trailing) { Divider() }
         .contentShape(Rectangle())
-        .onTapGesture { session.open(path) }
+        .onTapGesture { session.open(path, in: pane) }
         .help(path)
     }
 }

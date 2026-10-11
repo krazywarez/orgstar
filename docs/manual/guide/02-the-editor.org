@@ -148,6 +148,14 @@ When the file sets a visibility (=overview=, =content=, =showall=, =showNlevels=
 
 Narrowing to a subtree or block, and sparse trees, also hide text; see [[file:04-outlines.org][Outlines]].
 
+* Panes and windows
+
+A window can show more than one buffer at once, or one buffer in more than one place, as Emacs windows do. Split Pane Below (=C-x 2=) and Split Pane Right (=C-x 3=) divide the pane with the focus in two; the new pane shows the same buffer, and the focus stays where it was. Drag the line between two panes to resize them. Close Pane (=C-x 0=) removes the focused pane, Close Other Panes (=C-x 1=) leaves only it, and Next Pane (=C-x o=) moves the focus through the panes in reading order. With several panes, a bar along the top marks the one with the focus. The sidebar, the outline and the title follow the focused pane. In the Doom preset these are =SPC w s=, =SPC w v=, =SPC w d=, =SPC w o= and =SPC w w=, and =C-w= with the same letters in normal state; the Mac preset and the View menu use =⌃⌘2=, =⌃⌘3=, =⌃⌘0=, =⌃⌘1= and =⌥⌘`=.
+
+Each pane has its own caret, selection and scroll position, and its own tabs (see [[file:01-files-and-folders.org][Files and folders]]): the buffers it has shown. Everything else about a buffer is the buffer's, as in Emacs: its text and undo, its folds, narrowing and sparse tree, its evil state and mark, shrunk table columns and inline images. Two panes on one buffer therefore show the same folds, and a fold made in one shows in the other. Closing a pane leaves its buffers open; closing a buffer (=C-x k=) takes it out of every pane, which falls back to the buffer it showed before.
+
+New Window (=C-x 5 2=, =⌥⌘N=, File ▸ New Window) opens a window of panes alone, without the sidebar or search, on the buffer the focused pane shows, as a second Emacs frame. Commands act on the pane with the focus whichever window it is in; Quick Open, the palette and search open from the main window and show their result in the focused pane. Closing the window closes its panes and leaves the buffers open.
+
 * The modeline
 
 The line under the editor shows, from the left:

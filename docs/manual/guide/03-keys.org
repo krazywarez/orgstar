@@ -123,12 +123,18 @@ These come from the menu bar and work in every preset. In the Doom preset, keys 
 | Edit | Search Notes | =⇧⌘F= |
 | View | Show Markup | =⇧⌘M= |
 | View | Show Line Numbers | =⇧⌘L= |
+| View | Split Pane Below | =⌃⌘2= |
+| View | Split Pane Right | =⌃⌘3= |
+| View | Close Pane | =⌃⌘0= |
+| View | Close Other Panes | =⌃⌘1= |
+| View | Next Pane | =⌥⌘`= |
 | View | Show or Hide Outline | =⌥⌘O= |
 | View | Show or Hide Columns and Clock | =⌥⌘I= |
 | Window | Agenda | =⇧⌘A= |
 | Window | Board | =⇧⌘B= |
 | Window | Next Buffer | =⇧⌘]= |
 | Window | Previous Buffer | =⇧⌘[= |
+| File | New Window | =⌥⌘N= |
 
 View ▸ Show or Hide Backlinks and Show Tab Bar, Window ▸ Switch to Buffer…, and the items of File ▸ Export have no shortcut.
 
@@ -558,6 +564,13 @@ Besides the leader, the preset binds these evil-org and Doom keys in normal stat
 | =SPC h r r= | Reload Keymap (=app.reload-keymap=) |
 | =SPC n l= | Store Link (=org.link.store=) |
 | =SPC o a= | Agenda (=app.agenda=) |
+| =SPC w c= | Close Pane (=app.pane-close=) |
+| =SPC w d= | Close Pane (=app.pane-close=) |
+| =SPC w n= | New Window (=app.window-new=) |
+| =SPC w o= | Close Other Panes (=app.pane-only=) |
+| =SPC w s= | Split Pane Below (=app.split-below=) |
+| =SPC w v= | Split Pane Right (=app.split-right=) |
+| =SPC w w= | Next Pane (=app.pane-next=) |
 | =SPC q q= | Quit orgstar (=app.quit=) |
 | =SPC s p= | Search Notes (=app.search=) |
 | =SPC s s= | Find (=edit.find=) |
@@ -960,6 +973,12 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Last Buffer (=app.buffer.last=) | — | — | =SPC `= (N) | Shows the buffer you were in before this one. |
 | Close Buffer (=app.buffer.kill=) | =C-x k= | — | =SPC b k= (N), =SPC b d= (N) | Closes the buffer, asking about unsaved changes in explicit save mode (=kill-buffer=). |
 | Close Other Buffers (=app.buffer.kill-others=) | — | — | =SPC b O= (N) | Closes every other buffer. |
+| Split Pane Below (=app.split-below=) | =C-x 2= | =⌃⌘2= | =SPC w s= (N), =C-w s= (N) | Divides the focused pane in two, one above the other, both showing its buffer (=split-window-below=). |
+| Split Pane Right (=app.split-right=) | =C-x 3= | =⌃⌘3= | =SPC w v= (N), =C-w v= (N) | Divides the focused pane in two, side by side (=split-window-right=). |
+| Close Pane (=app.pane-close=) | =C-x 0= | =⌃⌘0= | =SPC w d= (N), =SPC w c= (N), =C-w c= (N) | Removes the focused pane; its buffers stay open (=delete-window=). |
+| Close Other Panes (=app.pane-only=) | =C-x 1= | =⌃⌘1= | =SPC w o= (N), =C-w o= (N) | Leaves only the focused pane (=delete-other-windows=). |
+| Next Pane (=app.pane-next=) | =C-x o= | =⌥⌘`= | =SPC w w= (N), =C-w w= (N) | Moves the focus to the next pane in reading order (=other-window=). |
+| New Window (=app.window-new=) | =C-x 5 2= | =⌥⌘N= | =SPC w n= (N) | Opens a window of panes on the focused buffer, without the sidebar (=make-frame-command=). |
 | Close All Buffers (=app.buffer.kill-all=) | — | — | =SPC b K= (N) | Closes every buffer. |
 | Command Palette… (=app.palette=) | =M-x= | — | =SPC := (N) | Opens the command palette (=execute-extended-command=). |
 | Search Notes (=app.search=) | — | — | =SPC /= (N), =SPC s p= (N) | Moves to the search field for searching your notes. |

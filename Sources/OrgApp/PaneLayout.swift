@@ -46,6 +46,19 @@ public indirect enum PaneLayout: Equatable, Sendable {
         }
     }
 
+    /// The split whose first pane in reading order is `id`, with `fraction` for its first side.
+    public func settingFraction(_ fraction: Double, ofSplitStartingWith id: PaneID) -> PaneLayout {
+        switch self {
+        case .pane: self
+        case .split(let axis, let first, let second, let old):
+            if first.panes.first == id {
+                .split(axis: axis, first: first, second: second, fraction: min(max(fraction, 0.1), 0.9))
+            } else {
+                .split(axis: axis, first: first.settingFraction(fraction, ofSplitStartingWith: id), second: second.settingFraction(fraction, ofSplitStartingWith: id), fraction: old)
+            }
+        }
+    }
+
     /// Only `id`, filling the window.
     public func only(_ id: PaneID) -> PaneLayout { .pane(id) }
 

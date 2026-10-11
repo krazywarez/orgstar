@@ -97,6 +97,29 @@ struct ContentView: View {
     @State private var plainOutlineShown = false
     @State private var showingImport = false
     @AppStorage("showTabBar") private var showTabBar = false
+    /// This window's panes.
+    @State private var window: WindowModel?
+
+    private var editorSettings: EditorSettings {
+        EditorSettings(keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme)
+    }
+
+    /// The window holding the focused pane: this one, or an editor window.
+    private var paneWindow: WindowModel? {
+        commands.store.window(of: session.focused.id) ?? window
+    }
+
+    /// Gives the focused pane's text view the keyboard, after a pane command moved the focus.
+    private func focusPane(_ window: WindowModel) {
+        let pane = window.focusedPane
+        session.focused = pane
+        if let path = pane.path, let textView = commands.store.textView(for: pane.id, path: path) {
+            textView.window?.makeFirstResponder(textView)
+            commands.editor = commands.store.editor(for: path)
+        } else {
+            commands.editor = nil
+        }
+    }
     /// Carets of restored buffers, shown when each first shows.
     @State private var pendingCarets: [String: Int] = [:]
     @State private var query = ""
@@ -118,10 +141,9 @@ struct ContentView: View {
     private var detail: some View {
         if let previewPath {
             FilePreview(path: previewPath)
-        } else if session.path != nil {
-            VStack(spacing: 0) {
-                if showTabBar { BufferTabs(session: session) }
-                EditorView(session: session, commands: commands, keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme, onAppCommand: perform, onExternal: runExternal, knownTags: { [index = workspace.index] in (try? index.tags()) ?? [] })
+        } else if !session.openPaths.isEmpty, let window {
+            PaneLayoutView(layout: window.layout, window: window) { pane in
+                PaneCell(pane: pane, window: window, session: session, commands: commands, showTabBar: showTabBar, onAppCommand: perform)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
@@ -240,7 +262,20 @@ struct ContentView: View {
             let copies = session.syncConflictCopies().count
             if copies > 0 { commands.show("\(copies) sync conflict \(copies == 1 ? "copy" : "copies") of this file; Resolve Sync Conflicts compares them.") }
         }
-        .onChange(of: session.openPaths) { BufferRestore.save(session) }
+        .onChange(of: session.openPaths) { _, paths in
+            BufferRestore.save(session)
+            for path in commands.store.editors.keys where !paths.contains(path) { commands.store.releasePath(path) }
+        }
+        .onChange(of: editorSettings, initial: true) { _, settings in commands.editorSettings = settings }
+        .onAppear {
+            commands.externalHandler = runExternal
+            commands.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
+            if window == nil {
+                let model = WindowModel(session: session, pane: session.panes[0])
+                window = model
+                commands.store.windows.append(model)
+            }
+        }
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
         .onChange(of: options, initial: true) { _, options in session.options = options }
         .onChange(of: preset, initial: true) { loadKeymap() }
@@ -405,7 +440,7 @@ struct ContentView: View {
         let url = URL(fileURLWithPath: path)
         let html = HTMLExport.page(
             selected ?? whole, fallbackTitle: url.deletingPathExtension().lastPathComponent, settings: defaults, path: path, bodyOnly: selected != nil,
-            codeStyle: HTMLCodeStyle(highlighter: EditorView.highlighter, theme: theme)
+            codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
         )
         do {
             try RichTextExport.copy(html: html, directory: url.deletingLastPathComponent())
@@ -456,7 +491,7 @@ struct ContentView: View {
                 ? MarkdownExport.document(text, settings: defaults, path: path, bodyOnly: bodyOnly)
                 : HTMLExport.page(
                     text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path, bodyOnly: bodyOnly,
-                    codeStyle: HTMLCodeStyle(highlighter: EditorView.highlighter, theme: theme)
+                    codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
                 )
             do {
                 try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -472,7 +507,7 @@ struct ContentView: View {
             let target = destination ?? ExportScope.output(for: url, name: name, extension: ext)
             let html = HTMLExport.page(
                 text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path,
-                codeStyle: HTMLCodeStyle(highlighter: EditorView.highlighter, theme: theme)
+                codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
             )
             let directory = url.deletingLastPathComponent()
             if format == "print-pdf" { commands.show("Exporting to PDF…") }
@@ -651,6 +686,23 @@ struct ContentView: View {
             let all = session.openPaths
             if UnsavedChanges.resolve(session, paths: all) { all.forEach(session.kill) }
         case "app.toggle-tab-bar": showTabBar.toggle()
+        case "app.split-below": paneWindow?.split(.vertical)
+        case "app.split-right": paneWindow?.split(.horizontal)
+        case "app.pane-close":
+            guard let window = paneWindow, window.paneCount > 1 else { return commands.show("Attempt to delete the only pane") }
+            commands.store.releasePane(window.focused)
+            window.close(window.focused)
+            focusPane(window)
+        case "app.pane-only":
+            guard let window = paneWindow else { return }
+            for id in window.layout.panes where id != window.focused { commands.store.releasePane(id) }
+            window.closeOthers()
+            focusPane(window)
+        case "app.pane-next":
+            guard let window = paneWindow else { return }
+            window.focusNext()
+            focusPane(window)
+        case "app.window-new": openWindow(id: "editor")
         case "app.babel.cancel":
             if session.isRunningBabel {
                 session.cancelBabel()

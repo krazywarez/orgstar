@@ -59,6 +59,55 @@ extension KeymapPreset {
         keys = "SPC f s"
         command = "app.save"
         mode = "normal"
+        # Windows
+        [[bind]]
+        keys = "SPC w s"
+        command = "app.split-below"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC w v"
+        command = "app.split-right"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC w d"
+        command = "app.pane-close"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC w c"
+        command = "app.pane-close"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC w o"
+        command = "app.pane-only"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC w w"
+        command = "app.pane-next"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC w n"
+        command = "app.window-new"
+        mode = "normal"
+        [[bind]]
+        keys = "C-w s"
+        command = "app.split-below"
+        mode = "normal"
+        [[bind]]
+        keys = "C-w v"
+        command = "app.split-right"
+        mode = "normal"
+        [[bind]]
+        keys = "C-w c"
+        command = "app.pane-close"
+        mode = "normal"
+        [[bind]]
+        keys = "C-w o"
+        command = "app.pane-only"
+        mode = "normal"
+        [[bind]]
+        keys = "C-w w"
+        command = "app.pane-next"
+        mode = "normal"
         # Buffers
         [[bind]]
         keys = "SPC b b"

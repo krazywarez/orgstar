@@ -20,8 +20,16 @@ final class AppCommands {
     private var jumpID = 0
     /// Days the agenda window should show, from a followed timestamp.
     var agendaRequest: (start: Int, days: Int)?
-    /// The editor showing the open file, for menus and the palette.
+    /// The editor with focus, for menus and the palette.
     var editor: OrgEditor?
+    /// The editors and text views of every pane in every window.
+    let store = EditorStore()
+    /// What every editor is set up with, from the settings; the main window keeps it current.
+    var editorSettings = EditorSettings()
+    /// Runs work outside the text (a table recalculation in Emacs); the main window sets it.
+    var externalHandler: ((ExternalRequest) -> Void)?
+    /// Tags used across the workspace, for tag completion; the main window sets it.
+    var knownTags: () -> [String] = { [] }
     /// The pending key prefix, and what can follow it.
     var pendingKeys: String?
     /// The editor's evil state in the Doom preset.
@@ -317,6 +325,13 @@ struct OrgstarApp: App {
             }
         }
         .defaultSize(width: 1280, height: 860)
+        WindowGroup("Editor", id: "editor") {
+            if case .success = workspace {
+                EditorWindowView(session: session, commands: commands, clock: clock)
+                    .environment(\.orgTheme, ConfigSync.shared.theme)
+            }
+        }
+        .defaultSize(width: 900, height: 700)
         Window("Agenda", id: "agenda") {
             if case .success(let model) = workspace {
                 AgendaView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)
@@ -384,6 +399,17 @@ struct OrgstarApp: App {
                     .disabled(session.dirtyPaths.isEmpty)
             }
             CommandGroup(after: .sidebar) {
+                Button("Split Pane Below") { commands.run("app.split-below") }
+                    .keyboardShortcut("2", modifiers: [.command, .control])
+                Button("Split Pane Right") { commands.run("app.split-right") }
+                    .keyboardShortcut("3", modifiers: [.command, .control])
+                Button("Close Pane") { commands.run("app.pane-close") }
+                    .keyboardShortcut("0", modifiers: [.command, .control])
+                Button("Close Other Panes") { commands.run("app.pane-only") }
+                    .keyboardShortcut("1", modifiers: [.command, .control])
+                Button("Next Pane") { commands.run("app.pane-next") }
+                    .keyboardShortcut("`", modifiers: [.command, .option])
+                Divider()
                 Button("Show or Hide Outline") { commands.run("app.toggle-outline") }
                     .keyboardShortcut("o", modifiers: [.command, .option])
                 Button("Show or Hide Backlinks") { commands.run("app.toggle-backlinks") }
@@ -416,6 +442,8 @@ struct OrgstarApp: App {
             CommandGroup(after: .newItem) {
                 Button("Capture…") { commands.run("app.capture") }
                     .keyboardShortcut("n", modifiers: [.command, .shift])
+                Button("New Window") { commands.run("app.window-new") }
+                    .keyboardShortcut("n", modifiers: [.command, .option])
             }
         }
         .commands {
