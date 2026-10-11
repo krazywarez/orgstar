@@ -44,6 +44,7 @@ struct EditorScreen: View {
         /// `app.refile`, `app.refile.copy` or `app.refile.goto`.
         case refile(String)
         case block(BlockEdit)
+        case columns(ColumnView.View)
 
         var id: String {
             switch self {
@@ -53,6 +54,7 @@ struct EditorScreen: View {
             case .syncCopies: "syncCopies"
             case .recovery: "recovery"
             case .block(let edit): "block \(edit.range)"
+            case .columns: "columns"
             }
         }
     }
@@ -78,6 +80,8 @@ struct EditorScreen: View {
                 Menu("More", systemImage: "ellipsis.circle") {
                     Button("Commands", systemImage: "command") { sheet = .palette }
                     Button("Clock In", systemImage: "stopwatch") { editor?.run("app.clock.in") }
+                    Button("Column View", systemImage: "tablecells") { editor?.run("org.columns") }
+                    Button("Column View of File", systemImage: "tablecells.badge.ellipsis") { editor?.run("org.columns.global") }
                     Toggle(isOn: Binding(get: { model.showMarkup }, set: { model.showMarkup = $0 })) {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
@@ -140,6 +144,8 @@ struct EditorScreen: View {
                     self.sheet = nil
                     if let content, let editor { _ = editor.perform(ReplaceBlockLines(edit: edit, content: content)) }
                 }
+            case .columns(let view):
+                ColumnViewScreen(view: view, session: session, path: path) { offset in editor?.reveal(offset) }
             }
         }
         .onChange(of: session.conflict) { _, conflict in
@@ -219,6 +225,7 @@ struct EditorScreen: View {
                 }
             }
             editor.onEditBlock = { edit in sheet = .block(edit) }
+            editor.onColumnView = { view in sheet = .columns(view) }
             editor.onTangle = { scope in message = session.tangle(scope) }
             editor.onBabel = { job in run(job) }
             editor.onRefreshSetup = { session.refreshSetup() }

@@ -678,6 +678,11 @@ The allowed values are the property's =_ALL= values from the entry, an ancestor 
 earlier; Org 9.8.7 signals an error there instead. After each change the sheet captures
 the view again, so summaries follow. Parent summaries are not written into the file.
 
+On iOS, choose Column View or Column View of File from the editor's More menu. The view
+scrolls both ways; tap a cell to select it. The bar at the bottom has Edit, which asks
+for the value with the allowed values listed, Previous Value and Next Value (=p= and
+=n=), and Go to Entry. Done closes it.
+
 ** The Columns inspector
 
 View ▸ Show or Hide Columns and Clock opens an inspector beside the editor. Its Columns

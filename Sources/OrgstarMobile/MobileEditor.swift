@@ -82,6 +82,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var onEditBlock: ((BlockEdit) -> Void)?
     /// A followed timestamp's agenda days: the first (a `Days` number) and how many.
     var onAgenda: ((Int, Int) -> Void)?
+    /// Shows a column view.
+    var onColumnView: ((ColumnView.View) -> Void)?
     /// Commands the app runs, as `app.clock.in`.
     var onAppCommand: ((String) -> Void)?
     /// Tags used across the workspace, for completion.
@@ -233,6 +235,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
             onTangle?(scope)
         case .external(.agenda(let start, let count)) where onAgenda != nil:
             onAgenda?(start, count)
+        case .external(.columnView(let view)) where onColumnView != nil:
+            onColumnView?(view)
         case .external(let request):
             onMessage?(Self.unavailable(request, title: command.title))
         }

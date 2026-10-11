@@ -371,7 +371,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 - Word, ODT, LaTeX, ASCII and LaTeX-made PDF export.
 - Idle detection while a clock runs.
 - Import from Emacs.
-- The board, column view, the backlinks pane, and the buffer list and tab bar.
+- The Columns inspector, the backlinks pane, and the buffer list and tab bar. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).
 - The global capture hotkey and the Settings window.
 - Explicit saving.
 
