@@ -306,6 +306,86 @@ struct VimTests {
         #expect(actions == [.jumped(from: 70), .move(caret: 133)])
     }
 
+    /// Replace state, and evil-numbers on the keys Doom binds (`g=`, `g-`, visual `g=`, `g-`
+    /// and `g+`) and on `C-a`.
+    static let replaceAndNumbers: [(String, Int, String)] = [
+        ("hello world\n", 0, "R J E L ESC"),
+        ("hello\n", 3, "R a b c d ESC"),
+        ("hello world\n", 0, "R a b DEL DEL c ESC"),
+        ("hello world\n", 0, "3 R x y ESC"),
+        ("hello world\n", 2, "R a RET b ESC"),
+        ("aaaa bbbb\n", 0, "R x y ESC w ."),
+        ("item 7 and 12\n", 0, "g ="),
+        ("item 7 and 12\n", 6, "5 g ="),
+        ("item 7 and 12\n", 6, "g -"),
+        ("value -3 here\n", 0, "4 g ="),
+        ("count 009\n", 0, "g ="),
+        ("count 010\n", 0, "g -"),
+        ("addr 0xff\n", 0, "g ="),
+        ("addr 0xFE\n", 0, "g ="),
+        ("bits 0b0111\n", 0, "g ="),
+        ("no digits\n", 0, "g ="),
+        ("1\n1\n1\n", 0, "V j j g ="),
+        ("1\n1\n1\n", 0, "V j j g +"),
+        ("a 1 b 2\nc 3\n", 0, "V j 2 g -"),
+        ("x 1 y\n", 0, "C-a"),
+        ("x 1 y 2\n", 4, "3 C-a"),
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func replaceAndNumbersMatchEvil() throws {
+        let repos = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/emacs/.local/straight/repos")
+        guard FileManager.default.fileExists(atPath: repos.appendingPathComponent("evil-numbers/evil-numbers.el").path) else { return }
+        var forms: [EmacsOracle.Case] = []
+        for (text, point, keys) in Self.replaceAndNumbers {
+            forms.append(EmacsOracle.Case(text: text, point: point + 1, form: """
+            (progn
+              (setq evil-want-Y-yank-to-eol t evil-undo-system 'undo-redo)
+              (dolist (p '("evil" "goto-chg" "evil-numbers" "emacs-shift-number")) (add-to-list 'load-path (concat "\(repos.path)/" p)))
+              (require 'evil)
+              (require 'evil-numbers)
+              (evil-define-key 'normal 'global (kbd "g=") #'evil-numbers/inc-at-pt (kbd "g-") #'evil-numbers/dec-at-pt (kbd "C-a") #'evil-numbers/inc-at-pt)
+              (evil-define-key 'visual 'global (kbd "g=") #'evil-numbers/inc-at-pt-incremental (kbd "g-") #'evil-numbers/dec-at-pt-incremental (kbd "g+") #'evil-numbers/inc-at-pt)
+              (switch-to-buffer (current-buffer))
+              (evil-local-mode 1)
+              (evil-normal-state)
+              (execute-kbd-macro (kbd "\(keys.replacingOccurrences(of: "ESC", with: "<escape>").replacingOccurrences(of: "DEL", with: "DEL"))"))
+              (let ((p (point)) (s evil-state))
+                (goto-char (point-max))
+                (insert (format "\\n@@STATE %s" s))
+                (goto-char p)))
+            """))
+        }
+        let results = try EmacsOracle.run(forms)
+        for ((text, point, keys), result) in zip(Self.replaceAndNumbers, results) {
+            var driver = VimDriver(text, caret: point)
+            driver.visible = 0..<text.utf16.count
+            driver.type(Self.keys(keys))
+            guard let marker = result.text.range(of: "\n@@STATE ") else {
+                Issue.record("\(keys): \(result.error)")
+                continue
+            }
+            let emacsText = String(result.text[..<marker.lowerBound])
+            let state = String(result.text[marker.upperBound...])
+            let ours = driver.vim.mode == .normal ? "normal" : driver.vim.mode.rawValue
+            let emacsCaret = EmacsOracle.offset(result.point, in: result.text)
+            #expect(driver.text == emacsText && driver.caret == emacsCaret && ours == state,
+                    "\(keys.debugDescription) on \(text.debugDescription) at \(point)\nours:  \(driver.text.debugDescription) @\(driver.caret) \(ours)\nevil:  \(emacsText.debugDescription) @\(emacsCaret) \(state) \(result.error)")
+        }
+    }
+
+    @Test func scrollsAndOpensTheCommandWindow() {
+        var vim = Vim()
+        let text = "one\n  two\nthree\n"
+        #expect(vim.feed(KeyChord("z"), Vim.Context(text: text, caret: 0)) == [])
+        #expect(vim.feed(KeyChord("z"), Vim.Context(text: text, caret: 0)) == [.scroll(.center)])
+        _ = vim.feed(KeyChord("2"), Vim.Context(text: text, caret: 0))
+        _ = vim.feed(KeyChord("z"), Vim.Context(text: text, caret: 0))
+        #expect(vim.feed(KeyChord("RET"), Vim.Context(text: text, caret: 0)) == [.move(caret: 6), .scroll(.top)])
+        _ = vim.feed(KeyChord("q"), Vim.Context(text: text, caret: 0))
+        #expect(vim.feed(KeyChord(":"), Vim.Context(text: text, caret: 0)) == [.commandWindow(":")])
+    }
+
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func matchesEvil() throws {
         let evil = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/emacs/.local/straight/repos")

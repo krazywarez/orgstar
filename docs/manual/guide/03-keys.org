@@ -380,6 +380,9 @@ Single-key changes:
 | =J= | Joins the next line (count: that many lines) with one space. |
 | =~= | Toggles the case of the character under the caret and moves right. |
 | =r= /x/ | Replaces the character under the caret (count: that many) with /x/; =r RET= splits the line. |
+| =R= | Replace state: what you type overwrites the line's characters, and past the line's end adds to it. =RET= breaks the line, =DEL= gives back what was overwritten, =ESC= returns to normal state. A count types the text that many times. |
+| =g==, =g-=, =C-a= | Adds the count (1) to the number at or after the caret on its line, or with =g-= takes it away, as evil-numbers does on Doom's =g== and =g-=: decimal, =0x= hex and =0b= binary numbers, keeping leading zeros and the hex digits' case. In visual state =g== and =g-= change every number in the selection, the nth by n times the count; =g+= and =C-a= by the count. =C-x= stays the Emacs prefix, as in Doom. |
+| =zz=, =zt=, =zb= | Scrolls the caret's line to the middle, top or bottom of the window. =z.=, =z RET= and =z-= do the same and go to its first non-blank. A count names the line. |
 | =u=, =C-r= | Undo, redo, with counts. |
 | =.= | Repeats the last change. |
 | =ZZ= | Saves the file and closes the window, as =:wq=. |
@@ -655,11 +658,13 @@ Besides the leader, the preset binds these evil-org and Doom keys in normal stat
 | =:%s/= /pattern/ =/= /replacement/ =/= /flags/ | The same on every line. |
 | =:noh=, =:nohlsearch= | Accepted; does nothing. |
 
+=q:= opens the ex prompt with your earlier commands listed, most recent first, to pick and edit; =q/= and =q?= do the same for searches.
+
 Anything else shows =Not an editor command=. Ranges other than =%=, the =c= flag, =:g=, =:normal= and =:set= are not available, and =:= does not work in visual state.
 
 ** Not available
 
-Things evil users may reach for that orgstar does not have: =zz=, =zt= and the other scroll and fold =z= commands except =za=, =zc=, =zo= and =zA=; =C-a= and =C-x= to increment numbers; =gi=, =g;=, =gJ=; replace state (=R=); =&=; =q:=; the numbered and read-only registers; tag and sentence text objects.
+Things evil users may reach for that orgstar does not have: the fold =z= commands other than =za=, =zc=, =zo= and =zA=, and scrolling by lines (=zh=, =zl=, =C-e=, =C-y=); =gi=, =g;=, =gJ=; =&=; the numbered and read-only registers; tag and sentence text objects.
 
 * Keys in other windows
 

@@ -9,12 +9,13 @@ public struct Vim: Sendable {
         case normal, insert, visual
         case visualLine = "visual-line"
         case visualBlock = "visual-block"
+        case replace
 
         /// The keymap mode name for bindings.
         public var keymapMode: String {
             switch self {
             case .normal: "normal"
-            case .insert: "insert"
+            case .insert, .replace: "insert"
             case .visual, .visualLine, .visualBlock: "visual"
             }
         }
@@ -53,6 +54,11 @@ public struct Vim: Sendable {
         case selectBlock([Range<Int>])
         /// `gj`, `gk`: down (or, negative, up) by screen lines, which only the editor knows.
         case visualLines(Int)
+        /// `zz`, `zt`, `zb`: scroll the caret's line to the window's middle, top or bottom.
+        case scroll(ScrollLine)
+        /// `q:`, `q/`, `q?`: the command-line window, the earlier commands or searches to pick
+        /// from and edit.
+        case commandWindow(String)
     }
 
     public struct Context: Sendable {
@@ -120,6 +126,11 @@ public struct Vim: Sendable {
     var lastMacro: Character?
     /// `$` in block visual state: every line to its end.
     var blockToEnd = false
+    /// Replace state: each typed character's place, what it overwrote (nil past the line's
+    /// end) and its length; the text typed, and the count to repeat it.
+    var replaceStack: [(offset: Int, original: String?, length: Int)] = []
+    var replaceTyped = ""
+    var replaceCount = 1
 
     public init() {}
 
@@ -129,6 +140,8 @@ public struct Vim: Sendable {
         switch mode {
         case .insert:
             return insertKey(key, context)
+        case .replace:
+            return replaceKey(key, context)
         case .normal, .visual, .visualLine, .visualBlock:
             var key = key
             if pending.isEmpty, let repeatKeys = snipeRepeatKeys {

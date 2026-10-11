@@ -18,6 +18,7 @@ extension Vim {
     /// Keys evil handles here before operators and motions, or nil.
     mutating func parseExtras(_ rest: ArraySlice<KeyChord>, _ buffer: inout Buffer, _ context: Context, register: Character?, count: Int?, keys: [KeyChord]) -> Parse? {
         guard let first = rest.first else { return .incomplete }
+        if let result = parseMore(rest, &buffer, context, count: count, keys: keys) { return result }
         let visual = mode == .visual || mode == .visualLine
         let n = count ?? 1
         let caret = context.caret

@@ -143,6 +143,7 @@ struct StateTag: View {
     private var color: Color {
         switch state {
         case "insert": theme.color("state-insert") ?? .green
+        case "replace": theme.color("state-replace") ?? .red
         case "visual", "visual-line", "visual-block": theme.color("state-visual") ?? .orange
         default: theme.color("state-normal") ?? .blue
         }

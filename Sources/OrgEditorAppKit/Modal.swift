@@ -287,6 +287,10 @@ extension OrgEditor {
                 }
             case .selectBlock(let ranges):
                 textView.setSelectedRanges(ranges.map { NSValue(range: NSRange($0)) }, affinity: .downstream, stillSelecting: false)
+            case .scroll(let place):
+                scrollCaretLine(place)
+            case .commandWindow(let kind):
+                prompt(kind, history: true)
             }
         }
     }
@@ -301,10 +305,40 @@ extension OrgEditor {
         if caret >= end, end > line.location { setCaret(end - 1) }
     }
 
-    /// `/`, `?` and `:` read their argument in the echo area.
-    private func prompt(_ kind: String) {
-        onPrompt?(Prompt(key: kind, message: kind)) { [weak self] answer in
+    /// `zz`, `zt` and `zb`: the window scrolled so the caret's screen line is in its middle,
+    /// at its top or at its bottom.
+    private func scrollCaretLine(_ place: Vim.ScrollLine) {
+        guard let scroll = textView.enclosingScrollView, let layout = textView.textLayoutManager, let content = layout.textContentManager else { return }
+        let caret = textView.selectedRange().location
+        guard let location = content.location(content.documentRange.location, offsetBy: caret) else { return }
+        layout.ensureLayout(for: NSTextRange(location: location))
+        guard let fragment = layout.textLayoutFragment(for: location) else { return }
+        let within = content.offset(from: fragment.rangeInElement.location, to: location)
+        let line = fragment.textLineFragments.first { $0.characterRange.contains(within) || $0.characterRange.upperBound == within } ?? fragment.textLineFragments.last
+        let lineFrame = line.map { $0.typographicBounds.offsetBy(dx: 0, dy: fragment.layoutFragmentFrame.minY) } ?? fragment.layoutFragmentFrame
+        let top = lineFrame.minY + textView.textContainerOrigin.y
+        let height = scroll.contentView.bounds.height
+        let y: CGFloat = switch place {
+        case .top: top
+        case .center: top + lineFrame.height / 2 - height / 2
+        case .bottom: top + lineFrame.height - height
+        }
+        let maxY = max(0, textView.frame.height - height)
+        scroll.contentView.scroll(to: NSPoint(x: scroll.contentView.bounds.origin.x, y: min(max(0, y), maxY)))
+        scroll.reflectScrolledClipView(scroll.contentView)
+    }
+
+    /// `/`, `?` and `:` read their argument in the echo area; `history` (`q:`) offers the
+    /// earlier ones to pick and edit.
+    private func prompt(_ kind: String, history: Bool = false) {
+        let earlier = Array((Self.promptHistory[kind] ?? []).reversed())
+        let request = history ? Prompt(key: kind, message: kind, choices: earlier, requireMatch: false) : Prompt(key: kind, message: kind)
+        onPrompt?(request) { [weak self] answer in
             guard let self, let answer, !answer.isEmpty else { return }
+            var list = Self.promptHistory[kind] ?? []
+            list.removeAll { $0 == answer }
+            list.append(answer)
+            Self.promptHistory[kind] = Array(list.suffix(100))
             let caret = self.textView.selectedRange().location
             let context = Vim.Context(text: self.document.text, caret: caret)
             if kind == ":" {
@@ -387,7 +421,7 @@ extension OrgEditor {
 
     /// A block cursor in normal and visual states, a bar in insert state.
     func updateCursor() {
-        let block = modal && vim.mode != .insert
+        let block = modal && vim.mode != .insert && vim.mode != .replace
         for view in orgTextViews { view.blockCursor = block }
         dispatcher.mode = modal ? vim.mode.keymapMode : nil
         let state = modal ? vim.mode.rawValue : nil

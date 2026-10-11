@@ -414,6 +414,8 @@ public final class OrgEditor: NSObject {
     static var vimRegisters: [Character: (text: String, linewise: Bool)] = [:]
     static var vimClipboardRecord: (text: String, linewise: Bool)?
     static var macros: [Character: [KeyChord]] = [:]
+    /// What `:`, `/` and `?` read, oldest first, for the command-line window (`q:`).
+    static var promptHistory: [String: [String]] = [:]
     /// Shows `editor`'s buffer with the caret at the offset, for a jump to a file mark set
     /// there.
     public var onJumpToEditor: ((OrgEditor, Int) -> Void)?
