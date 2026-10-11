@@ -38,20 +38,22 @@ extension OrgEditor {
         set {
             guard let container = textView.textContainer, newValue != truncatesLines else { return }
             let scroll = textView.enclosingScrollView
-            scroll?.hasHorizontalScroller = newValue
-            textView.isHorizontallyResizable = newValue
-            if newValue {
-                container.widthTracksTextView = false
-                container.size = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-                textView.autoresizingMask = [.width, .height]
-            } else {
-                let width = scroll?.contentSize.width ?? textView.frame.width
-                textView.setFrameSize(NSSize(width: width, height: textView.frame.height))
-                container.size = NSSize(width: width, height: CGFloat.greatestFiniteMagnitude)
-                container.widthTracksTextView = true
-                textView.autoresizingMask = [.width]
+            keepingTopLine {
+                scroll?.hasHorizontalScroller = newValue
+                textView.isHorizontallyResizable = newValue
+                if newValue {
+                    container.widthTracksTextView = false
+                    container.size = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+                    textView.autoresizingMask = [.width, .height]
+                } else {
+                    let width = scroll?.contentSize.width ?? textView.frame.width
+                    textView.setFrameSize(NSSize(width: width, height: textView.frame.height))
+                    container.size = NSSize(width: width, height: CGFloat.greatestFiniteMagnitude)
+                    container.widthTracksTextView = true
+                    textView.autoresizingMask = [.width]
+                }
+                textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
             }
-            textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
             textView.needsDisplay = true
         }
     }

@@ -581,8 +581,52 @@ final class MobileEditor: NSObject, DocumentBuffer {
     private func restyleAll() {
         let interval = Perf.begin("editor.restyleAll")
         defer { interval.end() }
-        restyle(0..<textView.textStorage.length)
-        if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+        keepingTopLine {
+            restyle(0..<textView.textStorage.length)
+            if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+        }
+    }
+
+    /// Lays out `ranges` again, each widened to whole lines and to the line before it: the
+    /// heading or opening line of a fold, whose fragment draws the fold mark. Laying out the
+    /// whole file again makes TextKit estimate the height of everything above the view afresh,
+    /// which moves the text under it.
+    private func invalidateLayout(lines ranges: [Range<Int>]) {
+        guard !ranges.isEmpty, let manager = textView.textLayoutManager, let content = manager.textContentManager else { return }
+        let text = textView.textStorage.string as NSString
+        for range in ranges {
+            let lower = text.lineRange(for: NSRange(location: max(0, min(range.lowerBound, text.length) - 1), length: 0)).location
+            let upper = NSMaxRange(text.lineRange(for: NSRange(location: min(range.upperBound, text.length), length: 0)))
+            guard let start = content.location(content.documentRange.location, offsetBy: lower),
+                  let end = content.location(start, offsetBy: upper - lower),
+                  let textRange = NSTextRange(location: start, end: end) else { continue }
+            manager.invalidateLayout(for: textRange)
+        }
+    }
+
+    /// Runs `change`, which lays the whole file out again, and brings the line that was at the
+    /// top of the view back there. TextKit estimates the height of text it hasn't laid out,
+    /// so the same scroll position lands on different text after a fresh layout.
+    private func keepingTopLine(_ change: () -> Void) {
+        guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return change() }
+        let inset = textView.textContainerInset
+        let top = textView.contentOffset.y + textView.adjustedContentInset.top - inset.top
+        let start = content.documentRange.location
+        let anchor = manager.textLayoutFragment(for: CGPoint(x: 0, y: max(0, top))).map {
+            (offset: content.offset(from: start, to: $0.rangeInElement.location), within: top - $0.layoutFragmentFrame.minY)
+        }
+        change()
+        guard let anchor, anchor.offset > 0, let location = content.location(start, offsetBy: anchor.offset),
+              let above = NSTextRange(location: start, end: location) else { return }
+        manager.ensureLayout(for: above)
+        guard let fragment = manager.textLayoutFragment(for: location) else { return }
+        let frame = fragment.layoutFragmentFrame
+        manager.ensureLayout(for: CGRect(x: 0, y: frame.minY, width: frame.width, height: 2 * textView.bounds.height))
+        // The view grows to the laid-out height on its next layout pass; the scroll needs it now.
+        let needed = manager.usageBoundsForTextContainer.maxY + inset.top + inset.bottom
+        if textView.contentSize.height < needed { textView.contentSize.height = needed }
+        let y = frame.minY + inset.top + max(0, min(anchor.within, frame.height)) - textView.adjustedContentInset.top
+        textView.contentOffset = CGPoint(x: textView.contentOffset.x, y: y)
     }
 
     /// Styles are set after the edit has been processed, as TextKit asks.
@@ -713,7 +757,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// Narrows `columns` of `table` and widens its others.
     private func setShrunk(_ columns: [Int], in table: Range<Int>) {
         shrunk.set(columns, in: table, text: textView.textStorage.string)
-        restyleAll()
+        restyle(table)
+        invalidateLayout(lines: [table])
     }
 
     /// Hides each shrunk segment's text and draws its display where the text was, as pretty
@@ -809,8 +854,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
         get { (textView as? KeyedTextView)?.truncates ?? false }
         set {
             guard newValue != truncatesLines, let view = textView as? KeyedTextView else { return }
-            view.truncates = newValue
-            if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+            keepingTopLine {
+                view.truncates = newValue
+                if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+            }
         }
     }
 
@@ -825,6 +872,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         let tree = document.tree
         let wrappers = fold.wrapperFolds.compactMap { Wrappers.starting(at: $0, in: tree)?.hidden }
         let before = hidden.folded
+        let oldHidden = hidden.all
         hidden.set(
             Presentation.hiddenRanges(tree, folds: fold.folds, bodyFolds: fold.bodyFolds, wrapperRanges: wrappers),
             folded: fold.folds.union(fold.bodyFolds).union(fold.wrapperFolds)
@@ -838,7 +886,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
             for start in changed { storage.edited(.editedAttributes, range: text.lineRange(for: NSRange(location: start, length: 0)), changeInLength: 0) }
             storage.endEditing()
         }
-        if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+        invalidateLayout(lines: Array(Set(oldHidden).symmetricDifference(hidden.all)))
         textView.setNeedsDisplay()
     }
 
