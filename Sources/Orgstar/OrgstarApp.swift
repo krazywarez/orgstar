@@ -162,9 +162,11 @@ struct PromptRequest: Identifiable {
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     var session: DocumentSession?
     var commands: AppCommands?
+    let updates = Updates()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if SystemReminderCenter.isAvailable { UNUserNotificationCenter.current().delegate = self }
+        updates.start()
     }
 
     /// `:session` interpreters end with the app.
@@ -462,9 +464,12 @@ struct OrgstarApp: App {
                 Button("Edit Config File") { commands.jump(path: UserConfig.configFile.path, offset: 0) }
                     .keyboardShortcut(",", modifiers: [.command, .option])
             }
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesItem(updates: delegate.updates)
+            }
         }
         Settings {
-            SettingsView(commands: commands, workspace: try? workspace.get())
+            SettingsView(commands: commands, workspace: try? workspace.get(), updates: delegate.updates)
         }
     }
 }
@@ -537,6 +542,7 @@ struct AgendaMenuItem: View {
 struct SettingsView: View {
     let commands: AppCommands
     let workspace: WorkspaceModel?
+    let updates: Updates
     @State private var importing = false
     @Environment(\.openWindow) private var openWindow
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
@@ -611,6 +617,14 @@ struct SettingsView: View {
             } footer: {
                 Text("Every setting here is also in \(UserConfig.configFile.path), which you can edit, share or keep with your dotfiles. Changes in either place show up in the other.")
                     .settingsFooter()
+            }
+            if updates.canCheck {
+                Section {
+                    Toggle("Check for updates automatically", isOn: Binding(get: { updates.automatically }, set: { updates.automatically = $0 }))
+                } footer: {
+                    Text("Once a day, from the app's own feed. orgstar ▸ Check for Updates… checks now.")
+                        .settingsFooter()
+                }
             }
             Section {
                 Picker("Save files", selection: $saveMode) {
