@@ -6,8 +6,8 @@
 #   ORGSTAR_NOTARY   notarytool keychain profile (default: orgstar)
 #   ORGSTAR_TAP      the homebrew-tap checkout (default: ../homebrew-tap)
 #   ORGSTAR_PUBLISH  0 builds and notarizes without tagging, uploading or touching the tap
-#   ORGSTAR_ED_PUBLIC_KEY  the Sparkle public key, as generate_keys printed it (the private key
-#                    is in the login keychain); passed on to build-app.sh and sign_update
+#   ORGSTAR_ED_PUBLIC_KEY  the Sparkle public key (default: the one whose private half is in the
+#                    release Mac's login keychain, from generate_keys); passed on to build-app.sh
 #
 # Updates: after the DMG is uploaded, the release goes into docs/manual/appcast.xml through a
 # merge request on main, and the manual is published, which serves the appcast.
@@ -21,8 +21,8 @@ tap="${ORGSTAR_TAP:-../homebrew-tap}"
 publish="${ORGSTAR_PUBLISH:-1}"
 sign="${ORGSTAR_SIGN:-$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)}"
 [ -n "$sign" ] || { echo "No Developer ID Application identity in the keychain." >&2; exit 1; }
-: "${ORGSTAR_ED_PUBLIC_KEY:?set ORGSTAR_ED_PUBLIC_KEY to the key generate_keys printed}"
-export ORGSTAR_ED_PUBLIC_KEY
+# The Sparkle public key; its private half is in the release Mac's login keychain (generate_keys).
+export ORGSTAR_ED_PUBLIC_KEY="${ORGSTAR_ED_PUBLIC_KEY:-StvsRDaDoGd4S/G66l7XHAcd3KPlpJlu0Gsv9GemsSo=}"
 notes="Universal (Apple silicon and Intel), macOS 26 or later. Notarized."
 
 if [ "$publish" != 0 ]; then

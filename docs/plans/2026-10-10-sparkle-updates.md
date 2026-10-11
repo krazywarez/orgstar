@@ -122,7 +122,7 @@ CommandGroup(after: .appInfo) {
 - Create: `scripts/appcast-add.sh`
 - Modify: `docs/manual/orgo.toml` only if orgo needs the file listed to copy it (check with `scripts/publish-docs.sh --dry-run` and `ls` of the built site; `favicon.svg` and `style.css` are copied today, so it should not)
 
-- [ ] Generate the key pair once on the release Mac (not done here; it writes a private key to the login keychain): `"$(find .build/artifacts -name generate_keys -type f | head -1)"`. The private key goes to the login keychain; paste the printed public key as the `ORGSTAR_ED_PUBLIC_KEY` default in `release-mac.sh`.
+- [x] Generate the key pair once on the release Mac (done 2026-10-11; the public key is `release-mac.sh`'s default): `"$(find .build/artifacts -name generate_keys -type f | head -1)"`. The private key goes to the login keychain; paste the printed public key as the `ORGSTAR_ED_PUBLIC_KEY` default in `release-mac.sh`.
 - [x] The empty appcast:
 
 ```xml
@@ -190,4 +190,4 @@ sh scripts/publish-docs.sh
 - Sparkle 2.10 from its SwiftPM package. `scripts/build-app.sh` copies the framework into `Contents/Frameworks`, adds the rpath, and for signed builds writes `SUFeedURL` and `SUPublicEDKey` (from `ORGSTAR_ED_PUBLIC_KEY`) into the Info.plist; a dev build has neither, so `Updates.start()` doesn't start the updater and Check for Updates… stays disabled.
 - `Sources/Orgstar/Updates.swift` holds the `SPUStandardUpdaterController`, `canCheck` through Sparkle's KVO publisher, and the automatic-checks setting, shown in Settings ▸ General only when the updater runs.
 - `scripts/appcast-add.sh` signs the DMG with `sign_update` and prepends the item; `SIGN_UPDATE` names another signer for a dry run. `scripts/release-mac.sh` runs it on a copy with `ORGSTAR_PUBLISH=0`, and for real after the DMG upload, through a merge request, then publishes the manual, which carries `docs/manual/appcast.xml`.
-- Checked: the dev bundle launches with the framework and passes `codesign --verify --strict --deep`; the appcast script with a stub signer, twice (the second run refuses the version); `release-mac.sh` parses. Not checked: a signed build against a local appcast, which needs the Developer ID and the generated key.
+- Checked: the dev bundle launches with the framework and passes `codesign --verify --strict --deep`; the appcast script with a stub signer, twice (the second run refuses the version); `release-mac.sh` parses. With the key generated: a Developer ID build carries `SUFeedURL` and `SUPublicEDKey`, verifies strictly with Sparkle signed inside it, and `sign_update` signs a DMG from the keychain, `--verify` accepts the signature, and `appcast-add.sh` writes the real entry. Not checked: the update dialog itself, which needs a second build to offer.
