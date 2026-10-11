@@ -1,5 +1,9 @@
 # App Store metadata
 
+## Subtitle
+
+Org mode editor and agenda
+
 ## Description
 
 orgstar is an editor for Org mode files on iPhone and iPad. It reads and writes the same plain-text .org files Emacs does and leaves every byte you didn't change as it was, so your folder stays in step with Emacs, the Mac app and whatever sync tool you use.
@@ -42,3 +46,7 @@ org-mode,emacs,outline,todo,agenda,plain text,notes,tasks,gtd,planner,journal,or
 ## Copyright
 
 2026 Christian Cleberg
+
+## Privacy policy URL
+
+https://krz.sh/privacy/orgstar/
