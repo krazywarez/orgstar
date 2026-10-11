@@ -106,3 +106,86 @@ struct ColumnEditTests {
         #expect(Self.run(SetColumnValue(property: "TAGS", value: ":home:work:"), at: at).contains(":home:work:"))
     }
 }
+
+/// The `columnview` block's `:id` sources and `:match`, against Emacs visiting the files.
+struct ColumnViewSourceTests {
+    static let a = """
+    #+COLUMNS: %25ITEM %TODO %Effort{:}
+    #+BEGIN: columnview
+    #+END:
+    * Local :work:
+    :PROPERTIES:
+    :ID:       local-one
+    :END:
+    ** TODO Child :home:
+    :PROPERTIES:
+    :Effort:   0:20
+    :END:
+    ** Other child :work:
+    :PROPERTIES:
+    :Effort:   0:40
+    :END:
+
+    """
+    static let b = """
+    #+COLUMNS: %ITEM %Owner %Effort{:}
+    * Bee project
+    :PROPERTIES:
+    :ID:       bee-id
+    :END:
+    ** Task :work:
+    :PROPERTIES:
+    :Owner:    Ada
+    :Effort:   1:00
+    :END:
+    * Elsewhere
+    :PROPERTIES:
+    :Owner:    Bob
+    :END:
+
+    """
+
+    static let params = [
+        ":id \"file:b.org\"", ":id bee-id", ":id local-one", ":id global :match \"work\"", ":id global :match \"-home\" :maxlevel 2",
+        ":id \"file:b.org\" :match \"Owner=\\\"Ada\\\"\"", ":id local-one :match \"TODO=\\\"TODO\\\"\"",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func sourcesLikeOrg() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-colview-\(UUID().uuidString)").standardizedFileURL
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let aPath = folder.appendingPathComponent("a.org").path
+        let bPath = folder.appendingPathComponent("b.org").path
+        for param in Self.params {
+            let text = Self.a.replacingOccurrences(of: "#+BEGIN: columnview\n", with: "#+BEGIN: columnview \(param)\n")
+            try text.write(toFile: aPath, atomically: true, encoding: .utf8)
+            try Self.b.write(toFile: bPath, atomically: true, encoding: .utf8)
+            let form = """
+            (progn
+              (require 'org) (require 'org-colview) (require 'org-id)
+              (setq org-agenda-files (list "\(aPath)" "\(bPath)") org-id-locations-file "\(folder.path)/ids")
+              (find-file "\(aPath)")
+              (goto-char (point-min))
+              (re-search-forward "^#\\\\+BEGIN:")
+              (beginning-of-line)
+              (org-update-dblock)
+              (princ (buffer-string)))
+            """
+            let emacs = try EmacsOracle.run(["-Q", "--batch", "--eval", form], environment: ["TZ": "UTC"])
+            var options = EditingOptions.org
+            options.filePath = aPath
+            options.agendaFiles = [aPath, bPath]
+            let caret = (text as NSString).range(of: "#+BEGIN").location
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], options: options)
+            var ours = text
+            switch UpdateDynamicBlock().run(in: context) {
+            case .commit(let result):
+                for edit in result.edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) { ours = edit.apply(to: ours) }
+            case .failed(let message): ours = "failed: \(message)"
+            default: ours = "other"
+            }
+            #expect(emacs.hasSuffix(ours), "\(param)\nours:\n\(ours)\nemacs:\n\(emacs)")
+        }
+    }
+}

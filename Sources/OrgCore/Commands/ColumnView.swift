@@ -260,8 +260,8 @@ public enum ColumnView {
     /// summarized property org rewrites.
     /// Throws for an age operator's value that is neither a timestamp nor a duration.
     public static func capture(text: String, tree: OrgTree, at offset: Int, global: Bool, format override: String? = nil,
-                               maxLevel: Int? = nil, skipEmpty: Bool = false, excludeTags: [String] = [], now: Date = Date(),
-                               calendar: Calendar = .current) throws
+                               maxLevel: Int? = nil, skipEmpty: Bool = false, excludeTags: [String] = [], match: String? = nil,
+                               now: Date = Date(), calendar: Calendar = .current) throws
         -> (view: View, updates: [(start: Int, property: String, value: String)]) {
         let model = DocumentModel(tree: tree)
         let ns = text as NSString
@@ -335,11 +335,19 @@ public enum ColumnView {
                 }
             }
         }
-        // Rows.
+        // Rows. `:match` goes through `org-map-entries`, as a tags and property match.
+        var matches: ((Int) -> Bool)?
+        if let match, !match.isEmpty {
+            let matcher = TagsMatcher(match)
+            let source = AgendaSource(path: "", text: text, defaults: tree.settings, checksBlocking: false)
+            let byStart = Dictionary(source.headings.map { ($0.start, $0) }, uniquingKeysWith: { a, _ in a })
+            matches = { start in byStart[start].map { matcher.matches($0, in: source, now: now, calendar: calendar) } ?? false }
+        }
         var rows: [Row] = []
         for i in scope {
             let level = headings[i].level
             if let maxLevel, level > maxLevel { continue }
+            if let matches, !matches(headings[i].headingRange.lowerBound) { continue }
             let raw = specs.enumerated().map { column, spec -> String in
                 summaries[i]?[column] ?? value(spec.property, heading: i, model: model, text: ns, clocksum: clocksum)
             }
@@ -394,24 +402,42 @@ extension EmacsBuffer {
         let id = params.values[":id"]
         var offset = begin
         var global = false
+        // Another file's text and tree, for `file:` and IDs found elsewhere.
+        var source: (text: String, tree: OrgTree)?
         if let id {
-            switch id.symbol ?? id.string ?? "" {
+            switch id.symbol ?? id.string ?? id.description {
             case "global": global = true
             case "local", "nil", "": break
+            case let value where value.hasPrefix("file:"):
+                // `file:PATH`: the whole file, read from disk; relative to this file's folder.
+                var path = (String(value.dropFirst(5)) as NSString).expandingTildeInPath
+                if !path.hasPrefix("/"), let file = options.filePath { path = ((file as NSString).deletingLastPathComponent as NSString).appendingPathComponent(path) }
+                guard let text = path == options.filePath ? string : try? String(contentsOfFile: path, encoding: .utf8) else {
+                    throw UserError(message: "No such file: \"\(value)\"")
+                }
+                if path != options.filePath { source = (text, OrgParser.parse(text)) }
+                global = true
             case let value:
-                if value.hasPrefix("file:") { throw UserError(message: "Column views of other files aren't supported yet") }
-                guard let match = searchForwardFromStart("^[ \\t]*:ID:[ \\t]+" + NSRegularExpression.escapedPattern(for: value) + "[ \\t]*$") else {
+                let pattern = "^[ \\t]*:ID:[ \\t]+" + NSRegularExpression.escapedPattern(for: value) + "[ \\t]*$"
+                if let match = searchForwardFromStart(pattern) {
+                    offset = match
+                } else if let found = Self.findID(pattern, in: (options.agendaFiles ?? []).filter { $0 != options.filePath }) {
+                    // `org-id-find`: another agenda file.
+                    source = (found.text, OrgParser.parse(found.text))
+                    offset = found.offset
+                } else {
                     throw UserError(message: "Cannot find entry with :ID: \(value)")
                 }
-                offset = match
             }
         }
         let hlines = params.values[":hlines"]
         let excluded = params.values[":exclude-tags"]?.elements?.compactMap { $0.string ?? $0.symbol } ?? []
-        let captured = try ColumnView.capture(text: string, tree: tree, at: offset, global: global, format: params.values[":format"]?.string,
-                                              maxLevel: params.int(":maxlevel"), skipEmpty: params.flag(":skip-empty-rows"),
-                                              excludeTags: excluded, now: now, calendar: calendar)
-        for update in captured.updates.sorted(by: { $0.start > $1.start }) {
+        let captured = try ColumnView.capture(text: source?.text ?? string, tree: source?.tree ?? tree, at: offset, global: global,
+                                              format: params.values[":format"]?.string, maxLevel: params.int(":maxlevel"),
+                                              skipEmpty: params.flag(":skip-empty-rows"), excludeTags: excluded,
+                                              match: params.values[":match"]?.string, now: now, calendar: calendar)
+        // Summaries go into this buffer's entries; another file's are left as they are.
+        for update in source == nil ? captured.updates.sorted(by: { $0.start > $1.start }) : [] {
             point = update.start
             entryPut(update.property, update.value)
         }
@@ -422,6 +448,17 @@ extension EmacsBuffer {
             lines.append(line.trimmingCharacters(in: .whitespaces))
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// The first of `paths` with a line matching `pattern`, its text and the line's start.
+    static func findID(_ pattern: String, in paths: [String]) -> (text: String, offset: Int)? {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines, .caseInsensitive]) else { return nil }
+        for path in paths {
+            guard let text = try? String(contentsOfFile: path, encoding: .utf8),
+                  let m = regex.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)) else { continue }
+            return (text, m.range.location)
+        }
+        return nil
     }
 
     private func searchForwardFromStart(_ pattern: String) -> Int? {

@@ -711,7 +711,8 @@ takes these parameters:
 
 | Parameter          | Meaning                                                           |
 |--------------------+-------------------------------------------------------------------|
-| =:id=              | =local=, =global=, or an entry's =ID=                             |
+| =:id=              | =local=, =global=, =file:PATH= (another file, all of it), or an entry's =ID= |
+| =:match=           | keep entries matching a tag and property match, such as ="+work-home"= |
 | =:format=          | a column format to use instead of the entry's or file's           |
 | =:hlines=          | =t= for a line between all rows, or N for one before each level N or higher row |
 | =:maxlevel=        | leave out deeper headings                                         |
@@ -719,8 +720,10 @@ takes these parameters:
 | =:exclude-tags=    | leave out entries with these tags, as a list                      |
 | =:indent=          | indent =ITEM= by level                                            |
 
-Existing =#+TBLFM:= lines after the table are kept. An =:id= of the form =file:path=
-(another file) is not supported.
+Existing =#+TBLFM:= lines after the table are kept. A =file:= path counts from this
+file's folder. An =ID= is looked for in this file, then in the agenda files, as
+=org-id-find= does. For another file the table is built from the file on disk, and the
+summaries are not written into it; Org writes them into that file's buffer.
 
 * Footnotes
 
