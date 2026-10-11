@@ -771,7 +771,8 @@ Archive Subtree (=org-archive-subtree=, =C-c C-x C-s= or =C-c $=, Mac =⌃⌘A=,
 =SPC m A= or =SPC m s A=) moves the subtree at the caret to an archive.
 
 The archive location is read from, in order: the =ARCHIVE= property of the entry or an
-ancestor, a =#+ARCHIVE:= line in the file, and Org's default =%s_archive::=. A location
+ancestor, a =#+ARCHIVE:= line in the file, and =org-archive-location= in =config.toml=
+(Org's default =%s_archive::=). A location
 is =file::heading=, where =%s= stands for the current file's name:
 
 | Location               | Where the subtree goes                                                     |
@@ -794,8 +795,7 @@ changed.
 
 If the archive file is open, the subtree goes into its buffer. Otherwise orgstar writes
 the archive file first and removes the subtree from the source only after that
-succeeds. Org's option =org-archive-location= in Emacs is not read; use the =ARCHIVE=
-property or =#+ARCHIVE:=. Archiving from the agenda is covered in [[file:07-agenda.org][Agenda]].
+succeeds. Archiving from the agenda is covered in [[file:07-agenda.org][Agenda]].
 
 ** The ARCHIVE tag
 
@@ -887,5 +887,4 @@ These Org structure features are not in orgstar:
 - The =ORDERED= property, radio lists and timer list items in the list commands.
 - =S-<left>= and =S-<right>= to cycle bullets on an item; use =C-c -=.
 - =org-drag-element= (=M-<up>= and =M-<down>= on paragraphs).
-- Custom =org-structure-template-alist=, =org-refile-targets= and
-  =org-archive-location=.
+- Custom =org-structure-template-alist= and =org-refile-targets=.

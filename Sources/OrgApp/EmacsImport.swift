@@ -479,6 +479,9 @@ public struct EmacsImport: Sendable {
              "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
              "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies":
             add(name, .bool(truthy))
+        case "org-archive-location":
+            guard let location = value.string, location.contains("::") else { return note("not a file::heading location") }
+            add(name, .string(location))
         case "org-track-ordered-property-with-tag":
             if let tag = value.string { add(name, .string(tag)) } else { add(name, .string(truthy ? "t" : "nil")) }
         case "org-agenda-dim-blocked-tasks":

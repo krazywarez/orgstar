@@ -27,6 +27,9 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var enforceTodoDependencies = false
     /// `org-enforce-todo-checkbox-dependencies`: an entry can't become done with unchecked boxes.
     public var enforceTodoCheckboxDependencies = false
+    /// `org-archive-location`, for entries without an `ARCHIVE` property or `#+ARCHIVE:`; nil
+    /// for Org's default, `%s_archive::`.
+    public var archiveLocation: String?
     /// `org-track-ordered-property-with-tag`: the tag toggling `ORDERED` toggles too; nil for none.
     public var trackOrderedPropertyWithTag: String?
     /// `org-use-speed-commands`: single keys at the start of a heading line run commands.

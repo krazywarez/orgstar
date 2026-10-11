@@ -21,6 +21,16 @@ struct ArchiveTests {
         #expect(keyword == Archive.Destination(path: "/n/done.org", heading: "* a.org", isSameFile: false))
         let local = try Archive.destination(context("* a\n:PROPERTIES:\n:ARCHIVE: ::* Old\n:END:\n", 0), sourcePath: "/n/a.org").get()
         #expect(local.isSameFile && local.heading == "* Old")
+        // org-archive-location, under the keyword and the property.
+        var options = EditingOptions.org
+        options.archiveLocation = "old/%s::* From %s"
+        func optioned(_ text: String, _ caret: Int) -> EditContext {
+            EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], now: Self.now, calendar: Self.utc, options: options)
+        }
+        let global = try Archive.destination(optioned("* a\n", 0), sourcePath: "/n/a.org").get()
+        #expect(global == Archive.Destination(path: "/n/old/a.org", heading: "* From a.org", isSameFile: false))
+        let overridden = try Archive.destination(optioned("#+ARCHIVE: done.org::\n* a\n", 22), sourcePath: "/n/a.org").get()
+        #expect(overridden.path == "/n/done.org" && overridden.heading == nil)
     }
 
     @Test func archivesToANewFile() throws {

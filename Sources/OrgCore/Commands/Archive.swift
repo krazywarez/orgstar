@@ -1,7 +1,6 @@
 import Foundation
 
-// Archiving (`org-archive-subtree`, Org 9.8.7) with the defaults: location "%s_archive::",
-// context info time, file, olpath, category, todo and itags, inherited tags added only within
+// Archiving (`org-archive-subtree`, Org 9.8.7) with `org-archive-location` and the defaults: context info time, file, olpath, category, todo and itags, inherited tags added only within
 // the same file, no marking DONE, the archive file's header for a new file.
 
 extension EmacsBuffer {
@@ -191,7 +190,7 @@ public enum Archive {
     public static func destination(_ context: EditContext, sourcePath: String) -> Result<Destination, ArchiveError> {
         let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings)
         guard !buffer.beforeFirstHeading else { return .failure(.message("Before first headline")) }
-        let spec = buffer.inheritedProperty("ARCHIVE")?.value ?? buffer.keyword("ARCHIVE") ?? "%s_archive::"
+        let spec = buffer.inheritedProperty("ARCHIVE")?.value ?? buffer.keyword("ARCHIVE") ?? context.options.archiveLocation ?? "%s_archive::"
         guard let separator = spec.range(of: "::") else { return .failure(.message("Invalid archive location: \"\(spec)\"")) }
         let name = (sourcePath as NSString).lastPathComponent
         let fileFormat = String(spec[..<separator.lowerBound])
