@@ -213,6 +213,12 @@ public final class DocumentSession {
 
     public func isOpen(_ path: String) -> Bool { entry(path) != nil }
 
+    /// The document of an open file, whichever pane shows it.
+    public func document(of path: String) -> DocumentState? { entry(path)?.buffer.document }
+
+    /// Whether `buffer` is the live state of `path`, as `attach` made it.
+    public func isAttached(_ buffer: DocumentBuffer, for path: String) -> Bool { entry(path)?.buffer === buffer }
+
     /// The caret of an open file.
     public func caret(of path: String) -> Int? { entry(path)?.buffer.selection.first?.lowerBound }
 

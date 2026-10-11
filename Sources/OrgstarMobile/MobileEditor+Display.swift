@@ -138,10 +138,10 @@ extension MobileEditor {
     var truncatesLines: Bool {
         get { (textView as? KeyedTextView)?.truncates ?? false }
         set {
-            guard newValue != truncatesLines, let view = textView as? KeyedTextView else { return }
+            guard newValue != truncatesLines else { return }
             keepingTopLine {
-                view.truncates = newValue
-                if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+                for case let view as KeyedTextView in textViews { view.truncates = newValue }
+                for manager in layoutManagers { manager.invalidateLayout(for: manager.documentRange) }
             }
         }
     }

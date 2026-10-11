@@ -20,16 +20,20 @@ extension MobileEditor {
 
     /// The text view's own colors, and the block band's.
     func applyThemeToView() {
-        textView.backgroundColor = theme.color("background") ?? .systemBackground
-        textView.tintColor = theme.color("cursor")
-        textView.typingAttributes = theme.base
+        for view in textViews { applyThemeToView(view) }
         fragmentStyle.set(blockBackground: theme.color("block-background") ?? .clear, width: textView.bounds.width)
-        themeSelection()
+    }
+
+    func applyThemeToView(_ view: UITextView) {
+        view.backgroundColor = theme.color("background") ?? .systemBackground
+        view.tintColor = theme.color("cursor")
+        view.typingAttributes = theme.base
+        themeSelection(view)
     }
 
     /// The selection in the theme's selection color: the text view's selection display
     /// interaction draws it with our highlight view; the cursor and handles keep the tint.
-    private func themeSelection() {
+    private func themeSelection(_ textView: UITextView) {
         guard let interaction = textView.interactions.lazy.compactMap({ $0 as? UITextSelectionDisplayInteraction }).first else { return }
         let view = interaction.highlightView as? SelectionHighlightView ?? SelectionHighlightView()
         view.color = theme.color("selection") ?? UIColor.tintColor.withAlphaComponent(0.25)
@@ -51,15 +55,17 @@ extension MobileEditor {
     /// Lays `blocks` out again and asks their fragments, which are kept across layout passes,
     /// to draw again.
     private func redraw(blocks: [Range<Int>]) {
-        guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return }
-        for block in blocks {
-            guard let start = content.location(content.documentRange.location, offsetBy: block.lowerBound),
-                  let end = content.location(start, offsetBy: block.count),
-                  let textRange = NSTextRange(location: start, end: end) else { continue }
-            manager.invalidateRenderingAttributes(for: textRange)
-            manager.invalidateLayout(for: textRange)
+        for manager in layoutManagers {
+            guard let content = manager.textContentManager else { continue }
+            for block in blocks {
+                guard let start = content.location(content.documentRange.location, offsetBy: block.lowerBound),
+                      let end = content.location(start, offsetBy: block.count),
+                      let textRange = NSTextRange(location: start, end: end) else { continue }
+                manager.invalidateRenderingAttributes(for: textRange)
+                manager.invalidateLayout(for: textRange)
+            }
         }
-        textView.setNeedsDisplay()
+        for view in textViews { view.setNeedsDisplay() }
     }
 
     /// The band behind blocks spans the view's width, or the widest line's when truncated;
@@ -67,19 +73,21 @@ extension MobileEditor {
     /// wider line in a truncated file, which widens the band on each layout pass, redraws
     /// the blocks alone: laying the whole file out again moves the text under the view.
     func viewResized() {
+        // With several views, the band spans the widest and images fit the narrowest.
         let band = fragmentStyle.blockBand
-        let width = max(textView.bounds.width, truncatesLines ? textView.contentSize.width : 0)
-        let resized = imageWidth != textView.bounds.width
+        let width = textViews.map { max($0.bounds.width, truncatesLines ? $0.contentSize.width : 0) }.max() ?? 0
+        let narrowest = textViews.map(\.bounds.width).filter { $0 > 0 }.min() ?? textView.bounds.width
+        let resized = imageWidth != narrowest
         guard band.width != width || resized else { return }
         fragmentStyle.set(blockBackground: band.color, width: width)
-        imageWidth = textView.bounds.width
+        imageWidth = narrowest
         guard resized else {
             redraw(blocks: shaded.all)
             return
         }
         keepingTopLine {
             if showsImages { restyle(0..<textView.textStorage.length) }
-            if let manager = textView.textLayoutManager {
+            for manager in layoutManagers {
                 manager.invalidateRenderingAttributes(for: manager.documentRange)
                 manager.invalidateLayout(for: manager.documentRange)
             }
@@ -92,7 +100,7 @@ extension MobileEditor {
         defer { interval.end() }
         keepingTopLine {
             restyle(0..<textView.textStorage.length)
-            if let manager = textView.textLayoutManager { manager.invalidateLayout(for: manager.documentRange) }
+            for manager in layoutManagers { manager.invalidateLayout(for: manager.documentRange) }
         }
     }
 
@@ -101,15 +109,18 @@ extension MobileEditor {
     /// whole file again makes TextKit estimate the height of everything above the view afresh,
     /// which moves the text under it.
     func invalidateLayout(lines ranges: [Range<Int>]) {
-        guard !ranges.isEmpty, let manager = textView.textLayoutManager, let content = manager.textContentManager else { return }
+        guard !ranges.isEmpty else { return }
         let text = textView.textStorage.string as NSString
-        for range in ranges {
-            let lower = text.lineRange(for: NSRange(location: max(0, min(range.lowerBound, text.length) - 1), length: 0)).location
-            let upper = NSMaxRange(text.lineRange(for: NSRange(location: min(range.upperBound, text.length), length: 0)))
-            guard let start = content.location(content.documentRange.location, offsetBy: lower),
-                  let end = content.location(start, offsetBy: upper - lower),
-                  let textRange = NSTextRange(location: start, end: end) else { continue }
-            manager.invalidateLayout(for: textRange)
+        for manager in layoutManagers {
+            guard let content = manager.textContentManager else { continue }
+            for range in ranges {
+                let lower = text.lineRange(for: NSRange(location: max(0, min(range.lowerBound, text.length) - 1), length: 0)).location
+                let upper = NSMaxRange(text.lineRange(for: NSRange(location: min(range.upperBound, text.length), length: 0)))
+                guard let start = content.location(content.documentRange.location, offsetBy: lower),
+                      let end = content.location(start, offsetBy: upper - lower),
+                      let textRange = NSTextRange(location: start, end: end) else { continue }
+                manager.invalidateLayout(for: textRange)
+            }
         }
     }
 

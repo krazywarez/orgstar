@@ -56,6 +56,22 @@ The toolbar has:
 
 Messages from commands show at the top of the editor for a few seconds; tap one to dismiss it.
 
+** Panes and windows on iPad
+
+On iPad, the editor can show a file in several panes, as a Mac window does (see [[file:01-files-and-folders.org][Files and folders]]):
+
+| Command           | Where                                        | Emacs keys | Does                                                        |
+|-------------------+----------------------------------------------+------------+-------------------------------------------------------------|
+| Split Pane Right  | More ▸ Panes, Commands, a hardware keyboard  | =C-x 3=    | Halves the focused pane side by side; the new pane shows the same file |
+| Split Pane Below  | More ▸ Panes, Commands, a hardware keyboard  | =C-x 2=    | Halves the focused pane one above the other                 |
+| Next Pane         | More ▸ Panes, Commands, a hardware keyboard  | =C-x o=    | Moves focus to the next pane                                 |
+| Close Pane        | More ▸ Panes, Commands, a hardware keyboard  | =C-x 0=    | Closes the focused pane                                      |
+| Close Other Panes | More ▸ Panes, Commands, a hardware keyboard  | =C-x 1=    | Closes every pane but the focused one                        |
+
+The focused pane has a line along its top and the toolbar acts on it; tap in a pane to focus it. Every pane shows the same buffer: text typed in one shows in the others at once, and folds, narrowing and styles are the buffer's. The caret and scroll position are each pane's own, and so is undo: Undo in a pane undoes what was typed or changed in that pane. A link to another file opens it on its own screen, leaving the panes as they are.
+
+Each iPad window (scene), opened from the app switcher or by dragging the app from the Dock, has its own tabs, screens and panes over the same open files, so a file edited in one window shows the edit in the others. The pane commands aren't offered on iPhone or in a narrow window.
+
 ** Saving
 
 The iOS app always saves automatically: one second after you stop typing, when you leave the editor, and when the app goes to the background. The =save= setting doesn't apply on iOS.
@@ -393,7 +409,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 - ODT, LaTeX, ASCII and LaTeX-made PDF export, and publishing.
 - Idle detection while a clock runs.
 - Import from Emacs of agenda folders.
-- The Columns inspector, and the buffer list and tab bar. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).
+- The Columns inspector, the buffer list and tab bar, and resizing panes by dragging their divider. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).
 - The global capture hotkey and the Settings window.
 - Explicit saving.
 

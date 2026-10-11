@@ -16,7 +16,20 @@ struct EditorScreen: View {
     let offset: Int?
     let workspace: WorkspaceModel
     let session: DocumentSession
+    /// The pane this screen shows its file in, from a split; nil makes one for the screen.
+    var givenPane: EditorPane? = nil
+    /// In a split, the focused pane shows the toolbar and the split the title.
+    var inSplit = false
+    var isFocused = true
+    /// Focus came to this screen's pane.
+    var onFocus: () -> Void = {}
+    /// The pane commands (`app.split-right` …), which the split runs.
+    var onPaneCommand: ((String) -> Void)? = nil
     @State private var editor: MobileEditor?
+    /// This screen's view of the editor.
+    @State private var textView: UITextView?
+    @State private var holder = PaneHolder()
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var prompt: PromptRequest?
     @State private var message: String?
     @State private var sheet: Sheet?
@@ -80,21 +93,26 @@ struct EditorScreen: View {
         }
     }
 
+    private var pane: EditorPane? { givenPane ?? holder.pane }
+
+    /// The pane commands, as the Mac's View menu has them.
+    static let paneCommands = ["app.split-right", "app.split-below", "app.pane-next", "app.pane-close", "app.pane-only"]
+
     var body: some View {
         Group {
-            if let editor {
-                EditorTextView(editor: editor, palette: { sheet = .palette })
+            if let editor, let textView {
+                EditorTextView(editor: editor, view: textView, palette: { sheet = .palette })
                     .ignoresSafeArea(.container, edges: .bottom)
             } else {
                 ProgressView()
             }
         }
-        .navigationTitle(session.bufferName(path) + (session.dirtyPaths.contains(path) ? " •" : ""))
-        .navigationBarTitleDisplayMode(.inline)
+        .modifier(EditorTitle(title: session.bufferName(path) + (session.dirtyPaths.contains(path) ? " •" : ""), shown: !inSplit))
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
+            if !inSplit || isFocused {
             ToolbarItemGroup(placement: .primaryAction) {
-                if session.conflict != nil {
+                if pane?.conflict != nil {
                     Button("Conflict", systemImage: "exclamationmark.triangle") { sheet = .conflict }
                 }
                 Button("Undo", systemImage: "arrow.uturn.backward") { editor?.run("edit.undo") }
@@ -145,10 +163,22 @@ struct EditorScreen: View {
                         Button("Encrypt Tagged Entries…", systemImage: "lock.rectangle.stack") { crypt("app.crypt.encrypt-entries") }
                         Button("Forget Encryption Passphrase", systemImage: "key.slash") { crypt("app.crypt.forget-passphrase") }
                     }
-                    if let text = session.document?.text, session.path == path { ExportMenu(path: path, text: text) { message = $0 } }
+                    if let text = session.document(of: path)?.text { ExportMenu(path: path, text: text) { message = $0 } }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
+                    if onPaneCommand != nil, sizeClass == .regular {
+                        Menu("Panes", systemImage: "rectangle.split.2x1") {
+                            Button("Split Pane Right", systemImage: "rectangle.split.2x1") { onPaneCommand?("app.split-right") }
+                            Button("Split Pane Below", systemImage: "rectangle.split.1x2") { onPaneCommand?("app.split-below") }
+                            if inSplit {
+                                Button("Next Pane", systemImage: "arrow.right.square") { onPaneCommand?("app.pane-next") }
+                                Button("Close Pane", systemImage: "xmark.square") { onPaneCommand?("app.pane-close") }
+                                Button("Close Other Panes", systemImage: "square") { onPaneCommand?("app.pane-only") }
+                            }
+                        }
+                    }
                 }
+            }
             }
         }
         .safeAreaInset(edge: .top) {
@@ -183,7 +213,7 @@ struct EditorScreen: View {
             }
         }) { sheet in
             switch sheet {
-            case .palette: if let editor { CommandPalette(editor: editor) { chosen = $0 } }
+            case .palette: if let editor { CommandPalette(editor: editor, panes: onPaneCommand != nil && sizeClass == .regular, split: inSplit) { chosen = $0 } }
             case .conflict: ConflictSheet(session: session)
             case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
             case .recovery: RecoverySheet(session: session) { message = $0 }
@@ -249,15 +279,21 @@ struct EditorScreen: View {
                       defaultFilename: exportedTable?.type == .tabSeparatedText ? "table.tsv" : "table.csv") { result in
             if case .failure(let error) = result { message = error.localizedDescription } else { message = "Export done." }
         }
-        .onChange(of: session.conflict) { _, conflict in
-            if conflict != nil, session.path == path { sheet = .conflict }
+        .onChange(of: pane?.conflict) { _, conflict in
+            if conflict != nil, isFocused { sheet = .conflict }
         }
         .onChange(of: session.lastError) { _, error in
             if let error { message = error; session.lastError = nil }
         }
         .onAppear(perform: start)
-        .onChange(of: session.revealRequest?.id) {
-            if let offset = session.revealRequest?.offset, session.path == path { editor?.reveal(offset) }
+        // A pane command moved focus here.
+        .onChange(of: isFocused) {
+            guard isFocused, let textView, !textView.isFirstResponder else { return }
+            editor?.focus(textView)
+            textView.becomeFirstResponder()
+        }
+        .onChange(of: pane?.revealRequest?.id) {
+            if let offset = pane?.revealRequest?.offset, pane?.path == path { editor?.reveal(offset) }
         }
         .onChange(of: model.settingsVersion) {
             editor?.options = editorOptions
@@ -309,60 +345,94 @@ struct EditorScreen: View {
     }
 
     private func start() {
-        if session.path != path { session.open(path) }
-        if editor == nil, let document = session.document {
-            let editor = MobileEditor(
-                document: document, editable: document.isEditable, options: editorOptions, theme: model.theme,
-                showMarkup: model.showMarkup, baseDirectory: URL(fileURLWithPath: path).deletingLastPathComponent()
-            )
-            editor.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
-            editor.onChange = { [weak session] in session?.bufferChanged(path) }
-            editor.onMessage = { message = $0 }
-            editor.onPrompt = { prompt, reply in self.prompt = PromptRequest(prompt: prompt, reply: reply) }
-            editor.onLink = { link in follow(link) }
-            editor.onEditBlock = { edit in sheet = .block(edit) }
-            editor.onColumnView = { view in sheet = .columns(view) }
-            editor.onTangle = { scope in message = session.tangle(scope) }
-            editor.onBabel = { job in run(job) }
-            editor.onRefreshSetup = { session.refreshSetup() }
-            editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
-            editor.keymap = model.keymap
-            editor.modal = model.modalKeys
-            editor.onAppCommand = { id in
-                if id == "app.save" {
-                    _ = session.save(path)
-                } else if ["app.refile", "app.refile.copy", "app.refile.goto"].contains(id) {
-                    sheet = .refile(id)
-                } else if id == "app.table-import" {
-                    importingTable = true
-                } else if id == "app.table-export" {
-                    exportTable(csv: true)
-                } else if id == "app.plot" {
-                    plotTable()
-                } else if id.hasPrefix("app.crypt.") {
-                    crypt(id)
-                } else if id.hasPrefix("app.attach.") {
-                    attachActions.run(id)
-                } else if id.hasPrefix("app.dailies.") || id.hasPrefix("app.node.") {
-                    roamActions.run(id)
-                } else if id == "app.backlinks" {
-                    sheet = .backlinks
-                } else if id == "app.toggle-markup" {
-                    model.showMarkup.toggle()
-                } else if MobileEditor.linkCommands.contains(id) {
-                    link(id)
-                } else if !MobileClock.run(id, model: model, workspace: workspace, show: { message = $0 }) {
-                    message = "Not available on iOS yet"
-                }
+        let pane: EditorPane
+        if let existing = self.pane {
+            pane = existing
+        } else {
+            pane = session.makePane()
+            holder.pane = pane
+            let store = model.editors, path = path
+            holder.release = { [weak session] in
+                store.release(pane.id, path: path)
+                session?.closePane(pane)
             }
-            self.editor = editor
         }
-        if let editor { session.attach(editor) }
-        if let offset { editor?.reveal(offset) }
-        if session.conflict != nil {
+        if pane.path != path { session.open(path, in: pane) }
+        model.editors.prune(session)
+        guard let editor = model.editors.editor(for: path, session: session, make: makeEditor) else { return }
+        let view = model.editors.view(for: pane.id, of: editor)
+        editor.onFocus[ObjectIdentifier(view)] = { [weak session] in
+            session?.focused = pane
+            bind(editor)
+            onFocus()
+        }
+        // A pane a split adds leaves focus where it was, as `split-window` does.
+        if isFocused {
+            session.focused = pane
+            bind(editor)
+            editor.focus(view)
+        }
+        self.editor = editor
+        textView = view
+        if let offset { editor.reveal(offset) }
+        if pane.conflict != nil {
             sheet = .conflict
         } else if case let copies = session.syncConflictCopies().count, copies > 0 {
             message = "\(copies) sync conflict \(copies == 1 ? "copy" : "copies") of this file; More › Sync Conflict Copies compares them."
+        }
+    }
+
+    private func makeEditor() -> MobileEditor? {
+        guard let document = session.document(of: path) else { return nil }
+        return MobileEditor(
+            document: document, editable: document.isEditable, options: editorOptions, theme: model.theme,
+            showMarkup: model.showMarkup, baseDirectory: URL(fileURLWithPath: path).deletingLastPathComponent()
+        )
+    }
+
+    /// The editor's callbacks go to this screen: it's shown here, or its view here took focus.
+    private func bind(_ editor: MobileEditor) {
+        editor.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
+        editor.onChange = { [weak session] in session?.bufferChanged(path) }
+        editor.onMessage = { message = $0 }
+        editor.onPrompt = { prompt, reply in self.prompt = PromptRequest(prompt: prompt, reply: reply) }
+        editor.onLink = { link in follow(link) }
+        editor.onEditBlock = { edit in sheet = .block(edit) }
+        editor.onColumnView = { view in sheet = .columns(view) }
+        editor.onTangle = { scope in message = session.tangle(scope) }
+        editor.onBabel = { job in run(job) }
+        editor.onRefreshSetup = { session.refreshSetup() }
+        editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
+        editor.keymap = model.keymap
+        editor.modal = model.modalKeys
+        editor.onAppCommand = { id in
+            if Self.paneCommands.contains(id) {
+                if let onPaneCommand { onPaneCommand(id) } else { message = "Not available here" }
+            } else if id == "app.save" {
+                _ = session.save(path)
+            } else if ["app.refile", "app.refile.copy", "app.refile.goto"].contains(id) {
+                sheet = .refile(id)
+            } else if id == "app.table-import" {
+                importingTable = true
+            } else if id == "app.table-export" {
+                exportTable(csv: true)
+            } else if id == "app.plot" {
+                plotTable()
+            } else if id.hasPrefix("app.crypt.") {
+                crypt(id)
+            } else if id.hasPrefix("app.attach.") {
+                attachActions.run(id)
+            } else if id.hasPrefix("app.dailies.") || id.hasPrefix("app.node.") {
+                roamActions.run(id)
+            } else if id == "app.backlinks" {
+                sheet = .backlinks
+            } else if id == "app.toggle-markup" {
+                model.showMarkup.toggle()
+            } else if MobileEditor.linkCommands.contains(id) {
+                link(id)
+            } else if !MobileClock.run(id, model: model, workspace: workspace, show: { message = $0 }) {
+                message = "Not available on iOS yet"
+            }
         }
     }
 }
@@ -371,7 +441,12 @@ extension EditorScreen {
     /// Follows a link; files the editor doesn't open show in Quick Look.
     private func follow(_ link: OrgLink) {
         switch session.follow(link, workspace: workspace, isText: { _ in false }) {
-        case .shown: message = session.path == path ? nil : "Opened \((session.path.map { ($0 as NSString).lastPathComponent }) ?? "")"
+        case .shown:
+            // A link to another file shows it on its own screen; this pane keeps its file.
+            guard let pane, let target = pane.path, target != path else { message = nil; return }
+            let caret = session.caret(of: target) ?? 0
+            session.open(path, in: pane)
+            model.openRequest = .offset(target, caret)
         case .openExternally(let url): if url.isFileURL { previewed = url } else { openURL(url) }
         case .message(let text): message = text
         }
@@ -511,6 +586,8 @@ extension EditorScreen {
 /// The editor's text view, with the Org key bar over the keyboard.
 struct EditorTextView: UIViewRepresentable {
     let editor: MobileEditor
+    /// This pane's view of the editor.
+    let view: UITextView
     let palette: () -> Void
 
     func makeUIView(context: Context) -> UITextView {
@@ -518,9 +595,9 @@ struct EditorTextView: UIViewRepresentable {
         bar.view.frame = CGRect(x: 0, y: 0, width: 400, height: 48)
         bar.view.backgroundColor = .clear
         bar.sizingOptions = []
-        editor.textView.inputAccessoryView = bar.view
+        view.inputAccessoryView = bar.view
         context.coordinator.bar = bar
-        return editor.textView
+        return view
     }
 
     func updateUIView(_ view: UITextView, context: Context) {}
@@ -770,6 +847,9 @@ struct CodeTextView: UIViewRepresentable {
 /// Every command that applies at the caret, by name.
 struct CommandPalette: View {
     let editor: MobileEditor
+    /// The pane commands are offered (on iPad), and those for more than one pane.
+    var panes = false
+    var split = false
     /// Called with the chosen command before the palette closes.
     let choose: (String) -> Void
     @State private var query = ""
@@ -832,7 +912,9 @@ struct CommandPalette: View {
         .onAppear {
             guard applicable == nil else { return }
             let context = editor.editContext()
-            applicable = (Self.viewCommands + Commands.everything.map { ($0.id, $0.title) })
+            let paneCommands: [(id: String, title: String)] = !panes ? [] : [("app.split-right", "Split Pane Right"), ("app.split-below", "Split Pane Below")]
+                + (split ? [("app.pane-next", "Next Pane"), ("app.pane-close", "Close Pane"), ("app.pane-only", "Close Other Panes")] : [])
+            applicable = paneCommands.map { ($0.id, $0.title, editor.keymap.keyLabels(for: $0.id).first) } + (Self.viewCommands + Commands.everything.map { ($0.id, $0.title) })
                 .filter { editor.applies($0.id, in: context) }
                 .map { ($0.id, $0.title, editor.keymap.keyLabels(for: $0.id).first) }
         }
@@ -910,6 +992,31 @@ struct CryptScreen: View {
         let context = editor.editContext()
         let caret = min(context.caret, (new as NSString).length)
         _ = editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new), selection: [caret..<caret])))
+    }
+}
+/// The pane an editor screen made for itself, closed with the screen.
+@MainActor
+final class PaneHolder {
+    var pane: EditorPane?
+    nonisolated(unsafe) var release: (() -> Void)?
+
+    deinit {
+        guard let release else { return }
+        Task { @MainActor in release() }
+    }
+}
+
+/// The screen's title, unless a split shows the focused pane's.
+private struct EditorTitle: ViewModifier {
+    let title: String
+    let shown: Bool
+
+    func body(content: Content) -> some View {
+        if shown {
+            content.navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+        } else {
+            content
+        }
     }
 }
 #endif

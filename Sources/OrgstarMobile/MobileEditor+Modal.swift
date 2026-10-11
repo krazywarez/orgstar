@@ -312,7 +312,7 @@ extension MobileEditor {
     /// place of the selection display's while keys are modal.
     func updateCursor() {
         let block = modal && vim.mode != .insert && vim.mode != .replace
-        for case let interaction as UITextSelectionDisplayInteraction in textView.interactions {
+        for case let interaction as UITextSelectionDisplayInteraction in textViews.flatMap(\.interactions) {
             if let cursor = interaction.cursorView as? ModalCursorView {
                 if cursor.block != block {
                     cursor.block = block

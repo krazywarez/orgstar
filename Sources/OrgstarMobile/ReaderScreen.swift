@@ -1,6 +1,7 @@
 #if os(iOS)
 import OrgApp
 import OrgCore
+import OrgDocument
 import OrgIndex
 import OrgPresentation
 import SwiftUI
@@ -35,13 +36,18 @@ struct ReaderScreen: View {
     @State private var startup: StartupDisplay?
     @State private var showingOutline = false
     @State private var message: String?
+    /// The pane the reader shows its file in, closed with the reader.
+    @State private var holder = PaneHolder()
     @Environment(\.openURL) private var openURL
     @Environment(MobileModel.self) private var model
 
-    private var outline: [OutlineEntry] { session.outline }
+    private var pane: EditorPane? { holder.pane }
+    private var outline: [OutlineEntry] { pane?.outline ?? [] }
+    /// The file the reader's pane shows.
+    private var shownPath: String? { pane?.path }
+    private var document: DocumentState? { shownPath.flatMap(session.document(of:)) }
 
-    /// The file this reader shows. Readers lower in the stack stay alive while the session
-    /// shows another file, and draw nothing then.
+    /// The file this reader shows.
     private var path: String {
         switch route {
         case .file(let path), .offset(let path, _): path
@@ -49,14 +55,14 @@ struct ReaderScreen: View {
         }
     }
 
-    /// The session shows this reader's file; it opens files by their resolved paths.
+    /// The pane shows this reader's file; the session opens files by their resolved paths.
     private var showsOwnFile: Bool {
-        guard let current = session.path else { return false }
+        guard let current = shownPath else { return false }
         return current == path || current == URL(fileURLWithPath: path).resolvingSymlinksInPath().path
     }
 
     var body: some View {
-        let _ = session.editVersion
+        let _ = pane?.editVersion
         // Read again when settings or the Dynamic Type size change.
         let _ = model.settingsVersion
         let theme = MobileTheme(model.theme)
@@ -64,7 +70,7 @@ struct ReaderScreen: View {
         ScrollViewReader { proxy in
             ScrollView(truncated ? [.vertical, .horizontal] : .vertical) {
                 LazyVStack(alignment: .leading, spacing: 8) {
-                    if let tree = session.document?.tree, showsOwnFile {
+                    if let tree = document?.tree, showsOwnFile {
                         let length = (tree.text as NSString).length
                         let preambleEnd = min(outline.first?.start ?? length, length)
                         if preambleEnd > 0 { textView(tree, 0..<preambleEnd, theme) }
@@ -87,18 +93,18 @@ struct ReaderScreen: View {
             // Narrower than the view while truncated, the text still starts at the top left.
             .defaultScrollAnchor(truncated ? .topLeading : nil)
             .background(theme.swiftColor("background") ?? Color(uiColor: .systemBackground))
-            .onChange(of: session.revealRequest?.id) {
-                guard let offset = session.revealRequest?.offset else { return }
+            .onChange(of: pane?.revealRequest?.id) {
+                guard let offset = pane?.revealRequest?.offset else { return }
                 reveal(offset, proxy)
             }
         }
-        .navigationTitle(((session.path ?? "") as NSString).lastPathComponent)
+        .navigationTitle(((shownPath ?? "") as NSString).lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button("Outline", systemImage: "list.bullet.indent") { showingOutline = true }.disabled(outline.isEmpty)
-                if let path = session.path {
-                    if let text = session.document?.text { ExportMenu(path: path, text: text) { message = $0 } }
+                if let path = shownPath {
+                    if let text = document?.text { ExportMenu(path: path, text: text) { message = $0 } }
                     NavigationLink(value: EditorRoute(path: path, offset: nil)) { Label("Edit", systemImage: "square.and.pencil") }
                 }
             }
@@ -112,8 +118,8 @@ struct ReaderScreen: View {
         }
         .environment(\.openURL, OpenURLAction { url in follow(url) })
         .onAppear(perform: open)
-        .onChange(of: session.path) { loadFolds() }
-        .onChange(of: session.editVersion) { loadFolds() }
+        .onChange(of: pane?.path) { loadFolds() }
+        .onChange(of: pane?.editVersion) { loadFolds() }
         .onChange(of: model.settingsVersion) { loadFolds() }
     }
 
@@ -210,7 +216,7 @@ struct ReaderScreen: View {
 
     /// Text, and with inline images on, lines that are only an image link shown as the image.
     private func parts(_ tree: OrgTree, _ range: Range<Int>) -> [Part] {
-        guard startup?.inlineImages == true, let path = session.path else { return [Part(range: range)] }
+        guard startup?.inlineImages == true, let path = shownPath else { return [Part(range: range)] }
         // Read so that the view draws again when a remote image arrives.
         _ = RemoteImages.shared.version
         let remote = RemoteImages.Mode(rawValue: session.options.remoteInlineImages) ?? .skip
@@ -304,12 +310,22 @@ struct ReaderScreen: View {
     // MARK: - Actions
 
     private func open() {
-        switch route {
-        case .file(let path): if session.path != path { session.open(path) }
-        case .offset(let path, let offset):
-            if session.path != path { session.open(path) }
-            session.reveal(offset)
-        case .heading(let location): session.show(location)
+        let pane = holder.pane ?? {
+            let made = session.makePane()
+            holder.pane = made
+            holder.release = { [weak session] in session?.closePane(made) }
+            return made
+        }()
+        // What the reader opens and follows goes to its pane.
+        session.focused = pane
+        if loadedPath == nil {
+            switch route {
+            case .file(let path): session.open(path, in: pane)
+            case .offset(let path, let offset):
+                session.open(path, in: pane)
+                session.reveal(offset, in: pane)
+            case .heading(let location): session.show(location)
+            }
         }
         loadFolds()
     }
@@ -317,13 +333,13 @@ struct ReaderScreen: View {
     /// The file's startup display, as the editor opens it; its heading folds are kept while
     /// the same file is open.
     private func loadFolds() {
-        guard let tree = session.document?.tree, showsOwnFile else { return }
+        guard let tree = document?.tree, showsOwnFile else { return }
         let display = Presentation.startupDisplay(tree, options: session.options)
         startup = display
         folded = display.wrappers.map(\.hidden)
         foldable = folded
-        guard loadedPath != session.path else { return }
-        loadedPath = session.path
+        guard loadedPath != shownPath else { return }
+        loadedPath = shownPath
         fold = display.folds
     }
 
@@ -349,11 +365,19 @@ struct ReaderScreen: View {
             return .handled
         }
         guard url.scheme == "orgstar-link", let offset = Int(url.absoluteString.dropFirst("orgstar-link:".count)),
-              let tree = session.document?.tree, let link = Links.link(at: offset, text: tree.text, tree: tree)?.link else {
+              let tree = document?.tree, let link = Links.link(at: offset, text: tree.text, tree: tree)?.link else {
             return .systemAction
         }
+        if let pane { session.focused = pane }
         switch session.follow(link, workspace: workspace, isText: { _ in false }) {
-        case .shown: message = nil
+        case .shown:
+            message = nil
+            // A link to another file shows it on its own screen; this pane keeps its file.
+            if let pane, let target = pane.path, target != path, !showsOwnFile {
+                let caret = session.caret(of: target) ?? 0
+                session.open(path, in: pane)
+                model.openRequest = .offset(target, caret)
+            }
         case .openExternally(let target): openURL(target)
         case .message(let text): message = text
         }
@@ -365,7 +389,7 @@ struct ReaderScreen: View {
             List(outline, id: \.start) { entry in
                 Button {
                     showingOutline = false
-                    session.reveal(entry.start)
+                    if let pane { session.reveal(entry.start, in: pane) }
                 } label: {
                     Text(entry.title.isEmpty ? "(untitled)" : entry.title)
                         .padding(.leading, indent(entry))

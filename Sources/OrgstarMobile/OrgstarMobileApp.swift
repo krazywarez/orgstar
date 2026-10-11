@@ -71,7 +71,7 @@ extension View {
             ReaderScreen(route: route, workspace: workspace, session: session)
         }
         .navigationDestination(for: EditorRoute.self) { route in
-            EditorScreen(path: route.path, offset: route.offset, workspace: workspace, session: session)
+            EditorSplitScreen(path: route.path, offset: route.offset, workspace: workspace, session: session)
         }
         .navigationDestination(for: SearchRoute.self) { _ in
             SearchScreen(workspace: workspace, session: session)

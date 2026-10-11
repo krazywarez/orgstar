@@ -21,6 +21,8 @@ final class MobileModel {
     let workspace: WorkspaceModel?
     let failure: String?
     let session = DocumentSession()
+    /// The open files' editors, shared by every scene's panes.
+    let editors = MobileEditorStore()
     let agenda: AgendaModel?
     let scheduler = ReminderScheduler(center: SystemReminderCenter())
     let clock = ClockModel()

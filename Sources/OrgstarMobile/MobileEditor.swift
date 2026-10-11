@@ -15,10 +15,13 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// One highlighter for every editor and the reader: it caches compiled grammars and results.
     static let highlighter = TreeSitterHighlighter()
     private(set) var document: DocumentState
-    let textView: UITextView
+    /// The views showing the buffer, one per pane; the first is made with the editor.
+    private(set) var textViews: [UITextView]
+    /// The view with focus, or the last to have had it: the one commands act on.
+    private(set) var textView: UITextView
     var options: EditingOptions = .org {
         didSet {
-            textView.spellCheckingType = options.spellCheck ? .yes : .no
+            for view in textViews { view.spellCheckingType = options.spellCheck ? .yes : .no }
             if !showMarkup, options.hideEmphasisMarkers != oldValue.hideEmphasisMarkers || options.prettyEntities != oldValue.prettyEntities {
                 restyleAll()
             }
@@ -137,26 +140,11 @@ final class MobileEditor: NSObject, DocumentBuffer {
         theme = MobileTheme(spec)
         let keyed = KeyedTextView(usingTextLayoutManager: true)
         textView = keyed
+        textViews = [keyed]
         super.init()
-        keyed.keyHandler = { [weak self] key in self?.handleKey(key) ?? false }
-        keyed.onLayout = { [weak self] in self?.viewResized() }
-        textView.isEditable = editable
-        textView.autocorrectionType = .no
-        textView.autocapitalizationType = .none
-        textView.smartQuotesType = .no
-        textView.smartDashesType = .no
-        textView.smartInsertDeleteType = .no
-        textView.spellCheckingType = options.spellCheck ? .yes : .no
-        textView.keyboardDismissMode = .interactive
-        textView.alwaysBounceVertical = true
-        textView.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 24, right: 8)
-        textView.delegate = self
+        configure(keyed, editable: editable)
         textView.textStorage.delegate = self
-        textView.textLayoutManager?.delegate = self
         (textView.textLayoutManager?.textContentManager as? NSTextContentStorage)?.delegate = self
-        let foldTap = UITapGestureRecognizer(target: self, action: #selector(tappedFold))
-        foldTap.delegate = self
-        textView.addGestureRecognizer(foldTap)
         let startup = Presentation.startupDisplay(document.tree, options: options)
         indented = startup.indented
         hideStars = startup.hideStars
@@ -170,6 +158,76 @@ final class MobileEditor: NSObject, DocumentBuffer {
         truncatesLines = startup.truncated
         textView.selectedRange = NSRange(location: 0, length: 0)
     }
+
+    /// What every view of the buffer has: the keymap, the editor as its delegates and the fold
+    /// tap. Views in one scene share its undo stack.
+    private func configure(_ view: KeyedTextView, editable: Bool) {
+        view.keyHandler = { [weak self, weak view] key in
+            guard let self else { return false }
+            if let view { focus(view) }
+            return handleKey(key)
+        }
+        view.onLayout = { [weak self] in self?.viewResized() }
+        view.isEditable = editable
+        view.autocorrectionType = .no
+        view.autocapitalizationType = .none
+        view.smartQuotesType = .no
+        view.smartDashesType = .no
+        view.smartInsertDeleteType = .no
+        view.spellCheckingType = options.spellCheck ? .yes : .no
+        view.keyboardDismissMode = .interactive
+        view.alwaysBounceVertical = true
+        view.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 24, right: 8)
+        view.delegate = self
+        view.textLayoutManager?.delegate = self
+        let foldTap = UITapGestureRecognizer(target: self, action: #selector(tappedFold))
+        foldTap.delegate = self
+        view.addGestureRecognizer(foldTap)
+    }
+
+    // MARK: - Views
+
+    /// Another view of the buffer, for another pane: its own layout manager on the buffer's
+    /// content storage, so text, folds and styles are shared and the caret and scroll aren't.
+    func addView() -> UITextView {
+        guard let storage = textViews[0].textLayoutManager?.textContentManager as? NSTextContentStorage else { return textViews[0] }
+        let manager = NSTextLayoutManager()
+        manager.delegate = self
+        let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        manager.textContainer = container
+        storage.addTextLayoutManager(manager)
+        let view = KeyedTextView(frame: .zero, textContainer: container)
+        configure(view, editable: textViews[0].isEditable)
+        textViews.append(view)
+        applyThemeToView(view)
+        if truncatesLines { view.truncates = true }
+        updateCursor()
+        return view
+    }
+
+    /// Drops a view `addView` made; the first stays with the editor.
+    func removeView(_ view: UITextView) {
+        guard view !== textViews[0], let index = textViews.firstIndex(where: { $0 === view }) else { return }
+        textViews.remove(at: index)
+        if let manager = view.textLayoutManager, let storage = manager.textContentManager { storage.removeTextLayoutManager(manager) }
+        view.delegate = nil
+        onFocus[ObjectIdentifier(view)] = nil
+        if textView === view { textView = textViews[0] }
+    }
+
+    /// What each view's screen does when its view takes focus: the editor's callbacks are
+    /// that screen's from then on.
+    var onFocus: [ObjectIdentifier: () -> Void] = [:]
+
+    /// Commands act on `view` from now on.
+    func focus(_ view: UITextView) {
+        guard view !== textView, textViews.contains(where: { $0 === view }) else { return }
+        textView = view
+        onFocus[ObjectIdentifier(view)]?()
+    }
+
+    /// Every view's layout manager.
+    var layoutManagers: [NSTextLayoutManager] { textViews.compactMap(\.textLayoutManager) }
 
     // MARK: - DocumentBuffer
 
@@ -481,7 +539,15 @@ final class MobileEditor: NSObject, DocumentBuffer {
 }
 
 extension MobileEditor: UITextViewDelegate {
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        focus(textView)
+    }
+
+    /// Another view's caret moves with edits made in this one; only the focused view's
+    /// selection drives the display.
     func textViewDidChangeSelection(_ textView: UITextView) {
+        if textView.isFirstResponder { focus(textView) }
+        guard textView === self.textView else { return }
         selectionChanged()
     }
 
@@ -519,7 +585,8 @@ extension MobileEditor: UITextViewDelegate {
 extension MobileEditor: UIGestureRecognizerDelegate {
     /// The drawer or block a tap at `point` folds or unfolds: a folded one's `…`, the space after
     /// its first line, or anywhere on an open drawer's first line.
-    private func foldToggle(at point: CGPoint) -> Int? {
+    private func foldToggle(at point: CGPoint, in view: UITextView? = nil) -> Int? {
+        let textView = view ?? textView
         guard let manager = textView.textLayoutManager, let content = manager.textContentManager else { return nil }
         let inContainer = CGPoint(x: point.x - textView.textContainerInset.left, y: point.y - textView.textContainerInset.top)
         guard let fragment = manager.textLayoutFragment(for: inContainer), let range = fragment.textElement?.elementRange else { return nil }
@@ -534,13 +601,15 @@ extension MobileEditor: UIGestureRecognizerDelegate {
     /// A tap on a fold's `…` opens it, and one on an open drawer's first line folds it, as TAB
     /// on the line does.
     @objc fileprivate func tappedFold(_ tap: UITapGestureRecognizer) {
+        if let view = tap.view as? UITextView { focus(view) }
         guard let start = foldToggle(at: tap.location(in: textView)),
               let next = Presentation.cycle(at: start, in: document.tree, fold) else { return }
         setFolds(next)
     }
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        foldToggle(at: gestureRecognizer.location(in: textView)) != nil
+        guard let view = gestureRecognizer.view as? UITextView else { return false }
+        return foldToggle(at: gestureRecognizer.location(in: view), in: view) != nil
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
