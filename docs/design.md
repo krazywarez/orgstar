@@ -329,6 +329,7 @@ Fidelity is checked against Emacs itself, using the same oracle pattern as orgo'
 - Encoding fixtures (BOM, CRLF, mixed endings, invalid UTF-8, non-BMP, combining characters) are public, in the repo.
 - Save fault-injection tests replace the file on disk at each step of the save sequence.
 - Personal org files are a second, private corpus run locally; phase gates use the public corpus.
+- `scripts/check-file-sizes.sh` fails when a hand-written Swift file is over 1,000 lines; run it beside `swift test`. The generated `CharFold.swift` and `Queries.swift` are exempt.
 
 ## Phases
 
