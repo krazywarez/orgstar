@@ -42,8 +42,18 @@ final class MarkdownRenderer {
         self.options = options
     }
 
+    /// The document's tree, for code references, and each src and example block's
+    /// `org-export-get-loc`, by the block's text, in order.
+    private var documentTree: OrgTree?
+    private var blockLocs: [String: [Int?]] = [:]
+
     func document(_ text: String) -> String {
         let tree = OrgParser.parse(text, defaults: settings)
+        documentTree = tree
+        let codeBlocks = Coderef.blocks(tree)
+        for (lines, loc) in zip(codeBlocks, Coderef.locs(codeBlocks.compactMap(Coderef.block))) {
+            blockLocs[lines.joined(separator: "\n"), default: []].append(loc)
+        }
         for node in tree.root.descendants() where node.kind == .footnoteDefinition {
             if let m = node.text.firstMatch(of: /^\[fn:([^\]]+)\][ \t]*/) {
                 definitions[String(m.1)] = String(node.text[m.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -226,9 +236,9 @@ final class MarkdownRenderer {
         body = body.map { String($0.dropFirst(min(common, $0.prefix { $0 == " " }.count))) }
         switch type {
         case "src":
-            return fence(body, language: parameters.split(separator: " ").first.map(String.init) ?? "", indent: indent)
+            return fence(code(lines, body), language: parameters.split(separator: " ").first.map(String.init) ?? "", indent: indent)
         case "example":
-            return fence(body, language: "", indent: indent)
+            return fence(code(lines, body), language: "", indent: indent)
         case "quote":
             return blocks(text: body.joined(separator: "\n")).trimmingCharacters(in: .newlines)
                 .components(separatedBy: "\n").map { indent + ($0.isEmpty ? ">" : "> " + $0) }.joined(separator: "\n")
@@ -331,6 +341,22 @@ final class MarkdownRenderer {
         }
     }
 
+    /// `org-export-format-code-default`: the code without its labels, numbered as the block's
+    /// switches say, a label kept after its line with `retain`.
+    private func code(_ block: [String], _ body: [String]) -> [String] {
+        let switches = Coderef.block(block)?.switches ?? Coderef.Switches(nil)
+        let (lines, refs) = Coderef.unravel(body, format: switches.labelFormat)
+        let key = block.joined(separator: "\n")
+        let stored = blockLocs[key]?.isEmpty == false ? blockLocs[key]!.removeFirst() : nil
+        let loc = switches.numberLines == nil ? nil : stored
+        let width = loc.map { String($0 + lines.count).count } ?? 0
+        return lines.enumerated().map { index, line in
+            let number = loc.map { String(repeating: " ", count: max(0, width - String($0 + index + 1).count)) + "\($0 + index + 1)  " } ?? ""
+            let label = switches.retainLabels ? refs[index + 1].map { " (\($0))" } ?? "" : ""
+            return number + line + label
+        }
+    }
+
     private func link(_ node: SyntaxNode) -> String {
         guard let path = node.tokens.first(where: { $0.kind == .linkPath })?.text else {
             // A radio link is its text.
@@ -338,6 +364,14 @@ final class MarkdownRenderer {
             var target = node.text
             if target.hasPrefix("<"), target.hasSuffix(">") { target = String(target.dropFirst().dropLast()) }
             return "<\(target)>"
+        }
+        // A code reference is its label or its line's number; a regexp search has nowhere to go.
+        if path.hasPrefix("("), path.hasSuffix(")"), path.count >= 2 {
+            let name = String(path.dropFirst().dropLast())
+            return Coderef.linkText(documentTree.flatMap { Coderef.resolve(name, in: $0) } ?? name, description: node.firstChild(.linkDescription)?.text)
+        }
+        if path.count >= 2, path.hasPrefix("/"), path.hasSuffix("/") {
+            return node.firstChild(.linkDescription).map(inline) ?? path
         }
         var href = path
         if path.hasPrefix("file:") {

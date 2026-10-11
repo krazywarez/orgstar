@@ -614,6 +614,10 @@ struct ContentView: View {
         switch request {
         case .openLink(let link):
             if let message = LinkOpener.open(link, session: session, workspace: workspace) { commands.show(message) }
+            // `org-occur` for a regexp link, once the editor shows the file.
+            if let regexp = Links.regexpSearch(link) {
+                DispatchQueue.main.async { commands.editor?.perform(SparseTreeCommand(), answers: ["sparse": "/", "regexp": regexp]) }
+            }
         case .tangle(let scope):
             commands.show(session.tangle(scope))
         case .agenda(let start, let days):

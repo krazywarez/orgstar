@@ -43,7 +43,7 @@ extension DocumentSession {
             }
             return followFile(file, isText: isText)
         case "coderef":
-            return .message("Coderef links aren't supported")
+            return searchCurrent("(" + link.path + ")")
         case "shell", "elisp":
             return .message("orgstar doesn't run \(link.type) links")
         default:
@@ -100,6 +100,11 @@ extension DocumentSession {
             return .shown
         case .failed(let message):
             return .message(message)
+        case .occur(let regexp):
+            // The first match; the Mac's editor shows the sparse tree.
+            guard let text = document?.text, let matches = try? SparseTree.occur(regexp, in: text) else { return .message("Invalid regexp: \(regexp)") }
+            if let first = matches.points.first { reveal(first) }
+            return .message("\(matches.points.count) match(es) for regexp \(regexp)")
         }
     }
 }

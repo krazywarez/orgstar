@@ -82,9 +82,13 @@ struct LinkTests {
             let ours: String = switch Links.search(s, text: Self.searchText, tree: tree) {
             case .found(let offset): "at \(EmacsOracle.point(offset, in: Self.searchText))"
             case .failed(let message): message
+            case .occur(let regexp): "occur \(regexp)"
             }
-            // Org opens a sparse tree for regexps and finds coderefs only in blocks; Orgstar says so.
-            if s == "(ref)" || s == "/re/" { continue }
+            // Org opens a sparse tree for regexps.
+            if s == "/re/" {
+                #expect(ours == "occur re")
+                continue
+            }
             #expect(ours == expected, "\(s)")
         }
     }

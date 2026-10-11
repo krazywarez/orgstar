@@ -175,8 +175,18 @@ final class HTMLRenderer {
 
     // MARK: - Document
 
+    /// The document's tree, for code references, and each src and example block's
+    /// `org-export-get-loc`, by the block's text, in order.
+    private var documentTree: OrgTree?
+    private var blockLocs: [String: [Int?]] = [:]
+
     func document(_ text: String) -> String {
         let tree = OrgParser.parse(text, defaults: settings)
+        documentTree = tree
+        let codeBlocks = Coderef.blocks(tree)
+        for (lines, loc) in zip(codeBlocks, Coderef.locs(codeBlocks.compactMap(Coderef.block))) {
+            blockLocs[lines.joined(separator: "\n"), default: []].append(loc)
+        }
         collectDefinitions(tree.root)
         selected = Self.selection(tree, tags: options.selectTags)
         var out = ""
@@ -644,12 +654,14 @@ final class HTMLRenderer {
         switch type {
         case "src":
             let language = parameters.split(separator: " ").first.map(String.init)
-            let source = dedent(unescaped).joined(separator: "\n")
+            let (lines, loc, switches, refs) = code(lines, dedent(unescaped))
+            let source = lines.joined(separator: "\n")
             let code = language.flatMap { codeStyle?.html(language: $0, code: source) } ?? Self.escape(source)
             let cls = language.map { " class=\"language-\(Self.escape($0))\"" } ?? ""
-            return "<pre><code\(cls)>\(code)</code></pre>\n"
+            return "<pre><code\(cls)>\(numbered(code, loc: loc, refs: refs, retain: switches.retainLabels))</code></pre>\n"
         case "example":
-            return "<pre>\(Self.escape(dedent(unescaped).joined(separator: "\n")))</pre>\n"
+            let (lines, loc, switches, refs) = code(lines, dedent(unescaped))
+            return "<pre>\(numbered(Self.escape(lines.joined(separator: "\n")), loc: loc, refs: refs, retain: switches.retainLabels))</pre>\n"
         case "quote":
             return "<blockquote>\n\(blocks(text))</blockquote>\n"
         case "center":
@@ -666,6 +678,45 @@ final class HTMLRenderer {
             return ""
         default:
             return "<div class=\"\(Self.escape(type))\">\n\(blocks(text))</div>\n"
+        }
+    }
+
+    /// A src or example block's code without its labels (`org-export-unravel-code`), the lines
+    /// numbered before it, its switches, and its labels by line.
+    private func code(_ block: [String], _ body: [String]) -> (lines: [String], loc: Int?, switches: Coderef.Switches, refs: [Int: String]) {
+        let switches = Coderef.block(block)?.switches ?? Coderef.Switches(nil)
+        let (lines, refs) = Coderef.unravel(body, format: switches.labelFormat)
+        let key = block.joined(separator: "\n")
+        let loc = blockLocs[key]?.isEmpty == false ? blockLocs[key]!.removeFirst() : nil
+        return (lines, switches.numberLines == nil ? nil : loc, switches, refs)
+    }
+
+    /// `org-html-do-format-code`: lines numbered from `loc`, and lines with a label marked as
+    /// its `coderef-` anchor, the label kept after them with `retain`.
+    private func numbered(_ html: String, loc: Int?, refs: [Int: String], retain: Bool) -> String {
+        guard loc != nil || !refs.isEmpty else { return html }
+        let lines = Self.splitLines(html)
+        let width = loc.map { String($0 + lines.count).count } ?? 0
+        return lines.enumerated().map { index, line in
+            var out = loc.map { "<span class=\"linenr\">" + String(repeating: " ", count: max(0, width - String($0 + index + 1).count)) + "\($0 + index + 1): </span>" } ?? ""
+            out += line
+            guard let ref = refs[index + 1] else { return out }
+            if retain { out += " (\(Self.escape(ref)))" }
+            return "<span id=\"coderef-\(Self.escape(ref))\" class=\"coderef-off\">\(out)</span>"
+        }.joined(separator: "\n")
+    }
+
+    /// Highlighted code split into lines, spans open at a line's end closed there and opened
+    /// again on the next.
+    static func splitLines(_ html: String) -> [String] {
+        var open: [String] = []
+        return html.components(separatedBy: "\n").map { line in
+            var out = open.joined() + line
+            for m in line.matches(of: /<span[^>]*>|<\/span>/) {
+                if m.output.hasPrefix("</") { if !open.isEmpty { open.removeLast() } } else { open.append(String(m.output)) }
+            }
+            out += String(repeating: "</span>", count: open.count)
+            return out
         }
     }
 
@@ -806,6 +857,17 @@ final class HTMLRenderer {
             var target = node.text
             if target.hasPrefix("<"), target.hasSuffix(">") { target = String(target.dropFirst().dropLast()) }
             return "<a href=\"\(Self.escape(target))\">\(Self.escape(target))</a>"
+        }
+        // A code reference: the label, or its line's number.
+        if path.hasPrefix("("), path.hasSuffix(")"), path.count >= 2 {
+            let name = String(path.dropFirst().dropLast())
+            let resolved = documentTree.flatMap { Coderef.resolve(name, in: $0) } ?? name
+            let text = Coderef.linkText(resolved, description: description.map { $0.text })
+            return "<a href=\"#coderef-\(Self.escape(name))\" class=\"coderef\">\(Self.escape(text))</a>"
+        }
+        // A regexp search has nowhere to go in the export.
+        if path.count >= 2, path.hasPrefix("/"), path.hasSuffix("/") {
+            return description.map(inline) ?? Self.escape(path)
         }
         var href = path
         var label = path

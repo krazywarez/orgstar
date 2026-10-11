@@ -206,6 +206,15 @@ public enum Links {
     public enum SearchResult: Sendable, Equatable {
         case found(Int)
         case failed(String)
+        /// `/regexp/`: `org-occur`'s sparse tree for the regular expression.
+        case occur(String)
+    }
+
+    /// The regular expression of a `[[/regexp/]]` link or a `file:…::/regexp/` search.
+    public static func regexpSearch(_ link: OrgLink) -> String? {
+        let s = link.type == "fuzzy" ? link.path : link.type == "file" ? (link.searchOption ?? "") : ""
+        guard s.count >= 2, s.hasPrefix("/"), s.hasSuffix("/") else { return nil }
+        return String(s.dropFirst().dropLast())
     }
 
     /// `org-link-search` in an org file: a `#custom-id`, a `<<target>>`, a `#+NAME:`, or a
@@ -227,10 +236,11 @@ public enum Links {
             return .failed("No match for custom ID: \(id)")
         }
         if normalized.hasPrefix("("), normalized.hasSuffix(")") {
-            return .failed("Coderef links aren't supported")
+            let name = String(normalized.dropFirst().dropLast())
+            return Coderef.search(name, text: text, tree: tree).map(SearchResult.found) ?? .failed("No match for coderef: \(name)")
         }
         if normalized.count >= 2, normalized.hasPrefix("/"), normalized.hasSuffix("/") {
-            return .failed("Regexp links aren't supported")
+            return .occur(String(s.dropFirst().dropLast()))
         }
         let quoted = words.map(NSRegularExpression.escapedPattern(for:))
         if !starred {

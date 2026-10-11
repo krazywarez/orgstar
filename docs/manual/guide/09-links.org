@@ -59,7 +59,8 @@ A message in the echo area explains a link that can't be followed.
 | Custom ID                                    | =[[#setup]]=                         | Moves to the heading in this file whose =CUSTOM_ID= property is =setup=.                   |
 | Heading                                      | =[[*Weekly review]]=                 | Moves to the heading in this file with that title.                                         |
 | Text                                         | =[[budget table]]=                   | Searches this file: a =<<budget table>>= target, then =#+NAME: budget table=, then a heading. |
-| Coderef                                      | =[[(ref)]]=                          | Not supported. The echo area says so.                                                      |
+| Coderef                                      | =[[(ref)]]=                          | Moves to the label =(ref:ref)= in a src or example block; see /Code references/ below.      |
+| Regexp                                       | =[[/TODO.*soon/]]=                   | Shows a sparse tree of the regular expression's matches, as =org-occur=; iOS moves to the first match. |
 | =shell=, =elisp=                             | =[[shell:ls]]=                       | Not run. orgstar never executes these links.                                               |
 | =attachment=                                 | =[[attachment:scan.pdf]]=            | Opens the file in the entry's attachment folder; see /Attachment links/ below.             |
 | Radio link                                   | Text matching a =<<<radio target>>>= | Moves to the radio target.                                                                 |
@@ -343,3 +344,12 @@ are in Commands, and on a hardware keyboard the Emacs keys run them; they work a
 described above, and stored links last until the app quits. =org-protocol://store-link=
 links opened on the device are stored and copied too. The backlinks pane is Mac only.
 See [[file:14-ios.org][iOS]].
+
+* Code references
+
+A label at the end of a line in a src or example block, =(ref:name)= by default, is a code reference, and =[[(name)]]= links to it. Following the link moves to the label. A block's =-l "<<%s>>"= switch changes the label's form for that block; =%s= is the name.
+
+In export, the label is taken off the line. A block with =-n= numbers its lines from 1, or =-n 10= from 10; =+n= goes on from the numbers of the blocks before it. =-r= leaves the label out of the exported line, and then the link shows the line's number instead of the name; =-k= with =-n= keeps the label while the link still shows the number. A link's description may contain =%s= for the name or number: =[[(call)][line %s]]=. In HTML, the line with the label is the link's target, =coderef-name=.
+
+A regexp link, or a =file:…::/regexp/= search, exports as its description, or its text when it has none.
+
