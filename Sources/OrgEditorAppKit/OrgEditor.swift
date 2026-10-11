@@ -207,6 +207,7 @@ public final class OrgEditor: NSObject {
         configure(view, frame: frame, editable: active.isEditable)
         view.lineIndex = lines
         view.showsLineNumbers = showLineNumbers
+        view.lineNumbersType = lineNumbersType
         view.isContinuousSpellCheckingEnabled = active.isContinuousSpellCheckingEnabled
         view.blockCursor = active.blockCursor
         applyThemeToView()
@@ -323,6 +324,7 @@ public final class OrgEditor: NSObject {
         scroll.hasVerticalScroller = true
         scroll.documentView = textView
         (textView as? OrgTextView)?.showsLineNumbers = showLineNumbers
+        (textView as? OrgTextView)?.lineNumbersType = lineNumbersType
         textView.minSize = NSSize(width: 0, height: scroll.contentSize.height)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         return scroll
@@ -384,6 +386,9 @@ public final class OrgEditor: NSObject {
         didSet { if showMarkup != oldValue { restyleEverything() } }
     }
     /// Line numbers in a ruler beside the text.
+    public var lineNumbersType = LineNumbersType.absolute {
+        didSet { for view in orgTextViews { view.lineNumbersType = lineNumbersType } }
+    }
     public var showLineNumbers = true {
         didSet { for view in orgTextViews { view.showsLineNumbers = showLineNumbers } }
     }
@@ -429,6 +434,11 @@ public final class OrgEditor: NSObject {
     var replayingMacro = 0
     /// A region is active: movement extends the selection, as after C-SPC in Emacs.
     private(set) var markActive = false
+    /// An incremental search in progress, and whether Vim's `/` or `?` started it.
+    var isearch: ISearch?
+    var isearchVim = false
+    /// The last search string, for C-s C-s.
+    static var lastISearch: String?
 
     public func context(now: Date = Date(), answers: [String: String] = [:]) -> EditContext {
         let selected = textView.selectedRange()
@@ -443,6 +453,7 @@ public final class OrgEditor: NSObject {
     /// Offers a key press to the keymap. False lets the text system have it.
     func handleKey(_ event: NSEvent) -> Bool {
         guard let chord = KeyEvents.chord(for: event, optionAsMeta: optionAsMeta) else { return modal && vim.mode != .insert }
+        if isearch != nil, isearchKey(chord) { return true }
         if let handled = completionKey(chord) { return handled }
         if modal { return handleModal(chord) }
         switch dispatcher.feed(chord) {
@@ -462,7 +473,7 @@ public final class OrgEditor: NSObject {
             onMessage?("\(KeySequence.format(keys)) is undefined")
             return true
         case .unbound:
-            return electricPair(chord)
+            return electricPair(chord) || autoFill(chord)
         case .complete(let keys, let candidates):
             if keys.count > 1 { onKeysPending?(nil, []) }
             let context = context()
@@ -471,8 +482,24 @@ public final class OrgEditor: NSObject {
                 run(binding.command)
                 return true
             }
-            return keys.count == 1 && electricPair(chord)
+            return keys.count == 1 && (electricPair(chord) || autoFill(chord))
         }
+    }
+
+    /// `auto-fill-mode` for this buffer: the settings' unless toggled here.
+    public var autoFillOverride: Bool?
+    var autoFills: Bool { isOrg && (autoFillOverride ?? options.autoFill) }
+
+    /// SPC with `auto-fill-mode`: true when it typed the space and filled the line.
+    func autoFill(_ key: KeyChord) -> Bool {
+        guard autoFills, key.key == "SPC", key.modifiers.isEmpty, !textView.hasMarkedText() else { return false }
+        _ = perform(AutoFillSpace())
+        return true
+    }
+
+    func toggleAutoFill() {
+        autoFillOverride = !autoFills
+        onMessage?(autoFills ? "Auto-Fill mode enabled in current buffer" : "Auto-Fill mode disabled in current buffer")
     }
 
     /// `electric-pair-mode` for a key the keymap leaves to the text system: true when it
@@ -537,6 +564,11 @@ public final class OrgEditor: NSObject {
             case "editor.toggle-spell-check": toggleSpellCheck()
             case "editor.complete": completeAtPoint()
             case "editor.toggle-truncate-lines": toggleTruncateLines()
+            case "editor.toggle-auto-fill": toggleAutoFill()
+            case "edit.isearch-forward": startISearch(forward: true)
+            case "edit.isearch-backward": startISearch(forward: false)
+            case "edit.isearch-forward-regexp": startISearch(forward: true, regexp: true)
+            case "edit.isearch-backward-regexp": startISearch(forward: false, regexp: true)
             default: tableColumnWidth(id)
             }
         case .edit(let selector, let extending):

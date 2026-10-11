@@ -343,14 +343,14 @@ Motions move the caret in normal state, extend the selection in visual states, a
 | =s= /xy/, =S= /xy/ | evil-snipe: to the next or previous /xy/ on the line. Each character matches its variants as for =f=, and /xy/ without a capital matches case-insensitively. =SPC= and =TAB= are read as a space and a tab. Not available after an operator. |
 | =%= | The bracket matching the next =()=, =[]= or ={}= on the line. |
 | ={=, =}= | Previous, next blank line. |
-| =/=, =?= | Asks in the echo area for a regular expression and searches forward or backward, wrapping around the file. |
+| =/=, =?= | Searches forward or backward as you type a regular expression, the match selected and the others highlighted; =RET= goes there, wrapping around the file, and =Esc= goes back. On iOS, asks in the echo area instead. |
 | =n=, =N= | Repeats the last search in the same or the opposite direction. |
 | =*=, =#= | Searches forward or backward for the whole word under the caret. |
 | =C-d=, =C-u= | Down, up half the window's height; with a count, that many lines. |
 | =H=, =M=, =L= | First non-blank of the top, middle or bottom line the window shows. With a count, =H= goes to that line from the top and =L= from the bottom. Lines are text lines, not wrapped screen lines. Linewise after an operator. |
 | ='= /a/, =`= /a/ | To mark /a/: its line's first non-blank, or its exact position. See [[*Marks and jumps][Marks and jumps]]. |
 
-Search patterns are ICU regular expressions as macOS uses them, close to PCRE; Emacs and Vim regexp syntax such as =\(...\)= or =\<= does not work. =:noh= is accepted and does nothing; searches are not highlighted.
+Search patterns are ICU regular expressions as macOS uses them, close to PCRE; Emacs and Vim regexp syntax such as =\(...\)= or =\<= does not work. =:noh= is accepted and does nothing; matches are highlighted only while =/= or =?= is being typed.
 
 ** Operators
 
@@ -769,7 +769,12 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Yank (=edit.yank=) | =C-y= | — | — | Inserts the text last deleted with Kill Line, from the macOS kill buffer, not the clipboard (=yank=). There is no kill ring. |
 | Undo (=edit.undo=) | =C-/=, =C-_=, =C-x u= | — | — | Undoes the last change (=undo=). |
 | Transpose Characters (=edit.transpose-chars=) | =C-t= | — | — | Swaps the characters around the caret (=transpose-chars=). |
-| Find (=edit.find=) | =C-s=, =C-r= | — | =SPC s s= (N) | Opens the find bar. =C-s= and =C-r= both open it; there is no incremental search (=isearch-forward=). |
+| Find (=edit.find=) | — | =⌘F= | =SPC s s= (N) | Opens the find bar. |
+| Incremental Search (=edit.isearch-forward=) | =C-s= | — | — | Searches forward as you type (=isearch-forward=). See [[file:02-the-editor.org][The editor]]. |
+| Incremental Search Backward (=edit.isearch-backward=) | =C-r= | — | — | Searches backward as you type (=isearch-backward=). |
+| Incremental Regexp Search (=edit.isearch-forward-regexp=) | =C-M-s= | — | — | The same with a regular expression (=isearch-forward-regexp=). |
+| Incremental Regexp Search Backward (=edit.isearch-backward-regexp=) | =C-M-r= | — | — | The same backward (=isearch-backward-regexp=). |
+| Turn Auto Fill On or Off (=editor.toggle-auto-fill=) | — | — | — | Turns =auto-fill-mode= on or off in the current buffer. |
 | Find and Replace (=edit.replace=) | =M-%= | — | — | Opens the find bar with replace (=query-replace=). |
 | Find Next (=edit.find-next=) | — | — | — | Goes to the next match of the find bar's text. |
 | Find Previous (=edit.find-previous=) | — | — | — | Goes to the previous match. |

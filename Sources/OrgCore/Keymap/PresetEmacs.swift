@@ -87,10 +87,16 @@ extension KeymapPreset {
         command = "edit.transpose-chars"
         [[bind]]
         keys = "C-s"
-        command = "edit.find"
+        command = "edit.isearch-forward"
         [[bind]]
         keys = "C-r"
-        command = "edit.find"
+        command = "edit.isearch-backward"
+        [[bind]]
+        keys = "C-M-s"
+        command = "edit.isearch-forward-regexp"
+        [[bind]]
+        keys = "C-M-r"
+        command = "edit.isearch-backward-regexp"
         [[bind]]
         keys = "M-%"
         command = "edit.replace"

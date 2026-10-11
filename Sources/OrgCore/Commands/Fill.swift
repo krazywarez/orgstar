@@ -105,6 +105,7 @@ extension EmacsBuffer {
             guard let element = element(at: lineBegin) else { return nil }
             switch element.kind {
             case .comment:
+                point = lineBegin
                 let indent = substring(lineBegin, lineBegin + (looking("[ \\t]*", setsMatch: false).map { $0[0]!.count } ?? 0))
                 return indent + "# "
             case .item, .plainList:
@@ -589,5 +590,92 @@ public struct FillRegion: OrgCommand {
                 buffer.skipForward(EmacsBuffer.blanks)
             }
         }
+    }
+}
+
+// `auto-fill-mode` in Org: `org-auto-fill-function`, which runs `do-auto-fill` with
+// `org-adaptive-fill-function`'s prefix and breaks lines with `org-comment-line-break-function`.
+extension EmacsBuffer {
+    /// After typing a space, point after it: the line broken before `fill-column` as often as it
+    /// takes, each new line starting with the fill prefix.
+    func autoFill() {
+        let fillColumn = options.fillColumn
+        guard currentColumn > fillColumn, let prefix = orgAdaptiveFillPrefix() else { return }
+        var giveUp = false
+        while !giveUp, currentColumn > fillColumn {
+            let fillPoint = saveExcursion { () -> Int in
+                beginningOfLine()
+                moveToColumn(cellWidth(prefix))
+                let afterPrefix = point
+                moveToColumn(fillColumn + 1)
+                moveToBreakPoint(afterPrefix)
+                return point
+            }
+            let useless = saveExcursion { () -> Bool in
+                point = fillPoint
+                if bolp || lookingAt(" *$") != nil { return true }
+                // Right after a comment starter, which would only start another comment.
+                let limit = point
+                beginningOfLine()
+                return searchForward("^[ \\t]*#(?: |$)", bound: limit, caseInsensitive: false).map { $0[0]!.upperBound == limit } ?? false
+            }
+            if useless { break }
+            let previousColumn = currentColumn
+            let atFillPoint = saveExcursion { () -> Bool in
+                skipBackward(Self.blanks)
+                return point == fillPoint
+            }
+            if atFillPoint {
+                commentLineBreak()
+            } else {
+                saveExcursion {
+                    point = fillPoint
+                    commentLineBreak()
+                }
+            }
+            if currentColumn >= previousColumn { giveUp = true }
+        }
+    }
+
+    /// `org-comment-line-break-function` with SOFT: a newline at point, the space around it
+    /// gone, and the next line started with the fill prefix.
+    func commentLineBreak() {
+        let prefix = orgAdaptiveFillPrefix()
+        insert("\n")
+        saveExcursion {
+            point -= 1
+            deleteBlanksAround()
+        }
+        deleteBlanksAround()
+        if let prefix { insert(prefix) }
+    }
+
+    /// `delete-horizontal-space`.
+    private func deleteBlanksAround() {
+        var start = point
+        while start > 0, let c = character(at: start - 1), c == 32 || c == 9 { start -= 1 }
+        var end = point
+        while let c = character(at: end), c == 32 || c == 9 { end += 1 }
+        deleteRegion(start, end)
+        point = start
+    }
+}
+
+/// SPC with `auto-fill-mode`: the space typed, then the line filled as Org's auto-fill does.
+public struct AutoFillSpace: OrgCommand {
+    public init() {}
+    public var id: String { "org.auto-fill-space" }
+    public var title: String { "Type Space and Auto-Fill" }
+    public func applies(in context: EditContext) -> Bool { true }
+    public func run(in context: EditContext) -> CommandStep {
+        let selection = context.selection.first ?? context.caret..<context.caret
+        let typed = TextEdit(range: selection, replacement: " ").apply(to: context.text)
+        let caret = selection.lowerBound + 1
+        let inserted = EditContext(revision: context.revision, text: typed, tree: OrgParser.parse(typed, defaults: context.tree.settings),
+                                   selection: [caret..<caret], now: context.now, calendar: context.calendar, options: context.options)
+        let filled = commitBuffer(inserted) { $0.autoFill() }
+        guard case .commit(let result) = filled else { return filled }
+        let text = result.edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(typed) { $1.apply(to: $0) }
+        return .commit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, text), selection: result.selection))
     }
 }

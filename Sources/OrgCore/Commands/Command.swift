@@ -84,6 +84,8 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var subSuperscriptsNeedBraces: Bool
     /// The running org-timer, which the app keeps; nil when there is none.
     public var timer: OrgTimer?
+    /// `auto-fill-mode`: typing a space past `fill-column` breaks the line.
+    public var autoFill = false
     /// `org-timer-format`.
     public var timerFormat = "%s "
     /// `org-timer-default-timer`.

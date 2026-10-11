@@ -428,6 +428,7 @@ struct OrgstarApp: App {
                     .keyboardShortcut("i", modifiers: [.command, .option])
                 MarkupToggle()
                 Button("Truncate or Wrap Long Lines") { commands.run("editor.toggle-truncate-lines") }
+                Button("Turn Auto Fill On or Off") { commands.run("editor.toggle-auto-fill") }
             }
             CommandGroup(after: .pasteboard) {
                 Divider()
@@ -501,12 +502,18 @@ struct MarkupToggle: View {
     @AppStorage("showTabBar") private var showTabBar = false
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
+    @AppStorage("lineNumbersType") private var lineNumbersType = "t"
 
     var body: some View {
         Toggle("Show Markup", isOn: $showMarkup)
             .keyboardShortcut("m", modifiers: [.command, .shift])
         Toggle("Show Line Numbers", isOn: $showLineNumbers)
             .keyboardShortcut("l", modifiers: [.command, .shift])
+        Picker("Line Numbers", selection: $lineNumbersType) {
+            Text("Absolute").tag("t")
+            Text("Relative").tag("relative")
+            Text("Visual").tag("visual")
+        }
         Toggle("Show Tab Bar", isOn: $showTabBar)
     }
 }

@@ -153,7 +153,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-use-speed-commands=         |                            |
 | =spell-check=                    |                            |
 | =electric-pair-mode=             |                            |
-| =display-line-numbers-type=      | View ▸ Show Line Numbers (=⇧⌘L=) |
+| =display-line-numbers-type=      | View ▸ Show Line Numbers (=⇧⌘L=), View ▸ Line Numbers |
 | =tab-bar=                        | View ▸ Show Tab Bar        |
 | =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
 | =ignored-folders=                |                            |
@@ -212,6 +212,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-tags-exclude-from-inheritance=  | string  | =""=    | Tags that never inherit, separated by spaces. Read at launch. Mirrors =org-tags-exclude-from-inheritance=. |
 | =org-tag-alist=                      | string  | =""=    | The tags Set Tags offers in files without =#+TAGS=, in =#+TAGS= syntax with keys and groups, rows separated by =\n=. Mirrors =org-tag-alist=. |
 | =org-track-ordered-property-with-tag= | string | ="nil"= | A tag that Toggle ORDERED Property adds and removes with the property: ="t"= for the tag =ORDERED=, or a tag name. Mirrors =org-track-ordered-property-with-tag=. |
+| =auto-fill-mode= | boolean | =false= | Typing a space past =fill-column= breaks the line. View ▸ Turn Auto Fill On or Off changes it for one buffer. Mirrors =auto-fill-mode= in =org-mode-hook=. |
 | =org-roam-directory= | string | =""= | The folder org-roam notes are in; empty for the first sidebar folder. Mirrors =org-roam-directory=. |
 | =org-roam-dailies-directory= | string | ="daily/"= | The folder daily notes are in, relative to =org-roam-directory=. Mirrors =org-roam-dailies-directory=. |
 | =org-roam-dailies-file= | string | ="%<%Y-%m-%d>.org"= | A daily note's file name; =%<…>= formats its date. |
@@ -234,7 +235,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-use-speed-commands=             | boolean | =false= | Single keys at the start of a heading line run commands (=n=, =p=, =t=, =c=, …). Mirrors =org-use-speed-commands=. |
 | =org-cycle-hide-drawer-startup=      | boolean | =true=  | Fold drawers when a file opens. =#+STARTUP: hidedrawers= / =nohidedrawers= override it. Mirrors =org-cycle-hide-drawer-startup=. |
 | =org-cycle-hide-block-startup=       | boolean | =false= | Fold blocks when a file opens. =#+STARTUP: hideblocks= / =nohideblocks= override it. Mirrors =org-cycle-hide-block-startup=. |
-| =display-line-numbers-type=          | boolean | =true=  | Line numbers in the editor's gutter. orgstar numbers lines absolutely; there is no relative or visual mode.    |
+| =display-line-numbers-type=          | boolean or string | =true=  | Line numbers in the editor's gutter: =true=, =false=, ="relative"= or ="visual"=. See [[file:02-the-editor.org][The editor]]. |
 | =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
 | =org-agenda-start-day=               | string  | ="+0d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
 | =org-agenda-start-on-weekday=        | string  | ="1"=   | The day weeks start on, ="0"= (Sunday) to ="6"= (Saturday), for the week view and spans of 7 or 14 days. ="nil"= starts them on the day the view starts from. Mirrors =org-agenda-start-on-weekday=. |
@@ -563,7 +564,8 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-publish-project-alist=                                        | A =[[publish]]= table in =config.toml= per project whose publishing functions are =org-html-publish-to-html=, =org-md-publish-to-md= or =org-publish-attachment=: the directories, =:base-extension=, =:recursive=, =:exclude=, =:include=, =:body-only=, the sitemap properties and =:components=. Other properties are reported as left out |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |
 | =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |
-| =display-line-numbers-type=                                        | =true= unless =nil=; =relative= and =visual= become absolute numbers                          |
+| =display-line-numbers-type=                                        | =true= unless =nil=; =relative= and =visual= as they are                                      |
+| =auto-fill-mode=                                                   | =true= for =(add-hook 'org-mode-hook #'auto-fill-mode)= or =turn-on-auto-fill=, or in =text-mode-hook= |
 | =org-agenda-span=                                                  | A number, or =day= (1), =week= (7), =fortnight= (14), =month= (30), =year= (365)               |
 | =org-clock-idle-time=                                             | Minutes; =nil= becomes =0= (never)                                                            |
 | =org-clock-history-length=                                         | The same key, when the value is a positive number                                             |

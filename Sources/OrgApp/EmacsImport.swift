@@ -212,6 +212,12 @@ public struct EmacsImport: Sendable {
             case "progn", "when", "unless", "if", "let", "let*", "with-no-warnings":
                 let skip = ["let", "let*", "when", "unless", "if"].contains(head) ? 1 : 0
                 body(args.dropFirst(skip), deferred: deferred)
+            case "add-hook":
+                // `auto-fill-mode` turned on for Org or text buffers.
+                if args.count >= 2, let hook = unquote(args[0])?.symbol, ["org-mode-hook", "text-mode-hook"].contains(hook),
+                   let function = unquote(args[1])?.symbol, ["auto-fill-mode", "turn-on-auto-fill"].contains(function) {
+                    assign("auto-fill-mode", .symbol("t"), source, priority: priority, deferred: deferred)
+                }
             case "defun", "defun!", "add-hook!":
                 // Doom sets org's defaults in the functions its module runs when org loads.
                 if doom, head == "defun" { body(args.dropFirst(2), deferred: true) }
@@ -495,7 +501,7 @@ public struct EmacsImport: Sendable {
             add(name, .integer(n))
         case "org-insert-heading-respect-content", "org-list-allow-alphabetical", "org-hide-emphasis-markers", "org-pretty-entities",
              "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup", "org-use-speed-commands", "org-startup-with-inline-images", "org-startup-with-latex-preview",
-             "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
+             "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated", "auto-fill-mode",
              "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies",
              "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options", "org-clock-out-remove-zero-time-clocks",
              "org-agenda-sort-notime-is-late", "org-agenda-sort-noeffort-is-high", "org-agenda-use-time-grid", "org-agenda-show-current-time-in-grid":
@@ -638,7 +644,7 @@ public struct EmacsImport: Sendable {
         case "org-log-into-drawer":
             if let s = value.string { add(name, .string(s)) } else { add(name, .string(truthy ? "LOGBOOK" : "")) }
         case "display-line-numbers-type":
-            add(name, .bool(truthy), truthy && value.symbol != "t" ? "display-line-numbers-type = true (orgstar numbers lines absolutely)" : nil)
+            if let type = value.symbol, ["relative", "visual"].contains(type) { add(name, .string(type)) } else { add(name, .bool(truthy)) }
         case "org-agenda-span":
             let days: Int? = value.integer ?? ["day": 1, "week": 7, "fortnight": 14, "month": 30, "year": 365][value.symbol ?? ""]
             guard let days else { return note("unknown span \(value.description)") }

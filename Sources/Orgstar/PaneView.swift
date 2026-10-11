@@ -14,6 +14,7 @@ struct EditorSettings: Equatable {
     var options = EditingOptions.org
     var showMarkup = false
     var showLineNumbers = true
+    var lineNumbersType = LineNumbersType.absolute
     var theme = ThemeSpec.default
 }
 
@@ -69,6 +70,7 @@ struct PaneView: NSViewRepresentable {
             if editor.options != options { editor.options = options }
             editor.showMarkup = settings.showMarkup
             editor.showLineNumbers = settings.showLineNumbers
+            editor.lineNumbersType = settings.lineNumbersType
             editor.themeSpec = settings.theme
         }
         container.window?.isDocumentEdited = !session.dirtyPaths.isEmpty

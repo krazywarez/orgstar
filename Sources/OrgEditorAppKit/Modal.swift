@@ -85,8 +85,8 @@ extension OrgEditor {
     func feedVim(_ keys: [KeyChord]) -> Bool {
         for (index, key) in keys.enumerated() {
             if vim.mode == .insert, vim.passesThrough(key) {
-                if keys.count == 1 { return electricPair(key) }
-                if !electricPair(key) { insertTyped(key) }
+                if keys.count == 1 { return electricPair(key) || autoFill(key) }
+                if !electricPair(key), !autoFill(key) { insertTyped(key) }
                 continue
             }
             let leaving = key == KeyChord("ESC") || key == KeyChord("[", .control) || key == KeyChord("g", .control)
@@ -331,6 +331,8 @@ extension OrgEditor {
     /// `/`, `?` and `:` read their argument in the echo area; `history` (`q:`) offers the
     /// earlier ones to pick and edit.
     private func prompt(_ kind: String, history: Bool = false) {
+        // `/` and `?` search as you type.
+        if !history, kind == "/" || kind == "?" { return startISearch(forward: kind == "/", vim: true) }
         let earlier = Array((Self.promptHistory[kind] ?? []).reversed())
         let request = history ? Prompt(key: kind, message: kind, choices: earlier, requireMatch: false) : Prompt(key: kind, message: kind)
         onPrompt?(request) { [weak self] answer in

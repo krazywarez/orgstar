@@ -76,6 +76,9 @@ public enum UserConfig {
             case integerChoice([(name: String, stored: Int)])
             /// `org-agenda-start-day`: `"-3d"` in the file, -3 stored.
             case dayOffset
+            /// `display-line-numbers-type`: `true`, `false`, `"relative"` or `"visual"`, stored as
+            /// a switch and, in `lineNumbersType`, the kind.
+            case lineNumbers
         }
 
         public let section: String
@@ -157,6 +160,8 @@ public enum UserConfig {
                 comment: "what a new daily note starts with, under its ID", legacy: ""),
         Setting(section: "", key: "org-roam-dailies-entry", defaultsKey: "dailiesEntry", kind: .string, fallback: .string("* %?"),
                 comment: "the capture template Capture to Daily Note files", legacy: ""),
+        Setting(section: "", key: "auto-fill-mode", defaultsKey: "autoFill", kind: .bool, fallback: .bool(false),
+                comment: "typing a space past fill-column breaks the line (View ▸ Auto Fill)", legacy: ""),
         Setting(section: "", key: "org-timer-format", defaultsKey: "timerFormat", kind: .string, fallback: .string("%s "),
                 comment: "how Insert Timer Value writes the timer; %s is h:mm:ss", legacy: ""),
         Setting(section: "", key: "org-timer-default-timer", defaultsKey: "timerDefault", kind: .string, fallback: .string("0"),
@@ -177,8 +182,8 @@ public enum UserConfig {
                 comment: "fold drawers when a file opens; #+STARTUP: nohidedrawers overrides", legacy: ""),
         Setting(section: "", key: "org-cycle-hide-block-startup", defaultsKey: "hideBlockStartup", kind: .bool, fallback: .bool(false),
                 comment: "fold blocks when a file opens; #+STARTUP: hideblocks overrides", legacy: ""),
-        Setting(section: "", key: "display-line-numbers-type", defaultsKey: "showLineNumbers", kind: .bool, fallback: .bool(true),
-                comment: "line numbers (View ▸ Show Line Numbers)", legacy: "editor.line-numbers"),
+        Setting(section: "", key: "display-line-numbers-type", defaultsKey: "showLineNumbers", kind: .lineNumbers, fallback: .bool(true),
+                comment: "line numbers: true, false, \"relative\" or \"visual\" (View ▸ Line Numbers)", legacy: "editor.line-numbers"),
         Setting(section: "", key: "org-agenda-span", defaultsKey: "agendaSpan", kind: .integer, fallback: .integer(10),
                 comment: "days the agenda shows", legacy: "agenda.span"),
         Setting(section: "", key: "org-agenda-start-day", defaultsKey: "agendaStartOffset", kind: .dayOffset, fallback: .string("+0d"),
@@ -341,6 +346,10 @@ public enum UserConfig {
         case .dayOffset:
             let days = defaults.integer(forKey: setting.defaultsKey)
             return .string((days < 0 ? "" : "+") + "\(days)d")
+        case .lineNumbers:
+            guard defaults.bool(forKey: setting.defaultsKey) else { return .bool(false) }
+            let type = defaults.string(forKey: "lineNumbersType") ?? ""
+            return ["relative", "visual"].contains(type) ? .string(type) : .bool(true)
         }
     }
 
@@ -348,6 +357,12 @@ public enum UserConfig {
     static func store(_ value: TOML.Value, _ setting: Setting, in defaults: UserDefaults) -> String? {
         let key = setting.defaultsKey
         switch (setting.kind, value) {
+        case (.lineNumbers, .bool(let b)):
+            defaults.set(b, forKey: key)
+            defaults.set("t", forKey: "lineNumbersType")
+        case (.lineNumbers, .string(let s)) where ["relative", "visual", "t", "nil"].contains(s):
+            defaults.set(s != "nil", forKey: key)
+            defaults.set(s == "nil" ? "t" : s, forKey: "lineNumbersType")
         case (.bool, .bool(let b)): defaults.set(b, forKey: key)
         case (.integer, .integer(let i)): defaults.set(i, forKey: key)
         case (.string, .string(let s)): defaults.set(s, forKey: key)

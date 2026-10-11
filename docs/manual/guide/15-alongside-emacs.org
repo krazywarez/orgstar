@@ -245,7 +245,9 @@ Other:
 - Priority ranges that aren't letters or numbers are refused.
 - =#+SETUPFILE= URLs aren't fetched.
 - Most =#+STARTUP= options for footnotes, entities, numbering and odd levels are accepted and ignored; see [[file:13-configuration.org][Configuration]].
-- =display-line-numbers-type= has no relative or visual mode.
+- Line numbers are on the Mac only. Visual line numbers count the screen lines in view; with the caret scrolled out of view they count lines of the file.
+- Incremental search doesn't save the mark where it began, and has no =M-e= editing, =C-w= or =C-y= yanking into the string, or search ring beyond the last search.
+- =auto-fill-mode= fills on a typed space only, not on =RET=.
 - The agenda's text search (see [[file:07-agenda.org][The agenda]]) covers the agenda files only: =org-agenda-text-search-extra-files= and =org-agenda-search-view-max-outline-level= aren't supported. It runs from the view menu rather than the dispatcher's =s= and =S=, and the search view's =[=, =]=, ={= and =}= keys, which add words and regexps to the search, aren't supported.
 - In regexps, =\<=, =\>= and =\b= use Org's word syntax but don't find a word boundary where the script changes between two word characters, as Emacs does (for example between an emoji and a letter).
 - org-roam: nodes come from orgstar's index, not org-roam's database, so =ROAM_ALIASES=, =ROAM_REFS=, =ROAM_EXCLUDE=, node tags in the chooser and the graph aren't supported. Insert Node Link… and Find Node… don't make new nodes from a title that isn't found. Daily notes use the first of =org-roam-dailies-capture-templates=, without choosing among several, and the date prompt prefers future dates, where org-roam prefers past ones. Capturing to a daily note files the entry at once rather than in a capture buffer.

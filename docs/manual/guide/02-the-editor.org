@@ -297,7 +297,9 @@ Long lines wrap at the edge of the editor by default. View ▸ Truncate or Wrap 
 
 To truncate lines in every file, turn on Settings ▸ Editing ▸ "Long lines run off the edge instead of wrapping", or set =org-startup-truncated = true= in =config.toml=. The default is to wrap, as Doom does; Emacs's own default is to truncate.
 
-Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (=org-fill-paragraph=), which breaks the paragraph's lines at the fill column: =M-q= in the Emacs preset and in every Doom state, =⌃⌘P= in the Mac preset. With a selection, it fills every paragraph the selection touches. In Doom's normal and visual states, =gq= and =gw= with a motion fill the paragraphs in the lines it covers (=gqq= and =gww= for the current lines); =gq= leaves the caret on the last line, =gw= where it was. Unlike Fill Paragraph, =gq= and =gw= keep extra spaces between words and at the ends of lines, as Doom does. See [[file:03-keys.org][Keys and commands]]. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or =fill-column= in =config.toml=. orgstar has no auto-fill: lines are not broken as you type.
+Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (=org-fill-paragraph=), which breaks the paragraph's lines at the fill column: =M-q= in the Emacs preset and in every Doom state, =⌃⌘P= in the Mac preset. With a selection, it fills every paragraph the selection touches. In Doom's normal and visual states, =gq= and =gw= with a motion fill the paragraphs in the lines it covers (=gqq= and =gww= for the current lines); =gq= leaves the caret on the last line, =gw= where it was. Unlike Fill Paragraph, =gq= and =gw= keep extra spaces between words and at the ends of lines, as Doom does. See [[file:03-keys.org][Keys and commands]]. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or =fill-column= in =config.toml=.
+
+=auto-fill-mode= breaks lines as you type: typing a space past the fill column breaks the line at the last space before the column, as often as it takes, and the new line starts with the line's fill prefix, as =org-auto-fill-function= has it: a list item's text lines up under the item, a comment line starts with =#=, and headings, tables and code aren't broken. Turn it on for every file with =auto-fill-mode = true= in =config.toml=, or for the current buffer with View ▸ Turn Auto Fill On or Off (=auto-fill-mode=, in the palette too); the echo area says =Auto-Fill mode enabled in current buffer= or =disabled=. Only a typed space fills, not =RET=.
 
 * View toggles
 
@@ -305,6 +307,7 @@ Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Pa
 |-------------------------------+-------------------------------+-------------------------------------------------+---------+----------------------------------+----------------|
 | Show Markup                   | View ▸ Show Markup            | =⇧⌘M=                                           | off     | =show-markup=                    | every buffer   |
 | Show Line Numbers             | View ▸ Show Line Numbers      | =⇧⌘L=                                           | on      | =display-line-numbers-type=      | every buffer   |
+| Auto fill                     | View ▸ Turn Auto Fill On or Off | palette                                       | off     | =auto-fill-mode=                 | current buffer |
 | Inline images                 | Org ▸ Show or Hide Inline Images | =C-c C-x C-v= (Emacs, Doom)                  | off     | =org-startup-with-inline-images= | current buffer |
 | LaTeX previews                | palette                       | =C-c C-x C-l= (Emacs, Doom)                     | off     | =org-startup-with-latex-preview= | current buffer |
 | Spell checking                | palette                       | =SPC t s= (Doom)                                | off     | =spell-check=                    | current buffer |
@@ -315,6 +318,16 @@ Toggles that apply to the current buffer last until it closes; the =config.toml=
 ** Line numbers
 
 Line numbers show in a margin left of the text, as =display-line-numbers-mode= shows them: one number per line of the file, so wrapped lines are numbered once and folded lines are skipped. The caret's line number is brighter. Line numbers are on by default.
+
+View ▸ Line Numbers chooses how they count, as =display-line-numbers-type= does in =config.toml=:
+
+| View ▸ Line Numbers | =display-line-numbers-type= | Numbers                                                                           |
+|---------------------+------------------------------+-----------------------------------------------------------------------------------|
+| Absolute            | =true=                       | The line's number in the file.                                                    |
+| Relative            | ="relative"=                 | How many lines of the file away from the caret's line.                            |
+| Visual              | ="visual"=                   | How many lines on the screen away from the caret's, counting each wrapped line.   |
+
+In the relative and visual kinds the caret's line shows its own number, as =display-line-numbers-current-absolute= does. =display-line-numbers-type = false= turns the numbers off. The iOS editor has no line numbers.
 
 * Themes
 
@@ -337,17 +350,30 @@ The undo history is cleared when the buffer reloads or merges changes from disk,
 
 * Finding text in a file
 
+=C-s= and =C-r= in the Emacs preset search as you type (=isearch-forward=, =isearch-backward=): the echo area shows =I-search:= and what you have typed, the next match is selected as each character goes in, and the other matches are highlighted. While searching:
+
+| Key           | What it does                                                                                       |
+|---------------+----------------------------------------------------------------------------------------------------|
+| characters    | Add to the search string.                                                                          |
+| =C-s=, =C-r=  | The next or previous match; with nothing typed yet, the last search again. After =Failing I-search=, the search wraps around the file (=Wrapped I-search=). |
+| =DEL=         | Undo the last key: a character, or a move to another match.                                        |
+| =RET=         | Stop, with the caret after the match (before it going backward).                                   |
+| =C-g=         | With a failing search, take off the part that fails; otherwise stop and go back to where the search began. |
+| other keys    | Stop where the search is, then run as usual.                                                       |
+
+A space matches any run of spaces and tabs, and an upper-case letter makes the search case-sensitive, as Emacs's defaults have it. =C-M-s= and =C-M-r= search with a regular expression (=isearch-forward-regexp=); patterns are ICU regular expressions. Folded text opens around a match. In Doom, =/= and =?= search the same way with a regular expression, the echo area showing =/= or =?= and the pattern; =RET= ends it as Vim's search does, so =n= and =N= repeat it, and =Esc= or =C-g= go back. On iOS, =C-s= and =C-r= work with a hardware keyboard, and Incremental Search is in Commands; typing on the on-screen keyboard adds to the search. iOS doesn't highlight the other matches.
+
 Edit ▸ Find opens the find bar above the text.
 
 | Menu item                         | Shortcut | Emacs preset      | Doom                  |
 |-----------------------------------+----------+-------------------+-----------------------|
-| Edit ▸ Find ▸ Find…               | =⌘F=     | =C-s=, =C-r=      | =SPC s s=             |
+| Edit ▸ Find ▸ Find…               | =⌘F=     |                   | =SPC s s=             |
 | Edit ▸ Find ▸ Find and Replace…   | =⌥⌘F=    | =M-%=             |                       |
 | Edit ▸ Find ▸ Find Next           | =⌘G=     |                   |                       |
 | Edit ▸ Find ▸ Find Previous       | =⇧⌘G=    |                   |                       |
 | Edit ▸ Find ▸ Use Selection for Find | =⌘E=  |                   |                       |
 
-In the Emacs preset =C-s= and =C-r= open the find bar; they are not incremental search. In Doom, =:s/PATTERN/REPLACEMENT/= and =:%s/…/…/= with the =g= and =i= flags substitute with regular expressions on the current line or in the whole file.
+In Doom, =:s/PATTERN/REPLACEMENT/= and =:%s/…/…/= with the =g= and =i= flags substitute with regular expressions on the current line or in the whole file.
 
 To search all your files, use the toolbar's search field; see [[file:01-files-and-folders.org][Files, folders and buffers]].
 

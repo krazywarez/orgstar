@@ -84,6 +84,7 @@ struct ContentView: View {
     @AppStorage("inspectorShown") private var inspectorShown = false
     @AppStorage("showMarkup") private var showMarkup = false
     @AppStorage("showLineNumbers") private var showLineNumbers = true
+    @AppStorage("lineNumbersType") private var lineNumbersType = "t"
     @AppStorage("showHiddenFiles") private var showHiddenFiles = true
     @AppStorage("ignoredFolders") private var ignoredFolders = ScanRules.defaultIgnoredFolders.sorted().joined(separator: " ")
     @AppStorage("themeFont") private var themeFont = ""
@@ -108,7 +109,8 @@ struct ContentView: View {
     @State private var window: WindowModel?
 
     private var editorSettings: EditorSettings {
-        EditorSettings(keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers, theme: theme)
+        EditorSettings(keymap: keymap, modal: preset.isModal, optionAsMeta: OptionAsMeta(rawValue: optionAsMeta), options: options, showMarkup: showMarkup, showLineNumbers: showLineNumbers,
+                       lineNumbersType: LineNumbersType(rawValue: lineNumbersType) ?? .absolute, theme: theme)
     }
 
     /// The pane that had the focus when a sheet opened, to act on when it closes.

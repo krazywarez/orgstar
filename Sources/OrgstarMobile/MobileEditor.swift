@@ -41,6 +41,12 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var showMarkup = true {
         didSet { if showMarkup != oldValue { restyleAll() } }
     }
+    /// An incremental search in progress, and the last search string, for C-s C-s.
+    var isearch: ISearch?
+    static var lastISearch: String?
+    /// `auto-fill-mode` for this buffer: the settings' unless toggled here.
+    var autoFillOverride: Bool?
+    var autoFills: Bool { autoFillOverride ?? options.autoFill }
     var keymap = KeymapPreset.emacs.keymap {
         didSet { dispatcher = KeyDispatcher(keymap: keymap) }
     }
@@ -277,6 +283,13 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "editor.toggle-truncate-lines":
             truncatesLines.toggle()
             onMessage?(truncatesLines ? "Truncate long lines enabled" : "Truncate long lines disabled")
+        case "edit.isearch-forward": startISearch(forward: true)
+        case "edit.isearch-backward": startISearch(forward: false)
+        case "edit.isearch-forward-regexp": startISearch(forward: true, regexp: true)
+        case "edit.isearch-backward-regexp": startISearch(forward: false, regexp: true)
+        case "editor.toggle-auto-fill":
+            autoFillOverride = !autoFills
+            onMessage?(autoFills ? "Auto-Fill mode enabled in current buffer" : "Auto-Fill mode disabled in current buffer")
         case "edit.undo": textView.undoManager?.undo()
         case "edit.redo": textView.undoManager?.redo()
         case "org.table.toggle-column-width", "org.table.shrink", "org.table.expand": tableColumnWidth(id)
@@ -299,7 +312,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
         switch id {
         case "org.cycle":
             return Presentation.heading(containing: context.caret, in: context.tree) != nil || Wrappers.toggleable(at: context.caret, in: context.tree) != nil
-        case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "org.latex-preview", "editor.toggle-truncate-lines": return true
+        case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "org.latex-preview", "editor.toggle-truncate-lines",
+             "editor.toggle-auto-fill", "edit.isearch-forward", "edit.isearch-backward",
+             "edit.isearch-forward-regexp", "edit.isearch-backward-regexp": return true
         case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.clock.in-recent", "app.clock.in-last",
              "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
         case "app.refile.goto", "app.table-import", "app.crypt.encrypt-entries", "app.crypt.forget-passphrase", "app.attach.attach", "app.attach.url",
@@ -350,6 +365,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// and editing keys (C-a, C-e, C-k...) are the text system's.
     func handleKey(_ key: UIKey) -> Bool {
         guard let chord = Self.chord(key), !chord.modifiers.contains(.command) else { return false }
+        if isearch != nil, isearchKey(chord) { return true }
         if modal { return handleModal(chord) }
         // Option alone types characters unless it begins a binding.
         if chord.modifiers == [.meta], dispatcher.pending.isEmpty,
@@ -469,9 +485,18 @@ extension MobileEditor: UITextViewDelegate {
         selectionChanged()
     }
 
-    /// `electric-pair-mode` for typed brackets and quotes, DEL and RET, from either keyboard.
+    /// `electric-pair-mode` for typed brackets and quotes, DEL and RET, and `auto-fill-mode`
+    /// for a typed space, from either keyboard.
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        if isearch != nil, !applyingEdits {
+            isearchTyped(text)
+            return false
+        }
         if !applyingEdits { typedOutsideInsert() }
+        if autoFills, !applyingEdits, textView.markedTextRange == nil, text == " ", range == textView.selectedRange {
+            _ = perform(AutoFillSpace())
+            return false
+        }
         guard options.electricPair, !applyingEdits, textView.markedTextRange == nil else { return true }
         let selected = textView.selectedRange
         let key: String

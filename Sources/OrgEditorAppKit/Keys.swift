@@ -51,6 +51,9 @@ final class OrgTextView: NSTextView {
     var showsLineNumbers = false {
         didSet { if showsLineNumbers != oldValue { updateGutter() } }
     }
+    var lineNumbersType = LineNumbersType.absolute {
+        didSet { if lineNumbersType != oldValue { needsDisplay = true } }
+    }
 
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)

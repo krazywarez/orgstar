@@ -13,6 +13,19 @@ struct UserConfigTests {
         return defaults
     }
 
+    @Test func lineNumbersTypes() throws {
+        let d = defaults()
+        let setting = try #require(UserConfig.settings.first { $0.key == "display-line-numbers-type" })
+        #expect(UserConfig.store(.string("relative"), setting, in: d) == nil)
+        #expect(d.bool(forKey: "showLineNumbers") && d.string(forKey: "lineNumbersType") == "relative")
+        #expect(UserConfig.value(setting, in: d) == .string("relative"))
+        #expect(UserConfig.store(.bool(true), setting, in: d) == nil)
+        #expect(UserConfig.value(setting, in: d) == .bool(true))
+        #expect(UserConfig.store(.bool(false), setting, in: d) == nil)
+        #expect(UserConfig.value(setting, in: d) == .bool(false))
+        #expect(UserConfig.store(.string("sideways"), setting, in: d) != nil)
+    }
+
     @Test func templateRoundTrips() {
         let source = defaults()
         source.set("doom", forKey: "keymap")
