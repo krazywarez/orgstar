@@ -1,8 +1,9 @@
 import Foundation
 
 // Clocking (org-clock.el, Org 9.8.7) with `org-clock-into-drawer` and the CLOCK_INTO_DRAWER
-// property, `org-log-states-order-reversed` t (newest first), no rounding, no resume, and
-// zero-time clocks kept.
+// property, `org-clock-rounding-minutes`, `org-clock-out-remove-zero-time-clocks`,
+// `org-clock-in-switch-to-state`, `org-log-states-order-reversed` t (newest first) and no
+// resume.
 
 extension EmacsBuffer {
     /// What `org-clock-into-drawer` comes to for an entry.
@@ -118,9 +119,38 @@ extension EmacsBuffer {
         forwardLine(1)
     }
 
+    /// `org-current-time` with `org-clock-rounding-minutes`: the minute rounded to a multiple,
+    /// with `past` one not after now.
+    func clockTime(past: Bool) -> Date {
+        let r = options.clockRoundingMinutes
+        guard r >= 1 else { return now }
+        var c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        c.minute = r * Int((Double(c.minute!) / Double(r)).rounded(.toNearestOrEven))
+        c.second = 0
+        guard let rounded = calendar.date(from: c) else { return now }
+        return !past || rounded < now ? rounded : rounded.addingTimeInterval(-Double(r * 60))
+    }
+
+    /// `org-clock-in-switch-to-state` on the heading at point, unless it has that keyword.
+    func switchToClockInState(answers: [String: String]) throws {
+        guard let state = options.clockInSwitchToState, !state.isEmpty else { return }
+        try saveExcursion {
+            try backToHeading()
+            let previous = todoKeyword
+            guard previous != state else { return }
+            guard keywordsInOrder.contains(state) else { throw UserError(message: "State `\(state)' not valid in this file") }
+            // `org-todo` stops at a blocker, and clocking in goes on.
+            guard (try? checkTodoBlocking(from: previous, to: state)) != nil else { return }
+            setTodoKeyword(state)
+            var answers = answers
+            if answers["note"] == nil { answers["note"] = "" }
+            try afterTodoChange(previous: previous, answers: answers)
+        }
+    }
+
     /// `org-clock-in` on the heading at point. Returns the clock's start stamp.
     @discardableResult
-    func clockIn() throws -> String {
+    func clockIn(answers: [String: String] = [:]) throws -> String {
         let start = point
         let pointMarker = marker(start)
         defer {
@@ -128,6 +158,7 @@ extension EmacsBuffer {
             release(pointMarker)
         }
         if eobp, !atHeadingLine { point = lineStart(max(0, lineStart(point) - 1)) }
+        try switchToClockInState(answers: answers)
         try clockFindPosition()
         insertBeforeMarkers("\n")
         point -= 1
@@ -140,7 +171,7 @@ extension EmacsBuffer {
             indentLineTo(max(0, current - 2))
         }
         insert("CLOCK: ")
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: clockTime(past: true))
         let stamp = insertTimestamp(components, withTime: true, inactive: true)
         // `org-indent-line` puts lines in a drawer at column 0 without adapted indentation.
         let lineText = substring(lineStart(point), lineEnd(point))
@@ -168,7 +199,7 @@ extension EmacsBuffer {
         point = match[0]!.upperBound
         deleteRegion(point, lineEnd(point))
         insert("--")
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: clockTime(past: false))
         let end = insertTimestamp(components, withTime: true, inactive: true)
         guard let startTime = Self.parseTimeString(start), let endTime = Self.parseTimeString(String(end.dropFirst().dropLast())),
               let a = calendar.date(from: startTime), let b = calendar.date(from: endTime) else { throw UserError(message: "Clock start time is gone") }
@@ -176,6 +207,9 @@ extension EmacsBuffer {
         let hours = Int((Double(seconds) / 3600).rounded(.down))
         let minutes = Int((Double(seconds - hours * 3600) / 60).rounded(.down))
         insert(" => " + String(format: "%2d:%02d", hours, minutes))
+        if options.clockOutRemoveZeroTimeClocks, hours == 0, minutes == 0 {
+            deleteRegion(lineStart(point), min(length, lineEnd(point) + 1))
+        }
         removeEmptyClockDrawer()
     }
 
@@ -226,7 +260,7 @@ public struct ClockIn: OrgCommand {
     public func applies(in context: EditContext) -> Bool { entryHeading(at: context.caret, in: context.tree) != nil }
     public func run(in context: EditContext) -> CommandStep {
         guard entryHeading(at: context.caret, in: context.tree) != nil else { return .failed("Before first headline") }
-        return commitBuffer(context) { try $0.clockIn() }
+        return commitBuffer(context) { try $0.clockIn(answers: context.answers) }
     }
 
     /// The start of the clock `ClockIn` left running in the entry at `offset`.

@@ -487,7 +487,7 @@ public struct EmacsImport: Sendable {
              "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup", "org-use-speed-commands", "org-startup-with-inline-images",
              "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
              "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies",
-             "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options":
+             "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options", "org-clock-out-remove-zero-time-clocks":
             add(name, .bool(truthy))
         case "org-archive-location":
             guard let location = value.string, location.contains("::") else { return note("not a file::heading location") }
@@ -543,6 +543,19 @@ public struct EmacsImport: Sendable {
         case "org-clock-idle-time":
             // nil is never; a number is minutes.
             if value.symbol == "nil" { add(name, .integer(0)) } else if let minutes = value.integer, minutes > 0 { add(name, .integer(minutes)) } else { note("not a number of minutes") }
+        case "org-clock-rounding-minutes":
+            guard let n = value.integer, n >= 0 else { return note("not a number of minutes") }
+            add(name, .integer(n))
+        case "org-clock-in-switch-to-state":
+            if let state = value.string { add(name, .string(state)) } else if value.symbol == "nil" { add(name, .string("")) } else { note("a function isn't supported; use a keyword") }
+        case "org-clock-out-when-done":
+            if let states = value.elements, !states.isEmpty {
+                let names = states.compactMap(\.string)
+                guard names.count == states.count else { return note("not a list of keywords") }
+                add(name, .string(names.joined(separator: " ")))
+            } else {
+                add(name, .string(truthy ? "t" : "nil"))
+            }
         case "org-clock-into-drawer":
             if let drawer = value.string { add(name, .string(drawer)) } else if let n = value.integer { add(name, .string("\(n)")) } else { add(name, .string(truthy ? "t" : "nil")) }
         case "org-clock-history-length":

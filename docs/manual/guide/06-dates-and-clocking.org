@@ -239,7 +239,11 @@ CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 15:30] =>  1:30
 - Only one clock runs at a time. Clocking in while another clock runs clocks that one out first, and remembers it as the interrupted task (=i= in the selection below).
 - Clocking in on the entry whose clock is running changes nothing and says =Clock continues in "Write the report"=.
 - =CLOCK:= lines outside a drawer move into the new drawer the first time you clock in on that entry.
-- Clock Out completes the line with the end time and the duration in hours and minutes. Clocks of zero minutes are kept.
+- With =org-clock-in-switch-to-state= set to a keyword in =config.toml=, Clock In gives the entry that keyword first (unless it has it), logging and checking dependencies as =C-c C-t= does. A file without the keyword can't be clocked in, as in Org: "State `NEXT' not valid in this file".
+- Clock Out completes the line with the end time and the duration in hours and minutes. Clocks of zero minutes are kept, unless =org-clock-out-remove-zero-time-clocks= is =true=; then the line goes and the message ends with "LINE REMOVED".
+- With =org-clock-rounding-minutes= set to N, the clock starts at the multiple of N minutes nearest now that isn't later, and stops at the nearest multiple; with 5, clocking in at 14:47 starts at 14:45.
+- Marking the clocked entry done clocks out (=org-clock-out-when-done=, on by default as in Org; set it to ="nil"= to keep the clock running, or to keywords that clock out). orgstar watches the entry's heading line, so typing a done keyword yourself clocks out too.
+- When the entry has an =Effort=, a notification says "Task `…' should be finished by now. (1:00)" once the time clocked on it and its subtree passes it, counting earlier clocks as =org-clock-mode-line-total= =auto= does (since =LAST_REPEAT= for a repeating task) or as its =CLOCK_MODELINE_TOTAL= says.
 - Cancel Clock removes the running clock's line, and the drawer if it is left empty.
 - Go to Clocked Entry opens the file and moves the caret to the running clock's line. With no clock running, it goes to the most recently clocked entry and says "No running clock, this is the most recently clocked task".
 
@@ -250,7 +254,7 @@ orgstar remembers the running clock and the clock history across restarts, in =c
 These parts of Org's clocking are not implemented:
 
 - sharing the running clock with Emacs: orgstar does not read or write Emacs's =org-clock-persist= file, so a clock started in one is not known to the other, although both see the open =CLOCK:= line;
-- rounding, changing the TODO state on clock-in (=org-clock-in-switch-to-state=), and clocking out when the entry is marked done (=org-clock-out-when-done=): the clock keeps running.
+- =org-clock-in-switch-to-state= and =org-clock-out-switch-to-state= as functions, and =org-clock-sound=: the notification uses the system's sound.
 
 ** The clock drawer
 

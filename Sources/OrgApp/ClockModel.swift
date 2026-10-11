@@ -48,6 +48,11 @@ public final class ClockModel {
     public private(set) var leftover: Date?
     /// A clock question is open (`org-clock-resolving-clocks`).
     public private(set) var isResolving = false
+    /// Where the effort reminder goes (`org-clock-notify-once-if-expired`); nil sets none.
+    @ObservationIgnored public var notifications: ReminderCenter?
+    /// The clocked entry's heading line as last seen, and its keyword, for
+    /// `org-clock-out-when-done`.
+    @ObservationIgnored private var watched: (line: String, keyword: String?)?
     private let file: URL
     private let defaults: UserDefaults
 
@@ -110,6 +115,8 @@ public final class ClockModel {
             running = Running(path: path, start: start, heading: entry.title, startedAt: now)
             if let task = ClockTask.at(heading, in: updated, path: path) { push(task, session) }
             save()
+            watched = clockedHeading(path, session)
+            remindAtEffort(session, now: now)
             return "Clock starts at [\(start)]"
         case .failed(let message):
             return message
@@ -121,13 +128,16 @@ public final class ClockModel {
     /// `org-clock-out`, or `org-clock-cancel` with `cancel`.
     public func clockOut(_ session: DocumentSession, cancel: Bool = false, now: Date = Date()) -> String {
         guard let clock = running else { return "No active clock" }
+        notifications?.remove([Self.effortReminderID])
         switch session.perform(ClockOut(start: clock.start, cancel: cancel), path: clock.path, at: 0, expect: nil, now: now) {
         case .commit:
             running = nil
+            watched = nil
             save()
             if cancel { return "Clock canceled" }
             let minutes = Int(now.timeIntervalSince(clock.startedAt) / 60)
-            return String(format: "Clock stopped after %d:%02d", minutes / 60, minutes % 60)
+            let removed = Self.text(clock.path, session).map { !$0.contains("CLOCK: [\(clock.start)]") } ?? false
+            return String(format: "Clock stopped after %d:%02d", minutes / 60, minutes % 60) + (removed ? " => LINE REMOVED" : "")
         case .failed(let message):
             if message == "Clock start time is gone" || message == "No active clock" {
                 running = nil
@@ -158,6 +168,104 @@ public final class ClockModel {
             }
         }
         return outcome
+    }
+
+    // MARK: - Done and effort
+
+    /// The heading line above the running clock's line in `text`.
+    private func clockedHeadingLine(_ text: String) -> String? {
+        guard let clock = running else { return nil }
+        let ns = text as NSString
+        var end = ns.range(of: "CLOCK: [\(clock.start)]").location
+        guard end != NSNotFound else { return nil }
+        while end > 0 {
+            let newline = ns.range(of: "\n", options: .backwards, range: NSRange(location: 0, length: end)).location
+            let start = newline == NSNotFound ? 0 : newline + 1
+            let line = ns.substring(with: ns.lineRange(for: NSRange(location: start, length: 0))).trimmingCharacters(in: .newlines)
+            if line.range(of: "^\\*+ ", options: .regularExpression) != nil { return line }
+            guard newline != NSNotFound else { return nil }
+            end = newline
+        }
+        return nil
+    }
+
+    /// The clocked entry's heading line and keyword.
+    private func clockedHeading(_ path: String, _ session: DocumentSession) -> (line: String, keyword: String?)? {
+        guard let text = Self.text(path, session), let heading = clockedHeadingLine(text) else { return nil }
+        let settings = OrgParser.parse(text, defaults: session.defaults).settings
+        let word = String(heading.drop { $0 == "*" }.drop { $0 == " " }.prefix { !$0.isWhitespace })
+        let keywords = settings.todoSequences.flatMap { $0.active + $0.done }.map(\.name)
+        return (heading, keywords.contains(word) ? word : nil)
+    }
+
+    /// `org-clock-out-if-current`: clocks out when the clocked entry's keyword became one of
+    /// `org-clock-out-when-done`'s (any done keyword for `t`). Returns the message.
+    public func textChanged(_ path: String, _ session: DocumentSession, now: Date = Date()) -> String? {
+        guard let clock = running, clock.path == path, let states = OrgPreferences.clockOutWhenDone(defaults),
+              let text = Self.text(path, session), let line = clockedHeadingLine(text), line != watched?.line,
+              let current = clockedHeading(path, session) else { return nil }
+        let before = watched
+        watched = current
+        guard let before else { return nil }
+        let settings = OrgParser.parse(text, defaults: session.defaults).settings
+        func stops(_ keyword: String?) -> Bool {
+            guard let keyword else { return false }
+            return states.isEmpty ? settings.isDone(keyword) : states.contains(keyword)
+        }
+        guard stops(current.keyword), !stops(before.keyword) else { return nil }
+        return clockOut(session, now: now)
+    }
+
+    static let effortReminderID = "orgstar-effort"
+
+    /// The running clock's entry: its Effort in minutes, and the minutes clocked on it before
+    /// this clock (`org-clock-sum-current-item` from `org-clock-get-sum-start`).
+    public func effort(_ session: DocumentSession, now: Date = Date(), calendar: Calendar = .current) -> (effort: Int, clocked: Int, value: String)? {
+        guard let clock = running, let text = Self.text(clock.path, session) else { return nil }
+        let line = (text as NSString).range(of: "CLOCK: [\(clock.start)]")
+        guard line.location != NSNotFound else { return nil }
+        let model = DocumentModel(tree: OrgParser.parse(text, defaults: session.defaults))
+        guard let index = model.headings.lastIndex(where: { $0.headingRange.lowerBound <= line.location }),
+              let value = model.headings[index].properties.last(where: { $0.key.uppercased() == "EFFORT" })?.value,
+              let effort = ColumnView.minutes(value), effort > 0 else { return nil }
+        let own = { (key: String) in model.headings[index].properties.last { $0.key.uppercased() == key }?.value }
+        func day(_ p: Timestamp.Point) -> Date? { calendar.date(from: DateComponents(year: p.year, month: p.month, day: p.day, hour: p.hour ?? 0, minute: p.minute ?? 0)) }
+        let since: Date? = switch own("CLOCK_MODELINE_TOTAL") ?? "auto" {
+        case "current": .distantFuture
+        case "today": calendar.startOfDay(for: now)
+        case "all": nil
+        default: own("LAST_REPEAT").flatMap { stamp in Timestamp.parse(stamp).flatMap { day($0.start) } }
+        }
+        let level = model.headings[index].level
+        var subtree = [index]
+        for i in (index + 1)..<model.headings.count {
+            guard model.headings[i].level > level else { break }
+            subtree.append(i)
+        }
+        let clocked = subtree.flatMap { model.headings[$0].clocks }.filter { clock in
+            guard clock.end != nil else { return false }
+            guard let since else { return true }
+            return day(clock.start).map { $0 >= since } ?? false
+        }.compactMap(\.minutes).reduce(0, +)
+        return (Int(effort), clocked, value)
+    }
+
+    /// A notification when the running clock passes the entry's Effort, as
+    /// `org-clock-notify-once-if-expired` shows: "Task `…' should be finished by now. (1:00)".
+    public func remindAtEffort(_ session: DocumentSession, now: Date = Date()) {
+        guard let notifications else { return }
+        notifications.remove([Self.effortReminderID])
+        guard let clock = running, let status = effort(session, now: now) else { return }
+        let due = clock.startedAt.addingTimeInterval(Double((status.effort - status.clocked) * 60))
+        let fire = max(due, now.addingTimeInterval(1))
+        let location = location(session)
+        let reminder = Reminder(id: Self.effortReminderID, fireDate: fire, eventDate: fire, title: "Effort used up",
+                                body: "Task `\(clock.heading)' should be finished by now. (\(status.value))",
+                                path: clock.path, offset: location?.offset ?? 0)
+        Task {
+            guard await notifications.authorize() else { return }
+            try? await notifications.add(reminder)
+        }
     }
 
     static func text(_ path: String, _ session: DocumentSession) -> String? {
@@ -510,6 +618,8 @@ public final class ClockModel {
                 running = Running(path: clock.path, start: clock.start, heading: clock.heading, startedAt: clock.startedAt)
                 if let task { push(task, session) }
                 save()
+                watched = clockedHeading(clock.path, session)
+                remindAtEffort(session)
                 messages.append("Clock starts at [\(clock.start)]")
             }
         }

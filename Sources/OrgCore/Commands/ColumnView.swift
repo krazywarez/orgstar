@@ -90,7 +90,7 @@ public enum ColumnView {
     static let unitMinutes: [(String, Double)] = [("min", 1), ("h", 60), ("d", 1440), ("w", 10080), ("m", 43200), ("y", 525960)]
 
     /// `org-duration-to-minutes`.
-    static func minutes(_ duration: String) -> Double? {
+    public static func minutes(_ duration: String) -> Double? {
         let s = duration.trimmingCharacters(in: .whitespaces)
         if s.isEmpty { return 0 }
         if s.wholeMatch(of: /[0-9]+(?::[0-9]{2}){1,2}/) != nil {

@@ -52,8 +52,11 @@ struct ContentView: View {
     @AppStorage("enforceTodoDependencies") private var enforceTodoDependencies = false
     @AppStorage("enforceTodoCheckboxDependencies") private var enforceTodoCheckboxDependencies = false
 
+    /// Bumped when user defaults change, so settings only config.toml has reach `options`.
+    @State private var defaultsChanges = 0
     private var options: EditingOptions {
-        Preferences.options(
+        _ = defaultsChanges
+        return Preferences.options(
             tagsColumn: tagsColumn, headingAfterSubtree: headingAfterSubtree, splitLine: splitLine, alphabeticalLists: alphabeticalLists,
             fillColumn: fillColumn, hiddenMarkers: hiddenMarkers, prettyEntities: prettyEntities, logDone: logDone, logIntoDrawer: logIntoDrawer,
             hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup, logReschedule: logReschedule, logRedeadline: logRedeadline,
@@ -284,6 +287,13 @@ struct ContentView: View {
         .onChange(of: editorSettings, initial: true) { _, settings in commands.editorSettings = settings }
         .onAppear {
             commands.externalHandler = runExternal
+            // `org-clock-out-when-done`, and the notification when the Effort runs out.
+            clock.notifications = SystemReminderCenter.isAvailable ? SystemReminderCenter() : nil
+            session.textChanged = { [weak session, weak clock, weak commands] path in
+                guard let session, let clock, let message = clock.textChanged(path, session) else { return }
+                commands?.show(message)
+            }
+            clock.remindAtEffort(session)
             commands.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
             commands.mainWindowOpen = true
             if let stale = window { commands.store.windows.removeAll { $0 === stale } }
@@ -311,6 +321,7 @@ struct ContentView: View {
         }
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
         .onChange(of: options, initial: true) { _, options in session.options = options }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in defaultsChanges += 1 }
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
         .sheet(item: $panel) { panel in

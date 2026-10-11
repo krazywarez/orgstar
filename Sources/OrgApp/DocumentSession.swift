@@ -80,6 +80,8 @@ public final class DocumentSession {
     public var autosaveDelay: Duration = .seconds(1)
     /// Org options for commands the session runs (refile, archive).
     public var options: EditingOptions = .org
+    /// Called with a file's path after its text changed through the session, typed or not.
+    @ObservationIgnored public var textChanged: ((String) -> Void)?
     /// TODO keywords and priorities for files without their own settings.
     public var defaults: OrgSettings = .default
 
@@ -345,6 +347,7 @@ public final class DocumentSession {
         }
         scheduleAutosave(entry)
         refreshLists()
+        textChanged?(entry.path)
     }
 
     /// `pane`'s view of its buffer, from the buffer's state.
@@ -757,6 +760,7 @@ public final class DocumentSession {
             if case .commit = step, state.isDirty, case .conflict = try saver.save(&state, to: url) {
                 return .failed("\(name) changed on disk; nothing was changed.")
             }
+            if case .commit = step { textChanged?(path) }
             return step
         } catch {
             return .failed("Can't change \(name): \(error.localizedDescription)")

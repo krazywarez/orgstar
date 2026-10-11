@@ -1006,6 +1006,39 @@ struct ClockModelTests {
         let text = try String(contentsOf: work, encoding: .utf8)
         #expect(text.hasPrefix("* Task\n:LOGBOOK:\nCLOCK: [") && text.contains("=>  1:35\n:END:\nBody\n"), "\(text)")
     }
+
+    /// `org-clock-out-when-done`, through the session's text-changed hook, and the Effort
+    /// notification.
+    @Test func clocksOutWhenDoneAndRemindsAtEffort() async throws {
+        let notes = try Folder()
+        let work = try notes.write("work.org", "* TODO Task\n:PROPERTIES:\n:Effort:   1:00\n:END:\n:LOGBOOK:\nCLOCK: [2026-09-01 Tue 09:00]--[2026-09-01 Tue 09:20] =>  0:20\n:END:\n** Sub\n:LOGBOOK:\nCLOCK: [2026-09-02 Wed 09:00]--[2026-09-02 Wed 09:10] =>  0:10\n:END:\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        let defaults = try #require(UserDefaults(suiteName: "orgstar-clock-done-\(UUID().uuidString)"))
+        let clock = ClockModel(file: notes.url.appendingPathComponent("clock.json"), defaults: defaults)
+        let center = FakeReminderCenter()
+        clock.notifications = center
+        var messages: [String] = []
+        session.textChanged = { path in if let message = clock.textChanged(path, session) { messages.append(message) } }
+        let start = Date(timeIntervalSince1970: 1_789_000_000)
+        _ = clock.clockIn(session, path: work.path, at: 2, now: start)
+        #expect(clock.running != nil)
+        // An hour of effort, half an hour clocked in the subtree before.
+        #expect(clock.effort(session, now: start).map { [$0.effort, $0.clocked] } == [60, 30])
+        for _ in 0..<200 where center.added.isEmpty { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(center.added == ["orgstar-effort"])
+        // Marking it done from an unopened file's command clocks out.
+        _ = session.perform(SetTodo(keyword: "DONE"), path: work.path, at: 2, expect: nil)
+        #expect(clock.running == nil && messages.count == 1)
+        let text = try String(contentsOf: work, encoding: .utf8)
+        #expect(!text.contains(#/CLOCK: \[[^\]]+\]\n/#), "\(text)")
+
+        // nil keeps it running.
+        UserConfig.apply("org-clock-out-when-done = \"nil\"\n", to: defaults)
+        _ = session.perform(SetTodo(keyword: "TODO"), path: work.path, at: 2, expect: nil)
+        _ = clock.clockIn(session, path: work.path, at: 2, now: start)
+        _ = session.perform(SetTodo(keyword: "DONE"), path: work.path, at: 2, expect: nil)
+        #expect(clock.running != nil)
+    }
 }
 
 @MainActor

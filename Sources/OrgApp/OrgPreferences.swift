@@ -37,6 +37,9 @@ public enum OrgPreferences {
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.archiveLocation = string("archiveLocation", defaults).nonEmpty
         options.clockIntoDrawer = string("clockIntoDrawer", defaults).nonEmpty
+        options.clockRoundingMinutes = integer("clockRoundingMinutes", defaults)
+        options.clockOutRemoveZeroTimeClocks = bool("clockRemoveZeroTime", defaults)
+        options.clockInSwitchToState = string("clockInSwitchToState", defaults).nonEmpty
         let templates = UserConfig.structureTemplates(defaults)
         options.structureTemplates = templates.isEmpty ? nil : StructureTemplate.merged(templates)
         options.trackOrderedPropertyWithTag = switch string("trackOrderedTag", defaults) {
@@ -64,6 +67,13 @@ public enum OrgPreferences {
     public static func agendaStartOffset(_ defaults: UserDefaults = .standard) -> Int { integer("agendaStartOffset", defaults) }
     /// `org-agenda-start-on-weekday`: 0 is Sunday; nil for `nil`.
     public static func agendaStartOnWeekday(_ defaults: UserDefaults = .standard) -> Int? { Int(string("agendaStartOnWeekday", defaults)) }
+    /// `org-clock-out-when-done`: nil when marking an entry done doesn't clock out, an empty
+    /// set for any done keyword, else the keywords that do.
+    public static func clockOutWhenDone(_ defaults: UserDefaults = .standard) -> Set<String>? {
+        let words = string("clockOutWhenDone", defaults).split(whereSeparator: \.isWhitespace).map(String.init)
+        if words == ["nil"] { return nil }
+        return words == ["t"] || words.isEmpty ? [] : Set(words)
+    }
     public static func agendaSubfolders(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSubfolders", defaults) }
     /// `org-agenda-show-all-dates`: days without entries show.
     public static func agendaShowAllDates(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaShowAllDates", defaults) }

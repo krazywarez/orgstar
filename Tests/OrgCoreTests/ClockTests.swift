@@ -57,9 +57,27 @@ struct ClockTests {
         }
     }
 
-    func compare(_ texts: [String], lisp: String = "t", log: String = "nil", options: EditingOptions = .org) throws {
+    /// `org-clock-rounding-minutes`, `org-clock-out-remove-zero-time-clocks` and
+    /// `org-clock-in-switch-to-state`.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func optionsMatchEmacs() throws {
+        let texts = Self.texts + ["#+TODO: TODO NEXT | DONE\n* TODO Task\n", "#+TODO: TODO NEXT | DONE\n* NEXT Task\nBody\n"]
+        var rounding = EditingOptions.org
+        rounding.clockRoundingMinutes = 5
+        try compare(texts, extra: "org-clock-rounding-minutes 5", options: rounding)
+        try compare(texts, extra: "org-clock-rounding-minutes 15", options: { var o = EditingOptions.org; o.clockRoundingMinutes = 15; return o }(), length: 7 * 60)
+        var zero = EditingOptions.org
+        zero.clockOutRemoveZeroTimeClocks = true
+        try compare(texts, extra: "org-clock-out-remove-zero-time-clocks t", options: zero, length: 20)
+        var state = EditingOptions.org
+        state.clockInSwitchToState = "NEXT"
+        try compare(texts, extra: "org-clock-in-switch-to-state \"NEXT\"", options: state)
+    }
+
+    func compare(_ texts: [String], lisp: String = "t", log: String = "nil", extra: String = "", options: EditingOptions = .org,
+                 length: Int = 3 * 3600 + 17 * 60 + 42) throws {
         let t1 = 1_789_000_000   // Thu 2026-09-10 00:26
-        let t2 = t1 + 3 * 3600 + 17 * 60 + 42
+        let t2 = t1 + length
         var cases: [EmacsOracle.Case] = []
         var ours: [(String, String)] = []
         for text in texts {
@@ -67,18 +85,18 @@ struct ClockTests {
             for mode in ["out", "cancel"] {
                 // Clock in at t1, then out (or cancel) at t2.
                 let first = run(ClockIn(), text, caret: caret, at: t1, options: options)
-                guard let start = ClockIn.runningStart(in: first.text, near: caret) else {
-                    ours.append(("no running clock: \(first.failure ?? "")", text))
-                    cases.append(EmacsOracle.Case(text: text, point: 1, form: "nil"))
-                    continue
+                // Clocking in failed: the text stays, as Emacs's does when it signals.
+                if let start = ClockIn.runningStart(in: first.text, near: caret) {
+                    let second = run(ClockOut(start: start, cancel: mode == "cancel"), first.text, caret: first.caret, at: t2, options: options)
+                    ours.append((second.text, first.text))
+                } else {
+                    ours.append((first.text, first.failure ?? ""))
                 }
-                let second = run(ClockOut(start: start, cancel: mode == "cancel"), first.text, caret: first.caret, at: t2, options: options)
-                ours.append((second.text, first.text))
                 let out = mode == "cancel" ? "(org-clock-cancel)" : "(org-clock-out)"
                 cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: """
                 (progn
                   (require 'org-clock)
-                  (setq org-clock-persist nil org-clock-idle-time nil org-clock-auto-clock-resolution nil org-clock-into-drawer \(lisp) org-log-into-drawer \(log))
+                  (setq org-clock-persist nil org-clock-idle-time nil org-clock-auto-clock-resolution nil org-clock-into-drawer \(lisp) org-log-into-drawer \(log) \(extra))
                   \(frozenClock(t1, "(org-clock-in)"))
                   (setq orgstar-after-in (buffer-substring-no-properties (point-min) (point-max)))
                   \(frozenClock(t2, out)))

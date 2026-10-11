@@ -21,17 +21,29 @@ enum Preferences {
         startupIndented: Bool, hideLeadingStars: Bool, startupAlignAllTables: Bool, startupTruncated: Bool, spellCheck: Bool, electricPair: Bool,
         enforceTodoDependencies: Bool, enforceTodoCheckboxDependencies: Bool
     ) -> EditingOptions {
-        var options = EditingOptions(
-            tagsColumn: tagsColumn, insertHeadingRespectContent: headingAfterSubtree,
-            metaReturnMaySplitLine: splitLine, listAllowAlphabetical: alphabeticalLists, fillColumn: fillColumn,
-            hideEmphasisMarkers: hiddenMarkers, prettyEntities: prettyEntities, subSuperscriptsNeedBraces: true,
-            logDone: LogHow(rawValue: logDone), logIntoDrawer: logIntoDrawer.isEmpty ? nil : logIntoDrawer,
-            hideDrawerStartup: hideDrawerStartup, hideBlockStartup: hideBlockStartup,
-            logReschedule: LogHow(rawValue: logReschedule), logRedeadline: LogHow(rawValue: logRedeadline),
-            useSpeedCommands: useSpeedCommands, startupWithInlineImages: startupWithInlineImages,
-            startupIndented: startupIndented, hideLeadingStars: hideLeadingStars, startupAlignAllTables: startupAlignAllTables,
-            startupTruncated: startupTruncated, spellCheck: spellCheck
-        )
+        // The settings only config.toml has, under those the Settings window binds.
+        var options = OrgPreferences.options()
+        options.tagsColumn = tagsColumn
+        options.insertHeadingRespectContent = headingAfterSubtree
+        options.metaReturnMaySplitLine = splitLine
+        options.listAllowAlphabetical = alphabeticalLists
+        options.fillColumn = fillColumn
+        options.hideEmphasisMarkers = hiddenMarkers
+        options.prettyEntities = prettyEntities
+        options.subSuperscriptsNeedBraces = true
+        options.logDone = LogHow(rawValue: logDone)
+        options.logIntoDrawer = logIntoDrawer.isEmpty ? nil : logIntoDrawer
+        options.hideDrawerStartup = hideDrawerStartup
+        options.hideBlockStartup = hideBlockStartup
+        options.logReschedule = LogHow(rawValue: logReschedule)
+        options.logRedeadline = LogHow(rawValue: logRedeadline)
+        options.useSpeedCommands = useSpeedCommands
+        options.startupWithInlineImages = startupWithInlineImages
+        options.startupIndented = startupIndented
+        options.hideLeadingStars = hideLeadingStars
+        options.startupAlignAllTables = startupAlignAllTables
+        options.startupTruncated = startupTruncated
+        options.spellCheck = spellCheck
         options.electricPair = electricPair
         options.enforceTodoDependencies = enforceTodoDependencies
         options.enforceTodoCheckboxDependencies = enforceTodoCheckboxDependencies

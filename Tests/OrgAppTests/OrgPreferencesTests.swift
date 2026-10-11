@@ -13,6 +13,7 @@ struct OrgPreferencesTests {
         #expect(OrgPreferences.agendaSpan(defaults) == 10 && OrgPreferences.agendaStartOffset(defaults) == 0)
         #expect(OrgPreferences.orgSettings(defaults).deadlineWarningDays == 14)
         #expect(OrgPreferences.agendaStartOnWeekday(defaults) == 1)
+        #expect(OrgPreferences.clockOutWhenDone(defaults) == [] && OrgPreferences.options(defaults).clockRoundingMinutes == 0)
         #expect(OrgPreferences.options(defaults).trackOrderedPropertyWithTag == nil)
         #expect(OrgPreferences.options(defaults).archiveLocation == "%s_archive::")
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 14)
@@ -36,6 +37,9 @@ struct OrgPreferencesTests {
             org-agenda-todo-ignore-scheduled = "-2"
             org-agenda-log-mode-items = "closed state"
             org-clock-into-drawer = "3"
+            org-clock-rounding-minutes = 5
+            org-clock-in-switch-to-state = "STRT"
+            org-clock-out-when-done = "DONE KILL"
             org-M-RET-may-split-line = true
             org-hide-emphasis-markers = false
             org-pretty-entities = false
@@ -54,6 +58,8 @@ struct OrgPreferencesTests {
         #expect(OrgPreferences.options(defaults).archiveLocation == "~/org/archive.org::* %s")
         let ignoring = OrgPreferences.agendaOptions(AgendaOptions(), defaults)
         #expect(ignoring.logItems == ["closed", "state"] && OrgPreferences.options(defaults).clockIntoDrawer == "3")
+        #expect(OrgPreferences.options(defaults).clockRoundingMinutes == 5 && OrgPreferences.options(defaults).clockInSwitchToState == "STRT")
+        #expect(OrgPreferences.clockOutWhenDone(defaults) == ["DONE", "KILL"])
         #expect(ignoring.todoIgnoreDeadlines == .near && ignoring.todoIgnoreScheduled == .days(-2) && ignoring.todoIgnoreTimestamp == .off)
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 5)
         #expect(!OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 30)
