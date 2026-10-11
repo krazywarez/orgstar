@@ -5,7 +5,7 @@ extension KeymapPreset {
         let translations: [String: String] = ["<left>": "h", "<right>": "l", "<up>": "k", "<down>": "j"]
         var out = ""
         func bind(_ keys: String, _ command: String, when: String?, mode: String) {
-            out += "[[bind]]\nkeys = \"\(keys.replacingOccurrences(of: "\\", with: "\\\\"))\"\ncommand = \"\(command)\"\n"
+            out += "[[bind]]\nkeys = \"\(keys.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))\"\ncommand = \"\(command)\"\n"
             if let when { out += "when = \"\(when)\"\n" }
             out += "mode = \"\(mode)\"\n"
         }

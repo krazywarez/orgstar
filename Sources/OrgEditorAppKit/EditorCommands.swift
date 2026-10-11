@@ -107,6 +107,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.clock.report", title: "Clock Report", action: .app),
         EditorCommand(id: "app.table-import", title: "Import Table from File…", action: .app),
         EditorCommand(id: "app.table-export", title: "Export Table to File…", action: .app),
+        EditorCommand(id: "app.plot", title: "Plot Table", action: .app),
         EditorCommand(id: "app.export-dialog", title: "Export…", action: .app),
         EditorCommand(id: "app.sync-conflicts", title: "Resolve Sync Conflicts…", action: .app),
         EditorCommand(id: "app.revert", title: "Revert to File on Disk", action: .app),

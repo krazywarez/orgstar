@@ -25,7 +25,7 @@ extension OrgEditor {
         }
     }
 
-    func refreshImages() {
+    public func refreshImages() {
         keepingTopLine {
             restyleOutsideEditing(0..<utf16Length)
             invalidateAllLayout()

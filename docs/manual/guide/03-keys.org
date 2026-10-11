@@ -1023,6 +1023,7 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Resolve Sync Conflicts… (=app.sync-conflicts=) | Shows the file's sync conflict copies to resolve them. |
 | Import Table from File… (=app.table-import=) | Asks for a CSV, TSV or space-separated file and inserts it as a table (=org-table-import=). |
 | Export Table to File… (=app.table-export=) | Writes the table at point to a CSV or TSV file (=org-table-export=). |
+| Plot Table (=app.plot=) | Plots the table at point as its =#+PLOT:= lines say (=org-plot/gnuplot=, =C-c " g= in the Emacs and Doom presets). |
 | Show or Hide Outline (=app.toggle-outline=) | Shows or hides the outline pane. View ▸ Show or Hide Outline, =⌥⌘O=. |
 | Show or Hide Backlinks (=app.toggle-backlinks=) | Shows or hides the backlinks pane. View ▸ Show or Hide Backlinks. |
 | Show or Hide Columns and Clock (=app.toggle-inspector=) | Shows or hides the columns and clock inspector. View ▸ Show or Hide Columns and Clock, =⌥⌘I=. |

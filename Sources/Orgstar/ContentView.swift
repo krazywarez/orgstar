@@ -337,6 +337,10 @@ struct ContentView: View {
                 ExportSheet(source: source, inSubtree: exportSubtreeAvailable, target: exportTarget) { format, destination, open, subtree, bodyOnly in
                     export(format, to: destination, open: open, subtree: subtree, bodyOnly: bodyOnly)
                 }
+            case .plot(_, let plot):
+                PlotSheet(content: .chart(plot))
+            case .plotImage(_, let url):
+                PlotSheet(content: .image(url))
             case .conflict:
                 ConflictSheet(session: session)
             case .syncCopies:
@@ -662,6 +666,42 @@ struct ContentView: View {
         } catch {
             commands.show("Can't export: \(error.localizedDescription)")
         }
+    }
+
+    /// `org-plot/gnuplot` for the table at the caret: through gnuplot when it's installed, as
+    /// Emacs runs it, else drawn here; written to `file:` when the options name one, else shown.
+    private func plotTable() {
+        guard let editor = commands.editor, let path = session.path else { return commands.show("No file is open") }
+        let context = editor.context()
+        let plot: TablePlot.Plot
+        do { plot = try TablePlot.plot(context.text, at: context.caret) } catch { return commands.show("\(error)") }
+        let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        if let gnuplot = PlotOutput.gnuplot {
+            commands.show("Plotting with gnuplot…")
+            Task {
+                do {
+                    let image = try await PlotOutput.runGnuplot(plot, directory: directory, gnuplot: gnuplot)
+                    if plot.options.file == nil { panel = .plotImage(UUID(), image) } else { plotWritten(image, editor: editor) }
+                } catch {
+                    commands.show("\(error)")
+                }
+            }
+        } else if let url = PlotOutput.file(plot, directory: directory) {
+            do {
+                try PlotOutput.write(plot, to: url)
+                plotWritten(url, editor: editor)
+            } catch {
+                commands.show("\(error)")
+            }
+        } else {
+            panel = .plot(UUID(), plot)
+        }
+    }
+
+    /// The image is where `file:` says; a link to it shows it again.
+    private func plotWritten(_ url: URL, editor: OrgEditor) {
+        commands.show("Plot written to \(url.lastPathComponent)")
+        if editor.showsImages { editor.refreshImages() }
     }
 
     /// `org-publish`, `org-publish-all`, `org-publish-current-file` and
@@ -1004,6 +1044,8 @@ struct ContentView: View {
             export(String(id.dropFirst("app.export.".count)))
         case let id where id.hasPrefix("app.publish"):
             publish(id)
+        case "app.plot":
+            plotTable()
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }

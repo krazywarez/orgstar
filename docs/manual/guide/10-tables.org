@@ -565,13 +565,53 @@ export writes them as a code block. See [[file:12-export.org][Export]].
 
 * Plotting
 
-=#+PLOT:= lines are recognized and completed as keywords, but orgstar doesn't draw
-plots (=org-plot/gnuplot= is not available).
+Plot Table (=org-plot/gnuplot=, =C-c " g= in the Emacs and Doom presets, and in the
+command palette; More › Table on iOS) draws the table at the caret, or the first table
+after it, as the =#+PLOT:= lines above it say:
+
+#+BEGIN_SRC org
+#+PLOT: title:"Sales" ind:1 deps:(2 3) type:2d with:linespoints file:"sales.png"
+| month | north | south |
+|-------+-------+-------|
+|     1 |    20 |    12 |
+|     2 |    25 |    18 |
+#+END_SRC
+
+| Option     | Meaning                                                                     |
+|------------+-----------------------------------------------------------------------------|
+| =type=     | =2d= (the default), =3d= or =grid=                                          |
+| =ind=      | The column of x values, counting from 1; 0 (the default) plots against row numbers |
+| =deps=     | The columns to plot, as a list such as =(2 3)=; all but =ind= by default    |
+| =with=     | =lines= (the default), =points=, =linespoints=, =impulses=, =boxes=, =histograms=, =steps=, =fsteps= |
+| =title=    | The plot's title                                                            |
+| =file=     | Where the image goes, relative to the Org file's folder; without it the plot shows in a sheet |
+| =labels=   | Names for the columns, as a list; a header row above a rule names them otherwise |
+| =map=      | With =t=, a =3d= plot is seen from above                                    |
+| =ymin=, =ymax=, =xmin=, =xmax= | The axes' ranges; =min= and =max= are =ymin= and =ymax=   |
+| =ticks=    | How many marks the y axis has                                               |
+| =transpose= | With =yes=, rows become columns                                            |
+| =set=, =line=, =script=, =timefmt= | gnuplot commands, a line of gnuplot, a gnuplot script file and the time format, for gnuplot |
+
+Options are read as Org reads them, quirks included: an option's name also matches inside
+a longer word (=timeind:t= sets =ind=), an unquoted value ends at a =.=, =,= or =;=, =set:=
+options before the last =line:= are dropped, and each =set:= and =line:= that's kept comes
+twice, as Org reads the options twice. An ind column of timestamps is plotted as dates, and one of text as labels.
+
+On the Mac, when gnuplot is installed (orgstar looks on the same =PATH= as code blocks), the
+table goes to gnuplot as Emacs sends it: the same data file and script, so every option and
+gnuplot's own terminals and styles apply. A plot without =file:= is drawn to an image and shown
+in a sheet. Without gnuplot, and on iOS, orgstar draws the plot itself with Swift Charts: =2d=
+as lines, points or bars by =with:=, =grid= as a heat map, =3d= as a surface (a wireframe in a
+file). =file:= then takes =.png=, =.jpg= or =.pdf=, 640 by 480 points as gnuplot's default; the
+gnuplot-only options are ignored. If inline images are showing, a link to the file shows the
+new plot.
+
+=type:radar= needs gnuplot; orgstar reports it.
 
 * On iOS
 
 The iOS app evaluates formulas natively with the same engine. Tables that need Emacs
 are not recalculated there; the app reports =This table needs Emacs, which runs on the
-Mac= with the reason. Table import and export are Mac only. Narrow columns work in the
-editor, as described under /Narrow columns/. See
+Mac= with the reason. Import and export are under More › Table, with Plot Table.
+Narrow columns work in the editor, as described under /Narrow columns/. See
 [[file:14-ios.org][iOS]].

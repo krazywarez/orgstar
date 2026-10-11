@@ -51,6 +51,7 @@ struct EditorScreen: View {
         case refile(String)
         case block(BlockEdit)
         case columns(ColumnView.View)
+        case plot(TablePlot.Plot)
 
         var id: String {
             switch self {
@@ -61,6 +62,7 @@ struct EditorScreen: View {
             case .recovery: "recovery"
             case .block(let edit): "block \(edit.range)"
             case .columns: "columns"
+            case .plot: "plot"
             }
         }
     }
@@ -92,6 +94,7 @@ struct EditorScreen: View {
                         Button("Import Table from File…", systemImage: "square.and.arrow.down") { importingTable = true }
                         Button("Export Table as CSV…", systemImage: "square.and.arrow.up") { exportTable(csv: true) }
                         Button("Export Table as TSV…", systemImage: "square.and.arrow.up") { exportTable(csv: false) }
+                        Button("Plot Table", systemImage: "chart.xyaxis.line") { plotTable() }
                     }
                     Toggle(isOn: Binding(get: { model.showMarkup }, set: { model.showMarkup = $0 })) {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
@@ -157,6 +160,8 @@ struct EditorScreen: View {
                 }
             case .columns(let view):
                 ColumnViewScreen(view: view, session: session, path: path) { offset in editor?.reveal(offset) }
+            case .plot(let plot):
+                PlotScreen(plot: plot)
             }
         }
         .fileImporter(isPresented: $importingTable, allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]) { result in
@@ -260,6 +265,8 @@ struct EditorScreen: View {
                     importingTable = true
                 } else if id == "app.table-export" {
                     exportTable(csv: true)
+                } else if id == "app.plot" {
+                    plotTable()
                 } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
                 } else if MobileEditor.linkCommands.contains(id) {
@@ -288,6 +295,25 @@ extension EditorScreen {
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return message = "Can't read \(url.lastPathComponent)" }
         _ = editor.perform(ImportTable(contents: contents))
+    }
+
+    /// `org-plot/gnuplot`, drawn by Swift Charts: written to `file:` when the options name
+    /// one, else shown.
+    private func plotTable() {
+        guard let editor else { return }
+        let context = editor.editContext()
+        do {
+            let plot = try TablePlot.plot(context.text, at: context.caret)
+            if let url = PlotOutput.file(plot, directory: URL(fileURLWithPath: path).deletingLastPathComponent()) {
+                try PlotOutput.write(plot, to: url)
+                message = "Plot written to \(url.lastPathComponent)"
+                if editor.showsImages { editor.restyleAll() }
+            } else {
+                sheet = .plot(plot)
+            }
+        } catch {
+            message = "\(error)"
+        }
     }
 
     /// `org-table-export` of the table at the caret, as CSV or TSV.
@@ -592,7 +618,7 @@ struct CommandPalette: View {
         ("org.toggle-inline-images", "Show or Hide Inline Images"), ("org.latex-preview", "Show or Hide LaTeX Previews"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"),
         ("org.table.toggle-column-width", "Shrink or Expand Table Column"), ("org.table.shrink", "Shrink Table Columns with Widths"),
         ("org.table.expand", "Expand Table Columns"),
-        ("app.table-import", "Import Table from File…"), ("app.table-export", "Export Table to File…"),
+        ("app.table-import", "Import Table from File…"), ("app.table-export", "Export Table to File…"), ("app.plot", "Plot Table"),
     ]
 
     /// The commands that apply at the caret and their keys, worked out once when the palette
@@ -648,6 +674,20 @@ struct TableFile: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: Data(text.utf8))
+    }
+}
+/// A plotted table, as the Mac's plot sheet shows it.
+struct PlotScreen: View {
+    let plot: TablePlot.Plot
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            PlotChart(plot)
+                .navigationTitle("Plot")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
     }
 }
 #endif

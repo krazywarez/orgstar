@@ -194,6 +194,9 @@ extension KeymapPreset {
         keys = "C-c C-x C-l"
         command = "org.latex-preview"
         [[bind]]
+        keys = "C-c \\" g"
+        command = "app.plot"
+        [[bind]]
         keys = "C-c C-x C-c"
         command = "org.columns"
         [[bind]]
