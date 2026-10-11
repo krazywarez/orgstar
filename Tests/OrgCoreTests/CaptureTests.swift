@@ -274,11 +274,32 @@ struct CaptureEscapeTests {
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func fillsLikeOrgCaptureFillTemplate() throws {
+        try Self.compare(Self.cases)
+    }
+
+    /// `%[file]`, with escapes in the file and a file named in it, a relative path from the
+    /// folder, and an escaped one.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func insertsFilesLikeOrg() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-files-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let inner = folder.appendingPathComponent("inner.txt").path
+        try "- inner %t\n".write(toFile: inner, atomically: true, encoding: .utf8)
+        try "** From file %^{Topic}\n%[\(inner)]%?".write(to: folder.appendingPathComponent("entry.org"), atomically: true, encoding: .utf8)
+        try "relative %a".write(to: folder.appendingPathComponent("rel.txt"), atomically: true, encoding: .utf8)
+        try Self.compare([
+            ("* Top\n%[\(folder.path)/entry.org]", ["Lunch"]),
+            ("* Rel %[rel.txt]\n\\%[rel.txt] kept\n%[missing.txt]", []),
+        ], directory: folder)
+    }
+
+    static func compare(_ cases: [(template: String, answers: [String])], directory: URL? = nil) throws {
         let seconds = 1_789_000_000
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-fill-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
-        let forms = Self.cases.map { c in
+        let forms = cases.map { c in
             """
             (let ((answers (list \(c.answers.map(CaptureTests.lisp).joined(separator: " ")))))
               (cl-letf* ((next (lambda (default) (let ((a (pop answers))) (if (or (null a) (equal a "")) (or default "") a))))
@@ -306,6 +327,7 @@ struct CaptureEscapeTests {
         (require 'cl-lib)
         (setq org-adapt-indentation nil)
         (kill-new "Clip")
+        \(directory.map { "(setq default-directory \(CaptureTests.lisp($0.path + "/")))" } ?? "")
         (defvar results nil)
         \(frozenClock(seconds, "(progn " + forms.joined(separator: "\n") + ")"))
         (with-temp-file \(CaptureTests.lisp(output.path)) (insert (json-encode (vconcat (nreverse results)))))
@@ -315,16 +337,20 @@ struct CaptureEscapeTests {
         let emacs = try JSONDecoder().decode([String].self, from: Data(contentsOf: output))
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(identifier: "UTC")!
-        let context = CaptureContext(now: Date(timeIntervalSince1970: Double(seconds)), calendar: utc, initial: "Selected",
+        var context = CaptureContext(now: Date(timeIntervalSince1970: Double(seconds)), calendar: utc, initial: "Selected",
                                      annotation: "[[file:~/n.org::*Task][Task]]", clipboard: "Clip")
-        for (c, expected) in zip(Self.cases, emacs) {
+        if let directory {
+            context.directory = directory.path
+            context.readFile = { try? String(contentsOfFile: $0, encoding: .utf8) }
+        }
+        for (c, expected) in zip(cases, emacs) {
             #expect(Capture.questions(c.template, context: context).count == c.answers.count, "\(c.template.debugDescription)")
             guard case .success(let filled) = Capture.fill(c.template, context: context, answers: c.answers) else {
                 Issue.record("fill failed for \(c.template.debugDescription)")
                 continue
             }
             var mine = filled.text
-            if c.template.contains("%?") { mine.insert(contentsOf: "%?", at: String.Index(utf16Offset: filled.cursor, in: mine)) }
+            if expected.contains("%?") { mine.insert(contentsOf: "%?", at: String.Index(utf16Offset: filled.cursor, in: mine)) }
             #expect(mine == expected, "\(c.template.debugDescription)\nours:  \(mine.debugDescription)\nemacs: \(expected.debugDescription)")
         }
     }

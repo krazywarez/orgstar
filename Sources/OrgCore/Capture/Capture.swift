@@ -120,6 +120,10 @@ public struct CaptureContext: Sendable {
     public var tagsColumn: Int
     /// `org-store-link-plist` as org-protocol sets it, for `%:link`, `%:description` and others.
     public var linkProperties: [String: String] = [:]
+    /// `%[file]`: what relative paths are relative to, and the contents of a file by its
+    /// absolute path, nil when it can't be read.
+    public var directory = NSHomeDirectory()
+    public var readFile: @Sendable (String) -> String? = { _ in nil }
 
     public init(
         now: Date = Date(), calendar: Calendar = .current, initial: String = "", annotation: String = "", clipboard: String = "",
@@ -318,9 +322,40 @@ public enum Capture {
         return n % 2 == 1
     }
 
+    /// `%[file]`: the file's contents in place of each, as `org-capture-fill-template` inserts
+    /// them before the other escapes, so escapes in the file expand too.
+    static func insertFiles(_ template: String, _ context: CaptureContext) -> String {
+        let buffer = EmacsBuffer(template, point: 0)
+        var inserted = 0
+        // A file that inserts itself would never end; Emacs doesn't stop either.
+        while inserted < 100, let match = buffer.searchForward("%\\[(.+)\\]", caseInsensitive: false, move: true) {
+            let name = buffer.substring(match[1]!.lowerBound, match[1]!.upperBound)
+            let start = buffer.marker(match[0]!.lowerBound)
+            let end = buffer.marker(match[0]!.upperBound)
+            defer {
+                buffer.release(start)
+                buffer.release(end)
+            }
+            if unescape(buffer, at: start.position) { continue }
+            let expanded = name.hasPrefix("~") ? NSHomeDirectory() + name.dropFirst() : name
+            let path = ((expanded as NSString).isAbsolutePath ? expanded : (context.directory as NSString).appendingPathComponent(expanded) as String)
+            let file = (path as NSString).standardizingPath
+            buffer.deleteRegion(start.position, end.position)
+            buffer.point = start.position
+            if let contents = context.readFile(file) {
+                buffer.saveExcursion { buffer.insert(contents) }
+                inserted += 1
+            } else {
+                buffer.insert("%![could not insert \(file): (file-missing Opening input file No such file or directory \(file))]")
+            }
+        }
+        return buffer.string
+    }
+
     /// The escapes that need no answer (`%a`, `%t`, `%<…>`, `%?`…), with `%^` prompts and `%\N`
     /// left in place.
     static func expand(_ template: String, _ context: CaptureContext) -> Result<String, Failure> {
+        let template = insertFiles(template, context)
         func stamp(_ active: Bool, _ withTime: Bool) -> String {
             let c = context.calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute], from: context.now)
             let day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][(c.weekday ?? 1) - 1]
@@ -410,8 +445,6 @@ public enum Capture {
                 consumed = j - i
             case "(":
                 return .failure(.message("Template escapes like %( run Emacs Lisp, which orgstar doesn't."))
-            case "[":
-                return .failure(.message("Template escapes like %[file] aren't supported yet."))
             default:
                 text.append(c)
                 consumed = 1

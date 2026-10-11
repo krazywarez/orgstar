@@ -151,6 +151,7 @@ struct CaptureView: View {
             allTags: (try? workspace.index.tags()) ?? [],
             tagsColumn: UserDefaults.standard.object(forKey: "tagsColumn") as? Int ?? -77
         )
+        context.readsTemplateFiles()
     }
 
     /// An org-protocol capture: its link properties fill `%a`, `%i` and `%:…`, and its

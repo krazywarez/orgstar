@@ -98,6 +98,7 @@ struct CaptureScreen: View {
             allTags: (try? workspace.index.tags()) ?? []
         )
         context.linkProperties = request.properties
+        context.readsTemplateFiles()
         // `%^g` offers the target file's tags.
         let path = DocumentSession.resolve(template.target.file, root: workspace.rootPaths.first)
         if !template.target.file.isEmpty,

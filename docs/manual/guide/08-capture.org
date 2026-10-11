@@ -184,10 +184,13 @@ These follow =org-capture-fill-template=. Escapes that need no answer are filled
 | =%U=       | Inactive timestamp with the current time                                                                        |
 | =%<…>=     | The current time formatted with a =format-time-string= pattern, such as =%<%Y-%m-%d %H:%M>=                     |
 | =%:name=   | A link property; see below                                                                                      |
+| =%[file]=  | The contents of the file; see below                                                                             |
 
 From the Mac capture window, =%a= links to the heading at the cursor in the open file, as =[[file:~/org/work.org::*Heading][Heading]]=, or to the file itself before the first heading. It is empty with no file open.
 
 =%<…>= understands =%Y=, =%m=, =%d=, =%e=, =%H=, =%M=, =%S=, =%a=, =%A=, =%b=, =%B=, =%F=, =%R= and =%%=, with English day and month names. Other =format-time-string= codes are left in the text as they are.
+
+=%[file]= is replaced by the file's contents before anything else, as in Org, so escapes and prompts in the file work, and so does a =%[…]= in it. A relative path is relative to the configuration folder (the one with =capture.toml=), and =~= is your home folder. The file name runs to the last =]= on the line. A file that can't be read leaves =%![could not insert …]= in the text.
 
 =%:name= inserts a property of the link being captured. From org-protocol these are =%:link=, =%:description= (the page title), =%:type= (the link's scheme, such as =https=), =%:annotation= (the same as =%a=) and =%:initial= (the same as =%i=). Without org-protocol, =%:annotation= and =%:initial= still work and other names insert nothing.
 
@@ -214,7 +217,7 @@ After the prompts are answered, =%\1=, =%\2= and so on insert the answer to the 
 
 Put a backslash before =%= to keep it literally: =\%t= inserts =%t= (in a double-quoted TOML string, write =\\%t=). Two backslashes insert one backslash followed by the escape's value.
 
-=%(…)= runs Emacs Lisp in Org and is not supported; a template that contains it fails with a message saying so. =%[file]= (insert a file's contents) is not supported either. Any other =%= sequence is left as it is.
+=%(…)= runs Emacs Lisp in Org and is not supported; a template that contains it fails with a message saying so. Any other =%= sequence is left as it is.
 
 * Date trees
 

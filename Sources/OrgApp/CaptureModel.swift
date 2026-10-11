@@ -127,6 +127,14 @@ extension DocumentSession {
     }
 }
 
+extension CaptureContext {
+    /// `%[file]` reads the file, a relative path from the configuration folder.
+    public mutating func readsTemplateFiles(from directory: URL = UserConfig.directory) {
+        self.directory = directory.path
+        readFile = { try? String(contentsOfFile: $0, encoding: .utf8) }
+    }
+}
+
 public struct CaptureError: Error, Equatable {
     public let message: String
     public init(message: String) { self.message = message }
@@ -162,7 +170,8 @@ extension DocumentSession {
         guard let chosen = key.map({ key in templates.first { $0.key == key } }) ?? templates.first else {
             return .failure(CaptureError(message: "No capture template \"\(key ?? "")\""))
         }
-        let context = CaptureContext(initial: text, clipboard: clipboard, userName: userName, allTags: (try? workspace.index.tags()) ?? [])
+        var context = CaptureContext(initial: text, clipboard: clipboard, userName: userName, allTags: (try? workspace.index.tags()) ?? [])
+        context.readsTemplateFiles()
         let answers = Capture.questions(chosen.template, context: context).map { _ in "" }
         guard case .success(let filled) = Capture.fill(chosen.template, context: context, answers: answers) else {
             return .failure(CaptureError(message: "Can't fill template \"\(chosen.key)\""))
