@@ -182,8 +182,10 @@ public enum Capture {
 
     /// The questions `template` asks, in order.
     public static func questions(_ template: String, context: CaptureContext = CaptureContext()) -> [Question] {
-        guard case .success(let expanded) = expand(template, context) else { return [] }
-        return prompts(in: expanded).map { question($0.items, $0.key, context) }
+        let embedded = Embedded(context, answers: [])
+        guard case .success(let expanded) = expand(template, context, embedded: embedded) else { return [] }
+        // `read-string` in `%(…)` asks first, as Org evaluates those before the prompts.
+        return embedded.questions + prompts(in: expanded).map { question($0.items, $0.key, context) }
     }
 
     static func question(_ items: [String]?, _ key: String?, _ context: CaptureContext) -> Question {
@@ -228,10 +230,12 @@ public enum Capture {
     /// the replies to `questions(template)` in order.
     public static func fill(_ template: String, context: CaptureContext, answers: [String] = []) -> Result<(text: String, cursor: Int), Failure> {
         let expanded: String
-        switch expand(template, context) {
+        let embedded = Embedded(context, answers: answers)
+        switch expand(template, context, embedded: embedded) {
         case .failure(let failure): return .failure(failure)
         case .success(let text): expanded = text
         }
+        let answers = Array(answers.dropFirst(embedded.used))
         // Prompts, in order, answered in the text as it stands then, as org does.
         var options = EditingOptions.org
         options.tagsColumn = context.tagsColumn
@@ -352,10 +356,11 @@ public enum Capture {
         return buffer.string
     }
 
-    /// The escapes that need no answer (`%a`, `%t`, `%<…>`, `%?`…), with `%^` prompts and `%\N`
-    /// left in place.
-    static func expand(_ template: String, _ context: CaptureContext) -> Result<String, Failure> {
+    /// The escapes that need no answer (`%a`, `%t`, `%<…>`, `%?`…) and then `%(…)`, with `%^`
+    /// prompts and `%\N` left in place. `embedded` evaluates `%(…)`.
+    static func expand(_ template: String, _ context: CaptureContext, embedded: Embedded? = nil) -> Result<String, Failure> {
         let template = insertFiles(template, context)
+        let embedded = embedded ?? Embedded(context, answers: [])
         func stamp(_ active: Bool, _ withTime: Bool) -> String {
             let c = context.calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute], from: context.now)
             let day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][(c.weekday ?? 1) - 1]
@@ -370,8 +375,19 @@ public enum Capture {
         }
         var text = ""
         let chars = Array(template)
+        let sexps = embeddedSexps(chars)
+        // Where the `%(…)` forms being copied end; values put inside one are escaped as in a
+        // Lisp string.
+        var sexpEnds: [Int] = []
+        func put(_ value: String) {
+            text += sexpEnds.isEmpty ? value : value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        }
         var i = 0
         while i < chars.count {
+            while sexpEnds.last == i {
+                text += Self.sexpEndMark
+                sexpEnds.removeLast()
+            }
             let c = chars[i]
             guard c == "%", i + 1 < chars.count else {
                 text.append(c)
@@ -382,7 +398,7 @@ public enum Capture {
             var slashes = 0
             while slashes < text.count, text.dropLast(slashes).last == "\\" { slashes += 1 }
             let next = chars[i + 1]
-            if slashes > 0, "aAcfFikKlLntTuUx:<?".contains(next) {
+            if slashes > 0, "aAcfFikKlLntTuUx:<?(".contains(next) {
                 text.removeLast((slashes + 1) / 2)
                 if slashes % 2 == 1 {
                     text.append(c)
@@ -394,37 +410,41 @@ public enum Capture {
             switch next {
             case "?": text += cursorMark
             case "i":
+                if !sexpEnds.isEmpty {
+                    put(context.initial)
+                    break
+                }
                 // Continuation lines keep the indentation of the line `%i` is on.
                 let lead = String(text.split(separator: "\n", omittingEmptySubsequences: false).last ?? "").prefix { $0 == " " || $0 == "\t" }
                 text += context.initial.replacingOccurrences(of: "\n", with: "\n" + lead)
-            case "a": text += context.annotation == "[[]]" ? "" : context.annotation
+            case "a": put(context.annotation == "[[]]" ? "" : context.annotation)
             case "A":
                 // The link, with its description asked for.
                 let ns = context.annotation as NSString
                 if let m = link.firstMatch(in: context.annotation, range: NSRange(location: 0, length: ns.length)) {
-                    text += ns.replacingCharacters(in: m.range, with: "[[" + ns.substring(with: m.range(at: 1)) + "][%^{Link description}]]")
+                    put(ns.replacingCharacters(in: m.range, with: "[[" + ns.substring(with: m.range(at: 1)) + "][%^{Link description}]]"))
                 } else {
-                    text += context.annotation
+                    put(context.annotation)
                 }
-            case "l": text += linkForm("[[$1]]")
-            case "L": text += linkForm("$1")
-            case "c", "x": text += context.clipboard
-            case "f": text += (context.file as NSString).lastPathComponent
-            case "F": text += context.file
-            case "n": text += context.userName
-            case "k": text += context.clockHeading
-            case "K": text += context.clockLink
-            case "t": text += stamp(true, false)
-            case "T": text += stamp(true, true)
-            case "u": text += stamp(false, false)
-            case "U": text += stamp(false, true)
+            case "l": put(linkForm("[[$1]]"))
+            case "L": put(linkForm("$1"))
+            case "c", "x": put(context.clipboard)
+            case "f": put((context.file as NSString).lastPathComponent)
+            case "F": put(context.file)
+            case "n": put(context.userName)
+            case "k": put(context.clockHeading)
+            case "K": put(context.clockLink)
+            case "t": put(stamp(true, false))
+            case "T": put(stamp(true, true))
+            case "u": put(stamp(false, false))
+            case "U": put(stamp(false, true))
             case "<":
                 guard let close = chars[(i + 2)...].firstIndex(of: ">"), !chars[(i + 2)..<close].contains("\n") else {
                     text.append(c)
                     consumed = 1
                     break
                 }
-                text += strftime(String(chars[(i + 2)..<close]), context)
+                put(strftime(String(chars[(i + 2)..<close]), context))
                 consumed = close - i + 1
             case ":":
                 // A link property (`%:annotation`), from org-protocol or the capture's own.
@@ -437,22 +457,46 @@ public enum Capture {
                 }
                 let name = String(chars[(i + 2)..<j])
                 switch name {
-                case _ where context.linkProperties[name] != nil: text += context.linkProperties[name]!
-                case "annotation": text += context.annotation
-                case "initial": text += context.initial
+                case _ where context.linkProperties[name] != nil: put(context.linkProperties[name]!)
+                case "annotation": put(context.annotation)
+                case "initial": put(context.initial)
                 default: break
                 }
                 consumed = j - i
             case "(":
-                return .failure(.message("Template escapes like %( run Emacs Lisp, which orgstar doesn't."))
+                // The form is copied with the escapes in it expanded, then evaluated.
+                if let end = sexps[i], sexpEnds.isEmpty {
+                    text += Self.sexpStartMark
+                    sexpEnds.append(end)
+                } else {
+                    text.append(c)
+                }
+                consumed = 1
             default:
                 text.append(c)
                 consumed = 1
             }
             i += consumed
         }
-        return .success(text)
+        if !sexpEnds.isEmpty { text += Self.sexpEndMark }
+        // `%(…)`, in order.
+        var out = ""
+        var rest = Substring(text)
+        while let open = rest.firstIndex(of: Character(Self.sexpStartMark)) {
+            out += rest[..<open]
+            let body = rest[rest.index(after: open)...]
+            let close = body.firstIndex(of: Character(Self.sexpEndMark)) ?? body.endIndex
+            switch embedded.evaluate(String(body[..<close])) {
+            case .success(let value): out += value
+            case .failure(let failure): return .failure(failure)
+            }
+            rest = close == body.endIndex ? "" : body[body.index(after: close)...]
+        }
+        return .success(out + rest)
     }
+
+    static let sexpStartMark = "\u{E001}"
+    static let sexpEndMark = "\u{E002}"
 
     static func strftime(_ format: String, _ context: CaptureContext) -> String {
         let c = context.calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute, .second], from: context.now)

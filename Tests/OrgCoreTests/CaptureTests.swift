@@ -254,6 +254,15 @@ struct CaptureTests {
         }
         #expect(filled.text == "* untitled for me\nuntitled again\n")
     }
+
+    @Test func embeddedLispFailsClearly() {
+        func failure(_ template: String) -> Capture.Failure? {
+            if case .failure(let failure) = Capture.fill(template, context: CaptureContext()) { failure } else { nil }
+        }
+        #expect(failure("* %(+ 1 2)") == .message("Capture template sexp `(+ 1 2)' must evaluate to string or nil"))
+        #expect(failure("* %(org-id-new)") == .message("Template %(org-id-new) needs function org-id-new, which orgstar's Lisp doesn't have."))
+        #expect(Capture.questions("* %(read-string \"Title: \" \"draft\") %^{More}").map(\.prompt) == ["Title", "More"])
+    }
 }
 
 struct CaptureEscapeTests {
@@ -270,6 +279,12 @@ struct CaptureEscapeTests {
         ("* A rather long heading title that goes on %^G", ["x:y"]),
         ("* Empty tags %^g done", [""]),
         ("* Prop %^{CATEGORY|home}p\nbody", [""]),
+        ("* %(format-time-string \"%Y-%m-%d %H:%M\") note", []),
+        ("* %(upcase \"%i\") from %(concat \"<\" \"%:annotation\" \">\")", []),
+        ("* %(read-string \"Name: \") met %^{Who}\n%(read-string \"Where? \" nil nil \"home\")", ["Ann", "Bob", ""]),
+        ("* %(if nil \"x\") empty %(mapconcat #'identity (list \"a\" \"b\") \"-\")", []),
+        ("* \\%(concat \"x\") kept and %(concat \"(\" \")\")", []),
+        ("* %(format-time-string \"%Y\" (current-time)) unbalanced %(concat", []),
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
