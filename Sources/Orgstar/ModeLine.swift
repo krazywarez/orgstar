@@ -48,6 +48,20 @@ struct ModeLine: View {
                 .foregroundStyle(theme.color("modeline-highlight") ?? .primary)
                 .help("Clocked in since \(running.startedAt.formatted(date: .omitted, time: .shortened))")
             }
+            if let timer = TimerModel.shared.timer {
+                Menu {
+                    Button(timer.paused == nil ? "Pause Timer" : "Continue Timer") { commands.editor?.run("org.timer.pause") }
+                    Button("Stop Timer") { commands.editor?.run("org.timer.stop") }
+                } label: {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(timer.modeLine(now: context.date)).font(.system(.caption, design: .monospaced))
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(timer.isCountdown ? "Countdown timer" : "Relative timer")
+            }
             if selection.length > 0, let region = region(text, selection) {
                 Text("\(region.lines) \(region.lines == 1 ? "line" : "lines"), \(region.words) \(region.words == 1 ? "word" : "words"), \(region.characters) chars")
                     .help("Selection (count-words-region)")

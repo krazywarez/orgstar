@@ -543,6 +543,11 @@ public struct EmacsImport: Sendable {
             else if let keywords = value.elements?.compactMap(\.string), !keywords.isEmpty, keywords.count == value.elements?.count {
                 add(name, .string(keywords.joined(separator: " ")))
             } else { note("unexpected value \(value.description)") }
+        case "org-timer-format":
+            guard let format = value.string, format.contains("%s") else { return note("not a string with %s") }
+            add(name, .string(format))
+        case "org-timer-default-timer":
+            if let text = value.string { add(name, .string(text)) } else if let number = value.integer { add(name, .string(String(number))) } else { note("not a string or number") }
         case "org-attach-id-dir":
             guard let dir = value.string else { return note("not a string") }
             add(name, .string(dir))

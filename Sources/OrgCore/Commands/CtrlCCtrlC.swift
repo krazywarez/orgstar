@@ -53,9 +53,15 @@ public struct CtrlCCtrlC: OrgCommand {
         }
         if buffer.atTimestamp() != nil { return commitBuffer(context) { try $0.changeTimestamp(0, what: .day) } }
         if buffer.atHeading { return SetTags().run(in: context) }
+        if buffer.atItem, buffer.atRadioList() { return commitBuffer(context) { try $0.toggleRadioButton() } }
         if buffer.atItem {
             // The item's checkbox toggles, and the whole list is repaired, its cookie updated.
             return commitBuffer(context) { buffer in
+                let origin = buffer.marker(buffer.point)
+                defer {
+                    buffer.point = origin.position
+                    buffer.release(origin)
+                }
                 buffer.point = buffer.lineStart(buffer.point)
                 let item = buffer.point
                 var structure = buffer.listStruct()
@@ -70,6 +76,24 @@ public struct CtrlCCtrlC: OrgCommand {
                 buffer.point = item
                 buffer.updateCheckboxCount()
             }
+        }
+        if let list = buffer.affiliatedListStart() {
+            // On the list's affiliated keywords, the list is repaired.
+            var step = commitBuffer(context) { buffer in
+                let origin = buffer.marker(buffer.point)
+                defer {
+                    buffer.point = origin.position
+                    buffer.release(origin)
+                }
+                buffer.point = list
+                var structure = buffer.listStruct()
+                buffer.writeStruct(&structure, structure.parents, old: structure)
+                buffer.updateCheckboxCount()
+            }
+            if case .commit(let result) = step, result.edits.isEmpty {
+                step = .commit(EditResult(baseRevision: context.revision, edits: [], effects: [.message("Cannot update this checkbox")]))
+            }
+            return step
         }
         if buffer.lookingAtLine("^[ \\t]*#\\+[A-Za-z_]+:") {
             return .commit(EditResult(baseRevision: context.revision, edits: [], effects: [.refreshSetup, .message("Local setup has been refreshed")]))

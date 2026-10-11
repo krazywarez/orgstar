@@ -160,6 +160,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-archive-location=          |                            |
 | =org-use-tag-inheritance=, =org-tags-exclude-from-inheritance=, =org-tag-alist= | |
 | =org-track-ordered-property-with-tag= |                       |
+| =org-timer-format=, =org-timer-default-timer= |                  |
 | =org-attach-id-dir=, =org-attach-use-inheritance= |              |
 | =org-crypt-tag-matcher=          |                            |
 | =org-agenda-start-on-weekday=    |                            |
@@ -210,6 +211,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-tags-exclude-from-inheritance=  | string  | =""=    | Tags that never inherit, separated by spaces. Read at launch. Mirrors =org-tags-exclude-from-inheritance=. |
 | =org-tag-alist=                      | string  | =""=    | The tags Set Tags offers in files without =#+TAGS=, in =#+TAGS= syntax with keys and groups, rows separated by =\n=. Mirrors =org-tag-alist=. |
 | =org-track-ordered-property-with-tag= | string | ="nil"= | A tag that Toggle ORDERED Property adds and removes with the property: ="t"= for the tag =ORDERED=, or a tag name. Mirrors =org-track-ordered-property-with-tag=. |
+| =org-timer-format= | string | ="%s "= | What Insert Timer Value writes, with =%s= for the =h:mm:ss= value. Mirrors =org-timer-format=. |
+| =org-timer-default-timer= | string | ="0"= | The countdown Set Countdown Timer… offers, in minutes or =h:mm:ss=; ="0"= offers none. Mirrors =org-timer-default-timer=. |
 | =org-attach-id-dir= | string | ="data/"= | The folder ID-based attachment folders go in, relative to the org file's folder unless absolute. See [[file:04-outlines.org][Outlines]]. Mirrors =org-attach-id-dir=. |
 | =org-attach-use-inheritance= | string | ="selective"= | Whether attachment folders come from an ancestor's =DIR= or =ID=: =selective=, ="t"= or ="nil"=. Mirrors =org-attach-use-inheritance=. |
 | =org-crypt-tag-matcher= | string | ="crypt"= | The tag Encrypt Tagged Entries… encrypts. A single tag. See [[file:04-outlines.org][Outlines]]. Mirrors =org-crypt-tag-matcher=. |
@@ -570,6 +573,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-agenda-log-mode-items=                                        | The symbols =closed=, =clock= and =state= of the list, separated by spaces                      |
 | =org-agenda-todo-ignore-scheduled=, =-deadlines=, =-timestamp=      | The symbol or number as a string; =org-agenda-todo-ignore-with-date= and =org-agenda-tags-todo-honor-ignore-options= as booleans |
 | =org-track-ordered-property-with-tag=                              | A tag name as given; =t= becomes ="t"=, =nil= ="nil"=                                         |
+| =org-timer-format=, =org-timer-default-timer=                     | The same keys; a number becomes a string                                                     |
 | =org-attach-id-dir=                                                | The same key, when the value is a string or an =expand-file-name= form                         |
 | =org-attach-use-inheritance=                                       | =selective=, or =t= / =nil= as ="t"= / ="nil"=                                                 |
 | =org-crypt-tag-matcher=                                            | The same key, when the value is a single tag                                                  |

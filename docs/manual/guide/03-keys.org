@@ -901,6 +901,15 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Resolve Open Clocks… (=app.clock.resolve=) | =C-c C-x C-z= | — | =SPC m c r= (N) | Asks what to do with each open =CLOCK:= line in your folders (=org-resolve-clocks=). |
 | Clock Report (=app.clock.report=) | — | — | =SPC z t= (N), =SPC m c R= (N) | Opens the Clock Report window. |
 | Insert or Update Clock Table (=org.clock.report=) | =C-c C-x C-r= | — | — | Inserts a clock table, or updates the one at point (=org-clock-report=). |
+| Start Timer (=org.timer.start=) | =C-c C-x 0= | — | — | Starts the relative timer (=org-timer-start=). See [[file:06-dates-and-clocking.org][Dates and clocking]]. |
+| Start Timer with Offset… (=org.timer.start-offset=) | =C-u C-c C-x 0= | — | — | Starts the timer from a value asked for (=org-timer-start= with =C-u=). |
+| Shift Timer Values in Region… (=org.timer.change-times=) | =C-u C-u C-c C-x 0= | — | — | Moves every timer value in the selection by a difference (=org-timer-change-times-in-region=). |
+| Insert Timer Value (=org.timer.insert=) | =C-c C-x .= | — | — | Inserts the timer's value, starting the timer if needed (=org-timer=). |
+| Insert Timer Item (=org.timer.item=) | =C-c C-x -= | — | — | Inserts a timer list item (=org-timer-item=). |
+| Pause or Continue Timer (=org.timer.pause=) | =C-c C-x ,= | — | — | Pauses or continues the timer (=org-timer-pause-or-continue=). |
+| Stop Timer (=org.timer.stop=) | =C-c C-x _=, =C-u C-c C-x ,= | — | — | Stops the timer (=org-timer-stop=). |
+| Set Countdown Timer… (=org.timer.set=) | =C-c C-x ;= | — | — | Starts a countdown (=org-timer-set-timer=). |
+| Show Remaining Countdown Time (=org.timer.show-remaining=) | — | — | — | Says how long the countdown has left (=org-timer-show-remaining-time=). |
 
 ** Tables
 

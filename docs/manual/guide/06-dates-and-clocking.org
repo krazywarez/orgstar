@@ -204,6 +204,38 @@ Set Effort asks for a value, such as =0:30= or =2:00=, starting with the current
 
 Effort appears in column view and in clock tables with =:properties ("Effort")=. orgstar does not compare the running clock with the effort estimate.
 
+* Timers
+
+orgstar has Org's relative timer, which counts up from when it starts, and its countdown
+timer (org-timer). One timer runs at a time, for every file; it shows in the mode line as
+=<0:01:23>= (above the text on iOS) and stops when orgstar quits.
+
+| Command | Emacs | What it does |
+|-+-+-|
+| Start Timer | =C-c C-x 0= | Starts the relative timer at 0:00:00. |
+| Start Timer with Offset… | =C-u C-c C-x 0= | Asks for a value to start from, =h:mm:ss= or a shorter =m:ss= or seconds; empty takes the timer value at the caret, or 0:00:00. |
+| Insert Timer Value | =C-c C-x .= | Inserts the timer's value, as =0:01:23 =; starts the timer first when none is running. |
+| Insert Timer Item | =C-c C-x -= | Inserts a timer item, =- 0:01:23 :: =: a new item in a timer list, or a new list elsewhere. |
+| Pause or Continue Timer | =C-c C-x ,= | Pauses the timer, or lets a paused one go on. |
+| Stop Timer | =C-c C-x _=, =C-u C-c C-x ,= | Stops the timer. |
+| Set Countdown Timer… | =C-c C-x ;= | Starts a countdown for the entry's =Effort=, or asks how long: minutes, or =h:mm:ss=. |
+| Show Remaining Countdown Time | — | Says how long the countdown has left. |
+| Shift Timer Values in Region… | =C-u C-u C-c C-x 0= | Adds a difference to every =h:mm:ss= in the selection; empty makes the first one 0:00:00. |
+
+M-RET in a timer list inserts a timer item, so notes taken in a meeting can be stamped as
+they're written:
+
+#+BEGIN_SRC org
+- 0:00:05 :: Introductions
+- 0:04:40 :: Budget
+#+END_SRC
+
+When a countdown ends, orgstar shows =Heading: time out=, and a notification when it isn't
+in front. Starting a relative timer during a countdown, or a countdown during a relative
+timer, is refused until the other is stopped. =org-timer-format= (="%s "=) sets what Insert
+Timer Value writes, and =org-timer-default-timer= the countdown Set Countdown Timer… offers;
+see [[file:13-configuration.org][Configuration]].
+
 * Clocking
 
 Clocking records the time you work on an entry as =CLOCK:= lines in its =LOGBOOK= drawer.

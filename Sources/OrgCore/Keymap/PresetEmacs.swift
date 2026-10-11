@@ -194,6 +194,33 @@ extension KeymapPreset {
         keys = "C-c C-x C-l"
         command = "org.latex-preview"
         [[bind]]
+        keys = "C-c C-x 0"
+        command = "org.timer.start"
+        [[bind]]
+        keys = "C-u C-c C-x 0"
+        command = "org.timer.start-offset"
+        [[bind]]
+        keys = "C-u C-u C-c C-x 0"
+        command = "org.timer.change-times"
+        [[bind]]
+        keys = "C-c C-x ."
+        command = "org.timer.insert"
+        [[bind]]
+        keys = "C-c C-x -"
+        command = "org.timer.item"
+        [[bind]]
+        keys = "C-c C-x ,"
+        command = "org.timer.pause"
+        [[bind]]
+        keys = "C-u C-c C-x ,"
+        command = "org.timer.stop"
+        [[bind]]
+        keys = "C-c C-x _"
+        command = "org.timer.stop"
+        [[bind]]
+        keys = "C-c C-x ;"
+        command = "org.timer.set"
+        [[bind]]
         keys = "C-c C-a a"
         command = "app.attach.attach"
         [[bind]]

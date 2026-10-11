@@ -47,6 +47,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         // A midnight badge update shows nothing else.
         if notification.request.content.badge != nil { return [.badge] }
+        // A countdown's end shows in the app's own message.
+        if notification.request.identifier == "sh.krz.orgstar.org-timer" { return [] }
         return [.banner, .sound, .list]
     }
 
@@ -254,6 +256,7 @@ struct RootView: View {
             }
         }
         .task {
+            TimerModel.shared.onDone = { message = $0 }
             takeShared()
             // Development: `ORGSTAR_ROOT` adds a folder at launch, as on the Mac.
             if let root = ProcessInfo.processInfo.environment["ORGSTAR_ROOT"] { try? await workspace.addRoot(URL(fileURLWithPath: root)) }

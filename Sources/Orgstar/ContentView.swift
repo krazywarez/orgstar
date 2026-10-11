@@ -67,6 +67,7 @@ struct ContentView: View {
         )
         // The agenda files, for clock tables over `agenda` scopes.
         options.agendaFiles = workspace.agendaFilePaths()
+        options.timer = TimerModel.shared.timer
         return options
     }
     /// A block being edited apart (`org-edit-special`).
@@ -324,6 +325,7 @@ struct ContentView: View {
         }
         .onChange(of: saveMode, initial: true) { _, mode in session.saveMode = mode }
         .onChange(of: options, initial: true) { _, options in session.options = options }
+        .onAppear { TimerModel.shared.onDone = { [commands] in commands.show($0) } }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in defaultsChanges += 1 }
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }

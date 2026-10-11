@@ -45,6 +45,8 @@ public enum OrgPreferences {
         options.clockRoundingMinutes = integer("clockRoundingMinutes", defaults)
         options.clockOutRemoveZeroTimeClocks = bool("clockRemoveZeroTime", defaults)
         options.clockInSwitchToState = string("clockInSwitchToState", defaults).nonEmpty
+        options.timerFormat = string("timerFormat", defaults).contains("%s") ? string("timerFormat", defaults) : "%s "
+        options.timerDefault = string("timerDefault", defaults).nonEmpty ?? "0"
         let templates = UserConfig.structureTemplates(defaults)
         options.structureTemplates = templates.isEmpty ? nil : StructureTemplate.merged(templates)
         options.trackOrderedPropertyWithTag = switch string("trackOrderedTag", defaults) {

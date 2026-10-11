@@ -32,6 +32,7 @@ struct EditorScreen: View {
         var options = session.options
         options.filePath = path
         options.agendaFiles = workspace.agendaFilePaths()
+        options.timer = TimerModel.shared.timer
         return options
     }
 
@@ -137,13 +138,21 @@ struct EditorScreen: View {
             }
         }
         .safeAreaInset(edge: .top) {
-            if let message {
-                Text(message).font(.callout).padding(8).frame(maxWidth: .infinity).background(.bar)
-                    .onTapGesture { self.message = nil }
-                    .task(id: message) {
-                        try? await Task.sleep(for: .seconds(4))
-                        if self.message == message { self.message = nil }
+            VStack(spacing: 0) {
+                if let timer = TimerModel.shared.timer {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(timer.modeLine(now: context.date)).font(.callout.monospacedDigit())
                     }
+                    .frame(maxWidth: .infinity).padding(4).background(.bar)
+                }
+                if let message {
+                    Text(message).font(.callout).padding(8).frame(maxWidth: .infinity).background(.bar)
+                        .onTapGesture { self.message = nil }
+                        .task(id: message) {
+                            try? await Task.sleep(for: .seconds(4))
+                            if self.message == message { self.message = nil }
+                        }
+                }
             }
         }
         .sheet(item: $prompt) { request in
@@ -239,6 +248,7 @@ struct EditorScreen: View {
             editor?.modal = model.modalKeys
         }
         .onChange(of: model.showMarkup) { editor?.showMarkup = model.showMarkup }
+        .onChange(of: TimerModel.shared.timer) { editor?.options = editorOptions }
         .onDisappear {
             // Typing the reader shows next, and a save, don't wait for the autosave delay.
             if session.dirtyPaths.contains(path) { _ = session.save(path) }

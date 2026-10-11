@@ -405,6 +405,24 @@ subitems").
 Toggle Checkbox works only on item lines. Org's behaviour on a heading, toggling the
 checkboxes of the region or subtree, is not available.
 
+** Radio lists
+
+A list with =:radio= in its =#+ATTR_ORG:= line, other than =:radio nil=, is a radio list:
+checking one item unchecks the others. Toggle Checkbox and =C-c C-c= on an item check it
+and uncheck the rest of its list (=org-toggle-radio-button=); items without a checkbox
+get one.
+
+#+BEGIN_SRC org
+,#+ATTR_ORG: :radio t
+- [ ] tea
+- [X] coffee
+- [ ] water
+#+END_SRC
+
+=C-c C-c= on an =#+ATTR_ORG:= or other affiliated keyword line of a list repairs the
+list, as on an item without a checkbox. Org's =org-list-checkbox-radio-mode=, which makes
+every list in a buffer a radio list, isn't available.
+
 ** Statistics cookies
 
 A cookie =[/]= or =[%]= on a heading or an item shows progress:
@@ -1004,4 +1022,4 @@ These Org structure features are not in orgstar:
 
 - Editing values in column view, and writing summaries from it; the
   =columnview= dynamic block does write summaries.
-- The =ORDERED= property, radio lists and timer list items in the list commands.
+- The =ORDERED= property in the list commands.

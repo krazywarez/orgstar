@@ -130,6 +130,7 @@ struct PaneView: NSViewRepresentable {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
             case .refreshSetup: session?.refreshSetup()
+            case .timer(let timer): TimerModel.shared.set(timer)
             case .message, .sparseTree, .fold: break
             }
         }

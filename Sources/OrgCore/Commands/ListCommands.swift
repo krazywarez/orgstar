@@ -1,7 +1,7 @@
 import Foundation
 
 // Plain list commands from org-list.el (Org 9.8.7) on `EmacsBuffer`, matched to Emacs by the
-// oracle tests. The ORDERED property, radio lists and timer items are not handled.
+// oracle tests. The ORDERED property is not handled.
 
 extension EmacsBuffer {
     /// `org-insert-item`. False when point isn't in an item.
@@ -83,8 +83,59 @@ extension EmacsBuffer {
         moveToColumn(column)
     }
 
+    static let affiliatedKeyword = "^[ \\t]*#\\+(?:attr_[-_A-Za-z0-9]+|caption|data|headers?|label|name|plot|resname|results?|source|srcname|tblname)(?:\\[.*\\])?:"
+
+    /// The first item of the list whose affiliated keywords hold point's line, or nil.
+    func affiliatedListStart() -> Int? {
+        saveExcursion {
+            beginningOfLine()
+            guard looking(Self.affiliatedKeyword) != nil else { return nil }
+            while looking(Self.affiliatedKeyword) != nil { if forwardLine(1) != 0 { return nil } }
+            guard looking(itemPattern) != nil, atItem, inItem() == point else { return nil }
+            return point
+        }
+    }
+
+    /// `org-at-radio-list-p`: point's line is an item of a list whose affiliated keywords have
+    /// `#+ATTR_ORG: … :radio` other than `nil`.
+    func atRadioList() -> Bool {
+        guard saveExcursion({ () -> Bool in beginningOfLine(); return looking(itemPattern) != nil }), let item = inItem() else { return false }
+        let structure = saveExcursion { point = item; return listStruct() }
+        guard structure.item(item) != nil else { return false }
+        var line = structure.listBegin(item, structure.prevs)
+        while line > 0 {
+            let previous = lineStart(line - 1)
+            let keyword = substring(previous, line)
+            guard keyword.range(of: Self.affiliatedKeyword, options: [.regularExpression, .caseInsensitive]) != nil else { break }
+            if let radio = keyword.firstMatch(of: /(?i)^[ \t]*#\+attr_org:.* :radio (\S+)/) { return radio.1 != "nil" }
+            line = previous
+        }
+        return false
+    }
+
+    /// `org-toggle-radio-button`: every item of the list at point unchecked, and the item at
+    /// point toggled.
+    func toggleRadioButton() throws {
+        guard atItem, let item = inItem() else { throw UserError(message: "Cannot toggle checkbox outside of a list") }
+        saveExcursion {
+            point = item
+            var structure = listStruct()
+            let old = structure
+            let parents = structure.parents
+            let box = structure.checkbox(item)
+            for pos in structure.allItems(structure.listBegin(item, structure.prevs), structure.prevs) {
+                structure.set(pos) { $0.checkbox = "[ ]" }
+            }
+            structure.set(item) { $0.checkbox = box == "[X]" ? "[ ]" : "[X]" }
+            fixCheckboxes(&structure, parents)
+            applyStruct(structure, old)
+        }
+        updateCheckboxCount()
+    }
+
     /// `org-toggle-checkbox` on the item at point.
     func toggleCheckbox() throws {
+        if atRadioList() { return try toggleRadioButton() }
         guard atItem else { throw UserError(message: "Not at an item or heading, and no active region") }
         saveExcursion {
             let lower = lineStart(point)
@@ -281,7 +332,9 @@ public struct InsertItem: OrgCommand {
     public var title: String { "Insert Item" }
     public func applies(in context: EditContext) -> Bool { KeyContext.holds("item", in: context) }
     public func run(in context: EditContext) -> CommandStep {
-        listCommand(context) { buffer in
+        // A timer list's items are added by `org-timer-item`.
+        if EmacsBuffer.atTimerList(context) { return InsertTimerItem().run(in: context) }
+        return listCommand(context) { buffer in
             guard buffer.insertListItem(checkbox: false) else { throw EmacsBuffer.UserError(message: "Not in an item") }
         }
     }
@@ -294,7 +347,9 @@ public struct InsertCheckboxItem: OrgCommand {
     public var title: String { "Insert Checkbox Item" }
     public func applies(in context: EditContext) -> Bool { KeyContext.holds("item", in: context) }
     public func run(in context: EditContext) -> CommandStep {
-        listCommand(context) { buffer in
+        // A timer list's items are added by `org-timer-item`.
+        if EmacsBuffer.atTimerList(context) { return InsertTimerItem().run(in: context) }
+        return listCommand(context) { buffer in
             guard buffer.insertListItem(checkbox: true) else { throw EmacsBuffer.UserError(message: "Not in an item") }
         }
     }

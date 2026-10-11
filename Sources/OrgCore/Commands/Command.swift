@@ -82,6 +82,12 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var prettyEntities: Bool
     /// `org-use-sub-superscripts` `{}`: only `_{…}` and `^{…}` are sub- and superscripts.
     public var subSuperscriptsNeedBraces: Bool
+    /// The running org-timer, which the app keeps; nil when there is none.
+    public var timer: OrgTimer?
+    /// `org-timer-format`.
+    public var timerFormat = "%s "
+    /// `org-timer-default-timer`.
+    public var timerDefault = "0"
 
     public init(
         tagsColumn: Int = -77, insertHeadingRespectContent: Bool = false, metaReturnMaySplitLine: Bool = true,
@@ -251,6 +257,8 @@ public enum Effect: Sendable, Equatable {
     case fold(Int)
     /// Read the file's `#+SETUPFILE`s again (`org-mode-restart`).
     case refreshSetup
+    /// The org-timer becomes this; nil stops it.
+    case timer(OrgTimer?)
 }
 
 public struct EditResult: Sendable, Equatable {
@@ -321,6 +329,8 @@ public enum Commands {
         SetTags(),
         InsertItem(), InsertCheckboxItem(), IndentItem(), OutdentItem(), IndentItemTree(), OutdentItemTree(),
         MoveItemUp(), MoveItemDown(), ToggleCheckbox(),
+        TimerStart(), TimerStart(offset: true), InsertTimer(), InsertTimerItem(), TimerPauseOrContinue(), TimerStop(),
+        TimerSetCountdown(), TimerShowRemaining(), TimerChangeTimes(),
         InsertTimestamp(), InsertTimestamp(inactive: true), SetPlanning(deadline: false), SetPlanning(deadline: true),
         RemovePlanning(deadline: false), RemovePlanning(deadline: true), FillParagraph(), CreateTable(),
         TableRecalculate(all: false), TableRecalculate(all: true), ExecuteSrcBlock(), OrgDwim(),

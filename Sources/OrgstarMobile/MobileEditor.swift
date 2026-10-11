@@ -219,6 +219,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
                     state.folds.insert(start)
                     setFolds(state)
                 case .refreshSetup: onRefreshSetup?()
+                case .timer(let timer): TimerModel.shared.set(timer)
                 default: break
                 }
             }

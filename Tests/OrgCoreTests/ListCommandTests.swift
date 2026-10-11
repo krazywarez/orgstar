@@ -80,3 +80,31 @@ struct ListOracleTests {
         try compareWithEmacs(samples, Self.commands)
     }
 }
+
+/// Checkbox lists with `#+ATTR_ORG: :radio t`: one box checked at a time.
+struct RadioListOracleTests {
+    static let variants = [
+        "#+ATTR_ORG: :radio t\n- [ ] a\n- [X] b\n- [ ] c\n",
+        "#+attr_org: :radio t\n- a\n- [ ] b\n",
+        "#+ATTR_ORG: :radio nil\n- [ ] a\n- [X] b\n",
+        "#+NAME: pick\n#+ATTR_ORG: :width 10 :radio yes\n#+CAPTION: c\n- [X] a\n- [ ] b\n",
+        "* T [1/3]\n#+ATTR_ORG: :radio t\n- [ ] a\n- [X] b\n- [ ] c\n",
+        "#+ATTR_ORG: :radio t\n- [ ] a\n  - [ ] x\n  - [X] y\n- [X] b\n",
+        "#+ATTR_ORG: :radio t\n#+TITLE: t\n- [ ] a\n- [X] b\n",
+        "#+ATTR_ORG: :radio t\n\n- [ ] a\n- [X] b\n",
+        "#+ATTR_ORG: :radio t\n1. [ ] one\n2. [ ] two\n",
+    ]
+
+    static let commands: [(command: any OrgCommand, form: String, headingLineOnly: Bool)] = [
+        (ToggleCheckbox(), "(if (org-at-heading-p) (error \"heading\") (org-toggle-checkbox))", false),
+        (CtrlCCtrlC(), "(org-ctrl-c-ctrl-c)", false),
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func radioButtonsMatchEmacs() throws {
+        // Off heading lines, where C-c C-c asks for tags.
+        try compareWithEmacs(Self.variants.map { text in
+            (text, EmacsOracle.positions(text).filter { headingOnLine(at: $0, in: OrgParser.parse(text)) == nil })
+        }, Self.commands)
+    }
+}
