@@ -42,7 +42,8 @@ public enum HTMLExport {
     /// `{{{input-file}}}`. `bodyOnly` returns what goes inside `<body>` without the title and
     /// byline: the table of contents, the document and its footnotes, as Org's body-only export.
     public static func page(
-        _ text: String, fallbackTitle: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), bodyOnly: Bool = false
+        _ text: String, fallbackTitle: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), bodyOnly: Bool = false,
+        codeStyle: HTMLCodeStyle? = nil
     ) -> String {
         let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
         let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now, setup: settings.setupKeywords)
@@ -50,6 +51,7 @@ public enum HTMLExport {
         let meta = metadata(text, settings: settings)
         let title = meta.title ?? fallbackTitle
         let renderer = HTMLRenderer(settings: settings, options: options)
+        renderer.codeStyle = codeStyle
         // The title isn't part of the document Org processes citations in: they drop out.
         renderer.inTitle = true
         let titleHTML = renderer.inlineString(title)
@@ -88,7 +90,7 @@ public enum HTMLExport {
         .todo { color: #c33; } .done { color: #393; } .byline { color: #888; } .center { text-align: center; }
         figure { margin: 1em 0; } img { max-width: 100%; }
         #table-of-contents ul { list-style: none; padding-left: 1.2em; } #table-of-contents > div > ul { padding-left: 0; }
-        </style>
+        \(codeStyle?.css ?? "")</style>
         \(head)</head>
         <body>
         \(header)\(body)</body>
@@ -144,6 +146,8 @@ final class HTMLRenderer {
     var citations: CiteProcessor?
     /// Rendering the title, where Org exports citations as nothing.
     var inTitle = false
+    /// Colors for source blocks; plain without.
+    var codeStyle: HTMLCodeStyle?
 
     enum FootnoteContent {
         case definition(String)
@@ -640,7 +644,8 @@ final class HTMLRenderer {
         switch type {
         case "src":
             let language = parameters.split(separator: " ").first.map(String.init)
-            let code = Self.escape(dedent(unescaped).joined(separator: "\n"))
+            let source = dedent(unescaped).joined(separator: "\n")
+            let code = language.flatMap { codeStyle?.html(language: $0, code: source) } ?? Self.escape(source)
             let cls = language.map { " class=\"language-\(Self.escape($0))\"" } ?? ""
             return "<pre><code\(cls)>\(code)</code></pre>\n"
         case "example":

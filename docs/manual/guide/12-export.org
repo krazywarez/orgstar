@@ -154,7 +154,7 @@ Links to =.org= files point to the =.html= file of the same name. Links to headi
 
 ** Source blocks and their results
 
-A source block is exported as =<pre><code class="language-LANG">=, with the code escaped and its common indentation removed. orgstar does not color the code; the class lets a script or stylesheet in =#+HTML_HEAD= highlight it. Noweb references are shown as written. Line-number switches are ignored.
+A source block is exported as =<pre><code class="language-LANG">=, with the code escaped and its common indentation removed. Code in a language the editor highlights is colored as the editor colors it: each token is a =<span>= with the class Emacs's htmlize gives its face (=org-keyword=, =org-string=, =org-comment=, =org-function-name=, =org-type=, =org-constant=, =org-property-name=, =org-variable-name=), and the page's stylesheet colors them with the theme's =syntax-= colors, light and dark. Other languages are exported plain; the =language-= class lets a script or stylesheet in =#+HTML_HEAD= highlight them. Noweb references are shown as written. Line-number switches are ignored.
 
 The block's =:exports= header argument decides what appears. orgstar resolves it as running the block would: from the =#+begin_src= line, =#+HEADER:= lines, =header-args= properties and =#+PROPERTY:= lines (see [[file:11-code-blocks.org][Code blocks]]). Without one, it is =results= for =dot=, =plantuml=, =ditaa=, =gnuplot=, =latex= and =lilypond= blocks, as their Org defaults set it, and =code= for other languages.
 
@@ -305,5 +305,4 @@ The publisher part comes from the =publisher=, =journal=, =institution= or =scho
 
 - Subtree and body-only export are in the export dialog only; the single-format commands export the whole file. There is no asynchronous export.
 - Source blocks are not run, and noweb references are not expanded.
-- HTML export does not color source code.
 - Export settings in the dialog are not per file.

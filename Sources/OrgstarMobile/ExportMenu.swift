@@ -2,6 +2,7 @@
 import CoreTransferable
 import OrgApp
 import OrgCore
+import OrgPresentation
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -13,6 +14,8 @@ struct OrgExport: Transferable {
     let path: String
     let format: Format
     let settings: OrgSettings
+    /// Made on the main actor, where the editor's highlighter is.
+    let codeStyle: HTMLCodeStyle
 
     /// `#+EXPORT_FILE_NAME`'s name, or the file's, with the format's extension.
     var fileName: String {
@@ -35,7 +38,9 @@ struct OrgExport: Transferable {
         let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
         let settings = settings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
         let content = switch format {
-        case .html: HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path)
+        case .html: HTMLExport.page(
+            text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle
+        )
         case .markdown: MarkdownExport.document(text, settings: settings, path: path)
         }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -50,11 +55,13 @@ struct OrgExport: Transferable {
 struct ExportMenu: View {
     let path: String
     let text: String
+    @Environment(MobileModel.self) private var model
 
     var body: some View {
         Menu("Export", systemImage: "square.and.arrow.up") {
             ForEach([(OrgExport.Format.html, "HTML"), (.markdown, "Markdown")], id: \.1) { format, name in
-                let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings())
+                let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings(),
+                                       codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))
                 ShareLink(item: export, preview: SharePreview(export.fileName)) { Text(name) }
             }
         }

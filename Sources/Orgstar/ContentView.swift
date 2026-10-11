@@ -434,7 +434,10 @@ struct ContentView: View {
             let target = destination ?? ExportScope.output(for: url, name: name, extension: format == "markdown" ? "md" : "html")
             let content = format == "markdown"
                 ? MarkdownExport.document(text, settings: defaults, path: path, bodyOnly: bodyOnly)
-                : HTMLExport.page(text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path, bodyOnly: bodyOnly)
+                : HTMLExport.page(
+                    text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path, bodyOnly: bodyOnly,
+                    codeStyle: HTMLCodeStyle(highlighter: EditorView.highlighter, theme: theme)
+                )
             do {
                 try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try content.write(to: target, atomically: true, encoding: .utf8)

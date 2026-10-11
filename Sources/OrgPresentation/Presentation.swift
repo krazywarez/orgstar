@@ -295,3 +295,40 @@ public enum Presentation {
         tree.root.descendants().filter { $0.kind == .heading }.map(\.range.lowerBound)
     }
 }
+
+extension SyntaxCategory {
+    /// The class htmlize gives the face Emacs uses for this kind of token.
+    public var htmlClass: String? {
+        switch self {
+        case .keyword: "org-keyword"
+        case .string: "org-string"
+        case .comment: "org-comment"
+        case .function: "org-function-name"
+        case .type: "org-type"
+        case .number, .constant, .escape: "org-constant"
+        case .property, .attribute, .tag: "org-property-name"
+        case .label: "org-label"
+        case .variable: "org-variable-name"
+        case .operator, .punctuation: nil
+        }
+    }
+}
+
+extension HTMLCodeStyle {
+    /// Source blocks colored by `highlighter` in `theme`'s colors, light and dark.
+    public init(highlighter: any CodeHighlighter, theme: ThemeSpec) {
+        var light: [String] = []
+        var dark: [String] = []
+        var seen = Set<String>()
+        for category in SyntaxCategory.allCases {
+            guard let cls = category.htmlClass, let key = category.themeKey, seen.insert(cls).inserted else { continue }
+            if let color = theme.color(key, dark: false) { light.append(".\(cls) { color: \(color.hex); }") }
+            if let color = theme.color(key, dark: true) { dark.append(".\(cls) { color: \(color.hex); }") }
+        }
+        var css = light.joined(separator: " ") + "\n"
+        if !dark.isEmpty { css += "@media (prefers-color-scheme: dark) { " + dark.joined(separator: " ") + " }\n" }
+        self.init(css: css) { language, code in
+            highlighter.highlights(language: language, code: code).compactMap { run in run.category.htmlClass.map { (run.range, $0) } }
+        }
+    }
+}
