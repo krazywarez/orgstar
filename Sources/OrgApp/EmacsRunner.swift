@@ -85,7 +85,11 @@ public enum EmacsRunner {
     /// Exports `text`, the buffer of the file at `path`, with an ox function such as
     /// `org-latex-export-to-pdf`. The file is written beside `path`, as Emacs does; source
     /// blocks are not run. Returns the path Emacs wrote.
-    public static func export(text: String, path: String, function: String, timeout: Duration = .seconds(120)) async throws -> String {
+    /// `subtree` is a point (1-based, in characters) whose subtree alone is exported;
+    /// `bodyOnly` leaves out the document's preamble, as the dispatcher's `C-s` and `C-b`.
+    public static func export(
+        text: String, path: String, function: String, subtree: Int? = nil, bodyOnly: Bool = false, timeout: Duration = .seconds(120)
+    ) async throws -> String {
         guard let emacs = executable() else { throw Failure(description: "Emacs isn't installed, so this format can't be exported.") }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-export-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -107,7 +111,8 @@ public enum EmacsRunner {
             (erase-buffer)
             (insert-file-contents \(lisp(snapshot.path)))
             (set-buffer-modified-p nil))
-          (let ((file (\(function))))
+          \(subtree.map { "(goto-char \($0))" } ?? "")
+          (let ((file (\(function)\(subtree == nil && !bodyOnly ? "" : " nil \(subtree == nil ? "nil" : "t") nil \(bodyOnly ? "t" : "nil")"))))
             (with-temp-file \(lisp(output.path)) (insert (expand-file-name file)))))
         """.write(to: script, atomically: true, encoding: .utf8)
         let process = Process()

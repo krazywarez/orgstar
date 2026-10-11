@@ -5,14 +5,17 @@ import Foundation
 public enum MarkdownExport {
     /// As the HTML page: `#+INCLUDE`, macros, `#+OPTIONS` and the select and exclude tags.
     /// `path` is the file's, for `#+INCLUDE`, `{{{input-file}}}` and `#+bibliography:`.
-    public static func document(_ text: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date()) -> String {
+    /// `bodyOnly` leaves out the title heading.
+    public static func document(
+        _ text: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), bodyOnly: Bool = false
+    ) -> String {
         let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
         let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now, setup: settings.setupKeywords)
         let options = ExportOptions.parse(settings.setupKeywords + text)
         let renderer = MarkdownRenderer(settings: settings, options: options)
         var out = ""
         renderer.inTitle = true
-        if options.title, let title = HTMLExport.metadata(text, settings: settings).title { out = "# " + renderer.inlineString(title) + "\n\n" }
+        if options.title, !bodyOnly, let title = HTMLExport.metadata(text, settings: settings).title { out = "# " + renderer.inlineString(title) + "\n\n" }
         renderer.inTitle = false
         renderer.citations = CiteProcessor(text: text, directory: directory)
         out += renderer.document(renderer.citations == nil ? text : renderer.citations!.inliningNotes(CiteProcessor.removingNocite(text)))

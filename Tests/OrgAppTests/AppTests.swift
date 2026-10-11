@@ -829,6 +829,19 @@ struct EmacsExportTests {
         #expect(try String(contentsOf: file, encoding: .utf8) == "#+TITLE: On disk\n")
     }
 
+    /// The dispatcher's `C-s` and `C-b`: the subtree at point alone, its EXPORT_FILE_NAME used.
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func exportsTheSubtreeBodyOnly() async throws {
+        let notes = try Folder()
+        let file = try notes.write("doc.org", "")
+        let text = "#+TITLE: Doc\n* Ünï\nFirst.\n* Second\n:PROPERTIES:\n:EXPORT_FILE_NAME: second\n:END:\nOnly this.\n"
+        let point = (text as NSString).substring(to: (text as NSString).range(of: "Only").location).unicodeScalars.count + 1
+        let written = try await EmacsRunner.export(text: text, path: file.path, function: "org-ascii-export-to-ascii", subtree: point, bodyOnly: true)
+        #expect(URL(fileURLWithPath: written).lastPathComponent == "second.txt")
+        let out = try String(contentsOfFile: written, encoding: .utf8)
+        #expect(out.contains("Only this.") && !out.contains("First.") && !out.uppercased().contains("DOC"), "\(out)")
+    }
+
     @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func exportUsesBabelPath() async throws {
         let notes = try Folder()

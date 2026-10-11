@@ -14,9 +14,10 @@ struct OrgExport: Transferable {
     let format: Format
     let settings: OrgSettings
 
+    /// `#+EXPORT_FILE_NAME`'s name, or the file's, with the format's extension.
     var fileName: String {
-        let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
-        return base + (format == .html ? ".html" : ".md")
+        ExportScope.output(for: URL(fileURLWithPath: path), name: ExportScope.fileName(text, settings: settings), extension: format == .html ? "html" : "md")
+            .lastPathComponent
     }
 
     static var transferRepresentation: some TransferRepresentation {

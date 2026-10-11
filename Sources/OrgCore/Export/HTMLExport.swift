@@ -39,8 +39,11 @@ public enum HTMLExport {
 
     /// A standalone page: the body under the document's title, with a small stylesheet, as
     /// `#+OPTIONS` and the export keywords ask. `path` is the file's, for `#+INCLUDE` and
-    /// `{{{input-file}}}`.
-    public static func page(_ text: String, fallbackTitle: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date()) -> String {
+    /// `{{{input-file}}}`. `bodyOnly` returns what goes inside `<body>` without the title and
+    /// byline: the table of contents, the document and its footnotes, as Org's body-only export.
+    public static func page(
+        _ text: String, fallbackTitle: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), bodyOnly: Bool = false
+    ) -> String {
         let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
         let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now, setup: settings.setupKeywords)
         let options = ExportOptions.parse(settings.setupKeywords + text)
@@ -56,7 +59,9 @@ public enum HTMLExport {
         let byline = [options.author ? meta.author : nil, options.date ? meta.date : nil].compactMap { $0 }.filter { !$0.isEmpty }
         if !byline.isEmpty { header += "<p class=\"byline\">\(byline.map(HTMLRenderer.escape).joined(separator: " · "))</p>\n" }
         let body = renderer.document(renderer.citations == nil ? text : renderer.citations!.inliningNotes(CiteProcessor.removingNocite(text)))
-        header += renderer.tableOfContents()
+        let contents = renderer.tableOfContents()
+        if bodyOnly { return contents + body }
+        header += contents
         var head = options.htmlHead.map { $0 + "\n" }.joined()
         if renderer.hasMath {
             head += """

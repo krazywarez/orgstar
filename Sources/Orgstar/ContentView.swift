@@ -250,7 +250,9 @@ struct ContentView: View {
             case .columns(_, let view):
                 ColumnViewSheet(view: view) { offset in commands.editor?.reveal(offset) }
             case .export(_, let source):
-                ExportSheet(source: source) { format, destination, open in export(format, to: destination, open: open) }
+                ExportSheet(source: source, inSubtree: exportSubtreeAvailable, target: exportTarget) { format, destination, open, subtree, bodyOnly in
+                    export(format, to: destination, open: open, subtree: subtree, bodyOnly: bodyOnly)
+                }
             case .conflict:
                 ConflictSheet(session: session)
             case .syncCopies:
@@ -393,10 +395,26 @@ struct ContentView: View {
         }
     }
 
-    /// Writes the export beside the file, as Emacs's export dispatcher does, or to
-    /// `destination`, and opens it with `open`.
-    private func export(_ format: String, to destination: URL? = nil, open: Bool = false) {
-        guard let path = session.path, let text = session.document?.text else {
+    /// Whether the caret is in a heading's subtree, which the export dialog can export alone.
+    private var exportSubtreeAvailable: Bool {
+        guard let text = session.document?.text, let caret = commands.editor?.context().caret else { return false }
+        return ExportScope.subtree(text, at: caret) != nil
+    }
+
+    /// Where an export goes by default: `#+EXPORT_FILE_NAME`, or the subtree's
+    /// `EXPORT_FILE_NAME`, else beside the file, with `ext`.
+    private func exportTarget(_ ext: String, subtree: Bool) -> URL {
+        let path = session.path ?? ""
+        let text = session.document?.text ?? ""
+        let caret = subtree ? commands.editor?.context().caret : nil
+        return ExportScope.output(for: URL(fileURLWithPath: path), name: ExportScope.fileName(text, subtreeAt: caret), extension: ext)
+    }
+
+    /// Writes the export where `#+EXPORT_FILE_NAME` says or beside the file, as Emacs's export
+    /// dispatcher does, or to `destination`, and opens it with `open`. `subtree` exports the
+    /// subtree at the caret alone; `bodyOnly` leaves out the title and page wrapper.
+    private func export(_ format: String, to destination: URL? = nil, open: Bool = false, subtree: Bool = false, bodyOnly: Bool = false) {
+        guard let path = session.path, var text = session.document?.text else {
             commands.show("No file is open")
             return
         }
@@ -404,13 +422,21 @@ struct ContentView: View {
         let base = url.deletingPathExtension()
         let defaults = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
         let open = open || format == "html-open"
+        let caret = commands.editor?.context().caret ?? 0
+        let whole = text
+        if subtree {
+            guard let narrowed = ExportScope.subtree(text, at: caret, settings: defaults) else { return commands.show("Not in a subtree") }
+            text = narrowed
+        }
         switch format {
         case "html", "html-open", "markdown":
-            let target = destination ?? base.appendingPathExtension(format == "markdown" ? "md" : "html")
+            let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
+            let target = destination ?? ExportScope.output(for: url, name: name, extension: format == "markdown" ? "md" : "html")
             let content = format == "markdown"
-                ? MarkdownExport.document(text, settings: defaults, path: path)
-                : HTMLExport.page(text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path)
+                ? MarkdownExport.document(text, settings: defaults, path: path, bodyOnly: bodyOnly)
+                : HTMLExport.page(text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path, bodyOnly: bodyOnly)
             do {
+                try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try content.write(to: target, atomically: true, encoding: .utf8)
                 commands.show("Exported to \(target.lastPathComponent)")
                 if open { NSWorkspace.shared.open(target) }
@@ -423,7 +449,11 @@ struct ContentView: View {
             commands.show("Exporting with Emacs…")
             commands.runInEmacs {
                 do {
-                    var written = URL(fileURLWithPath: try await EmacsRunner.export(text: text, path: path, function: function))
+                    // Emacs narrows to the subtree and reads EXPORT_FILE_NAME itself.
+                    let point = subtree ? (whole as NSString).substring(to: min(caret, (whole as NSString).length)).unicodeScalars.count + 1 : nil
+                    var written = URL(fileURLWithPath: try await EmacsRunner.export(
+                        text: whole, path: path, function: function, subtree: point, bodyOnly: bodyOnly
+                    ))
                     if let destination, destination.standardizedFileURL != written.standardizedFileURL {
                         try? FileManager.default.removeItem(at: destination)
                         try FileManager.default.moveItem(at: written, to: destination)
