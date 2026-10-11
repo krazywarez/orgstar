@@ -31,44 +31,44 @@ struct AgendaView: View {
     let commands: AppCommands
     let scheduler: ReminderScheduler?
     let clock: ClockModel
-    @State private var agenda: AgendaModel
-    @State private var views = AgendaViewLoader.builtIn
-    @State private var viewName = AgendaViewLoader.builtIn[0].name
-    @State private var matchText = ""
+    @State var agenda: AgendaModel
+    @State var views = AgendaViewLoader.builtIn
+    @State var viewName = AgendaViewLoader.builtIn[0].name
+    @State var matchText = ""
     /// The selected line: `day:index` (`day:o` + index in the overdue group), or `list:index`.
-    @State private var selection: String?
-    @State private var tick = 0
+    @State var selection: String?
+    @State var tick = 0
     /// The time the now line shows, kept to the minute while the agenda is open.
-    @State private var now = Date()
+    @State var now = Date()
     /// The view picker moved to the agenda for a followed timestamp, which sets its own days.
-    @State private var keepRequestedDays = false
-    @State private var message: String?
-    @State private var prompt: PendingPrompt?
-    @State private var promptText = ""
-    @State private var prefix: String?
+    @State var keepRequestedDays = false
+    @State var message: String?
+    @State var prompt: PendingPrompt?
+    @State var promptText = ""
+    @State var prefix: String?
     /// Entries marked for a bulk action.
-    @State private var marked: [EntryRef] = []
-    @State private var logMode = false
-    @State private var filter = AgendaFilter()
+    @State var marked: [EntryRef] = []
+    @State var logMode = false
+    @State var filter = AgendaFilter()
     /// A filter question: its title and which filter it sets.
-    @State private var filterPrompt: (title: String, kind: Character)?
-    @State private var filterText = ""
+    @State var filterPrompt: (title: String, kind: Character)?
+    @State var filterText = ""
     /// A one-line question for an agenda action, and what to do with the answer.
     struct TextPrompt {
         let title: String
         let apply: (String) -> Void
     }
-    @State private var textPrompt: TextPrompt?
+    @State var textPrompt: TextPrompt?
     @State private var textAnswer = ""
     /// Day, week or month chosen with `v`; nil shows the span the settings or the view give.
-    @State private var spanKind: AgendaSpan?
-    @State private var showingDatePicker = false
-    @State private var pickedDate = Date()
+    @State var spanKind: AgendaSpan?
+    @State var showingDatePicker = false
+    @State var pickedDate = Date()
     @AppStorage("agendaOverdueExpanded") private var overdueShown = true
     @State private var hovered: String?
     @FocusState private var focused: Bool
-    @AppStorage("agendaSpan") private var span = 10
-    @AppStorage("agendaStartOffset") private var startOffset = 0
+    @AppStorage("agendaSpan") var span = 10
+    @AppStorage("agendaStartOffset") var startOffset = 0
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
     @AppStorage("agendaShowAllDates") private var showAllDates = false
     @AppStorage("calendarEvents") private var calendarEventsOn = false
@@ -76,7 +76,7 @@ struct AgendaView: View {
     @AppStorage("agendaPrefixAgenda") private var prefixAgenda = PrefixFormat.defaults["agenda"]!
     @AppStorage("agendaPrefixTodo") private var prefixTodo = PrefixFormat.defaults["todo"]!
     @AppStorage("agendaPrefixTags") private var prefixTags = PrefixFormat.defaults["tags"]!
-    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openWindow) var openWindow
 
     static let match = "Match…"
     static let todoMatch = "TODO Match…"
@@ -163,7 +163,7 @@ struct AgendaView: View {
         let workspace: WorkspaceModel
         let refresh: () async -> Void
 
-        private var key: RefreshKey {
+        var key: RefreshKey {
             var key = base
             key.files = workspace.files.count
             key.changed = workspace.changedFile?.version
@@ -181,13 +181,13 @@ struct AgendaView: View {
         }
     }
 
-    private var isAgenda: Bool {
+    var isAgenda: Bool {
         if case .agenda = agenda.mode { return true }
         return false
     }
 
-    private var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
-    private var isSearch: Bool { viewName == Self.search || viewName == Self.todoSearch }
+    var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
+    var isSearch: Bool { viewName == Self.search || viewName == Self.todoSearch }
 
     @Environment(\.orgTheme) private var theme
 
@@ -209,7 +209,7 @@ struct AgendaView: View {
     }
 
     /// The lines in order, as up and down move through them.
-    private func lines(_ groups: [AgendaDayGroup]) -> [Line] {
+    func lines(_ groups: [AgendaDayGroup]) -> [Line] {
         guard isAgenda else { return listRows.enumerated().map { Line(id: "list:\($0.offset)", row: $0.element, day: agenda.today) } }
         return groups.flatMap { group in
             (overdueShown ? group.overdue.enumerated().map { Line(id: "\(group.day):o\($0.offset)", row: $0.element, day: group.day) } : [])
@@ -217,7 +217,7 @@ struct AgendaView: View {
         }
     }
 
-    private func line(_ id: String) -> Line? { lines(groups).first { $0.id == id } }
+    func line(_ id: String) -> Line? { lines(groups).first { $0.id == id } }
 
     var body: some View {
         let groups = self.groups
@@ -486,234 +486,14 @@ struct AgendaView: View {
         }
     }
 
-    // MARK: - Toolbar
-
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigation) {
-            Menu {
-                ForEach(views) { view in Button(view.name) { viewName = view.name } }
-                Divider()
-                Button(Self.match) { viewName = Self.match }
-                Button(Self.todoMatch) { viewName = Self.todoMatch }
-                Button(Self.search) { viewName = Self.search }
-                Button(Self.todoSearch) { viewName = Self.todoSearch }
-            } label: {
-                Label(viewName, systemImage: "calendar").labelStyle(.titleAndIcon)
-            }
-            .help("What the agenda shows")
-            if isMatch || isSearch {
-                TextField(isSearch ? "Phrase or +word -word {regexp}" : "+work-boss|LEVEL>2/!TODO", text: $matchText)
-                    .frame(minWidth: 220)
-                    .onSubmit { applyView() }
-            }
-        }
-        ToolbarItemGroup {
-            if agenda.isComputing { ProgressView().controlSize(.small) }
-            if isAgenda {
-                Picker("Span", selection: Binding(get: { spanKind }, set: { if let kind = $0 { setSpan(kind) } })) {
-                    Text("Day").tag(AgendaSpan?.some(.day))
-                    Text("Week").tag(AgendaSpan?.some(.week))
-                    Text("Month").tag(AgendaSpan?.some(.month))
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .help("Show a day, week or month (v d, v w, v m)")
-                ControlGroup {
-                    Button("Earlier", systemImage: "chevron.left") { move(forward: false) }
-                        .help("Previous days (b)")
-                    Button("Today") { goToday() }
-                        .help("Back to today (.)")
-                    Button("Later", systemImage: "chevron.right") { move(forward: true) }
-                        .help("Next days (f)")
-                }
-                Button("Go to Date", systemImage: "calendar") {
-                    pickedDate = Self.date(anchorDay)
-                    showingDatePicker = true
-                }
-                .help("Go to a date (j)")
-                .popover(isPresented: $showingDatePicker, arrowEdge: .bottom) {
-                    DatePicker("Date", selection: $pickedDate, displayedComponents: .date)
-                        .datePickerStyle(.graphical)
-                        .labelsHidden()
-                        .padding()
-                        .onChange(of: pickedDate) {
-                            showingDatePicker = false
-                            goTo(Days.absolute(pickedDate, calendar: .current))
-                        }
-                }
-            }
-            Menu {
-                Button("Filter…") { askFilter("/") }
-                Button("By Tag…") { askFilter("\\") }
-                Button("By Category of Selected Line") { toggleCategoryFilter() }
-                Button("By Regexp…") { askFilter("=") }
-                Button("By Effort…") { askFilter("_") }
-                Divider()
-                Button("Remove Filters") { filter = AgendaFilter() }
-                    .disabled(filter.isEmpty)
-            } label: {
-                Label("Filter", systemImage: filter.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
-            } primaryAction: {
-                askFilter("/")
-            }
-            .help("Filter the entries (/, \\, <, =, _; | removes)")
-        }
-    }
-
-    /// The span shown, as the window's title: `Week of 5 Oct 2026`.
-    private var title: String {
-        guard isAgenda else { return viewName.replacingOccurrences(of: "…", with: "") }
-        guard let first = agenda.days.first?.day, let last = agenda.days.last?.day else { return "Agenda" }
-        switch spanKind {
-        case .day: return Self.format(first, "EEEE d MMMM yyyy")
-        case .week: return "Week of " + Self.format(first, "d MMM yyyy")
-        case .month: return Self.format(first, "MMMM yyyy")
-        case nil:
-            if first == last { return Self.format(first, "EEEE d MMMM yyyy") }
-            let sameYear = Days.date(first).year == Days.date(last).year
-            return Self.format(first, sameYear ? "d MMM" : "d MMM yyyy") + " – " + Self.format(last, "d MMM yyyy")
-        }
-    }
-
-    // MARK: - Span
-
-    /// The day `v`, `j` and `k` start from: the selected line's, else today when shown, else the first.
-    private var anchorDay: Int {
-        if let selection, let day = Int(selection.prefix { $0 != ":" }) { return day }
-        let days = agenda.days.map(\.day)
-        if days.contains(agenda.today) || days.isEmpty { return agenda.today }
-        return days[0]
-    }
-
-    /// `org-agenda-day-view`, `-week-view`, `-month-view`: the day, the week from Monday
-    /// (`org-agenda-start-on-weekday`), or the month around `anchor`.
-    private func setSpan(_ kind: AgendaSpan, around anchor: Int? = nil) {
-        let anchor = anchor ?? anchorDay
-        spanKind = kind
-        selection = nil
-        switch kind {
-        case .day:
-            agenda.mode = .agenda(span: 1, startOffset: nil)
-            agenda.start = anchor
-        case .week:
-            agenda.mode = .agenda(span: 7, startOffset: nil)
-            agenda.start = anchor - (Days.weekday(anchor) + 6) % 7
-        case .month:
-            let d = Days.date(anchor)
-            let first = Days.absolute(year: d.year, month: d.month, day: 1)
-            let next = d.month == 12 ? Days.absolute(year: d.year + 1, month: 1, day: 1) : Days.absolute(year: d.year, month: d.month + 1, day: 1)
-            agenda.mode = .agenda(span: next - first, startOffset: nil)
-            agenda.start = first
-        }
-    }
-
-    private func move(forward: Bool) {
-        selection = nil
-        if spanKind == .month, let first = agenda.days.first?.day {
-            setSpan(.month, around: forward ? first + 31 : first - 1)
-        } else {
-            agenda.shift(forward: forward)
-        }
-    }
-
-    private func goToday() {
-        if let spanKind { setSpan(spanKind, around: agenda.today) } else { agenda.showToday() }
-        selection = nil
-    }
-
-    /// `org-agenda-goto-date`.
-    private func goTo(_ day: Int) {
-        if let spanKind { setSpan(spanKind, around: day) } else { agenda.start = day }
-        selection = nil
-    }
-
-    /// Capture on `day`, as `org-agenda-capture`.
-    private func capture(on day: Int) {
-        commands.capture(on: day)
-        NSApp.activate()
-        openWindow(id: "capture")
-    }
-
-    static func date(_ day: Int) -> Date {
-        let d = Days.date(day)
-        return Calendar.current.date(from: DateComponents(year: d.year, month: d.month, day: d.day)) ?? Date()
-    }
-
-    static func format(_ day: Int, _ pattern: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = pattern
-        return formatter.string(from: date(day))
-    }
-
-    static func hhmm(_ date: Date) -> Int {
-        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
-        return (c.hour ?? 0) * 100 + (c.minute ?? 0)
-    }
-
-    @AppStorage("reminders") private var remindersEnabled = true
-
-    /// How far ahead notifications are set, as the design asks the agenda to show.
-    private var reminderStatus: String? {
-        guard let scheduler, remindersEnabled else { return nil }
-        if !scheduler.isAuthorized { return "Notifications are off for orgstar in System Settings." }
-        guard let through = scheduler.scheduledThrough else { return nil }
-        return "Reminders are set through " + through.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()) + "."
-    }
-
-    private var listTitle: String {
-        switch agenda.mode {
-        case .todo(let keywords): "TODO items: \(keywords ?? "all")"
-        case .match(let match, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " matching \(match)"
-        case .search(let string, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " containing \(string)"
-        case .agenda: ""
-        }
-    }
-
-    private func loadViews() {
-        let loaded = AgendaViewLoader.load()
-        views = loaded.views
-        message = loaded.problems.first
-    }
-
-    /// The days of a followed timestamp, in the agenda view.
-    private func showRequestedDays() {
-        guard let request = commands.agendaRequest else { return }
-        commands.agendaRequest = nil
-        selection = nil
-        spanKind = nil
-        if viewName != AgendaViewLoader.builtIn[0].name {
-            keepRequestedDays = true
-            viewName = AgendaViewLoader.builtIn[0].name
-        }
-        agenda.mode = .agenda(span: request.days, startOffset: nil)
-        agenda.start = request.start
-    }
-
-    private func applyView() {
-        if keepRequestedDays { return keepRequestedDays = false }
-        selection = nil
-        spanKind = nil
-        agenda.start = nil
-        switch viewName {
-        case Self.match, Self.todoMatch:
-            let match = matchText.trimmingCharacters(in: .whitespaces)
-            guard !match.isEmpty else { return }
-            agenda.mode = .match(match, todoOnly: viewName == Self.todoMatch)
-        case Self.search, Self.todoSearch:
-            guard matchText.contains(where: { !$0.isWhitespace }) else { return }
-            agenda.mode = .search(matchText, todoOnly: viewName == Self.todoSearch)
-        default:
-            if let view = views.first(where: { $0.name == viewName }) { agenda.mode = view.mode }
-        }
-    }
+    @AppStorage("reminders") var remindersEnabled = true
 
     // MARK: - Items
 
-    private func item(_ id: String) -> AgendaItem? { line(id)?.row.item }
+    func item(_ id: String) -> AgendaItem? { line(id)?.row.item }
 
     /// Return and double click: the entry in the main window, or the event in Calendar.
-    private func open(_ line: Line) {
+    func open(_ line: Line) {
         selection = line.id
         if let event = line.row.event { openEvent(event) } else { jump(line.id) }
     }
@@ -727,552 +507,11 @@ struct AgendaView: View {
     }
 
     /// Moves the selection by `step` lines.
-    private func step(_ step: Int) {
+    func step(_ step: Int) {
         let all = lines(groups)
         guard !all.isEmpty else { return }
         let index = selection.flatMap { id in all.firstIndex { $0.id == id } }
         let next = index.map { min(max($0 + step, 0), all.count - 1) } ?? (step > 0 ? 0 : all.count - 1)
         selection = all[next].id
-    }
-
-    // MARK: - Filters
-
-    /// The tags and categories on the view's lines, which filter words are read against.
-    private var shown: (tags: Set<String>, categories: Set<String>) {
-        let items = (isAgenda ? agenda.days.flatMap(\.items) : agenda.list).filter { $0.path != nil }
-        return (Set(items.flatMap(\.tags)), Set(items.map(\.category)))
-    }
-
-    private func askFilter(_ kind: Character) {
-        switch kind {
-        case "/": filterText = filter.description
-        default: filterText = ""
-        }
-        let title = switch kind {
-        case "/": "Filter [+cat-tag<0:10-/regexp/]:"
-        case "\\": "Tag filter (+tag-tag):"
-        case "=": "Regexp filter (-re to drop):"
-        default: "Effort filter (<0:30, >1:00, =1:00):"
-        }
-        filterPrompt = (title, kind)
-    }
-
-    private func applyFilter() {
-        guard let kind = filterPrompt?.kind else { return }
-        filterPrompt = nil
-        let text = filterText.trimmingCharacters(in: .whitespaces)
-        var current = filter
-        switch kind {
-        case "/":
-            let (parsed, ignored) = AgendaFilter().parse(text, tags: shown.tags, categories: shown.categories)
-            current = parsed
-            if !ignored.isEmpty { message = "\(ignored.joined(separator: " ")) ignored: no line has that tag or category" }
-        case "\\":
-            // Every word as a tag.
-            current.tags = AgendaFilter().parse(text, tags: Set(text.split(whereSeparator: { "+- ".contains($0) }).map(String.init)), categories: []).filter.tags
-        case "=":
-            current.regexps = text.isEmpty ? [] : [text.hasPrefix("-") || text.hasPrefix("+") ? text : "+" + text]
-        default:
-            current.efforts = text.isEmpty ? [] : ["+" + text]
-        }
-        filter = current
-        selection = nil
-    }
-
-    /// `<`: keep only the selected line's category, or drop that filter.
-    private func toggleCategoryFilter() {
-        if !filter.categories.isEmpty {
-            filter.categories = []
-        } else if let selection, let item = item(selection) {
-            filter.categories = ["+" + item.category]
-        } else {
-            message = "No entry selected"
-        }
-    }
-
-    /// The entry in the main window; with `focus` false the agenda keeps the keys (SPC).
-    private func jump(_ id: String, focus: Bool = true) {
-        guard let item = item(id), let path = item.path, let offset = item.markerOffset ?? item.headingOffset else { return }
-        commands.jump(path: path, offset: offset)
-        if focus { openWindow(id: "main") }
-    }
-
-    // MARK: - Commands
-
-    private func handle(_ press: KeyPress) -> KeyPress.Result {
-        let control = press.modifiers.contains(.control)
-        // `C-x` and friends arrive as control characters or as letters with control.
-        func isControl(_ letter: String, _ code: String) -> Bool { control && (press.characters == letter || press.characters == code) }
-        if let pending = prefix {
-            prefix = nil
-            if pending == "v" {
-                switch press.characters {
-                case "d" where isAgenda: setSpan(.day)
-                case "w" where isAgenda: setSpan(.week)
-                case "m" where isAgenda: setSpan(.month)
-                default: message = "v \(press.characters) is undefined"
-                }
-                if message == "v-" { message = nil }
-                return .handled
-            }
-            if pending == "C-c C-x" {
-                if isControl("s", "\u{13}") { archive() } else { message = "C-c C-x \(press.characters) is undefined" }
-                return .handled
-            }
-            if isControl("s", "\u{13}") {
-                run(SetPlanning(deadline: false))
-            } else if isControl("d", "\u{04}") {
-                run(SetPlanning(deadline: true))
-            } else if isControl("q", "\u{11}") {
-                run(SetTags())
-            } else if isControl("t", "\u{14}") {
-                run(TodoCycle())
-            } else if isControl("w", "\u{17}") {
-                refile(marked: false)
-            } else if isControl("x", "\u{18}") {
-                prefix = "C-c C-x"
-                message = "C-c C-x-"
-            } else if press.characters == "$" {
-                archive()
-            } else {
-                message = "C-c \(press.characters) is undefined"
-            }
-            return .handled
-        }
-        if isControl("c", "\u{03}") {
-            prefix = "C-c"
-            message = "C-c-"
-            return .handled
-        }
-        if isControl("n", "\u{0e}") || (press.key == .downArrow && press.modifiers.isEmpty) {
-            step(1)
-            return .handled
-        }
-        if isControl("p", "\u{10}") || (press.key == .upArrow && press.modifiers.isEmpty) {
-            step(-1)
-            return .handled
-        }
-        if press.key == .return || press.key == .tab, let selection, let line = line(selection) {
-            open(line)
-            return .handled
-        }
-        if press.key == .space, let selection {
-            jump(selection, focus: false)
-            return .handled
-        }
-        if press.modifiers == .shift, press.key == .rightArrow || press.key == .leftArrow {
-            run(ShiftTimestampDay(later: press.key == .rightArrow), atMarker: true)
-            return .handled
-        }
-        guard press.modifiers.subtracting(.shift).isEmpty else { return .ignored }
-        switch press.characters {
-        case "n": step(1)
-        case "p": step(-1)
-        case "f" where isAgenda: move(forward: true)
-        case "b" where isAgenda: move(forward: false)
-        case "." where isAgenda: goToday()
-        case "j" where isAgenda:
-            pickedDate = Self.date(anchorDay)
-            showingDatePicker = true
-        case "v" where isAgenda:
-            prefix = "v"
-            message = "v-"
-        case "d" where isAgenda: setSpan(.day)
-        case "w" where isAgenda: setSpan(.week)
-        case "k" where isAgenda: capture(on: anchorDay)
-        case "s":
-            commands.run("app.save-all")
-            message = "Saved"
-        case "/", "\\", "=", "_": askFilter(press.characters.first!)
-        case "<": toggleCategoryFilter()
-        case "|":
-            filter = AgendaFilter()
-            message = "Filters removed"
-        case "l" where isAgenda:
-            logMode.toggle()
-            message = logMode ? "Log mode on" : "Log mode off"
-        case "g", "r":
-            loadViews()
-            tick += 1
-        case "I": clockIn()
-        case "O": message = clock.clockOut(session)
-        case "X": message = clock.clockOut(session, cancel: true)
-        case "$": archive()
-        case "m": mark(true)
-        case "u": mark(false)
-        case "U":
-            marked = []
-            message = "No entries marked"
-        case "B": askBulk()
-        case "t": run(TodoCycle())
-        case "+": run(PriorityUp())
-        case "-": run(PriorityDown())
-        case ",": run(SetPriority())
-        case ":": run(SetTags())
-        default: return .ignored
-        }
-        return .handled
-    }
-
-    // MARK: - Clock, refile, archive, bulk
-
-    private var selectedEntry: EntryRef? { selection.flatMap(item).flatMap(EntryRef.init) }
-
-    private func clockIn() {
-        guard let entry = selectedEntry, let offset = session.locateHeading(path: entry.path, line: entry.line, near: entry.offset) else {
-            message = "No entry selected"
-            return
-        }
-        let paths = workspace.files.filter { $0.kind == .org }.map(\.path)
-        Task {
-            let outcome = await clock.clockIn(session, target: .entry(path: entry.path, offset: offset), paths: paths, ask: commands.askClock)
-            if let jump = outcome.jump { commands.jump(path: jump.path, offset: jump.offset) }
-            message = outcome.messages.last { !$0.isEmpty }
-            tick += 1
-        }
-    }
-
-    private func archive() {
-        guard let entry = selectedEntry, let offset = session.locateHeading(path: entry.path, line: entry.line, near: entry.offset) else {
-            message = "No entry selected"
-            return
-        }
-        message = session.archive(from: (entry.path, offset))
-        tick += 1
-    }
-
-    /// Refiles the selected entry, or with `marked` the marked ones, to a target asked for in
-    /// the main window, where the list of targets is searchable.
-    private func refile(marked bulk: Bool) {
-        let entries = bulk ? marked : selectedEntry.map { [$0] } ?? []
-        guard !entries.isEmpty else {
-            message = "No entry selected"
-            return
-        }
-        let targets = workspace.refileTargets(openPath: session.path, document: session.document)
-        commands.ask(Prompt(key: "refile", message: "Refile to:", choices: targets.map(\.label))) { answer in
-            guard let answer, targets.contains(where: { $0.label == answer }) else { return }
-            message = eachEntry(entries) { entry, offset in
-                // Targets in the entry's own file from its text now, as earlier moves shift them.
-                let document = session.openDocuments.first { $0.path == entry.path }?.document
-                    ?? FileManager.default.contents(atPath: entry.path).map { DocumentState(bytes: [UInt8]($0)) }
-                guard let target = workspace.refileTargets(openPath: entry.path, document: document).first(where: { $0.label == answer }) else {
-                    return "Can't find \(answer) any more."
-                }
-                return session.refile(to: target, from: (entry.path, offset))
-            }
-            if bulk { marked = [] }
-            tick += 1
-        }
-        openWindow(id: "main")
-    }
-
-    /// Runs `action` on each entry, finding it again first: later entries in a file first, so
-    /// earlier ones keep their place. Returns the last message.
-    private func eachEntry(_ entries: [EntryRef], _ action: (EntryRef, Int) -> String?) -> String? {
-        var last: String?
-        var failed = 0
-        for entry in entries.sorted(by: { ($0.path, $1.offset) < ($1.path, $0.offset) }) {
-            guard let offset = session.locateHeading(path: entry.path, line: entry.line, near: entry.offset) else {
-                failed += 1
-                continue
-            }
-            last = action(entry, offset)
-        }
-        return failed > 0 ? "\(failed) marked \(failed == 1 ? "entry" : "entries") changed and \(failed == 1 ? "was" : "were") skipped" : last
-    }
-
-    private func mark(_ on: Bool) {
-        guard let entry = selectedEntry else {
-            message = "No entry selected"
-            return
-        }
-        if on {
-            if !marked.contains(entry) { marked.append(entry) }
-        } else {
-            marked.removeAll { $0 == entry }
-        }
-        message = "\(marked.count) marked"
-    }
-
-    /// `B`: an action for every marked entry.
-    private func askBulk() {
-        guard !marked.isEmpty else {
-            message = "No entries are marked"
-            return
-        }
-        textPrompt = TextPrompt(title: "Bulk action on \(marked.count): [$] archive [r] refile [t] TODO state [+] tag [-] untag [s] schedule [d] deadline") { answer in
-            switch answer.trimmingCharacters(in: .whitespaces) {
-            case "$": bulk { session.archive(from: ($0.path, $1)) }
-            case "r": refile(marked: true)
-            case "t":
-                textPrompt = TextPrompt(title: "TODO state (empty for none):") { keyword in
-                    let word = keyword.trimmingCharacters(in: .whitespaces)
-                    bulk { performAt($0, $1, SetTodo(keyword: word.isEmpty ? nil : word)) }
-                }
-            case "+", "-":
-                let on = answer.trimmingCharacters(in: .whitespaces) == "+"
-                textPrompt = TextPrompt(title: on ? "Tag to add:" : "Tag to remove:") { tag in
-                    let tag = tag.trimmingCharacters(in: .whitespaces)
-                    guard !tag.isEmpty else { return }
-                    bulk { performAt($0, $1, ToggleTag(tag: tag, on: on)) }
-                }
-            case "s", "d":
-                let deadline = answer.trimmingCharacters(in: .whitespaces) == "d"
-                textPrompt = TextPrompt(title: deadline ? "Deadline (+2d, fri, 2026-10-12):" : "Schedule (+2d, fri, 2026-10-12):") { date in
-                    bulk { performAt($0, $1, SetPlanning(deadline: deadline), answers: ["date": date]) }
-                }
-            default:
-                message = "No bulk action \(answer)"
-            }
-        }
-    }
-
-    private func bulk(_ action: (EntryRef, Int) -> String?) {
-        message = eachEntry(marked, action) ?? "Done with \(marked.count) entries"
-        marked = []
-        tick += 1
-    }
-
-    /// Runs `command` at the heading at `offset`, as `run` does for the selection.
-    private func performAt(_ entry: EntryRef, _ offset: Int, _ command: any OrgCommand, answers: [String: String] = [:]) -> String? {
-        switch session.perform(command, path: entry.path, at: offset, expect: (offset, entry.line), answers: answers) {
-        case .failed(let text): text
-        case .prompt: "\(command.title) needs an answer; run it on the entry itself"
-        default: nil
-        }
-    }
-
-    /// Runs `command` on the selected entry, at its heading or, with `atMarker`, at the
-    /// timestamp the entry is listed for.
-    private func run(_ command: any OrgCommand, atMarker: Bool = false, answers: [String: String] = [:], itemID: String? = nil) {
-        guard let id = itemID ?? selection, let item = item(id), let path = item.path, let start = item.headingOffset else {
-            message = "No entry selected"
-            return
-        }
-        if atMarker, ![.deadline, .upcomingDeadline, .scheduled, .pastScheduled, .timestamp].contains(item.kind) {
-            message = "Only dated entries can move"
-            return
-        }
-        let offset = atMarker ? (item.markerOffset ?? start) : start
-        let step = session.perform(command, path: path, at: offset, expect: item.headingLine.map { (start, $0) }, answers: answers)
-        switch step {
-        case .prompt(let request):
-            promptText = request.initial
-            prompt = PendingPrompt(prompt: request, command: command, atMarker: atMarker, answers: answers, itemID: id)
-        case .failed(let text):
-            message = text
-            tick += 1
-        case .external:
-            message = "Not available from the agenda"
-        case .commit:
-            message = nil
-            tick += 1
-        }
-    }
-
-    private func answerPrompt() {
-        guard let pending = prompt else { return }
-        prompt = nil
-        var answers = pending.answers
-        answers[pending.prompt.key] = promptText
-        run(pending.command, atMarker: pending.atMarker, answers: answers, itemID: pending.itemID)
-    }
-}
-
-/// One agenda line: the time or status over an icon, the category above the title, progress
-/// and tags after it, and the TODO keyword and priority at the end.
-struct AgendaRowView: View {
-    let row: AgendaRow
-    /// The agenda day the row is on, for habit graphs.
-    var day: Int
-    var showsGutter = true
-    var selected = false
-    var hovered = false
-    /// Marked for a bulk action.
-    var marked = false
-    @Environment(\.orgTheme) private var theme
-
-    static let gutterWidth: CGFloat = 92
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            if showsGutter { gutter }
-            VStack(alignment: .leading, spacing: 2) {
-                if !row.category.isEmpty { categoryLine }
-                titleLine
-            }
-            .layoutPriority(1)
-            Spacer(minLength: 8)
-            if let habit = row.item?.habit {
-                HabitGraph(cells: habit.graph(today: day), theme: theme)
-            }
-            if let todo = row.todo {
-                let color = theme.dynamic(row.isDone ? .systemGreen : .systemRed) { [theme, row] in theme.todoColor(todo, isDone: row.isDone, dark: $0) }
-                Text(todo)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(color)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(color.opacity(0.14)))
-                    .fixedSize()
-            }
-            priorityBadge
-                .frame(width: 18)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 6)
-        .frame(minHeight: 44)
-        // `org-agenda-dim-blocked-tasks`.
-        .opacity(row.isBlocked ? 0.5 : 1)
-        .background {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(selected ? theme.color("selection") ?? Color.accentColor.opacity(0.2) : hovered ? Color.primary.opacity(0.05) : .clear)
-                .padding(.horizontal, 6)
-        }
-        .overlay(alignment: .leading) {
-            if marked {
-                Capsule().fill(theme.color("agenda-today") ?? .accentColor).frame(width: 3).padding(.vertical, 8).padding(.leading, 8)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var statusColor: Color {
-        theme.dynamic(.secondaryLabelColor) { [theme, row] in theme.statusColor(row.status, dark: $0) }
-    }
-
-    private var gutter: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(row.gutter)
-                .font(.system(size: 12, weight: row.status == .overdue || row.status == .dueSoon ? .semibold : .regular).monospacedDigit())
-                .foregroundStyle(statusColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: row.icon == .event ? 8 : 10, weight: .semibold))
-                    .foregroundStyle(iconColor)
-                    .frame(height: 12)
-            }
-        }
-        .frame(width: Self.gutterWidth, alignment: .leading)
-    }
-
-    /// Overdue entries show a warning, done ones a check, as the status says first.
-    private var symbol: String? {
-        guard let icon = row.icon else { return nil }
-        if row.status == .overdue { return "exclamationmark.circle.fill" }
-        if row.status == .done { return "checkmark.circle.fill" }
-        switch icon {
-        case .scheduled: return "calendar"
-        case .deadline: return "flag.fill"
-        case .habit: return "repeat"
-        case .event: return "circle.fill"
-        case .timestamp: return row.start == nil ? "calendar" : "clock"
-        }
-    }
-
-    private var iconColor: Color {
-        if let event = row.event { return theme.dynamic(.systemPurple) { [theme] in theme.eventColor(event, dark: $0) } }
-        return row.status == .normal ? Color.secondary.opacity(0.8) : statusColor
-    }
-
-    private var categoryLine: some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(row.event.map { event in theme.dynamic(.systemPurple) { [theme] in theme.eventColor(event, dark: $0) } }
-                    ?? theme.dynamic { [theme, row] in theme.categoryColor(row.category, dark: $0) })
-                .frame(width: 6, height: 6)
-            Text(row.category)
-                .font(.system(size: 11))
-                .foregroundStyle(theme.color("agenda-category") ?? .secondary)
-                .lineLimit(1)
-        }
-    }
-
-    private var titleLine: some View {
-        HStack(spacing: 6) {
-            Text(row.title.isEmpty ? " " : row.title)
-                .font(.system(size: 13))
-                .strikethrough(row.isDone)
-                .foregroundStyle(row.isDone ? AnyShapeStyle(.secondary) : AnyShapeStyle(theme.color("foreground") ?? .primary))
-                .lineLimit(1)
-                .truncationMode(.tail)
-            ForEach([row.progress, row.detail].compactMap { $0 }, id: \.self) { progress in
-                Text(progress)
-                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(Color.secondary.opacity(0.14)))
-                    .fixedSize()
-            }
-            ForEach(row.tags, id: \.self) { tag in
-                Text(tag)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(theme.color("tags") ?? .secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 1)
-                    .background(Capsule().strokeBorder((theme.color("tags") ?? .secondary).opacity(0.35), lineWidth: 0.5))
-                    .fixedSize()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var priorityBadge: some View {
-        if let priority = row.priority {
-            let color = theme.dynamic(.systemOrange) { [theme] in theme.priorityColor(priority, dark: $0) }
-            Text(priority)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(color)
-                .frame(width: 18, height: 18)
-                .background(Circle().fill(color.opacity(0.14)))
-                .overlay(Circle().strokeBorder(color.opacity(0.6), lineWidth: 1))
-                .help("Priority \(priority)")
-        } else {
-            Color.clear.frame(width: 18, height: 18)
-        }
-    }
-}
-
-/// org-habit's consistency graph: a cell per day, `*` where the habit was done, `!` today.
-struct HabitGraph: View {
-    let cells: [Habit.Cell]
-    var theme: ThemeSpec = .default
-
-    var body: some View {
-        HStack(spacing: 1) {
-            ForEach(cells, id: \.day) { cell in
-                Text(String(cell.glyph))
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .frame(width: 8, height: 14)
-                    .background(color(cell.face))
-                    .help(Self.label(cell))
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Done \(cells.filter { $0.glyph == "*" }.count) of the last \(Habit.precedingDays) days")
-    }
-
-    /// Due-state colors, lighter for days to come, as org-habit's faces.
-    func color(_ face: Habit.Face) -> Color {
-        func themed(_ key: String, _ fallback: Color) -> Color { theme.color(key) ?? fallback }
-        switch face {
-        case .clear: return themed("habit-clear", .blue).opacity(0.7)
-        case .clearFuture: return themed("habit-clear", .blue).opacity(0.35)
-        case .ready: return themed("habit-ready", .green).opacity(0.75)
-        case .readyFuture: return themed("habit-ready", .green).opacity(0.35)
-        case .alert: return themed("habit-alert", .yellow).opacity(0.85)
-        case .alertFuture: return themed("habit-alert", .yellow).opacity(0.4)
-        case .overdue: return themed("habit-overdue", .red).opacity(0.75)
-        case .overdueFuture: return themed("habit-overdue", .red).opacity(0.35)
-        }
-    }
-
-    static func label(_ cell: Habit.Cell) -> String {
-        let date = Days.date(cell.day)
-        return String(format: "%04d-%02d-%02d", date.year, date.month, date.day) + (cell.glyph == "*" ? " DONE" : "")
     }
 }
