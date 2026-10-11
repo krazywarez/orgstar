@@ -2,16 +2,21 @@ import AppKit
 import Carbon.HIToolbox
 import OrgApp
 import OrgCore
+import OrgDocument
 import SwiftUI
 
 /// The capture window: pick a template by its key, answer its prompts, edit the entry, and
-/// ⌘Return files it where the template says, as `org-capture` does.
+/// ⌘Return files it where the template says, as `org-capture` does. Refile… files it and then
+/// asks where to move it (`org-capture-refile`).
 struct CaptureView: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
     let commands: AppCommands
     let clock: ClockModel
     @State private var templates = CaptureTemplates.defaults
+    @State private var groups: [CaptureGroup] = []
+    /// The day `:time-prompt` asked for.
+    @State private var treeDate: Date?
     @State private var problem: String?
     @State private var template: CaptureTemplate?
     @State private var questions: [Capture.Question] = []
@@ -26,6 +31,7 @@ struct CaptureView: View {
     @State private var day: Int?
     @FocusState private var focused: Bool
     @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -39,6 +45,9 @@ struct CaptureView: View {
                     Spacer()
                     Button("Cancel", role: .cancel) { close() }
                         .keyboardShortcut(.cancelAction)
+                    if template.kind == .entry {
+                        Button("Refile…") { finish(refile: true) }
+                    }
                     Button("File It") { finish() }
                         .keyboardShortcut(.return, modifiers: .command)
                 }
@@ -63,15 +72,23 @@ struct CaptureView: View {
             } else {
                 Text((keys.isEmpty ? "Capture" : "Capture: \(keys)") + (day == nil ? "" : ", scheduled " + captureDate(Date()).formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))))
                     .font(.headline)
-                ForEach(templates.filter { $0.key.hasPrefix(keys) }) { template in
+                ForEach(CaptureTemplates.menu(templates, groups: groups, typed: keys)) { item in
                     Button {
-                        choose(template)
+                        switch item {
+                        case .group(let group): keys = group.key
+                        case .template(let template): choose(template)
+                        }
                     } label: {
                         HStack {
-                            Text("[\(template.key)]").monospaced().foregroundStyle(.secondary)
-                            Text(template.name)
-                            Spacer()
-                            Text(Self.target(template)).foregroundStyle(.secondary).font(.caption)
+                            Text("[\(item.key)]").monospaced().foregroundStyle(.secondary)
+                            switch item {
+                            case .group(let group):
+                                Text(group.name + "…")
+                            case .template(let template):
+                                Text(template.name)
+                                Spacer()
+                                Text(Self.target(template)).foregroundStyle(.secondary).font(.caption)
+                            }
                         }
                     }
                     .buttonStyle(.plain)
@@ -125,6 +142,7 @@ struct CaptureView: View {
         case .headline(_, let headline): return "\(file) / \(headline)"
         case .outline(_, let path): return ([file] + path).joined(separator: " / ")
         case .datetree(_, let path, _): return ([file] + path + ["date tree"]).joined(separator: " / ")
+        case .regexp(_, let regexp): return "\(file) / \(regexp)"
         case .id(let id): return "ID \(id)"
         case .clock: return "clocked entry"
         }
@@ -133,8 +151,10 @@ struct CaptureView: View {
     private func reset() {
         let loaded = CaptureTemplates.load()
         templates = loaded.templates
+        groups = loaded.groups
         problem = loaded.problems.first
         template = nil
+        treeDate = nil
         editing = false
         keys = ""
         day = nil
@@ -178,13 +198,22 @@ struct CaptureView: View {
             for heading in DocumentModel(tree: OrgParser.parse(text)).headings { for tag in heading.localTags where !tags.contains(tag) { tags.append(tag) } }
             context.fileTags = tags
         }
-        questions = Capture.questions(chosen.template, context: context)
+        questions = (asksTreeDate(chosen) ? [Self.treeQuestion] : []) + Capture.questions(chosen.template, context: context)
         answers = questions.map { _ in "" }
         if questions.isEmpty { expand() }
     }
 
+    /// `:time-prompt` asks first, unless the agenda day is the date.
+    private func asksTreeDate(_ template: CaptureTemplate) -> Bool { template.asksTreeDate && day == nil }
+
+    static let treeQuestion = Capture.Question(prompt: "Date for tree entry", defaultValue: "", choices: [], kind: .date(withTime: false, inactive: false))
+
     private func expand() {
         guard let template else { return }
+        var answers = answers
+        if asksTreeDate(template) {
+            treeDate = Capture.treeDate(answers.removeFirst(), now: Date())
+        }
         context.now = captureDate(Date())
         switch Capture.fill(template.template, context: context, answers: answers) {
         case .failure(.message(let message)):
@@ -207,13 +236,14 @@ struct CaptureView: View {
     /// `now` on the agenda day captured for, as `org-overriding-default-time` sets `%t`, `%U`
     /// and the date tree's day.
     private func captureDate(_ now: Date) -> Date {
+        if let treeDate { return treeDate }
         guard let day else { return now }
         let d = Days.date(day)
         let time = Calendar.current.dateComponents([.hour, .minute, .second], from: now)
         return Calendar.current.date(from: DateComponents(year: d.year, month: d.month, day: d.day, hour: time.hour, minute: time.minute, second: time.second)) ?? now
     }
 
-    private func finish() {
+    private func finish(refile: Bool = false) {
         guard let template else { return }
         let opened = context.now
         let now = Date()
@@ -229,17 +259,31 @@ struct CaptureView: View {
             commands.show("Captured to \(Self.target(template))")
             let options = template.options
             let paths = workspace.files.filter { $0.kind == .org }.map(\.path)
-            Task { [commands, clock, session] in
+            Task { [commands, clock, session, workspace] in
                 let outcome = await clock.captured(entry, options: options, session: session, paths: paths, ask: commands.askClock, opened: opened, now: now)
                 for message in outcome.messages { commands.show(message) }
-                if let jump = outcome.jump {
+                if refile {
+                    Self.refile(entry, session: session, workspace: workspace, commands: commands)
+                } else if let jump = outcome.jump {
                     commands.jump(path: jump.path, offset: jump.offset)
                 } else if options.jumpToCaptured {
                     commands.jump(path: entry.path, offset: entry.offset)
                 }
             }
         }
+        if refile { openWindow(id: "main") }
         close()
+    }
+
+    /// `org-capture-refile`: the filed entry, moved where the answer says.
+    private static func refile(_ entry: (path: String, offset: Int), session: DocumentSession, workspace: WorkspaceModel, commands: AppCommands) {
+        let document = session.openDocuments.first { $0.path == entry.path }?.document
+            ?? FileManager.default.contents(atPath: entry.path).map { DocumentState(bytes: [UInt8]($0)) }
+        let targets = workspace.refileTargets(openPath: entry.path, document: document)
+        commands.ask(Prompt(key: "refile", message: "Refile to:", choices: targets.map(\.label))) { answer in
+            guard let answer, let target = targets.first(where: { $0.label == answer }) else { return }
+            if let message = session.refile(to: target, from: entry) { commands.show(message) }
+        }
     }
 
     private func close() {

@@ -806,9 +806,14 @@ public struct EmacsImport: Sendable {
     mutating func captureTemplate(_ entry: Sexp, source: String, env: [String: Sexp] = [:], id: () -> Int) {
         guard let parts = entry.elements, parts.count >= 2, let key = parts[0].string else { return }
         let name = parts[1].string ?? key
+        func quoted(_ s: String) -> String { UserConfig.format(.string(s)) }
         guard parts.count >= 5, let type = parts[2].symbol, let target = parts[3].elements, let kind = target.first?.symbol,
               let template = parts[4].string else {
             // A key and a name only: a group of templates.
+            if parts.count == 2 {
+                let toml = "[[template]]\nkey = \(quoted(key))\nname = \(quoted(name))\n"
+                items.append(Item(id: id(), name: "capture \"\(key)\" \(name)", summary: "capture group \"\(key)\"", source: source, change: .capture(key: key, toml: toml)))
+            }
             if parts.count == 2 { return }
             unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "a template that isn't a string", source: source))
             return
@@ -817,7 +822,6 @@ public struct EmacsImport: Sendable {
             unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "\(type) templates aren't supported", source: source))
             return
         }
-        func quoted(_ s: String) -> String { UserConfig.format(.string(s)) }
         var toml = "[[template]]\nkey = \(quoted(key))\nname = \(quoted(name))\ntype = \(quoted(type))\n"
         // `org-capture-expand-file`: a variable's value, or a form evaluated.
         let strings = target.dropFirst().compactMap { $0.string ?? Self.evaluate($0, env)?.string }
@@ -826,12 +830,20 @@ public struct EmacsImport: Sendable {
         let rest = Array(parts.dropFirst(5))
         for i in stride(from: 0, to: rest.count - 1, by: 2) { if let name = rest[i].symbol { properties[name] = rest[i + 1] } }
         let allStrings = strings.count == target.count - 1
-        var treeType = properties[":tree-type"]?.symbol
+        // A symbol, or a list of groups such as `(year quarter)`.
+        var treeType = properties[":tree-type"].flatMap { value in
+            value.symbol ?? value.elements.flatMap { list in
+                let words = list.compactMap(\.symbol)
+                return words.count == list.count ? words.joined(separator: " ") : nil
+            }
+        }
         let place: String? = switch kind {
         case "file" where strings.count == 1 && target.count == 2:
             "file = \(quoted(strings[0]))\n"
         case "file+headline" where strings.count == 2 && target.count == 3:
             "file = \(quoted(strings[0]))\nheadline = \(quoted(strings[1]))\n"
+        case "file+regexp" where strings.count == 2 && target.count == 3:
+            "file = \(quoted(strings[0]))\nregexp = \(quoted(strings[1]))\n"
         case "file+olp" where strings.count >= 2 && allStrings:
             "file = \(quoted(strings[0]))\nolp = \(quoted(strings.dropFirst().joined(separator: "/")))\n"
         case "file+olp+datetree" where strings.count >= 1 && allStrings:
@@ -852,20 +864,20 @@ public struct EmacsImport: Sendable {
         if kind == "file+weektree" { treeType = "week" }
         toml += place
         if let treeType {
-            guard ["day", "week", "month"].contains(treeType) else {
+            guard let tree = CaptureTemplate.TreeType(rawValue: treeType) else {
                 unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: ":tree-type \(treeType) isn't supported", source: source))
                 return
             }
-            if treeType != "day" { toml += "tree-type = \(quoted(treeType))\n" }
+            if tree != .day { toml += "tree-type = \(quoted(tree.rawValue))\n" }
         }
-        for flag in ["prepend", "immediate-finish", "jump-to-captured", "clock-in", "clock-keep", "clock-resume"] {
+        for flag in ["prepend", "immediate-finish", "jump-to-captured", "clock-in", "clock-keep", "clock-resume", "time-prompt"] {
             if let value = properties[":" + flag], value.symbol != "nil" { toml += "\(flag) = true\n" }
         }
         for count in ["empty-lines", "empty-lines-before", "empty-lines-after"] {
             if let n = properties[":" + count]?.integer { toml += "\(count) = \(n)\n" }
         }
         if let pos = properties[":table-line-pos"]?.string { toml += "table-line-pos = \(quoted(pos))\n" }
-        let ignored = properties.keys.filter { ![":prepend", ":immediate-finish", ":jump-to-captured", ":clock-in", ":clock-keep", ":clock-resume", ":empty-lines", ":empty-lines-before", ":empty-lines-after", ":tree-type", ":table-line-pos"].contains($0) }
+        let ignored = properties.keys.filter { ![":prepend", ":immediate-finish", ":jump-to-captured", ":clock-in", ":clock-keep", ":clock-resume", ":empty-lines", ":empty-lines-before", ":empty-lines-after", ":tree-type", ":table-line-pos", ":time-prompt"].contains($0) }
         if !ignored.isEmpty {
             unsupported.append(Note(id: id(), name: "capture \"\(key)\"", reason: "\(ignored.sorted().joined(separator: ", ")) left out", source: source))
         }
@@ -946,7 +958,7 @@ extension EmacsImport {
         for item in items {
             guard case .capture(let key, let toml) = item.change, !existingKeys.contains(key) else { continue }
             addedCapture += "\n" + toml
-            templates += 1
+            if toml.contains("\ntemplate = ") { templates += 1 }
         }
         if !addedCapture.isEmpty {
             capture += (capture.isEmpty ? "# Capture templates. Imported from Emacs.\n" : "\n# Imported from Emacs.\n") + addedCapture

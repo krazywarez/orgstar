@@ -7,27 +7,36 @@ enum Datetree {
     static let weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     static let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
-    /// Each level's heading title, and the pattern whose first group orders siblings.
+    /// Each level's heading title, and the pattern whose first group orders siblings. With
+    /// weeks, the year and month are those of the ISO week's Thursday; with weeks but no
+    /// months, quarters are 13 weeks.
     static func levels(_ tree: CaptureTemplate.TreeType, date: DateComponents) -> [(title: String, pattern: String)] {
         var gregorian = Calendar(identifier: .gregorian)
         gregorian.timeZone = TimeZone(identifier: "UTC")!
         let day = gregorian.date(from: DateComponents(year: date.year, month: date.month, day: date.day))!
-        let weekday = weekdays[gregorian.component(.weekday, from: day) - 1]
+        let weekdayIndex = gregorian.component(.weekday, from: day) - 1
         var iso = Calendar(identifier: .iso8601)
         iso.timeZone = gregorian.timeZone
         let isoYear = iso.component(.yearForWeekOfYear, from: day)
         let week = iso.component(.weekOfYear, from: day)
-        let year = (title: String(date.year!), pattern: "([12][0-9]{3})")
-        let dayLevel = (title: String(format: "%04d-%02d-%02d ", date.year!, date.month!, date.day!) + weekday,
-                        pattern: "([12][0-9]{3}-[01][0-9]-[0123][0-9]) \\w+")
-        switch tree {
-        case .day, .month:
-            let month = (title: String(format: "%04d-%02d ", date.year!, date.month!) + months[date.month! - 1],
-                         pattern: "([12][0-9]{3}-[01][0-9]) \\w+")
-            return tree == .day ? [year, month, dayLevel] : [year, month]
-        case .week:
-            return [(String(isoYear), year.pattern), (String(format: "%04d-W%02d", isoYear, week), "([12][0-9]{3}-W[0-5][0-9])"), dayLevel]
+        let groups = tree.groups
+        let weeks = groups.contains(.week)
+        let year = weeks ? isoYear : date.year!
+        let thursday = gregorian.date(byAdding: .day, value: 4 - (weekdayIndex == 0 ? 7 : weekdayIndex), to: day)!
+        let month = weeks ? gregorian.component(.month, from: thursday) : date.month!
+        let quarter = weeks && !groups.contains(.month) ? min(4, 1 + (week - 1) / 13) : 1 + (month - 1) / 3
+        var levels: [(title: String, pattern: String)] = []
+        if groups.contains(.year) { levels.append((String(year), "([12][0-9]{3})")) }
+        if groups.contains(.quarter) { levels.append(("\(year)-Q\(quarter)", "([12][0-9]{3}-Q[1-4])")) }
+        if groups.contains(.month) {
+            levels.append((String(format: "%04d-%02d ", year, month) + months[month - 1], "([12][0-9]{3}-[01][0-9]) \\w+"))
         }
+        if weeks { levels.append((String(format: "%04d-W%02d", isoYear, week), "([12][0-9]{3}-W[0-5][0-9])")) }
+        if groups.contains(.day) {
+            levels.append((String(format: "%04d-%02d-%02d ", date.year!, date.month!, date.day!) + weekdays[weekdayIndex],
+                           "([12][0-9]{3}-[01][0-9]-[0123][0-9]) \\w+"))
+        }
+        return levels
     }
 
     /// Point at the date's entry, created where missing, under the heading at `parent` or at

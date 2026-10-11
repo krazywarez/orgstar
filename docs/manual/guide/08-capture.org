@@ -27,9 +27,9 @@ Captures can also arrive from a browser through org-protocol, from Shortcuts, an
 
 A capture goes through up to three steps.
 
-1. *Choose a template.* The window lists your templates with their keys and targets. Type a template's key, or click it. For a key of several characters, such as =wb=, each character you type narrows the list to the templates whose keys start with what you typed, and the header shows the keys so far (=Capture: w=). =Delete= removes the last key typed. The template is chosen as soon as the keys match one.
-2. *Answer its questions.* If the template has prompts (=%^{…}=, =%^g=, =%^t= and the others below), they appear as a form. Leave a field empty for its default. Press Return (Continue) to go on.
-3. *Edit and file.* The filled template appears in an editor, headed with the template's name and target, with the cursor where =%?= was. Press =⌘Return= (File It) to file it.
+1. *Choose a template.* The window lists your templates and groups with their keys and targets. Type a template's key, or click it. For a key of several characters, such as =wb=, each character you type narrows the list, and the header shows the keys so far (=Capture: w=). With a group for =w= (see [[*Template groups][Template groups]]), typing =w= or clicking the group lists what is in it. =Delete= removes the last key typed. The template is chosen as soon as the keys match one.
+2. *Answer its questions.* If the template has prompts (=%^{…}=, =%^g=, =%^t= and the others below), they appear as a form, after =Date for tree entry= for a template with =time-prompt=. Leave a field empty for its default. Press Return (Continue) to go on.
+3. *Edit and file.* The filled template appears in an editor, headed with the template's name and target, with the cursor where =%?= was. Press =⌘Return= (File It) to file it, or click Refile… to file it and then move it, as =C-c C-w= (=org-capture-refile=) does. Refile… asks for the target in the main window's echo area, offering the same targets as Refile in the editor (see [[file:04-outlines.org::*Refiling][Refiling]]); it appears for =entry= templates only, as in Org.
 
 Press Esc (Cancel) at any step to close the window without filing anything, as =org-capture-kill= does.
 
@@ -40,7 +40,6 @@ If filing fails, for example because a heading on an =olp= path is missing, the 
 Limits compared with Emacs:
 
 - The editor is a plain text editor. Org editing commands and keys such as =C-c C-c= and =C-c C-k= don't work in it; use =⌘Return= and Esc.
-- There is no refile from the capture window (=C-c C-w= in an Emacs capture buffer). Capture to an inbox heading and refile from the agenda or the editor.
 - The target is not shown while you edit (the capture buffer in Emacs is narrowed to the new entry in the target file).
 
 * Capturing onto an agenda day
@@ -49,7 +48,7 @@ The + at the right of a day's header in the agenda, or =k= in the Mac agenda (=o
 
 - =%t=, =%T=, =%u= and =%U= give that day. The escapes with a time use the current time of day.
 - An empty answer to a date prompt (=%^t= and the others) is that day.
-- With =datetree = true=, the entry goes under that day in the date tree.
+- With =datetree = true=, the entry goes under that day in the date tree, and =time-prompt= doesn't ask.
 
 When the filled template is a heading without an active timestamp, orgstar adds =SCHEDULED:= with that day on the line after the heading, or at the end of the planning line when the template has one:
 
@@ -84,7 +83,26 @@ The file is read each time the capture window opens. If it doesn't exist, or non
 
 A problem in the file, such as a table without a key, shows in red at the bottom of the window; the other templates still load.
 
-Templates are a flat list. Keys of several characters are typed one character at a time, as in Emacs, but Emacs's template groups (an entry with only a key and a description) have no equivalent: the list shows every template whose key starts with what you typed.
+Keys of several characters are typed one character at a time, as in Emacs.
+
+** Template groups
+
+A =[[template]]= with only =key= and =name= is a group, as an entry with only a key and a description is in =org-capture-templates=:
+
+#+BEGIN_SRC toml
+[[template]]
+key = "w"
+name = "Work"
+
+[[template]]
+key = "wm"
+name = "Meeting"
+file = "work.org"
+olp = "Meetings"
+template = "* %?"
+#+END_SRC
+
+The first list then shows =[w] Work…= in place of the templates under it; choosing it lists the templates whose keys are one character longer and start with =w=, and the groups below it. A template longer than the next key with no group for its prefix is listed anyway, so that it can still be chosen. On iOS, the Template picker names each template after its groups, as =Work › Meeting=.
 
 ** Keys
 
@@ -98,7 +116,9 @@ Templates are a flat list. Keys of several characters are typed one character at
 | =headline=           | string            | A heading in =file=                                                                           | =file+headline=         |
 | =olp=                | string            | An outline path in =file=, titles separated by =/=                                            | =file+olp=              |
 | =datetree=           | boolean           | Today's entry in a date tree in =file=, under =olp= if given                                  | =file+olp+datetree=     |
-| =tree-type=          | string            | =day= (the default), =week= or =month=, for =datetree=                                        | =:tree-type=            |
+| =tree-type=          | string            | =day= (the default), =week=, =month=, or groups such as ="year quarter"=, for =datetree=      | =:tree-type=            |
+| =time-prompt=        | boolean           | With =datetree=, ask which day the entry is for                                               | =:time-prompt=          |
+| =regexp=             | string            | After the first match of an Emacs regexp in =file=                                            | =file+regexp=           |
 | =id=                 | string            | The heading with this =ID= property, in any file                                              | =id=                    |
 | =clock=              | boolean           | The entry the clock is running in                                                             | =clock=                 |
 | =prepend=            | boolean           | Put the text first rather than last                                                           | =:prepend=              |
@@ -125,7 +145,7 @@ template = "* %^{Topic} :meeting:\n%U\n- Attendees: %^{Attendees}\n- Topic again
 
 ** Targets
 
-The target keys are checked in this order: =id=, =clock=, =datetree=, =headline=, =olp=; with none of them the target is =file= itself.
+The target keys are checked in this order: =id=, =clock=, =datetree=, =regexp=, =headline=, =olp=; with none of them the target is =file= itself.
 
 | Target                    | Where the text goes                                                                                             |
 |---------------------------+-----------------------------------------------------------------------------------------------------------------|
@@ -133,12 +153,13 @@ The target keys are checked in this order: =id=, =clock=, =datetree=, =headline=
 | =headline = "Inbox"=      | Under the first heading with that exact title, at any level. If there is none, =* Inbox= is added at the end of the file |
 | =olp = "Projects/Work"=   | Under =Work=, a child of =Projects=. Every heading on the path must exist; otherwise filing fails with =Heading not found on outline path= |
 | =datetree = true=         | Under today's heading in a date tree; see [[*Date trees][Date trees]]                                           |
+| =regexp = "…"=            | At the end of the first match (its start, with =prepend=), searched ignoring case. When the match is on a heading line, as under =headline=; otherwise an =entry= goes to the file's top level, =plain= text goes at the match, and an =item= or =table-line= uses the first list or table from the match's line to the next heading. Fails with =No match for target regexp in file= |
 | =id = "…"=                | Under the heading with that =ID=, found through the workspace index. Fails with =Cannot find target ID= if no heading has it |
 | =clock = true=            | Under the heading the running clock is in. Fails with =No running clock= when no clock runs                    |
 
 =file= may be absolute (=/Users/me/org/todo.org=), start with =~/=, or be relative. A relative path is relative to the first folder in the sidebar (your home folder if you have none). Heading titles match the title text without its TODO keyword, priority or tags. Because =olp= uses =/= as its separator, a heading whose title contains =/= can't be on an outline path; use =headline= or =id= for it.
 
-Emacs's =file+regexp=, =file+function= and =function= targets, and templates read from a file (=(file "…")=), are not supported.
+Emacs's =file+function= and =function= targets, and templates read from a file (=(file "…")=), are not supported.
 
 ** Template types
 
@@ -232,6 +253,8 @@ With =datetree = true=, the entry goes under today's date in a tree of headings,
 | =week=      | =* 2026=, =** 2026-W41=, =*** 2026-10-07 Wednesday= (ISO week and its year) |
 | =month=     | =* 2026=, =** 2026-10 October=                            |
 
+=tree-type= may instead list the levels, any of =year=, =quarter=, =month=, =week= and =day= separated by spaces, as a list does in Org: ="year quarter month"= gives =* 2026=, =** 2026-Q4=, =*** 2026-10 October=. The levels always come in that order. With =week=, the year is the ISO week's year and the month is the month of the week's Thursday; with =week= and =quarter= but no =month=, quarters are 13-week periods. The day heading always uses the calendar date.
+
 #+BEGIN_SRC toml
 [[template]]
 key = "j"
@@ -241,7 +264,7 @@ datetree = true
 template = "* %<%H:%M> %?\n%i"
 #+END_SRC
 
-With =olp=, the tree goes under that outline path, one level down, instead of at the top of the file. The date is the day you file the capture. There is no =:time-prompt= to choose another day.
+With =olp=, the tree goes under that outline path, one level down, instead of at the top of the file. The date is the day you file the capture, or, with =time-prompt = true=, the day you give for =Date for tree entry=, read as =org-read-date= reads it (=+2d=, =fri=). That date is also the template's date: without a time, a day other than today is midnight, so =%U= gives =00:00=; with a time, such as =fri 14:00=, it is that time. Org only asks for date trees, and so does orgstar.
 
 * org-protocol
 
@@ -317,6 +340,7 @@ The sheet works as on the Mac, in a form:
 - The Template picker chooses the template; it starts on the first one.
 - Prompts appear as fields. Date prompts have a date picker; choices and tags appear as buttons, and tapping a tag adds it.
 - Continue fills the template and shows the text to edit; File files it; Cancel discards it.
+- Refile… in the bottom bar, for =entry= templates, files the text and then shows the refile targets. If you cancel or refiling fails, the entry opens where it was filed.
 
 Differences from the Mac: there is no selection, clipboard, current file, user name or clock link to insert, so =%i= and =%a= are empty unless the capture came from a link or the share sheet, and =%c=, =%x=, =%f=, =%F=, =%n=, =%k= and =%K= are empty. An org-protocol link naming a template key that doesn't exist opens the sheet on the first template and shows =No capture template "x"= with the key.
 
@@ -345,11 +369,15 @@ Import from Emacs (see [[file:13-configuration.org][Configuration]] and [[file:1
 | =(file+olp+datetree "f" …)=                  | =file=, =datetree=, =olp= if a path is given |
 | =(file+datetree "f")=                        | =file=, =datetree=                       |
 | =(file+weektree "f")=                        | =file=, =datetree=, =tree-type = "week"= |
+| =(file+regexp "f" "re")=                     | =file=, =regexp=                         |
 | =(id "…")=                                   | =id=                                     |
 | =(clock)=                                    | =clock=                                  |
 | =:prepend=, =:immediate-finish=, =:jump-to-captured=, =:clock-in=, =:clock-keep=, =:clock-resume= | the boolean of the same name |
-| =:empty-lines=, =:empty-lines-before=, =:empty-lines-after=, =:table-line-pos=, =:tree-type= | the key of the same name |
+| =:empty-lines=, =:empty-lines-before=, =:empty-lines-after=, =:table-line-pos= | the key of the same name |
+| =:tree-type=, a symbol or a list such as =(year quarter)= | =tree-type=                  |
+| =:time-prompt=                               | =time-prompt = true=                     |
+| =("w" "Work")=, a key and a description      | a group: =key= and =name=                |
 
-A file name given as a variable or a simple form is evaluated where the importer can. The import report lists what it left out: other targets, templates that aren't strings, unknown =:tree-type= values, and other properties such as =:time-prompt=, =:kill-buffer= or =:unnarrowed=. Template groups are skipped.
+A file name given as a variable or a simple form is evaluated where the importer can. The import report lists what it left out: other targets, templates that aren't strings, unknown =:tree-type= values, and other properties such as =:kill-buffer= or =:unnarrowed=.
 
 Emacs resolves relative target files against =org-directory=; orgstar resolves them against the first folder in the sidebar. If =org-directory= isn't your first folder, edit the imported =file= values or make them absolute.

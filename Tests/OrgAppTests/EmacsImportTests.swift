@@ -144,7 +144,7 @@ struct EmacsImportTests {
         #expect(folders == ["~/notes/", "~/work"])
         #expect(result.unreadable.map(\.name) == ["fill-column"])
         #expect(Set(result.unsupported.map(\.name)) == ["org-support-shift-select", "doom-theme", "org-roam-directory",
-            "capture \"j\"", "capture \"x\"", "SPC z t → tr/report", "C-c l", "agenda command \"f\""])
+            "capture \"x\"", "SPC z t → tr/report", "C-c l", "agenda command \"f\""])
         #expect(result.skipped == 1)
         #expect(result.doomDefaultsLeftOut == 1)
     }
@@ -152,12 +152,12 @@ struct EmacsImportTests {
     @Test func readsCaptureTemplatesAndBindings() throws {
         let result = try scan()
         let captures = result.items.compactMap { if case .capture(let key, let toml) = $0.change { (key, toml) } else { nil } }
-        #expect(captures.map(\.0) == ["t", "j", "c", "wn"])
-        #expect(captures[1].1 == "[[template]]\nkey = \"j\"\nname = \"Journal\"\ntype = \"entry\"\nfile = \"~/notes/journal.org\"\ndatetree = true\ntree-type = \"week\"\nempty-lines = 1\ntemplate = \"* %?\"\n")
+        #expect(captures.map(\.0) == ["t", "j", "c", "w", "wn"])
+        #expect(captures[1].1 == "[[template]]\nkey = \"j\"\nname = \"Journal\"\ntype = \"entry\"\nfile = \"~/notes/journal.org\"\ndatetree = true\ntree-type = \"week\"\ntime-prompt = true\nempty-lines = 1\ntemplate = \"* %?\"\n")
         #expect(captures[2].1.contains("clock = true\n") && captures[2].1.contains("immediate-finish = true\n"))
-        #expect(result.unsupported.contains { $0.name == "capture \"j\"" && $0.reason == ":time-prompt left out" })
+        #expect(captures[3].1 == "[[template]]\nkey = \"w\"\nname = \"Work\"\n")
         #expect(captures[0].1 == "[[template]]\nkey = \"t\"\nname = \"Todo\"\ntype = \"entry\"\nfile = \"~/notes/todo.org\"\nheadline = \"Inbox\"\ntemplate = \"* TODO %?\\n%a\"\n")
-        #expect(captures[3].1.contains("prepend = true\n") && captures[3].1.contains("type = \"plain\""))
+        #expect(captures[4].1.contains("prepend = true\n") && captures[4].1.contains("type = \"plain\""))
 
         let bindings = result.items.compactMap { if case .binding(let keys, let command, let mode) = $0.change { "\(keys) \(command) \(mode ?? "-")" } else { nil } }
         #expect(bindings == ["SPC m x org.checkbox.toggle normal", "g s app.save normal", "C-c a app.agenda normal"])
@@ -178,14 +178,20 @@ struct EmacsImportTests {
                   `(("n" "Note" entry (file+headline org-default-notes-file "Notes") "* %?")
                     ("i" "Inbox" entry (file my-inbox) "* TODO %?")
                     ("w" "Work" entry (file ,(concat org-directory "/work.org")) "* %?")
-                    ("j" "Journal" entry (file+olp+datetree (concat org-directory "/journal.org")) "* %?")))
+                    ("j" "Journal" entry (file+olp+datetree (concat org-directory "/journal.org")) "* %?")
+                    ("q" "Quarter" entry (file+olp+datetree "~/q.org") "* %?" :tree-type (year quarter))
+                    ("r" "Reading" plain (file+regexp "~/r.org" "^\\* Reading") "%?")))
             """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
         let result = EmacsImport.scan(EmacsImport.files(in: folder))
         let files = result.items.compactMap { item -> String? in
             guard case .capture(let key, let toml) = item.change else { return nil }
             return key + " " + (toml.firstMatch(of: /file = "([^"]*)"/).map { String($0.1) } ?? "-")
         }
-        #expect(files == ["n ~/org/notes.org", "i ~/org/inbox.org", "w ~/org/work.org", "j ~/org/journal.org"])
+        #expect(files == ["n ~/org/notes.org", "i ~/org/inbox.org", "w ~/org/work.org", "j ~/org/journal.org", "q ~/q.org", "r ~/r.org"])
+        let tomls = result.items.compactMap { if case .capture(_, let toml) = $0.change { toml } else { nil } }
+        #expect(tomls[4].contains("tree-type = \"year quarter\"\n"))
+        #expect(tomls[5].contains("regexp = \"^\\\\* Reading\"\n"))
+        #expect(!result.unsupported.contains { $0.name.hasPrefix("capture") }, "\(result.unsupported)")
     }
 
     /// The user's own Doom configuration, when there is one.
@@ -219,7 +225,7 @@ struct EmacsImportTests {
         #expect(defaults.integer(forKey: "agendaStartOffset") == -3)
         #expect(defaults.string(forKey: "todoKeywords") == "TODO(t) WAIT(w) | DONE(d)\nBUG | FIXED")
         let capture = try String(contentsOf: folder.appendingPathComponent("capture.toml"), encoding: .utf8)
-        #expect(capture.components(separatedBy: "[[template]]").count == 5)
+        #expect(capture.components(separatedBy: "[[template]]").count == 6)
         #expect(CaptureTemplates.load(userFile: folder.appendingPathComponent("capture.toml")).problems.isEmpty)
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)

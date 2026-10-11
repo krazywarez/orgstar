@@ -5,7 +5,8 @@ import OrgDocument
 import SwiftUI
 
 /// Capture with a template: its questions (`%^{…}`, `%^g`, `%^t`…), then its text to edit,
-/// filed where the template says, as `org-capture` does.
+/// filed where the template says, as `org-capture` does. Refile files it and then moves it
+/// (`org-capture-refile`).
 struct CaptureScreen: View {
     let workspace: WorkspaceModel
     let session: DocumentSession
@@ -14,6 +15,11 @@ struct CaptureScreen: View {
     @Environment(ClockModel.self) private var clock
     @Environment(MobileModel.self) private var model
     @State private var templates: [CaptureTemplate] = []
+    @State private var groups: [CaptureGroup] = []
+    /// The day `:time-prompt` asked for.
+    @State private var treeDate: Date?
+    /// The filed entry, while its refile target is picked.
+    @State private var refiling: RefileEntry?
     @State private var key: String?
     @State private var context = CaptureContext()
     @State private var questions: [Capture.Question] = []
@@ -33,7 +39,7 @@ struct CaptureScreen: View {
         NavigationStack {
             Form {
                 Picker("Template", selection: $key) {
-                    ForEach(templates) { Text($0.name).tag(Optional($0.key)) }
+                    ForEach(templates) { Text(CaptureTemplates.label($0, groups: groups)).tag(Optional($0.key)) }
                 }
                 if editing {
                     Section {
@@ -67,13 +73,26 @@ struct CaptureScreen: View {
                     if let tags { change(SetTags(), ["tags": tags.joined(separator: ":")]) }
                 }
             }
+            .sheet(item: $refiling, onDismiss: { dismiss() }) { entry in
+                let document = session.openDocuments.first { $0.path == entry.path }?.document
+                    ?? FileManager.default.contents(atPath: entry.path).map { DocumentState(bytes: [UInt8]($0)) }
+                RefileSheet(targets: workspace.refileTargets(openPath: entry.path, document: document)) { target in
+                    // Filed either way; where refiling fails, the entry opens where it was filed.
+                    let message = target.flatMap { session.refile(to: $0, from: (entry.path, entry.offset)) }
+                    if target == nil || !(message?.hasPrefix("Refiled") ?? false) { model.openRequest = .offset(entry.path, entry.offset) }
+                    refiling = nil
+                }
+            }
             .navigationTitle("Capture")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                if editing, template?.kind == .entry {
+                    ToolbarItem(placement: .bottomBar) { Button("Refile…") { file(refile: true) } }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     if editing {
-                        Button("File", action: file).disabled(template == nil)
+                        Button("File") { file() }.disabled(template == nil)
                     } else {
                         Button("Continue", action: fill)
                     }
@@ -83,6 +102,7 @@ struct CaptureScreen: View {
         .onAppear {
             let loaded = CaptureTemplates.load()
             templates = loaded.templates
+            groups = loaded.groups
             problem = loaded.problems.first
             key = request.template.flatMap { wanted in templates.first { $0.key == wanted }?.key } ?? templates.first?.key
             if let wanted = request.template, !templates.contains(where: { $0.key == wanted }) { problem = "No capture template \"\(wanted)\"" }
@@ -107,16 +127,27 @@ struct CaptureScreen: View {
             for heading in DocumentModel(tree: OrgParser.parse(source)).headings { for tag in heading.localTags where !tags.contains(tag) { tags.append(tag) } }
             context.fileTags = tags
         }
-        questions = Capture.questions(template.template, context: context)
+        questions = (asksTreeDate(template) ? [Self.treeQuestion] : []) + Capture.questions(template.template, context: context)
         answers = questions.map { _ in "" }
+        treeDate = nil
         editing = false
         if questions.isEmpty { fill() }
     }
 
     /// The template expanded with the answers; the caret where `%?` was.
+    /// `:time-prompt` asks first, unless the agenda day is the date.
+    private func asksTreeDate(_ template: CaptureTemplate) -> Bool { template.asksTreeDate && request.day == nil }
+
+    static let treeQuestion = Capture.Question(prompt: "Date for tree entry", defaultValue: "", choices: [], kind: .date(withTime: false, inactive: false))
+
+    /// The template's date: the tree's day, the agenda day, or now.
+    private var captureDate: Date { treeDate ?? request.day.map(Self.date) ?? Date() }
+
     private func fill() {
         guard let template else { return }
-        context.now = request.day.map(Self.date) ?? Date()
+        var answers = answers
+        if asksTreeDate(template) { treeDate = Capture.treeDate(answers.removeFirst(), now: Date()) }
+        context.now = captureDate
         switch Capture.fill(template.template, context: context, answers: answers) {
         case .success(let filled):
             let (filledText, cursor) = request.day.map { Capture.scheduling(filled.text, cursor: filled.cursor, on: $0) } ?? (filled.text, filled.cursor)
@@ -152,11 +183,11 @@ struct CaptureScreen: View {
         return calendar.date(from: parts) ?? Date()
     }
 
-    private func file() {
+    private func file(refile: Bool = false) {
         guard let template else { return }
         let now = Date()
         let placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
-            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: request.day.map(Self.date) ?? now)
+            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: treeDate ?? request.day.map(Self.date) ?? now)
         }
         switch placed {
         case .failure(let error):
@@ -168,10 +199,20 @@ struct CaptureScreen: View {
             Task { [clock, session, opened = context.now] in
                 _ = await clock.captured(entry, options: template.options, session: session, paths: paths, ask: model.clockPrompts.ask, opened: opened, now: now)
             }
+            if refile {
+                refiling = RefileEntry(path: entry.path, offset: entry.offset)
+                return
+            }
             if template.options.jumpToCaptured { model.openRequest = .offset(entry.path, entry.offset) }
             dismiss()
         }
     }
+}
+
+private struct RefileEntry: Identifiable {
+    let path: String
+    let offset: Int
+    var id: String { "\(path)\u{0}\(offset)" }
 }
 
 /// One of a template's questions: text with its choices, tags, or a date.

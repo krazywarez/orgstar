@@ -1093,6 +1093,64 @@ struct CaptureAppTests {
         #expect(CaptureTemplates.load(userFile: folder.url.appendingPathComponent("none.toml")).templates == CaptureTemplates.defaults)
     }
 
+    @Test func loadsGroupsRegexpsAndTreeTypes() throws {
+        let folder = try Folder()
+        let file = try folder.write("capture.toml", """
+        [[template]]
+        key = "t"
+        name = "Todo"
+        file = "todo.org"
+        template = "* TODO %?"
+        [[template]]
+        key = "w"
+        name = "Work"
+        [[template]]
+        key = "wm"
+        name = "Meeting"
+        file = "work.org"
+        regexp = "^\\\\* Meetings"
+        template = "* %?"
+        [[template]]
+        key = "wq"
+        name = "Quarter"
+        file = "work.org"
+        datetree = true
+        tree-type = "year quarter"
+        time-prompt = true
+        template = "* %?"
+        [[template]]
+        key = "xy"
+        name = "Ungrouped"
+        file = "x.org"
+        template = "* %?"
+        """)
+        let loaded = CaptureTemplates.load(userFile: file)
+        #expect(loaded.problems.isEmpty, "\(loaded.problems)")
+        #expect(loaded.groups == [CaptureGroup(key: "w", name: "Work")])
+        #expect(loaded.templates.map(\.key) == ["t", "wm", "wq", "xy"])
+        #expect(loaded.templates[1].target == .regexp(file: "work.org", regexp: "^\\* Meetings"))
+        #expect(loaded.templates[2].target == .datetree(file: "work.org", path: [], tree: CaptureTemplate.TreeType(groups: [.year, .quarter])))
+        #expect(loaded.templates[2].asksTreeDate && !loaded.templates[0].asksTreeDate)
+        #expect(CaptureTemplates.menu(loaded.templates, groups: loaded.groups, typed: "").map(\.key) == ["t", "w", "xy"])
+        #expect(CaptureTemplates.menu(loaded.templates, groups: loaded.groups, typed: "w").map(\.key) == ["wm", "wq"])
+        #expect(CaptureTemplates.label(loaded.templates[1], groups: loaded.groups) == "Work › Meeting")
+        try "[[template]]\nkey = \"d\"\nfile = \"j.org\"\ndatetree = true\ntree-type = \"year fortnight\"\ntemplate = \"* %?\"\n".write(to: file, atomically: true, encoding: .utf8)
+        #expect(CaptureTemplates.load(userFile: file).problems.count == 1)
+    }
+
+    @Test func treeDateFollowsOrgCapture() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 11, hour: 7, minute: 6, second: 27))!
+        func text(_ date: Date) -> String {
+            let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+            return String(format: "%04d-%02d-%02d %02d:%02d", c.year!, c.month!, c.day!, c.hour!, c.minute!)
+        }
+        #expect(text(Capture.treeDate("", now: now, calendar: calendar)) == "2026-10-11 07:06")
+        #expect(text(Capture.treeDate("fri", now: now, calendar: calendar)) == "2026-10-16 00:00")
+        #expect(text(Capture.treeDate("fri 14:00", now: now, calendar: calendar)) == "2026-10-16 14:00")
+    }
+
     @Test func capturesIntoClosedMissingAndOpenFiles() throws {
         let notes = try Folder()
         let todo = try notes.write("todo.org", "* Inbox\n** TODO Old\n* Later\n")

@@ -35,11 +35,13 @@ struct CaptureTests {
             case .outline(_, let p): target = "(file+olp \(lisp(path)) \(p.map(lisp).joined(separator: " ")))"
             case .datetree(_, let p, let tree):
                 target = "(file+olp+datetree \(lisp(path)) \(p.map(lisp).joined(separator: " ")))"
-                properties += " :tree-type \(tree.rawValue)"
+                properties += " :tree-type \(tree.lisp)"
+            case .regexp(_, let r): target = "(file+regexp \(lisp(path)) \(lisp(r)))"
             case .id(let id): target = "(id \(lisp(id)))"
             case .clock, .heading: target = "(clock)"
             }
             forms.append("""
+            (condition-case nil
             (let ((org-capture-templates '(("x" "case" \(c.template.kind.rawValue) \(target) \(lisp(c.template.template))\(properties))))
                   (path \(lisp(path))))
               (cl-letf (((symbol-function 'org-id-find)
@@ -55,6 +57,7 @@ struct CaptureTests {
               (org-capture-finalize)
               (with-current-buffer (find-buffer-visiting \(lisp(path)))
                 (push (buffer-substring-no-properties (point-min) (point-max)) results)))
+            (error (push "failed" results)))
             """)
         }
         let output = folder.appendingPathComponent("out.json")
@@ -212,6 +215,62 @@ struct CaptureTests {
         for (c, expected) in zip(cases, emacs) {
             let mine = Self.ours(c, now: now)
             #expect(mine == expected, "\(c.template.target) \(c.template.kind) into \(c.file.debugDescription)\nours:\n\(mine.debugDescription)\nemacs:\n\(expected.debugDescription)")
+        }
+    }
+
+    static let groupings = ["year", "year quarter", "year quarter month", "year quarter week", "year quarter month week day", "year month week",
+                            "year week", "month day", "quarter", "week day", "day"]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil),
+          arguments: [1_789_000_000, 1_798_804_800, 1_767_139_200, 1_609_459_200, 1_664_582_400])
+    func treeGroupingsMatchEmacs(seconds: Int) throws {
+        let files = ["", "* 2026\n** 2026-Q1\n* 2027\n", "* Journal\n** 2025\n*** 2025-W40\n"]
+        var cases: [Case] = []
+        for grouping in Self.groupings {
+            for file in files {
+                let tree = CaptureTemplate.TreeType(rawValue: grouping)!
+                cases.append(Case(file: file, template: CaptureTemplate(key: "x", name: "", target: .datetree(file: "", path: [], tree: tree), template: "* %?"), typed: "Entry"))
+            }
+        }
+        let emacs = try Self.emacs(cases, seconds: seconds)
+        let now = Date(timeIntervalSince1970: Double(seconds))
+        for (c, expected) in zip(cases, emacs) {
+            let mine = Self.ours(c, now: now)
+            #expect(mine == expected, "\(c.template.target) into \(c.file.debugDescription)\nours:\n\(mine.debugDescription)\nemacs:\n\(expected.debugDescription)")
+        }
+    }
+
+    static let regexpTemplates: [CaptureTemplate] = [
+        CaptureTemplate(key: "x", name: "", target: .regexp(file: "", regexp: "^\\* Inbox"), template: "* %?"),
+        CaptureTemplate(key: "x", name: "", target: .regexp(file: "", regexp: "^\\* inbox"), template: "* %?", options: .init(prepend: true)),
+        CaptureTemplate(key: "x", name: "", target: .regexp(file: "", regexp: "notes\\."), template: "* %?"),
+        CaptureTemplate(key: "x", name: "", target: .regexp(file: "", regexp: "notes\\."), template: "* %?", options: .init(prepend: true)),
+        CaptureTemplate(key: "x", name: "", kind: .plain, target: .regexp(file: "", regexp: "notes\\."), template: "Plain %?"),
+        CaptureTemplate(key: "x", name: "", kind: .plain, target: .regexp(file: "", regexp: "^Some"), template: "Plain %?", options: .init(prepend: true)),
+        CaptureTemplate(key: "x", name: "", kind: .plain, target: .regexp(file: "", regexp: "Inbox$"), template: "Plain %?"),
+        CaptureTemplate(key: "x", name: "", kind: .plain, target: .regexp(file: "", regexp: "Inbox$"), template: "Plain %?", options: .init(prepend: true)),
+        CaptureTemplate(key: "x", name: "", kind: .item, target: .regexp(file: "", regexp: "notes\\."), template: "%?"),
+        CaptureTemplate(key: "x", name: "", kind: .item, target: .regexp(file: "", regexp: "Inbox"), template: "%?"),
+        CaptureTemplate(key: "x", name: "", kind: .item, target: .regexp(file: "", regexp: "^- two"), template: "%?", options: .init(prepend: true)),
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .regexp(file: "", regexp: "Table"), template: "| %? |"),
+        CaptureTemplate(key: "x", name: "", kind: .tableLine, target: .regexp(file: "", regexp: "notes"), template: "| %? |"),
+        CaptureTemplate(key: "x", name: "", target: .regexp(file: "", regexp: "\\(Child\\|Later\\)"), template: "** %?"),
+        CaptureTemplate(key: "x", name: "", target: .regexp(file: "", regexp: "Missing"), template: "* %?"),
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func regexpTargetsMatchEmacs() throws {
+        let files = ["* Inbox\nSome notes.\n- one\n- two\n\n** Child\n* Later\n", "Preamble notes.\n* Inbox\n", "* Table\n| a |\n|---|\n| 1 |\n* Inbox\n"]
+        var cases: [Case] = []
+        for template in Self.regexpTemplates {
+            for file in files { cases.append(Case(file: file, template: template, typed: "Entry")) }
+        }
+        let seconds = 1_789_000_000
+        let emacs = try Self.emacs(cases, seconds: seconds)
+        for (c, expected) in zip(cases, emacs) {
+            var mine = Self.ours(c, now: Date(timeIntervalSince1970: Double(seconds)))
+            if mine.hasPrefix("failed:") { mine = "failed" }
+            #expect(mine == expected, "\(c.template.target) \(c.template.kind) \(c.template.options) into \(c.file.debugDescription)\nours:\n\(mine.debugDescription)\nemacs:\n\(expected.debugDescription)")
         }
     }
 

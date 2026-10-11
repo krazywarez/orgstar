@@ -6,8 +6,43 @@ import Foundation
 public struct CaptureTemplate: Sendable, Equatable, Identifiable {
     public enum Kind: String, Sendable, Equatable { case entry, item, checkitem, plain, tableLine = "table-line" }
 
-    /// `:tree-type`: what a date tree groups entries by.
-    public enum TreeType: String, Sendable, Equatable { case day, week, month }
+    /// `:tree-type`: what a date tree groups entries by, a subset of year, quarter, month,
+    /// week and day. `day`, `week` and `month` name the usual ones.
+    public struct TreeType: Sendable, Equatable {
+        public enum Group: String, Sendable, CaseIterable { case year, quarter, month, week, day }
+        public let groups: Set<Group>
+        public static let day = TreeType(groups: [.year, .month, .day])
+        public static let week = TreeType(groups: [.year, .week, .day])
+        public static let month = TreeType(groups: [.year, .month])
+
+        public init(groups: Set<Group>) { self.groups = groups }
+
+        /// `day`, `week`, `month`, or groups separated by spaces, as in `year quarter month`.
+        public init?(rawValue: String) {
+            switch rawValue {
+            case "day": self = .day
+            case "week": self = .week
+            case "month": self = .month
+            default:
+                let words = rawValue.split(whereSeparator: \.isWhitespace)
+                let groups = words.compactMap { Group(rawValue: String($0)) }
+                guard !groups.isEmpty, groups.count == words.count else { return nil }
+                self.groups = Set(groups)
+            }
+        }
+
+        public var rawValue: String {
+            switch self {
+            case .day: "day"
+            case .week: "week"
+            case .month: "month"
+            default: Group.allCases.filter(groups.contains).map(\.rawValue).joined(separator: " ")
+            }
+        }
+
+        /// The `:tree-type` value in Lisp.
+        public var lisp: String { [.day, .week, .month].contains(self) ? rawValue : "(" + rawValue + ")" }
+    }
 
     public enum Target: Sendable, Equatable {
         case file(String)
@@ -15,6 +50,8 @@ public struct CaptureTemplate: Sendable, Equatable, Identifiable {
         case outline(file: String, path: [String])
         /// `file+olp+datetree`: today's entry in a date tree, under `path` or at the top.
         case datetree(file: String, path: [String], tree: TreeType)
+        /// `file+regexp`: after the first match of an Emacs regexp, or before it with `prepend`.
+        case regexp(file: String, regexp: String)
         /// `(id "…")`: the heading with that ID; the app finds its file.
         case id(String)
         /// `(clock)`: the clocked-in entry; the app turns it into `heading`.
@@ -25,7 +62,7 @@ public struct CaptureTemplate: Sendable, Equatable, Identifiable {
         /// The target file, or "" for `id` and `clock` until the app resolves them.
         public var file: String {
             switch self {
-            case .file(let f), .headline(let f, _), .outline(let f, _), .datetree(let f, _, _), .heading(let f, _): f
+            case .file(let f), .headline(let f, _), .outline(let f, _), .datetree(let f, _, _), .regexp(let f, _), .heading(let f, _): f
             case .id, .clock: ""
             }
         }
@@ -48,13 +85,16 @@ public struct CaptureTemplate: Sendable, Equatable, Identifiable {
         public var clockResume = false
         /// `:table-line-pos`: `II-3` is the third line above the second rule.
         public var tableLinePos: String?
+        /// `:time-prompt`: a date tree asks which day the entry is for.
+        public var timePrompt = false
 
         public init(
             prepend: Bool = false, immediateFinish: Bool = false, emptyLines: Int? = nil, emptyLinesBefore: Int? = nil,
             emptyLinesAfter: Int? = nil, jumpToCaptured: Bool = false, clockIn: Bool = false, clockKeep: Bool = false, clockResume: Bool = false,
-            tableLinePos: String? = nil
+            tableLinePos: String? = nil, timePrompt: Bool = false
         ) {
             self.tableLinePos = tableLinePos
+            self.timePrompt = timePrompt
             self.prepend = prepend
             self.immediateFinish = immediateFinish
             self.emptyLines = emptyLines
@@ -88,6 +128,12 @@ public struct CaptureTemplate: Sendable, Equatable, Identifiable {
         var options = options
         if prepend { options.prepend = true }
         self.options = options
+    }
+
+    /// Whether capture asks "Date for tree entry" first: `:time-prompt` with a date tree.
+    public var asksTreeDate: Bool {
+        guard options.timePrompt, case .datetree = target else { return false }
+        return true
     }
 
     /// The same template aimed at `target`.
@@ -530,6 +576,19 @@ public enum Capture {
         return out
     }
 
+    /// `:time-prompt`'s answer to "Date for tree entry": the day for the date tree, and the
+    /// template's time, `org-read-date` style. Without a time, another day than today is at
+    /// midnight.
+    public static func treeDate(_ answer: String, now: Date, calendar: Calendar = .current) -> Date {
+        let read = ReadDate.read(answer, default: now, now: now, calendar: calendar)
+        var parts = read.components(calendar)
+        if !read.timeGiven {
+            let today = calendar.dateComponents([.year, .month, .day], from: now)
+            if (parts.year, parts.month, parts.day) != (today.year, today.month, today.day) { (parts.hour, parts.minute) = (0, 0) }
+        }
+        return calendar.date(from: parts) ?? now
+    }
+
     // MARK: - Placing
 
     /// The target file's text after capturing `text`, as `org-capture-finalize` leaves it.
@@ -549,13 +608,20 @@ public enum Capture {
         let buffer = EmacsBuffer(fileText, point: 0, settings: settings)
         let start: Int
         do {
-            let entryHeading = try locate(template.target, buffer, date: calendar.dateComponents([.year, .month, .day], from: now))
             let options = template.options
+            let date = calendar.dateComponents([.year, .month, .day], from: now)
+            var exact: Int?
+            let entryHeading: Int?
+            if case .regexp(_, let regexp) = template.target {
+                (entryHeading, exact) = try locateRegexp(regexp, prepend: options.prepend, buffer)
+            } else {
+                entryHeading = try locate(template.target, buffer, date: date)
+            }
             switch template.kind {
             case .entry: start = try placeEntry(text, options: options, heading: entryHeading, buffer)
-            case .plain: start = placePlain(text, options: options, heading: entryHeading, buffer)
-            case .item, .checkitem: start = try placeItem(text, checkbox: template.kind == .checkitem, options: options, heading: entryHeading, buffer)
-            case .tableLine: start = try placeTableLine(text, options: options, heading: entryHeading, buffer)
+            case .plain: start = placePlain(text, options: options, heading: entryHeading, exact: exact, buffer)
+            case .item, .checkitem: start = try placeItem(text, checkbox: template.kind == .checkitem, options: options, heading: entryHeading, exact: exact, buffer)
+            case .tableLine: start = try placeTableLine(text, options: options, heading: entryHeading, exact: exact, buffer)
             }
         } catch let error as Failure {
             return .failure(error)
@@ -568,6 +634,19 @@ public enum Capture {
         var result = buffer.text as String
         if !result.isEmpty, !result.hasSuffix("\n") { result += "\n" }
         return .success((result, start))
+    }
+
+    /// `file+regexp`: the match's end (its start with `prepend`), and its heading when the
+    /// match ends on a heading line. Emacs searches with `case-fold-search` on.
+    static func locateRegexp(_ regexp: String, prepend: Bool, _ buffer: EmacsBuffer) throws -> (heading: Int?, exact: Int) {
+        buffer.point = 0
+        guard let match = buffer.searchForward(EmacsRegex.translate(regexp), caseInsensitive: true) else {
+            throw Failure.message("No match for target regexp in file")
+        }
+        let exact = prepend ? match[0]!.lowerBound : match[0]!.upperBound
+        let line = buffer.lineStart(exact)
+        buffer.point = line
+        return (atHeading(buffer) ? line : nil, exact)
     }
 
     /// `org-capture-set-target-location`: point at the target heading, or nil for a file.
@@ -590,6 +669,8 @@ public enum Capture {
             buffer.point = buffer.lineStart(offset)
             guard atHeading(buffer) else { throw Failure.message("The clocked entry moved; try again") }
             return buffer.point
+        case .regexp(_, let regexp):
+            return try locateRegexp(regexp, prepend: false, buffer).heading
         case .datetree(_, let path, let tree):
             let parent = path.isEmpty ? nil : try locate(.outline(file: "", path: path), buffer, date: date)
             return Datetree.findCreate(buffer, under: parent, tree: tree, date: date)
@@ -679,7 +760,7 @@ public enum Capture {
     /// `org--blank-before-heading-p` with `org-blank-before-new-entry` `(heading . auto)`.
     static func blankBeforeHeading(_ buffer: EmacsBuffer) -> Bool {
         buffer.saveExcursion {
-            let before = buffer.searchBackward("^\\*+ ", caseInsensitive: false) == nil && !atHeading(buffer)
+            let before = buffer.saveExcursion { buffer.searchBackward("^\\*+ ", caseInsensitive: false) == nil } && !atHeading(buffer)
             if before {
                 nextHeading(buffer)
                 if buffer.point >= buffer.length, !atHeading(buffer) { return false }
@@ -788,7 +869,7 @@ public enum Capture {
     }
 
     /// `org-capture-place-plain-text`.
-    static func placePlain(_ text: String, options: CaptureTemplate.Options, heading: Int?, _ buffer: EmacsBuffer) -> Int {
+    static func placePlain(_ text: String, options: CaptureTemplate.Options, heading: Int?, exact: Int? = nil, _ buffer: EmacsBuffer) -> Int {
         let prepend = options.prepend
         if let heading {
             buffer.point = heading
@@ -800,6 +881,8 @@ public enum Capture {
                 buffer.point = buffer.lineEnd(heading)
                 nextHeading(buffer)
             }
+        } else if let exact {
+            buffer.point = exact
         } else {
             buffer.point = prepend ? 0 : buffer.length
         }
@@ -815,13 +898,15 @@ public enum Capture {
     /// `org-capture-place-table-line`, then what `org-capture-finalize` does to the table: the
     /// first table in the entry, or the file, gets the line, at its end, after its first rule
     /// with `prepend`, or where `table-line-pos` says; a table is made when there's none.
-    static func placeTableLine(_ filled: String, options: CaptureTemplate.Options, heading: Int?, _ buffer: EmacsBuffer) throws -> Int {
+    static func placeTableLine(_ filled: String, options: CaptureTemplate.Options, heading: Int?, exact: Int? = nil, _ buffer: EmacsBuffer) throws -> Int {
         let template = filled.trimmingCharacters(in: .whitespacesAndNewlines)
         // `org-table-border-regexp`: a template that isn't a table line becomes one.
         let text = template.range(of: "^[ \\t]*[^| \\t]", options: .regularExpression) != nil ? "| " + template : template + "\n"
         var begin = 0
         var end = buffer.length
-        if let heading {
+        if let exact {
+            (begin, end) = entryRegion(from: exact, buffer)
+        } else if let heading {
             begin = min(buffer.length, buffer.lineEnd(heading) + 1)
             buffer.point = buffer.lineEnd(heading)
             nextHeading(buffer)
@@ -892,6 +977,14 @@ public enum Capture {
         return buffer.point
     }
 
+    /// An exact position's region: from its line's start to the next heading
+    /// (`org-entry-end-position`).
+    static func entryRegion(from exact: Int, _ buffer: EmacsBuffer) -> (Int, Int) {
+        buffer.point = exact
+        nextHeading(buffer)
+        return (buffer.lineStart(exact), buffer.point)
+    }
+
     /// `org-end-of-meta-data t`: past planning, drawers and the property drawer.
     static func skipMetaData(_ buffer: EmacsBuffer) {
         while buffer.point < buffer.length {
@@ -914,7 +1007,7 @@ public enum Capture {
 
     /// `org-capture-place-item`: after the last item of the first list in the entry (the file
     /// for a file target), or at the end of the entry's text.
-    static func placeItem(_ text: String, checkbox: Bool, options: CaptureTemplate.Options, heading: Int?, _ buffer: EmacsBuffer) throws -> Int {
+    static func placeItem(_ text: String, checkbox: Bool, options: CaptureTemplate.Options, heading: Int?, exact: Int? = nil, _ buffer: EmacsBuffer) throws -> Int {
         let prepend = options.prepend
         var item = text.trimmingCharacters(in: .newlines)
         if item.range(of: "^[ \\t]*([-+*]|[0-9]+[.)])[ \\t]", options: .regularExpression) == nil {
@@ -925,7 +1018,9 @@ public enum Capture {
         }
         let start: Int
         let end: Int
-        if let heading {
+        if let exact {
+            (start, end) = entryRegion(from: exact, buffer)
+        } else if let heading {
             start = min(buffer.length, buffer.lineEnd(heading) + 1)
             buffer.point = buffer.lineEnd(heading)
             nextHeading(buffer)
@@ -952,6 +1047,22 @@ public enum Capture {
             }
             if buffer.forwardLine(1) != 0 { break }
             if !items.isEmpty { items[items.count - 1].end = buffer.point }
+        }
+        // A position inside a list: its first item, as `org-element-lineage` finds the list.
+        if exact != nil, var first = items.first, first.start == start {
+            var line = first.start
+            while line > 0 {
+                let previous = buffer.lineStart(line - 1)
+                let text = buffer.substring(previous, line - 1)
+                let indent = text.prefix { $0 == " " || $0 == "\t" }
+                if let m = text.firstMatch(of: /^([ \t]*)([-+*]|[0-9]+[.)])[ \t]/), String(m.1) == first.indent, m.2 != "*" || !m.1.isEmpty {
+                    first.start = previous
+                } else if text.trimmingCharacters(in: .whitespaces).isEmpty || indent.count <= first.indent.count {
+                    break
+                }
+                line = previous
+            }
+            items[0] = first
         }
         if let first = items.first {
             let indent = first.indent

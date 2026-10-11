@@ -16,11 +16,15 @@ import OrgDocument
 /// prepend = false
 /// ```
 ///
-/// Other targets: `datetree = true` (under `olp` if given; `tree-type` "day", "week" or
-/// "month"), `id = "…"` without `file`, `clock = true` without `file`. Other properties, as
-/// in `org-capture-templates`: `immediate-finish`, `empty-lines`, `empty-lines-before`,
+/// Other targets: `datetree = true` (under `olp` if given; `tree-type` "day", "week",
+/// "month", or groups such as "year quarter month"), `regexp = "…"` with `file`,
+/// `id = "…"` without `file`, `clock = true` without `file`. Other properties, as in
+/// `org-capture-templates`: `immediate-finish`, `empty-lines`, `empty-lines-before`,
 /// `empty-lines-after`, `jump-to-captured`, `clock-in`, `clock-keep`, `clock-resume`,
-/// `table-line-pos`.
+/// `table-line-pos`, `time-prompt`.
+///
+/// A `[[template]]` with only `key` and `name` is a group: the templates whose keys start
+/// with its key are listed under it.
 @MainActor
 public enum CaptureTemplates {
     public static var userFile: URL { UserConfig.file("capture.toml") }
@@ -31,15 +35,16 @@ public enum CaptureTemplates {
         CaptureTemplate(key: "n", name: "Personal notes", target: .headline(file: "notes.org", headline: "Inbox"), template: "* %u %?\n%i\n%a"),
     ]
 
-    public static func load(userFile: URL = userFile) -> (templates: [CaptureTemplate], problems: [String]) {
-        guard let text = try? String(contentsOf: userFile, encoding: .utf8) else { return (defaults, []) }
+    public static func load(userFile: URL = userFile) -> (templates: [CaptureTemplate], groups: [CaptureGroup], problems: [String]) {
+        guard let text = try? String(contentsOf: userFile, encoding: .utf8) else { return (defaults, [], []) }
         let tables: [TOML.Table]
         do {
             tables = try TOML.parse(text)
         } catch {
-            return (defaults, ["capture.toml: \(error)"])
+            return (defaults, [], ["capture.toml: \(error)"])
         }
         var templates: [CaptureTemplate] = []
+        var groups: [CaptureGroup] = []
         var problems: [String] = []
         for table in tables where !(table.name.isEmpty && table.values.isEmpty) {
             guard table.name == "template", table.isArrayElement else {
@@ -47,6 +52,10 @@ public enum CaptureTemplates {
                 continue
             }
             let values = table.values
+            if let key = values["key"]?.string, let name = values["name"]?.string, values.count == 2 {
+                groups.append(CaptureGroup(key: key, name: name))
+                continue
+            }
             let fileless = values["id"]?.string != nil || values["clock"]?.bool == true
             guard let key = values["key"]?.string, let body = values["template"]?.string, let file = values["file"]?.string ?? (fileless ? "" : nil) else {
                 problems.append("capture.toml line \(table.line): a template needs key, file and template")
@@ -64,10 +73,12 @@ public enum CaptureTemplates {
                 target = .clock
             } else if values["datetree"]?.bool == true {
                 guard let tree = CaptureTemplate.TreeType(rawValue: values["tree-type"]?.string ?? "day") else {
-                    problems.append("capture.toml line \(table.line): tree-type is day, week or month")
+                    problems.append("capture.toml line \(table.line): tree-type is day, week, month, or some of year, quarter, month, week and day")
                     continue
                 }
                 target = .datetree(file: file, path: olp ?? [], tree: tree)
+            } else if let regexp = values["regexp"]?.string {
+                target = .regexp(file: file, regexp: regexp)
             } else if let headline = values["headline"]?.string {
                 target = .headline(file: file, headline: headline)
             } else if let olp {
@@ -81,12 +92,59 @@ public enum CaptureTemplates {
                 prepend: flag("prepend"), immediateFinish: flag("immediate-finish"), emptyLines: lines("empty-lines"),
                 emptyLinesBefore: lines("empty-lines-before"), emptyLinesAfter: lines("empty-lines-after"),
                 jumpToCaptured: flag("jump-to-captured"), clockIn: flag("clock-in"), clockKeep: flag("clock-keep"), clockResume: flag("clock-resume"),
-                tableLinePos: values["table-line-pos"]?.string
+                tableLinePos: values["table-line-pos"]?.string, timePrompt: flag("time-prompt")
             )
             templates.append(CaptureTemplate(key: key, name: values["name"]?.string ?? key, kind: kind, target: target, template: body, options: options))
         }
-        return (templates.isEmpty ? defaults : templates, problems)
+        return (templates.isEmpty ? defaults : templates, templates.isEmpty ? [] : groups, problems)
     }
+
+    /// What `org-capture` lists after the keys typed so far: the groups and templates one key
+    /// longer, in the templates' order. A template with no group for its prefix is listed
+    /// too, so that it can be reached.
+    public static func menu(_ templates: [CaptureTemplate], groups: [CaptureGroup], typed: String) -> [CaptureMenuItem] {
+        let depth = typed.count + 1
+        var items: [CaptureMenuItem] = []
+        var shown: Set<String> = []
+        for template in templates where template.key.hasPrefix(typed) {
+            if template.key.count > depth, let group = groups.first(where: { $0.key == String(template.key.prefix(depth)) }) {
+                if shown.insert(group.key).inserted { items.append(.group(group)) }
+            } else {
+                items.append(.template(template))
+            }
+        }
+        for group in groups where group.key.hasPrefix(typed) && group.key.count == depth && !shown.contains(group.key) { items.append(.group(group)) }
+        return items
+    }
+
+    /// The template's name after the names of the groups above it: `Work › Meeting`.
+    public static func label(_ template: CaptureTemplate, groups: [CaptureGroup]) -> String {
+        let names = (1..<max(1, template.key.count)).compactMap { n in groups.first { $0.key == String(template.key.prefix(n)) }?.name }
+        return (names + [template.name]).joined(separator: " › ")
+    }
+}
+
+/// A key and a description with no template: `("w" "Work")` in `org-capture-templates`.
+public struct CaptureGroup: Sendable, Equatable, Identifiable {
+    public let key: String
+    public let name: String
+    public var id: String { key }
+    public init(key: String, name: String) {
+        self.key = key
+        self.name = name
+    }
+}
+
+public enum CaptureMenuItem: Identifiable {
+    case group(CaptureGroup)
+    case template(CaptureTemplate)
+    public var key: String {
+        switch self {
+        case .group(let g): g.key
+        case .template(let t): t.key
+        }
+    }
+    public var id: String { key }
 }
 
 extension DocumentSession {
