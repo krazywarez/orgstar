@@ -47,6 +47,7 @@ struct AgendaScreen: View, Equatable {
     @State private var bulkRefiling = false
     @State private var bulkArchiving = false
     @State private var bulkPlanning: BulkPlanning?
+    @State private var showingBoard = false
 
     /// A marked entry: its heading line, to find it again.
     private struct Mark: Hashable {
@@ -203,10 +204,15 @@ struct AgendaScreen: View, Equatable {
                     }
                     Button("Tags and Properties…") { asking = .match }
                     Button("Search…") { asking = .search }
+                    Divider()
+                    Button("Board", systemImage: "rectangle.split.3x1") { showingBoard = true }
                 } label: {
                     Label("Views", systemImage: "list.bullet.rectangle")
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showingBoard) {
+            BoardScreen(workspace: workspace, session: session) { showingBoard = false }
         }
         .sheet(isPresented: $showingFilter) {
             FilterSheet(filter: $filter, items: shownItems)
