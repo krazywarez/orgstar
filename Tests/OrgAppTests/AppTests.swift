@@ -713,6 +713,49 @@ struct AgendaCommandTests {
         #expect(agenda.list.isEmpty)
     }
 
+    @Test func blockViews() async throws {
+        let notes = try Folder()
+        let today = Days.date(Days.absolute(Date(), calendar: .current))
+        let stamp = String(format: "%04d-%02d-%02d", today.year, today.month, today.day)
+        try notes.write("a.org", "#+TODO: TODO NEXT WAIT | DONE\n* TODO Call\nSCHEDULED: <\(stamp)>\n* NEXT Write\n* WAIT Hear back\n* TODO Later :someday:\n")
+        let file = try notes.write("views.toml", """
+        [[view]]
+        name = "Daily"
+        span = 1
+        sorting-strategy = "alpha-up"
+        [[view.block]]
+        type = "agenda"
+        header = "Today"
+        [[view.block]]
+        type = "todo"
+        skip-entry-if = "'scheduled 'regexp \\"someday\\""
+        [[view.block]]
+        type = "match"
+        match = "TODO=\\"WAIT\\""
+        [[view]]
+        name = "Broken skip"
+        type = "todo"
+        skip-entry-if = "'level 2"
+        """)
+        let loaded = AgendaViewLoader.load(userFile: file)
+        #expect(loaded.problems == ["views.toml line 14: skip-entry-if: level isn't supported"])
+        guard case .blocks(let blocks) = loaded.views.last!.mode else { Issue.record("no blocks"); return }
+        #expect(blocks.map(\.mode) == [.agenda(span: 1, startOffset: nil), .todo(keywords: nil), .match("TODO=\"WAIT\"", todoOnly: false)])
+        #expect(blocks.map(\.settings.header) == ["Today", nil, nil])
+        #expect(blocks.allSatisfy { $0.settings.sortingStrategy == ["alpha-up"] })
+        #expect(blocks[1].settings.skip == AgendaSkip(subtree: false, conditions: [.scheduled, .regexp("someday")]))
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.mode = loaded.views.last!.mode
+        await agenda.refresh(open: [:])
+        #expect(agenda.blocks.map(\.header) == ["Today", "TODO items: all", "Entries matching TODO=\"WAIT\""])
+        #expect(agenda.blocks[0].days.count == 1 && agenda.blocks[0].days[0].items.contains { $0.text == "TODO Call" })
+        #expect(agenda.blocks[1].list.map(\.text) == ["WAIT Hear back", "NEXT Write"])
+        #expect(agenda.blocks[2].list.map(\.text) == ["WAIT Hear back"])
+        #expect(agenda.list.isEmpty && agenda.days.isEmpty)
+    }
+
     @Test func todoListMode() async throws {
         let notes = try Folder()
         try notes.write("a.org", "* TODO One :work:\n* DONE Two\n* TODO Three\n")

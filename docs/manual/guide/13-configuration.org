@@ -455,14 +455,14 @@ Keywords from setup files count for TODO keywords, priorities, =#+STARTUP=, =#+T
 
 * Import from Emacs
 
-Import from Emacs reads your Emacs or Doom Emacs configuration and offers to carry its org settings, folders, capture templates and key bindings over. Nothing changes until you choose Import.
+Import from Emacs reads your Emacs or Doom Emacs configuration and offers to carry its org settings, folders, capture templates, key bindings and agenda views over. Nothing changes until you choose Import.
 
 ** Running it
 
 1. Open Settings ▸ General and click Import from Emacs…, or run Import from Emacs… from the command palette (=⇧⌘P=).
 2. orgstar looks for a configuration in these places, in order, and reads the first it finds: =$DOOMDIR=, =~/.config/doom=, =~/.doom.d=, =~/.config/emacs=, =~/.emacs.d=, =~/.emacs=. A folder counts when it holds =init.el=, =config.el= or =custom.el=. Doom's own installation folder (one with =lisp/doom.el=) is skipped.
 3. To read another configuration, click Choose… and pick a file or a folder. For a folder, orgstar reads =init.el=, =config.el= and =custom.el= in it.
-4. The sheet lists what it found under Settings, Folders, Capture templates and Key bindings, each with the line it came from (=config.el:27=, or =Doom default=). Everything is selected; clear what you don't want.
+4. The sheet lists what it found under Settings, Folders, Capture templates, Key bindings, Structure templates and Agenda views, each with the line it came from (=config.el:27=, or =Doom default=). Everything is selected; clear what you don't want.
 5. Click Import. The sheet then summarizes what was imported and any problems.
 
 What Import does with each kind of item:
@@ -471,6 +471,7 @@ What Import does with each kind of item:
 - Folders are added to the sidebar if they exist and aren't there already.
 - Capture templates are appended to =capture.toml=, except those whose key is already in the file.
 - Key bindings are appended to =keymap.toml=, except those already in the file with the same keys, command and state. Running the import again adds no duplicates.
+- Agenda views are appended to =views.toml=, except those whose name is already in the file.
 
 The Not imported section lists what orgstar read but can't use, with the reason: settings it has no equivalent for, values it can't work out without running Emacs, bindings to code rather than a command, and files it couldn't read. The footer counts variables that aren't about org, which are left alone.
 
@@ -516,6 +517,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-agenda-prefix-format=                                         | =[org-agenda-prefix-format]=: a string sets all three views; an alist sets =agenda=, =todo= and =tags= |
 | =org-agenda-sorting-strategy=                                      | =[org-agenda-sorting-strategy]=: a list sets all four views; an alist sets =agenda=, =todo=, =tags= and =search=. A list with =user-defined-up= or =user-defined-down= isn't imported |
 | =org-agenda-sort-notime-is-late=, =org-agenda-sort-noeffort-is-high=, =org-agenda-use-time-grid=, =org-agenda-show-current-time-in-grid= | The same key, as booleans                                     |
+| =org-agenda-custom-commands=                                       | A =views.toml= view per command, named by its description, and per block a =[[view.block]]=. Types =agenda=, =alltodo=, =todo=, =tags=, =tags-todo=, =search= and =stuck=; settings =org-agenda-span=, =org-agenda-start-day=, =org-agenda-overriding-header=, =org-agenda-sorting-strategy=, =org-agenda-prefix-format= (a string) and =org-agenda-skip-function= as =org-agenda-skip-entry-if= or =org-agenda-skip-subtree-if=. Entries from =(add-to-list 'org-agenda-custom-commands …)= too. Other types, other settings and file lists aren't imported |
 | =org-stuck-projects=                                               | =[org-stuck-projects]=: =match=, =todo=, =tags= and =regexp= from the four elements          |
 | =org-agenda-time-grid=                                             | =[org-agenda-time-grid]=: =when= from the first element, =times= from the second; the strings are left out |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |

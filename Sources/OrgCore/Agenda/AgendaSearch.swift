@@ -8,6 +8,7 @@ extension Agenda {
         let selected = keywords.map { $0.split(separator: "|").map(String.init) }
         var items: [AgendaItem] = []
         for source in sources {
+            var skipper = Skipper(options.skip, source)
             for (index, heading) in source.headings.enumerated() where !heading.skipped {
                 guard let todo = heading.todo else { continue }
                 if let selected {
@@ -15,6 +16,7 @@ extension Agenda {
                 } else if heading.isDone {
                     continue
                 }
+                if skipper.skips(heading.start, heading: index) { continue }
                 if ignoresTodo(source, index, options: options, today: today) { continue }
                 var item = format(
                     source, heading, kind: .todo, marker: heading.start, extra: "", dotime: .headline, removing: nil,
@@ -38,10 +40,12 @@ extension Agenda {
         let today = Days.absolute(now, calendar: calendar)
         var items: [AgendaItem] = []
         for source in sources {
+            var skipper = Skipper(skip == nil ? options.skip : nil, source, caseFold: true)
             for (index, heading) in source.headings.enumerated() {
                 if matcher.todoOnly, heading.todo == nil { continue }
                 guard matcher.matches(heading, in: source, now: now, calendar: calendar), !heading.skipped else { continue }
                 if let skip, skip(source, index) { continue }
+                if skipper.skips(heading.start, heading: index) { continue }
                 if matcher.todoOnly, options.tagsTodoHonorIgnoreOptions, ignoresTodo(source, index, options: options, today: today) { continue }
                 var item = format(
                     source, heading, kind: .tagsMatch, marker: heading.start, extra: "", dotime: nil, removing: nil,
@@ -135,6 +139,7 @@ extension Agenda {
             let starts = headingLine.matches(in: text, range: NSRange(location: 0, length: length)).map(\.range.location)
             guard let firstHeading = starts.first else { continue }
             let byStart = Dictionary(source.headings.map { ($0.start, $0) }, uniquingKeysWith: { a, _ in a })
+            let indexByStart = Dictionary(source.headings.enumerated().map { ($0.element.start, $0.offset) }, uniquingKeysWith: { a, _ in a })
             var required = patterns
             if query.todoOnly {
                 guard !source.notDoneKeywords.isEmpty else { continue }
@@ -165,6 +170,10 @@ extension Agenda {
                         while stop > beg, [9, 10, 13, 32].contains(ns.character(at: stop - 1)) { stop -= 1 }
                     }
                     at = max(stop, at + 1)
+                    continue
+                }
+                if let skip = options.skip, let headingIndex = indexByStart[beg], let skipTo = skip.skipEnd(source, heading: headingIndex, caseFold: true) {
+                    at = max(skipTo, at + 1)
                     continue
                 }
                 let lineEnd = ns.range(of: "\n", range: NSRange(location: beg, length: length - beg)).location

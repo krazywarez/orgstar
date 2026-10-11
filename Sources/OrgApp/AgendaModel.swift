@@ -23,6 +23,8 @@ public final class AgendaModel {
     public private(set) var days: [AgendaDay] = []
     /// The entries of a TODO list, match or search view.
     public private(set) var list: [AgendaItem] = []
+    /// A block agenda's views, in order.
+    public private(set) var blocks: [AgendaBlockResult] = []
     public var mode: AgendaMode = .agenda(span: nil, startOffset: nil)
     /// The first day shown, as `Days` numbers it; nil follows today.
     public var start: Int?
@@ -75,39 +77,55 @@ public final class AgendaModel {
         isComputing = true
         let today = Days.absolute(now, calendar: calendar)
         let clock = calendar.dateComponents([.hour, .minute], from: now)
-        let (first, span) = shown(today: today)
         let mode = self.mode
         let options = viewSettings[mode]?.apply(to: self.options, view: mode.viewKey) ?? self.options
+        // What each view computes: the mode, its options, and for days the first and the span.
+        var jobs: [(mode: AgendaMode, options: AgendaOptions, first: Int, span: Int, header: String)] = []
+        if case .blocks(let blocks) = mode {
+            for block in blocks {
+                let (first, span) = shown(today: today, mode: block.mode, start: nil)
+                jobs.append((block.mode, block.settings.apply(to: self.options, view: block.mode.viewKey), first, span, block.settings.header ?? block.mode.title))
+            }
+        } else {
+            let (first, span) = shown(today: today)
+            jobs.append((mode, options, first, span, ""))
+        }
         let provider = calendarEvents
         let names = calendarNames
         let all = await sources(open: open)
-        let result = await Task.detached {
-            var days: [AgendaDay] = []
-            var list: [AgendaItem] = []
-            var events: [AgendaEvent] = []
-            switch mode {
-            case .agenda:
-                days = Agenda.list(all, start: first, days: span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: options)
-                if let provider {
-                    let from = Self.date(first, calendar: calendar)
-                    events = provider.events(from: from, to: Self.date(first + span, calendar: calendar), chosen: names)
+        let results = await Task.detached {
+            jobs.map { job in
+                var result = AgendaBlockResult(header: job.header, mode: job.mode)
+                switch job.mode {
+                case .agenda:
+                    result.days = Agenda.list(all, start: job.first, days: job.span, today: today, now: (clock.hour ?? 0, clock.minute ?? 0), options: job.options)
+                    if let provider {
+                        let from = Self.date(job.first, calendar: calendar)
+                        result.events = provider.events(from: from, to: Self.date(job.first + job.span, calendar: calendar), chosen: names)
+                    }
+                case .todo(let keywords):
+                    result.list = Agenda.todoList(all, keywords: keywords, options: job.options, today: today)
+                case .match(let match, let todoOnly):
+                    result.list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar, options: job.options)
+                case .search(let string, let todoOnly):
+                    result.list = Agenda.textSearch(all, string: string, todoOnly: todoOnly, options: job.options)
+                case .stuck(let definition):
+                    result.list = Agenda.stuckProjects(all, definition ?? job.options.stuckProjects, now: now, calendar: calendar, options: job.options)
+                case .blocks:
+                    break
                 }
-            case .todo(let keywords):
-                list = Agenda.todoList(all, keywords: keywords, options: options, today: today)
-            case .match(let match, let todoOnly):
-                list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar, options: options)
-            case .search(let string, let todoOnly):
-                list = Agenda.textSearch(all, string: string, todoOnly: todoOnly, options: options)
-            case .stuck(let definition):
-                list = Agenda.stuckProjects(all, definition ?? options.stuckProjects, now: now, calendar: calendar, options: options)
+                return result
             }
-            return (days, list, events)
         }.value
         guard id == generation else { return }
         // Unchanged results leave the views alone: a new value redraws the whole list.
-        if days != result.0 { days = result.0 }
-        if list != result.1 { list = result.1 }
-        if events != result.2 { events = result.2 }
+        let isBlocks = { if case .blocks = mode { true } else { false } }()
+        let single = isBlocks ? AgendaBlockResult(header: "", mode: mode) : results[0]
+        let blocks = isBlocks ? results : []
+        if days != single.days { days = single.days }
+        if list != single.list { list = single.list }
+        if events != single.events { events = single.events }
+        if self.blocks != blocks { self.blocks = blocks }
         if self.today != today { self.today = today }
         if self.calendar != calendar { self.calendar = calendar }
         isComputing = false
@@ -192,6 +210,11 @@ public final class AgendaModel {
         AgendaRows.groups(days, events: events, today: today, showAllDates: showAllDates, calendar: calendar, keep: keep)
     }
 
+    /// A block's days as rows, as `groups` does for the view's.
+    public func groups(_ block: AgendaBlockResult, showAllDates: Bool, filter: AgendaFilter) -> [AgendaDayGroup] {
+        AgendaRows.groups(block.days, events: block.events, today: today, showAllDates: showAllDates, calendar: calendar, keep: filter.keeps)
+    }
+
     /// `groups` with `filter`, kept while the days, events and arguments are the same, as
     /// views ask on every redraw.
     public func groups(showAllDates: Bool, filter: AgendaFilter) -> [AgendaDayGroup] {
@@ -222,7 +245,10 @@ public final class AgendaModel {
     /// The first day the agenda shows and how many, as `org-agenda-list` works them out: the
     /// view's span and start, or the settings', with 7- and 14-day spans moved back to
     /// `startOnWeekday`.
-    public func shown(today: Int) -> (first: Int, span: Int) {
+    public func shown(today: Int) -> (first: Int, span: Int) { shown(today: today, mode: mode, start: start) }
+
+    /// `shown(today:)` for `mode`, from `start` when it isn't nil.
+    func shown(today: Int, mode: AgendaMode, start: Int?) -> (first: Int, span: Int) {
         var span = self.span
         var startOffset = self.startOffset
         if case .agenda(let viewSpan, let viewStart) = mode {

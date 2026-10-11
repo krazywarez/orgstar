@@ -179,13 +179,8 @@ extension AgendaView {
     }
 
     var listTitle: String {
-        switch agenda.mode {
-        case .todo(let keywords): "TODO items: \(keywords ?? "all")"
-        case .match(let match, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " matching \(match)"
-        case .search(let string, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " containing \(string)"
-        case .stuck: "Stuck projects"
-        case .agenda: ""
-        }
+        if case .agenda = agenda.mode { return "" }
+        return agenda.viewSettings[agenda.mode]?.header ?? agenda.mode.title
     }
 
     func loadViews() {
@@ -231,7 +226,8 @@ extension AgendaView {
 
     /// The tags and categories on the view's lines, which filter words are read against.
     var shown: (tags: Set<String>, categories: Set<String>) {
-        let items = (isAgenda ? agenda.days.flatMap(\.items) : agenda.list).filter { $0.path != nil }
+        let shown = isBlocks ? agenda.blocks.flatMap { $0.days.flatMap(\.items) + $0.list } : isAgenda ? agenda.days.flatMap(\.items) : agenda.list
+        let items = shown.filter { $0.path != nil }
         return (Set(items.flatMap(\.tags)), Set(items.map(\.category)))
     }
 

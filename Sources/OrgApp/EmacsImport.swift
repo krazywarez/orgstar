@@ -17,6 +17,8 @@ public struct EmacsImport: Sendable {
         case binding(keys: String, command: String, mode: String?)
         /// An `[org-structure-template-alist]` entry for config.toml.
         case structureTemplate(key: String, type: String)
+        /// A `[[view]]` table, with its blocks, for views.toml.
+        case view(name: String, toml: String)
     }
 
     public struct Item: Sendable, Identifiable {
@@ -150,6 +152,8 @@ public struct EmacsImport: Sendable {
         var bindings: [Binding] = []
         /// `(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))` entries.
         var addedTemplates: [(entry: Sexp, source: String)] = []
+        /// `(add-to-list 'org-agenda-custom-commands '("w" "Work" tags "work"))` entries.
+        var addedCommands: [(entry: Sexp, source: String)] = []
         var usesEvil = false
         var order = 0
 
@@ -173,6 +177,9 @@ public struct EmacsImport: Sendable {
             case "add-to-list":
                 if args.count >= 2, unquote(args[0])?.symbol == "org-structure-template-alist", let entry = unquote(args[1]) {
                     addedTemplates.append((entry, source))
+                }
+                if args.count >= 2, unquote(args[0])?.symbol == "org-agenda-custom-commands", let entry = unquote(args[1]) {
+                    addedCommands.append((entry, source))
                 }
             case "defvar", "defcustom":
                 // Only sets a variable nothing set, so under every assignment.
@@ -445,6 +452,7 @@ public struct EmacsImport: Sendable {
             }
         }
         for (entry, source) in scanner.addedTemplates { structureTemplates([entry], source: source, id: id) }
+        for (entry, source) in scanner.addedCommands { agendaCommand(entry, source: source, id: id) }
         // One item per folder.
         var folders: Set<String> = []
         items.removeAll { item in
@@ -626,6 +634,8 @@ public struct EmacsImport: Sendable {
             }
         case "org-capture-templates":
             for entry in value.elements ?? [] { captureTemplate(entry, source: source, env: env, id: id) }
+        case "org-agenda-custom-commands":
+            for entry in value.elements ?? [] { agendaCommand(entry, source: source, id: id) }
         case "doom-font":
             note("not a font-spec orgstar can read")
         case "doom-variable-pitch-font":
@@ -683,6 +693,99 @@ public struct EmacsImport: Sendable {
             items.append(Item(id: id(), name: "structure template \"\(key)\"", summary: "<\(key) inserts a \(type) block", source: source,
                               change: .structureTemplate(key: key, type: type)))
         }
+    }
+
+    /// An `org-agenda-custom-commands` entry as a `[[view]]` table: `("w" "Work" tags "+work"
+    /// ((settings)))`, or with a list of blocks in place of the type and match.
+    mutating func agendaCommand(_ entry: Sexp, source: String, id: () -> Int) {
+        guard var parts = entry.elements, let key = parts.first?.string else { return }
+        parts.removeFirst()
+        let name = parts.first?.string ?? key
+        if parts.first?.string != nil { parts.removeFirst() }
+        // A key and a description only: a prefix for other commands.
+        guard let first = parts.first else { return }
+        func note(_ reason: String) { unsupported.append(Note(id: id(), name: "agenda command \"\(key)\"", reason: reason, source: source)) }
+        func quoted(_ s: String) -> String { UserConfig.format(.string(s)) }
+        func unquote(_ s: Sexp) -> Sexp {
+            if case .list(let items) = s, items.count == 2, items[0].symbol == "quote" || items[0].symbol == "function" { return items[1] }
+            return s
+        }
+        /// `(type match settings)` as TOML lines, or nil with a note.
+        func view(_ type: String, _ match: Sexp?, _ settings: Sexp?) -> String? {
+            var toml = ""
+            let matchString = match.flatMap { unquote($0).string }.flatMap { $0.isEmpty ? nil : $0 }
+            switch type {
+            case "agenda": toml += "type = \"agenda\"\n"
+            case "alltodo": toml += "type = \"todo\"\n"
+            case "todo":
+                toml += "type = \"todo\"\n"
+                if let matchString { toml += "keywords = \(quoted(matchString))\n" }
+            case "tags", "tags-todo", "search":
+                guard let matchString else { note("\(type) needs a match"); return nil }
+                let kind = ["tags": "match", "tags-todo": "todo-match", "search": "search"][type]!
+                toml += "type = \"\(kind)\"\nmatch = \(quoted(matchString))\n"
+            case "stuck": toml += "type = \"stuck\"\n"
+            default: note("\(type) views aren't supported"); return nil
+            }
+            guard let settings = settings.map(unquote), let pairs = settings.elements else { return toml }
+            for pair in pairs {
+                guard let items = pair.elements, items.count == 2, let variable = items[0].symbol else { continue }
+                let value = unquote(items[1])
+                switch variable {
+                case "org-agenda-span" where type == "agenda":
+                    let spans = ["day": 1, "week": 7, "fortnight": 14, "month": 30, "year": 365]
+                    if let n = value.integer ?? value.symbol.flatMap({ spans[$0] }) { toml += "span = \(n)\n" } else { note("org-agenda-span \(value.description)") }
+                case "org-agenda-start-day" where type == "agenda":
+                    if let s = value.string, let n = Int(s.replacingOccurrences(of: "d", with: "").replacingOccurrences(of: "+", with: "")) {
+                        toml += "start = \(n)\n"
+                    } else { note("org-agenda-start-day \(value.description)") }
+                case "org-agenda-overriding-header":
+                    if let s = value.string { toml += "header = \(quoted(s))\n" }
+                case "org-agenda-sorting-strategy":
+                    let keys = (value.elements ?? []).compactMap(\.symbol)
+                    if !keys.isEmpty, keys.allSatisfy(AgendaSort.keys.contains) { toml += "sorting-strategy = \(quoted(keys.joined(separator: " ")))\n" } else { note("org-agenda-sorting-strategy \(value.description)") }
+                case "org-agenda-prefix-format":
+                    if let s = value.string { toml += "prefix-format = \(quoted(s))\n" } else { note("org-agenda-prefix-format as an alist") }
+                case "org-agenda-skip-function":
+                    guard let form = value.elements, let head = form.first?.symbol, ["org-agenda-skip-entry-if", "org-agenda-skip-subtree-if"].contains(head) else {
+                        note("org-agenda-skip-function \(value.description)")
+                        continue
+                    }
+                    let subtree = head == "org-agenda-skip-subtree-if"
+                    switch AgendaSkip.parse(form.dropFirst().map(\.description).joined(separator: " "), subtree: subtree) {
+                    case .success(let skip): toml += "\(subtree ? "skip-subtree-if" : "skip-entry-if") = \(quoted(skip.lisp))\n"
+                    case .failure(.message(let message)): note("org-agenda-skip-function: \(message)")
+                    }
+                default:
+                    note("\(variable) in a view isn't supported")
+                }
+            }
+            return toml
+        }
+        var toml = "[[view]]\nname = \(quoted(name))\n"
+        if let type = first.symbol {
+            if type == "agenda*" { note("agenda* views aren't supported"); return }
+            guard let body = view(type, parts.count > 1 ? parts[1] : nil, parts.count > 2 ? parts[2] : nil) else { return }
+            toml += body
+            if parts.count > 3 { note("files for a view are ignored") }
+        } else if let blocks = first.elements {
+            // Settings for all the blocks come after them.
+            var common = view("agenda", nil, parts.count > 1 ? parts[1] : nil) ?? ""
+            common = common.replacingOccurrences(of: "type = \"agenda\"\n", with: "")
+            toml += common
+            var count = 0
+            for block in blocks {
+                guard let items = block.elements, let type = items.first?.symbol,
+                      let body = view(type, items.count > 1 ? items[1] : nil, items.count > 2 ? items[2] : nil) else { continue }
+                toml += "[[view.block]]\n" + body
+                count += 1
+            }
+            guard count > 0 else { return }
+            if parts.count > 2 { note("files for a view are ignored") }
+        } else {
+            return note("not a view orgstar can read")
+        }
+        items.append(Item(id: id(), name: "org-agenda-custom-commands \"\(key)\"", summary: "views.toml view \(name)", source: source, change: .view(name: name, toml: toml)))
     }
 
     mutating func captureTemplate(_ entry: Sexp, source: String, env: [String: Sexp] = [:], id: () -> Int) {
@@ -798,7 +901,7 @@ extension EmacsImport {
     public static func apply(
         _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory
     ) async -> String {
-        var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0
+        var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0, views = 0
         var problems: [String] = []
         for item in items {
             guard case .setting(let key, let value) = item.change,
@@ -834,6 +937,19 @@ extension EmacsImport {
             capture += (capture.isEmpty ? "# Capture templates. Imported from Emacs.\n" : "\n# Imported from Emacs.\n") + addedCapture
             try? capture.write(to: captureFile, atomically: true, encoding: .utf8)
         }
+        let viewsFile = directory.appendingPathComponent("views.toml")
+        var viewsText = (try? String(contentsOf: viewsFile, encoding: .utf8)) ?? ""
+        var viewNames = Set((try? TOML.parse(viewsText))?.filter { $0.name == "view" }.compactMap { $0.values["name"]?.string } ?? [])
+        var addedViews = ""
+        for item in items {
+            guard case .view(let name, let toml) = item.change, viewNames.insert(name).inserted else { continue }
+            addedViews += "\n" + toml
+            views += 1
+        }
+        if !addedViews.isEmpty {
+            viewsText += (viewsText.isEmpty ? "# Agenda views. Imported from Emacs.\n" : "\n# Imported from Emacs.\n") + addedViews
+            try? viewsText.write(to: viewsFile, atomically: true, encoding: .utf8)
+        }
         let keymapFile = directory.appendingPathComponent("keymap.toml")
         var keymap = (try? String(contentsOf: keymapFile, encoding: .utf8)) ?? ""
         func binding(_ keys: String?, _ command: String?, _ mode: String?) -> String { [keys ?? "", command ?? "", mode ?? ""].joined(separator: "\u{0}") }
@@ -862,7 +978,7 @@ extension EmacsImport {
         if blocks > 0 { UserConfig.setStructureTemplates(rows, in: defaults) }
         func count(_ n: Int, _ word: String) -> String? { n == 0 ? nil : "\(n) \(word)\(n == 1 ? "" : "s")" }
         let done = [count(settings, "setting"), count(folders, "folder"), count(templates, "capture template"), count(bindings, "key binding"),
-                    count(blocks, "structure template")].compactMap { $0 }
+                    count(blocks, "structure template"), count(views, "agenda view")].compactMap { $0 }
         var summary = done.isEmpty ? "Nothing new to import." : "Imported " + done.joined(separator: ", ") + "."
         if !problems.isEmpty { summary += " " + problems.joined(separator: "; ") + "." }
         return summary

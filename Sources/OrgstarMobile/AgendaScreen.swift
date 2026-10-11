@@ -89,6 +89,28 @@ struct AgendaScreen: View, Equatable {
                         header(group)
                     }
                 }
+            } else if case .blocks = agenda.mode {
+                // A block's title over its days, or over its entries.
+                ForEach(Array(agenda.blocks.enumerated()), id: \.offset) { _, block in
+                    if block.isAgenda {
+                        Section { } header: { Text(block.header).font(.headline) }
+                        ForEach(agenda.groups(block, showAllDates: OrgPreferences.agendaShowAllDates(), filter: filter)) { group in
+                            Section {
+                                day(group)
+                            } header: {
+                                header(group)
+                            }
+                        }
+                    } else {
+                        Section {
+                            let rows = block.list.filter(filter.keeps).compactMap { AgendaRow(item: $0, day: agenda.today, today: agenda.today) }
+                            if rows.isEmpty, !agenda.isComputing { Text("No entries").foregroundStyle(.secondary) }
+                            ForEach(rows) { item in Deferred { row(item, day: agenda.today) } }
+                        } header: {
+                            Text(block.header).font(.headline)
+                        }
+                    }
+                }
             } else {
                 let rows = agenda.list.filter(filter.keeps).compactMap { AgendaRow(item: $0, day: agenda.today, today: agenda.today) }
                 if rows.isEmpty, !agenda.isComputing { Text("No entries").foregroundStyle(.secondary) }
@@ -248,6 +270,7 @@ struct AgendaScreen: View, Equatable {
 
     private var shownItems: [AgendaItem] {
         if case .agenda = agenda.mode { return agenda.days.flatMap(\.items).filter(\.isEntry) }
+        if case .blocks = agenda.mode { return agenda.blocks.flatMap { $0.days.flatMap(\.items).filter(\.isEntry) + $0.list } }
         return agenda.list
     }
 

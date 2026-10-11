@@ -166,7 +166,7 @@ struct AgendaView: View {
         agenda.options.logMode = logMode
         agenda.options = OrgPreferences.agendaOptions(agenda.options)
         agenda.calendarNames = OrgPreferences.calendarEventCalendars()
-        if calendarEventsOn, isAgenda {
+        if calendarEventsOn, isAgenda || isBlocks {
             agenda.calendarEvents = await CalendarAccess.events.requestAccess() ? CalendarAccess.events : nil
         } else {
             agenda.calendarEvents = nil
@@ -204,6 +204,11 @@ struct AgendaView: View {
         return false
     }
 
+    var isBlocks: Bool {
+        if case .blocks = agenda.mode { return true }
+        return false
+    }
+
     var isMatch: Bool { viewName == Self.match || viewName == Self.todoMatch }
     var isSearch: Bool { viewName == Self.search || viewName == Self.todoSearch }
 
@@ -222,16 +227,28 @@ struct AgendaView: View {
         isAgenda ? agenda.groups(showAllDates: showAllDates, filter: filter) : []
     }
 
-    private var listRows: [AgendaRow] {
-        isAgenda ? [] : agenda.list.filter(filter.keeps).compactMap { AgendaRow(item: $0, day: agenda.today, today: agenda.today) }
+    private var listRows: [AgendaRow] { rows(agenda.list) }
+
+    private func rows(_ list: [AgendaItem]) -> [AgendaRow] {
+        list.filter(filter.keeps).compactMap { AgendaRow(item: $0, day: agenda.today, today: agenda.today) }
     }
 
     /// The lines in order, as up and down move through them.
     func lines(_ groups: [AgendaDayGroup]) -> [Line] {
+        if isBlocks {
+            return agenda.blocks.enumerated().flatMap { k, block in
+                block.isAgenda ? dayLines(agenda.groups(block, showAllDates: showAllDates, filter: filter), prefix: "b\(k):")
+                    : rows(block.list).enumerated().map { Line(id: "b\(k):list:\($0.offset)", row: $0.element, day: agenda.today) }
+            }
+        }
         guard isAgenda else { return listRows.enumerated().map { Line(id: "list:\($0.offset)", row: $0.element, day: agenda.today) } }
-        return groups.flatMap { group in
-            (overdueShown ? group.overdue.enumerated().map { Line(id: "\(group.day):o\($0.offset)", row: $0.element, day: group.day) } : [])
-                + group.rows.enumerated().map { Line(id: "\(group.day):\($0.offset)", row: $0.element, day: group.day) }
+        return dayLines(groups, prefix: "")
+    }
+
+    private func dayLines(_ groups: [AgendaDayGroup], prefix: String) -> [Line] {
+        groups.flatMap { group in
+            (overdueShown ? group.overdue.enumerated().map { Line(id: "\(prefix)\(group.day):o\($0.offset)", row: $0.element, day: group.day) } : [])
+                + group.rows.enumerated().map { Line(id: "\(prefix)\(group.day):\($0.offset)", row: $0.element, day: group.day) }
         }
     }
 
@@ -243,7 +260,24 @@ struct AgendaView: View {
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    if isAgenda {
+                    if isBlocks {
+                        ForEach(Array(agenda.blocks.enumerated()), id: \.offset) { k, block in
+                            Section {
+                                if block.isAgenda {
+                                    ForEach(agenda.groups(block, showAllDates: showAllDates, filter: filter)) { group in
+                                        dayHeader(group)
+                                        dayRows(group, prefix: "b\(k):")
+                                    }
+                                } else {
+                                    ForEach(Array(rows(block.list).enumerated()), id: \.offset) { index, row in
+                                        rowView(Line(id: "b\(k):list:\(index)", row: row, day: agenda.today), showsGutter: false)
+                                    }
+                                }
+                            } header: {
+                                header { Text(block.header).font(.system(size: 13, weight: .semibold)) }
+                            }
+                        }
+                    } else if isAgenda {
                         ForEach(groups) { group in
                             Section {
                                 dayRows(group)
@@ -360,12 +394,12 @@ struct AgendaView: View {
     private var todayColor: Color { theme.color("agenda-today") ?? .accentColor }
 
     @ViewBuilder
-    private func dayRows(_ group: AgendaDayGroup) -> some View {
+    private func dayRows(_ group: AgendaDayGroup, prefix: String = "") -> some View {
         if group.isToday, !group.overdue.isEmpty {
             overdueHeader(count: group.overdue.count)
             if overdueShown {
                 ForEach(Array(group.overdue.enumerated()), id: \.element.id) { index, row in
-                    rowView(Line(id: "\(group.day):o\(index)", row: row, day: group.day))
+                    rowView(Line(id: "\(prefix)\(group.day):o\(index)", row: row, day: group.day))
                 }
                 Divider().padding(.leading, 16).padding(.vertical, 4)
             }
@@ -379,7 +413,7 @@ struct AgendaView: View {
         }
         ForEach(Array(group.lines(now: Self.hhmm(now)).enumerated()), id: \.offset) { _, line in
             switch line {
-            case .row(let index): rowView(Line(id: "\(group.day):\(index)", row: group.rows[index], day: group.day))
+            case .row(let index): rowView(Line(id: "\(prefix)\(group.day):\(index)", row: group.rows[index], day: group.day))
             case .grid(let time): gridLine(time)
             case .now: nowLine
             }

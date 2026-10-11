@@ -93,6 +93,8 @@ public struct AgendaOptions: Sendable, Equatable {
     public var showCurrentTimeInGrid = true
     /// `org-stuck-projects`, for views that don't give their own.
     public var stuckProjects = StuckProjects()
+    /// `org-agenda-skip-function`, as `org-agenda-skip-entry-if` or `-subtree-if`.
+    public var skip: AgendaSkip?
     public var gridTrailing = " ┄┄┄┄┄ "
     public var gridLine = "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
     public var currentTimeLine = "← now ───────────────────────────────────────────────"
@@ -226,8 +228,11 @@ public enum Agenda {
     static func deadlines(_ source: AgendaSource, day current: Int, today: Int, options: AgendaOptions) -> [AgendaItem] {
         let isToday = current == today
         var items: [AgendaItem] = []
-        for heading in source.headings {
-            guard !heading.skipped, let (s, offset) = heading.deadline, let (deadline, sexp) = planningDay(s, current: current) else { continue }
+        var skipper = Skipper(options.skip, source)
+        for (index, heading) in source.headings.enumerated() {
+            guard !heading.skipped, let (s, offset) = heading.deadline else { continue }
+            if skipper.skips(heading.start, heading: index) { continue }
+            guard let (deadline, sexp) = planningDay(s, current: current) else { continue }
             let repeat_ = sexp || current <= today ? deadline : (Days.closest(s, to: current, prefer: .future) ?? deadline)
             let diff = deadline - current
             let warningDays = Days.warningDays(s, delay: false, defaultDays: options.deadlineWarningDays)
@@ -264,8 +269,11 @@ public enum Agenda {
     static func scheduled(_ source: AgendaSource, day current: Int, today: Int, options: AgendaOptions) -> [AgendaItem] {
         let isToday = current == today
         var items: [AgendaItem] = []
-        for heading in source.headings {
-            guard !heading.skipped, let (s, offset) = heading.scheduled, let (schedule, sexp) = planningDay(s, current: current) else { continue }
+        var skipper = Skipper(options.skip, source)
+        for (index, heading) in source.headings.enumerated() {
+            guard !heading.skipped, let (s, offset) = heading.scheduled else { continue }
+            if skipper.skips(heading.start, heading: index) { continue }
+            guard let (schedule, sexp) = planningDay(s, current: current) else { continue }
             let repeat_ = sexp || current <= today ? schedule : (Days.closest(s, to: current, prefer: .future) ?? schedule)
             let diff = current - schedule
             let past = schedule < today
@@ -294,7 +302,9 @@ public enum Agenda {
 
     static func blocks(_ source: AgendaSource, day current: Int, options: AgendaOptions) -> [AgendaItem] {
         var items: [AgendaItem] = []
+        var skipper = Skipper(options.skip, source)
         for block in source.blocks {
+            if skipper.skips(block.marker, heading: block.heading) { continue }
             guard let startDay = Days.absolute(of: block.start), let endDay = Days.absolute(of: block.end),
                   current >= startDay, endDay >= current else { continue }
             let heading = source.headings[block.heading]
@@ -319,7 +329,9 @@ public enum Agenda {
         let date = Days.date(current)
         let literal = String(format: "%04d-%02d-%02d", date.year, date.month, date.day)
         var items: [AgendaItem] = []
+        var skipper = Skipper(options.skip, source)
         for entry in source.progress where entry.date == literal {
+            if skipper.skips(entry.offset, heading: entry.heading) { continue }
             let kind: AgendaItem.Kind
             let extra: String
             switch entry.kind {
@@ -362,9 +374,13 @@ public enum Agenda {
         let date = Days.date(current)
         let literal = String(format: "<%04d-%02d-%02d", date.year, date.month, date.day)
         var items: [AgendaItem] = []
+        var skipper = Skipper(options.skip, source)
         for stamp in source.stamps {
             let rest = stamp.rest as NSString
             let all = NSRange(location: 0, length: rest.length)
+            // The stamps the day's regexp finds: of the day, with a repeater, or a diary sexp.
+            if options.skip != nil, stamp.rest.hasPrefix(literal) || diaryStamp.firstMatch(in: stamp.rest, range: all) != nil
+                || repeating.firstMatch(in: stamp.rest, range: all) != nil, skipper.skips(stamp.offset, heading: stamp.heading) { continue }
             let timestamp: String
             if stamp.rest.hasPrefix(literal) {
                 guard let m = stampBoth.firstMatch(in: stamp.rest, range: all) else { continue }
@@ -394,8 +410,10 @@ public enum Agenda {
     /// `org-agenda-get-sexps`.
     static func sexps(_ source: AgendaSource, day current: Int, options: AgendaOptions) -> [AgendaItem] {
         var items: [AgendaItem] = []
+        var skipper = Skipper(options.skip, source)
         for line in source.sexps {
             guard let results = DiarySexp.entries(line.sexp, entry: line.entry, day: current) else { continue }
+            if skipper.skips(line.offset, heading: line.heading) { continue }
             let heading = source.headings[line.heading]
             for result in results {
                 let txt = result.contains(where: { !$0.isWhitespace }) ? result : "SEXP entry returned empty string"

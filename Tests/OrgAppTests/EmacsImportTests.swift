@@ -23,6 +23,15 @@ struct EmacsImportTests {
     (setq org-agenda-sorting-strategy '((agenda time-up priority-down) (todo . (alpha-up))) org-agenda-sort-notime-is-late nil)
     (setq org-agenda-time-grid '((daily today) (800 1300) "......" "----") org-agenda-use-time-grid nil)
     (setq org-stuck-projects '("+project/-DONE" ("NEXT" "TODO") ("errand") "\\<IGNORE\\>"))
+    (setq org-agenda-custom-commands
+          '(("d" "Daily" ((agenda "" ((org-agenda-span 'day) (org-agenda-overriding-header "Today")))
+                          (todo "NEXT" ((org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))))
+                          (tags-todo "+work" ((org-agenda-sorting-strategy '(priority-down alpha-up)))))
+             ((org-agenda-prefix-format " %e ")))
+            ("w" "Work" tags "+work-boss" ((org-agenda-skip-function '(org-agenda-skip-subtree-if 'regexp "IGNORE"))))
+            ("x" "Prefix")
+            ("f" "Function" my-agenda-function)))
+    (add-to-list 'org-agenda-custom-commands '("s" "Stuck" stuck ""))
     (setq fill-column (+ 70 2))
     (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
     (with-eval-after-load 'org (add-to-list 'org-structure-template-alist '("q" . "QUOTE")))
@@ -128,7 +137,7 @@ struct EmacsImportTests {
         #expect(folders == ["~/notes/", "~/work"])
         #expect(result.unreadable.map(\.name) == ["fill-column"])
         #expect(Set(result.unsupported.map(\.name)) == ["org-support-shift-select", "doom-theme", "org-roam-directory",
-            "capture \"j\"", "capture \"x\"", "SPC z t → tr/report", "C-c l"])
+            "capture \"j\"", "capture \"x\"", "SPC z t → tr/report", "C-c l", "agenda command \"f\""])
         #expect(result.skipped == 1)
         #expect(result.doomDefaultsLeftOut == 1)
     }
@@ -208,7 +217,21 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 42 settings, 3 capture templates, 3 key bindings, 2 structure templates."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 42 settings, 3 capture templates, 3 key bindings, 2 structure templates, 3 agenda views."), "\(summary)")
+        let views = AgendaViewLoader.load(userFile: folder.appendingPathComponent("views.toml"))
+        #expect(views.problems.isEmpty, "\(views.problems)")
+        #expect(views.views.dropFirst(3).map(\.name) == ["Daily", "Work", "Stuck"])
+        if case .blocks(let blocks) = views.views[3].mode {
+            #expect(blocks.map(\.mode) == [.agenda(span: 1, startOffset: nil), .todo(keywords: "NEXT"), .match("+work", todoOnly: true)])
+            #expect(blocks[0].settings.header == "Today" && blocks.allSatisfy { $0.settings.prefixFormat == " %e " })
+            #expect(blocks[1].settings.skip == AgendaSkip(subtree: false, conditions: [.scheduled, .deadline]))
+            #expect(blocks[2].settings.sortingStrategy == ["priority-down", "alpha-up"])
+        } else {
+            Issue.record("Daily isn't a block view")
+        }
+        #expect(views.views[4].mode == .match("+work-boss", todoOnly: false))
+        #expect(views.views[4].settings.skip == AgendaSkip(subtree: true, conditions: [.regexp("IGNORE")]))
+        #expect(views.views[5].mode == .stuck(nil))
         #expect(UserConfig.structureTemplates(defaults) == [.init(key: "el", type: "src emacs-lisp"), .init(key: "q", type: "QUOTE")])
         #expect(OrgPreferences.options(defaults).structureTemplates?.first { $0.key == "q" }?.type == "QUOTE")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
@@ -218,6 +241,6 @@ struct EmacsImportTests {
         let before = try String(contentsOf: keymap, encoding: .utf8)
         let again = await EmacsImport.apply(result.items, defaults: defaults, workspace: nil, directory: folder)
         #expect(try String(contentsOf: keymap, encoding: .utf8) == before)
-        #expect(!again.contains("key binding") && !again.contains("capture template"), "\(again)")
+        #expect(!again.contains("key binding") && !again.contains("capture template") && !again.contains("agenda view"), "\(again)")
     }
 }

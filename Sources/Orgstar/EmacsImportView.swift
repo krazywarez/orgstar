@@ -71,6 +71,7 @@ struct EmacsImportView: View {
             ("Capture templates", result.items.filter { if case .capture = $0.change { true } else { false } }),
             ("Key bindings", result.items.filter { if case .binding = $0.change { true } else { false } }),
             ("Structure templates", result.items.filter { if case .structureTemplate = $0.change { true } else { false } }),
+            ("Agenda views", result.items.filter { if case .view = $0.change { true } else { false } }),
         ]
         return List {
             ForEach(groups.filter { !$0.1.isEmpty }, id: \.0) { title, items in
