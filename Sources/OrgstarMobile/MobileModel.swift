@@ -5,6 +5,7 @@ import OrgApp
 import OrgCore
 import OrgIndex
 import OrgPresentation
+import OrgWatchData
 import OrgWorkspace
 import UIKit
 import UserNotifications
@@ -40,6 +41,8 @@ final class MobileModel {
     var captureRequest: CaptureRequest?
     /// Calendar's events for the agenda, with `calendar-events`.
     let calendarEvents = CalendarEvents()
+    /// Captures the watch sent, for the root view to pick up from the inbox.
+    var watchCaptures = 0
     /// Reminders for the agenda, with `agenda-reminders`.
     let reminderLists = ReminderLists()
 
@@ -295,6 +298,7 @@ final class MobileModel {
         }
         await days.refresh(open: session.openTexts)
         let groups = days.groups()
+        WatchLink.shared.send(WatchAgenda(groups: groups, today: days.today, clock: clock.running, lastClocked: clock.history.first?.title, generated: Date()))
         await updateBadge(OverdueBadge.counts(groups, today: days.today, days: AgendaSnapshot.dayCount))
         if (try? HabitSnapshot(habits: await days.habits(open: session.openTexts), theme: theme).write()) == true { WidgetCenter.shared.reloadTimelines(ofKind: "sh.krz.orgstar.habits") }
         _ = try? TemplateList(templates: CaptureTemplates.load().templates.map { .init(key: $0.key, name: $0.name) }).write()

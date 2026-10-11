@@ -15,10 +15,13 @@ done
 for scheme in OrgstarMobile OrgstarShare OrgstarWidgets; do
     xcodebuild -scheme "$scheme" -destination 'generic/platform=iOS Simulator' -derivedDataPath "$ios" build -quiet SWIFT_EMIT_LOC_STRINGS=YES
 done
+for scheme in OrgstarWatch OrgstarWatchWidgets; do
+    xcodebuild -scheme "$scheme" -destination 'generic/platform=watchOS Simulator' -derivedDataPath "$ios" build -quiet SWIFT_EMIT_LOC_STRINGS=YES
+done
 
 [ -f "$catalog" ] || printf '{\n  "sourceLanguage" : "en",\n  "strings" : {\n\n  },\n  "version" : "1.0"\n}\n' > "$catalog"
 find "$mac" "$ios" -path '*/arm64/*' -name '*.stringsdata' \
-    | grep -E '/(Orgstar|OrgstarMobile|OrgstarWidgets|OrgstarShare)-p\.build/|/(OrgApp|OrgPresentation|OrgEditorAppKit)-t?\.build/' \
+    | grep -E '/(Orgstar|OrgstarMobile|OrgstarWidgets|OrgstarShare|OrgstarWatch|OrgstarWatchWidgets)-p\.build/|/(OrgApp|OrgPresentation|OrgEditorAppKit)-t?\.build/' \
     > "$mac/stringsdata.txt"
 # shellcheck disable=SC2046
 xcrun xcstringstool sync "$catalog" --stringsdata $(tr '\n' ' ' < "$mac/stringsdata.txt")

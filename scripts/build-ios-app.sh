@@ -5,7 +5,7 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-version="${1:-0.1.0}"
+version="${1:-0.3.0}"
 app=".build/ios-app/orgstar.app"
 products=".build/ios/Build/Products/Debug-iphonesimulator"
 
@@ -176,6 +176,11 @@ appex OrgstarQuickLook quicklook com.apple.quicklook.preview PreviewProvider \
 appex OrgstarShare share com.apple.share-services ShareViewController \
     "<key>NSExtensionActivationRule</key><dict><key>NSExtensionActivationSupportsWebURLWithMaxCount</key><integer>1</integer><key>NSExtensionActivationSupportsText</key><true/><key>NSExtensionActivationSupportsImageWithMaxCount</key><integer>10</integer><key>NSExtensionActivationSupportsMovieWithMaxCount</key><integer>10</integer><key>NSExtensionActivationSupportsFileWithMaxCount</key><integer>10</integer></dict>" \
     "$entitlements"
+
+# The watch app, which a paired watch installs from here.
+scripts/build-watch-app.sh "$version" > /dev/null
+mkdir -p "$app/Watch"
+cp -R .build/watch-app/OrgstarWatch.app "$app/Watch/"
 
 codesign --force --sign - --entitlements "$entitlements" "$app"
 rm -rf "$work"

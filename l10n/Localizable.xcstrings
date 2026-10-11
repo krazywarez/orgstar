@@ -17,6 +17,9 @@
         }
       }
     },
+    "%@ ": {
+      "shouldTranslate": false
+    },
     "%@ %@": {
       "localizations": {
         "en": {
@@ -155,6 +158,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld ausgewählt"
+          }
+        }
+      }
+    },
+    "%lld sent to orgstar on iPhone.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld an orgstar auf dem iPhone gesendet."
           }
         }
       }
@@ -1034,6 +1047,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zeiterfassung starten oder beenden"
+          }
+        }
+      }
+    },
+    "Clock In to %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit für %@ erfassen"
           }
         }
       }
@@ -2735,6 +2758,16 @@
         }
       }
     },
+    "Marks it %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setzt es auf %@"
+          }
+        }
+      }
+    },
     "Match: +work/!TODO": {
       "localizations": {
         "de": {
@@ -3191,6 +3224,16 @@
         }
       }
     },
+    "Not clocked in": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Zeiterfassung"
+          }
+        }
+      }
+    },
     "Not done before TODO children": {
       "localizations": {
         "de": {
@@ -3357,6 +3400,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "orgstar öffnen"
+          }
+        }
+      }
+    },
+    "Open orgstar on your iPhone to show your agenda here.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne orgstar auf deinem iPhone, um hier deine Agenda zu sehen."
           }
         }
       }
@@ -4107,6 +4160,16 @@
         }
       }
     },
+    "Sent to orgstar on iPhone.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An orgstar auf dem iPhone gesendet."
+          }
+        }
+      }
+    },
     "Series": {
       "localizations": {
         "de": {
@@ -4820,6 +4883,16 @@
         }
       }
     },
+    "The running clock and its time so far.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die laufende Zeiterfassung und die bisherige Zeit."
+          }
+        }
+      }
+    },
     "The template to capture with.": {
       "localizations": {
         "de": {
@@ -5249,6 +5322,16 @@
         }
       }
     },
+    "orgstar files it with a template when you next open it on iPhone.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar legt es beim nächsten Öffnen auf dem iPhone mit einer Vorlage ab."
+          }
+        }
+      }
+    },
     "orgstar files it with the template when you next open it.": {
       "localizations": {
         "de": {
@@ -5313,5 +5396,5 @@
       "shouldTranslate": false
     }
   },
-  "version": "1.0"
+  "version": "1.1"
 }

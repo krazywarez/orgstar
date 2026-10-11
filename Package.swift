@@ -6,7 +6,7 @@ let extensionEntry: [LinkerSetting] = [.unsafeFlags(["-Xlinker", "-e", "-Xlinker
 
 let package = Package(
     name: "Orgstar",
-    platforms: [.macOS(.v26), .iOS(.v26)],
+    platforms: [.macOS(.v26), .iOS(.v26), .watchOS(.v26)],
     products: [
         .library(name: "OrgCore", targets: ["OrgCore"]),
         .library(name: "OrgDocument", targets: ["OrgDocument"]),
@@ -22,7 +22,9 @@ let package = Package(
         .executable(name: "OrgstarQuickLook", targets: ["OrgstarQuickLook"]),
         .executable(name: "OrgstarSpotlight", targets: ["OrgstarSpotlight"]),
         .executable(name: "OrgstarShare", targets: ["OrgstarShare"]),
-        .executable(name: "OrgstarWidgets", targets: ["OrgstarWidgets"])
+        .executable(name: "OrgstarWidgets", targets: ["OrgstarWidgets"]),
+        .executable(name: "OrgstarWatch", targets: ["OrgstarWatch"]),
+        .executable(name: "OrgstarWatchWidgets", targets: ["OrgstarWatchWidgets"])
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1"),
@@ -84,7 +86,12 @@ let package = Package(
             ]
         ),
         .executableTarget(name: "OrgstarSpike", dependencies: ["OrgEditorAppKit"]),
-        .target(name: "OrgApp", dependencies: ["OrgWorkspace", "OrgDocument", "OrgPresentation"]),
+        .target(name: "OrgApp", dependencies: ["OrgWorkspace", "OrgDocument", "OrgPresentation", "OrgWatchData"]),
+        // What the phone and the watch send each other; Foundation only, so the watch builds it.
+        .target(name: "OrgWatchData"),
+        // The watch app and its complications, bundled by scripts/build-watch-app.sh.
+        .executableTarget(name: "OrgstarWatch", dependencies: ["OrgWatchData"]),
+        .executableTarget(name: "OrgstarWatchWidgets", dependencies: ["OrgWatchData"]),
         .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgEditorAppKit", "OrgHighlight", .product(name: "Sparkle", package: "Sparkle")]),
         // The iOS app, bundled by scripts/build-ios-app.sh.
         .executableTarget(name: "OrgstarMobile", dependencies: ["OrgApp", "OrgHighlight"]),
@@ -98,6 +105,7 @@ let package = Package(
         .executableTarget(name: "OrgstarWidgets", dependencies: ["OrgApp"]),
         .testTarget(name: "OrgCoreTests", dependencies: ["OrgCore"], exclude: ["Conformance"]),
         .testTarget(name: "OrgDocumentTests", dependencies: ["OrgDocument"]),
+        .testTarget(name: "OrgWatchDataTests", dependencies: ["OrgWatchData"]),
         .testTarget(name: "OrgIndexTests", dependencies: ["OrgIndex"]),
         .testTarget(name: "OrgWorkspaceTests", dependencies: ["OrgWorkspace"]),
         .testTarget(name: "OrgPresentationTests", dependencies: ["OrgPresentation"]),

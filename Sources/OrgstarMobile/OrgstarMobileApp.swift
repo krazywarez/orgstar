@@ -19,6 +19,8 @@ struct OrgstarMobileApp: App {
         if ProcessInfo.processInfo.environment["ORGSTAR_PERF"] != nil { Perf.watchMainThread() }
         #endif
         LiveClock.install()
+        // Early, so that the watch's actions are taken when iOS wakes the app for them.
+        WatchLink.shared.activate(MobileModel.shared)
     }
 
     var body: some Scene {
@@ -302,7 +304,10 @@ struct RootView: View {
         .onChange(of: model.clock.running) {
             LiveClock.publish(model.clock)
             Task { await LiveClock.sync(model.clock.running) }
+            Task { await model.updateWidgets() }
         }
+        // A capture dictated on the watch, while the app is open.
+        .onChange(of: model.watchCaptures) { takeShared() }
     }
 
     /// What the share extension left, one capture sheet at a time.

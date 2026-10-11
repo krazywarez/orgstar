@@ -241,6 +241,25 @@ The widgets and the Live Activity open the app with these links, which also work
 | =orgstar://clock=                      | The entry of the running clock             |
 | ~orgstar://entry?path=/path/file.org&offset=N~ | The file in the reader, at offset N |
 
+* Apple Watch
+
+The watch app shows today's agenda from your iPhone, marks entries done, shows and stops the running clock, and takes dictated captures. It comes with orgstar on iPhone and installs on a paired watch as other watch apps do. It reads nothing itself: your iPhone sends it today's agenda and the clock whenever its widgets update (when files, edits or settings change while orgstar is open, and when you return to it) and whenever the clock starts or stops, and the watch keeps the last one it got. Until it has one, it says =Open orgstar on your iPhone to show your agenda here.=
+
+- Clocked In :: the running clock's heading and its time so far, with Clock Out. Without a running clock, Clock In to /heading/ clocks in to the entry clocked last (=org-clock-in-last=).
+- Capture :: dictate or scribble text, then Done. It goes to orgstar on iPhone, which opens the capture sheet with it as =%i=, with the first template, as text from the share sheet does; see Capture below.
+- Overdue, then today :: as the agenda lists them, with the time or status, the title and the keyword. Tap an open TODO entry to mark it done: it takes its sequence's first done keyword, as the agenda's Done does. The entry shows done at once; the iPhone changes the file, unless the heading changed since the agenda was sent.
+
+What the watch asks for runs on your iPhone, which iOS wakes for it when orgstar isn't open; while the iPhone is out of reach, the requests wait and run when it is back.
+
+** Complications
+
+| Complication | Families                                  | Shows                                                                              |
+|--------------+-------------------------------------------+------------------------------------------------------------------------------------|
+| Up Next      | Rectangular, inline, circular and corner  | The next entry's time or status and title (rectangular, inline, corner), or the count of open TODO entries today (circular, and corner) |
+| Clock        | Rectangular, inline and circular          | The running clock's time so far and heading, or =Not clocked in=                   |
+
+They read the agenda the watch app last got, and move on by themselves as timed entries end and at midnight.
+
 * Capture
 
 Tap Capture (the pencil icon) in the Agenda or Folders tab.
