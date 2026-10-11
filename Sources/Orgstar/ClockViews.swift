@@ -130,6 +130,8 @@ final class ClockStatusItem: NSObject {
 /// Clocked time per day and heading (`ClockReport.timeReport`) for chosen files and dates.
 struct ClockReportView: View {
     let workspace: WorkspaceModel
+    /// Open buffers are read as they are, unsaved edits included, as the agenda reads them.
+    let session: DocumentSession
     @State private var start = Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date()
     @State private var end = Date()
     @State private var limit = false
@@ -172,11 +174,13 @@ struct ClockReportView: View {
         .navigationTitle("Clock Report")
         .onAppear {
             if selected.isEmpty {
-                selected = Set(candidates.filter { (try? String(contentsOfFile: $0.path, encoding: .utf8))?.contains("CLOCK: [") ?? false }.map(\.path))
+                selected = Set(candidates.filter { text(of: $0.path)?.contains("CLOCK: [") ?? false }.map(\.path))
             }
             compute()
         }
         .onChange(of: selected) { compute() }
+        .onChange(of: session.editVersion) { compute() }
+        .onChange(of: session.dirtyPaths) { compute() }
         .onChange(of: start) { compute() }
         .onChange(of: end) { compute() }
         .onChange(of: limit) { compute() }
@@ -187,10 +191,15 @@ struct ClockReportView: View {
         return String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!)
     }
 
+    /// The file's text: its open buffer, else the file on disk.
+    private func text(of path: String) -> String? {
+        session.openTexts[path] ?? (try? String(contentsOfFile: path, encoding: .utf8))
+    }
+
     private func compute() {
         var entries: [ClockReport.Entry] = []
         for path in selected.sorted() {
-            guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { continue }
+            guard let text = text(of: path) else { continue }
             entries += ClockReport.entries(text, settings: workspace.settings.org)
         }
         report = selected.isEmpty ? "" : ClockReport.timeReport(entries, start: limit ? day(start) : nil, end: limit ? day(end) : nil)

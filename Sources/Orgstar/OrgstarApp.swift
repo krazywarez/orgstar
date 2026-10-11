@@ -354,7 +354,7 @@ struct OrgstarApp: App {
         .defaultSize(width: 1100, height: 700)
         Window("Clock Report", id: "clock-report") {
             if case .success(let model) = workspace {
-                ClockReportView(workspace: model)
+                ClockReportView(workspace: model, session: session)
             }
         }
         .defaultSize(width: 860, height: 560)
