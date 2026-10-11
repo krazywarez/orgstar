@@ -883,6 +883,32 @@ subtree at the caret under a sibling heading named =Archive= with the =ARCHIVE= 
 creating it at the end of the parent's children if needed. The moved entry gets an
 =ARCHIVE_TIME= property, and the =Archive= sibling is folded.
 
+* Encrypted entries
+
+orgstar reads and writes entries encrypted by org-crypt with a passphrase (=org-crypt-key= nil, symmetric encryption). The text after the entry's planning line, property drawer and logbook, through the end of its subtree, is replaced by an OpenPGP message under the heading:
+
+#+begin_example
+,* Secret :crypt:
+-----BEGIN PGP MESSAGE-----
+
+ww0ECQMI…
+-----END PGP MESSAGE-----
+#+end_example
+
+| Command | What it does |
+|-+-|
+| Encrypt Entry… (=app.crypt.encrypt-entry=) | Asks for a passphrase twice and encrypts the entry at the caret (=org-encrypt-entry=). |
+| Decrypt Entry… (=app.crypt.open-entry=) | Asks for the passphrase and shows the decrypted text in a sheet. Save encrypts the edited text again in the message's place; the file never holds the plaintext. Decrypt in File puts the text in the file instead. |
+| Decrypt Entry in File… (=app.crypt.decrypt-entry=) | Replaces the message with the decrypted text (=org-decrypt-entry=). Headings in it are moved below the entry's level when they aren't. |
+| Encrypt Tagged Entries… (=app.crypt.encrypt-entries=) | Encrypts every entry with the =crypt= tag, its own or inherited, that isn't encrypted yet (=org-encrypt-entries=). A tagged entry's tagged children go inside its message. |
+| Forget Encryption Passphrase (=app.crypt.forget-passphrase=) | Removes the current file's passphrase from the Keychain. |
+
+The commands have no keys, as in Org; run them from the Org menu or the palette, or bind them in =keymap.toml=. On iOS they are under More ▸ Encryption.
+
+Remember in the Keychain stores the passphrase for the file. The next command on that file uses it after Touch ID, Face ID or the device password, without asking. =org-crypt-tag-matcher= in =config.toml= sets the tag; it must be a single tag, not a match expression.
+
+Messages are written with AES-256 and an iterated and salted SHA-256 key, which GnuPG and Emacs read. Messages using AES-128, AES-192 or AES-256 are read, compressed or not. Messages encrypted to a public key, other ciphers, and AEAD (OpenPGP version 5 and 6) packets are not supported. Saving doesn't encrypt tagged entries, as =org-crypt-use-before-save-magic= does in Emacs; run Encrypt Tagged Entries….
+
 * The outline pane
 
 The outline pane, to the left of the editor, lists the headings of the open org file,

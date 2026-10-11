@@ -543,6 +543,9 @@ public struct EmacsImport: Sendable {
             else if let keywords = value.elements?.compactMap(\.string), !keywords.isEmpty, keywords.count == value.elements?.count {
                 add(name, .string(keywords.joined(separator: " ")))
             } else { note("unexpected value \(value.description)") }
+        case "org-crypt-tag-matcher":
+            guard let tag = value.string, tag.range(of: "^[\\w@#%]+$", options: .regularExpression) != nil else { return note("not a single tag") }
+            add(name, .string(tag))
         case "org-display-remote-inline-images":
             guard let mode = value.symbol, ["skip", "download", "cache"].contains(mode) else { return note("not skip, download or cache") }
             add(name, .string(mode))

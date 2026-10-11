@@ -147,6 +147,8 @@ public enum UserConfig {
                 comment: "show image links as images when a file opens; #+STARTUP: (no)inlineimages overrides", legacy: ""),
         Setting(section: "", key: "org-startup-with-latex-preview", defaultsKey: "startupWithLatexPreview", kind: .bool, fallback: .bool(false),
                 comment: "show LaTeX fragments as typeset math when a file opens; #+STARTUP: (no)latexpreview overrides", legacy: ""),
+        Setting(section: "", key: "org-crypt-tag-matcher", defaultsKey: "cryptTagMatcher", kind: .string, fallback: .string("crypt"),
+                comment: "the tag of entries Encrypt Tagged Entries encrypts", legacy: ""),
         Setting(section: "", key: "org-display-remote-inline-images", defaultsKey: "remoteInlineImages",
                 kind: .choice([("skip", "skip"), ("download", "download"), ("cache", "cache")]), fallback: .string("skip"),
                 comment: "images at http(s) links: skip, download (each run) or cache (kept on disk)", legacy: ""),

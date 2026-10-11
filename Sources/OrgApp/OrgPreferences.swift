@@ -145,6 +145,11 @@ public enum OrgPreferences {
         options.userFullName = NSFullUserName()
         return options
     }
+    /// `org-crypt-tag-matcher`, a tag.
+    public static func cryptTag(_ defaults: UserDefaults = .standard) -> String {
+        let tag = string("cryptTagMatcher", defaults).trimmingCharacters(in: .whitespaces)
+        return tag.isEmpty ? "crypt" : tag
+    }
     /// `org-icalendar-combined-agenda-file`, `~` expanded.
     public static func icalendarCombinedFile(_ defaults: UserDefaults = .standard) -> String {
         (string("icalendarCombinedAgendaFile", defaults) as NSString).expandingTildeInPath

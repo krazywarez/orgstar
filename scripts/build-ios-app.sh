@@ -49,6 +49,8 @@ cat > "$app/Info.plist" <<PLIST
     <array><string>iPhoneSimulator</string></array>
     <key>MinimumOSVersion</key>
     <string>26.0</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Face ID unlocks the passphrase of encrypted entries you asked orgstar to remember.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>The agenda shows your calendar events alongside your Org entries. orgstar only reads them.</string>
     <key>UIDeviceFamily</key>

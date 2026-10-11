@@ -52,6 +52,7 @@ struct EditorScreen: View {
         case block(BlockEdit)
         case columns(ColumnView.View)
         case plot(TablePlot.Plot)
+        case crypt(CryptRequest)
 
         var id: String {
             switch self {
@@ -63,6 +64,7 @@ struct EditorScreen: View {
             case .block(let edit): "block \(edit.range)"
             case .columns: "columns"
             case .plot: "plot"
+            case .crypt(let request): request.id.uuidString
             }
         }
     }
@@ -100,6 +102,13 @@ struct EditorScreen: View {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                     RecentClockMenu(clock: clock) { editor?.run($0) }
+                    Menu("Encryption", systemImage: "lock") {
+                        Button("Encrypt Entry…", systemImage: "lock") { crypt("app.crypt.encrypt-entry") }
+                        Button("Decrypt Entry…", systemImage: "lock.open") { crypt("app.crypt.open-entry") }
+                        Button("Decrypt Entry in File…", systemImage: "lock.open.trianglebadge.exclamationmark") { crypt("app.crypt.decrypt-entry") }
+                        Button("Encrypt Tagged Entries…", systemImage: "lock.rectangle.stack") { crypt("app.crypt.encrypt-entries") }
+                        Button("Forget Encryption Passphrase", systemImage: "key.slash") { crypt("app.crypt.forget-passphrase") }
+                    }
                     if let text = session.document?.text, session.path == path { ExportMenu(path: path, text: text) { message = $0 } }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
@@ -162,6 +171,8 @@ struct EditorScreen: View {
                 ColumnViewScreen(view: view, session: session, path: path) { offset in editor?.reveal(offset) }
             case .plot(let plot):
                 PlotScreen(plot: plot)
+            case .crypt(let request):
+                CryptScreen(request: request, session: session, editor: editor) { message = $0 }
             }
         }
         .fileImporter(isPresented: $importingTable, allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]) { result in
@@ -267,6 +278,8 @@ struct EditorScreen: View {
                     exportTable(csv: true)
                 } else if id == "app.plot" {
                     plotTable()
+                } else if id.hasPrefix("app.crypt.") {
+                    crypt(id)
                 } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
                 } else if MobileEditor.linkCommands.contains(id) {
@@ -295,6 +308,29 @@ extension EditorScreen {
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return message = "Can't read \(url.lastPathComponent)" }
         _ = editor.perform(ImportTable(contents: contents))
+    }
+
+    /// org-crypt's commands at the caret, through the passphrase sheet.
+    private func crypt(_ id: String) {
+        guard let editor else { return }
+        let context = editor.editContext()
+        switch id {
+        case "app.crypt.forget-passphrase":
+            CryptPassphrases.forget(path)
+            message = "Passphrase forgotten for \((path as NSString).lastPathComponent)"
+        case "app.crypt.encrypt-entries":
+            sheet = .crypt(CryptRequest(mode: .encryptAll(tag: OrgPreferences.cryptTag()), path: path, offset: context.caret))
+        default:
+            guard OrgCrypt.heading(context.text, at: context.caret) != nil else { return message = "Before first headline" }
+            let encrypted = OrgCrypt.encryptedRange(context.text, at: context.caret) != nil
+            if id == "app.crypt.encrypt-entry" {
+                guard !encrypted else { return message = "The entry is encrypted already" }
+                sheet = .crypt(CryptRequest(mode: .encrypt, path: path, offset: context.caret))
+            } else {
+                guard encrypted else { return message = "Not an encrypted entry" }
+                sheet = .crypt(CryptRequest(mode: id == "app.crypt.open-entry" ? .open : .decryptInPlace, path: path, offset: context.caret))
+            }
+        }
     }
 
     /// `org-plot/gnuplot`, drawn by Swift Charts: written to `file:` when the options name
@@ -619,6 +655,8 @@ struct CommandPalette: View {
         ("org.table.toggle-column-width", "Shrink or Expand Table Column"), ("org.table.shrink", "Shrink Table Columns with Widths"),
         ("org.table.expand", "Expand Table Columns"),
         ("app.table-import", "Import Table from File…"), ("app.table-export", "Export Table to File…"), ("app.plot", "Plot Table"),
+        ("app.crypt.encrypt-entry", "Encrypt Entry…"), ("app.crypt.open-entry", "Decrypt Entry…"), ("app.crypt.decrypt-entry", "Decrypt Entry in File…"),
+        ("app.crypt.encrypt-entries", "Encrypt Tagged Entries…"), ("app.crypt.forget-passphrase", "Forget Encryption Passphrase"),
     ]
 
     /// The commands that apply at the caret and their keys, worked out once when the palette
@@ -688,6 +726,31 @@ struct PlotScreen: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+    }
+}
+/// The passphrase sheet for org-crypt, its new text applied in the editor.
+struct CryptScreen: View {
+    let request: CryptRequest
+    let session: DocumentSession
+    let editor: MobileEditor?
+    let report: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            CryptSheet(request: request, text: { session.document?.text ?? "" }, apply: apply) { message in
+                dismiss()
+                if let message { report(message) }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func apply(_ new: String) {
+        guard let editor else { return }
+        let context = editor.editContext()
+        let caret = min(context.caret, (new as NSString).length)
+        _ = editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new), selection: [caret..<caret])))
     }
 }
 #endif

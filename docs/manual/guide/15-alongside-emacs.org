@@ -248,5 +248,6 @@ Other:
 - =display-line-numbers-type= has no relative or visual mode.
 - The agenda's text search (see [[file:07-agenda.org][The agenda]]) covers the agenda files only: =org-agenda-text-search-extra-files= and =org-agenda-search-view-max-outline-level= aren't supported. It runs from the view menu rather than the dispatcher's =s= and =S=, and the search view's =[=, =]=, ={= and =}= keys, which add words and regexps to the search, aren't supported.
 - In regexps, =\<=, =\>= and =\b= use Org's word syntax but don't find a word boundary where the script changes between two word characters, as Emacs does (for example between an emoji and a letter).
+- org-crypt works with symmetric encryption only (=org-crypt-key= nil); public keys and =org-crypt-use-before-save-magic= aren't supported. =org-crypt-tag-matcher= is a single tag.
 - =org-track-ordered-property-with-tag= isn't supported; Toggle ORDERED Property sets only the property.
 - When TODO dependencies refuse a change on a =COMMENT= heading, the heading keeps =COMMENT=. Org removes it before the check and doesn't put it back.

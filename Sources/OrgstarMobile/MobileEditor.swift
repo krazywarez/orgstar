@@ -301,7 +301,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case "org.cycle-global", "edit.undo", "edit.redo", "org.toggle-inline-images", "org.latex-preview", "editor.toggle-truncate-lines": return true
         case "app.clock.in", "app.clock.out", "app.clock.cancel", "app.clock.goto", "app.clock.in-recent", "app.clock.in-last",
              "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
-        case "app.refile.goto", "app.table-import": return onAppCommand != nil
+        case "app.refile.goto", "app.table-import", "app.crypt.encrypt-entries", "app.crypt.forget-passphrase": return onAppCommand != nil
+        case "app.crypt.encrypt-entry": return onAppCommand != nil && OrgCrypt.heading(context.text, at: context.caret) != nil && OrgCrypt.encryptedRange(context.text, at: context.caret) == nil
+        case "app.crypt.open-entry", "app.crypt.decrypt-entry": return onAppCommand != nil && OrgCrypt.encryptedRange(context.text, at: context.caret) != nil
         case "app.table-export", "app.plot": return onAppCommand != nil && ImportTable.exportText(context.text, at: context.caret, path: "") != nil
         case "app.refile", "app.refile.copy": return onAppCommand != nil && Presentation.heading(containing: context.caret, in: context.tree) != nil
         case _ where Self.linkCommands.contains(id): return onAppCommand != nil

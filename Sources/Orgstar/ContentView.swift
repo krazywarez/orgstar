@@ -327,28 +327,7 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in defaultsChanges += 1 }
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
-        .sheet(item: $panel) { panel in
-            switch panel {
-            case .columns(_, let view):
-                ColumnViewSheet(view: view, run: runInColumnView, document: { session.document.map { ($0.text, $0.tree) } }) { offset in
-                    commands.editor?.reveal(offset)
-                }
-            case .export(_, let source):
-                ExportSheet(source: source, inSubtree: exportSubtreeAvailable, target: exportTarget) { format, destination, open, subtree, bodyOnly in
-                    export(format, to: destination, open: open, subtree: subtree, bodyOnly: bodyOnly)
-                }
-            case .plot(_, let plot):
-                PlotSheet(content: .chart(plot))
-            case .plotImage(_, let url):
-                PlotSheet(content: .image(url))
-            case .conflict:
-                ConflictSheet(session: session)
-            case .syncCopies:
-                SyncConflictSheet(session: session) { commands.show($0) }
-            case .recovery:
-                RecoverySheet(session: session) { commands.show($0) }
-            }
-        }
+        .sheet(item: $panel) { panel in panelView(panel) }
         .sheet(item: $blockEdit) { request in
             BlockEditorView(edit: request.edit) { content in
                 blockEdit = nil
@@ -666,6 +645,67 @@ struct ContentView: View {
         } catch {
             commands.show("Can't export: \(error.localizedDescription)")
         }
+    }
+
+    /// org-crypt's commands at the caret, through the passphrase sheet.
+    private func crypt(_ id: String) {
+        guard let editor = commands.editor, let path = session.path else { return commands.show("No file is open") }
+        let caret = editor.context().caret
+        let text = editor.context().text
+        switch id {
+        case "app.crypt.forget-passphrase":
+            CryptPassphrases.forget(path)
+            commands.show("Passphrase forgotten for \((path as NSString).lastPathComponent)")
+        case "app.crypt.encrypt-entries":
+            panel = .crypt(UUID(), CryptRequest(mode: .encryptAll(tag: OrgPreferences.cryptTag()), path: path, offset: caret))
+        default:
+            guard OrgCrypt.heading(text, at: caret) != nil else { return commands.show("Before first headline") }
+            if id == "app.crypt.encrypt-entry" {
+                guard OrgCrypt.encryptedRange(text, at: caret) == nil else { return commands.show("The entry is encrypted already") }
+                panel = .crypt(UUID(), CryptRequest(mode: .encrypt, path: path, offset: caret))
+            } else {
+                guard OrgCrypt.encryptedRange(text, at: caret) != nil else { return commands.show("Not an encrypted entry") }
+                panel = .crypt(UUID(), CryptRequest(mode: id == "app.crypt.open-entry" ? .open : .decryptInPlace, path: path, offset: caret))
+            }
+        }
+    }
+
+    /// The sheet a panel shows.
+    @ViewBuilder
+    private func panelView(_ panel: Panel) -> some View {
+        switch panel {
+        case .columns(_, let view):
+            ColumnViewSheet(view: view, run: runInColumnView, document: { session.document.map { ($0.text, $0.tree) } }) { offset in
+                commands.editor?.reveal(offset)
+            }
+        case .export(_, let source):
+            ExportSheet(source: source, inSubtree: exportSubtreeAvailable, target: exportTarget) { format, destination, open, subtree, bodyOnly in
+                export(format, to: destination, open: open, subtree: subtree, bodyOnly: bodyOnly)
+            }
+        case .plot(_, let plot):
+            PlotSheet(content: .chart(plot))
+        case .plotImage(_, let url):
+            PlotSheet(content: .image(url))
+        case .crypt(_, let request):
+            CryptSheet(request: request, text: { session.document?.text ?? "" }, apply: applyText) { message in
+                self.panel = nil
+                if let message { commands.show(message) }
+            }
+        case .conflict:
+            ConflictSheet(session: session)
+        case .syncCopies:
+            SyncConflictSheet(session: session) { commands.show($0) }
+        case .recovery:
+            RecoverySheet(session: session) { commands.show($0) }
+        }
+    }
+
+    /// `new` in place of the buffer's text, as one edit.
+    private func applyText(_ new: String) {
+        guard let editor = commands.editor else { return }
+        let context = editor.context()
+        editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new),
+                                                  selection: [min(context.caret, (new as NSString).length)..<min(context.caret, (new as NSString).length)])))
     }
 
     /// `org-plot/gnuplot` for the table at the caret: through gnuplot when it's installed, as
@@ -1046,6 +1086,8 @@ struct ContentView: View {
             publish(id)
         case "app.plot":
             plotTable()
+        case let id where id.hasPrefix("app.crypt."):
+            crypt(id)
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }
