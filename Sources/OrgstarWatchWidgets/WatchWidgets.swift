@@ -99,7 +99,7 @@ struct ClockView: View {
         let clock = entry.agenda?.clock
         switch family {
         case .accessoryInline:
-            if let clock { Text("\(clock.heading) ") + Text(clock.startedAt, style: .timer) } else { Text("Not clocked in") }
+            if let clock { Text("\(clock.heading) \(clock.startedAt, style: .timer)") } else { Text("Not clocked in") }
         case .accessoryCircular:
             ZStack {
                 AccessoryWidgetBackground()
