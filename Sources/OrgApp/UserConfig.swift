@@ -315,7 +315,7 @@ public enum UserConfig {
         Setting(section: "orgstar", key: "reminders", defaultsKey: "reminders", kind: .bool, fallback: .bool(true),
                 comment: "notify before timed entries", legacy: "agenda.reminders"),
         Setting(section: "orgstar", key: "calendar-events", defaultsKey: "calendarEvents", kind: .bool, fallback: .bool(false),
-                comment: "show events from Calendar in the agenda, read-only", legacy: ""),
+                comment: "show events from Calendar in the agenda", legacy: ""),
         Setting(section: "orgstar", key: "calendar-event-calendars", defaultsKey: "calendarEventCalendars", kind: .string, fallback: .string(""),
                 comment: "the calendars whose events show, by title or identifier, separated by commas; \"\" for all", legacy: ""),
         Setting(section: "orgstar", key: "agenda-reminders", defaultsKey: "agendaReminders", kind: .bool, fallback: .bool(false),

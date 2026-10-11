@@ -132,7 +132,7 @@ ${feed_keys}
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.productivity</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>The agenda shows your calendar events alongside your Org entries. orgstar only reads them.</string>
+    <string>The agenda shows your calendar events alongside your Org entries. orgstar changes your calendars only when you edit an event or add an entry to one.</string>
     <key>NSRemindersFullAccessUsageDescription</key>
     <string>The agenda shows your reminders alongside your Org entries. orgstar only reads them.</string>
     <key>NSHighResolutionCapable</key>

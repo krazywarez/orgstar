@@ -779,7 +779,7 @@ struct SettingsView: View {
                     }
                 }
             } footer: {
-                Text("Events show in the agenda read-only; double-click one to open it in Calendar. New calendars show while every calendar is checked.")
+                Text("Events show in the agenda; double-click one to open it in Calendar, or choose Edit Event… in its context menu. New calendars show while every calendar is checked.")
                     .settingsFooter()
             }
             .task(id: calendarEvents) {

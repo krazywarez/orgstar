@@ -63,6 +63,24 @@ struct CalendarEventsTests {
         #expect(AgendaRow(event: CalendarEvents.event(allDay), day: day, calendar: utc).gutter == "All day")
     }
 
+    @Test func entriesBecomeEventDrafts() {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let day = Days.absolute(year: 2026, month: 10, day: 12)
+        let midnight = utc.date(from: DateComponents(year: 2026, month: 10, day: 12))!
+        let timed = EventDraft.entry("Standup", day: day, start: 930, end: 1015, calendar: utc)
+        #expect(!timed.isAllDay && timed.title == "Standup")
+        #expect(timed.start == midnight.addingTimeInterval(9.5 * 3600) && timed.end == midnight.addingTimeInterval(10.25 * 3600))
+        let open = EventDraft.entry("Call", day: day, start: 1400, end: nil, calendar: utc)
+        #expect(open.end.timeIntervalSince(open.start) == 3600)
+        let backwards = EventDraft.entry("Odd", day: day, start: 1400, end: 1300, calendar: utc)
+        #expect(backwards.end.timeIntervalSince(backwards.start) == 3600)
+        let allDay = EventDraft.entry("Holiday", day: day, start: nil, end: nil, calendar: utc)
+        #expect(allDay.isAllDay && allDay.start == midnight && allDay.end == midnight && allDay.calendarID.isEmpty)
+        let event = CalendarEvents.event(Record())
+        #expect(EventDraft(event) == EventDraft(title: "Standup", start: event.start, end: event.end, isAllDay: false, location: "Room 4", calendarID: "cal-1"))
+    }
+
     @Test func calendarsChosenByTitleOrIdentifier() {
         #expect(CalendarEvents.chooses(id: "x", title: "Work", chosen: []))
         #expect(CalendarEvents.chooses(id: "x", title: "Work", chosen: ["Work"]))

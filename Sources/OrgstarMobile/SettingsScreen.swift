@@ -140,7 +140,7 @@ struct SettingsScreen: View {
         } header: {
             Text("Calendar")
         } footer: {
-            Text(on ? "Events from the checked calendars show in the agenda, read-only." : "Show events from Calendar in the agenda, read-only.")
+            Text(on ? "Events from the checked calendars show in the agenda. Tap one to edit it." : "Show events from Calendar in the agenda.")
         }
         .task(id: on) { loadCalendars() }
     }

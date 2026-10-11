@@ -365,7 +365,7 @@ Any other key in =[theme]= is a color; see Themes below.
 | =ignored-folders=           | string  | see below     | Folder names never listed or searched, separated by spaces.                            |
 | =agenda-include-subfolders= | boolean | =false=       | The agenda reads org files in subfolders too.                                           |
 | =reminders=                 | boolean | =true=        | Notify before timed entries.                                                            |
-| =calendar-events=           | boolean | =false=       | Show events from Calendar in the agenda, read-only.                                     |
+| =calendar-events=           | boolean | =false=       | Show events from Calendar in the agenda.                                                |
 | =calendar-event-calendars=  | string  | =""=          | The calendars whose events show, by title or identifier, separated by commas; =""= for all. |
 | =agenda-reminders=          | boolean | =false=       | Show incomplete reminders with a due date from Reminders in the agenda, read-only.      |
 | =agenda-reminder-lists=     | string  | =""=          | The Reminders lists shown, by title or identifier, separated by commas; =""= for all.  |

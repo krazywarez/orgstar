@@ -191,7 +191,7 @@ With =org-enforce-todo-dependencies= or =org-enforce-todo-checkbox-dependencies=
 
 * Calendar events
 
-The agenda can show events from the system Calendar app (EventKit) among your entries. They are read-only: orgstar never changes your calendars. It is off by default. To turn it on:
+The agenda can show events from the system Calendar app (EventKit) among your entries. orgstar changes your calendars only when you edit an event or add an entry, as below. It is off by default. To turn it on:
 
 - On the Mac, turn on Settings ▸ Agenda ▸ Show events from Calendar, and check the calendars to show.
 - On iOS, turn on Settings ▸ Calendar ▸ Show Calendar Events, and tap the calendars to show.
@@ -216,6 +216,13 @@ Events appear only in the day, week and month view:
 - Filters don't hide events.
 
 On the Mac, double-click an event, or select it and press =RET=, to open it in Calendar; its context menu has Show in Calendar. Entry commands such as =t= don't apply to events.
+
+** Editing events and adding entries
+
+- Edit Event… :: in an event's context menu on the Mac, or by tapping the event on iOS (touch and hold for Edit Event… and Show in Calendar). The sheet changes the title, All day, the start and end, the location and the calendar. For a repeating event, the change applies to that occurrence only.
+- Add to Calendar… :: in an entry's context menu on the Mac and iOS. The sheet starts with the entry's title and its time on the day it shows: an entry at =10:00-11:30= becomes an event from 10:00 to 11:30, one at =10:00= an hour-long event, and one without a time an all-day event. The calendar starts as Calendar's default calendar for new events; only calendars that can be changed are offered. The entry itself doesn't change.
+
+Both use the access granted for showing events. Read-only calendars, such as subscriptions and holidays, can't be chosen.
 
 * Reminders
 
@@ -616,7 +623,7 @@ Select a line with the mouse, or move the selection with =n= and =p=, =C-n= and 
 
 Without a selected line, =k= captures onto today when today is shown, else onto the first day shown. The + at the right of each day's header captures onto that day; see [[file:08-capture.org][Capture]].
 
-Right-click a line for Open, Cycle TODO State, Set Priority…, Set Tags…, Schedule…, Set Deadline…, Clock In, Mark or Unmark, and Archive. A calendar event's menu has Show in Calendar.
+Right-click a line for Open, Cycle TODO State, Set Priority…, Set Tags…, Schedule…, Set Deadline…, Add to Calendar…, Clock In, Mark or Unmark, and Archive. A calendar event's menu has Show in Calendar and Edit Event…; a reminder's has Show in Reminders.
 
 =t= follows =org-todo=: with fast-selection keys in your TODO keywords it asks for the state, otherwise it cycles (see [[file:05-todos-and-tags.org][TODOs and tags]]). Questions an action needs, such as a date for =C-c C-s= or a note on a state change, appear in the agenda window. Dates take the same input as in the editor (see [[file:06-dates-and-clocking.org][Dates, scheduling and clocking]]). =S-<right>= and =S-<left>= work only on deadline, scheduled and timestamp lines; they change the timestamp the line comes from.
 
@@ -696,7 +703,7 @@ The Agenda tab shows the same views from the same files, using the settings in t
 - Tap an entry to open it. Tap a calendar event to open Calendar on the event's day; iOS can't open Calendar at one event.
 - Swipe left on an open TODO entry for Done, which sets the first done keyword of its sequence, and Next State, which moves to the next keyword; and on any entry with a heading, for Delete, which asks first, as Delete… in the menu does. The sequence is the one the file defines: the default keywords from =config.toml=, the file's own =#+TODO= lines, and those of its setup files, with unsaved edits in an open buffer included.
 - Swipe right on a scheduled entry, a deadline, a habit or a TODO entry, when it isn't done, for Tomorrow, Next Week and Pick Date. Tomorrow is the day after today and Next Week is next Monday. On a deadline row these move the deadline; on other rows they set the scheduled date. A timed row keeps its times.
-- Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Refile…, Archive… and Delete…, which removes the heading and everything under it.
+- Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Add to Calendar…, Refile…, Archive… and Delete…, which removes the heading and everything under it.
 - Marking an entry done and rescheduling one give haptic feedback.
 - Log Mode, in the span menu, turns log mode on and off. The widgets never show log mode's entries.
 - There are no keyboard commands; bulk actions use Select instead of marks (see [[*Bulk actions][Bulk actions]]).

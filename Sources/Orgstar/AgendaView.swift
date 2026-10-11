@@ -45,6 +45,8 @@ struct AgendaView: View {
     @State var keepRequestedDays = false
     @State var message: String?
     @State var prompt: PendingPrompt?
+    /// An event being changed, or an entry being added to a calendar.
+    @State private var eventRequest: EventRequest?
     @State var promptText = ""
     @State var prefix: String?
     /// Entries marked for a bulk action.
@@ -337,6 +339,15 @@ struct AgendaView: View {
                 ContentUnavailableView("No agenda files", systemImage: "calendar", description: Text("The agenda reads the org files at the top of each folder you add."))
             }
         }
+        .sheet(item: $eventRequest) { request in
+            EventSheet(request: request, events: CalendarAccess.events) { result in
+                eventRequest = nil
+                if let result {
+                    message = result
+                    tick += 1
+                }
+            }
+        }
         .sheet(item: Binding(get: { prompt?.prompt.fast == nil ? nil : prompt }, set: { if $0 == nil { prompt = nil } })) { pending in
             if let fast = pending.prompt.fast {
                 FastSelectionView(selection: fast, message: pending.prompt.message) { answer in
@@ -546,6 +557,9 @@ struct AgendaView: View {
     private func menu(_ line: Line) -> some View {
         if let event = line.row.event {
             Button(event.isReminder ? "Show in Reminders" : "Show in Calendar") { openEvent(event) }
+            if !event.isReminder {
+                Button("Edit Event…") { eventRequest = EventRequest(draft: EventDraft(event), event: event) }
+            }
         } else if line.row.item != nil {
             Button("Open") { selection = line.id; jump(line.id) }
             Divider()
@@ -554,6 +568,10 @@ struct AgendaView: View {
             Button("Set Tags…") { selection = line.id; run(SetTags()) }
             Button("Schedule…") { selection = line.id; run(SetPlanning(deadline: false)) }
             Button("Set Deadline…") { selection = line.id; run(SetPlanning(deadline: true)) }
+            Divider()
+            Button("Add to Calendar…") {
+                eventRequest = EventRequest(draft: .entry(line.row.title, day: line.day, start: line.row.start, end: line.row.end))
+            }
             Divider()
             Button("Clock In") { selection = line.id; clockIn() }
             Button(EntryRef(line.row.item!).map(marked.contains) == true ? "Unmark" : "Mark") {

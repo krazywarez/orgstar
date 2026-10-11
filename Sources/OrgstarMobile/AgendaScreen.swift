@@ -28,6 +28,8 @@ struct AgendaScreen: View, Equatable {
     @State private var asking: Asking?
     @State private var prompt: EditorScreen.PromptRequest?
     @State private var refiling: AgendaItem?
+    /// An event being changed, or an entry being added to a calendar.
+    @State private var eventRequest: EventRequest?
     @State private var archiving: AgendaItem?
     @State private var deleting: AgendaItem?
     /// The day, week or month shown; nil for `org-agenda-span` and `org-agenda-start-day`.
@@ -250,6 +252,19 @@ struct AgendaScreen: View, Equatable {
             PromptSheet(prompt: request.prompt) { answer in
                 prompt = nil
                 request.reply(answer)
+            }
+        }
+        .sheet(item: $eventRequest) { request in
+            NavigationStack {
+                EventSheet(request: request, events: model.calendarEvents) { result in
+                    eventRequest = nil
+                    if let result {
+                        message = result
+                        tick += 1
+                    }
+                }
+                .navigationTitle(request.event == nil ? "Add to Calendar" : "Edit Event")
+                .navigationBarTitleDisplayMode(.inline)
             }
         }
         .sheet(item: $refiling) { item in
@@ -610,10 +625,13 @@ struct AgendaScreen: View, Equatable {
             } else if let item = row.item, let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
                 NavigationLink(value: ReaderRoute.offset(path, offset)) { AgendaRowView(row: row, day: day, theme: theme, dark: isDark) }
             } else if let event = row.event {
-                // Calendar can't be asked for one event by URL; it opens on the event's day.
+                // An event opens for editing; a reminder opens in Reminders.
                 Button {
-                    let link = event.isReminder ? "x-apple-reminderkit://REMCDReminder/\(event.id)" : "calshow:\(event.start.timeIntervalSinceReferenceDate)"
-                    if let url = URL(string: link) { openURL(url) }
+                    if event.isReminder {
+                        if let url = URL(string: "x-apple-reminderkit://REMCDReminder/\(event.id)") { openURL(url) }
+                    } else {
+                        eventRequest = EventRequest(draft: EventDraft(event), event: event)
+                    }
                 } label: {
                     AgendaRowView(row: row, day: day, theme: theme, dark: isDark)
                 }
@@ -640,6 +658,13 @@ struct AgendaScreen: View, Equatable {
             }
         }
         .contextMenu {
+            if let event = row.event, !event.isReminder {
+                Button("Edit Event…", systemImage: "pencil") { eventRequest = EventRequest(draft: EventDraft(event), event: event) }
+                // Calendar can't be asked for one event by URL; it opens on the event's day.
+                Button("Show in Calendar", systemImage: "calendar") {
+                    if let url = URL(string: "calshow:\(event.start.timeIntervalSinceReferenceDate)") { openURL(url) }
+                }
+            }
             if let item = row.item, item.path != nil {
                 if let mark = Mark(item) {
                     Button("Select", systemImage: "checkmark.circle") {
@@ -661,6 +686,9 @@ struct AgendaScreen: View, Equatable {
                 Button("Priority…", systemImage: "exclamationmark.circle") { run("org.priority.set", on: item) }
                 Button("Clock In", systemImage: "stopwatch") {
                     if let (path, offset) = locate(item) { clockIn(path, offset) }
+                }
+                Button("Add to Calendar…", systemImage: "calendar.badge.plus") {
+                    eventRequest = EventRequest(draft: .entry(row.title, day: day, start: row.start, end: row.end))
                 }
                 Divider()
                 Button("Refile…", systemImage: "arrow.turn.down.right") { refiling = item }
