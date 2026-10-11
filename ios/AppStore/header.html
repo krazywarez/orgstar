@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Product page header, 3840x1646 (21:9). Rendered to header.jpg with headless Chromium:
+     Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=3840,1646 --screenshot=header.png header.html -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 3840px; height: 1646px; overflow: hidden; }
+  body {
+    background: linear-gradient(120deg, #21338c 0%, #3a2c9a 45%, #6638b3 100%);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+    color: #fff;
+    position: relative;
+  }
+  .glow {
+    position: absolute; left: 50%; top: 58%; width: 2600px; height: 1400px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(closest-side, rgba(255, 199, 77, 0.22), rgba(255, 199, 77, 0));
+  }
+  h1 {
+    position: absolute; top: 120px; left: 0; right: 0; margin: 0;
+    text-align: center; font-size: 150px; font-weight: 700; letter-spacing: -2px;
+  }
+  h1 span { color: #ffc74d; }
+  .device {
+    position: absolute; background: #0c0c12; box-shadow: 0 60px 140px rgba(0, 0, 0, 0.45);
+  }
+  .device img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .ipad { width: 1500px; height: 2000px; left: 1170px; top: 400px; padding: 34px; border-radius: 90px; }
+  .ipad img { border-radius: 58px; }
+  .iphone { width: 600px; height: 1304px; top: 520px; padding: 22px; border-radius: 110px; }
+  .iphone img { border-radius: 90px; }
+  .left { left: 440px; }
+  .right { right: 440px; }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <h1>Your org files, <span>wherever you are.</span></h1>
+  <div class="device ipad"><img src="screenshots/ipad/01-agenda.png"></div>
+  <div class="device iphone left"><img src="screenshots/iphone/02-reader.png"></div>
+  <div class="device iphone right"><img src="screenshots/iphone/05-capture.png"></div>
+</body>
+</html>
