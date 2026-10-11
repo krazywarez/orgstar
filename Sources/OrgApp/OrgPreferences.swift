@@ -120,6 +120,13 @@ public enum OrgPreferences {
     public static func agendaFiles(_ defaults: UserDefaults = .standard) -> [String] {
         string("agendaFiles", defaults).components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
+    /// `org-refile-targets`, `org-refile-use-outline-path` and
+    /// `org-refile-allow-creating-parent-nodes`; targets that can't be read are orgstar's default.
+    public static func refileSettings(_ defaults: UserDefaults = .standard) -> RefileSettings {
+        let targets = (try? RefileSettings.parseTargets(string("refileTargets", defaults)).get()) ?? RefileSettings.workspaceTargets
+        return RefileSettings(targets: targets, outlinePath: RefileSettings.OutlinePath(rawValue: string("refileUseOutlinePath", defaults)) ?? .file,
+                              creating: RefileSettings.Creating(rawValue: string("refileAllowCreatingParentNodes", defaults)) ?? .no)
+    }
     /// `org-stuck-projects`.
     public static func stuckProjects(_ defaults: UserDefaults = .standard) -> StuckProjects {
         StuckProjects(match: string("stuckProjectsMatch", defaults), todo: words(string("stuckProjectsTodo", defaults)),

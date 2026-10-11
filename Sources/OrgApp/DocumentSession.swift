@@ -649,6 +649,86 @@ public final class DocumentSession {
         }
     }
 
+    /// `org-refile-new-child`: a heading `title` at the end of `parent`'s subtree, one level
+    /// below it, or at the end of the file for a file target. Returns the new heading as a
+    /// target, or a message.
+    public func createRefileChild(under parent: RefileTarget, title: String, now: Date = Date()) -> Result<RefileTarget, RefileFailure> {
+        let name = (parent.path as NSString).lastPathComponent
+        func insert(into state: DocumentState) -> (edit: TextEdit, start: Int, level: Int)? {
+            guard let start = parent.locate(in: state) else { return nil }
+            return Self.newChild(state.text, under: start, title: title)
+        }
+        func target(_ start: Int, _ level: Int, _ hash: String) -> RefileTarget {
+            RefileTarget(label: parent.label + "/" + title, path: parent.path, start: start, title: title, level: level, contentHash: hash)
+        }
+        if let open = entry(parent.path) {
+            let state = open.buffer.document
+            guard state.isEditable else { return .failure(.message("\(name) isn't UTF-8, so it can't be changed.")) }
+            guard let (edit, start, level) = insert(into: state) else { return .failure(.message("Can't find \(parent.label) any more.")) }
+            if case .failed(let message) = open.buffer.perform(PrecomputedEdit(EditResult(baseRevision: state.revision, edits: [edit])), now: now, answers: [:]) {
+                return .failure(.message(message))
+            }
+            changed(open)
+            return .success(target(start, level, ""))
+        }
+        do {
+            let url = URL(fileURLWithPath: parent.path)
+            guard let bytes = try fileSystem.read(url) else { return .failure(.message("\(name) no longer exists.")) }
+            var state = loaded(bytes, path: url.path)
+            guard state.isEditable else { return .failure(.message("\(name) isn't UTF-8, so it can't be changed.")) }
+            guard let (edit, start, level) = insert(into: state) else { return .failure(.message("Can't find \(parent.label) any more.")) }
+            try state.apply([edit], baseRevision: state.revision)
+            if case .conflict = try saver.save(&state, to: url) { return .failure(.message("\(name) changed on disk; nothing was added.")) }
+            return .success(target(start, level, FileRecord.hash(state.mergeBase)))
+        } catch {
+            return .failure(.message("Can't add \(title): \(error.localizedDescription)"))
+        }
+    }
+
+    public enum RefileFailure: Error, Equatable {
+        case message(String)
+    }
+
+    /// The edit `org-refile-new-child` makes in `text` under the heading at `start` (nil for
+    /// the file), and where the new heading starts and its level.
+    static func newChild(_ text: String, under start: Int??, title: String) -> (edit: TextEdit, start: Int, level: Int) {
+        let ns = text as NSString
+        var prefix = ""
+        var pos = ns.length
+        var level = 1
+        if case .some(.some(let heading)) = start {
+            var stars = 0
+            while heading + stars < ns.length, ns.character(at: heading + stars) == 42 { stars += 1 }
+            level = stars + 1
+            // `org-end-of-subtree t t`: the next heading at this level or above.
+            var at = NSMaxRange(ns.lineRange(for: NSRange(location: heading, length: 0)))
+            pos = ns.length
+            while at < ns.length {
+                let line = ns.lineRange(for: NSRange(location: at, length: 0))
+                var n = 0
+                while at + n < NSMaxRange(line), ns.character(at: at + n) == 42 { n += 1 }
+                if n > 0, n <= stars, at + n < ns.length, [32, 9].contains(ns.character(at: at + n)) {
+                    pos = at
+                    break
+                }
+                at = NSMaxRange(line)
+            }
+        } else if ns.length > 0, ns.character(at: ns.length - 1) != 10 {
+            prefix = "\n"
+        }
+        // `org-back-over-empty-lines`.
+        var back = pos
+        while back > 0, [32, 9, 10, 13].contains(ns.character(at: back - 1)) { back -= 1 }
+        var lineAfter = back
+        while lineAfter < ns.length, ns.character(at: lineAfter) != 10 { lineAfter += 1 }
+        if lineAfter < ns.length { lineAfter += 1 }
+        if !prefix.isEmpty { lineAfter = ns.length }
+        let at = min(lineAfter, pos)
+        let insertion = prefix + "\n" + String(repeating: "*", count: level) + " " + title + "\n"
+        let newStart = at + (prefix as NSString).length + 1
+        return (TextEdit(range: at..<at, replacement: insertion), newStart, level)
+    }
+
     /// Archives the subtree at the caret, or at `from`, where `org-archive-subtree` would.
     /// Returns a message.
     @discardableResult

@@ -786,8 +786,24 @@ struct ContentView: View {
             let keep = id == "app.refile.copy"
             let targets = workspace.refileTargets(openPath: session.path, document: session.document)
             commands.ask(Prompt(key: "refile", message: keep ? "Copy to:" : "Refile to:", choices: targets.map(\.label))) { answer in
-                guard let answer, let target = targets.first(where: { $0.label == answer }) else { return }
-                if let message = session.refile(to: target, keep: keep) { commands.show(message) }
+                guard let answer else { return }
+                if let target = targets.first(where: { $0.label == answer }) {
+                    if let message = session.refile(to: target, keep: keep) { commands.show(message) }
+                    return
+                }
+                // `org-refile-allow-creating-parent-nodes`: `parent/new` adds the heading first.
+                let creating = OrgPreferences.refileSettings().creating
+                guard creating != .no, let (parent, child) = RefileSettings.newNode(answer, in: targets) else { return commands.show("Invalid target location") }
+                let create = {
+                    switch session.createRefileChild(under: parent, title: child) {
+                    case .success(let target): if let message = session.refile(to: target, keep: keep) { commands.show(message) }
+                    case .failure(.message(let message)): commands.show(message)
+                    }
+                }
+                guard creating == .confirm else { return create() }
+                commands.ask(Prompt(key: "confirm", message: "Create new node \"\(child)\"?", choices: ["yes", "no"])) { reply in
+                    if reply == "yes" { create() }
+                }
             }
         case "app.refile.goto":
             // `C-u C-c C-w`: the target heading, or the end of a file.

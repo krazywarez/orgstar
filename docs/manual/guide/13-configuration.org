@@ -173,6 +173,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =[org-agenda-time-grid]=, =org-agenda-use-time-grid=, =org-agenda-show-current-time-in-grid= | |
 | =[org-stuck-projects]=           |                            |
 | =org-agenda-files=               |                            |
+| =org-refile-targets=, =org-refile-use-outline-path=, =org-refile-allow-creating-parent-nodes= | |
 | =theme-file=                     |                            |
 
 * config.toml reference
@@ -230,6 +231,9 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-tags-todo-honor-ignore-options= | boolean | =false= | The four settings above apply to TODO-only matches (=M=) too. Mirrors =org-agenda-tags-todo-honor-ignore-options=. |
 | =org-agenda-search-view-always-boolean= | boolean | =false= | The agenda's text search reads every string as =+word -word {regexp}= snippets, never as a phrase. Mirrors =org-agenda-search-view-always-boolean=. |
 | =org-agenda-search-view-force-full-words= | boolean | =false= | Text search snippets match whole words only, as a leading =:= does. Mirrors =org-agenda-search-view-force-full-words=. |
+| =org-refile-targets=                 | string  | =""=    | Refile targets as Lisp, as =org-refile-targets= takes them: =((nil :maxlevel . 3) (org-agenda-files :tag . "project"))=. =""= offers headings to level 3 in every file. See [[file:04-outlines.org][Outlines]]. Mirrors =org-refile-targets=. |
+| =org-refile-use-outline-path=        | string  | ="file"= | How refile targets are written: =nil=, =t=, =file=, =full-file-path=, =buffer-name= or =title=. Mirrors =org-refile-use-outline-path=. |
+| =org-refile-allow-creating-parent-nodes= | string | ="nil"= | =t= or =confirm=: a refile target typed as =TARGET/New heading= adds the heading; =confirm= asks first. Mirrors =org-refile-allow-creating-parent-nodes=. |
 | =org-agenda-files=                   | string  | =""=    | Files and folders the agenda reads, separated by =\n=; a file that isn't =.org= lists more, one per line. =""= reads the folders' files. See [[file:07-agenda.org][The agenda]]. Mirrors =org-agenda-files=. |
 | =org-agenda-use-time-grid=           | boolean | =true=  | Grid lines at the times in =[org-agenda-time-grid]=, on the days it names. Mirrors =org-agenda-use-time-grid=. |
 | =org-agenda-show-current-time-in-grid= | boolean | =true= | The now line on today's grid. Mirrors =org-agenda-show-current-time-in-grid=. |
@@ -520,6 +524,8 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-agenda-sorting-strategy=                                      | =[org-agenda-sorting-strategy]=: a list sets all four views; an alist sets =agenda=, =todo=, =tags= and =search=. A list with =user-defined-up= or =user-defined-down= isn't imported |
 | =org-agenda-sort-notime-is-late=, =org-agenda-sort-noeffort-is-high=, =org-agenda-use-time-grid=, =org-agenda-show-current-time-in-grid= | The same key, as booleans                                     |
 | =org-agenda-custom-commands=                                       | A =views.toml= view per command, named by its description, and per block a =[[view.block]]=. Types =agenda=, =alltodo=, =todo=, =tags=, =tags-todo=, =search= and =stuck=; settings =org-agenda-span=, =org-agenda-start-day=, =org-agenda-overriding-header=, =org-agenda-sorting-strategy=, =org-agenda-prefix-format= (a string) and =org-agenda-skip-function= as =org-agenda-skip-entry-if= or =org-agenda-skip-subtree-if=. Entries from =(add-to-list 'org-agenda-custom-commands …)= too. Other types, other settings and file lists aren't imported |
+| =org-refile-targets=                                               | =org-refile-targets=, the value written as Lisp, when its files and specs are ones orgstar reads (not functions or variables) |
+| =org-refile-use-outline-path=, =org-refile-allow-creating-parent-nodes= | The symbol as a string                                                          |
 | =org-stuck-projects=                                               | =[org-stuck-projects]=: =match=, =todo=, =tags= and =regexp= from the four elements          |
 | =org-agenda-time-grid=                                             | =[org-agenda-time-grid]=: =when= from the first element, =times= from the second; the strings are left out |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |

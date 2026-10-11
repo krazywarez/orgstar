@@ -109,7 +109,16 @@ struct EditorScreen: View {
             case .syncCopies: SyncConflictSheet(session: session) { message = $0 }
             case .recovery: RecoverySheet(session: session) { message = $0 }
             case .refile(let command):
-                RefileSheet(targets: workspace.refileTargets(openPath: session.path, document: session.document)) { target in
+                RefileSheet(targets: workspace.refileTargets(openPath: session.path, document: session.document),
+                            create: command == "app.refile.goto" || OrgPreferences.refileSettings().creating == .no ? nil : { parent, child in
+                    self.sheet = nil
+                    switch session.createRefileChild(under: parent, title: child) {
+                    case .success(let target):
+                        guard let path = session.path, let editor else { return }
+                        message = session.refile(to: target, from: (path, editor.editContext().caret), keep: command == "app.refile.copy")
+                    case .failure(.message(let text)): message = text
+                    }
+                }) { target in
                     self.sheet = nil
                     guard let target else { return }
                     if command == "app.refile.goto" {

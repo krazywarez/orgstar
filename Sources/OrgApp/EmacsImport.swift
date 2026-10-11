@@ -532,6 +532,18 @@ public struct EmacsImport: Sendable {
             } else {
                 add(name, .bool(truthy))
             }
+        case "org-refile-targets":
+            switch RefileSettings.parseTargets(value.description) {
+            case .success: add(name, .string(value.description))
+            case .failure(.message(let message)): note(message)
+            }
+        case "org-refile-use-outline-path":
+            let mode = value.symbol ?? "nil"
+            guard RefileSettings.OutlinePath(rawValue: mode) != nil else { return note("unexpected value \(value.description)") }
+            add(name, .string(mode))
+        case "org-refile-allow-creating-parent-nodes":
+            let mode = value.symbol ?? "nil"
+            add(name, .string(RefileSettings.Creating(rawValue: mode) == nil ? "t" : mode))
         case "org-stuck-projects":
             // `("+LEVEL=2/-DONE" ("TODO" "NEXT") nil "")`.
             guard let parts = value.elements, parts.count == 4, let match = parts[0].string else { return note("not a stuck-projects definition") }

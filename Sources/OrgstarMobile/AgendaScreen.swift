@@ -960,6 +960,9 @@ struct FilterSheet: View {
 /// as the Mac's prompt offers them, searchable by their path.
 struct RefileSheet: View {
     let targets: [RefileTarget]
+    /// `org-refile-allow-creating-parent-nodes`: `parent/new` in the search field offers to
+    /// add the heading.
+    var create: ((RefileTarget, String) -> Void)?
     let choose: (RefileTarget?) -> Void
     @State private var query = ""
 
@@ -977,6 +980,13 @@ struct RefileSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if let create, let (parent, child) = RefileSettings.newNode(query, in: targets) {
+                    Button {
+                        create(parent, child)
+                    } label: {
+                        Label("New heading “\(child)” under \(parent.label)", systemImage: "plus")
+                    }
+                }
                 ForEach(files, id: \.path) { file in
                     Section {
                         ForEach(file.targets, id: \.self) { target in

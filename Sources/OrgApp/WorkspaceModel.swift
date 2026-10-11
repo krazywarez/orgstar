@@ -395,36 +395,6 @@ public final class WorkspaceModel {
         return [path: record]
     }
 
-    /// Headings down to level 3 in every org file, and each file itself. The open file's come
-    /// from its buffer, so they match unsaved edits.
-    public func refileTargets(openPath: String?, document: DocumentState?) -> [RefileTarget] {
-        let indexed = (try? index.outline(maxLevel: 3)) ?? []
-        var targets: [RefileTarget] = []
-        for file in files where file.kind == .org {
-            let name = file.relativePath
-            if file.path == openPath, let document {
-                let hash = FileRecord.hash(document.mergeBase)
-                targets.append(RefileTarget(label: name, path: file.path, start: nil, title: "", level: 0, contentHash: hash))
-                var stack: [String] = []
-                for entry in Presentation.outline(document.tree) {
-                    stack = Array(stack.prefix(entry.level - 1)) + [entry.title]
-                    guard entry.level <= 3 else { continue }
-                    targets.append(RefileTarget(label: name + "/" + stack.joined(separator: "/"), path: file.path, start: entry.start, title: entry.title, level: entry.level, contentHash: hash))
-                }
-                continue
-            }
-            let headings = indexed.filter { $0.location.path == file.path }
-            targets.append(RefileTarget(label: name, path: file.path, start: nil, title: "", level: 0, contentHash: headings.first?.location.contentHash ?? ""))
-            for heading in headings {
-                targets.append(RefileTarget(
-                    label: name + "/" + heading.outlinePath.joined(separator: "/"), path: file.path, start: heading.location.start,
-                    title: heading.location.title, level: heading.level, contentHash: heading.location.contentHash
-                ))
-            }
-        }
-        return targets
-    }
-
     public func quickOpen(_ query: String) -> [FileEntry] {
         FuzzyMatch.rank(query, files.filter { $0.kind != .conflict })
     }

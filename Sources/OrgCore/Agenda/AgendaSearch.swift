@@ -552,7 +552,7 @@ public struct TagsMatcher: Sendable {
 
 /// Emacs regular expressions run through ICU, case-insensitively as the matcher binds
 /// `case-fold-search`.
-enum EmacsRegex {
+public enum EmacsRegex {
     /// Characters without word syntax in an Org buffer under Emacs 31, as ranges: everything
     /// else, `$`, `%` and `'` included, is a word character. Emacs also puts a word boundary
     /// where the script changes, which this doesn't.
@@ -576,7 +576,7 @@ enum EmacsRegex {
         + "\\x{fe59}-\\x{fe5e}\\x{ff01}-\\x{ff0f}\\x{ff1b}-\\x{ff20}\\x{ff3b}-\\x{ff40}\\x{ff5b}-\\x{ff65}"
         + "\\x{ffe0}-\\x{ffe3}\\x{ffe5}\\x{11660}-\\x{1166c}\\x{1fb00}-\\x{1fbff}"
     /// `search` uses `org-search-view`'s syntax table, where `'` is punctuation.
-    static func translate(_ pattern: String, search: Bool = false) -> String {
+    public static func translate(_ pattern: String, search: Bool = false) -> String {
         let nonWord = search ? Self.nonWord + "'" : Self.nonWord
         let word = "[^" + nonWord + "]"
         var out = ""

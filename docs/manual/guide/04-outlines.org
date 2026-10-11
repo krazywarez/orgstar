@@ -747,9 +747,9 @@ normalized.
 Refile… (=org-refile=, =C-c C-w=, Mac =⌃⌘W=, Doom =SPC m r r= or =SPC m s r=) moves the
 subtree at the caret under another heading, in this file or another one.
 
-It asks for the target with completion. The targets are every org file in your folders
-and every heading down to level 3 in those files, written as the file's path relative
-to its folder followed by the outline path:
+It asks for the target with completion. By default the targets are every org file in
+your folders and every heading down to level 3 in those files, written as the file's
+path relative to its folder followed by the outline path:
 
 #+BEGIN_EXAMPLE
 projects.org
@@ -769,10 +769,36 @@ one, otherwise through the normal save path, and removes the subtree from the so
 only after that succeeds. If the target file changed on disk in the meantime, nothing
 is refiled.
 
-This matches Org with =org-refile-targets= set to headings of maximum level 3 in all
-files, =org-refile-use-outline-path= set to =file=, =org-reverse-note-order= =nil= (new
-entries go last), =org-log-refile= =nil= and =org-refile-keep= =nil=. None of these is
-configurable in orgstar. Refiling from the agenda is covered in [[file:07-agenda.org][Agenda]].
+Three settings in =config.toml= change the targets, as in Org (see [[file:13-configuration.org][Configuration]]):
+
+- =org-refile-targets=, written as Lisp: a list of =(FILES . SPEC)=. =FILES= is =nil=
+  (the file you refile from), =org-agenda-files=, a file name, or a list of file names
+  (relative to the current file's folder). =SPEC= is =(:maxlevel . N)=, =(:level . N)=,
+  =(:tag . "TAG")=, =(:todo . "KEYWORD")=, =(:regexp . "RE")= or =t= for every heading;
+  =(nil :maxlevel . 3)= is read the same way. The tag, keyword and regexp tests look at
+  heading lines, case-sensitively.
+
+  #+BEGIN_SRC toml
+  org-refile-targets = "((nil :maxlevel . 3) (org-agenda-files :tag . \"project\"))"
+  #+END_SRC
+
+  Empty (the default) is the list above: every file, to level 3.
+- =org-refile-use-outline-path=: how targets are written. =file= (the default) is the
+  file then the outline path; =t= the outline path alone; =nil= the heading alone;
+  =full-file-path= the file's full path then the outline path; =title= the file's
+  =#+TITLE= (or its name) then the outline path; =buffer-name= as =file=. With =nil=, =t=
+  and =buffer-name=, targets in other files end with the file's name in parentheses,
+  and files are targets only with =file=, =full-file-path=, =title= and =buffer-name=. A
+  =/= in a heading is written =\/=.
+- =org-refile-allow-creating-parent-nodes=: with =t=, typing =TARGET/New heading=, where
+  =TARGET= is one of the targets, adds =New heading= at the end of =TARGET= one level
+  below it (or at the end of the file for a file) and refiles there; =confirm= asks
+  first. On iOS the Refile sheet offers the new heading when the search field holds such
+  a path.
+
+Otherwise this matches Org with =org-reverse-note-order= =nil= (new entries go last),
+=org-log-refile= =nil= and =org-refile-keep= =nil=. Refiling from the agenda is covered
+in [[file:07-agenda.org][Agenda]].
 
 Copy to Refile Target… (=org-copy=, =C-c M-w=) asks the same way and copies the
 subtree there, leaving it in place. Go to Refile Target… (=C-u C-c C-w=, Doom
@@ -898,4 +924,3 @@ These Org structure features are not in orgstar:
 - Editing values in column view, and writing summaries from it; the
   =columnview= dynamic block does write summaries.
 - The =ORDERED= property, radio lists and timer list items in the list commands.
-- Custom =org-refile-targets=.
