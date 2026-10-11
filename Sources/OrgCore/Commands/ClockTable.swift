@@ -475,7 +475,14 @@ public struct ShowColumnView: OrgCommand {
     public var title: String { global ? "Column View of File" : "Column View" }
     public func applies(in context: EditContext) -> Bool { true }
     public func run(in context: EditContext) -> CommandStep {
-        let view = ColumnView.capture(text: context.text, tree: context.tree, at: context.caret, global: global, now: context.now).view
+        let view: ColumnView.View
+        do {
+            view = try ColumnView.capture(text: context.text, tree: context.tree, at: context.caret, global: global, now: context.now, calendar: context.calendar).view
+        } catch let error as EmacsBuffer.UserError {
+            return .failed(error.message)
+        } catch {
+            return .failed("\(error)")
+        }
         guard !view.rows.isEmpty else { return .failed("No entries for column view") }
         return .external(.columnView(view))
     }

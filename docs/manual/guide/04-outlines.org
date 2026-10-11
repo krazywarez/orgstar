@@ -629,8 +629,10 @@ Column view shows entries as rows and properties as columns. The columns come fr
 Each column is =%[width]PROPERTY[(title)][{summary}]=, as in Org. The width limits the
 column, the title replaces the property name in the header, and the summary is computed
 for parent entries from their children. The summary operators are =+=, =$=, =min=,
-=max=, =mean=, =X=, =X/=, =X%=, =:=, =:min=, =:max=, =:mean= and =est+=. Org's age
-operators (=@min=, =@max=, =@mean=) are not supported. The numeric operators take a
+=max=, =mean=, =X=, =X/=, =X%=, =:=, =:min=, =:max=, =:mean=, =est+=, =@min=, =@max=
+and =@mean=. The age operators take an active timestamp, as its age now, or a duration,
+and show the youngest, oldest or mean age in days, hours and minutes (=3d 2h 15min=);
+any other value stops the view with "Invalid age". The numeric operators take a
 format after a semicolon, as in ={+;%.1f}=.
 
 Subtrees tagged =ARCHIVE= and commented subtrees are left out.

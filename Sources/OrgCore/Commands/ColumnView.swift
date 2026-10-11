@@ -123,10 +123,40 @@ public enum ColumnView {
         return "\(Int(days))d " + hmm(minutes - days * 1440)
     }
 
+    /// `org-columns--age-to-minutes`: minutes since an active timestamp in `value`, or a duration.
+    static func ageMinutes(_ value: String, now: Date, calendar: Calendar) throws -> Double {
+        if let range = value.range(of: "<[0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?>", options: .regularExpression) {
+            guard let stamp = EmacsBuffer.parseTimeString(String(value[range])), let date = calendar.date(from: stamp) else {
+                throw EmacsBuffer.UserError(message: "Invalid age: \"\(value)\"")
+            }
+            return now.timeIntervalSince(date) / 60
+        }
+        guard !value.trimmingCharacters(in: .whitespaces).isEmpty, let minutes = minutes(value) else {
+            throw EmacsBuffer.UserError(message: "Invalid age: \"\(value)\"")
+        }
+        return minutes
+    }
+
+    /// `org-columns--format-age`: days, hours and minutes, those that aren't zero.
+    static func age(_ minutes: Double) -> String {
+        if minutes < 0 { return "-" + age(-minutes) }
+        var left = minutes
+        var parts: [String] = []
+        for (unit, modifier) in [("d", 1440.0), ("h", 60.0), ("min", 1.0)] where modifier <= left {
+            let value = (left / modifier).rounded(.down)
+            left -= value * modifier
+            parts.append("\(Int(value))\(unit)")
+        }
+        return parts.isEmpty ? "0min" : parts.joined(separator: " ")
+    }
+
     /// `org-columns--summarize`: nil for an unknown operator.
-    static func summarize(_ op: String, _ values: [String], fmt: String?, now: Date) -> String? {
+    static func summarize(_ op: String, _ values: [String], fmt: String?, now: Date, calendar: Calendar = .current) throws -> String? {
         let numbers = values.map(Number.init)
         switch op {
+        case "@min", "@max", "@mean":
+            let ages = try values.map { try ageMinutes($0, now: now, calendar: calendar) }
+            return age(op == "@min" ? ages.min()! : op == "@max" ? ages.max()! : ages.reduce(0, +) / Double(ages.count))
         case "+": return format(fmt, numbers.reduce(.int(0), +))
         case "$": return String(format: "%.2f", numbers.reduce(0) { $0 + $1.double })
         case "X":
@@ -219,8 +249,10 @@ public enum ColumnView {
     /// top level (the first ancestor with COLUMNS, else the entry; the file before the first
     /// heading or with `global`), their values with summaries. `updates` are the parents whose
     /// summarized property org rewrites.
+    /// Throws for an age operator's value that is neither a timestamp nor a duration.
     public static func capture(text: String, tree: OrgTree, at offset: Int, global: Bool, format override: String? = nil,
-                               maxLevel: Int? = nil, skipEmpty: Bool = false, excludeTags: [String] = [], now: Date = Date())
+                               maxLevel: Int? = nil, skipEmpty: Bool = false, excludeTags: [String] = [], now: Date = Date(),
+                               calendar: Calendar = .current) throws
         -> (view: View, updates: [(start: Int, property: String, value: String)]) {
         let model = DocumentModel(tree: tree)
         let ns = text as NSString
@@ -281,7 +313,7 @@ public enum ColumnView {
                 let set = own.map { $0.contains { !$0.isWhitespace } } ?? false
                 if level < lastLevel {
                     let below = accumulators[(level + 1)...].flatMap { $0 }
-                    let summary = below.isEmpty ? nil : summarize(op, below, fmt: spec.format, now: now)
+                    let summary = below.isEmpty ? nil : try summarize(op, below, fmt: spec.format, now: now, calendar: calendar)
                     if let summary {
                         summaries[i, default: [:]][column] = summary
                         let trimmed = summary.trimmingCharacters(in: .whitespaces)
@@ -367,9 +399,9 @@ extension EmacsBuffer {
         }
         let hlines = params.values[":hlines"]
         let excluded = params.values[":exclude-tags"]?.elements?.compactMap { $0.string ?? $0.symbol } ?? []
-        let captured = ColumnView.capture(text: string, tree: tree, at: offset, global: global, format: params.values[":format"]?.string,
-                                          maxLevel: params.int(":maxlevel"), skipEmpty: params.flag(":skip-empty-rows"),
-                                          excludeTags: excluded, now: now)
+        let captured = try ColumnView.capture(text: string, tree: tree, at: offset, global: global, format: params.values[":format"]?.string,
+                                              maxLevel: params.int(":maxlevel"), skipEmpty: params.flag(":skip-empty-rows"),
+                                              excludeTags: excluded, now: now, calendar: calendar)
         for update in captured.updates.sorted(by: { $0.start > $1.start }) {
             point = update.start
             entryPut(update.property, update.value)

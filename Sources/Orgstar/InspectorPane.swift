@@ -127,7 +127,7 @@ struct InspectorPane: View {
             return
         }
         let text = document.text
-        columns = ColumnView.capture(text: text, tree: document.tree, at: heading ?? 0, global: !subtree || heading == nil).view
+        columns = (try? ColumnView.capture(text: text, tree: document.tree, at: heading ?? 0, global: !subtree || heading == nil))?.view
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"

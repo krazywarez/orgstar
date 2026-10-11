@@ -77,6 +77,62 @@ struct ColumnViewTests {
         }
     }
 
+    /// `@min`, `@max` and `@mean` over timestamps and durations, at a fixed time.
+    @Test(.enabled(if: oracle))
+    func summarizesAgesLikeOrg() throws {
+        let seconds = 1_789_000_000
+        let texts = [
+            """
+            * Ages
+            :PROPERTIES:
+            :COLUMNS:  %ITEM %Seen{@min} %Seen{@max} %Seen{@mean}
+            :END:
+            #+BEGIN: columnview :id local
+            #+END:
+            ** A
+            :PROPERTIES:
+            :Seen:     <2026-09-01 Tue>
+            :END:
+            ** B
+            :PROPERTIES:
+            :Seen:     <2026-09-08 Tue 13:30>
+            :END:
+            ** C
+            :PROPERTIES:
+            :Seen:     3d 2h
+            :END:
+            *** D
+            :PROPERTIES:
+            :Seen:     45min
+            :END:
+
+            """,
+            "* P\n:PROPERTIES:\n:COLUMNS:  %ITEM %Seen{@max}\n:END:\n#+BEGIN: columnview :id local\n#+END:\n** A\n:PROPERTIES:\n:Seen:     [2026-09-01 Tue]\n:END:\n",
+        ]
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let cases = texts.map { text in
+            EmacsOracle.Case(text: text, point: EmacsOracle.point((text as NSString).range(of: "#+BEGIN").location, in: text),
+                             form: frozenClock(seconds, "(org-update-dblock)"))
+        }
+        let emacs = try EmacsOracle.run(cases)
+        for (i, text) in texts.enumerated() {
+            let caret = (text as NSString).range(of: "#+BEGIN").location
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret],
+                                      now: Date(timeIntervalSince1970: Double(seconds)), calendar: utc)
+            var ours = text
+            var failure = ""
+            switch UpdateDynamicBlock().run(in: context) {
+            case .commit(let result): ours = result.edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(text) { $1.apply(to: $0) }
+            case .failed(let message): failure = message
+            default: break
+            }
+            // On an invalid age Org stops after emptying the block; orgstar leaves it as it was.
+            #expect(failure.isEmpty ? ours == emacs[i].text : emacs[i].error.contains(failure) && ours == text,
+                    "ours:\n\(ours)\n\(failure)\nemacs:\n\(emacs[i].text)\n\(emacs[i].error)")
+        }
+    }
+
     @Test func compilesFormats() {
         let specs = ColumnView.compile("%25ITEM(Task) %Effort{:} %3PRIORITY %Cost{+;%.2f}")
         #expect(specs.map(\.property) == ["ITEM", "EFFORT", "PRIORITY", "COST"])
