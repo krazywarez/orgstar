@@ -42,30 +42,36 @@ public enum SaveMode: String, Sendable, CaseIterable {
     case explicit
 }
 
-/// The files open in a window, as Emacs's buffers: each keeps its text, caret, undo and
-/// unsaved edits while another is shown. The current buffer's outline, saving and requests
-/// for the editor to show a location are what most views use. The view layer attaches an
-/// editor to each buffer and follows `path` and `revealRequest`.
+/// The files open in the app, as Emacs's buffers: each keeps its text, caret, undo and
+/// unsaved edits while another is shown. Buffers show in panes (`EditorPane`), one or more
+/// per window; `focused` is the pane commands and menus act on, and the properties below
+/// that describe one buffer (`path`, `outline`, `isDirty`, `conflict`, `revealRequest`) are
+/// its. The view layer attaches an editor to each buffer and, per pane, follows the pane's
+/// `path` and `revealRequest`.
 @MainActor
 @Observable
 public final class DocumentSession {
-    /// The current buffer's file.
-    public private(set) var path: String?
-    /// A copy of the current buffer's state as of its last change. Not observed: it changes
-    /// on every keystroke; views follow `path`, `isDirty` and `outline`.
-    @ObservationIgnored public private(set) var document: DocumentState?
-    public private(set) var outline: [OutlineEntry] = []
-    /// Bumped when the buffer settles after edits, and when a file opens: views that read
-    /// `document` follow this.
-    public private(set) var editVersion = 0
-    public private(set) var isDirty = false
+    /// Where buffers show. There is always at least one.
+    public private(set) var panes: [EditorPane]
+    /// The pane with focus: what `open`, `reveal`, saving and the forwarders below act on.
+    public var focused: EditorPane
+    /// The focused pane's file.
+    public var path: String? { focused.path }
+    /// The focused pane's buffer state. Not observed: it changes on every keystroke; views
+    /// follow `path`, `isDirty` and `outline`.
+    public var document: DocumentState? { current?.buffer.document }
+    public var outline: [OutlineEntry] { focused.outline }
+    /// Bumped when the focused buffer settles after edits, and when a file opens: views that
+    /// read `document` follow this.
+    public var editVersion: Int { focused.editVersion }
+    public var isDirty: Bool { focused.isDirty }
     /// The file isn't UTF-8, so it can't be edited or saved.
-    public private(set) var isReadOnly = false
-    /// Set while the buffer and the file on disk conflict; says how to resolve it.
-    public private(set) var conflict: String?
-    /// Bumped to ask the editor to reveal an offset.
-    public private(set) var revealRequest: (offset: Int, id: Int)?
-    /// Open files, in the order buffers were opened (each after the one current then).
+    public var isReadOnly: Bool { focused.isReadOnly }
+    /// Set while the focused buffer and the file on disk conflict; says how to resolve it.
+    public var conflict: String? { focused.conflict }
+    /// Bumped to ask the focused pane's editor to reveal an offset.
+    public var revealRequest: (offset: Int, id: Int)? { focused.revealRequest }
+    /// Open files, in the order buffers were opened (each after the one focused then).
     public private(set) var openPaths: [String] = []
     /// Open files with unsaved edits.
     public private(set) var dirtyPaths: Set<String> = []
@@ -91,8 +97,10 @@ public final class DocumentSession {
     public func refreshSetup() {
         guard let entry = current else { return }
         resolveSetup(entry)
-        refresh()
-        editVersion += 1
+        for pane in panes(showing: entry.path) {
+            refresh(pane)
+            pane.editVersion += 1
+        }
     }
 
     /// The entry's setup files read again, as its text names them now.
@@ -118,10 +126,11 @@ public final class DocumentSession {
     private let fileSystem: FileSystem
     private let recovery: RecoveryStore
     @ObservationIgnored private var entries: [Entry] = []
-    @ObservationIgnored private var current: Entry?
-    /// Paths, most recently shown first.
+    /// The focused pane's buffer.
+    private var current: Entry? { focused.path.flatMap(entry) }
+    /// Paths, most recently shown first, across every pane.
     @ObservationIgnored private var history: [String] = []
-    @ObservationIgnored private var outlineUpdate: Task<Void, Never>?
+    @ObservationIgnored private var outlineUpdates: [String: Task<Void, Never>] = [:]
     private var requestID = 0
 
     public init(
@@ -130,10 +139,34 @@ public final class DocumentSession {
     ) {
         self.fileSystem = fileSystem
         self.recovery = recovery
+        let pane = EditorPane()
+        panes = [pane]
+        focused = pane
+    }
+
+    // MARK: - Panes
+
+    /// A new, empty pane.
+    public func makePane() -> EditorPane {
+        let pane = EditorPane()
+        panes.append(pane)
+        return pane
+    }
+
+    /// Removes `pane`; its buffers stay open. The last pane stays.
+    public func closePane(_ pane: EditorPane) {
+        guard panes.count > 1, let index = panes.firstIndex(where: { $0 === pane }) else { return }
+        panes.remove(at: index)
+        if focused === pane { focused = panes[0] }
+    }
+
+    /// The panes showing `path`.
+    private func panes(showing path: String) -> [EditorPane] {
+        panes.filter { $0.path == path }
     }
 
     private var buffer: DocumentBuffer? { current?.buffer }
-    /// The current buffer's pending autosave, for tests to wait on.
+    /// The focused buffer's pending autosave, for tests to wait on.
     var autosave: Task<Void, Never>? { current?.autosave }
     private var url: URL? { path.map { URL(fileURLWithPath: $0) } }
     /// Whether the open file is an org file (`.org`, `.org_archive`), not plain text.
@@ -186,12 +219,17 @@ public final class DocumentSession {
     /// Open buffers, most recently shown first.
     public var recentPaths: [String] { history.filter(isOpen) }
 
-    /// Shows the buffer of `path`, opening the file if it isn't open.
+    /// Shows the buffer of `path` in the focused pane, opening the file if it isn't open.
     public func open(_ path: String) {
+        open(path, in: focused)
+    }
+
+    /// Shows the buffer of `path` in `pane`, opening the file if it isn't open.
+    public func open(_ path: String, in pane: EditorPane) {
         let interval = Perf.begin("session.open")
         defer { interval.end((path as NSString).lastPathComponent) }
         if let existing = entry(path) {
-            activate(existing)
+            show(existing, in: pane)
             return
         }
         do {
@@ -200,106 +238,139 @@ public final class DocumentSession {
                 return
             }
             let entry = Entry(path: path, buffer: StateBuffer(loaded(bytes, path: path)))
-            let index = current.flatMap { c in entries.firstIndex { $0 === c } }.map { $0 + 1 } ?? entries.count
+            let index = pane.path.flatMap(self.entry).flatMap { c in entries.firstIndex { $0 === c } }.map { $0 + 1 } ?? entries.count
             entries.insert(entry, at: index)
-            activate(entry)
+            show(entry, in: pane)
         } catch {
             lastError = "Can't open \(path): \(error.localizedDescription)"
         }
     }
 
-    private func activate(_ entry: Entry) {
-        current = entry
-        path = entry.path
-        conflict = entry.conflict
-        revealRequest = nil
+    private func show(_ entry: Entry, in pane: EditorPane) {
+        pane.path = entry.path
+        if !pane.shown.contains(entry.path) { pane.shown.append(entry.path) }
+        pane.history.removeAll { $0 == entry.path }
+        pane.history.insert(entry.path, at: 0)
+        pane.revealRequest = nil
         history.removeAll { $0 == entry.path }
         history.insert(entry.path, at: 0)
-        refresh()
+        refresh(pane)
     }
 
-    /// The buffer before or after the current one, wrapping.
+    /// The buffer before or after the focused one, wrapping, in the focused pane.
     public func cycle(_ step: Int) {
         guard let current, let index = entries.firstIndex(where: { $0 === current }), entries.count > 1 else { return }
-        activate(entries[((index + step) % entries.count + entries.count) % entries.count])
+        show(entries[((index + step) % entries.count + entries.count) % entries.count], in: focused)
     }
 
-    /// The buffer shown before the current one.
+    /// The buffer shown before the focused one.
     public func showPrevious() {
         guard let previous = recentPaths.dropFirst().first else { return }
         open(previous)
     }
 
-    /// Closes the buffer of `path` without saving it; the most recent other buffer shows.
+    /// Closes the buffer of `path` without saving it. A pane showing it shows the buffer it
+    /// showed before, else the most recent other buffer, else nothing.
     public func kill(_ path: String) {
         guard let entry = entry(path) else { return }
         entry.autosave?.cancel()
         entries.removeAll { $0 === entry }
         history.removeAll { $0 == path }
-        if entry === current {
-            current = nil
-            if let next = recentPaths.first.flatMap(self.entry) ?? entries.last {
-                activate(next)
+        outlineUpdates[path]?.cancel()
+        outlineUpdates[path] = nil
+        for pane in panes {
+            pane.shown.removeAll { $0 == path }
+            pane.history.removeAll { $0 == path }
+            guard pane.path == path else { continue }
+            if let next = pane.history.first.flatMap(self.entry) ?? recentPaths.first.flatMap(self.entry) ?? entries.last {
+                show(next, in: pane)
             } else {
-                outlineUpdate?.cancel()
-                self.path = nil
-                document = nil
-                outline = []
-                isDirty = false
-                conflict = nil
-                revealRequest = nil
-                refreshLists()
+                pane.path = nil
+                pane.outline = []
+                pane.isDirty = false
+                pane.isReadOnly = false
+                pane.conflict = nil
+                pane.revealRequest = nil
             }
-        } else {
-            refreshLists()
         }
+        refreshLists()
     }
 
-    /// Closes the current buffer without saving, as when its file was deleted.
+    /// Closes the focused buffer without saving, as when its file was deleted.
     public func close() {
         if let path { kill(path) }
     }
 
-    /// Makes `buffer`, built from `document`, the live state of the current file.
+    /// Makes `buffer`, built from `document`, the live state of the focused file.
     public func attach(_ buffer: DocumentBuffer) {
-        current?.buffer = buffer
-        refresh()
+        if let path { attach(buffer, for: path) }
     }
 
-    /// The buffer of `path` changed in its editor: the current one updates its views, another
-    /// saves on its own.
+    /// Makes `buffer`, built from the file's `document`, the live state of `path`.
+    public func attach(_ buffer: DocumentBuffer, for path: String) {
+        guard let entry = entry(path) else { return }
+        entry.buffer = buffer
+        for pane in panes(showing: path) { refresh(pane) }
+    }
+
+    /// The buffer of `path` changed in its editor: the panes showing it update their views
+    /// once typing pauses, and it saves on its own.
     public func bufferChanged(_ path: String) {
         guard let entry = entry(path) else { return }
-        if entry === current { bufferChanged() } else { scheduleAutosave(entry); refreshLists() }
+        changed(entry)
     }
 
-    /// The buffer changed through typing. The outline follows once typing pauses.
+    /// The focused buffer changed through typing.
     public func bufferChanged() {
-        refresh(outline: false)
-        outlineUpdate?.cancel()
-        outlineUpdate = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(300))
-            guard !Task.isCancelled, let self, let document = self.document else { return }
-            self.outline = self.isOrg ? Presentation.outline(document.tree) : []
-            self.editVersion += 1
-        }
-        if let current { scheduleAutosave(current) }
+        if let current { changed(current) }
     }
 
-    private func refresh(outline updateOutline: Bool = true) {
+    /// A buffer changed, typed or not: the panes showing it update their views, the outline
+    /// once typing pauses, and it saves on its own.
+    private func changed(_ entry: Entry) {
+        let showing = panes(showing: entry.path)
+        for pane in showing { refresh(pane, outline: false) }
+        outlineUpdates[entry.path]?.cancel()
+        if !showing.isEmpty {
+            let path = entry.path
+            outlineUpdates[path] = Task { [weak self, weak entry] in
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled, let self, let entry else { return }
+                let outline = Self.isOrgPath(path) ? Presentation.outline(entry.buffer.document.tree) : []
+                for pane in self.panes(showing: path) {
+                    pane.outline = outline
+                    pane.editVersion += 1
+                }
+            }
+        }
+        scheduleAutosave(entry)
+        refreshLists()
+    }
+
+    /// `pane`'s view of its buffer, from the buffer's state.
+    private func refresh(_ pane: EditorPane, outline updateOutline: Bool = true) {
         let interval = Perf.begin("session.refresh")
         defer { interval.end() }
         refreshLists()
-        guard let buffer else { return }
-        let state = buffer.document
-        document = state
-        if isDirty != state.isDirty { isDirty = state.isDirty }
-        if isReadOnly == state.isEditable { isReadOnly = !state.isEditable }
-        if conflict != current?.conflict { conflict = current?.conflict }
+        guard let entry = pane.path.flatMap(entry) else { return }
+        let state = entry.buffer.document
+        if pane.isDirty != state.isDirty { pane.isDirty = state.isDirty }
+        if pane.isReadOnly == state.isEditable { pane.isReadOnly = !state.isEditable }
+        if pane.conflict != entry.conflict { pane.conflict = entry.conflict }
         if updateOutline {
-            outline = isOrg ? Presentation.outline(state.tree) : []
-            editVersion += 1
+            pane.outline = Self.isOrgPath(entry.path) ? Presentation.outline(state.tree) : []
+            pane.editVersion += 1
         }
+    }
+
+    /// Every pane showing `entry`, from the buffer's state.
+    private func refresh(_ entry: Entry) {
+        for pane in panes(showing: entry.path) { refresh(pane) }
+    }
+
+    /// The focused pane, from its buffer's state.
+    private func refresh() {
+        refresh(focused)
     }
 
     private func refreshLists() {
@@ -366,7 +437,7 @@ public final class DocumentSession {
         } catch {
             lastError = "Can't save \(name): \(error.localizedDescription)"
         }
-        if entry === current { refresh() } else { refreshLists() }
+        refresh(entry)
         return !entry.buffer.document.isDirty
     }
 
@@ -669,9 +740,7 @@ public final class DocumentSession {
             do {
                 let options = self.options
                 let step = try buffer.update { try $0.run(command, selection: [offset..<offset], now: now, answers: answers, options: options) }
-                if case .commit = step {
-                    if entry === current { bufferChanged() } else { scheduleAutosave(entry); refreshLists() }
-                }
+                if case .commit = step { changed(entry) }
                 return step
             } catch {
                 return .failed("\(error)")
@@ -830,11 +899,6 @@ public final class DocumentSession {
         babelTask?.cancel()
     }
 
-    /// A buffer changed outside typing: the current one updates its views, another saves.
-    private func changed(_ entry: Entry) {
-        if entry === current { bufferChanged() } else { scheduleAutosave(entry); refreshLists() }
-    }
-
     // MARK: - Locations
 
     /// Opens the file of `location` if needed and asks the editor to show the heading. Offsets
@@ -859,9 +923,15 @@ public final class DocumentSession {
         reveal(offset)
     }
 
+    /// Asks the focused pane's editor to show `offset`.
     public func reveal(_ offset: Int) {
+        reveal(offset, in: focused)
+    }
+
+    /// Asks `pane`'s editor to show `offset`.
+    public func reveal(_ offset: Int, in pane: EditorPane) {
         requestID += 1
-        revealRequest = (offset, requestID)
+        pane.revealRequest = (offset, requestID)
     }
 
     /// Called when the workspace sees a file change on disk: an open buffer of it takes the
@@ -885,6 +955,6 @@ public final class DocumentSession {
         case .unchanged:
             break
         }
-        if entry === current { refresh() } else { refreshLists() }
+        refresh(entry)
     }
 }
