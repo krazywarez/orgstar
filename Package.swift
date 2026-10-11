@@ -25,6 +25,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1"),
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.7.0"),
         .package(url: "https://github.com/tree-sitter/swift-tree-sitter", from: "0.25.0"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-bash", exact: "0.25.1"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-c", exact: "0.24.2"),
@@ -82,7 +83,7 @@ let package = Package(
         ),
         .executableTarget(name: "OrgstarSpike", dependencies: ["OrgEditorAppKit"]),
         .target(name: "OrgApp", dependencies: ["OrgWorkspace", "OrgDocument", "OrgPresentation"]),
-        .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgEditorAppKit", "OrgHighlight"]),
+        .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgEditorAppKit", "OrgHighlight", .product(name: "Sparkle", package: "Sparkle")]),
         // The iOS app, bundled by scripts/build-ios-app.sh.
         .executableTarget(name: "OrgstarMobile", dependencies: ["OrgApp", "OrgHighlight"]),
         // App extensions, bundled into orgstar.app by scripts/build-app.sh.
