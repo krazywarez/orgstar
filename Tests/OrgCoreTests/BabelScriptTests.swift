@@ -96,3 +96,19 @@ struct BabelScriptTests {
         }
     }
 }
+
+struct BabelSessionPlanTests {
+    @Test func rubyNodeAndRSessionsPlanSessionJobs() throws {
+        for (text, kind, executable) in [
+            ("#+begin_src ruby :session\n1\n#+end_src\n", BabelJob.SessionKind.ruby, "ruby"),
+            ("#+begin_src js :session work\n1\n#+end_src\n", .node, "node"),
+            ("#+begin_src R :session\n1\n#+end_src\n", .r, "R"),
+        ] {
+            let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+            guard case .success(let job) = Babel.plan(context) else { Issue.record("not planned: \(text)"); continue }
+            guard case .session(let name, let program, let planned) = job.runner else { Issue.record("not a session: \(text)"); continue }
+            #expect(planned == kind && program == executable)
+            #expect(name == (text.contains("work") ? "work" : "*\(text.dropFirst(12).prefix { $0 != " " })*"))
+        }
+    }
+}

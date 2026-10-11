@@ -34,9 +34,9 @@ public enum BabelRunner {
         defer { try? FileManager.default.removeItem(at: folder) }
         let resultFile = folder.appendingPathComponent("result")
         let input = job.input.replacingOccurrences(of: Babel.resultFileToken, with: resultFile.path)
-        if case .session(let name, let executable, let python) = job.runner {
+        if case .session(let name, let executable, let kind) = job.runner {
             let directory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: fileDirectory).standardizedFileURL } ?? fileDirectory
-            return try await BabelSessions.shared.run(job, name: name, executable: executable, python: python, directory: directory, resultFile: resultFile)
+            return try await BabelSessions.shared.run(job, name: name, executable: executable, kind: kind, directory: directory, resultFile: resultFile)
         }
 
         let process = Process()

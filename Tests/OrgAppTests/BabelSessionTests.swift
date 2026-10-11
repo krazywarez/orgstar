@@ -3,6 +3,8 @@ import Testing
 import OrgCore
 @testable import OrgApp
 
+/// Serial: the sessions are shared, and each test stops them all when it ends.
+@Suite(.serialized)
 struct BabelSessionStateTests {
     func run(_ text: String, in folder: URL) async throws -> String {
         let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
@@ -28,6 +30,29 @@ struct BabelSessionStateTests {
         #expect(try await run("#+begin_src python :session py :results output\nprint(a + 1)\n#+end_src\n", in: folder) == "\n#+RESULTS:\n: 3\n")
         _ = try await run("#+begin_src python :session py :results output\nraise ValueError('x')\n#+end_src\n", in: folder)
         #expect(try await run("#+begin_src python :session py\n[a, a]\n#+end_src\n", in: folder) == "\n#+RESULTS:\n| 2 | 2 |\n")
+    }
+
+    @Test(.enabled(if: BabelRunner.installed("ruby") && BabelRunner.installed("node")))
+    func rubyAndNodeSessionsKeepState() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-session-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer {
+            BabelSessions.shared.stopAll()
+            try? FileManager.default.removeItem(at: folder)
+        }
+        _ = try await run("#+begin_src ruby :session rb :var n=4\nm = n * 2\n#+end_src\n", in: folder)
+        #expect(try await run("#+begin_src ruby :session rb\nm + 1\n#+end_src\n", in: folder) == "\n#+RESULTS:\n: 9\n")
+        #expect(try await run("#+begin_src ruby :session rb :results output\nputs [m, n].inspect\n#+end_src\n", in: folder) == "\n#+RESULTS:\n: [8, 4]\n")
+        #expect(try await run("#+begin_src ruby :session rb\n[[m, n], nil, [1, 2]]\n#+end_src\n", in: folder) == "\n#+RESULTS:\n| 8 | 4 |\n|---+---|\n| 1 | 2 |\n")
+        // An error leaves the session running.
+        _ = try await run("#+begin_src ruby :session rb\nraise 'x'\n#+end_src\n", in: folder)
+        #expect(try await run("#+begin_src ruby :session rb\n\"still #{m}\"\n#+end_src\n", in: folder) == "\n#+RESULTS:\n: still 8\n")
+        #expect(try await run("#+begin_src ruby :session other\ndefined?(m).inspect\n#+end_src\n", in: folder) == "\n#+RESULTS:\n: nil\n")
+
+        _ = try await run("#+begin_src js :session js :var k=3\nvar total = k * 10;\n#+end_src\n", in: folder)
+        #expect(try await run("#+begin_src js :session js\ntotal + 1\n#+end_src\n", in: folder) == "\n#+RESULTS:\n: 31\n")
+        #expect(try await run("#+begin_src js :session js :results output\nconsole.log(total)\n#+end_src\n", in: folder) == "\n#+RESULTS:\n: 30\n")
+        #expect(try await run("#+begin_src js :session js\n[total, k]\n#+end_src\n", in: folder) == "\n#+RESULTS:\n| 30 | 3 |\n")
     }
 }
 

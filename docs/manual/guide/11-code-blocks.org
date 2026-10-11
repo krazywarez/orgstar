@@ -205,6 +205,7 @@ What "value" means depends on the language:
 | Shells, =:results value= written out | The exit status of the last command.                                             |
 | Python                  | What the block returns. The body runs as a function, so it needs =return=. =:return expr= adds a final =return expr=. |
 | Python in a =:session=  | The value of the last expression.                                                             |
+| =ruby=, =js= in a =:session= | The value of the last expression, read as without a session.                            |
 | Emacs Lisp              | The value of the last form.                                                                   |
 | =ruby=                  | The value of the body, run as a lambda; strings as they are, other values as =inspect= prints them, arrays read as tables with =nil= rows as rules. =:results pp= prints it with =pp=. |
 | =js=, =javascript=      | What the body returns, as =util.inspect= prints it, arrays read as tables; it runs as a function, so it needs =return=. |
@@ -359,7 +360,7 @@ A string or number takes the place of the form. Lisp that the interpreter cannot
 | =:separator=      | text                                           | Column separator for tables in shell variables; a tab by default.                          |
 | =:hline-string=   | text                                           | What a rule becomes in a shell variable with =:hlines yes=; =hline= by default.            |
 | =:dir=            | folder                                         | Folder to run in, relative to the file's folder. It must exist.                            |
-| =:session=        | name, =none=                                   | Runs in a long-lived interpreter (see Sessions below). Shells and Python only; ignored for the compiled languages. |
+| =:session=        | name, =none=                                   | Runs in a long-lived interpreter (see Sessions below). Shells, Python, =ruby=, =js= and =R=; ignored for the compiled languages. |
 | =:stdin=          | name of a table, list or block                 | Feeds the value to standard input. Shells only.                                            |
 | =:cmdline=        | arguments                                      | Command-line arguments. Shells, =dot=, =plantuml=, =mermaid= and the compiled languages only. |
 | =:shebang=        | =#!…= line                                     | Runs the block as a script with this first line. Shells only; also used by tangling.       |
@@ -387,7 +388,7 @@ orgstar does not run a block whose arguments it would handle differently from Em
 | =:post=                     | every language                                    | "=:post= isn't supported yet; nothing was run."          |
 | =:stdin=, =:shebang=        | languages other than shells                     | "=:stdin= isn't supported yet; nothing was run."         |
 | =:cmdline=                  | languages other than shells, graphics and the compiled languages | "=:cmdline= isn't supported for /language/ yet; nothing was run." |
-| =:session=                  | languages other than shells, Python and the compiled languages, which ignore it | "=:session= isn't supported for /language/ yet; nothing was run." |
+| =:session=                  | =awk=, graphics and Emacs Lisp; the compiled languages ignore it | "=:session= isn't supported for /language/ yet; nothing was run." |
 
 * Variables
 
@@ -480,13 +481,17 @@ for a in "$@"; do echo "[$a]"; done
 
 * Sessions
 
-=:session name= runs the block in an interpreter that stays running, so variables, functions and the working folder carry over to the next block in the same session. Sessions work for shells and Python on the Mac.
+=:session name= runs the block in an interpreter that stays running, so variables, functions and the working folder carry over to the next block in the same session. Sessions work for shells, Python, Ruby, JavaScript (Node) and R on the Mac.
 
 - =:session= with no name uses =*language*=, such as =*sh*=. =:session none= runs without one.
 - A session belongs to one folder, one interpreter and one name. Blocks in different folders, or with different names, do not share state.
 - A session starts in the block's =:dir=, or the file's folder, the first time it is used.
 - A shell session's output is what the block prints. =:results value= gives the exit status of the last command.
 - A Python session runs the block at top level. Its value is the value of the last expression, so =return= is not used.
+- A Ruby session runs each block in the same binding, and a JavaScript session in Node's global context, so local variables and =var= and =let= declarations carry over. Their value is the value of the last expression, written as without a session (=inspect=, =util.inspect=); =return= is not used. Errors go to the block's error output and leave the session running.
+- An R session runs each block with =source(…, print.eval = TRUE)= in one =R --slave= process; its result is the output, as without a session.
+
+Emacs runs these with packages beyond Org: inf-ruby for Ruby, ESS for R, and js-comint or skewer for JavaScript; with plain =node=, ob-js refuses sessions. orgstar's sessions don't need them, and their results can differ in detail from those packages' echoed output.
 - Sessions stop when you quit orgstar, or when you cancel a block running in one.
 
 #+BEGIN_SRC org

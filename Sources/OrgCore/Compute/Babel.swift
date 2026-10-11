@@ -13,9 +13,13 @@ public struct BabelJob: Sendable, Equatable {
         case process(executable: String, arguments: [String])
         /// `emacs --batch` loading `input` as a script.
         case emacs
-        /// A long-running interpreter named by `:session`: a shell gets `input` as commands, Python
-        /// runs `input` as a program in its globals.
-        case session(name: String, executable: String, python: Bool)
+        /// A long-running interpreter named by `:session`: a shell gets `input` as commands, the
+        /// others run `input` as a program where earlier ones left their variables.
+        case session(name: String, executable: String, kind: SessionKind)
+    }
+
+    public enum SessionKind: String, Sendable, Equatable {
+        case shell, python, ruby, node, r
     }
 
     public let language: String
@@ -60,11 +64,11 @@ public struct BabelJob: Sendable, Equatable {
         /// `compiled`: C, C++, D, Java, Fortran and Clojure, by `language`.
         /// `script`: ruby and js, whose value comes back as their `inspect` prints it, from
         /// the result file for ruby and the output for js.
-        enum Kind: Sendable, Equatable { case shell(valueIsExitStatus: Bool), python, generic, emacsLisp, compiled, script(js: Bool) }
+        enum Kind: Sendable, Equatable { case shell(valueIsExitStatus: Bool), python, generic, emacsLisp, compiled, script(js: Bool, session: Bool = false) }
         let kind: Kind
         var language = ""
         public internal(set) var params: [String]
-        let output: Bool
+        public let output: Bool
         let wrap: String?
         let name: String?
         /// An inline block: the result goes after it, in `{{{results(…)}}}`.
@@ -360,7 +364,7 @@ public enum Babel {
         }
         // The compiled languages' `org-babel-execute:` ignore `:session`.
         let session = compiled ? nil : params.single[":session"].flatMap { $0 == "none" ? nil : ($0.isEmpty ? "*\(language)*" : $0) }
-        if session != nil, !shells.contains(language), language != "python" {
+        if session != nil, !shells.contains(language), !["python", "ruby", "js", "javascript", "R"].contains(language) {
             return .failure(.message(":session isn't supported for \(language) yet; nothing was run."))
         }
         var body = normalizedBody(block)
@@ -450,7 +454,7 @@ public enum Babel {
             }
             let full = expandGeneric(body, lines, params) + (valueIsExitStatus ? "\necho $?" : "")
             return .success(BabelJob(
-                language: language, runner: session.map { .session(name: $0, executable: executable, python: false) } ?? .process(executable: executable, arguments: []),
+                language: language, runner: session.map { .session(name: $0, executable: executable, kind: .shell) } ?? .process(executable: executable, arguments: []),
                 input: full.trimmingCharacters(in: .whitespacesAndNewlines) + "\n", directory: dir,
                 block: location, blockText: blockText, alwaysAsk: alwaysAsk,
                 finish: finishBase(.shell(valueIsExitStatus: valueIsExitStatus))
@@ -477,7 +481,7 @@ public enum Babel {
                     """ + params.results.map { "\"\($0)\"" }.joined(separator: ", ") + "])\n"
             }
             return .success(BabelJob(
-                language: language, runner: .session(name: session, executable: params.single[":python"] ?? options.python, python: true),
+                language: language, runner: .session(name: session, executable: params.single[":python"] ?? options.python, kind: .python),
                 input: program, directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.python)
             ))
         }
@@ -561,6 +565,12 @@ public enum Babel {
             switch language {
             case "ruby":
                 let full = expandGeneric(body, vars.map { "\($0.0)=\(rubyLiteral($0.1))" }, params)
+                if let session {
+                    return .success(BabelJob(
+                        language: language, runner: .session(name: session, executable: params.single[":ruby"] ?? executable, kind: .ruby),
+                        input: full, directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.script(js: false, session: true))
+                    ))
+                }
                 return .success(BabelJob(
                     language: language, runner: .process(executable: params.single[":ruby"] ?? executable, arguments: arguments),
                     input: output ? full : rubyWrapper(full, pp: params.results.contains("pp")), directory: dir, block: location, blockText: blockText,
@@ -568,6 +578,12 @@ public enum Babel {
                 ))
             case "js", "javascript":
                 let full = expandGeneric(body, vars.map { "var \($0.0)=\(jsLiteral($0.1));" }, params)
+                if let session {
+                    return .success(BabelJob(
+                        language: language, runner: .session(name: session, executable: params.single[":cmd"] ?? executable, kind: .node),
+                        input: full, directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk, finish: finishBase(.script(js: true, session: true))
+                    ))
+                }
                 return .success(BabelJob(
                     language: language, runner: .process(executable: params.single[":cmd"] ?? executable, arguments: arguments),
                     input: output ? full : jsWrapper(full), directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
@@ -586,8 +602,11 @@ public enum Babel {
                     rAssignment(name, value, colnames: tables.colnames.first { $0.0 == name }?.1, colnamesYes: params.single[":colnames"] == "yes",
                                 rownamesYes: params.single[":rownames"] == "yes")
                 } : []
+                // An R session runs `R` itself, which reads its commands as they come.
+                let runner: BabelJob.Runner = session.map { .session(name: $0, executable: params.single[":cmd"] ?? "R", kind: .r) }
+                    ?? .process(executable: params.single[":cmd"] ?? executable, arguments: arguments)
                 return .success(BabelJob(
-                    language: language, runner: .process(executable: params.single[":cmd"] ?? executable, arguments: arguments),
+                    language: language, runner: runner,
                     input: expandGeneric(body, lines, params) + "\n", directory: dir, block: location, blockText: blockText, alwaysAsk: alwaysAsk,
                     finish: BabelJob.Finish(kind: .generic, language: language, params: params.results + (output ? [] : ["output"]), output: true, wrap: params.wrap, name: name, inline: inline, hash: hash)
                 ))

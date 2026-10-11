@@ -324,7 +324,7 @@ struct BabelTests {
     @Test func refusesWhatWouldRunDifferently() {
         for (text, message) in [
             ("#+begin_src sh :eval never\necho\n#+end_src\n", "Evaluation of this sh code block is disabled."),
-            ("#+begin_src ruby :session s\nputs 1\n#+end_src\n", ":session isn't supported for ruby yet; nothing was run."),
+            ("#+begin_src awk :session s\nBEGIN { print 1 }\n#+end_src\n", ":session isn't supported for awk yet; nothing was run."),
             ("#+begin_src sh :noweb yes\n<<x()>>\n#+end_src\n", "Noweb references that run a block (x()) aren't supported yet; nothing was run."),
             ("#+begin_src python :cmdline -x\nreturn 1\n#+end_src\n", ":cmdline isn't supported for python yet; nothing was run."),
             ("#+begin_src cobol\nDISPLAY\n#+end_src\n", "No way to run cobol blocks yet."),
