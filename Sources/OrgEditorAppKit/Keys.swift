@@ -40,9 +40,9 @@ final class OrgTextView: NSTextView {
             }
         }
     }
-    /// Each editor keeps its own undo history, not the window's.
-    private let ownUndoManager = UndoManager()
-    override var undoManager: UndoManager? { ownUndoManager }
+    /// The editor's undo history, shared by its views, not the window's.
+    var sharedUndoManager = UndoManager()
+    override var undoManager: UndoManager? { sharedUndoManager }
     var lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
     var lineNumberColor = NSColor.tertiaryLabelColor
     var currentLineNumberColor = NSColor.labelColor

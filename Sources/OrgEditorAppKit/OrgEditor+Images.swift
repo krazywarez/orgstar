@@ -28,9 +28,9 @@ extension OrgEditor {
     func refreshImages() {
         keepingTopLine {
             restyleOutsideEditing(0..<utf16Length)
-            textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+            invalidateAllLayout()
         }
-        textView.needsDisplay = true
+        redrawViews()
     }
 
     private func loadImage(_ path: String) -> NSImage? {

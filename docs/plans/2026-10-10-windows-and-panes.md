@@ -4,7 +4,7 @@
 
 **Goal:** More than one editor window, and a window split into panes, each pane showing any open buffer with its own caret, folds, narrowing and scroll position, so two files (or two places in one file) sit side by side as `C-x 2` / `C-x 3` give in Emacs.
 
-**Architecture:** The editor is split into a buffer and views. `EditorBuffer` (new, `OrgEditorAppKit`) owns the `NSTextContentStorage`, the `DocumentState`, the revision, the undo manager and the `DocumentBuffer` conformance; `OrgEditor` becomes a view over it: an `NSTextView` with its own `NSTextLayoutManager` on the shared storage, holding selection, folds, narrowing and the layout-fragment delegate that draws them. `DocumentSession` keeps one `Entry` per open file but no longer has a single "current" buffer: each `EditorPane` (new, `OrgApp`) shows one path, and a `WindowModel` per main window holds a `PaneLayout` tree of panes and the focused one. The session forwards its old `path`, `outline`, `isDirty`, `conflict`, `revealRequest` and `editVersion` to the focused pane so the agenda, capture, menus and palette keep working unchanged.
+**Architecture:** `OrgEditor` stays the buffer, as it already is (`DocumentBuffer`, the text storage, undo), and gains views: `addView()` makes another `NSTextView` with its own `NSTextLayoutManager` on the editor's `NSTextContentStorage`, and `textView` is the view with focus, the one commands act on. Folds, narrowing, sparse trees, shrunk columns, inline images and evil state stay the editor's: TextKit hides folded text through the content storage's delegate, which every layout manager shares, and in Emacs these are buffer-local too. `DocumentSession` keeps one `Entry` per open file but no longer has a single "current" buffer: each `EditorPane` (new, `OrgApp`) shows one path, and a `WindowModel` per main window holds a `PaneLayout` tree of panes and the focused one. The session forwards its old `path`, `outline`, `isDirty`, `conflict`, `revealRequest` and `editVersion` to the focused pane so the agenda, capture, menus and palette keep working unchanged.
 
 **Tech Stack:** TextKit 2 (several `NSTextLayoutManager`s on one `NSTextContentStorage`), SwiftUI `WindowGroup`, Swift Testing.
 
@@ -24,8 +24,9 @@
 | Pane layout | A binary tree: `.pane(id)` or `.split(axis, first, second, fraction)` | `C-x 2` after `C-x 3` must work; one direction per window would refuse it |
 | Buffers per pane | Each pane keeps its own ordered list of buffers it has shown, as its tab bar | Matches editor groups users know; `C-x b` switches in the focused pane as in Emacs |
 | Killing a buffer | Removed from every pane; a pane showing it falls back to its previous buffer, else empty | Emacs behaviour |
-| Narrowing | Per view, as the design doc says | Two views of one buffer at different places is the point |
-| Shrunk table columns, inline-image toggle, markup toggle | Per buffer | They are buffer-local in Org |
+| Folds, narrowing, sparse trees | Per buffer | Folded text is hidden through the content storage's delegate, shared by every layout manager; Emacs keeps visibility and narrowing buffer-local as well |
+| Shrunk table columns, inline-image toggle, markup toggle, evil state, mark | Per buffer | They are buffer-local in Org and evil |
+| Caret, selection, scroll position, focus | Per view | What a window owns in Emacs |
 | Undo | One `UndoManager` per buffer, returned from every view's `undoManager(for:)` | `C-/` in either view undoes the last edit to the file |
 | Quick Open, search field, palette, conflict sheet | Per window (moved from `AppCommands` to `WindowModel`) | Global booleans would present them in every window at once |
 | Jump requests (agenda, capture, backlinks) | Go to the key main window's focused pane; open a main window if none | Where the user is looking |
@@ -33,7 +34,7 @@
 
 ## Review focus
 
-- Typing in one view while the other view has a fold over the edited range: the fold must be mapped or dropped, never left covering the wrong text.
+- A fold set from one view must hide the same text in the other view, and each view's caret must leave text that a fold from the other view hid.
 - Undo from view B of an edit typed in view A: the storage reverts, both views restyle, A's caret lands where the edit was.
 - Closing the last main window with dirty buffers: the buffers stay open in the session, and a new window shows them again; the dock-quit path still asks to save.
 - Killing a buffer shown in two panes of two windows: both panes fall back, neither crashes on a stale editor.
@@ -51,37 +52,29 @@
 - [ ] If any check fails, stop and amend this plan before Task 1: the fallback is per-view `NSTextStorage`s kept in step by replaying edits, which is a different Task 1.
 - [ ] Commit "Spike: two text views on one content storage".
 
-### Task 1: `EditorBuffer`
+### Task 1: Several text views on one editor (done)
 
 **Files:**
-- Create: `Sources/OrgEditorAppKit/EditorBuffer.swift`
-- Modify: `Sources/OrgEditorAppKit/OrgEditor.swift` (the parts moved out), `OrgEditor+Styling.swift`, `OrgEditor+Folding.swift` (see `2026-10-10-file-splits.md`, which lands first)
-- Test: `Tests/OrgEditorAppKitTests/EditorBufferTests.swift`
+- Modify: `Sources/OrgEditorAppKit/OrgEditor.swift`, `Keys.swift`, `OrgEditor+Folding.swift`, `OrgEditor+Images.swift`, `OrgEditor+Shrink.swift`, `Modal.swift`, `ViewToggles.swift`
+- Test: `Tests/OrgEditorAppKitTests/MultiViewTests.swift`, `TwoViewsSpikeTests.swift` (Task 0)
 
 **Interfaces:**
 - Produces:
 
 ```swift
-@MainActor public final class EditorBuffer: NSObject, DocumentBuffer {
-    public let contentStorage: NSTextContentStorage
-    public let undoManager: UndoManager
-    public private(set) var document: DocumentState     // DocumentBuffer
-    public var selection: [Range<Int>]                  // the focused view's, set by views
-    public func perform(_ command: any OrgCommand, now: Date, answers: [String: String]) -> CommandStep
-    public func update<T>(_ change: (inout DocumentState) throws -> T) rethrows -> T
-    public func addView(_ view: OrgEditor)              // weak; receives storageEdited and restyle
-    public func removeView(_ view: OrgEditor)
-    public var shrunkColumns: ShrunkColumns
-    public var showMarkup: Bool, showInlineImages: Bool
+extension OrgEditor {
+    public var textView: NSTextView { get }              // the view with focus, or the last to have had it
+    public private(set) var textViews: [NSTextView]      // the first made with the editor
+    public let undoManager: UndoManager                  // shared by every view
+    public func addView(frame: NSRect = ...) -> NSTextView
+    public func removeView(_ view: NSTextView)           // never the first
+    public func makeScrollView(for view: NSTextView? = nil) -> NSScrollView
 }
 ```
 
-- [ ] Write the failing tests: `two views see one edit` (make a buffer with text, two `OrgEditor`s on it, insert in one through its text view, the other's `textView.string` matches); `undo is shared`; `folds map independently` (fold a heading in A, insert a line above it in B, A's hidden range moved by the delta, B has none).
-- [ ] Move from `OrgEditor` to `EditorBuffer`: the storage and its delegate (`textStorage(_:didProcessEditing:…)`, the incremental reparse and revision bump), `DocumentState`, the `DocumentBuffer` extension, the attribute styling of the storage (theme base, highlighting, markup hiding attributes that live on the storage), `isLoading`, `load(text:)`. `OrgEditor.init` takes an `EditorBuffer` and creates its own layout manager and text view on `buffer.contentStorage`.
-- [ ] `EditorBuffer` tells each view after a storage edit: `view.storageEdited(range, delta)` (today's `OrgEditor.storageEdited`, now per view, mapping `HiddenRanges`, `FoldedHeadings`, the narrowing and shrunk-column boxes), and `view.restyle(range)` for fragment invalidation.
-- [ ] `OrgEditor.undoManager(for:)` returns `buffer.undoManager`.
-- [ ] Run the tests; run the whole suite (`swift test`): the existing `OrgEditorAppKitTests` construct `OrgEditor` directly and need the buffer argument.
-- [ ] Commit "Split the editor into EditorBuffer and views".
+- [x] Tests: typing in one view shows in the other and in the document; undo is shared; folds are the editor's; commands act on the focused view; a disk change maps every view's caret; removing a view detaches its layout manager.
+- [x] `active` follows first responder, key presses and clicks; layout invalidation, theme, line numbers, spell checking and the block cursor apply to every view; a disk change maps every view's selection; `textViewDidChangeSelection` ignores other views' carets.
+- [x] Commit "One editor, several text views".
 
 ### Task 2: `EditorPane` and the session
 
@@ -123,7 +116,7 @@ public indirect enum PaneLayout: Equatable, Sendable {
 - [ ] Write the failing `PaneLayout` tests: split right then split below the second pane gives three panes in reading order; removing the middle one leaves a two-pane split with the remaining fraction; `only` collapses; `next` wraps; removing the only pane returns nil.
 - [ ] Implement `PaneLayout`; run the tests.
 - [ ] Write the failing `EditorPane` tests with a `DocumentSession` over an in-memory `FileSystem` (as `DocumentSessionTests` do): opening a path in pane A then showing it in pane B leaves one `Entry`; killing it empties both panes' `path` and `shown`; a pane's `shown` keeps order and drops killed paths; `reveal(_:in:)` bumps only that pane's request; `dirtyPaths` counts a buffer once however many panes show it.
-- [ ] Implement `EditorPane` and the session changes: `Entry` keeps `buffer: EditorBuffer` (attached by the first view; `attach` becomes `attach(_ buffer:, for path:)`), `current` is replaced by `focused`, `history` moves into each pane. `bufferChanged(path)` refreshes every pane showing that path (outline per pane, since a pane's outline is the buffer's; compute once and assign to each).
+- [ ] Implement `EditorPane` and the session changes: `Entry` keeps its `buffer` (the `OrgEditor`, attached once per path; `attach` becomes `attach(_ buffer:, for path:)`), `current` is replaced by `focused`, `history` moves into each pane. `bufferChanged(path)` refreshes every pane showing that path (outline per pane, since a pane's outline is the buffer's; compute once and assign to each).
 - [ ] Run the whole suite. `AppTests` that read `session.path` keep passing through the forwarders.
 - [ ] Commit "Editor panes and pane layout in the session".
 
@@ -131,7 +124,7 @@ public indirect enum PaneLayout: Equatable, Sendable {
 
 **Files:**
 - Create: `Sources/Orgstar/PaneView.swift` (one pane: `BufferTabs` + `EditorView` for that pane), `Sources/Orgstar/PaneLayoutView.swift` (recursive `HSplitView`/`VSplitView` over `PaneLayout`, using `PaneDivider` for the fraction), `Sources/Orgstar/WindowModel.swift`
-- Modify: `Sources/Orgstar/EditorView.swift` (takes an `EditorPane`; one `OrgEditor` per (pane, path), created on `EditorBuffer` from the session's entry), `Sources/Orgstar/ContentView.swift`, `Sources/Orgstar/BufferTabs.swift`, `Sources/Orgstar/OrgstarApp.swift`
+- Modify: `Sources/Orgstar/EditorView.swift` (takes an `EditorPane`; one `OrgEditor` per path, shared by panes, and one text view per (pane, path) from `addView`), `Sources/Orgstar/ContentView.swift`, `Sources/Orgstar/BufferTabs.swift`, `Sources/Orgstar/OrgstarApp.swift`
 
 **Interfaces:**
 
@@ -146,8 +139,8 @@ public indirect enum PaneLayout: Equatable, Sendable {
 
 `AppCommands` keeps `editor` (the focused view) and gains `keyWindow: WindowModel?`, set from `NSWindow.didBecomeKeyNotification` by the window's root view; its four presentation booleans move to `WindowModel` and every menu action that set them goes through `keyWindow`.
 
-- [ ] `WindowGroup("orgstar", id: "main")` replaces `Window("orgstar", id: "main")`; the root view creates its `WindowModel` and one pane (`session.makePane()`) in `onAppear`, registers the model with `commands`, and on disappear closes its panes (`session.closePane`) so killed views release their layout managers (`buffer.removeView`). Buffers stay in the session.
-- [ ] `EditorView` creates editors per `(pane.id, path)`; the shown editor's text view becoming first responder sets `commands.editor` and `session.focused = pane` (an `onFocus` callback on `OrgEditor`, from `becomeFirstResponder` on `OrgTextView` in `Sources/OrgEditorAppKit/Keys.swift`).
+- [ ] `WindowGroup("orgstar", id: "main")` replaces `Window("orgstar", id: "main")`; the root view creates its `WindowModel` and one pane (`session.makePane()`) in `onAppear`, registers the model with `commands`, and on disappear closes its panes (`session.closePane`) so their text views are removed (`editor.removeView`). Buffers stay in the session.
+- [ ] `EditorView` keeps one `OrgEditor` per path and one text view per `(pane.id, path)` from `addView`, removed with `removeView` when the pane closes; a text view becoming first responder sets `commands.editor` and `session.focused = pane` (an `onFocus` callback on `OrgEditor`, from `becomeFirstResponder` on `OrgTextView` in `Sources/OrgEditorAppKit/Keys.swift`).
 - [ ] Outline column and sidebar selection follow `session.focused`.
 - [ ] Jump requests (`AppCommands.jumpRequest`) are handled by the key window's root view only: `commands.keyWindow === model`. With no main window open, `openWindow(id: "main")` first, then the request is delivered on the new window's first `onAppear`.
 - [ ] Commands, as `app.*` ids dispatched where `app.quick-open` is today: `app.split-below`, `app.split-right`, `app.pane-close`, `app.pane-only`, `app.pane-next`, `app.window-new`. Menu: File ▸ New Window; View ▸ Split Below, Split Right, Close Pane, Close Other Panes, Next Pane. Emacs preset: `C-x 2`, `C-x 3`, `C-x 0`, `C-x 1`, `C-x o`, `C-x 5 2`. Doom: `SPC w s`, `SPC w v`, `SPC w d`, `SPC w o`, `SPC w w`, and `C-w s/v/c/o/w` in normal state. Mac: shortcuts chosen after checking `macBindings`; proposal ⌥⌘N, ⌥⌘-, ⌥⌘\, ⌃⌘W, ⌃⌘1, ⌃⌘`.

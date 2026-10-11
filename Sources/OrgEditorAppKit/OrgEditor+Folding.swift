@@ -28,10 +28,12 @@ extension OrgEditor {
         wrapperHidden = Dictionary(found.map { ($0.start, $0.hidden) }) { a, _ in a }
         view.wrapperFolds = Set(wrapperHidden.keys)
         updateHiddenAndLayout()
-        orgTextView?.redrawLineNumbers()
-        textView.needsDisplay = true
-        let caret = textView.selectedRange().location
-        if let range = hidden.containing(caret) { setCaret(range.lowerBound - 1) }
+        redrawViews()
+        for view in textViews {
+            let caret = view.selectedRange().location
+            guard let range = hidden.containing(caret) else { continue }
+            if view === active { setCaret(range.lowerBound - 1) } else { view.setSelectedRange(NSRange(location: max(0, range.lowerBound - 1), length: 0)) }
+        }
     }
 
 
@@ -70,7 +72,8 @@ extension OrgEditor {
     /// Lays out `ranges` again, each widened to whole lines and to the line before it: the
     /// heading or opening line of a fold, whose fragment draws the fold mark.
     func invalidateLayout(lines ranges: [Range<Int>]) {
-        guard !ranges.isEmpty, let content = textLayoutManager.textContentManager else { return }
+        guard !ranges.isEmpty else { return }
+        let content = textContentStorage
         let text = textView.string as NSString
         for range in ranges {
             let lower = text.lineRange(for: NSRange(location: max(0, min(range.lowerBound, text.length) - 1), length: 0)).location
@@ -78,7 +81,7 @@ extension OrgEditor {
             guard let start = content.location(content.documentRange.location, offsetBy: lower),
                   let end = content.location(start, offsetBy: upper - lower),
                   let textRange = NSTextRange(location: start, end: end) else { continue }
-            textLayoutManager.invalidateLayout(for: textRange)
+            for layout in layoutManagers { layout.invalidateLayout(for: textRange) }
         }
     }
 
@@ -127,8 +130,7 @@ extension OrgEditor {
             updateHiddenAndLayout()
             restyleOutsideEditing(0..<utf16Length)
         }
-        orgTextView?.redrawLineNumbers()
-        textView.needsDisplay = true
+        redrawViews()
         let caret = textView.selectedRange().location
         if let range = hidden.containing(caret) { setCaret(max(0, range.lowerBound - 1)) }
     }
@@ -189,8 +191,7 @@ extension OrgEditor {
             return
         }
         updateHiddenAndLayout()
-        orgTextView?.redrawLineNumbers()
-        textView.needsDisplay = true
+        redrawViews()
         if let narrowed {
             setCaret(max(narrowed.lowerBound, min(caret, narrowed.upperBound)))
             textView.scrollRangeToVisible(NSRange(location: narrowed.lowerBound, length: 0))

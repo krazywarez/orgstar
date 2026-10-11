@@ -13,7 +13,7 @@ extension OrgEditor {
         shrunk.set(columns, in: table, text: textView.string)
         restyleOutsideEditing(table)
         invalidateLayout(lines: [table])
-        textView.needsDisplay = true
+        redrawViews()
     }
 
     /// C-c TAB in a table: `org-table-toggle-column-width`; `shrink` for `org-table-shrink`,

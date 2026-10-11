@@ -166,7 +166,7 @@ struct TextEdit   { let range: Range<Int>; let replacement: String }   // UTF-16
 
 **Document session**
 
-One session per open file owns the text, original bytes, tree, revision counter, merge base and undo history. Each window or split has its own selection, fold state and narrowing, mapped through every edit. On an external reload or merge, view state is mapped through the diff; folds on headings that no longer exist are dropped.
+One session per open file owns the text, original bytes, tree, revision counter, merge base and undo history. Each window or split has its own selection and scroll position; folds, narrowing and sparse trees are the buffer's and show the same in every view, as Emacs keeps them buffer-local. Selections are mapped through every edit. On an external reload or merge, view state is mapped through the diff; folds on headings that no longer exist are dropped.
 
 **Keymap format**
 

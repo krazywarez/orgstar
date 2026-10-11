@@ -10,7 +10,7 @@ extension OrgEditor {
     public var spellChecking: Bool {
         get { textView.isContinuousSpellCheckingEnabled }
         set {
-            textView.isContinuousSpellCheckingEnabled = newValue
+            for view in textViews { view.isContinuousSpellCheckingEnabled = newValue }
             if !newValue, let storage = textView.textStorage {
                 storage.removeAttribute(.spellingState, range: NSRange(location: 0, length: storage.length))
             }
@@ -90,6 +90,8 @@ extension OrgEditor {
 
 extension OrgEditor: NSTextViewDelegate {
     public func textViewDidChangeSelection(_ notification: Notification) {
+        // Another view's caret moving (a mapped selection, say) is its own business.
+        guard (notification.object as AnyObject?) === textView else { return }
         selectionChanged()
         if completionPopup != nil, let popup = completionPopup, textView.selectedRange().location != popup.completion.range.upperBound {
             refreshCompletion()

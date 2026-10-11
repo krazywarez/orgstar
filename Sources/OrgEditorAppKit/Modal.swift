@@ -388,7 +388,7 @@ extension OrgEditor {
     /// A block cursor in normal and visual states, a bar in insert state.
     func updateCursor() {
         let block = modal && vim.mode != .insert
-        (textView as? OrgTextView)?.blockCursor = block
+        for view in orgTextViews { view.blockCursor = block }
         dispatcher.mode = modal ? vim.mode.keymapMode : nil
         let state = modal ? vim.mode.rawValue : nil
         if state != reportedMode {

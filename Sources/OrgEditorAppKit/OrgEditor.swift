@@ -6,9 +6,21 @@ import OrgPresentation
 
 /// A TextKit 2 text view over a `DocumentState`. The text storage mirrors the document; every
 /// character edit goes through `DocumentState.apply`, and only the affected region is restyled.
+///
+/// The editor is the buffer: text, undo, folds, narrowing, sparse trees and evil state are its,
+/// as they are a buffer's in Emacs. It can show in several text views at once (`addView`),
+/// each with its own caret, scroll position and focus, as windows show a buffer.
 @MainActor
 public final class OrgEditor: NSObject {
-    public let textView: NSTextView
+    /// The text view commands act on: the one with focus, or the last to have had it.
+    public var textView: NSTextView { active }
+    private(set) var active: OrgTextView
+    /// Every text view on the storage; the first was made with the editor.
+    public private(set) var textViews: [NSTextView] = []
+    var orgTextViews: [OrgTextView] { textViews.compactMap { $0 as? OrgTextView } }
+    var layoutManagers: [NSTextLayoutManager] { textViews.compactMap(\.textLayoutManager) }
+    /// One undo history for the buffer, whichever view edits it.
+    public let undoManager = UndoManager()
     public private(set) var document: DocumentState
     public internal(set) var view = ViewState()
     /// Called with the time from a character edit to restyled text.
@@ -29,7 +41,7 @@ public final class OrgEditor: NSObject {
             keepingTopLine {
                 applyThemeToView()
                 restyleEverything()
-                textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+                invalidateAllLayout()
             }
         }
     }
@@ -86,55 +98,13 @@ public final class OrgEditor: NSObject {
         self.highlighter = highlighter
         self.mode = mode
         let orgTextView = OrgTextView(usingTextLayoutManager: true)
-        textView = orgTextView
+        active = orgTextView
+        textViews = [orgTextView]
         dispatcher = KeyDispatcher(keymap: KeymapPreset.emacs.keymap)
         super.init()
-        orgTextView.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
-        orgTextView.onFocusChange = { [weak self] in
-            guard let self else { return }
-            let id = ObjectIdentifier(self.textLayoutManager)
-            if let window = self.textView.window, window.isKeyWindow, window.firstResponder === self.textView {
-                Theme.focusedLayouts.insert(id)
-            } else {
-                Theme.focusedLayouts.remove(id)
-            }
-            self.redrawShaded([self.textView.selectedRange()])
-        }
-        orgTextView.onCommandClick = { [weak self] offset in
-            guard let self, Links.link(at: offset, text: self.document.text, tree: self.document.tree) != nil
-                || Links.timestampDays(at: offset, text: self.document.text) != nil else { return false }
-            self.setCaret(offset)
-            self.run("org.link.open")
-            return true
-        }
-        orgTextView.onClick = { [weak self] offset in self?.click(at: offset) ?? false }
-        orgTextView.accessibleText = { [weak self] in
-            guard let self, let storage = self.textView.textStorage else { return AccessibleText(NSAttributedString()) }
-            if let cached = self.accessibleCache, cached.storage == self.storageGeneration { return cached.text }
-            let text = AccessibleText(storage)
-            self.accessibleCache = (self.storageGeneration, text)
-            return text
-        }
-        orgTextView.onMouseDown = { [weak self] in
-            self?.markActive = false
-            self?.modalMouseDown()
-        }
-        textView.usesFindBar = true
-        textView.frame = frame
-        textView.isRichText = false
-        textView.isEditable = editable
-        textView.allowsUndo = true
-        textView.isAutomaticQuoteSubstitutionEnabled = false
-        textView.isAutomaticDashSubstitutionEnabled = false
-        textView.isAutomaticTextReplacementEnabled = false
-        textView.isAutomaticSpellingCorrectionEnabled = false
+        configure(orgTextView, frame: frame, editable: editable)
         applyThemeToView()
-        textView.isVerticallyResizable = true
-        textView.autoresizingMask = [.width]
-        textView.textContainer?.widthTracksTextView = true
-        textView.delegate = self
         textView.textStorage?.delegate = self
-        textLayoutManager.delegate = self
         textContentStorage.delegate = self
 
         if isOrg { shaded.set(Presentation.shadedBlocks(document.tree)) }
@@ -155,6 +125,108 @@ public final class OrgEditor: NSObject {
         truncatesLines = options.startupTruncated
     }
 
+    /// A text view's settings and callbacks; the same for every view of the editor.
+    private func configure(_ view: OrgTextView, frame: NSRect, editable: Bool) {
+        view.keyHandler = { [weak self, unowned view] event in
+            guard let self else { return false }
+            self.active = view
+            return self.handleKey(event)
+        }
+        view.onFocusChange = { [weak self, unowned view] in
+            guard let self, let layout = view.textLayoutManager else { return }
+            let id = ObjectIdentifier(layout)
+            if view.window?.firstResponder === view { self.active = view }
+            if let window = view.window, window.isKeyWindow, window.firstResponder === view {
+                Theme.focusedLayouts.insert(id)
+            } else {
+                Theme.focusedLayouts.remove(id)
+            }
+            self.redrawShaded([view.selectedRange()])
+        }
+        view.onCommandClick = { [weak self, unowned view] offset in
+            guard let self, Links.link(at: offset, text: self.document.text, tree: self.document.tree) != nil
+                || Links.timestampDays(at: offset, text: self.document.text) != nil else { return false }
+            self.active = view
+            self.setCaret(offset)
+            self.run("org.link.open")
+            return true
+        }
+        view.onClick = { [weak self, unowned view] offset in
+            self?.active = view
+            return self?.click(at: offset) ?? false
+        }
+        view.accessibleText = { [weak self] in
+            guard let self, let storage = self.textView.textStorage else { return AccessibleText(NSAttributedString()) }
+            if let cached = self.accessibleCache, cached.storage == self.storageGeneration { return cached.text }
+            let text = AccessibleText(storage)
+            self.accessibleCache = (self.storageGeneration, text)
+            return text
+        }
+        view.onMouseDown = { [weak self, unowned view] in
+            self?.active = view
+            self?.markActive = false
+            self?.modalMouseDown()
+        }
+        view.sharedUndoManager = undoManager
+        view.usesFindBar = true
+        view.frame = frame
+        view.isRichText = false
+        view.isEditable = editable
+        view.allowsUndo = true
+        view.isAutomaticQuoteSubstitutionEnabled = false
+        view.isAutomaticDashSubstitutionEnabled = false
+        view.isAutomaticTextReplacementEnabled = false
+        view.isAutomaticSpellingCorrectionEnabled = false
+        view.isVerticallyResizable = true
+        view.autoresizingMask = [.width]
+        view.textContainer?.widthTracksTextView = true
+        view.delegate = self
+        view.textLayoutManager?.delegate = self
+    }
+
+    /// Another text view on the same text, with its own layout, caret and scroll position.
+    /// Its layout manager's delegate is set before its first layout, which TextKit needs.
+    public func addView(frame: NSRect = NSRect(x: 0, y: 0, width: 600, height: 800)) -> NSTextView {
+        let layout = NSTextLayoutManager()
+        layout.delegate = self
+        textContentStorage.addTextLayoutManager(layout)
+        let container = NSTextContainer(size: NSSize(width: frame.width, height: CGFloat.greatestFiniteMagnitude))
+        layout.textContainer = container
+        let view = OrgTextView(frame: frame, textContainer: container)
+        textViews.append(view)
+        configure(view, frame: frame, editable: active.isEditable)
+        view.lineIndex = lines
+        view.showsLineNumbers = showLineNumbers
+        view.isContinuousSpellCheckingEnabled = active.isContinuousSpellCheckingEnabled
+        view.blockCursor = active.blockCursor
+        applyThemeToView()
+        return view
+    }
+
+    /// Takes a view made by `addView` off the storage. The first view stays.
+    public func removeView(_ view: NSTextView) {
+        guard let index = textViews.firstIndex(where: { $0 === view }), index > 0 else { return }
+        textViews.remove(at: index)
+        if active === view { active = orgTextViews[0] }
+        if let layout = view.textLayoutManager {
+            Theme.focusedLayouts.remove(ObjectIdentifier(layout))
+            textContentStorage.removeTextLayoutManager(layout)
+        }
+    }
+
+    /// Lays every view out again.
+    func invalidateAllLayout() {
+        for layout in layoutManagers { layout.invalidateLayout(for: layout.documentRange) }
+    }
+
+    /// Redraws every view, line numbers included.
+    func redrawViews() {
+        for view in orgTextViews {
+            view.redrawLineNumbers()
+            view.needsDisplay = true
+        }
+    }
+
     /// Replaces the storage's text. Setting the attributed string directly is about 100x
     /// faster than `NSTextView.string` for large files.
     private func load(_ text: String) {
@@ -162,8 +234,10 @@ public final class OrgEditor: NSObject {
         textView.textStorage?.setAttributedString(NSAttributedString(string: text, attributes: theme.base))
         isLoading = false
         lines.reset(text as NSString)
-        orgTextView?.lineIndex = lines
-        orgTextView?.updateGutter()
+        for view in orgTextViews {
+            view.lineIndex = lines
+            view.updateGutter()
+        }
         styledUpTo = 0
         styleNextChunk(Self.firstStyleChunk)
         scheduleStyling()
@@ -181,16 +255,16 @@ public final class OrgEditor: NSObject {
         styledUpTo = end
     }
 
-    /// The text view's own colors and font, and the line numbers'.
+    /// Every text view's own colors and font, and the line numbers'.
     private func applyThemeToView() {
-        textView.font = theme.font
-        textView.typingAttributes = theme.base
-        textView.drawsBackground = true
-        textView.backgroundColor = theme.color("background") ?? .textBackgroundColor
-        textView.insertionPointColor = theme.color("cursor") ?? .textColor
         Theme.selection = theme.color("selection") ?? .selectedTextBackgroundColor
-        textView.selectedTextAttributes = [.backgroundColor: Theme.selection]
-        if let view = orgTextView {
+        for view in orgTextViews {
+            view.font = theme.font
+            view.typingAttributes = theme.base
+            view.drawsBackground = true
+            view.backgroundColor = theme.color("background") ?? .textBackgroundColor
+            view.insertionPointColor = theme.color("cursor") ?? .textColor
+            view.selectedTextAttributes = [.backgroundColor: Theme.selection]
             view.lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: max(8, theme.font.pointSize - 2), weight: .regular)
             view.lineNumberColor = theme.color("line-number") ?? .tertiaryLabelColor
             view.currentLineNumberColor = theme.color("line-number-current") ?? .labelColor
@@ -232,12 +306,13 @@ public final class OrgEditor: NSObject {
     var textContentStorage: NSTextContentStorage { textLayoutManager.textContentManager as! NSTextContentStorage }
     var utf16Length: Int { (textView.string as NSString).length }
 
-    /// A scroll view holding the text view, ready for a window.
-    public func makeScrollView() -> NSScrollView {
+    /// A scroll view holding `view` (the active text view by default), ready for a window.
+    public func makeScrollView(for view: NSTextView? = nil) -> NSScrollView {
+        let textView = view ?? self.textView
         let scroll = NSScrollView(frame: textView.frame)
         scroll.hasVerticalScroller = true
         scroll.documentView = textView
-        orgTextView?.showsLineNumbers = showLineNumbers
+        (textView as? OrgTextView)?.showsLineNumbers = showLineNumbers
         textView.minSize = NSSize(width: 0, height: scroll.contentSize.height)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         return scroll
@@ -300,7 +375,7 @@ public final class OrgEditor: NSObject {
     }
     /// Line numbers in a ruler beside the text.
     public var showLineNumbers = true {
-        didSet { orgTextView?.showsLineNumbers = showLineNumbers }
+        didSet { for view in orgTextViews { view.showsLineNumbers = showLineNumbers } }
     }
     var orgTextView: OrgTextView? { textView as? OrgTextView }
 
@@ -672,8 +747,10 @@ public final class OrgEditor: NSObject {
         onEditTiming?(clock.now - start)
         let lineCount = lines.lineCount
         lines.replace(edit.range, newLength: edit.replacement.utf16.count, in: newText)
-        if lines.lineCount != lineCount { orgTextView?.updateGutter() }
-        orgTextView?.redrawLineNumbers()
+        for view in orgTextViews {
+            if lines.lineCount != lineCount { view.updateGutter() }
+            view.redrawLineNumbers()
+        }
         onChange?()
     }
 
@@ -703,7 +780,7 @@ public final class OrgEditor: NSObject {
     }
 
     private func redrawShaded(_ ranges: [NSRange]) {
-        guard let manager = textLayoutManager.textContentManager else { return }
+        let manager = textContentStorage
         for old in ranges where old.length > 0 {
             for block in shaded.all where block.overlaps(old.location..<NSMaxRange(old)) {
                 let lower = max(block.lowerBound, old.location)
@@ -711,7 +788,7 @@ public final class OrgEditor: NSObject {
                 guard let start = manager.location(manager.documentRange.location, offsetBy: lower),
                       let end = manager.location(start, offsetBy: upper - lower),
                       let range = NSTextRange(location: start, end: end) else { continue }
-                textLayoutManager.invalidateLayout(for: range)
+                for layout in layoutManagers { layout.invalidateLayout(for: range) }
             }
         }
     }
@@ -756,27 +833,27 @@ extension OrgEditor: DocumentBuffer {
         return [selected.location..<NSMaxRange(selected)]
     }
 
-    /// Runs `change`; if it changed the text, reloads the view with folds and the selection
-    /// mapped through the change. Text-view undo refers to the old text, so it is cleared.
+    /// Runs `change`; if it changed the text, reloads the views with folds and each view's
+    /// selection mapped through the change. Undo refers to the old text, so it is cleared.
     public func update<T>(_ change: (inout DocumentState) throws -> T) rethrows -> T {
         let before = document.text
         let defaultsBefore = document.defaults
-        let selected = textView.selectedRange()
+        let selections = textViews.map(\.selectedRange)
         let result = try change(&document)
         if document.text != before {
             let edits = lineEdits(from: before, to: document.text)
             var state = view
-            state.selection = [selected.location..<NSMaxRange(selected)]
+            state.selection = selections.map { $0.location..<NSMaxRange($0) }
             let mapped = state.mapped(through: edits)
             // Shrunk columns were measured on the old text.
             shrunk = ShrunkColumns()
             load(document.text)
             setFolds(FoldState(folds: mapped.folds, bodyFolds: mapped.bodyFolds, wrapperFolds: mapped.wrapperFolds))
-            let selection = mapped.selection[0]
-            setCaret(selection.lowerBound)
-            if !selection.isEmpty { textView.setSelectedRange(NSRange(selection)) }
-            textView.undoManager?.removeAllActions(withTarget: textView.textStorage!)
-            textView.undoManager?.removeAllActions(withTarget: textView)
+            for (view, selection) in zip(textViews, mapped.selection) {
+                if view === active { setCaret(selection.lowerBound) } else { view.setSelectedRange(NSRange(location: selection.lowerBound, length: 0)) }
+                if !selection.isEmpty { view.setSelectedRange(NSRange(selection)) }
+            }
+            undoManager.removeAllActions()
         } else if document.defaults != defaultsBefore {
             // New settings for the same text: TODO keywords may color differently.
             restyleEverything()
