@@ -56,6 +56,7 @@ orgstar writes a complete HTML page: a small built-in stylesheet that follows th
 | =#+TITLE:= | The page title and a top heading. Without one, the file's name is used.  |
 | =#+AUTHOR:=| Shown under the title.                                                   |
 | =#+DATE:=  | Shown under the title, after the author, as written.                     |
+| =#+LANGUAGE:= | The page's =lang=, and the language of the words the export writes: the table of contents heading, =Figure N:= captions and the footnotes' label, as Org's =org-export-dictionary= translates them. Without one, =org-export-default-language= (=en=). |
 
 Keywords in files named by =#+SETUPFILE:= count, as they do in Org.
 

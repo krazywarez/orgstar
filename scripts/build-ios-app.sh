@@ -31,6 +31,10 @@ cat > "$app/Info.plist" <<PLIST
 <dict>
     <key>CFBundleIdentifier</key>
     <string>sh.krz.orgstar</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array><string>en</string><string>de</string></array>
     <key>CFBundleName</key>
     <string>orgstar</string>
     <key>CFBundleDisplayName</key>
@@ -120,10 +124,14 @@ ls "$PWD/$objects"/*.swiftconstvalues > "$work/constvalues.txt"
     --target-triple arm64-apple-ios26.0-simulator --binary-file "$app/OrgstarMobile" --source-file-list "$objects/OrgstarMobile.SwiftFileList" \
     --swift-const-vals-list "$work/constvalues.txt" --output "$app" --force > /dev/null 2>&1
 
+# The UI's translations, from l10n/Localizable.xcstrings.
+scripts/localize.sh "$app"
+
 appex() { # name, bundle id suffix, extension point, principal class, attributes, entitlements
     dir="$app/PlugIns/$1.appex"
     mkdir -p "$dir"
     cp "$products/$1" "$dir/$1"
+    scripts/localize.sh "$dir"
     cat > "$dir/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -75,17 +75,17 @@ struct OrgExport: Transferable {
         let url = folder.appendingPathComponent(fileName)
         switch format {
         case .html:
-            try HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle)
+            try HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
                 .write(to: url, atomically: true, encoding: .utf8)
         case .markdown:
             try MarkdownExport.document(text, settings: settings, path: path).write(to: url, atomically: true, encoding: .utf8)
         case .icalendar:
             try ICalendarFiles.export(text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(), destination: url)
         case .docx:
-            let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle)
+            let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
             try await RichTextExport.docx(html: html, directory: URL(fileURLWithPath: path).deletingLastPathComponent()).write(to: url, options: .atomic)
         case .pdf, .rtf, .plainText:
-            let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle)
+            let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
             let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
             let data: Data = switch format {
             case .pdf: try await PDFExport.pdf(html: html, directory: directory)
@@ -124,7 +124,7 @@ struct ExportMenu: View {
         let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
         let settings = OrgPreferences.orgSettings().resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
         let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path,
-                                   codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))
+                                   codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme), language: OrgPreferences.exportLanguage())
         do {
             try RichTextExport.copy(html: html, directory: URL(fileURLWithPath: path).deletingLastPathComponent())
             report("Copied as rich text")

@@ -1,10 +1,11 @@
 import Foundation
 
-/// Document metadata from `#+TITLE`, `#+AUTHOR` and `#+DATE`.
+/// Document metadata from `#+TITLE`, `#+AUTHOR`, `#+DATE` and `#+LANGUAGE`.
 public struct ExportMetadata: Sendable, Equatable {
     public var title: String?
     public var author: String?
     public var date: String?
+    public var language: String?
 }
 
 /// HTML export. The body follows the shape orgo produces, which the org-conformance corpus
@@ -31,6 +32,7 @@ public enum HTMLExport {
             case "TITLE": meta.title = value
             case "AUTHOR": meta.author = value
             case "DATE": meta.date = value
+            case "LANGUAGE": meta.language = value.isEmpty ? nil : value
             default: break
             }
         }
@@ -41,9 +43,10 @@ public enum HTMLExport {
     /// `#+OPTIONS` and the export keywords ask. `path` is the file's, for `#+INCLUDE` and
     /// `{{{input-file}}}`. `bodyOnly` returns what goes inside `<body>` without the title and
     /// byline: the table of contents, the document and its footnotes, as Org's body-only export.
+    /// `language` is `org-export-default-language`, for files without `#+LANGUAGE`.
     public static func page(
         _ text: String, fallbackTitle: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), bodyOnly: Bool = false,
-        codeStyle: HTMLCodeStyle? = nil
+        codeStyle: HTMLCodeStyle? = nil, language: String = "en"
     ) -> String {
         let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
         let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, now: now, setup: settings.setupKeywords)
@@ -52,6 +55,7 @@ public enum HTMLExport {
         let title = meta.title ?? fallbackTitle
         let renderer = HTMLRenderer(settings: settings, options: options)
         renderer.codeStyle = codeStyle
+        renderer.language = meta.language ?? language
         // The title isn't part of the document Org processes citations in: they drop out.
         renderer.inTitle = true
         let titleHTML = renderer.inlineString(title)
@@ -74,7 +78,7 @@ public enum HTMLExport {
         }
         return """
         <!DOCTYPE html>
-        <html lang="en">
+        <html lang="\(HTMLRenderer.escape(renderer.language))">
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -134,6 +138,8 @@ final class HTMLRenderer {
     private var selected: Set<Int>?
     private var numbers: [Int] = []
     private var tocEntries: [(level: Int, id: String, html: String)] = []
+    /// `#+LANGUAGE`, for the words the exporter writes (`org-export-translate`).
+    var language = "en"
     /// A LaTeX fragment was exported, for MathJax.
     private(set) var hasMath = false
     private var footnoteNumbers: [String: Int] = [:]
@@ -222,7 +228,7 @@ final class HTMLRenderer {
 
     private func footnoteSection() -> String {
         guard !footnoteOrder.isEmpty else { return "" }
-        var out = "<section class=\"footnotes\" aria-label=\"Footnotes\">\n<hr>\n<ol>\n"
+        var out = "<section class=\"footnotes\" aria-label=\"\(ExportDictionary.translate("Footnotes", language: language, encoding: .html))\">\n<hr>\n<ol>\n"
         for (index, note) in footnoteOrder.enumerated() {
             let n = index + 1
             let content: String
@@ -425,7 +431,7 @@ final class HTMLRenderer {
     /// The table of contents, as ox-html writes it, or nothing.
     func tableOfContents() -> String {
         guard options.toc != nil, !tocEntries.isEmpty else { return "" }
-        var out = "<div id=\"table-of-contents\" role=\"doc-toc\">\n<h2>Table of Contents</h2>\n<div id=\"text-table-of-contents\" role=\"doc-toc\">\n"
+        var out = "<div id=\"table-of-contents\" role=\"doc-toc\">\n<h2>\(ExportDictionary.translate("Table of Contents", language: language, encoding: .html))</h2>\n<div id=\"text-table-of-contents\" role=\"doc-toc\">\n"
         var depth = 0
         var open: [Bool] = []
         let base = tocEntries.map(\.level).min() ?? 1
@@ -501,7 +507,8 @@ final class HTMLRenderer {
             var out = "<figure>\n" + image + "\n"
             if let caption = affiliated["CAPTION"] {
                 figures += 1
-                out += "<figcaption>Figure \(figures): \(inlineString(caption))</figcaption>\n"
+                let label = ExportDictionary.translate("Figure %d:", language: language, encoding: .html).replacingOccurrences(of: "%d", with: String(figures))
+                out += "<figcaption>\(label) \(inlineString(caption))</figcaption>\n"
             }
             return out + "</figure>\n"
         }

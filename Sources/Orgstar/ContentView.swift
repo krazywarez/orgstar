@@ -508,7 +508,7 @@ struct ContentView: View {
         let url = URL(fileURLWithPath: path)
         let html = HTMLExport.page(
             selected ?? whole, fallbackTitle: url.deletingPathExtension().lastPathComponent, settings: defaults, path: path, bodyOnly: selected != nil,
-            codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
+            codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme), language: OrgPreferences.exportLanguage()
         )
         do {
             try RichTextExport.copy(html: html, directory: url.deletingLastPathComponent())
@@ -569,7 +569,7 @@ struct ContentView: View {
                 ? MarkdownExport.document(text, settings: defaults, path: path, bodyOnly: bodyOnly)
                 : HTMLExport.page(
                     text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path, bodyOnly: bodyOnly,
-                    codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
+                    codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme), language: OrgPreferences.exportLanguage()
                 )
             do {
                 try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -585,7 +585,7 @@ struct ContentView: View {
             let target = destination ?? ExportScope.output(for: url, name: name, extension: ext)
             let html = HTMLExport.page(
                 text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path,
-                codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
+                codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme), language: OrgPreferences.exportLanguage()
             )
             let directory = url.deletingLastPathComponent()
             if format == "print-pdf" { commands.show("Exporting to PDF…") }
@@ -811,7 +811,7 @@ struct ContentView: View {
                     let settings = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
                     if function == "org-md-publish-to-md" { return MarkdownExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly) }
                     let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
-                    return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, bodyOnly: bodyOnly, codeStyle: codeStyle)
+                    return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, bodyOnly: bodyOnly, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
                 }
                 commands.show("Published \(report.published.count) files" + (report.skipped.isEmpty ? "" : ", \(report.skipped.count) up to date"))
             } catch {

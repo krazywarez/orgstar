@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C3C75F379379A9A6CE73594 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
+		66B4CC5BE465CB078976E641 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
+		D2A6A2AF120C4594370B7128 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
 		1B78003BBCE8A4B809333342 /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = A2BE626BBE45EA52880B6169 /* OrgApp */; };
 		1E5861C0EFE1D96CDC21A22F /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = BA239181876756F7732397EB /* OrgApp */; };
 		2BE799BF03ED43EAA6849F53 /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = EDEF22C5B4F393296F1D17BB /* OrgApp */; };
@@ -59,6 +62,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Localizable.xcstrings; path = ../l10n/Localizable.xcstrings; sourceTree = "<group>"; };
 		008B67FA6385670637488313 /* Orgstar/Orgstar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Orgstar/Orgstar.entitlements; sourceTree = "<group>"; };
 		0B6845EF9D6D0093A0394C43 /* Orgstar/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Orgstar/Assets.xcassets; sourceTree = "<group>"; };
 		1025FACEDEC31014F0AFA230 /* OrgstarShare/OrgstarShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarShare/OrgstarShare.entitlements; sourceTree = "<group>"; };
@@ -174,6 +178,7 @@
 				2412EC8ED6427B76498FCD18 /* ../Sources/OrgstarQuickLook */,
 				7E85FA5E5BA11D0F6891693E /* ../Sources/OrgstarMobile */,
 				DE99BDA1BB90EEDFA8FF4CC2 /* ../Sources/OrgstarWidgets */,
+				E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */,
 				40FCC6CF7BFC065FCDD48D4E /* Support */,
 				0A2C978E52A76F0AA9F68BB5 /* Products */,
 			);
@@ -309,6 +314,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				de,
 				Base,
 			);
 			mainGroup = 2B731CEFC6751AAE0EC69B98;
@@ -334,6 +340,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D2A6A2AF120C4594370B7128 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -341,6 +348,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C3C75F379379A9A6CE73594 /* Localizable.xcstrings in Resources */,
 				67AD8B4FFD1ED43852CFC2CA /* Orgstar/Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -356,6 +364,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66B4CC5BE465CB078976E641 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,5317 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "": {
+      "shouldTranslate": false
+    },
+    "%@": {
+      "shouldTranslate": false
+    },
+    "%@\n\nThe heading and every line under it are removed from the file.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@\n\nDie Überschrift und jede Zeile darunter werden aus der Datei entfernt."
+          }
+        }
+      }
+    },
+    "%@ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ %2$@"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "%@ ago": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vor %@"
+          }
+        }
+      }
+    },
+    "%@ late": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ überfällig"
+          }
+        }
+      }
+    },
+    "%@ state": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status %@"
+          }
+        }
+      }
+    },
+    "%@ · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "%@ → %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ → %2$@"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "%lld": {
+      "shouldTranslate": false
+    },
+    "%lld %@, %lld %@, %lld chars": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld %@, %lld %@, %lld Zeichen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld %2$@, %3$lld %4$@, %5$lld chars"
+          }
+        }
+      }
+    },
+    "%lld Days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Tage"
+          }
+        }
+      }
+    },
+    "%lld minutes before": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Minuten vorher"
+          }
+        }
+      }
+    },
+    "%lld open": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld offen"
+          }
+        }
+      }
+    },
+    "%lld open today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld heute offen"
+          }
+        }
+      }
+    },
+    "%lld overdue": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld überfällig"
+          }
+        }
+      }
+    },
+    "%lld selected": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ausgewählt"
+          }
+        }
+      }
+    },
+    "%lld/%lld today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld heute"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld/%2$lld today"
+          }
+        }
+      }
+    },
+    "%lld:%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld:%2$lld"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "+work-boss|LEVEL>2/!TODO": {
+      "shouldTranslate": false
+    },
+    "+work-home": {
+      "shouldTranslate": false
+    },
+    "A folder with config.toml and capture.toml, such as a synced copy of ~/.config/orgstar from your Mac. Changes to them apply as they sync.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Ordner mit config.toml und capture.toml, etwa eine synchronisierte Kopie von ~/.config/orgstar auf deinem Mac. Änderungen daran gelten, sobald sie synchronisiert sind."
+          }
+        }
+      }
+    },
+    "A name without an extension gets .org.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Name ohne Endung erhält .org."
+          }
+        }
+      }
+    },
+    "A name without an extension gets .org. Use folder/name to make folders.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Name ohne Endung erhält .org. Mit Ordner/Name entstehen Ordner."
+          }
+        }
+      }
+    },
+    "A template's key in capture.toml; the first template when empty.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Kürzel einer Vorlage in capture.toml; leer für die erste Vorlage."
+          }
+        }
+      }
+    },
+    "Absolute": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Absolut"
+          }
+        }
+      }
+    },
+    "Actions": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktionen"
+          }
+        }
+      }
+    },
+    "Add": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinzufügen"
+          }
+        }
+      }
+    },
+    "Add Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner hinzufügen"
+          }
+        }
+      }
+    },
+    "Add Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner hinzufügen …"
+          }
+        }
+      }
+    },
+    "Add Tag…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag hinzufügen …"
+          }
+        }
+      }
+    },
+    "Add a folder (⇧⌘O)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner hinzufügen (⇧⌘O)"
+          }
+        }
+      }
+    },
+    "Add a folder of org files": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einen Ordner mit Org-Dateien hinzufügen"
+          }
+        }
+      }
+    },
+    "Add a folder of org files under Folders.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge unter „Ordner“ einen Ordner mit Org-Dateien hinzu."
+          }
+        }
+      }
+    },
+    "Add the folder your org files are in, from iCloud Drive or another app's storage.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge den Ordner mit deinen Org-Dateien hinzu, aus iCloud Drive oder dem Speicher einer anderen App."
+          }
+        }
+      }
+    },
+    "Add to %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu %@ hinzufügen"
+          }
+        }
+      }
+    },
+    "Add to Calendar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Kalender hinzufügen"
+          }
+        }
+      }
+    },
+    "Add to Calendar…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Kalender hinzufügen …"
+          }
+        }
+      }
+    },
+    "After %lld minutes without keyboard or mouse input": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach %lld Minuten ohne Tastatur- oder Mauseingabe"
+          }
+        }
+      }
+    },
+    "Agenda": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agenda"
+          }
+        }
+      }
+    },
+    "Agenda clear": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agenda leer"
+          }
+        }
+      }
+    },
+    "Agenda shows %lld days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agenda zeigt %lld Tage"
+          }
+        }
+      }
+    },
+    "Agenda starts %lld days before today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agenda beginnt %lld Tage vor heute"
+          }
+        }
+      }
+    },
+    "Agenda starts today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agenda beginnt heute"
+          }
+        }
+      }
+    },
+    "Aligned to end at column 77": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechtsbündig bis Spalte 77"
+          }
+        }
+      }
+    },
+    "All day": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ganztägig"
+          }
+        }
+      }
+    },
+    "Allow Access to Calendars…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriff auf Kalender erlauben …"
+          }
+        }
+      }
+    },
+    "Allow Access to Reminders…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriff auf Erinnerungen erlauben …"
+          }
+        }
+      }
+    },
+    "Allow orgstar to read your calendars in System Settings ▸ Privacy & Security ▸ Calendars.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erlaube orgstar in den Systemeinstellungen ▸ Datenschutz & Sicherheit ▸ Kalender, deine Kalender zu lesen."
+          }
+        }
+      }
+    },
+    "Allow orgstar to read your reminders in System Settings ▸ Privacy & Security ▸ Reminders.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erlaube orgstar in den Systemeinstellungen ▸ Datenschutz & Sicherheit ▸ Erinnerungen, deine Erinnerungen zu lesen."
+          }
+        }
+      }
+    },
+    "An entry's APPT_WARNTIME property overrides the lead time.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Eigenschaft APPT_WARNTIME eines Eintrags ersetzt die Vorlaufzeit."
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Darstellung"
+          }
+        }
+      }
+    },
+    "Applies to files as they open. View ▸ Truncate or Wrap Long Lines switches the current file.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gilt für Dateien beim Öffnen. Darstellung ▸ Lange Zeilen abschneiden oder umbrechen schaltet die aktuelle Datei um."
+          }
+        }
+      }
+    },
+    "Archive": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivieren"
+          }
+        }
+      }
+    },
+    "Archive %lld %@?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld %@ archivieren?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Archive %1$lld %2$@?"
+          }
+        }
+      }
+    },
+    "Archive this entry?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Eintrag archivieren?"
+          }
+        }
+      }
+    },
+    "Archive…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivieren …"
+          }
+        }
+      }
+    },
+    "As Org's / filter: +keep and -drop tags or categories, <0:30 for effort, /regexp/.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie Orgs Filter /: +behalten und -verwerfen für Tags oder Kategorien, <0:30 für den Aufwand, /Regexp/."
+          }
+        }
+      }
+    },
+    "Ask what to do with idle time while clocked in": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bei Leerlauf während der Zeiterfassung nachfragen"
+          }
+        }
+      }
+    },
+    "Attach": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhängen"
+          }
+        }
+      }
+    },
+    "Attach File from URL…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei von URL anhängen …"
+          }
+        }
+      }
+    },
+    "Attach File…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei anhängen …"
+          }
+        }
+      }
+    },
+    "Attach Photo or Video…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto oder Video anhängen …"
+          }
+        }
+      }
+    },
+    "Attachments": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhänge"
+          }
+        }
+      }
+    },
+    "Automatically, when typing stops": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch, wenn die Eingabe pausiert"
+          }
+        }
+      }
+    },
+    "Back to today (.)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zu heute (.)"
+          }
+        }
+      }
+    },
+    "Backlinks": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rückverweise"
+          }
+        }
+      }
+    },
+    "Badge": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kennzeichen"
+          }
+        }
+      }
+    },
+    "Blocked entries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blockierte Einträge"
+          }
+        }
+      }
+    },
+    "Board": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Board"
+          }
+        }
+      }
+    },
+    "Body only": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur Inhalt"
+          }
+        }
+      }
+    },
+    "Both": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beide"
+          }
+        }
+      }
+    },
+    "Both sets of changes in the buffer, conflicting lines between <<<<<<< and >>>>>>>": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beide Änderungen im Puffer, widersprüchliche Zeilen zwischen <<<<<<< und >>>>>>>"
+          }
+        }
+      }
+    },
+    "By Category of Selected Line": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Kategorie der ausgewählten Zeile"
+          }
+        }
+      }
+    },
+    "By Effort…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Aufwand …"
+          }
+        }
+      }
+    },
+    "By Regexp…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Regexp …"
+          }
+        }
+      }
+    },
+    "By Tag…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Tag …"
+          }
+        }
+      }
+    },
+    "C-c ' or ⌘Return saves, Escape or C-c C-k leaves": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C-c ' oder ⌘Zeilenschalter sichert, Escape oder C-c C-k verlässt"
+          }
+        }
+      }
+    },
+    "Calendar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalender"
+          }
+        }
+      }
+    },
+    "Can't open the index": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Index kann nicht geöffnet werden"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbrechen"
+          }
+        }
+      }
+    },
+    "Cancel Clock": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung abbrechen"
+          }
+        }
+      }
+    },
+    "Cancel Running Task": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laufende Aufgabe abbrechen"
+          }
+        }
+      }
+    },
+    "Capture": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfassen"
+          }
+        }
+      }
+    },
+    "Capture Template": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfassungsvorlage"
+          }
+        }
+      }
+    },
+    "Capture an entry scheduled on this day (k)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einen Eintrag für diesen Tag erfassen (k)"
+          }
+        }
+      }
+    },
+    "Capture templates": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfassungsvorlagen"
+          }
+        }
+      }
+    },
+    "Capture to Today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für heute erfassen"
+          }
+        }
+      }
+    },
+    "Capture to orgstar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In orgstar erfassen"
+          }
+        }
+      }
+    },
+    "Capture…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfassen …"
+          }
+        }
+      }
+    },
+    "Categories": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kategorien"
+          }
+        }
+      }
+    },
+    "Changes apply to this occurrence only.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen gelten nur für dieses Vorkommen."
+          }
+        }
+      }
+    },
+    "Check for Updates…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Updates suchen …"
+          }
+        }
+      }
+    },
+    "Check for updates automatically": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch nach Updates suchen"
+          }
+        }
+      }
+    },
+    "Choices": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auswahl"
+          }
+        }
+      }
+    },
+    "Choose Another Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anderen Ordner wählen …"
+          }
+        }
+      }
+    },
+    "Choose Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner wählen …"
+          }
+        }
+      }
+    },
+    "Choose a file": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle eine Datei"
+          }
+        }
+      }
+    },
+    "Choose a file, or press ⌘P.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle eine Datei oder drücke ⌘P."
+          }
+        }
+      }
+    },
+    "Choose your init.el, or the folder holding it (~/.emacs.d, ~/.config/doom).": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle deine init.el oder den Ordner, der sie enthält (~/.emacs.d, ~/.config/doom)."
+          }
+        }
+      }
+    },
+    "Choose…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen …"
+          }
+        }
+      }
+    },
+    "Clear": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leeren"
+          }
+        }
+      }
+    },
+    "Clock": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung"
+          }
+        }
+      }
+    },
+    "Clock In": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit erfassen"
+          }
+        }
+      }
+    },
+    "Clock In or Out": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung starten oder beenden"
+          }
+        }
+      }
+    },
+    "Clock In to Recent Entry…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit für letzten Eintrag erfassen …"
+          }
+        }
+      }
+    },
+    "Clock Out": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung beenden"
+          }
+        }
+      }
+    },
+    "Clock Report": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeitbericht"
+          }
+        }
+      }
+    },
+    "Clock in to %@ in %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit für %@ in %@ erfassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Clock in to %1$@ in %2$@"
+          }
+        }
+      }
+    },
+    "Clocked": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasst"
+          }
+        }
+      }
+    },
+    "Clocked In": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung läuft"
+          }
+        }
+      }
+    },
+    "Clocked in": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung läuft"
+          }
+        }
+      }
+    },
+    "Clocked in on %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung für %@"
+          }
+        }
+      }
+    },
+    "Clocked in since %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeiterfassung seit %@"
+          }
+        }
+      }
+    },
+    "Clocks out of the running clock, or back in to the entry clocked last.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet die laufende Zeiterfassung oder startet sie wieder für den zuletzt erfassten Eintrag."
+          }
+        }
+      }
+    },
+    "Clocks out of the running clock, or in to the entry clocked last.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet die laufende Zeiterfassung oder startet sie für den zuletzt erfassten Eintrag."
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schließen"
+          }
+        }
+      }
+    },
+    "Close Buffer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puffer schließen"
+          }
+        }
+      }
+    },
+    "Close Other Panes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Andere Bereiche schließen"
+          }
+        }
+      }
+    },
+    "Close Pane": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereich schließen"
+          }
+        }
+      }
+    },
+    "Close Window": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fenster schließen"
+          }
+        }
+      }
+    },
+    "Closed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abgeschlossen"
+          }
+        }
+      }
+    },
+    "Collapse": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einklappen"
+          }
+        }
+      }
+    },
+    "Colors": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Farben"
+          }
+        }
+      }
+    },
+    "Column": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spalte"
+          }
+        }
+      }
+    },
+    "Column View": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spaltenansicht"
+          }
+        }
+      }
+    },
+    "Column View of File": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spaltenansicht der Datei"
+          }
+        }
+      }
+    },
+    "Command Palette…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Befehlspalette …"
+          }
+        }
+      }
+    },
+    "Commands": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Befehle"
+          }
+        }
+      }
+    },
+    "Configuration": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konfiguration"
+          }
+        }
+      }
+    },
+    "Conflict": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konflikt"
+          }
+        }
+      }
+    },
+    "Conflicting Changes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widersprüchliche Änderungen"
+          }
+        }
+      }
+    },
+    "Conflicting changes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widersprüchliche Änderungen"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortfahren"
+          }
+        }
+      }
+    },
+    "Continue Timer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timer fortsetzen"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopieren"
+          }
+        }
+      }
+    },
+    "Copy as Rich Text": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als formatierten Text kopieren"
+          }
+        }
+      }
+    },
+    "Couldn't change the file": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Datei konnte nicht geändert werden"
+          }
+        }
+      }
+    },
+    "Countdown timer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Countdown"
+          }
+        }
+      }
+    },
+    "Create": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstellen"
+          }
+        }
+      }
+    },
+    "Cycle TODO State": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TODO-Status weiterschalten"
+          }
+        }
+      }
+    },
+    "Daily Notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tagesnotizen"
+          }
+        }
+      }
+    },
+    "Date": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum"
+          }
+        }
+      }
+    },
+    "Date…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum …"
+          }
+        }
+      }
+    },
+    "Day": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag"
+          }
+        }
+      }
+    },
+    "Day %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag %@"
+          }
+        }
+      }
+    },
+    "Deadline": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frist"
+          }
+        }
+      }
+    },
+    "Deadline %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frist %@"
+          }
+        }
+      }
+    },
+    "Deadline…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frist …"
+          }
+        }
+      }
+    },
+    "Decide Later": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Später entscheiden"
+          }
+        }
+      }
+    },
+    "Decrypt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entschlüsseln"
+          }
+        }
+      }
+    },
+    "Decrypt Entry in File…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eintrag in der Datei entschlüsseln …"
+          }
+        }
+      }
+    },
+    "Decrypt Entry…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eintrag entschlüsseln …"
+          }
+        }
+      }
+    },
+    "Decrypt in File": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In der Datei entschlüsseln"
+          }
+        }
+      }
+    },
+    "Default TODO keywords": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standard-TODO-Schlüsselwörter"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        }
+      }
+    },
+    "Delete All Attachments…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Anhänge löschen …"
+          }
+        }
+      }
+    },
+    "Delete Attachment…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhang löschen …"
+          }
+        }
+      }
+    },
+    "Delete Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner löschen …"
+          }
+        }
+      }
+    },
+    "Delete this entry?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Eintrag löschen?"
+          }
+        }
+      }
+    },
+    "Delete “%@”?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ löschen?"
+          }
+        }
+      }
+    },
+    "Delete…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen …"
+          }
+        }
+      }
+    },
+    "Destination": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ziel"
+          }
+        }
+      }
+    },
+    "Dimmed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abgeblendet"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fertig"
+          }
+        }
+      }
+    },
+    "Done %lld of %lld days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An %lld von %lld Tagen erledigt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Done %1$lld of %2$lld days"
+          }
+        }
+      }
+    },
+    "Done %lld of the last %lld days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An %lld der letzten %lld Tage erledigt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Done %1$lld of the last %2$lld days"
+          }
+        }
+      }
+    },
+    "Downloading from iCloud": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird aus iCloud geladen"
+          }
+        }
+      }
+    },
+    "Due": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fällig"
+          }
+        }
+      }
+    },
+    "Due in %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fällig in %@"
+          }
+        }
+      }
+    },
+    "Due today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heute fällig"
+          }
+        }
+      }
+    },
+    "Earlier": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Früher"
+          }
+        }
+      }
+    },
+    "Edit": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Config File": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konfigurationsdatei bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Event": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignis bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Event…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignis bearbeiten …"
+          }
+        }
+      }
+    },
+    "Edit config.toml": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "config.toml bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit in config.toml": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In config.toml bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit in orgstar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In orgstar bearbeiten"
+          }
+        }
+      }
+    },
+    "Editing": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bearbeiten"
+          }
+        }
+      }
+    },
+    "Editor": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editor"
+          }
+        }
+      }
+    },
+    "Emacs": {
+      "shouldTranslate": false
+    },
+    "Emacs hides emphasis markers (org-hide-emphasis-markers)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emacs blendet Hervorhebungszeichen aus (org-hide-emphasis-markers)"
+          }
+        }
+      }
+    },
+    "Emacs shows entities as characters (org-pretty-entities)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emacs zeigt Entitäten als Zeichen (org-pretty-entities)"
+          }
+        }
+      }
+    },
+    "Empty takes the default.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leer übernimmt den Standard."
+          }
+        }
+      }
+    },
+    "Encrypt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verschlüsseln"
+          }
+        }
+      }
+    },
+    "Encrypt Entry…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eintrag verschlüsseln …"
+          }
+        }
+      }
+    },
+    "Encrypt Tagged Entries…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markierte Einträge verschlüsseln …"
+          }
+        }
+      }
+    },
+    "Encrypted Entry": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verschlüsselter Eintrag"
+          }
+        }
+      }
+    },
+    "Encryption": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verschlüsselung"
+          }
+        }
+      }
+    },
+    "Ends": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ende"
+          }
+        }
+      }
+    },
+    "Entries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einträge"
+          }
+        }
+      }
+    },
+    "Entries can't be done before their TODO children (org-enforce-todo-dependencies)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einträge sind erst nach ihren TODO-Untereinträgen erledigt (org-enforce-todo-dependencies)"
+          }
+        }
+      }
+    },
+    "Entries can't be done with unchecked boxes (org-enforce-todo-checkbox-dependencies)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einträge mit offenen Kontrollkästchen sind nicht erledigt (org-enforce-todo-checkbox-dependencies)"
+          }
+        }
+      }
+    },
+    "Events from the checked calendars show in the agenda. Tap one to edit it.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignisse der markierten Kalender erscheinen in der Agenda. Tippe auf eines, um es zu bearbeiten."
+          }
+        }
+      }
+    },
+    "Events show in the agenda; double-click one to open it in Calendar, or choose Edit Event… in its context menu. New calendars show while every calendar is checked.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignisse erscheinen in der Agenda; doppelklicke eines, um es im Kalender zu öffnen, oder wähle „Ereignis bearbeiten …“ im Kontextmenü. Neue Kalender erscheinen, solange alle Kalender markiert sind."
+          }
+        }
+      }
+    },
+    "Every setting here is also in %@, which you can edit, share or keep with your dotfiles. Changes in either place show up in the other.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Einstellung hier steht auch in %@, das du bearbeiten, teilen oder mit deinen Dotfiles aufbewahren kannst. Änderungen an einer Stelle erscheinen an der anderen."
+          }
+        }
+      }
+    },
+    "Expand": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufklappen"
+          }
+        }
+      }
+    },
+    "Export": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportieren"
+          }
+        }
+      }
+    },
+    "Export Table as CSV…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabelle als CSV exportieren …"
+          }
+        }
+      }
+    },
+    "Export Table as TSV…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabelle als TSV exportieren …"
+          }
+        }
+      }
+    },
+    "File": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei"
+          }
+        }
+      }
+    },
+    "File It": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ablegen"
+          }
+        }
+      }
+    },
+    "File names and the words of headings and their text.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateinamen und die Wörter von Überschriften und ihrem Text."
+          }
+        }
+      }
+    },
+    "File ▸ Add Folder… (⇧⌘O)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ablage ▸ Ordner hinzufügen … (⇧⌘O)"
+          }
+        }
+      }
+    },
+    "Files": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateien"
+          }
+        }
+      }
+    },
+    "Files text with one of your capture templates.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legt Text mit einer deiner Erfassungsvorlagen ab."
+          }
+        }
+      }
+    },
+    "Filter": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter"
+          }
+        }
+      }
+    },
+    "Filter the entries (/, \\, <, =, _; | removes)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einträge filtern (/, \\, <, =, _; | entfernt)"
+          }
+        }
+      }
+    },
+    "Filter…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter …"
+          }
+        }
+      }
+    },
+    "Find": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchen"
+          }
+        }
+      }
+    },
+    "Find Node…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Knoten suchen …"
+          }
+        }
+      }
+    },
+    "Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner"
+          }
+        }
+      }
+    },
+    "Folders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner"
+          }
+        }
+      }
+    },
+    "Folds the heading": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klappt die Überschrift ein"
+          }
+        }
+      }
+    },
+    "Font": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schrift"
+          }
+        }
+      }
+    },
+    "For files without #+TODO, in #+TODO syntax, one sequence per line. Takes effect when orgstar restarts.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für Dateien ohne #+TODO, in #+TODO-Syntax, eine Folge pro Zeile. Gilt nach einem Neustart von orgstar."
+          }
+        }
+      }
+    },
+    "Forget Encryption Passphrase": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verschlüsselungspasswort vergessen"
+          }
+        }
+      }
+    },
+    "Format": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Format"
+          }
+        }
+      }
+    },
+    "From": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von"
+          }
+        }
+      }
+    },
+    "General": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allgemein"
+          }
+        }
+      }
+    },
+    "Git branch": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Git-Branch"
+          }
+        }
+      }
+    },
+    "Go to Clocked Entry": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum erfassten Eintrag"
+          }
+        }
+      }
+    },
+    "Go to Date": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gehe zu Datum"
+          }
+        }
+      }
+    },
+    "Go to Entry": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Eintrag"
+          }
+        }
+      }
+    },
+    "Go to Recent Clocked Entry…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu einem zuletzt erfassten Eintrag …"
+          }
+        }
+      }
+    },
+    "Go to a date (j)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu einem Datum gehen (j)"
+          }
+        }
+      }
+    },
+    "Habit": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewohnheit"
+          }
+        }
+      }
+    },
+    "Habits": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewohnheiten"
+          }
+        }
+      }
+    },
+    "Headings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überschriften"
+          }
+        }
+      }
+    },
+    "Headings grow by %lld pt a level": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überschriften wachsen um %lld pt je Ebene"
+          }
+        }
+      }
+    },
+    "Hidden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeblendet"
+          }
+        }
+      }
+    },
+    "Hide Outline": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gliederung ausblenden"
+          }
+        }
+      }
+    },
+    "Hide entries from earlier days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einträge früherer Tage ausblenden"
+          }
+        }
+      }
+    },
+    "Hide keyboard": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastatur ausblenden"
+          }
+        }
+      }
+    },
+    "Hide the outline (⌥⌘O)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gliederung ausblenden (⌥⌘O)"
+          }
+        }
+      }
+    },
+    "Import": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importieren"
+          }
+        }
+      }
+    },
+    "Import Table from File…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabelle aus Datei importieren …"
+          }
+        }
+      }
+    },
+    "Import from Emacs": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Emacs importieren"
+          }
+        }
+      }
+    },
+    "Import from Emacs…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Emacs importieren …"
+          }
+        }
+      }
+    },
+    "In a Week": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In einer Woche"
+          }
+        }
+      }
+    },
+    "In use": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwendet"
+          }
+        }
+      }
+    },
+    "Include files in subfolders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateien in Unterordnern einbeziehen"
+          }
+        }
+      }
+    },
+    "Incomplete reminders with a due date from the checked lists show in the agenda, read-only; overdue ones under today.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offene Erinnerungen mit Fälligkeitsdatum aus den markierten Listen erscheinen schreibgeschützt in der Agenda; überfällige unter heute."
+          }
+        }
+      }
+    },
+    "Incomplete reminders with a due date show in the agenda read-only, overdue ones under today; double-click one to open it in Reminders.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offene Erinnerungen mit Fälligkeitsdatum erscheinen schreibgeschützt in der Agenda, überfällige unter heute; doppelklicke eine, um sie in Erinnerungen zu öffnen."
+          }
+        }
+      }
+    },
+    "Insert Node Link…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Knotenlink einfügen …"
+          }
+        }
+      }
+    },
+    "Kanban": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kanban"
+          }
+        }
+      }
+    },
+    "Keep": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behalten"
+          }
+        }
+      }
+    },
+    "Keep File": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei behalten"
+          }
+        }
+      }
+    },
+    "Keep Mine": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meine behalten"
+          }
+        }
+      }
+    },
+    "Keys": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasten"
+          }
+        }
+      }
+    },
+    "Later": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Später"
+          }
+        }
+      }
+    },
+    "Leave out": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weglassen"
+          }
+        }
+      }
+    },
+    "Leave out the title and page wrapper, as Org's body-only export": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel und Seitenrahmen weglassen, wie Orgs Export nur des Inhalts"
+          }
+        }
+      }
+    },
+    "Left Option": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linke Wahltaste"
+          }
+        }
+      }
+    },
+    "Limit dates": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeitraum begrenzen"
+          }
+        }
+      }
+    },
+    "Line %lld, column %lld": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeile %lld, Spalte %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Line %1$lld, column %2$lld"
+          }
+        }
+      }
+    },
+    "Line Numbers": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeilennummern"
+          }
+        }
+      }
+    },
+    "Line spacing: %lld pt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeilenabstand: %lld pt"
+          }
+        }
+      }
+    },
+    "Lines marked - are in the buffer, + in the kept version.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit - markierte Zeilen stehen im Puffer, mit + in der aufbewahrten Version."
+          }
+        }
+      }
+    },
+    "Lines marked - are in the file, + in the copy. The copy goes to the recovery folder when it's resolved.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit - markierte Zeilen stehen in der Datei, mit + in der Kopie. Die Kopie kommt nach dem Auflösen in den Wiederherstellungsordner."
+          }
+        }
+      }
+    },
+    "Link": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link"
+          }
+        }
+      }
+    },
+    "Links to %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Links auf %@"
+          }
+        }
+      }
+    },
+    "Links to this file": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Links auf diese Datei"
+          }
+        }
+      }
+    },
+    "List": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liste"
+          }
+        }
+      }
+    },
+    "Lists can use letters (a. b. c.)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen dürfen Buchstaben verwenden (a. b. c.)"
+          }
+        }
+      }
+    },
+    "Location": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ort"
+          }
+        }
+      }
+    },
+    "Log Mode": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protokollmodus"
+          }
+        }
+      }
+    },
+    "Long lines run off the edge instead of wrapping (org-startup-truncated)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lange Zeilen laufen über den Rand, statt umzubrechen (org-startup-truncated)"
+          }
+        }
+      }
+    },
+    "M-RET adds the new heading after the subtree": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M-RET fügt die neue Überschrift nach dem Teilbaum ein"
+          }
+        }
+      }
+    },
+    "M-RET splits the line at the caret": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M-RET teilt die Zeile an der Einfügemarke"
+          }
+        }
+      }
+    },
+    "M-q fills to column %lld": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M-q füllt bis Spalte %lld"
+          }
+        }
+      }
+    },
+    "Mark": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markieren"
+          }
+        }
+      }
+    },
+    "Match: +work/!TODO": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treffer: +work/!TODO"
+          }
+        }
+      }
+    },
+    "Merge": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zusammenführen"
+          }
+        }
+      }
+    },
+    "Merge with Markers": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Markierungen zusammenführen"
+          }
+        }
+      }
+    },
+    "Month": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monat"
+          }
+        }
+      }
+    },
+    "More": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr"
+          }
+        }
+      }
+    },
+    "Move To": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bewegen nach"
+          }
+        }
+      }
+    },
+    "Move to %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach %@ bewegen"
+          }
+        }
+      }
+    },
+    "Move to Trash": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In den Papierkorb legen"
+          }
+        }
+      }
+    },
+    "Move to Trash…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In den Papierkorb legen …"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "Neither": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine"
+          }
+        }
+      }
+    },
+    "New": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu"
+          }
+        }
+      }
+    },
+    "New Attachment…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Anhang …"
+          }
+        }
+      }
+    },
+    "New File": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Datei"
+          }
+        }
+      }
+    },
+    "New File…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Datei …"
+          }
+        }
+      }
+    },
+    "New Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Ordner"
+          }
+        }
+      }
+    },
+    "New Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Ordner …"
+          }
+        }
+      }
+    },
+    "New Window": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neues Fenster"
+          }
+        }
+      }
+    },
+    "New heading “%@” under %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Überschrift „%@“ unter %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "New heading “%1$@” under %2$@"
+          }
+        }
+      }
+    },
+    "New tag": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neues Tag"
+          }
+        }
+      }
+    },
+    "Next Buffer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Puffer"
+          }
+        }
+      }
+    },
+    "Next Daily Note": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächste Tagesnotiz"
+          }
+        }
+      }
+    },
+    "Next Pane": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Bereich"
+          }
+        }
+      }
+    },
+    "Next State": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Status"
+          }
+        }
+      }
+    },
+    "Next Value": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Wert"
+          }
+        }
+      }
+    },
+    "Next Week": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächste Woche"
+          }
+        }
+      }
+    },
+    "Next days (f)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächste Tage (f)"
+          }
+        }
+      }
+    },
+    "Next month": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Monat"
+          }
+        }
+      }
+    },
+    "No Emacs configuration found": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Emacs-Konfiguration gefunden"
+          }
+        }
+      }
+    },
+    "No Kept Versions": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine aufbewahrten Versionen"
+          }
+        }
+      }
+    },
+    "No agenda files": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Agenda-Dateien"
+          }
+        }
+      }
+    },
+    "No buffer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Puffer"
+          }
+        }
+      }
+    },
+    "No calendars.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Kalender."
+          }
+        }
+      }
+    },
+    "No clocked time": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine erfasste Zeit"
+          }
+        }
+      }
+    },
+    "No conflict copies of this file.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Konfliktkopien dieser Datei."
+          }
+        }
+      }
+    },
+    "No differences": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Unterschiede"
+          }
+        }
+      }
+    },
+    "No entries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Einträge"
+          }
+        }
+      }
+    },
+    "No folders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Ordner"
+          }
+        }
+      }
+    },
+    "No habits in the agenda. Give an entry STYLE: habit.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Gewohnheiten in der Agenda. Gib einem Eintrag STYLE: habit."
+          }
+        }
+      }
+    },
+    "No headings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Überschriften"
+          }
+        }
+      }
+    },
+    "No headings match": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine passenden Überschriften"
+          }
+        }
+      }
+    },
+    "No keyword": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Schlüsselwort"
+          }
+        }
+      }
+    },
+    "No lists.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Listen."
+          }
+        }
+      }
+    },
+    "No outline": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Gliederung"
+          }
+        }
+      }
+    },
+    "None": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine"
+          }
+        }
+      }
+    },
+    "Not done before TODO children": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht vor TODO-Untereinträgen erledigt"
+          }
+        }
+      }
+    },
+    "Not done with unchecked boxes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht mit offenen Kontrollkästchen erledigt"
+          }
+        }
+      }
+    },
+    "Not imported": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht importiert"
+          }
+        }
+      }
+    },
+    "Nothing left today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heute nichts mehr"
+          }
+        }
+      }
+    },
+    "Nothing scheduled": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts geplant"
+          }
+        }
+      }
+    },
+    "Notify before timed agenda entries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vor Agenda-Einträgen mit Uhrzeit benachrichtigen"
+          }
+        }
+      }
+    },
+    "Now": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Once a day, from the app's own feed. orgstar ▸ Check for Updates… checks now.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmal täglich, aus dem Feed der App. orgstar ▸ Nach Updates suchen … prüft sofort."
+          }
+        }
+      }
+    },
+    "One space after the title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Leerzeichen nach dem Titel"
+          }
+        }
+      }
+    },
+    "Only org files have an outline.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur Org-Dateien haben eine Gliederung."
+          }
+        }
+      }
+    },
+    "Only with File ▸ Save (⌘S)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur mit Ablage ▸ Sichern (⌘S)"
+          }
+        }
+      }
+    },
+    "Open": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnen"
+          }
+        }
+      }
+    },
+    "Open Attachment…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhang öffnen …"
+          }
+        }
+      }
+    },
+    "Open after export": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach dem Export öffnen"
+          }
+        }
+      }
+    },
+    "Open file": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei öffnen"
+          }
+        }
+      }
+    },
+    "Open orgstar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar öffnen"
+          }
+        }
+      }
+    },
+    "Open orgstar to show your agenda here.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne orgstar, um hier deine Agenda zu sehen."
+          }
+        }
+      }
+    },
+    "Open orgstar to show your habits here.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne orgstar, um hier deine Gewohnheiten zu sehen."
+          }
+        }
+      }
+    },
+    "Open with Default App": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Standard-App öffnen"
+          }
+        }
+      }
+    },
+    "Opens orgstar's capture sheet, with the template you choose.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet das Erfassungsfenster von orgstar mit der gewählten Vorlage."
+          }
+        }
+      }
+    },
+    "Opens orgstar's capture sheet.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet das Erfassungsfenster von orgstar."
+          }
+        }
+      }
+    },
+    "Option as Meta": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wahltaste als Meta"
+          }
+        }
+      }
+    },
+    "Or press ⌘P to open one by name.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oder drücke ⌘P, um eine nach Namen zu öffnen."
+          }
+        }
+      }
+    },
+    "Org": {
+      "shouldTranslate": false
+    },
+    "Org's date syntax works too: +2d, fri, 14:00": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orgs Datumssyntax geht auch: +2d, fri, 14:00"
+          }
+        }
+      }
+    },
+    "Org's date syntax: 14:00, -1h, today 9:30": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orgs Datumssyntax: 14:00, -1h, today 9:30"
+          }
+        }
+      }
+    },
+    "Outline": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gliederung"
+          }
+        }
+      }
+    },
+    "Overdue": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überfällig"
+          }
+        }
+      }
+    },
+    "Overdue Count on Icon": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überfällige auf dem Symbol"
+          }
+        }
+      }
+    },
+    "P": {
+      "shouldTranslate": false
+    },
+    "Panes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereiche"
+          }
+        }
+      }
+    },
+    "Passphrase": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwort"
+          }
+        }
+      }
+    },
+    "Pause Timer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timer anhalten"
+          }
+        }
+      }
+    },
+    "Phrase or +word -word {regexp}": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausdruck oder +Wort -Wort {Regexp}"
+          }
+        }
+      }
+    },
+    "Pick Date": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum wählen"
+          }
+        }
+      }
+    },
+    "Pick Date…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum wählen …"
+          }
+        }
+      }
+    },
+    "Plot": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagramm"
+          }
+        }
+      }
+    },
+    "Plot Table": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabelle als Diagramm"
+          }
+        }
+      }
+    },
+    "Previous Buffer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorheriger Puffer"
+          }
+        }
+      }
+    },
+    "Previous Daily Note": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorherige Tagesnotiz"
+          }
+        }
+      }
+    },
+    "Previous Value": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorheriger Wert"
+          }
+        }
+      }
+    },
+    "Previous days (b)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorherige Tage (b)"
+          }
+        }
+      }
+    },
+    "Previous month": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorheriger Monat"
+          }
+        }
+      }
+    },
+    "Priority": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Priorität"
+          }
+        }
+      }
+    },
+    "Priority %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Priorität %@"
+          }
+        }
+      }
+    },
+    "Priority…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Priorität …"
+          }
+        }
+      }
+    },
+    "Property columns": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigenschaftsspalten"
+          }
+        }
+      }
+    },
+    "Property names to show as columns, separated by commas": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigenschaften, die als Spalten erscheinen, durch Kommas getrennt"
+          }
+        }
+      }
+    },
+    "Publish": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veröffentlichen"
+          }
+        }
+      }
+    },
+    "Quick Open…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnell öffnen …"
+          }
+        }
+      }
+    },
+    "Read-only: not UTF-8": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schreibgeschützt: kein UTF-8"
+          }
+        }
+      }
+    },
+    "Recent Entries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Einträge"
+          }
+        }
+      }
+    },
+    "Recovered Versions": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederhergestellte Versionen"
+          }
+        }
+      }
+    },
+    "Refile…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verschieben …"
+          }
+        }
+      }
+    },
+    "Relative": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relativ"
+          }
+        }
+      }
+    },
+    "Relative timer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relativer Timer"
+          }
+        }
+      }
+    },
+    "Remember %lld recently clocked entries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld zuletzt erfasste Einträge merken"
+          }
+        }
+      }
+    },
+    "Remember in the Keychain": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Schlüsselbund merken"
+          }
+        }
+      }
+    },
+    "Reminder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerung"
+          }
+        }
+      }
+    },
+    "Reminders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungen"
+          }
+        }
+      }
+    },
+    "Remove": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
+          }
+        }
+      }
+    },
+    "Remove Filters": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter entfernen"
+          }
+        }
+      }
+    },
+    "Remove Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner entfernen"
+          }
+        }
+      }
+    },
+    "Remove Tag…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag entfernen …"
+          }
+        }
+      }
+    },
+    "Remove a folder from the sidebar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einen Ordner aus der Seitenleiste entfernen"
+          }
+        }
+      }
+    },
+    "Remove from Sidebar…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus der Seitenleiste entfernen …"
+          }
+        }
+      }
+    },
+    "Remove “%@” from the sidebar?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ aus der Seitenleiste entfernen?"
+          }
+        }
+      }
+    },
+    "Rename": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Umbenennen"
+          }
+        }
+      }
+    },
+    "Rename…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Umbenennen …"
+          }
+        }
+      }
+    },
+    "Repeat passphrase": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwort wiederholen"
+          }
+        }
+      }
+    },
+    "Report": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bericht"
+          }
+        }
+      }
+    },
+    "Reschedule": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu planen"
+          }
+        }
+      }
+    },
+    "Restore": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederherstellen"
+          }
+        }
+      }
+    },
+    "Right Option": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechte Wahltaste"
+          }
+        }
+      }
+    },
+    "Row": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeile"
+          }
+        }
+      }
+    },
+    "Run command": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Befehl ausführen"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sichern"
+          }
+        }
+      }
+    },
+    "Save All": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle sichern"
+          }
+        }
+      }
+    },
+    "Save Block": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block sichern"
+          }
+        }
+      }
+    },
+    "Save Field": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feld sichern"
+          }
+        }
+      }
+    },
+    "Save files": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateien sichern"
+          }
+        }
+      }
+    },
+    "Save…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sichern …"
+          }
+        }
+      }
+    },
+    "Scheduled": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geplant"
+          }
+        }
+      }
+    },
+    "Scheduled %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geplant %@"
+          }
+        }
+      }
+    },
+    "Schedule…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planen …"
+          }
+        }
+      }
+    },
+    "Scope": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereich"
+          }
+        }
+      }
+    },
+    "Search": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchen"
+          }
+        }
+      }
+    },
+    "Search Notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen durchsuchen"
+          }
+        }
+      }
+    },
+    "Search notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen durchsuchen"
+          }
+        }
+      }
+    },
+    "Search…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchen …"
+          }
+        }
+      }
+    },
+    "Select": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auswählen"
+          }
+        }
+      }
+    },
+    "Selection (count-words-region)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auswahl (count-words-region)"
+          }
+        }
+      }
+    },
+    "Series": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reihen"
+          }
+        }
+      }
+    },
+    "Set": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Festlegen"
+          }
+        }
+      }
+    },
+    "Set Attachment Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhangsordner festlegen …"
+          }
+        }
+      }
+    },
+    "Set Deadline…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frist setzen …"
+          }
+        }
+      }
+    },
+    "Set Priority…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Priorität setzen …"
+          }
+        }
+      }
+    },
+    "Set Property…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigenschaft setzen …"
+          }
+        }
+      }
+    },
+    "Set TODO": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TODO setzen"
+          }
+        }
+      }
+    },
+    "Set Tags…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags setzen …"
+          }
+        }
+      }
+    },
+    "Set colors under [theme] (both appearances), [theme.light] or [theme.dark] in config.toml, and TODO keyword colors under [theme.todo]. default-theme.toml lists every color with the default theme's values.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lege Farben in config.toml unter [theme] (beide Darstellungen), [theme.light] oder [theme.dark] fest, und Farben für TODO-Schlüsselwörter unter [theme.todo]. default-theme.toml listet jede Farbe mit den Werten des Standardthemas."
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen"
+          }
+        }
+      }
+    },
+    "Show Attachment Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhangsordner zeigen"
+          }
+        }
+      }
+    },
+    "Show Calendar Events": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalenderereignisse zeigen"
+          }
+        }
+      }
+    },
+    "Show Default Theme": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardthema zeigen"
+          }
+        }
+      }
+    },
+    "Show Line Numbers": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeilennummern zeigen"
+          }
+        }
+      }
+    },
+    "Show Markup": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auszeichnung zeigen"
+          }
+        }
+      }
+    },
+    "Show Outline": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gliederung zeigen"
+          }
+        }
+      }
+    },
+    "Show Overdue Count on Icon…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überfällige auf dem Symbol zeigen …"
+          }
+        }
+      }
+    },
+    "Show Reminders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungen zeigen"
+          }
+        }
+      }
+    },
+    "Show Tab Bar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tableiste zeigen"
+          }
+        }
+      }
+    },
+    "Show a day, week or month (v d, v w, v m)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einen Tag, eine Woche oder einen Monat zeigen (v d, v w, v m)"
+          }
+        }
+      }
+    },
+    "Show days without entries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tage ohne Einträge zeigen"
+          }
+        }
+      }
+    },
+    "Show entries from earlier days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einträge früherer Tage zeigen"
+          }
+        }
+      }
+    },
+    "Show events from Calendar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignisse aus Kalender zeigen"
+          }
+        }
+      }
+    },
+    "Show events from Calendar in the agenda.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignisse aus Kalender in der Agenda zeigen."
+          }
+        }
+      }
+    },
+    "Show hidden files and folders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versteckte Dateien und Ordner zeigen"
+          }
+        }
+      }
+    },
+    "Show in Calendar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Kalender zeigen"
+          }
+        }
+      }
+    },
+    "Show in Finder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Finder zeigen"
+          }
+        }
+      }
+    },
+    "Show in Reminders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Erinnerungen zeigen"
+          }
+        }
+      }
+    },
+    "Show or Hide Backlinks": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rückverweise ein- oder ausblenden"
+          }
+        }
+      }
+    },
+    "Show or Hide Columns and Clock": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spalten und Zeiterfassung ein- oder ausblenden"
+          }
+        }
+      }
+    },
+    "Show or Hide Outline": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gliederung ein- oder ausblenden"
+          }
+        }
+      }
+    },
+    "Show reminders from Reminders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungen aus Erinnerungen zeigen"
+          }
+        }
+      }
+    },
+    "Show reminders from Reminders in the agenda, read-only.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungen aus Erinnerungen schreibgeschützt in der Agenda zeigen."
+          }
+        }
+      }
+    },
+    "Show the outline (⌥⌘O)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gliederung zeigen (⌥⌘O)"
+          }
+        }
+      }
+    },
+    "Shown as usual": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Normal angezeigt"
+          }
+        }
+      }
+    },
+    "Size: %lld pt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Größe: %lld pt"
+          }
+        }
+      }
+    },
+    "Span": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeitraum"
+          }
+        }
+      }
+    },
+    "Split Pane Below": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereich unten teilen"
+          }
+        }
+      }
+    },
+    "Split Pane Right": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereich rechts teilen"
+          }
+        }
+      }
+    },
+    "Starts": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beginn"
+          }
+        }
+      }
+    },
+    "State": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        }
+      }
+    },
+    "Stop Timer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timer stoppen"
+          }
+        }
+      }
+    },
+    "Stop Using This Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Ordner nicht mehr verwenden"
+          }
+        }
+      }
+    },
+    "Stops the running clock.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet die laufende Zeiterfassung."
+          }
+        }
+      }
+    },
+    "Subtree": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilbaum"
+          }
+        }
+      }
+    },
+    "Subtree at the caret": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilbaum an der Einfügemarke"
+          }
+        }
+      }
+    },
+    "Switch to Buffer…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu Puffer wechseln …"
+          }
+        }
+      }
+    },
+    "Sync Attachments": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhänge abgleichen"
+          }
+        }
+      }
+    },
+    "Sync Conflict Copies": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konfliktkopien der Synchronisierung"
+          }
+        }
+      }
+    },
+    "Sync conflict copies": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konfliktkopien der Synchronisierung"
+          }
+        }
+      }
+    },
+    "System monospaced": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systemschrift mit fester Breite"
+          }
+        }
+      }
+    },
+    "TODO": {
+      "shouldTranslate": false
+    },
+    "TODO Dependencies": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TODO-Abhängigkeiten"
+          }
+        }
+      }
+    },
+    "TODO State…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TODO-Status …"
+          }
+        }
+      }
+    },
+    "TODO keywords": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TODO-Schlüsselwörter"
+          }
+        }
+      }
+    },
+    "Table": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabelle"
+          }
+        }
+      }
+    },
+    "Tag:": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag:"
+          }
+        }
+      }
+    },
+    "Tags": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags"
+          }
+        }
+      }
+    },
+    "Tags and Properties…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags und Eigenschaften …"
+          }
+        }
+      }
+    },
+    "Tags and tables line up in columns, so a monospaced font keeps them straight.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags und Tabellen stehen in Spalten, eine Schrift mit fester Breite hält sie gerade."
+          }
+        }
+      }
+    },
+    "Tags, tables and M-q measure text as your Emacs displays it, so both write the same file.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags, Tabellen und M-q messen Text so, wie dein Emacs ihn anzeigt, damit beide dieselbe Datei schreiben."
+          }
+        }
+      }
+    },
+    "Tags…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags …"
+          }
+        }
+      }
+    },
+    "Template": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorlage"
+          }
+        }
+      }
+    },
+    "Template Key": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorlagenkürzel"
+          }
+        }
+      }
+    },
+    "Templates go in %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorlagen stehen in %@."
+          }
+        }
+      }
+    },
+    "Text": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text"
+          }
+        }
+      }
+    },
+    "The agenda reads the org files at the top of each folder you add.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Agenda liest die Org-Dateien auf der obersten Ebene jedes hinzugefügten Ordners."
+          }
+        }
+      }
+    },
+    "The empty folder is removed from disk and from orgstar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der leere Ordner wird von der Festplatte und aus orgstar entfernt."
+          }
+        }
+      }
+    },
+    "The empty folder is removed.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der leere Ordner wird entfernt."
+          }
+        }
+      }
+    },
+    "The file changed on disk, and the changes conflict with yours": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Datei wurde auf der Festplatte geändert, und die Änderungen widersprechen deinen"
+          }
+        }
+      }
+    },
+    "The folder and its files stay on disk.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ordner und seine Dateien bleiben auf der Festplatte."
+          }
+        }
+      }
+    },
+    "The next agenda entry, or how many are open today.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der nächste Agenda-Eintrag oder wie viele heute offen sind."
+          }
+        }
+      }
+    },
+    "The template to capture with.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Vorlage für die Erfassung."
+          }
+        }
+      }
+    },
+    "The whole file is removed. Files in iCloud Drive go to Recently Deleted in the Files app.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ganze Datei wird entfernt. Dateien in iCloud Drive kommen in der Dateien-App unter „Zuletzt gelöscht“."
+          }
+        }
+      }
+    },
+    "Theme": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thema"
+          }
+        }
+      }
+    },
+    "Time": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit"
+          }
+        }
+      }
+    },
+    "Time report": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeitbericht"
+          }
+        }
+      }
+    },
+    "Title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel"
+          }
+        }
+      }
+    },
+    "To": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heute"
+          }
+        }
+      }
+    },
+    "Tomorrow": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgen"
+          }
+        }
+      }
+    },
+    "Total": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesamt"
+          }
+        }
+      }
+    },
+    "Truncate or Wrap Long Lines": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lange Zeilen abschneiden oder umbrechen"
+          }
+        }
+      }
+    },
+    "Turn Auto Fill On or Off": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatischen Umbruch ein- oder ausschalten"
+          }
+        }
+      }
+    },
+    "Turn on Badges in orgstar's notification settings.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktiviere Kennzeichen in den Mitteilungseinstellungen von orgstar."
+          }
+        }
+      }
+    },
+    "Under a parent with the ORDERED property (Toggle ORDERED Property, C-c C-x o), TODO children are also done in order.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unter einem Eintrag mit der Eigenschaft ORDERED (ORDERED umschalten, C-c C-x o) werden TODO-Untereinträge auch der Reihe nach erledigt."
+          }
+        }
+      }
+    },
+    "Undo": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widerrufen"
+          }
+        }
+      }
+    },
+    "Unfolds the heading": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klappt die Überschrift auf"
+          }
+        }
+      }
+    },
+    "Unmark": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markierung entfernen"
+          }
+        }
+      }
+    },
+    "Unsaved changes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht gesicherte Änderungen"
+          }
+        }
+      }
+    },
+    "Unsaved changes to the open file will be lost.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht gesicherte Änderungen der geöffneten Datei gehen verloren."
+          }
+        }
+      }
+    },
+    "Unset Attachment Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhangsordner zurücksetzen"
+          }
+        }
+      }
+    },
+    "Until %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis %@"
+          }
+        }
+      }
+    },
+    "Up Next": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als Nächstes"
+          }
+        }
+      }
+    },
+    "Use Copy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopie verwenden"
+          }
+        }
+      }
+    },
+    "Use Disk Version": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version auf der Festplatte verwenden"
+          }
+        }
+      }
+    },
+    "Value": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wert"
+          }
+        }
+      }
+    },
+    "View": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Darstellung"
+          }
+        }
+      }
+    },
+    "Views": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansichten"
+          }
+        }
+      }
+    },
+    "Visual": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visuell"
+          }
+        }
+      }
+    },
+    "Week": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Woche"
+          }
+        }
+      }
+    },
+    "What the agenda shows": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was die Agenda zeigt"
+          }
+        }
+      }
+    },
+    "What's left of today's agenda.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was von der heutigen Agenda übrig ist."
+          }
+        }
+      }
+    },
+    "Whole file": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ganze Datei"
+          }
+        }
+      }
+    },
+    "Words in the file (count-words)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wörter in der Datei (count-words)"
+          }
+        }
+      }
+    },
+    "Yesterday": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestern"
+          }
+        }
+      }
+    },
+    "You can put it back from the Trash in Finder.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst sie im Finder aus dem Papierkorb zurücklegen."
+          }
+        }
+      }
+    },
+    "Your habits and how consistently you've kept them.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Gewohnheiten und wie beständig du sie eingehalten hast."
+          }
+        }
+      }
+    },
+    "Your own bindings go in %@, on top of the preset.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigene Tastenbelegungen stehen in %@, über der Voreinstellung."
+          }
+        }
+      }
+    },
+    "[%@]": {
+      "shouldTranslate": false
+    },
+    "config.toml": {
+      "shouldTranslate": false
+    },
+    "gnuplot made no image": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gnuplot hat kein Bild erzeugt"
+          }
+        }
+      }
+    },
+    "open": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "offen"
+          }
+        }
+      }
+    },
+    "org-clock-idle-time and org-clock-history-length. Org ▸ Clock lists the recent entries.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "org-clock-idle-time und org-clock-history-length. Org ▸ Zeiterfassung listet die letzten Einträge."
+          }
+        }
+      }
+    },
+    "org-enforce-todo-dependencies and org-enforce-todo-checkbox-dependencies.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "org-enforce-todo-dependencies und org-enforce-todo-checkbox-dependencies."
+          }
+        }
+      }
+    },
+    "orgstar": {
+      "shouldTranslate": false
+    },
+    "orgstar asks which entry to attach them to when you next open it.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar fragt beim nächsten Öffnen, an welchen Eintrag sie angehängt werden."
+          }
+        }
+      }
+    },
+    "orgstar files it with the template when you next open it.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar legt es beim nächsten Öffnen mit der Vorlage ab."
+          }
+        }
+      }
+    },
+    "orgstar's shared folder isn't available.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der gemeinsame Ordner von orgstar ist nicht verfügbar."
+          }
+        }
+      }
+    },
+    "to": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bis"
+          }
+        }
+      }
+    },
+    "x": {
+      "shouldTranslate": false
+    },
+    "y": {
+      "shouldTranslate": false
+    },
+    "·": {
+      "shouldTranslate": false
+    },
+    "⋯": {
+      "shouldTranslate": false
+    },
+    "⌃⌥Space opens Capture from any app": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌃⌥Leertaste öffnet die Erfassung aus jeder App"
+          }
+        }
+      }
+    },
+    "⏱ %@ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "⏱ %1$@ %2$@"
+          }
+        }
+      },
+      "shouldTranslate": false
+    }
+  },
+  "version": "1.0"
+}

@@ -88,7 +88,11 @@ Default TODO keywords apply to files without a =#+TODO= line. orgstar reads them
 
 The two dependency switches are described under Dependencies in [[file:05-todos-and-tags.org][TODOs and tags]].
 
-** Appearance
+** Language
+
+orgstar's menus, settings and agenda are in English and German, and follow the language chosen in System Settings ▸ General ▸ Language & Region on the Mac and Settings ▸ General ▸ Language & Region on iOS (or the app's own language there). What orgstar writes into your files, such as clock tables, is in the language Org would use: a clock table's =:lang=, else =org-export-default-language=. Exports use the file's =#+LANGUAGE:=; see [[file:12-export.org][Export]].
+
+* Appearance
 
 | Control                         | Range                                         | Default            | Key                 |
 |---------------------------------+-----------------------------------------------+--------------------+---------------------|
@@ -160,6 +164,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
 | =ignored-folders=                |                            |
 | =org-archive-location=          |                            |
+| =org-export-default-language=   |                            |
 | =org-use-tag-inheritance=, =org-tags-exclude-from-inheritance=, =org-tag-alist= | |
 | =org-track-ordered-property-with-tag= |                       |
 | =org-timer-format=, =org-timer-default-timer= |                  |
@@ -210,6 +215,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-enforce-todo-dependencies=      | boolean | =false= | An entry can't become done while a descendant has an active TODO keyword, or under an =ORDERED= parent while an earlier sibling has one. Mirrors =org-enforce-todo-dependencies=. |
 | =org-enforce-todo-checkbox-dependencies= | boolean | =false= | An entry can't become done while its text has an unchecked checkbox. Mirrors =org-enforce-todo-checkbox-dependencies=. |
 | =org-archive-location=               | string  | ="%s_archive::"= | Where Archive Subtree moves an entry that has no =ARCHIVE= property and whose file has no =#+ARCHIVE:=, as =file::heading=; =%s= is the file's name. Mirrors =org-archive-location=. |
+| =org-export-default-language=        | string  | ="en"=          | The language of exports without =#+LANGUAGE:= and of clock tables without =:lang=, such as ="de"=. Mirrors =org-export-default-language=. |
 | =org-use-tag-inheritance=            | string  | ="t"=   | Which tags inherit: ="t"= all, ="nil"= none, tag names separated by spaces, or a regular expression in braces such as ="{^@}"=. Read at launch. Mirrors =org-use-tag-inheritance=. |
 | =org-tags-exclude-from-inheritance=  | string  | =""=    | Tags that never inherit, separated by spaces. Read at launch. Mirrors =org-tags-exclude-from-inheritance=. |
 | =org-tag-alist=                      | string  | =""=    | The tags Set Tags offers in files without =#+TAGS=, in =#+TAGS= syntax with keys and groups, rows separated by =\n=. Mirrors =org-tag-alist=. |

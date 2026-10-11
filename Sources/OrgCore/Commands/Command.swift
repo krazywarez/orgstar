@@ -48,6 +48,9 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var agendaFiles: [String]?
     /// The file the buffer visits (`buffer-file-name`); nil for a buffer without one.
     public var filePath: String?
+    /// `org-export-default-language`: the language of exports without `#+LANGUAGE`, and of
+    /// clock tables without `:lang`.
+    public var exportLanguage = "en"
     /// `org-track-ordered-property-with-tag`: the tag toggling `ORDERED` toggles too; nil for none.
     public var trackOrderedPropertyWithTag: String?
     /// `org-use-speed-commands`: single keys at the start of a heading line run commands.

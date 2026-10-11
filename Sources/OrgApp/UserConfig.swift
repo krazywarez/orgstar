@@ -126,6 +126,8 @@ public enum UserConfig {
                 comment: "an entry can't be done while it has unchecked boxes", legacy: ""),
         Setting(section: "", key: "org-archive-location", defaultsKey: "archiveLocation", kind: .string, fallback: .string("%s_archive::"),
                 comment: "where Archive Subtree moves an entry without an ARCHIVE property or #+ARCHIVE: file::heading, %s the file's name", legacy: ""),
+        Setting(section: "", key: "org-export-default-language", defaultsKey: "exportLanguage", kind: .string, fallback: .string("en"),
+                comment: "the language of exports without #+LANGUAGE and of clock tables without :lang, such as \"de\"", legacy: ""),
         Setting(section: "", key: "org-use-tag-inheritance", defaultsKey: "tagInheritance", kind: .string, fallback: .string("t"),
                 comment: "t, nil, tags that inherit separated by spaces, or a regexp in braces such as \"{^@}\"", legacy: ""),
         Setting(section: "", key: "org-tags-exclude-from-inheritance", defaultsKey: "tagsExcludedFromInheritance", kind: .string, fallback: .string(""),

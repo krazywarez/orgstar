@@ -54,6 +54,9 @@ if [ "$sign" != "-" ]; then
 else
     feed_keys=""
 fi
+# The UI's translations, from l10n/Localizable.xcstrings.
+scripts/localize.sh "$app/Contents/Resources"
+
 iconset="$(mktemp -d)/AppIcon.iconset"
 swift scripts/make-icon.swift "$iconset"
 iconutil -c icns "$iconset" -o "$app/Contents/Resources/AppIcon.icns"
@@ -66,6 +69,10 @@ cat > "$app/Contents/Info.plist" <<EOF
 <dict>
     <key>CFBundleIdentifier</key>
     <string>sh.krz.orgstar</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array><string>en</string><string>de</string></array>
     <key>CFBundleName</key>
     <string>orgstar</string>
     <key>CFBundleDisplayName</key>
@@ -162,8 +169,9 @@ rm -rf "$work"
 # sandboxed.
 appex() { # name, extension point, principal class (or ""), attributes, extra entitlements
     dir="$app/Contents/PlugIns/$1.appex/Contents"
-    mkdir -p "$dir/MacOS"
+    mkdir -p "$dir/MacOS" "$dir/Resources"
     cp "$(dirname "$binary")/$1" "$dir/MacOS/$1"
+    scripts/localize.sh "$dir/Resources"
     cat > "$dir/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

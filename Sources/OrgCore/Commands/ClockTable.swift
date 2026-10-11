@@ -294,21 +294,23 @@ enum ClockTable {
         let levels = tables.filter { $0.total != 0 }.flatMap { $0.rows.map(\.level) }
         let columns = compact || maxlevel < 2 ? 1 : min(maxlevel, params.int(":tcolumns") ?? 100, levels.max() ?? 1)
         let file = multifile ? "|" : ""
+        let lang = params.symbol(":lang") ?? "en"
+        func tr(_ term: String) -> String { ExportDictionary.clockTable(term, language: lang) }
 
         var out: String
         if let header = params.values[":header"]?.string {
             out = header
         } else {
             let stamp = buffer.formatTimestamp(buffer.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: buffer.now), withTime: true, inactive: true)
-            out = "#+CAPTION: Clock summary at \(stamp)\(rangeText.map { ", for \($0)." } ?? "")\n"
+            out = "#+CAPTION: \(tr("Clock summary at")) \(stamp)\(rangeText.map { ", for \($0)." } ?? "")\n"
         }
         if let narrow, !narrowCut {
             out += "|" + file + (showLevel ? "|" : "") + (showTags ? "|" : "") + String(repeating: "|", count: properties.count) + "<\(narrow)>| |\n"
         }
-        out += "|" + (multifile ? "File|" : "") + (showLevel ? "L|" : "") + (showTags ? "Tags |" : "") + properties.map { $0 + "|" }.joined()
-            + "Headline|Time|" + String(repeating: "|", count: max(0, columns - 1)) + (percent ? "%|\n" : "\n")
-        out += "|-\n|" + (multifile ? "| ALL " : "") + (showLevel ? "|" : "") + (showTags ? "|" : "") + String(repeating: "|", count: properties.count)
-            + "*Total time*| *\(duration(total))*|" + String(repeating: "|", count: max(0, columns - 1))
+        out += "|" + (multifile ? tr("File") + "|" : "") + (showLevel ? tr("L") + "|" : "") + (showTags ? "Tags |" : "") + properties.map { $0 + "|" }.joined()
+            + tr("Headline") + "|" + tr("Time") + "|" + String(repeating: "|", count: max(0, columns - 1)) + (percent ? "%|\n" : "\n")
+        out += "|-\n|" + (multifile ? "| \(tr("ALL")) " : "") + (showLevel ? "|" : "") + (showTags ? "|" : "") + String(repeating: "|", count: properties.count)
+            + "*\(tr("Total time"))*| *\(duration(total))*|" + String(repeating: "|", count: max(0, columns - 1))
             + (percent ? (total == 0 ? "0.0|" : "100.0|") : "") + "\n"
         if total > 0 {
             for table in tables where table.total > 0 || !params.flag(":fileskip0") {
@@ -318,7 +320,7 @@ enum ClockTable {
                         (params.flag(":filetitle") ? Self.title(path) : nil) ?? (path as NSString).lastPathComponent
                     } ?? ""
                     out += "| \(name) " + (showLevel ? "| " : "") + "| " + (showTags ? "| " : "") + String(repeating: "|", count: properties.count)
-                        + "*File time* | *\(duration(table.total))*|" + String(repeating: "|", count: max(0, columns - 1))
+                        + "*\(tr("File time"))* | *\(duration(table.total))*|" + String(repeating: "|", count: max(0, columns - 1))
                         + (percent ? String(format: " %.1f |", 100 * Double(table.total) / Double(total)) : "") + "\n"
                 }
                 guard maxlevel > 0 else { continue }
@@ -399,7 +401,9 @@ extension EmacsBuffer {
             return
         }
         guard name == "clocktable" else { throw UserError(message: "Dynamic blocks named \(name) aren't supported") }
-        let params = try ClockTable.Params(paramText)
+        var defaults = ClockTable.Params.defaults
+        defaults[":lang"] = .string(options.exportLanguage)
+        let params = try ClockTable.Params(paramText, defaults: defaults)
         let range = try ClockTable.timeRange(params, now: now, calendar: calendar)
         if let step = params.symbol(":step"), step != "nil" {
             let table = try clockTableSteps(step, params: params, begin: begin, range: range, content: content)

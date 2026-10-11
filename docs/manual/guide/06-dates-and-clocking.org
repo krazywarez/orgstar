@@ -473,6 +473,7 @@ Times are written as =H:MM=, with a day count such as =2d= before them for a day
 | =:indent=         | =t=: indent sublevels with =\_=                | =t=       |
 | =:compact=        | =t=: one time column, indented, cut to 40 characters | =nil= |
 | =:emphasize=      | =t=: level 1 bold, level 2 italic              | =nil=     |
+| =:lang=           | The language of the caption and column titles: =en=, =de=, =es=, =fr=, =nl=, =nn=, =pl=, =pt-BR= or =sk= (=org-clock-clocktable-language-setup=); others are English | =org-export-default-language= |
 | =:level=          | =t=: a column with the level                   | =nil=     |
 | =:tags=           | =t=: a column with the tags, inherited ones first | =nil=  |
 | =:properties=     | A list of property names, such as =("Effort")=, one column each | none |

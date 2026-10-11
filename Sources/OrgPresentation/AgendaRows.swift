@@ -113,35 +113,37 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
             icon = .deadline
             let due = planning ?? day
             if day == today {
-                untimed = due == today ? "Due today" : due < today ? "\(AgendaAge.compact(today - due)) late" : "Due in \(AgendaAge.compact(due - today))"
+                untimed = due == today ? String(localized: "Due today", bundle: .main)
+                    : due < today ? String(localized: "\(AgendaAge.compact(today - due)) late", bundle: .main)
+                    : String(localized: "Due in \(AgendaAge.compact(due - today))", bundle: .main)
             } else {
-                untimed = "Due"
+                untimed = String(localized: "Due", bundle: .main)
             }
             status = late ? .overdue : day == today ? .dueSoon : .normal
         case .scheduled, .pastScheduled:
             if item.habit != nil {
                 icon = .habit
-                untimed = "Habit"
+                untimed = String(localized: "Habit", bundle: .main)
             } else {
                 icon = .scheduled
                 let on = planning ?? day
-                untimed = on < day ? "\(AgendaAge.compact(day - on)) ago" : "Scheduled"
+                untimed = on < day ? String(localized: "\(AgendaAge.compact(day - on)) ago", bundle: .main) : String(localized: "Scheduled", bundle: .main)
             }
             status = late ? .overdue : .normal
         case .timestamp, .sexp:
             icon = .timestamp
-            untimed = "All day"
+            untimed = String(localized: "All day", bundle: .main)
         case .block:
             icon = .timestamp
             let ns = item.extra as NSString
             if let m = Self.rangeDay.firstMatch(in: item.extra, range: NSRange(location: 0, length: ns.length)) {
-                untimed = "Day " + ns.substring(with: m.range(at: 1))
+                untimed = String(localized: "Day \(ns.substring(with: m.range(at: 1)))", bundle: .main)
             } else {
-                untimed = "All day"
+                untimed = String(localized: "All day", bundle: .main)
             }
-        case .closed: (icon, untimed) = (.timestamp, "Closed")
-        case .clock: (icon, untimed) = (.timestamp, "Clocked")
-        case .state: (icon, untimed) = (.timestamp, "State")
+        case .closed: (icon, untimed) = (.timestamp, String(localized: "Closed", bundle: .main))
+        case .clock: (icon, untimed) = (.timestamp, String(localized: "Clocked", bundle: .main))
+        case .state: (icon, untimed) = (.timestamp, String(localized: "State", bundle: .main))
         case .todo, .tagsMatch, .search, .timeGrid, .currentTime: break
         }
         if item.isDone { status = .done }
@@ -180,21 +182,21 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         let gutter: String
         if event.isReminder {
             if days.lowerBound < day {
-                gutter = "\(AgendaAge.compact(day - days.lowerBound)) late"
+                gutter = String(localized: "\(AgendaAge.compact(day - days.lowerBound)) late", bundle: .main)
             } else if event.isAllDay {
-                gutter = "Reminder"
+                gutter = String(localized: "Reminder", bundle: .main)
             } else {
                 start = hhmm(event.start)
                 gutter = Self.timeText(start!, nil)
             }
         } else if event.isAllDay || (day != days.lowerBound && day != days.upperBound) {
-            gutter = "All day"
+            gutter = String(localized: "All day", bundle: .main)
         } else if day == days.lowerBound {
             start = hhmm(event.start)
             if days.lowerBound == days.upperBound { end = hhmm(event.end) }
             gutter = Self.timeText(start!, end)
         } else {
-            gutter = "Until " + Self.timeText(hhmm(event.end), nil)
+            gutter = String(localized: "Until \(Self.timeText(hhmm(event.end), nil))", bundle: .main)
         }
         self.id = (event.isReminder ? "reminder\u{1f}" : "event\u{1f}") + event.id
         self.gutter = gutter
@@ -280,9 +282,9 @@ public struct AgendaDayGroup: Sendable, Equatable, Identifiable {
     /// `Today`, `Tomorrow`, `Yesterday`, or nil.
     public func relativeName(today: Int) -> String? {
         switch day - today {
-        case 0: "Today"
-        case 1: "Tomorrow"
-        case -1: "Yesterday"
+        case 0: String(localized: "Today", bundle: .main)
+        case 1: String(localized: "Tomorrow", bundle: .main)
+        case -1: String(localized: "Yesterday", bundle: .main)
         default: nil
         }
     }

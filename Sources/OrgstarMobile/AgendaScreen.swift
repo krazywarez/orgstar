@@ -77,7 +77,7 @@ struct AgendaScreen: View, Equatable {
     enum SpanRange: String, CaseIterable, Identifiable {
         case day, week, month
         var id: String { rawValue }
-        var title: String { rawValue.capitalized }
+        var title: LocalizedStringKey { LocalizedStringKey(rawValue.capitalized) }
     }
 
     private struct Key: Equatable {
@@ -574,7 +574,7 @@ struct AgendaScreen: View, Equatable {
                         }
                         Toggle("Log Mode", systemImage: "clock.arrow.circlepath", isOn: $logMode)
                     } label: {
-                        Text(range?.title ?? "\(agenda.span) Days")
+                        (range.map { Text($0.title) } ?? Text("\(agenda.span) Days"))
                             .font(.footnote.weight(.semibold).monospacedDigit())
                             .lineLimit(1)
                             .frame(minWidth: 52, minHeight: 44)

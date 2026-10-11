@@ -36,6 +36,7 @@ struct ClockTableTests {
         ":match \"LEVEL=2\" :maxlevel 3", ":block 2026-09 :step week", ":block 2026-09 :step day :stepskip0 t",
         ":tstart \"<2026-08-25>\" :tend \"<2026-09-15>\" :step week :wstart 0", ":block 2026 :step month :stepskip0 t",
         ":block 2026 :step quarter", ":block 2026-09 :step semimonth :stepskip0 t",
+        ":lang \"de\" :maxlevel 3", ":lang \"fr\" :tags t :level t :maxlevel 3", ":lang \"PT-br\"", ":lang \"xx\"",
     ]
 
     static func ours(_ text: String, caret: Int, command: any OrgCommand, answers: [String: String] = [:]) -> String {

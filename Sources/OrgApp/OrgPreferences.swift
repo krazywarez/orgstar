@@ -20,6 +20,9 @@ public enum OrgPreferences {
     }
 
     /// The editing options, as the Mac's Settings apply them.
+    /// `org-export-default-language`.
+    public static func exportLanguage(_ defaults: UserDefaults = .standard) -> String { string("exportLanguage", defaults).nonEmpty ?? "en" }
+
     public static func options(_ defaults: UserDefaults = .standard) -> EditingOptions {
         var options = EditingOptions(
             tagsColumn: integer("tagsColumn", defaults), insertHeadingRespectContent: bool("headingAfterSubtree", defaults),
@@ -41,6 +44,7 @@ public enum OrgPreferences {
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.archiveLocation = string("archiveLocation", defaults).nonEmpty
+        options.exportLanguage = exportLanguage(defaults)
         options.clockIntoDrawer = string("clockIntoDrawer", defaults).nonEmpty
         options.tagAlist = string("tagAlist", defaults).nonEmpty
         options.clockRoundingMinutes = integer("clockRoundingMinutes", defaults)
