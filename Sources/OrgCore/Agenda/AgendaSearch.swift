@@ -32,7 +32,7 @@ extension Agenda {
     /// unfinished TODO entries, as `M` does.
     public static func tagsMatch(
         _ sources: [AgendaSource], match: String, todoOnly: Bool = false, now: Date = Date(), calendar: Calendar = .current,
-        options: AgendaOptions = AgendaOptions()
+        options: AgendaOptions = AgendaOptions(), skip: ((AgendaSource, Int) -> Bool)? = nil
     ) -> [AgendaItem] {
         let matcher = TagsMatcher(match, todoOnly: todoOnly)
         let today = Days.absolute(now, calendar: calendar)
@@ -41,6 +41,7 @@ extension Agenda {
             for (index, heading) in source.headings.enumerated() {
                 if matcher.todoOnly, heading.todo == nil { continue }
                 guard matcher.matches(heading, in: source, now: now, calendar: calendar), !heading.skipped else { continue }
+                if let skip, skip(source, index) { continue }
                 if matcher.todoOnly, options.tagsTodoHonorIgnoreOptions, ignoresTodo(source, index, options: options, today: today) { continue }
                 var item = format(
                     source, heading, kind: .tagsMatch, marker: heading.start, extra: "", dotime: nil, removing: nil,

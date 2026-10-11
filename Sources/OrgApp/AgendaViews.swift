@@ -11,6 +11,8 @@ public enum AgendaMode: Hashable, Sendable {
     case match(String, todoOnly: Bool)
     /// `org-search-view`.
     case search(String, todoOnly: Bool)
+    /// `org-agenda-list-stuck-projects`; nil uses the `org-stuck-projects` setting.
+    case stuck(StuckProjects?)
 
     /// The key `org-agenda-prefix-format` and `org-agenda-sorting-strategy` use for this kind
     /// of view.
@@ -18,7 +20,7 @@ public enum AgendaMode: Hashable, Sendable {
         switch self {
         case .agenda: "agenda"
         case .todo: "todo"
-        case .match: "tags"
+        case .match, .stuck: "tags"
         case .search: "search"
         }
     }
@@ -67,7 +69,9 @@ public struct AgendaViewDefinition: Hashable, Sendable, Identifiable {
 /// ```
 ///
 /// `agenda` views take `span` and `start` (days from today), `todo` views `keywords`
-/// (`WAIT|HOLD`); a `search` view's `match` is its search string. Any view can set
+/// (`WAIT|HOLD`); a `search` view's `match` is its search string. `stuck` views take
+/// `match`, `keywords`, `tags` and `regexp` as `[org-stuck-projects]` does, each defaulting
+/// to that setting. Any view can set
 /// `prefix-format` and `sorting-strategy` (keys separated by spaces) for itself.
 @MainActor
 public enum AgendaViewLoader {
@@ -76,6 +80,7 @@ public enum AgendaViewLoader {
     public static let builtIn = [
         AgendaViewDefinition(name: "Agenda", mode: .agenda(span: nil, startOffset: nil)),
         AgendaViewDefinition(name: "TODO List", mode: .todo(keywords: nil)),
+        AgendaViewDefinition(name: "Stuck Projects", mode: .stuck(nil)),
     ]
 
     /// The views' settings by mode; the first view with a mode wins.
@@ -126,6 +131,17 @@ public enum AgendaViewLoader {
                     continue
                 }
                 mode = .search(match, todoOnly: table.values["type"]?.string == "todo-search")
+            case "stuck":
+                if ["match", "keywords", "tags", "regexp"].allSatisfy({ table.values[$0] == nil }) {
+                    mode = .stuck(nil)
+                } else {
+                    var definition = OrgPreferences.stuckProjects()
+                    if let match { definition.match = match }
+                    if let keywords = table.values["keywords"]?.string { definition.todo = OrgPreferences.words(keywords) }
+                    if let tags = table.values["tags"]?.string { definition.tags = OrgPreferences.words(tags) }
+                    if let regexp = table.values["regexp"]?.string { definition.regexp = regexp }
+                    mode = .stuck(definition)
+                }
             case let other:
                 problems.append("views.toml line \(table.line): unknown type \(other)")
                 continue

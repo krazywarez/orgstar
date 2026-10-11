@@ -85,6 +85,10 @@ struct AgendaView: View {
     @AppStorage("agendaShowCurrentTime") private var showCurrentTime = true
     @AppStorage("agendaTimeGridWhen") private var gridWhen = ""
     @AppStorage("agendaTimeGridTimes") private var gridTimes = ""
+    @AppStorage("stuckProjectsMatch") private var stuckMatch = ""
+    @AppStorage("stuckProjectsTodo") private var stuckTodo = ""
+    @AppStorage("stuckProjectsTags") private var stuckTags = ""
+    @AppStorage("stuckProjectsRegexp") private var stuckRegexp = ""
     @Environment(\.openWindow) var openWindow
 
     static let match = "Match…"
@@ -132,7 +136,7 @@ struct AgendaView: View {
         var startOnWeekday: String
         var includeSubfolders: Bool
         var prefix: [String]
-        var sorting: [String]
+        var settings: [String]
         var logMode: Bool
         var calendars: [String]
         var files: Int
@@ -147,7 +151,8 @@ struct AgendaView: View {
     private var refreshKey: RefreshKey {
         RefreshKey(
             mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags],
-            sorting: [sortAgenda, sortTodo, sortTags, sortSearch, gridWhen, gridTimes, "\(useTimeGrid) \(showCurrentTime)"], logMode: logMode,
+            settings: [sortAgenda, sortTodo, sortTags, sortSearch, gridWhen, gridTimes, "\(useTimeGrid) \(showCurrentTime)", stuckMatch, stuckTodo, stuckTags, stuckRegexp],
+            logMode: logMode,
             calendars: calendarEventsOn ? [calendarNames] : [], files: 0, changed: nil, edits: 0, path: nil, tick: tick
         )
     }

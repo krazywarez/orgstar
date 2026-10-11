@@ -364,6 +364,19 @@ After the last =/= (one not followed by a quote), the match restricts TODO keywo
 
 =/TODO|NEXT= matches either keyword, and =/!NEXT|WAIT= either one while open. =/!= has the same effect as choosing TODO Match….
 
+* Stuck projects
+
+The built-in view Stuck Projects is =org-agenda-list-stuck-projects= (=#=): the projects that have no next action. =[org-stuck-projects]= in =config.toml= says what a project is and what makes one active, as =org-stuck-projects= does:
+
+| Key      | Default                   | Meaning                                                                          |
+|----------+---------------------------+----------------------------------------------------------------------------------|
+| =match=  | ="+LEVEL=2/-DONE"=        | A match as in [[*Tag and property matches][Tag and property matches]]: the entries that are projects |
+| =todo=   | ="TODO NEXT NEXTACTION"=  | A heading with one of these keywords makes its project active; =*= for any open keyword |
+| =tags=   | =""=                      | A heading with one of these tags set on it (not inherited) makes its project active; =*= for any tag |
+| =regexp= | =""=                      | Text matching this Emacs regular expression makes its project active            |
+
+The project's own heading counts: a project whose heading has a =todo= keyword is not stuck. Keywords, tags and the regexp are case-sensitive. A project that isn't stuck can still contain stuck subprojects, which are listed. When =todo=, =tags= and =regexp= are all empty, every project is listed; Org signals an error instead. Lines sort as tag matches do.
+
 * Text search
 
 Choose Search… from the view menu to list entries containing some text, as =org-search-view= (=s=) does, or TODO Search… to list only entries with an open TODO keyword (=S=, or =C-u s=). Type the search string in the toolbar field and press Return. An entry is its heading and the text up to the next heading; text before the first heading of a file is not searched. Entries show in file order, with the rows of the TODO list.
@@ -394,7 +407,7 @@ The search covers the agenda files only, not =org-agenda-text-search-extra-files
 
 * Views
 
-The view menu lists the built-in views, Agenda and TODO List, then the views in =views.toml=, then Match…, TODO Match…, Search… and TODO Search…. Saved views mirror =org-agenda-custom-commands=, with fewer options.
+The view menu lists the built-in views, Agenda, TODO List and Stuck Projects, then the views in =views.toml=, then Match…, TODO Match…, Search… and TODO Search…. Saved views mirror =org-agenda-custom-commands=, with fewer options.
 
 =views.toml= lives in the configuration folder beside =config.toml= (=~/.config/orgstar/= by default; see [[file:13-configuration.org][Configuration]]). Each view is a =[[view]]= table:
 
@@ -429,17 +442,18 @@ match = "+invoice -paid"
 | Key        | Applies to         | Meaning                                                                    |
 |------------+--------------------+----------------------------------------------------------------------------|
 | =name=     | all, required      | The name in the view menu                                                  |
-| =type=     | all                | =agenda= (the default), =todo=, =match=, =todo-match=, =search= or =todo-search= |
+| =type=     | all                | =agenda= (the default), =todo=, =match=, =todo-match=, =search=, =todo-search= or =stuck= |
 | =span=     | =agenda=           | Days shown; the setting when omitted                                       |
 | =start=    | =agenda=           | First day as an integer number of days from today (=-3=, =0=); the setting when omitted |
 | =keywords= | =todo=             | Keywords separated by the vertical bar; all open TODOs when omitted        |
 | =match=    | =match=, =todo-match=, =search=, =todo-search=, required | A match string as in [[*Tag and property matches][Tag and property matches]], or for =search= a search string as in [[*Text search][Text search]]; the =todo-= types keep only open TODO entries |
+| =keywords=, =tags=, =regexp= | =stuck= | The =todo=, =tags= (separated by spaces) and =regexp= of =[org-stuck-projects]=; with =match= they replace the setting's values for this view, and the ones left out keep them |
 | =sorting-strategy= | all          | The view's =org-agenda-sorting-strategy=, keys separated by spaces, in place of the one in =config.toml= for its kind |
 | =prefix-format=    | all          | The view's =org-agenda-prefix-format=, in place of the one in =config.toml= for its kind |
 
 Note that =start= is a plain integer here, while =org-agenda-start-day= in =config.toml= is a string such as ="-3d"=.
 
-Not supported: block agendas (several views in one), =org-agenda-skip-function=, and =stuck= projects. The views load when the window opens and again on =g= or =r=. A problem in the file, such as a missing =name= or an unknown =type=, shows in the status line at the bottom of the window, and the remaining views still load.
+Not supported: block agendas (several views in one) and =org-agenda-skip-function=. The views load when the window opens and again on =g= or =r=. A problem in the file, such as a missing =name= or an unknown =type=, shows in the status line at the bottom of the window, and the remaining views still load.
 
 * Filters
 

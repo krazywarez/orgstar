@@ -171,11 +171,12 @@ These settings have no control in the Settings window. Some are in the View menu
 | =[org-agenda-prefix-format]=     |                            |
 | =[org-agenda-sorting-strategy]=, =org-agenda-sort-notime-is-late=, =org-agenda-sort-noeffort-is-high= | |
 | =[org-agenda-time-grid]=, =org-agenda-use-time-grid=, =org-agenda-show-current-time-in-grid= | |
+| =[org-stuck-projects]=           |                            |
 | =theme-file=                     |                            |
 
 * config.toml reference
 
-Settings that mirror an Emacs variable sit at the top of the file under that variable's name. The agenda prefix formats are in =[org-agenda-prefix-format]=, the sorting strategies in =[org-agenda-sorting-strategy]=, the time grid in =[org-agenda-time-grid]=, type and theme in =[theme]=, and the settings Emacs has no variable for in =[orgstar]=.
+Settings that mirror an Emacs variable sit at the top of the file under that variable's name. The agenda prefix formats are in =[org-agenda-prefix-format]=, the sorting strategies in =[org-agenda-sorting-strategy]=, the time grid in =[org-agenda-time-grid]=, stuck projects in =[org-stuck-projects]=, type and theme in =[theme]=, and the settings Emacs has no variable for in =[orgstar]=.
 
 A key you remove from the file goes back to its default. A key that isn't in the table below is reported as unknown.
 
@@ -270,6 +271,17 @@ These mirror the entries of =org-agenda-prefix-format=. Rows show the category, 
 | =search= | string | ="category-keep"=                               | Order of text search results   |
 
 These mirror the entries of =org-agenda-sorting-strategy=, keys separated by spaces. Unknown keys are ignored. A view in =views.toml= can set its own with =sorting-strategy=. The keys are listed in [[file:07-agenda.org][The agenda]].
+
+** [org-stuck-projects]
+
+| Key      | Type   | Default                  | Effect                                                          |
+|----------+--------+--------------------------+-----------------------------------------------------------------|
+| =match=  | string | ="+LEVEL=2/-DONE"=       | The entries that are projects                                    |
+| =todo=   | string | ="TODO NEXT NEXTACTION"= | Keywords, separated by spaces, that make a project active; =*= for any open one |
+| =tags=   | string | =""=                     | Tags, separated by spaces, that make a project active; =*= for any |
+| =regexp= | string | =""=                     | An Emacs regular expression that makes a project active          |
+
+These mirror the four elements of =org-stuck-projects=. See [[file:07-agenda.org][The agenda]].
 
 ** [org-agenda-time-grid]
 
@@ -504,6 +516,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-agenda-prefix-format=                                         | =[org-agenda-prefix-format]=: a string sets all three views; an alist sets =agenda=, =todo= and =tags= |
 | =org-agenda-sorting-strategy=                                      | =[org-agenda-sorting-strategy]=: a list sets all four views; an alist sets =agenda=, =todo=, =tags= and =search=. A list with =user-defined-up= or =user-defined-down= isn't imported |
 | =org-agenda-sort-notime-is-late=, =org-agenda-sort-noeffort-is-high=, =org-agenda-use-time-grid=, =org-agenda-show-current-time-in-grid= | The same key, as booleans                                     |
+| =org-stuck-projects=                                               | =[org-stuck-projects]=: =match=, =todo=, =tags= and =regexp= from the four elements          |
 | =org-agenda-time-grid=                                             | =[org-agenda-time-grid]=: =when= from the first element, =times= from the second; the strings are left out |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |
 | =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |

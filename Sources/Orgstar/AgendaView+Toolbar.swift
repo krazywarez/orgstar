@@ -183,6 +183,7 @@ extension AgendaView {
         case .todo(let keywords): "TODO items: \(keywords ?? "all")"
         case .match(let match, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " matching \(match)"
         case .search(let string, let todoOnly): (todoOnly ? "TODO entries" : "Entries") + " containing \(string)"
+        case .stuck: "Stuck projects"
         case .agenda: ""
         }
     }

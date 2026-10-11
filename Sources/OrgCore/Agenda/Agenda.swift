@@ -91,6 +91,8 @@ public struct AgendaOptions: Sendable, Equatable {
     public var gridTimes = [800, 1000, 1200, 1400, 1600, 1800, 2000]
     /// `org-agenda-show-current-time-in-grid`.
     public var showCurrentTimeInGrid = true
+    /// `org-stuck-projects`, for views that don't give their own.
+    public var stuckProjects = StuckProjects()
     public var gridTrailing = " ┄┄┄┄┄ "
     public var gridLine = "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
     public var currentTimeLine = "← now ───────────────────────────────────────────────"

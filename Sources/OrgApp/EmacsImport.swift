@@ -524,6 +524,13 @@ public struct EmacsImport: Sendable {
             } else {
                 add(name, .bool(truthy))
             }
+        case "org-stuck-projects":
+            // `("+LEVEL=2/-DONE" ("TODO" "NEXT") nil "")`.
+            guard let parts = value.elements, parts.count == 4, let match = parts[0].string else { return note("not a stuck-projects definition") }
+            add("org-stuck-projects.match", .string(match))
+            add("org-stuck-projects.todo", .string((parts[1].elements ?? []).compactMap(\.string).joined(separator: " ")))
+            add("org-stuck-projects.tags", .string((parts[2].elements ?? []).compactMap(\.string).joined(separator: " ")))
+            add("org-stuck-projects.regexp", .string(parts[3].string ?? ""))
         case "org-agenda-time-grid":
             // `((daily today require-timed) (800 1000 …) "......" "----------------")`: the
             // strings are how Emacs draws the lines.

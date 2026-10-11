@@ -651,10 +651,10 @@ struct AgendaCommandTests {
         type = "match"
         """)
         let loaded = AgendaViewLoader.load(userFile: file)
-        #expect(loaded.views.map(\.name) == ["Agenda", "TODO List", "Work", "Week", "Waiting"])
-        #expect(loaded.views[2].mode == .match("+work", todoOnly: false))
-        #expect(loaded.views[3].mode == .agenda(span: 7, startOffset: -1))
-        #expect(loaded.views[4].mode == .todo(keywords: "WAIT|HOLD"))
+        #expect(loaded.views.map(\.name) == ["Agenda", "TODO List", "Stuck Projects", "Work", "Week", "Waiting"])
+        #expect(loaded.views[3].mode == .match("+work", todoOnly: false))
+        #expect(loaded.views[4].mode == .agenda(span: 7, startOffset: -1))
+        #expect(loaded.views[5].mode == .todo(keywords: "WAIT|HOLD"))
         #expect(loaded.problems == ["views.toml line 13: Broken needs a match"])
     }
 
@@ -670,7 +670,7 @@ struct AgendaCommandTests {
         """)
         let loaded = AgendaViewLoader.load(userFile: file)
         #expect(loaded.problems == ["views.toml line 1: unknown sorting key bogus"])
-        #expect(loaded.views[2].settings == AgendaViewSettings(prefixFormat: "%e", sortingStrategy: ["alpha-up"]))
+        #expect(loaded.views[3].settings == AgendaViewSettings(prefixFormat: "%e", sortingStrategy: ["alpha-up"]))
         let model = try WorkspaceModel(directory: nil)
         try await model.addRoot(notes.url)
         let agenda = AgendaModel(workspace: model)
@@ -683,6 +683,34 @@ struct AgendaCommandTests {
         agenda.mode = .todo(keywords: "TODO")
         await agenda.refresh(open: [:])
         #expect(agenda.list.map(\.text) == ["TODO [#A] c", "TODO b", "TODO a"])
+    }
+
+    @Test func stuckProjectViews() async throws {
+        let notes = try Folder()
+        try notes.write("a.org", "* Projects\n** Website\n*** TODO Draft\n** Garden\n*** WAIT Seeds\n")
+        let file = try notes.write("views.toml", """
+        [[view]]
+        name = "Stuck"
+        type = "stuck"
+        [[view]]
+        name = "Waiting counts"
+        type = "stuck"
+        keywords = "TODO WAIT"
+        """)
+        let loaded = AgendaViewLoader.load(userFile: file)
+        #expect(loaded.problems.isEmpty)
+        #expect(loaded.views[3].mode == .stuck(nil))
+        guard case .stuck(let definition?) = loaded.views[4].mode else { Issue.record("no definition"); return }
+        #expect(definition.todo == ["TODO", "WAIT"] && definition.match == "+LEVEL=2/-DONE")
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.mode = loaded.views[3].mode
+        await agenda.refresh(open: [:])
+        #expect(agenda.list.map(\.text) == ["Garden"])
+        agenda.mode = loaded.views[4].mode
+        await agenda.refresh(open: [:])
+        #expect(agenda.list.isEmpty)
     }
 
     @Test func todoListMode() async throws {

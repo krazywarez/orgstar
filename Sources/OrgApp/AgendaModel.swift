@@ -98,6 +98,8 @@ public final class AgendaModel {
                 list = Agenda.tagsMatch(all, match: match, todoOnly: todoOnly, now: now, calendar: calendar, options: options)
             case .search(let string, let todoOnly):
                 list = Agenda.textSearch(all, string: string, todoOnly: todoOnly, options: options)
+            case .stuck(let definition):
+                list = Agenda.stuckProjects(all, definition ?? options.stuckProjects, now: now, calendar: calendar, options: options)
             }
             return (days, list, events)
         }.value

@@ -111,10 +111,18 @@ public enum OrgPreferences {
         options.showCurrentTimeInGrid = bool("agendaShowCurrentTime", defaults)
         options.gridWhen = Set(string("agendaTimeGridWhen", defaults).split(whereSeparator: \.isWhitespace).map(String.init))
         options.gridTimes = string("agendaTimeGridTimes", defaults).split(whereSeparator: \.isWhitespace).compactMap { Int($0) }
+        options.stuckProjects = stuckProjects(defaults)
         options.sortNotimeIsLate = bool("agendaSortNotimeIsLate", defaults)
         options.sortNoeffortIsHigh = bool("agendaSortNoeffortIsHigh", defaults)
         return options
     }
+    /// `org-stuck-projects`.
+    public static func stuckProjects(_ defaults: UserDefaults = .standard) -> StuckProjects {
+        StuckProjects(match: string("stuckProjectsMatch", defaults), todo: words(string("stuckProjectsTodo", defaults)),
+                      tags: words(string("stuckProjectsTags", defaults)), regexp: string("stuckProjectsRegexp", defaults))
+    }
+    /// Words separated by spaces.
+    public static func words(_ text: String) -> [String] { text.split(whereSeparator: \.isWhitespace).map(String.init) }
     /// An `org-agenda-sorting-strategy` entry, keys separated by spaces; unknown keys are left out.
     public static func sortingStrategy(_ text: String) -> [String] {
         text.split(whereSeparator: \.isWhitespace).map(String.init).filter(AgendaSort.keys.contains)
