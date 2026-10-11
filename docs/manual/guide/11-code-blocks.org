@@ -90,14 +90,14 @@ On the Mac, orgstar starts each interpreter through =/usr/bin/env=. Because an a
 | =shell=                                                          | The shell in =SHELL=, or =/bin/sh=                  |
 | =python=                                                         | =python3=, or the program in =:python=              |
 | =emacs-lisp=, =elisp=                                            | =emacs -Q --batch=; see Emacs Lisp blocks below     |
-| =ruby=                                                           | =ruby=                                              |
+| =ruby=                                                           | =ruby=, or the program in =:ruby=                   |
 | =js=, =javascript=                                               | =node=                                              |
 | =R=                                                              | =Rscript -=                                         |
-| =awk=                                                            | =awk -f /dev/stdin=                                 |
+| =awk=                                                            | =awk -f=, the program written to a file             |
 | =dot=, =plantuml=, =mermaid=                                     | =dot=, =plantuml=, =mmdc=; see Graphics below       |
 | =C=, =C++=, =cpp=, =D=, =java=, =fortran=, =clojure=             | A compiler, or =bb= or =clojure=; see Compiled languages below |
 
-For =ruby=, =js=, =javascript=, =R= and =awk=, =:cmd= names a different program. These languages always return their standard output, and =:var= is refused for them.
+For =js=, =javascript= and =R=, =:cmd= names a different program. =awk= takes =:cmd-line= arguments after its program, and =:in-file= as the file it reads.
 
 Any other language is refused with "No way to run /language/ blocks yet."
 
@@ -206,7 +206,10 @@ What "value" means depends on the language:
 | Python                  | What the block returns. The body runs as a function, so it needs =return=. =:return expr= adds a final =return expr=. |
 | Python in a =:session=  | The value of the last expression.                                                             |
 | Emacs Lisp              | The value of the last form.                                                                   |
-| =ruby=, =js=, =R=, =awk= | Standard output, always.                                                                     |
+| =ruby=                  | The value of the body, run as a lambda; strings as they are, other values as =inspect= prints them, arrays read as tables with =nil= rows as rules. =:results pp= prints it with =pp=. |
+| =js=, =javascript=      | What the body returns, as =util.inspect= prints it, arrays read as tables; it runs as a function, so it needs =return=. |
+| =awk=                   | Standard output, read as a table as for shells.                                               |
+| =R=                     | Standard output, always.                                                                      |
 | C, C++, D               | Standard output without its common indentation, read as a table as for shells.                |
 | Fortran                 | The same, with blank space around the output trimmed.                                         |
 | Java                    | With =:results value=, what the body returns; it runs as =main=, so it needs =return=. Lists and arrays become tables, with =null= rows as rules, and a returned string is written without its quotes. Java's default is =:results output=. |
@@ -362,7 +365,8 @@ A string or number takes the place of the form. Lisp that the interpreter cannot
 | =:shebang=        | =#!…= line                                     | Runs the block as a script with this first line. Shells only; also used by tangling.       |
 | =:padline=        | =no=                                           | No blank line after the shebang of a script, or between tangled blocks.                    |
 | =:python=         | program                                        | Python interpreter to use.                                                                 |
-| =:cmd=            | program                                        | Interpreter for =ruby=, =js=, =javascript=, =R= and =awk=.                                 |
+| =:cmd=            | program                                        | Interpreter for =js=, =javascript= and =R=; =:ruby= for =ruby=.                           |
+| =:cmd-line=, =:in-file= | arguments, file                          | =awk=: arguments after the program, and the file it reads.                                 |
 | =:return=         | expression                                     | Python: the value to return.                                                               |
 | =:cache=          | =yes=, =no=                                    | Skip the run when the result is current (see Caching below).                               |
 | =:eval=           | =never=, =no=, =query=, …                      | Whether and how to ask before running (see =:eval= above).                                 |
@@ -379,11 +383,11 @@ orgstar does not run a block whose arguments it would handle differently from Em
 
 | Argument                    | Refused for                                     | Message                                                  |
 |-----------------------------+-------------------------------------------------+----------------------------------------------------------|
-| =:prologue=, =:epilogue=, =:post= | every language when running, except =:prologue= and =:epilogue= for the compiled languages (tangling uses =:prologue= and =:epilogue=) | "=:prologue= isn't supported yet; nothing was run."      |
+| =:prologue=, =:epilogue=    | graphics (=dot=, =plantuml=, =mermaid=)           | "=:prologue= isn't supported yet; nothing was run."      |
+| =:post=                     | every language                                    | "=:post= isn't supported yet; nothing was run."          |
 | =:stdin=, =:shebang=        | languages other than shells                     | "=:stdin= isn't supported yet; nothing was run."         |
 | =:cmdline=                  | languages other than shells, graphics and the compiled languages | "=:cmdline= isn't supported for /language/ yet; nothing was run." |
 | =:session=                  | languages other than shells, Python and the compiled languages, which ignore it | "=:session= isn't supported for /language/ yet; nothing was run." |
-| =:var=                      | =ruby=, =js=, =javascript=, =R=, =awk=          | "=:var= isn't supported for /language/ yet."             |
 
 * Variables
 
@@ -425,8 +429,12 @@ How a value reaches the code depends on the language:
 | fish       | =set name 'value'=      | as other shells                | as other shells                                              |
 | Python     | literal                 | list                           | list of lists, =None= for rules                              |
 | Emacs Lisp | =let=-bound value       | list                           | list of lists, =hline= for rules                             |
+| Ruby       | =name=value= literal    | array                          | array of arrays, =nil= for rules                             |
+| JavaScript | =var name=value;=       | array                          | array of arrays, =hline= for rules                           |
+| R          | =name <- value=, integers with =L= | one-column data frame | data frame read from tab-separated text, a header when the table has one |
+| awk        | =-v name='value'=        | one item per line              | rows on lines, cells separated by a tab                      |
 
-For =shell= blocks, the bash forms are used when =SHELL= is bash. C, C++, D, Java, Fortran and Clojure blocks get declarations as their expansion writes them; see Tangling below.
+For =shell= blocks, the bash forms are used when =SHELL= is bash. =:prologue= and =:epilogue= add a line before the variables and one after the body, in every language that runs; in Emacs Lisp only when the block has variables, as =org-babel-expand-body:emacs-lisp= does. C, C++, D, Java, Fortran and Clojure blocks get declarations as their expansion writes them; see Tangling below.
 
 #+BEGIN_SRC org
 ,#+NAME: kv

@@ -85,6 +85,11 @@ extension Babel {
             return printed == "nil" ? .none : .string(printed)
         case .compiled:
             return compiledValue(finish, output, scalar: scalar)
+        case .script(let js):
+            let raw = rawResult(finish, output)
+            if scalar { return .string(raw) }
+            // `org-babel-ruby-table-or-string`, its nils rules.
+            return js ? jsValue(raw) : pythonValue(raw, none: "nil", braces: true)
         }
     }
 
@@ -99,6 +104,7 @@ extension Babel {
             return valueIsExitStatus ? output.stdout.split(separator: "\n").last.map(String.init) ?? "" : output.stdout
         case .generic: return output.stdout
         case .compiled: return compiledResult(finish, output)
+        case .script(let js): return finish.output || js ? output.stdout : (output.resultFile ?? "")
         }
     }
 
