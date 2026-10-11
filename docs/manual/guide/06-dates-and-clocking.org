@@ -226,7 +226,7 @@ orgstar has no =C-u= forms of these commands. Clock In to Recent Entry… and Go
 
 ** Clocking in and out
 
-Clock In starts a clock on the heading at the caret and inserts a line at the top of its =LOGBOOK= drawer, creating the drawer after the planning line and property drawer if needed:
+Clock In starts a clock on the heading at the caret and inserts a line at the top of its =LOGBOOK= drawer, creating the drawer after the planning line and property drawer if needed (see "The clock drawer" below for other drawers):
 
 #+BEGIN_SRC org
 ,* TODO Write the report
@@ -250,8 +250,20 @@ orgstar remembers the running clock and the clock history across restarts, in =c
 These parts of Org's clocking are not implemented:
 
 - sharing the running clock with Emacs: orgstar does not read or write Emacs's =org-clock-persist= file, so a clock started in one is not known to the other, although both see the open =CLOCK:= line;
-- rounding, changing the TODO state on clock-in (=org-clock-in-switch-to-state=), and clocking out when the entry is marked done (=org-clock-out-when-done=): the clock keeps running;
-- a =CLOCK_INTO_DRAWER= property or another drawer name: clocks always go into =LOGBOOK=.
+- rounding, changing the TODO state on clock-in (=org-clock-in-switch-to-state=), and clocking out when the entry is marked done (=org-clock-out-when-done=): the clock keeps running.
+
+** The clock drawer
+
+Where clock lines go follows =org-clock-into-drawer= in =config.toml=, or an entry's =CLOCK_INTO_DRAWER= property, which its subtree inherits:
+
+| Value          | Clock lines go                                                                                      |
+|----------------+-----------------------------------------------------------------------------------------------------|
+| =t= (default)  | into the drawer =org-log-into-drawer= (or a =LOG_INTO_DRAWER= property) names, else =LOGBOOK=          |
+| =nil=          | under the heading, newest first, without a drawer                                                   |
+| a number /n/   | under the heading until there would be /n/ of them; then all of them move into the log drawer        |
+| a drawer name  | into that drawer                                                                                    |
+
+An existing drawer of that name always takes the new line.
 
 ** The running clock
 

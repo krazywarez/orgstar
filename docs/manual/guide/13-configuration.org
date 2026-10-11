@@ -162,6 +162,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-agenda-skip-scheduled-if-done= |                         |
 | =org-agenda-skip-deadline-if-done=  |                         |
 | =org-agenda-log-mode-items=      |                            |
+| =org-clock-into-drawer=          |                            |
 | =org-agenda-todo-ignore-with-date=, =org-agenda-todo-ignore-scheduled=, =org-agenda-todo-ignore-deadlines=, =org-agenda-todo-ignore-timestamp=, =org-agenda-tags-todo-honor-ignore-options= | |
 | =org-agenda-search-view-always-boolean= |                     |
 | =org-agenda-search-view-force-full-words= |                   |
@@ -223,6 +224,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-dim-blocked-tasks=       | string  | ="t"=   | =t= dims entries the two enforce settings block, =invisible= hides them (entries blocked only by checkboxes are still dimmed), =nil= shows them as usual. Mirrors =org-agenda-dim-blocked-tasks=. |
 | =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
 | =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
+| =org-clock-into-drawer=              | string  | ="t"=   | Where clock lines go: ="t"= the log drawer (=LOGBOOK=), ="nil"= no drawer, ="N"= a drawer once there are N clock lines, or a drawer's name. An entry's =CLOCK_INTO_DRAWER= property overrides it. Mirrors =org-clock-into-drawer=. |
 | =org-clock-history-length=           | integer | =5=     | How many recently clocked entries orgstar remembers. Mirrors =org-clock-history-length=.                     |
 
 The default =org-todo-keywords= is the first sequence of Doom Emacs's default:
@@ -471,6 +473,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-agenda-span=                                                  | A number, or =day= (1), =week= (7), =fortnight= (14), =month= (30), =year= (365)               |
 | =org-clock-idle-time=                                             | Minutes; =nil= becomes =0= (never)                                                            |
 | =org-clock-history-length=                                         | The same key, when the value is a positive number                                             |
+| =org-clock-into-drawer=                                            | A drawer name as given, a number as a string, =t= or =nil=                                    |
 | =org-agenda-start-day=                                             | A day offset such as ="-3d"=; =nil= becomes ="+0d"=. Other forms aren't supported.            |
 | =org-agenda-start-on-weekday=                                      | ="0"= to ="6"=, or ="nil"=                                                                    |
 | =org-agenda-log-mode-items=                                        | The symbols =closed=, =clock= and =state= of the list, separated by spaces                      |

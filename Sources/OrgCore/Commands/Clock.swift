@@ -1,11 +1,46 @@
 import Foundation
 
-// Clocking (org-clock.el, Org 9.8.7) with `org-clock-into-drawer` t (a LOGBOOK drawer),
-// `org-log-states-order-reversed` t (newest first), no rounding, no resume, and zero-time
-// clocks kept.
+// Clocking (org-clock.el, Org 9.8.7) with `org-clock-into-drawer` and the CLOCK_INTO_DRAWER
+// property, `org-log-states-order-reversed` t (newest first), no rounding, no resume, and
+// zero-time clocks kept.
 
 extension EmacsBuffer {
-    static let clockDrawer = "LOGBOOK"
+    /// What `org-clock-into-drawer` comes to for an entry.
+    enum ClockDrawer: Equatable {
+        case none
+        /// Into the drawer once there are this many clock lines.
+        case count(Int)
+        case named(String)
+    }
+
+    /// `org-log-into-drawer` for the entry: the setting, `#+STARTUP: logdrawer` and the
+    /// LOG_INTO_DRAWER property.
+    func logIntoDrawer() -> String? { logSettings().drawer }
+
+    /// `org-clock-into-drawer` (the function): the entry's CLOCK_INTO_DRAWER over the setting.
+    func clockIntoDrawer() -> ClockDrawer {
+        func read(_ value: String) -> ClockDrawer? {
+            switch value.trimmingCharacters(in: .whitespaces) {
+            case "nil": return ClockDrawer.none
+            case "t": return .named(logIntoDrawer() ?? "LOGBOOK")
+            case "": return nil
+            case let text where text.allSatisfy(\.isASCII) && text.allSatisfy(\.isNumber): return .count(Int(text) ?? 0)
+            case let name: return .named(name)
+            }
+        }
+        if let property = inheritedProperty("CLOCK_INTO_DRAWER")?.value, let value = read(property) { return value }
+        return options.clockIntoDrawer.flatMap(read) ?? .named(logIntoDrawer() ?? "LOGBOOK")
+    }
+
+    /// `org-clock-drawer-name`.
+    func clockDrawerName() -> String? {
+        switch clockIntoDrawer() {
+        case .none: nil
+        case .count: logIntoDrawer() ?? "LOGBOOK"
+        case .named(let name): name
+        }
+    }
+
     static let openClockPattern = "^[ \\t]*CLOCK: \\[([0-9]{4}-[0-9]{2}-[0-9]{2} *[^\\]\\s]+ +[012][0-9]:[0-5][0-9])\\][ \\t]*$"
 
     /// `org-clock-find-position` without `find-unclosed`.
@@ -15,13 +50,17 @@ extension EmacsBuffer {
             _ = outlineNextHeading()
             return point
         }
-        let drawerPattern = "^[ \\t]*:" + Self.clockDrawer + ":[ \\t]*$"
-        point = beg
-        while let match = searchForward(drawerPattern, bound: end, caseInsensitive: false) {
-            if element(at: lineStart(match[0]!.lowerBound))?.kind == .drawer {
-                point = match[0]!.upperBound
-                forwardLine(1)
-                return
+        let into = clockIntoDrawer()
+        let drawer = clockDrawerName()
+        if let drawer {
+            let drawerPattern = "^[ \\t]*:" + NSRegularExpression.escapedPattern(for: drawer) + ":[ \\t]*$"
+            point = beg
+            while let match = searchForward(drawerPattern, bound: end, caseInsensitive: false) {
+                if element(at: lineStart(match[0]!.lowerBound))?.kind == .drawer {
+                    point = match[0]!.upperBound
+                    forwardLine(1)
+                    return
+                }
             }
         }
         point = beg
@@ -34,8 +73,25 @@ extension EmacsBuffer {
         if positions.isEmpty {
             endOfMetaData()
             if !bolp { insertBeforeMarkers("\n") }
-            insertBeforeMarkers(":" + Self.clockDrawer + ":\n:END:\n")
-            forwardLine(-1)
+            let creates: Bool = switch into {
+            case .none: false
+            case .count(let n): n < 2
+            case .named: true
+            }
+            if creates, let drawer {
+                insertBeforeMarkers(":" + drawer + ":\n:END:\n")
+                forwardLine(-1)
+            }
+            return
+        }
+        // Without a drawer, or with fewer clocks than the setting's number, the new clock goes
+        // first.
+        let wraps: Bool = switch into {
+        case .count(let n): positions.count + 1 >= n
+        default: drawer != nil
+        }
+        guard wraps, let drawer else {
+            point = positions.last!
             return
         }
         // Clocks outside a drawer move into a new one.
@@ -58,7 +114,7 @@ extension EmacsBuffer {
         let endMarker = marker(point)
         defer { release(endMarker) }
         point = start
-        saveExcursion { insertBeforeMarkers(":" + Self.clockDrawer + ":\n") }
+        saveExcursion { insertBeforeMarkers(":" + drawer + ":\n") }
         forwardLine(1)
     }
 
@@ -136,13 +192,13 @@ extension EmacsBuffer {
     /// `org-clock-remove-empty-clock-drawer` for the subtree at point.
     func removeEmptyClockDrawer() {
         saveExcursion {
-            guard let heading = try? backToHeading() else { return }
+            guard let heading = try? backToHeading(), let drawer = clockDrawerName() else { return }
             let end = saveExcursion { () -> Int in
                 point = heading
                 return endOfSubtree()
             }
             point = heading
-            let pattern = "(?i)^[ \\t]*:" + Self.clockDrawer + ":[ \\t]*$"
+            let pattern = "(?i)^[ \\t]*:" + NSRegularExpression.escapedPattern(for: drawer) + ":[ \\t]*$"
             while let match = searchForward(pattern, bound: end, caseInsensitive: true) {
                 removeEmptyDrawer(at: match[0]!.upperBound)
             }

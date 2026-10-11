@@ -35,6 +35,7 @@ struct OrgPreferencesTests {
             org-agenda-todo-ignore-deadlines = "t"
             org-agenda-todo-ignore-scheduled = "-2"
             org-agenda-log-mode-items = "closed state"
+            org-clock-into-drawer = "3"
             org-M-RET-may-split-line = true
             org-hide-emphasis-markers = false
             org-pretty-entities = false
@@ -52,7 +53,7 @@ struct OrgPreferencesTests {
         #expect(OrgPreferences.options(defaults).trackOrderedPropertyWithTag == "ORDERED")
         #expect(OrgPreferences.options(defaults).archiveLocation == "~/org/archive.org::* %s")
         let ignoring = OrgPreferences.agendaOptions(AgendaOptions(), defaults)
-        #expect(ignoring.logItems == ["closed", "state"])
+        #expect(ignoring.logItems == ["closed", "state"] && OrgPreferences.options(defaults).clockIntoDrawer == "3")
         #expect(ignoring.todoIgnoreDeadlines == .near && ignoring.todoIgnoreScheduled == .days(-2) && ignoring.todoIgnoreTimestamp == .off)
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 5)
         #expect(!OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 30)

@@ -185,6 +185,8 @@ public enum UserConfig {
                 comment: "minutes of warning before timed entries; APPT_WARNTIME overrides", legacy: "agenda.reminder-lead"),
         Setting(section: "", key: "org-clock-idle-time", defaultsKey: "clockIdleTime", kind: .integer, fallback: .integer(0),
                 comment: "minutes idle with a clock running before asking what to do with the time; 0 never (nil)", legacy: ""),
+        Setting(section: "", key: "org-clock-into-drawer", defaultsKey: "clockIntoDrawer", kind: .string, fallback: .string("t"),
+                comment: "t: clock lines go in the log drawer (LOGBOOK); nil: none; a number: once there are that many; or a drawer name", legacy: ""),
         Setting(section: "", key: "org-clock-history-length", defaultsKey: "clockHistoryLength", kind: .integer, fallback: .integer(5),
                 comment: "recently clocked entries to remember", legacy: ""),
         Setting(section: "org-agenda-prefix-format", key: "agenda", defaultsKey: "agendaPrefixAgenda", kind: .string, fallback: .string(PrefixFormat.defaults["agenda"]!),

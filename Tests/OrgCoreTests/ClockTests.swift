@@ -21,8 +21,8 @@ struct ClockTests {
         return c
     }
 
-    func run(_ command: any OrgCommand, _ text: String, caret: Int, at seconds: Int) -> (text: String, caret: Int, failure: String?) {
-        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], now: Date(timeIntervalSince1970: Double(seconds)), calendar: Self.utc)
+    func run(_ command: any OrgCommand, _ text: String, caret: Int, at seconds: Int, options: EditingOptions = .org) -> (text: String, caret: Int, failure: String?) {
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], now: Date(timeIntervalSince1970: Double(seconds)), calendar: Self.utc, options: options)
         switch command.run(in: context) {
         case .commit(let result):
             var new = text
@@ -35,27 +35,50 @@ struct ClockTests {
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func matchesEmacs() throws {
+        try compare(Self.texts)
+    }
+
+    /// `org-clock-into-drawer` values, `org-log-into-drawer`, and the CLOCK_INTO_DRAWER and
+    /// LOG_INTO_DRAWER properties.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func intoDrawerMatchesEmacs() throws {
+        let texts = Self.texts + [
+            "* Task\nCLOCK: [2026-10-03 Sat 09:00]--[2026-10-03 Sat 10:00] =>  1:00\nCLOCK: [2026-10-04 Sun 09:00]--[2026-10-04 Sun 10:00] =>  1:00\n",
+            "* Task\n:PROPERTIES:\n:CLOCK_INTO_DRAWER: nil\n:END:\nBody\n",
+            "* Parent\n:PROPERTIES:\n:CLOCK_INTO_DRAWER: TIMES\n:END:\n** Task\nBody\n",
+            "* Task\n:PROPERTIES:\n:CLOCK_INTO_DRAWER: 2\n:END:\nCLOCK: [2026-10-04 Sun 09:00]--[2026-10-04 Sun 10:00] =>  1:00\n",
+            "* Task\n:PROPERTIES:\n:CLOCK_INTO_DRAWER: t\n:LOG_INTO_DRAWER: NOTES\n:END:\n",
+        ]
+        for (lisp, value, log) in [("nil", "nil", nil), ("2", "2", nil), ("3", "3", nil), ("\"CLOCKS\"", "CLOCKS", nil), ("t", nil, "NOTES"), ("2", "2", "NOTES")] as [(String, String?, String?)] {
+            var options = EditingOptions.org
+            options.clockIntoDrawer = value
+            options.logIntoDrawer = log
+            try compare(texts, lisp: lisp, log: log.map { "\"\($0)\"" } ?? "nil", options: options)
+        }
+    }
+
+    func compare(_ texts: [String], lisp: String = "t", log: String = "nil", options: EditingOptions = .org) throws {
         let t1 = 1_789_000_000   // Thu 2026-09-10 00:26
         let t2 = t1 + 3 * 3600 + 17 * 60 + 42
         var cases: [EmacsOracle.Case] = []
         var ours: [(String, String)] = []
-        for text in Self.texts {
+        for text in texts {
             let caret = (text as NSString).range(of: "Task").location
             for mode in ["out", "cancel"] {
                 // Clock in at t1, then out (or cancel) at t2.
-                let first = run(ClockIn(), text, caret: caret, at: t1)
+                let first = run(ClockIn(), text, caret: caret, at: t1, options: options)
                 guard let start = ClockIn.runningStart(in: first.text, near: caret) else {
                     ours.append(("no running clock: \(first.failure ?? "")", text))
                     cases.append(EmacsOracle.Case(text: text, point: 1, form: "nil"))
                     continue
                 }
-                let second = run(ClockOut(start: start, cancel: mode == "cancel"), first.text, caret: first.caret, at: t2)
+                let second = run(ClockOut(start: start, cancel: mode == "cancel"), first.text, caret: first.caret, at: t2, options: options)
                 ours.append((second.text, first.text))
                 let out = mode == "cancel" ? "(org-clock-cancel)" : "(org-clock-out)"
                 cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: """
                 (progn
                   (require 'org-clock)
-                  (setq org-clock-persist nil org-clock-idle-time nil org-clock-auto-clock-resolution nil org-clock-into-drawer t)
+                  (setq org-clock-persist nil org-clock-idle-time nil org-clock-auto-clock-resolution nil org-clock-into-drawer \(lisp) org-log-into-drawer \(log))
                   \(frozenClock(t1, "(org-clock-in)"))
                   (setq orgstar-after-in (buffer-substring-no-properties (point-min) (point-max)))
                   \(frozenClock(t2, out)))
@@ -64,7 +87,7 @@ struct ClockTests {
         }
         let emacs = try EmacsOracle.run(cases)
         for (i, (mine, theirs)) in zip(ours, emacs).enumerated() {
-            #expect(mine.0 == theirs.text, "case \(i) \(cases[i].form.contains("cancel") ? "cancel" : "out")\n\(cases[i].text.debugDescription)\nafter in (ours): \(mine.1.debugDescription)\nours:  \(mine.0.debugDescription)\nemacs: \(theirs.text.debugDescription) \(theirs.error)")
+            #expect(mine.0 == theirs.text, "case \(i) \(lisp) \(cases[i].form.contains("cancel") ? "cancel" : "out")\n\(cases[i].text.debugDescription)\nafter in (ours): \(mine.1.debugDescription)\nours:  \(mine.0.debugDescription)\nemacs: \(theirs.text.debugDescription) \(theirs.error)")
         }
     }
 }
@@ -137,5 +160,27 @@ struct ClockReportTests {
                 #expect(ours == theirs, "\(start ?? "-")..\(end ?? "-")\nours:\n\(ours)\ntheirs:\n\(theirs)")
             }
         }
+    }
+}
+
+struct ClockDrawerStartupTests {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func startupLogdrawerMatchesEmacs() throws {
+        let text = "#+STARTUP: nologdrawer\n* Task\nBody\n"
+        let caret = (text as NSString).range(of: "Task").location
+        let t1 = 1_789_000_000
+        var options = EditingOptions.org
+        options.logIntoDrawer = "NOTES"
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret], now: Date(timeIntervalSince1970: Double(t1)), calendar: ClockTests.utc, options: options)
+        guard case .commit(let result) = ClockIn().run(in: context) else { Issue.record("no commit"); return }
+        let ours = result.edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(text) { $1.apply(to: $0) }
+        let emacs = try EmacsOracle.run([EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: """
+            (progn (require 'org-clock)
+              (setq org-clock-persist nil org-clock-idle-time nil org-clock-auto-clock-resolution nil org-clock-into-drawer t)
+              (setq-default org-log-into-drawer "NOTES")
+              (org-mode)
+              \(frozenClock(t1, "(org-clock-in)")))
+            """)])
+        #expect(ours == emacs[0].text, "ours: \(ours.debugDescription)\nemacs: \(emacs[0].text.debugDescription) \(emacs[0].error)")
     }
 }

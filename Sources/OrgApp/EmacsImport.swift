@@ -543,6 +543,8 @@ public struct EmacsImport: Sendable {
         case "org-clock-idle-time":
             // nil is never; a number is minutes.
             if value.symbol == "nil" { add(name, .integer(0)) } else if let minutes = value.integer, minutes > 0 { add(name, .integer(minutes)) } else { note("not a number of minutes") }
+        case "org-clock-into-drawer":
+            if let drawer = value.string { add(name, .string(drawer)) } else if let n = value.integer { add(name, .string("\(n)")) } else { add(name, .string(truthy ? "t" : "nil")) }
         case "org-clock-history-length":
             guard let length = value.integer, length > 0 else { return note("not a positive number") }
             add(name, .integer(length))

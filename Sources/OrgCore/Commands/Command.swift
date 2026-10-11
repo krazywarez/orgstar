@@ -27,6 +27,9 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var enforceTodoDependencies = false
     /// `org-enforce-todo-checkbox-dependencies`: an entry can't become done with unchecked boxes.
     public var enforceTodoCheckboxDependencies = false
+    /// `org-clock-into-drawer` as `config.toml` writes it: `nil`, `t`, a number of clock lines,
+    /// or a drawer name; nil for Org's default, `t`.
+    public var clockIntoDrawer: String?
     /// `org-structure-template-alist`, for C-c C-, and `<` completion; nil for Org's.
     public var structureTemplates: [StructureTemplate]?
     /// `org-archive-location`, for entries without an `ARCHIVE` property or `#+ARCHIVE:`; nil
