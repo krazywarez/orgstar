@@ -101,7 +101,16 @@ public enum OrgPreferences {
         options.todoIgnoreDeadlines = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreDeadlines", defaults), deadlines: true) ?? .off
         options.todoIgnoreTimestamp = AgendaOptions.TodoIgnore(string("agendaTodoIgnoreTimestamp", defaults)) ?? .off
         options.tagsTodoHonorIgnoreOptions = bool("agendaTagsTodoHonorIgnore", defaults)
+        for (view, key) in [("agenda", "agendaSortAgenda"), ("todo", "agendaSortTodo"), ("tags", "agendaSortTags"), ("search", "agendaSortSearch")] {
+            options.sortingStrategy[view] = sortingStrategy(string(key, defaults))
+        }
+        options.sortNotimeIsLate = bool("agendaSortNotimeIsLate", defaults)
+        options.sortNoeffortIsHigh = bool("agendaSortNoeffortIsHigh", defaults)
         return options
+    }
+    /// An `org-agenda-sorting-strategy` entry, keys separated by spaces; unknown keys are left out.
+    public static func sortingStrategy(_ text: String) -> [String] {
+        text.split(whereSeparator: \.isWhitespace).map(String.init).filter(AgendaSort.keys.contains)
     }
     /// `calendar-events`: Calendar's events show in the agenda.
     public static func calendarEvents(_ defaults: UserDefaults = .standard) -> Bool { bool("calendarEvents", defaults) }

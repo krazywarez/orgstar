@@ -113,6 +113,13 @@ struct AgendaRowView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(theme.color("agenda-category") ?? .secondary)
                 .lineLimit(1)
+            if let detail = row.prefixDetail {
+                Text(detail)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
         }
     }
 

@@ -118,7 +118,26 @@ On today, a line marked with the current time sits between the timed entries: be
 
 ** Sorting
 
-Days are sorted as =org-agenda-sorting-strategy= sorts them by default for the agenda: =(habit-down time-up urgency-down category-keep)=. Habits go last; timed entries come first, earliest first; the rest by urgency, which combines priority with how overdue an entry is; ties keep file order. Calendar events go among them as described in [[*Calendar events][Calendar events]]. The TODO list and match views sort by urgency, then file order. The sorting is not configurable.
+Lines are sorted by =org-agenda-sorting-strategy=, set per kind of view in the =[org-agenda-sorting-strategy]= table of =config.toml= (see [[file:13-configuration.org][Configuration]]) or for one view in =views.toml=. The defaults are Org's: =habit-down time-up urgency-down category-keep= for days, =urgency-down category-keep= for the TODO list and matches, and =category-keep= for text search. With those, habits go last; timed entries come first, earliest first; the rest by urgency, which combines priority with how overdue an entry is; ties keep file order. Calendar events go among them as described in [[*Calendar events][Calendar events]].
+
+Each key compares two lines, and the next key is tried when they tie:
+
+| Key                                  | Sorts by                                                                    |
+|--------------------------------------+-----------------------------------------------------------------------------|
+| =time-up=, =time-down=               | Time of day; lines without one go last (=org-agenda-sort-notime-is-late=)    |
+| =timestamp-up=, =timestamp-down=     | The date of the line's timestamp, of any kind                                |
+| =scheduled-up=, =deadline-up=, =ts-up=, =tsia-up= and their =-down= forms | The date of a =SCHEDULED=, =DEADLINE=, active or inactive timestamp only |
+| =priority-up=, =priority-down=       | Priority                                                                     |
+| =urgency-up=, =urgency-down=         | Urgency: priority adjusted for how close or overdue the date is              |
+| =effort-up=, =effort-down=           | =Effort=; entries without one count as longest (=org-agenda-sort-noeffort-is-high=) |
+| =category-up=, =category-down=       | Category name                                                                |
+| =category-keep=                      | Stops comparing lines of different categories, so they keep their order      |
+| =tag-up=, =tag-down=                 | The last tag                                                                 |
+| =todo-state-up=, =todo-state-down=   | Done keywords first, then keywords in the order your sequences list them     |
+| =habit-up=, =habit-down=             | Habits first or last                                                         |
+| =alpha-up=, =alpha-down=             | The title, ignoring case and the TODO keyword                               |
+
+In the TODO list and matches, the date keys use the first one in the strategy: with =scheduled-up= every line sorts by its =SCHEDULED= date, as in Org. Org's =user-defined-up= and =user-defined-down= are not supported.
 
 ** Log mode
 
@@ -415,10 +434,12 @@ match = "+invoice -paid"
 | =start=    | =agenda=           | First day as an integer number of days from today (=-3=, =0=); the setting when omitted |
 | =keywords= | =todo=             | Keywords separated by the vertical bar; all open TODOs when omitted        |
 | =match=    | =match=, =todo-match=, =search=, =todo-search=, required | A match string as in [[*Tag and property matches][Tag and property matches]], or for =search= a search string as in [[*Text search][Text search]]; the =todo-= types keep only open TODO entries |
+| =sorting-strategy= | all          | The view's =org-agenda-sorting-strategy=, keys separated by spaces, in place of the one in =config.toml= for its kind |
+| =prefix-format=    | all          | The view's =org-agenda-prefix-format=, in place of the one in =config.toml= for its kind |
 
 Note that =start= is a plain integer here, while =org-agenda-start-day= in =config.toml= is a string such as ="-3d"=.
 
-Not supported: block agendas (several views in one), per-view settings such as =org-agenda-skip-function= or a different prefix format, and =stuck= projects. The views load when the window opens and again on =g= or =r=. A problem in the file, such as a missing =name= or an unknown =type=, shows in the status line at the bottom of the window, and the remaining views still load.
+Not supported: block agendas (several views in one), =org-agenda-skip-function=, and =stuck= projects. The views load when the window opens and again on =g= or =r=. A problem in the file, such as a missing =name= or an unknown =type=, shows in the status line at the bottom of the window, and the remaining views still load.
 
 * Filters
 
@@ -456,7 +477,9 @@ The =\= prompt reads every word as a tag, whether or not a line has it; there, =
 
 * Prefix format and colors
 
-The rows look the same whatever =org-agenda-prefix-format= says. orgstar reads the =[org-agenda-prefix-format]= table in =config.toml= (see [[file:13-configuration.org][Configuration]]), but the only effect is on times written in heading text: when the =agenda= format contains =%t=, as the default =" %i %-12:c%?-12t% s"= does, a time such as =9:30am= in =Call Ada 9:30am= moves out of the title into the left column, as =org-agenda-remove-times-when-in-prefix= does. Without =%t=, the title keeps it.
+orgstar reads =org-agenda-prefix-format= from the =[org-agenda-prefix-format]= table in =config.toml= (see [[file:13-configuration.org][Configuration]]) or a view's =prefix-format=. Rows already show the category, the time and the scheduled or deadline leader in their own places, so =%c=, =%t=, =%s= and =%i= add nothing there. What the format adds besides them shows after the category: =%e= the effort, =%b= the outline path (=Project->Phase->=), =%T= the last tag, and any literal text. =%l= (the level as spaces) and =%(…)= Lisp forms show nothing. Widths, =?= and punctuation work as in Org.
+
+Times written in heading text depend on =%t=: when the =agenda= format contains it, as the default =" %i %-12:c%?-12t% s"= does, a time such as =9:30am= in =Call Ada 9:30am= moves out of the title into the left column, as =org-agenda-remove-times-when-in-prefix= does. Without =%t=, the title keeps it.
 
 The agenda's colors come from these theme keys (see [[file:13-configuration.org][Configuration]]):
 

@@ -487,7 +487,8 @@ public struct EmacsImport: Sendable {
              "org-cycle-hide-drawer-startup", "org-cycle-hide-block-startup", "org-use-speed-commands", "org-startup-with-inline-images",
              "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated",
              "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies",
-             "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options", "org-clock-out-remove-zero-time-clocks":
+             "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options", "org-clock-out-remove-zero-time-clocks",
+             "org-agenda-sort-notime-is-late", "org-agenda-sort-noeffort-is-high":
             add(name, .bool(truthy))
         case "org-archive-location":
             guard let location = value.string, location.contains("::") else { return note("not a file::heading location") }
@@ -522,6 +523,25 @@ public struct EmacsImport: Sendable {
                 if case .dotted(_, let v)? = entry { add(name, .bool(v.symbol != "nil")) } else { note("per-context values aren't supported") }
             } else {
                 add(name, .bool(truthy))
+            }
+        case "org-agenda-sorting-strategy":
+            // `((agenda habit-down time-up) (todo urgency-down))`, or one list for every view.
+            func keys(_ items: [Sexp]) -> String? {
+                let names = items.compactMap(\.symbol)
+                guard names.count == items.count else { return nil }
+                if let bad = names.first(where: { !AgendaSort.keys.contains($0) }) { note("\(bad) isn't supported"); return nil }
+                return names.joined(separator: " ")
+            }
+            let entries = value.elements ?? []
+            if entries.allSatisfy({ $0.symbol != nil }) {
+                if let s = keys(entries) { for view in ["agenda", "todo", "tags", "search"] { add("org-agenda-sorting-strategy.\(view)", .string(s)) } }
+            } else {
+                for entry in entries {
+                    var items = entry.elements
+                    if case .dotted(let head, let tail) = entry { items = head + (tail.elements ?? [tail]) }
+                    guard let items, let view = items.first?.symbol, ["agenda", "todo", "tags", "search"].contains(view) else { continue }
+                    if let s = keys(Array(items.dropFirst())) { add("org-agenda-sorting-strategy.\(view)", .string(s)) }
+                }
             }
         case "org-agenda-prefix-format":
             if let s = value.string {

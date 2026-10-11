@@ -190,6 +190,7 @@ extension AgendaView {
     func loadViews() {
         let loaded = AgendaViewLoader.load()
         views = loaded.views
+        agenda.viewSettings = AgendaViewLoader.settings(loaded.views)
         message = loaded.problems.first
     }
 

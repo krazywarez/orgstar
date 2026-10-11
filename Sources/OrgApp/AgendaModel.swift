@@ -35,6 +35,8 @@ public final class AgendaModel {
     /// Files below the top level of each folder are agenda files too.
     public var includeSubfolders = false
     public var options = AgendaOptions()
+    /// The settings of the views in `views.toml`, applied while `mode` is theirs.
+    public var viewSettings: [AgendaMode: AgendaViewSettings] = [:]
     public private(set) var isComputing = false
     /// Calendar events over the days shown, from `calendarEvents` (nil reads none) and the
     /// calendars in `calendarNames` (all when empty).
@@ -74,8 +76,8 @@ public final class AgendaModel {
         let today = Days.absolute(now, calendar: calendar)
         let clock = calendar.dateComponents([.hour, .minute], from: now)
         let (first, span) = shown(today: today)
-        let options = self.options
         let mode = self.mode
+        let options = viewSettings[mode]?.apply(to: self.options, view: mode.viewKey) ?? self.options
         let provider = calendarEvents
         let names = calendarNames
         let all = await sources(open: open)

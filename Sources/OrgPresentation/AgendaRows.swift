@@ -80,6 +80,8 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
     public let progress: String?
     /// Log mode: the time clocked (`1:30`) or the state set (`DONE`).
     public let detail: String?
+    /// What the view's prefix format adds, such as the effort or the outline path.
+    public let prefixDetail: String?
     /// `HHMM` of the start and the end, when timed.
     public let start: Int?
     public let end: Int?
@@ -152,6 +154,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         self.priority = item.priorityLetter
         self.progress = item.progress
         self.detail = item.kind == .clock || item.kind == .state ? Self.logDetail(item.extra) : nil
+        self.prefixDetail = item.prefixDetail
         self.start = timed?.0
         self.end = timed?.1
         self.planningDay = planning
@@ -192,6 +195,7 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
         self.priority = nil
         self.progress = nil
         self.detail = nil
+        self.prefixDetail = nil
         self.start = start
         self.end = end
         self.planningDay = nil

@@ -151,7 +151,7 @@ enum AgendaOracle {
             let line = item.habit.map { Habit.insertGraph($0.graph(today: today), into: item.line) } ?? item.line
             let type: String = switch item.kind {
             case .timeGrid, .currentTime: "-"
-            default: item.kind.rawValue
+            default: item.tsType
             }
             return "\(normalize(line)) | \(type) \(item.category) \(item.timeOfDay.map(String.init) ?? "-") [\(item.extra)] \(item.urgency) \(item.headingOffset == nil ? "-" : item.path ?? "-")@\(item.headingOffset.map(String.init) ?? "-")"
         }

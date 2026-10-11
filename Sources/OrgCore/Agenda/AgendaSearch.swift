@@ -16,13 +16,16 @@ extension Agenda {
                     continue
                 }
                 if ignoresTodo(source, index, options: options, today: today) { continue }
-                items.append(format(
+                var item = format(
                     source, heading, kind: .todo, marker: heading.start, extra: "", dotime: .headline, removing: nil,
                     trailing: "", prefix: options.prefix("todo"), urgency: { 1 + $0 }
-                ))
+                )
+                (item.tsDate, item.tsType) = AgendaSort.entryTimestamp(heading, strategy: options.strategy("todo"))
+                item.tsType = "todo" + item.tsType
+                items.append(item)
             }
         }
-        return sortByUrgency(markBlocked(items, options: options))
+        return AgendaSort.sort(markBlocked(items, options: options), view: "todo", options: options)
     }
 
     /// `org-tags-view`: entries matching a tags/property/TODO match string. `todoOnly` keeps
@@ -39,13 +42,16 @@ extension Agenda {
                 if matcher.todoOnly, heading.todo == nil { continue }
                 guard matcher.matches(heading, in: source, now: now, calendar: calendar), !heading.skipped else { continue }
                 if matcher.todoOnly, options.tagsTodoHonorIgnoreOptions, ignoresTodo(source, index, options: options, today: today) { continue }
-                items.append(format(
+                var item = format(
                     source, heading, kind: .tagsMatch, marker: heading.start, extra: "", dotime: nil, removing: nil,
                     trailing: "", prefix: options.prefix("tags"), urgency: { $0 }
-                ))
+                )
+                (item.tsDate, item.tsType) = AgendaSort.entryTimestamp(heading, strategy: options.strategy("tags"))
+                item.tsType = "tagsmatch" + item.tsType
+                items.append(item)
             }
         }
-        return sortByUrgency(markBlocked(items, options: options))
+        return AgendaSort.sort(markBlocked(items, options: options), view: "tags", options: options)
     }
 
     /// `org-agenda-check-for-timestamp-as-reason-to-ignore-todo-item` for the entry of heading
@@ -177,7 +183,7 @@ extension Agenda {
                 }
             }
         }
-        return items
+        return AgendaSort.sort(items, view: "search", options: options)
     }
 
     /// An `org-search-view` string read into regexps, in Emacs syntax and compiled.
@@ -283,13 +289,6 @@ extension Agenda {
         static func compile(_ emacs: String) -> NSRegularExpression? {
             try? NSRegularExpression(pattern: EmacsRegex.translate(emacs, search: true), options: [.caseInsensitive, .anchorsMatchLines])
         }
-    }
-
-    /// `(urgency-down category-keep)`, stably.
-    static func sortByUrgency(_ items: [AgendaItem]) -> [AgendaItem] {
-        items.enumerated().sorted { a, b in
-            a.element.urgency != b.element.urgency ? a.element.urgency > b.element.urgency : a.offset < b.offset
-        }.map(\.element)
     }
 }
 

@@ -77,6 +77,10 @@ struct AgendaView: View {
     @AppStorage("agendaPrefixAgenda") private var prefixAgenda = PrefixFormat.defaults["agenda"]!
     @AppStorage("agendaPrefixTodo") private var prefixTodo = PrefixFormat.defaults["todo"]!
     @AppStorage("agendaPrefixTags") private var prefixTags = PrefixFormat.defaults["tags"]!
+    @AppStorage("agendaSortAgenda") private var sortAgenda = ""
+    @AppStorage("agendaSortTodo") private var sortTodo = ""
+    @AppStorage("agendaSortTags") private var sortTags = ""
+    @AppStorage("agendaSortSearch") private var sortSearch = ""
     @Environment(\.openWindow) var openWindow
 
     static let match = "Match…"
@@ -124,6 +128,7 @@ struct AgendaView: View {
         var startOnWeekday: String
         var includeSubfolders: Bool
         var prefix: [String]
+        var sorting: [String]
         var logMode: Bool
         var calendars: [String]
         var files: Int
@@ -137,7 +142,8 @@ struct AgendaView: View {
     /// they redraw only it.
     private var refreshKey: RefreshKey {
         RefreshKey(
-            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags], logMode: logMode,
+            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags],
+            sorting: [sortAgenda, sortTodo, sortTags, sortSearch], logMode: logMode,
             calendars: calendarEventsOn ? [calendarNames] : [], files: 0, changed: nil, edits: 0, path: nil, tick: tick
         )
     }

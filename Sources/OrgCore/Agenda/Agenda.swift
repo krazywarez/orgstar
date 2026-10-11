@@ -47,6 +47,9 @@ public struct AgendaItem: Sendable, Equatable {
     public let line: String
     /// What `org-agenda-prefix-format` puts before the heading text.
     public var prefix = ""
+    /// The prefix without the category, time, leader and icon, which rows show in their own
+    /// places, trimmed; nil when nothing is left. `%e` and `%b` are what remain in practice.
+    public var prefixDetail: String?
     /// The entry's `Effort` property.
     public var effort: String?
     /// Deadlines and scheduled items: the day (as `Days` numbers it) of the timestamp the item
@@ -56,6 +59,16 @@ public struct AgendaItem: Sendable, Equatable {
     public var isBlocked = false
     /// The first done keyword of the sequence the entry's keyword belongs to.
     public var doneKeyword: String?
+    /// What `org-agenda-sorting-strategy` compares: Org's `priority`, `ts-date` and `type`
+    /// properties, the effort in minutes, the keyword's place from the end of the file's
+    /// keywords (negated), and the heading text for `alpha-up`.
+    public var priority = 0
+    public var tsDate: Int?
+    public var tsType = ""
+    public var effortMinutes: Double?
+    var todoRank = 0
+    var todoDone = false
+    var alpha: String?
     var blockedByCheckboxes = false
     var blockedByHierarchy = false
 }
@@ -77,6 +90,11 @@ public struct AgendaOptions: Sendable, Equatable {
     public var currentTimeLine = "← now ───────────────────────────────────────────────"
     /// `org-agenda-prefix-format`, by view: `agenda`, `todo`, `tags`, `search`.
     public var prefixFormat = PrefixFormat.defaults
+    /// `org-agenda-sorting-strategy`, by view, and `org-agenda-sort-notime-is-late` and
+    /// `org-agenda-sort-noeffort-is-high`.
+    public var sortingStrategy = AgendaSort.defaults
+    public var sortNotimeIsLate = true
+    public var sortNoeffortIsHigh = true
     /// Log mode (`l`): closed entries and clocked time on each day.
     public var logMode = false
     /// `org-agenda-log-mode-items`.
@@ -140,6 +158,8 @@ public struct AgendaOptions: Sendable, Equatable {
 
     public init() {}
 
+    func strategy(_ view: String) -> [String] { sortingStrategy[view] ?? AgendaSort.defaults[view] ?? [] }
+
     func prefix(_ view: String) -> PrefixFormat {
         PrefixFormat(prefixFormat[view] ?? PrefixFormat.defaults[view]!)
     }
@@ -165,17 +185,24 @@ public enum Agenda {
             for source in sources { items += entries(source, day: day, today: today, options: options) }
             let isToday = day == today
             if (isToday || days == 1), items.contains(where: { $0.timeOfDay != nil }) {
-                items = grid(day: day, isToday: isToday, now: now, options: options) + items
+                let grid = grid(day: day, isToday: isToday, now: now, options: options)
+                items = options.strategy("agenda").contains("time-up") ? grid + items : items + grid
             }
-            return AgendaDay(day: day, isToday: isToday, header: header(day), items: sort(markBlocked(items, options: options)))
+            return AgendaDay(day: day, isToday: isToday, header: header(day), items: AgendaSort.sort(markBlocked(items, options: options), view: "agenda", options: options))
         }
     }
 
     /// `org-agenda-get-day-entries` with the default entry types.
     static func entries(_ source: AgendaSource, day: Int, today: Int, options: AgendaOptions) -> [AgendaItem] {
         let deadlines = self.deadlines(source, day: day, today: today, options: options)
-        return (options.logMode ? progress(source, day: day, options: options) : []) + deadlines + scheduled(source, day: day, today: today, options: options) + blocks(source, day: day, options: options)
+        let items = (options.logMode ? progress(source, day: day, options: options) : []) + deadlines + scheduled(source, day: day, today: today, options: options) + blocks(source, day: day, options: options)
             + timestamps(source, day: day, today: today, options: options) + sexps(source, day: day, options: options)
+        // A timestamp's `ts-date` is the day shown.
+        return items.map { item in
+            var item = item
+            if item.kind == .timestamp { item.tsDate = day }
+            return item
+        }
     }
 
     /// `org-time-string-to-absolute` for a planning timestamp's text: a diary sexp counts on
@@ -221,6 +248,7 @@ public enum Agenda {
                 dotime: time, removing: nil, trailing: options.gridTrailing, prefix: options.prefix("agenda"), urgency: { (isToday ? -diff : 0) + $0 }
             )
             item.planningDay = current != deadline && current == repeat_ ? repeat_ : deadline
+            item.tsDate = deadline
             items.append(item)
         }
         return items
@@ -251,6 +279,7 @@ public enum Agenda {
                 urgency: { habit?.urgency(today: today) ?? 99 + diff + $0 }
             )
             item.planningDay = current != schedule && current == repeat_ ? repeat_ : schedule
+            item.tsDate = schedule
             items.append(item)
         }
         return items
@@ -434,10 +463,15 @@ public enum Agenda {
             }
         }
         let category = heading.category
-        let prefix = prefixFormat.render([
-            "c": category, "t": timed.time, "s": habit == nil ? extra : "", "l": String(repeating: " ", count: heading.level),
-            "e": heading.properties["EFFORT"] ?? "", "b": breadcrumbs(source, heading), "T": tags.last?.name ?? "",
-        ])
+        var fields: [Character: String] = [
+            "l": String(repeating: " ", count: heading.level), "e": heading.properties["EFFORT"] ?? "", "b": breadcrumbs(source, heading),
+            "T": tags.last?.name ?? "",
+        ]
+        let detail = prefixFormat.render(fields).trimmingCharacters(in: .whitespaces)
+        fields["c"] = category
+        fields["t"] = timed.time
+        fields["s"] = habit == nil ? extra : ""
+        let prefix = prefixFormat.render(fields)
         txt = highlightTodo(txt, keywords: source.keywords)
         let priority = Self.priority(prefix + txt, source.priorities)
         var item = AgendaItem(
@@ -450,6 +484,21 @@ public enum Agenda {
         item.blockedByCheckboxes = heading.blockedByCheckboxes
         item.blockedByHierarchy = heading.blockedByHierarchy
         item.doneKeyword = heading.todo.flatMap { source.firstDone[$0] }
+        item.prefixDetail = detail.isEmpty ? nil : detail
+        switch kind {
+        case .search: item.priority = 1000
+        case .closed, .clock, .state: item.priority = 100_000
+        case .sexp: item.priority = 0
+        default: item.priority = priority
+        }
+        item.tsType = kind.rawValue
+        // Search and log lines carry no `todo-state`, and search lines no effort.
+        if kind != .search { item.effortMinutes = item.effort.flatMap(ColumnView.minutes) }
+        if ![.search, .closed, .clock, .state].contains(kind), let todo = heading.todo, let index = source.keywords.firstIndex(of: todo) {
+            item.todoRank = index - source.keywords.count
+            item.todoDone = heading.isDone
+        }
+        item.alpha = AgendaSort.alpha(txt, keywords: kind == .sexp ? [] : source.keywords)
         return item
     }
 
@@ -590,11 +639,14 @@ public enum Agenda {
         func item(_ kind: AgendaItem.Kind, _ text: String, _ dotime: String) -> AgendaItem {
             var txt = text
             let timed = timeFields(&txt, tagString: "", dotime: .string(dotime), trailing: options.gridTrailing)
-            return AgendaItem(
+            var grid = AgendaItem(
                 kind: kind, path: nil, headingOffset: nil, headingLine: nil, markerOffset: nil, category: "", timeOfDay: timed.timeOfDay,
                 time: timed.time, extra: "", text: txt, tags: [], todo: nil, isDone: false, urgency: 0, warntime: nil, habit: nil,
                 line: options.prefix("agenda").render(["t": timed.time]) + txt, prefix: options.prefix("agenda").render(["t": timed.time])
             )
+            grid.tsType = ""
+            grid.alpha = AgendaSort.alpha(txt, keywords: [])
+            return grid
         }
         var new = options.gridTimes.reversed().map { t in
             item(.timeGrid, options.gridLine, String(format: "%02d:%02d", t / 100, t % 100))
@@ -603,18 +655,6 @@ public enum Agenda {
             new.insert(item(.currentTime, options.currentTimeLine, String(format: "%02d:%02d ", now.hour, now.minute)), at: 0)
         }
         return new
-    }
-
-    /// `org-entries-lessp` with `(habit-down time-up urgency-down category-keep)`, stably.
-    static func sort(_ items: [AgendaItem]) -> [AgendaItem] {
-        items.enumerated().sorted { a, b in
-            if (a.element.habit == nil) != (b.element.habit == nil) { return a.element.habit == nil }
-            let ta = a.element.timeOfDay ?? 9901
-            let tb = b.element.timeOfDay ?? 9901
-            if ta != tb { return ta < tb }
-            if a.element.urgency != b.element.urgency { return a.element.urgency > b.element.urgency }
-            return a.offset < b.offset
-        }.map(\.element)
     }
 
     static let dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]

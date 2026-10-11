@@ -11,17 +11,49 @@ public enum AgendaMode: Hashable, Sendable {
     case match(String, todoOnly: Bool)
     /// `org-search-view`.
     case search(String, todoOnly: Bool)
+
+    /// The key `org-agenda-prefix-format` and `org-agenda-sorting-strategy` use for this kind
+    /// of view.
+    public var viewKey: String {
+        switch self {
+        case .agenda: "agenda"
+        case .todo: "todo"
+        case .match: "tags"
+        case .search: "search"
+        }
+    }
+}
+
+/// A view's own `org-agenda-prefix-format` and `org-agenda-sorting-strategy`, as an
+/// `org-agenda-custom-commands` entry's settings give them.
+public struct AgendaViewSettings: Hashable, Sendable {
+    public var prefixFormat: String?
+    public var sortingStrategy: [String]?
+
+    public init(prefixFormat: String? = nil, sortingStrategy: [String]? = nil) {
+        self.prefixFormat = prefixFormat
+        self.sortingStrategy = sortingStrategy
+    }
+
+    public func apply(to options: AgendaOptions, view: String) -> AgendaOptions {
+        var options = options
+        if let prefixFormat { options.prefixFormat[view] = prefixFormat }
+        if let sortingStrategy { options.sortingStrategy[view] = sortingStrategy }
+        return options
+    }
 }
 
 /// A named view: the built-in ones and those in `views.toml`.
 public struct AgendaViewDefinition: Hashable, Sendable, Identifiable {
     public let name: String
     public let mode: AgendaMode
+    public var settings: AgendaViewSettings
     public var id: String { name }
 
-    public init(name: String, mode: AgendaMode) {
+    public init(name: String, mode: AgendaMode, settings: AgendaViewSettings = AgendaViewSettings()) {
         self.name = name
         self.mode = mode
+        self.settings = settings
     }
 }
 
@@ -35,7 +67,8 @@ public struct AgendaViewDefinition: Hashable, Sendable, Identifiable {
 /// ```
 ///
 /// `agenda` views take `span` and `start` (days from today), `todo` views `keywords`
-/// (`WAIT|HOLD`); a `search` view's `match` is its search string.
+/// (`WAIT|HOLD`); a `search` view's `match` is its search string. Any view can set
+/// `prefix-format` and `sorting-strategy` (keys separated by spaces) for itself.
 @MainActor
 public enum AgendaViewLoader {
     public static var userFile: URL { UserConfig.file("views.toml") }
@@ -44,6 +77,13 @@ public enum AgendaViewLoader {
         AgendaViewDefinition(name: "Agenda", mode: .agenda(span: nil, startOffset: nil)),
         AgendaViewDefinition(name: "TODO List", mode: .todo(keywords: nil)),
     ]
+
+    /// The views' settings by mode; the first view with a mode wins.
+    public static func settings(_ views: [AgendaViewDefinition]) -> [AgendaMode: AgendaViewSettings] {
+        var settings: [AgendaMode: AgendaViewSettings] = [:]
+        for view in views where settings[view.mode] == nil && view.settings != AgendaViewSettings() { settings[view.mode] = view.settings }
+        return settings
+    }
 
     /// The built-in views followed by the user's, and the problems found in the file.
     public static func load(userFile: URL = userFile) -> (views: [AgendaViewDefinition], problems: [String]) {
@@ -90,7 +130,15 @@ public enum AgendaViewLoader {
                 problems.append("views.toml line \(table.line): unknown type \(other)")
                 continue
             }
-            views.append(AgendaViewDefinition(name: name, mode: mode))
+            var settings = AgendaViewSettings(prefixFormat: table.values["prefix-format"]?.string)
+            if let strategy = table.values["sorting-strategy"]?.string {
+                let keys = strategy.split(whereSeparator: \.isWhitespace).map(String.init)
+                if let bad = keys.first(where: { !AgendaSort.keys.contains($0) }) {
+                    problems.append("views.toml line \(table.line): unknown sorting key \(bad)")
+                }
+                settings.sortingStrategy = keys.filter(AgendaSort.keys.contains)
+            }
+            views.append(AgendaViewDefinition(name: name, mode: mode, settings: settings))
         }
         return (views, problems)
     }

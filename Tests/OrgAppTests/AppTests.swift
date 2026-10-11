@@ -658,6 +658,33 @@ struct AgendaCommandTests {
         #expect(loaded.problems == ["views.toml line 13: Broken needs a match"])
     }
 
+    @Test func viewsSortAndPrefixThemselves() async throws {
+        let notes = try Folder()
+        try notes.write("a.org", "* TODO b\n:PROPERTIES:\n:Effort: 0:30\n:END:\n* TODO [#A] c\n* TODO a\n")
+        let file = try notes.write("views.toml", """
+        [[view]]
+        name = "Alphabetical"
+        type = "todo"
+        sorting-strategy = "alpha-up bogus"
+        prefix-format = "%e"
+        """)
+        let loaded = AgendaViewLoader.load(userFile: file)
+        #expect(loaded.problems == ["views.toml line 1: unknown sorting key bogus"])
+        #expect(loaded.views[2].settings == AgendaViewSettings(prefixFormat: "%e", sortingStrategy: ["alpha-up"]))
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.viewSettings = AgendaViewLoader.settings(loaded.views)
+        agenda.mode = .todo(keywords: nil)
+        await agenda.refresh(open: [:])
+        // `alpha-up` keeps the priority cookie, as Org does.
+        #expect(agenda.list.map(\.text) == ["TODO [#A] c", "TODO a", "TODO b"])
+        #expect(agenda.list.map(\.prefixDetail) == [nil, nil, "0:30"])
+        agenda.mode = .todo(keywords: "TODO")
+        await agenda.refresh(open: [:])
+        #expect(agenda.list.map(\.text) == ["TODO [#A] c", "TODO b", "TODO a"])
+    }
+
     @Test func todoListMode() async throws {
         let notes = try Folder()
         try notes.write("a.org", "* TODO One :work:\n* DONE Two\n* TODO Three\n")

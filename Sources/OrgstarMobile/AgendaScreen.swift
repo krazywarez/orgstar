@@ -202,6 +202,7 @@ struct AgendaScreen: View, Equatable {
         .task {
             let loaded = AgendaViewLoader.load()
             views = loaded.views
+            agenda.viewSettings = AgendaViewLoader.settings(loaded.views)
             if let problem = loaded.problems.first { message = problem }
         }
         // The now line moves each minute; a new day refreshes the statuses.
@@ -644,6 +645,7 @@ struct AgendaRowView: View {
                         Circle().fill(categoryColor).frame(width: 7, height: 7)
                         Text(row.category).lineLimit(1).layoutPriority(1)
                     }
+                    if let detail = row.prefixDetail { Text(detail).lineLimit(1).truncationMode(.middle) }
                     ForEach([row.progress, row.detail].compactMap { $0 }, id: \.self) { progress in
                         Text(progress).monospacedDigit()
                             .padding(.horizontal, 5)

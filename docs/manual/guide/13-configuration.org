@@ -169,11 +169,12 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-agenda-search-view-always-boolean= |                     |
 | =org-agenda-search-view-force-full-words= |                   |
 | =[org-agenda-prefix-format]=     |                            |
+| =[org-agenda-sorting-strategy]=, =org-agenda-sort-notime-is-late=, =org-agenda-sort-noeffort-is-high= | |
 | =theme-file=                     |                            |
 
 * config.toml reference
 
-Settings that mirror an Emacs variable sit at the top of the file under that variable's name. The agenda prefix formats are in =[org-agenda-prefix-format]=, type and theme in =[theme]=, and the settings Emacs has no variable for in =[orgstar]=.
+Settings that mirror an Emacs variable sit at the top of the file under that variable's name. The agenda prefix formats are in =[org-agenda-prefix-format]=, the sorting strategies in =[org-agenda-sorting-strategy]=, type and theme in =[theme]=, and the settings Emacs has no variable for in =[orgstar]=.
 
 A key you remove from the file goes back to its default. A key that isn't in the table below is reported as unknown.
 
@@ -226,6 +227,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-tags-todo-honor-ignore-options= | boolean | =false= | The four settings above apply to TODO-only matches (=M=) too. Mirrors =org-agenda-tags-todo-honor-ignore-options=. |
 | =org-agenda-search-view-always-boolean= | boolean | =false= | The agenda's text search reads every string as =+word -word {regexp}= snippets, never as a phrase. Mirrors =org-agenda-search-view-always-boolean=. |
 | =org-agenda-search-view-force-full-words= | boolean | =false= | Text search snippets match whole words only, as a leading =:= does. Mirrors =org-agenda-search-view-force-full-words=. |
+| =org-agenda-sort-notime-is-late=     | boolean | =true=  | Lines without a time sort after timed ones for =time-up=, and lines without a date after dated ones for the date keys. Mirrors =org-agenda-sort-notime-is-late=. |
+| =org-agenda-sort-noeffort-is-high=   | boolean | =true=  | Entries without an =Effort= sort as the longest for =effort-up=. Mirrors =org-agenda-sort-noeffort-is-high=. |
 | =org-agenda-dim-blocked-tasks=       | string  | ="t"=   | =t= dims entries the two enforce settings block, =invisible= hides them (entries blocked only by checkboxes are still dimmed), =nil= shows them as usual. Mirrors =org-agenda-dim-blocked-tasks=. |
 | =appt-message-warning-time=          | integer | =12=    | Minutes of warning before timed entries. An entry's =APPT_WARNTIME= property overrides it. Mirrors =appt-message-warning-time=. |
 | =org-clock-idle-time=                | integer | =0=     | Minutes without keyboard or mouse input, with a clock running, before orgstar asks what to do with the idle time. =0= never asks (Emacs's =nil=). Mac only. Mirrors =org-clock-idle-time=. |
@@ -252,7 +255,18 @@ The startup settings (=org-startup-*=, =org-hide-leading-stars=, =org-cycle-hide
 | =todo=   | string | =" %i %-12:c"=           | Prefix of lines in the TODO list    |
 | =tags=   | string | =" %i %-12:c"=           | Prefix of tag and property matches  |
 
-These mirror the entries of =org-agenda-prefix-format=. The agenda's rows don't show a prefix, so the formats don't change how the agenda looks. The one effect left is that a time written in heading text leaves the title when the =agenda= format contains =%t=. See [[file:07-agenda.org][The agenda]].
+These mirror the entries of =org-agenda-prefix-format=. Rows show the category, time and leader in their own places; the rest of the format, such as =%e= or =%b=, shows after the category. A time written in heading text leaves the title when the =agenda= format contains =%t=. A view in =views.toml= can set its own with =prefix-format=. See [[file:07-agenda.org][The agenda]].
+
+** [org-agenda-sorting-strategy]
+
+| Key      | Type   | Default                                         | Effect                         |
+|----------+--------+-------------------------------------------------+--------------------------------|
+| =agenda= | string | ="habit-down time-up urgency-down category-keep"= | Order of lines within a day    |
+| =todo=   | string | ="urgency-down category-keep"=                  | Order of the TODO list         |
+| =tags=   | string | ="urgency-down category-keep"=                  | Order of tag and property matches |
+| =search= | string | ="category-keep"=                               | Order of text search results   |
+
+These mirror the entries of =org-agenda-sorting-strategy=, keys separated by spaces. Unknown keys are ignored. A view in =views.toml= can set its own with =sorting-strategy=. The keys are listed in [[file:07-agenda.org][The agenda]].
 
 ** [org-structure-template-alist]
 
@@ -476,6 +490,8 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-hide-drawer-startup=, =org-hide-block-startup=                | =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=                               |
 | =org-M-RET-may-split-line=                                         | =org-M-RET-may-split-line=, from the =default= entry of an alist; other per-context entries aren't supported |
 | =org-agenda-prefix-format=                                         | =[org-agenda-prefix-format]=: a string sets all three views; an alist sets =agenda=, =todo= and =tags= |
+| =org-agenda-sorting-strategy=                                      | =[org-agenda-sorting-strategy]=: a list sets all four views; an alist sets =agenda=, =todo=, =tags= and =search=. A list with =user-defined-up= or =user-defined-down= isn't imported |
+| =org-agenda-sort-notime-is-late=, =org-agenda-sort-noeffort-is-high= | The same key, as booleans                                                                    |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |
 | =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |
 | =display-line-numbers-type=                                        | =true= unless =nil=; =relative= and =visual= become absolute numbers                          |
