@@ -56,6 +56,8 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var startupWithInlineImages: Bool
     /// `org-startup-with-latex-preview`.
     public var startupWithLatexPreview = false
+    /// `org-display-remote-inline-images`: `skip`, `download` or `cache`.
+    public var remoteInlineImages = "skip"
     /// `org-startup-indented`: org-indent's virtual indentation.
     public var startupIndented = true
     /// `org-hide-leading-stars`; org-indent hides them too.

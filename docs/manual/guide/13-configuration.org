@@ -147,6 +147,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-startup-align-all-tables=   |                            |
 | =org-startup-with-inline-images= |                            |
 | =org-startup-with-latex-preview= |                            |
+| =org-display-remote-inline-images= |                          |
 | =org-cycle-hide-drawer-startup=  |                            |
 | =org-cycle-hide-block-startup=   |                            |
 | =org-use-speed-commands=         |                            |
@@ -214,6 +215,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =spell-check=                        | boolean | =false= | Check spelling while typing, outside code, links, dates, tags and keywords.                                     |
 | =electric-pair-mode=                 | boolean | =true=  | Type brackets, =<>= and quotes in pairs. Mirrors =electric-pair-mode=.                                          |
 | =org-startup-with-inline-images=     | boolean | =false= | Show image links as images when a file opens. =#+STARTUP: inlineimages= / =noinlineimages= override it. Mirrors =org-startup-with-inline-images=. |
+| =org-display-remote-inline-images=   | string  | ="skip"= | Images at http(s) links: =skip=, =download= (kept until orgstar quits) or =cache= (kept on disk). See [[file:09-links.org][Links]]. Mirrors =org-display-remote-inline-images=. |
 | =org-startup-with-latex-preview=     | boolean | =false= | Show LaTeX fragments as typeset math when a file opens. =#+STARTUP: latexpreview= / =nolatexpreview= override it. Mirrors =org-startup-with-latex-preview=. |
 | =org-use-speed-commands=             | boolean | =false= | Single keys at the start of a heading line run commands (=n=, =p=, =t=, =c=, …). Mirrors =org-use-speed-commands=. |
 | =org-cycle-hide-drawer-startup=      | boolean | =true=  | Fold drawers when a file opens. =#+STARTUP: hidedrawers= / =nohidedrawers= override it. Mirrors =org-cycle-hide-drawer-startup=. |
@@ -543,6 +545,7 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-icalendar-use-deadline=, =org-icalendar-use-scheduled=        | The list's symbols, separated by spaces                                                       |
 | =org-icalendar-include-todo=                                       | =nil=, =t=, =all= or =unblocked=, or a list of keywords separated by spaces                  |
 | =org-icalendar-combined-agenda-file=                               | The file name, from a string or a simple form                                                 |
+| =org-display-remote-inline-images=                                 | The symbol as a string, when it's =skip=, =download= or =cache=                              |
 | =org-publish-project-alist=                                        | A =[[publish]]= table in =config.toml= per project whose publishing functions are =org-html-publish-to-html=, =org-md-publish-to-md= or =org-publish-attachment=: the directories, =:base-extension=, =:recursive=, =:exclude=, =:include=, =:body-only=, the sitemap properties and =:components=. Other properties are reported as left out |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |
 | =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |

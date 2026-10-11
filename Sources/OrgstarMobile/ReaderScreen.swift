@@ -211,6 +211,9 @@ struct ReaderScreen: View {
     /// Text, and with inline images on, lines that are only an image link shown as the image.
     private func parts(_ tree: OrgTree, _ range: Range<Int>) -> [Part] {
         guard startup?.inlineImages == true, let path = session.path else { return [Part(range: range)] }
+        // Read so that the view draws again when a remote image arrives.
+        _ = RemoteImages.shared.version
+        let remote = RemoteImages.Mode(rawValue: session.options.remoteInlineImages) ?? .skip
         let base = URL(fileURLWithPath: path).deletingLastPathComponent()
         let ns = tree.text as NSString
         var parts: [Part] = []
@@ -219,8 +222,8 @@ struct ReaderScreen: View {
         while location < range.upperBound {
             let line = ns.lineRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(line)
-            guard folded.allSatisfy({ !$0.contains(line.location) }), let image = InlineImages.image(atLine: line.location, in: ns),
-                  let picture = MobileEditor.loadImage(image.path, relativeTo: base) else { continue }
+            guard folded.allSatisfy({ !$0.contains(line.location) }), let image = InlineImages.image(atLine: line.location, in: ns, remote: remote != .skip),
+                  let picture = MobileEditor.loadImage(image.path, relativeTo: base, remote: remote) else { continue }
             if textStart < line.location { parts.append(Part(range: textStart..<line.location)) }
             parts.append(Part(range: line.location..<min(NSMaxRange(line), range.upperBound), image: (picture, image.path, image.width)))
             textStart = min(NSMaxRange(line), range.upperBound)

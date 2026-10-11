@@ -60,7 +60,8 @@ extension MobileEditor {
             var offset = 0
             while offset < ns.length {
                 let line = ns.lineRange(for: NSRange(location: offset, length: 0))
-                if let image = InlineImages.image(atLine: line.location, in: ns), Self.loadImage(image.path, relativeTo: baseDirectory) != nil { count += 1 }
+                if let image = InlineImages.image(atLine: line.location, in: ns, remote: options.remoteInlineImages != "skip"),
+                   loadImage(image.path) != nil { count += 1 }
                 offset = NSMaxRange(line)
             }
             onMessage?("\(count) images displayed inline")
@@ -69,8 +70,22 @@ extension MobileEditor {
         }
     }
 
-    /// An image link's image, by its path or one relative to `baseDirectory`.
-    static func loadImage(_ path: String, relativeTo baseDirectory: URL?) -> UIImage? {
+    /// An image link's image here: remote ones as `org-display-remote-inline-images` says,
+    /// restyled when they come.
+    func loadImage(_ path: String) -> UIImage? {
+        Self.loadImage(path, relativeTo: baseDirectory, remote: RemoteImages.Mode(rawValue: options.remoteInlineImages) ?? .skip) { [weak self] in
+            guard let self, self.showsImages else { return }
+            self.restyleAll()
+        }
+    }
+
+    /// An image link's image, by its path or one relative to `baseDirectory`; an http(s)
+    /// link's when `remote` allows it and it has come, `loaded` running when it does.
+    static func loadImage(_ path: String, relativeTo baseDirectory: URL?, remote: RemoteImages.Mode = .skip, loaded: @escaping @MainActor () -> Void = {}) -> UIImage? {
+        if path.contains("://") {
+            guard let url = URL(string: path) else { return nil }
+            return RemoteImages.shared.data(for: url, mode: remote, loaded: loaded).flatMap(UIImage.init(data:))
+        }
         let expanded = (path as NSString).expandingTildeInPath
         let url: URL
         if expanded.hasPrefix("/") {
@@ -99,7 +114,8 @@ extension MobileEditor {
         while location < range.upperBound, location < text.length {
             let line = text.lineRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(line)
-            guard let image = InlineImages.image(atLine: line.location, in: text), let picture = Self.loadImage(image.path, relativeTo: baseDirectory) else { continue }
+            guard let image = InlineImages.image(atLine: line.location, in: text, remote: options.remoteInlineImages != "skip"),
+                  let picture = loadImage(image.path) else { continue }
             let width = min(image.width.map(CGFloat.init) ?? picture.size.width, maxWidth)
             let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0
             let content = NSRange(location: line.location, length: line.length - (text.substring(with: line).hasSuffix("\n") ? 1 : 0))

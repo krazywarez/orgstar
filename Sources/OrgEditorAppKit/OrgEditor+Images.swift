@@ -1,6 +1,7 @@
 #if os(macOS)
 import AppKit
 import OrgCore
+import OrgPresentation
 
 extension OrgEditor {
     // MARK: - Inline images
@@ -16,7 +17,7 @@ extension OrgEditor {
             var offset = 0
             while offset < ns.length {
                 let line = ns.lineRange(for: NSRange(location: offset, length: 0))
-                if let image = InlineImages.image(atLine: line.location, in: ns), loadImage(image.path) != nil { count += 1 }
+                if let image = InlineImages.image(atLine: line.location, in: ns, remote: remote), loadImage(image.path) != nil { count += 1 }
                 offset = NSMaxRange(line)
             }
             onMessage?("\(count) images displayed inline")
@@ -33,7 +34,19 @@ extension OrgEditor {
         redrawViews()
     }
 
+    /// Whether http(s) links show, as `org-display-remote-inline-images` says.
+    private var remote: Bool { options.remoteInlineImages != "skip" }
+
     private func loadImage(_ path: String) -> NSImage? {
+        if path.contains("://") {
+            guard let url = URL(string: path) else { return nil }
+            let mode = RemoteImages.Mode(rawValue: options.remoteInlineImages) ?? .skip
+            let data = RemoteImages.shared.data(for: url, mode: mode) { [weak self] in
+                guard let self, self.showsImages else { return }
+                self.refreshImages()
+            }
+            return data.flatMap(NSImage.init(data:))
+        }
         let expanded = (path as NSString).expandingTildeInPath
         let url = expanded.hasPrefix("/") ? URL(fileURLWithPath: expanded) : (baseDirectory ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath)).appendingPathComponent(expanded)
         let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?.timeIntervalSince1970 ?? 0
@@ -54,7 +67,7 @@ extension OrgEditor {
         while location < range.upperBound, location < text.length {
             let line = text.lineRange(for: NSRange(location: location, length: 0))
             location = NSMaxRange(line)
-            guard let image = InlineImages.image(atLine: line.location, in: text), let picture = loadImage(image.path) else { continue }
+            guard let image = InlineImages.image(atLine: line.location, in: text, remote: remote), let picture = loadImage(image.path) else { continue }
             var width = image.width.map(CGFloat.init) ?? picture.size.width
             width = min(width, maxWidth)
             let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0

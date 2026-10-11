@@ -11,13 +11,17 @@ public enum InlineImages {
     static let extensions = "png|jpe?g|gif|svg|webp|tiff?|bmp|heic|avif"
     static let pattern = try! NSRegularExpression(pattern: "^[ \\t]*\\[\\[(?:file:)?([^\\]\\n]+\\.(?:\(extensions)))\\]\\][ \\t]*$", options: .caseInsensitive)
 
-    /// The image on the line at `lineStart`, if the line is an image link.
-    public static func image(atLine lineStart: Int, in text: NSString) -> Image? {
+    /// The image on the line at `lineStart`, if the line is an image link; with `remote`,
+    /// http and https links too (`org-display-remote-inline-images` other than `skip`).
+    public static func image(atLine lineStart: Int, in text: NSString, remote: Bool = false) -> Image? {
         let line = text.lineRange(for: NSRange(location: lineStart, length: 0))
         let content = text.substring(with: line).trimmingCharacters(in: .newlines)
         guard let m = pattern.firstMatch(in: content, range: NSRange(location: 0, length: (content as NSString).length)) else { return nil }
         let path = (content as NSString).substring(with: m.range(at: 1))
-        guard !path.contains("://"), !path.hasPrefix("attachment:") else { return nil }
+        guard !path.hasPrefix("attachment:") else { return nil }
+        if path.contains("://") {
+            guard remote, path.range(of: "^https?://", options: [.regularExpression, .caseInsensitive]) != nil else { return nil }
+        }
         // `#+ATTR_ORG: :width N` in the affiliated keywords above.
         var width: Int?
         var at = line.location

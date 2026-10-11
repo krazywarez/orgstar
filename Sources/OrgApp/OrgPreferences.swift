@@ -36,6 +36,7 @@ public enum OrgPreferences {
         )
         options.electricPair = bool("electricPair", defaults)
         options.startupWithLatexPreview = bool("startupWithLatexPreview", defaults)
+        options.remoteInlineImages = string("remoteInlineImages", defaults)
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)
         options.enforceTodoCheckboxDependencies = bool("enforceTodoCheckboxDependencies", defaults)
         options.archiveLocation = string("archiveLocation", defaults).nonEmpty

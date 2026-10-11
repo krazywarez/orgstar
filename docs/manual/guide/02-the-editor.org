@@ -66,7 +66,7 @@ A line shows as an image when it holds nothing but a link to an image file with 
 #+END_SRC
 
 - Recognised extensions: =png=, =jpg=, =jpeg=, =gif=, =svg=, =webp=, =tif=, =tiff=, =bmp=, =heic=, =avif=.
-- Paths are relative to the file's folder; =~= is expanded. Remote URLs are not displayed.
+- Paths are relative to the file's folder; =~= is expanded. Images at http(s) links show when =org-display-remote-inline-images= is =download= or =cache=; see [[file:09-links.org::*Remote images][Remote images]].
 - =#+ATTR_ORG: :width N= sets the width in points. Images are never wider than the editor.
 - The link text is hidden while its image shows, except on the caret's line.
 

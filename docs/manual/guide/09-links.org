@@ -302,9 +302,29 @@ to a file ending in =.png=, =.jpg=, =.jpeg=, =.gif=, =.svg=, =.webp=, =.tif=, =.
 [[./photo.jpg]]
 #+END_SRC
 
-Relative paths are resolved against the file's folder. Web addresses and
-=attachment:= links are not shown as images. The link text is hidden while the image
-is shown, except on the line that holds the caret.
+Relative paths are resolved against the file's folder. =attachment:= links are not
+shown as images. The link text is hidden while the image is shown, except on the line
+that holds the caret.
+
+** Remote images
+
+Images at =http= and =https= links show as =org-display-remote-inline-images= in
+=config.toml= says:
+
+| Value      | Remote images                                                                |
+|------------+------------------------------------------------------------------------------|
+| =skip=     | Not shown; the default                                                       |
+| =download= | Fetched the first time they're shown, and kept until orgstar quits           |
+| =cache=    | Fetched once and kept on disk, in the app's cache folder, for later launches |
+
+#+BEGIN_SRC org
+[[https://example.com/chart.png]]
+#+END_SRC
+
+An image is fetched in the background; the link shows as text until it arrives. A link
+that can't be fetched stays text, and isn't tried again until orgstar starts again. This
+applies to the editor on the Mac and iOS and to the iOS reader. Emacs's =download=
+fetches the image each time it's displayed; orgstar keeps it for the session instead.
 
 ** Sizing
 
