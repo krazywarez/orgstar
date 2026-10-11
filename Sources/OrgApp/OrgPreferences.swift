@@ -145,6 +145,19 @@ public enum OrgPreferences {
         options.userFullName = NSFullUserName()
         return options
     }
+    /// `org-attach-id-dir`, relative to an org file's folder unless absolute.
+    public static func attachIDDir(_ defaults: UserDefaults = .standard) -> String {
+        let dir = string("attachIDDir", defaults)
+        return dir.isEmpty ? "data/" : dir
+    }
+    /// `org-attach-use-inheritance`: nil for `selective`, else whether DIR and ID inherit.
+    public static func attachUseInheritance(_ defaults: UserDefaults = .standard) -> Bool? {
+        switch string("attachUseInheritance", defaults) {
+        case "t": true
+        case "nil": false
+        default: nil
+        }
+    }
     /// `org-crypt-tag-matcher`, a tag.
     public static func cryptTag(_ defaults: UserDefaults = .standard) -> String {
         let tag = string("cryptTagMatcher", defaults).trimmingCharacters(in: .whitespaces)

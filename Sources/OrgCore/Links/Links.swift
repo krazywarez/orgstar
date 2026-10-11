@@ -167,38 +167,20 @@ public enum Links {
         return found.map { .found($0) } ?? .failed("No match for radio target: \(target)")
     }
 
-    /// The file `org-attach-follow` opens for an `attachment` link, with org-attach's
-    /// defaults: in the entry's DIR property (or the older ATTACH_DIR), else in the folder for
-    /// its ID under `data/` that exists (`org-attach-id-to-path-function-list`), both relative
-    /// to the file's folder. Without an existing folder the file is relative to the file's
-    /// folder, as `org-attach-expand` has it. Nil without a folder to start from.
-    public static func attachmentFile(_ link: OrgLink, tree: OrgTree, path: String?, isDirectory: (String) -> Bool) -> OrgLink? {
-        let model = DocumentModel(tree: tree)
-        let offset = link.position ?? 0
-        let heading = model.headings.lastIndex { $0.sectionRange.contains(offset) }
-        let folder = path.map { ($0 as NSString).deletingLastPathComponent }
-        func absolute(_ p: String, in folder: String?) -> String? {
-            let expanded = (p as NSString).expandingTildeInPath
-            if expanded.hasPrefix("/") { return (expanded as NSString).standardizingPath }
-            return folder.map { (($0 as NSString).appendingPathComponent(expanded) as NSString).standardizingPath }
-        }
-        var candidates: [String] = []
-        if let dir = model.property("DIR", of: heading) ?? model.property("ATTACH_DIR", of: heading) {
-            candidates = [dir.value]
-        } else if let id = model.property("ID", of: heading)?.value, let first = id.first {
-            let chars = Array(id)
-            if chars.count > 2 { candidates.append("data/" + String(chars[..<2]) + "/" + String(chars[2...])) }
-            if chars.count > 6 { candidates.append("data/" + String(chars[..<6]) + "/" + String(chars[6...])) }
-            candidates.append("data/__/\(first)/\(id)")
-        }
-        let dir = candidates.lazy.compactMap { absolute($0, in: folder) }.first(where: isDirectory) ?? folder
+    /// The file `org-attach-follow` opens for an `attachment` link: in the entry's attachment
+    /// folder (`OrgAttach.directory`) when it exists, else relative to the file's folder, as
+    /// `org-attach-expand` has it. Nil without a folder to start from.
+    public static func attachmentFile(_ link: OrgLink, tree: OrgTree, path: String?, idDir: String = "data/", inherit: Bool? = nil, isDirectory: (String) -> Bool) -> OrgLink? {
+        guard let path else { return nil }
+        let folder = (path as NSString).deletingLastPathComponent
+        let dir = OrgAttach.directory(tree: tree, at: link.position ?? 0, path: path, idDir: idDir, inherit: inherit, isDirectory: isDirectory) ?? folder
         var file = link.path
         var search: String?
         if let range = file.range(of: "::") {
             search = String(file[range.upperBound...])
             file = String(file[..<range.lowerBound])
         }
-        return absolute(file, in: dir).map { OrgLink(type: "file", path: $0, searchOption: search, raw: link.raw) }
+        return OrgLink(type: "file", path: OrgAttach.expand(file, in: dir), searchOption: search, raw: link.raw)
     }
 
     // MARK: - Searching a file

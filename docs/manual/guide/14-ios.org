@@ -133,6 +133,8 @@ Cancel answers nothing, as =C-g= does.
 
 =C-c '= on a block, and =C-c `= on a table field, open the text in a sheet of its own; Save puts it back. A src block's code is colored as its language, as in the editor.
 
+More ▸ Attachments has the org-attach commands and Attach Photo or Video…; files shared to orgstar can be attached to an entry. See [[file:04-outlines.org][Outlines]].
+
 More ▸ Encryption has the org-crypt commands; see [[file:04-outlines.org][Outlines]]. A remembered passphrase is used after Face ID, Touch ID or the device passcode.
 
 ** Hardware keyboard
@@ -351,7 +353,7 @@ These settings from =config.toml= apply on iOS:
 - =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
 - =org-enforce-todo-dependencies=, =org-enforce-todo-checkbox-dependencies=, =org-track-ordered-property-with-tag=, =org-agenda-dim-blocked-tasks=
-- =org-crypt-tag-matcher=
+- =org-crypt-tag-matcher=, =org-attach-id-dir=, =org-attach-use-inheritance=
 - =org-archive-location=, =[org-structure-template-alist]=
 - =org-use-tag-inheritance=, =org-tags-exclude-from-inheritance=, =org-tag-alist=
 - =org-use-speed-commands=, with a hardware keyboard

@@ -190,6 +190,14 @@ public final class DocumentSession {
         return entries.first { URL(fileURLWithPath: $0.path).resolvingSymlinksInPath().path == truename }
     }
 
+    /// The text of `path`: its buffer's when it's open, else what's on disk.
+    public func text(of path: String) -> String? {
+        if let entry = entry(path) { return entry.buffer.document.text }
+        guard let bytes = try? fileSystem.read(URL(fileURLWithPath: path)) else { return nil }
+        let state = loaded(bytes, path: path)
+        return state.isEditable ? state.text : nil
+    }
+
     /// The buffer's name as uniquify writes it (`post-forward-angle-brackets`): the file name,
     /// with as many of its folders as tell it apart from other open files of the same name.
     public func bufferName(_ path: String) -> String {

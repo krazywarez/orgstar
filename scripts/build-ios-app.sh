@@ -164,7 +164,7 @@ appex OrgstarQuickLook quicklook com.apple.quicklook.preview PreviewProvider \
     "<key>QLSupportedContentTypes</key><array><string>org.orgmode.org</string></array><key>QLIsDataBasedPreview</key><true/>"
 # Capture from the share sheet: a page's link or text.
 appex OrgstarShare share com.apple.share-services ShareViewController \
-    "<key>NSExtensionActivationRule</key><dict><key>NSExtensionActivationSupportsWebURLWithMaxCount</key><integer>1</integer><key>NSExtensionActivationSupportsText</key><true/></dict>" \
+    "<key>NSExtensionActivationRule</key><dict><key>NSExtensionActivationSupportsWebURLWithMaxCount</key><integer>1</integer><key>NSExtensionActivationSupportsText</key><true/><key>NSExtensionActivationSupportsImageWithMaxCount</key><integer>10</integer><key>NSExtensionActivationSupportsMovieWithMaxCount</key><integer>10</integer><key>NSExtensionActivationSupportsFileWithMaxCount</key><integer>10</integer></dict>" \
     "$entitlements"
 
 codesign --force --sign - --entitlements "$entitlements" "$app"

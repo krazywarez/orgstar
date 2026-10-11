@@ -220,6 +220,42 @@ extension KeymapPreset {
         command = "org.edit-special"
         mode = "normal"
         [[bind]]
+        keys = "SPC m a a"
+        command = "app.attach.attach"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a d"
+        command = "app.attach.delete"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a D"
+        command = "app.attach.delete-all"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a n"
+        command = "app.attach.new"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a o"
+        command = "app.attach.open"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a r"
+        command = "app.attach.reveal"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a u"
+        command = "app.attach.url"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a s"
+        command = "app.attach.set-directory"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC m a S"
+        command = "app.attach.sync"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m s c"
         command = "org.subtree.clone"
         mode = "normal"

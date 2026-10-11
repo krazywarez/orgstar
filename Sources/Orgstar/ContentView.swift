@@ -670,6 +670,30 @@ struct ContentView: View {
         }
     }
 
+    /// org-attach's commands for the entry at the caret.
+    private var attachActions: AttachActions {
+        AttachActions(
+            entry: { [commands, session] in
+                guard let editor = commands.editor, let path = session.path else { return nil }
+                let context = editor.context()
+                return Attachments.Entry(text: context.text, offset: context.caret, path: path, options: context.options)
+            },
+            apply: applyText, show: { [commands] in commands.show($0) }, ask: { [commands] in commands.ask($0, reply: $1) },
+            storeLink: { [commands] in _ = StoredLink.add($0, to: &commands.storedLinks) },
+            open: { [session, workspace, commands] file in
+                if let message = LinkOpener.open(OrgLink(type: "file", path: file, raw: "file:" + file), session: session, workspace: workspace) { commands.show(message) }
+            },
+            reveal: { NSWorkspace.shared.open(URL(fileURLWithPath: $0, isDirectory: true)) },
+            pick: { method in
+                let panel = NSOpenPanel()
+                panel.canChooseDirectories = true
+                panel.allowsMultipleSelection = true
+                panel.message = "File to keep as an attachment"
+                guard panel.runModal() == .OK else { return }
+                attachActions.attach(panel.urls, method: method)
+            })
+    }
+
     /// The sheet a panel shows.
     @ViewBuilder
     private func panelView(_ panel: Panel) -> some View {
@@ -1088,6 +1112,8 @@ struct ContentView: View {
             plotTable()
         case let id where id.hasPrefix("app.crypt."):
             crypt(id)
+        case let id where id.hasPrefix("app.attach."):
+            attachActions.run(id)
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }

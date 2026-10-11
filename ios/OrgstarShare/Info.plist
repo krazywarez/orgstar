@@ -23,7 +23,7 @@
         <key>NSExtensionPrincipalClass</key>
         <string>ShareViewController</string>
         <key>NSExtensionAttributes</key>
-        <dict><key>NSExtensionActivationRule</key><dict><key>NSExtensionActivationSupportsWebURLWithMaxCount</key><integer>1</integer><key>NSExtensionActivationSupportsText</key><true/></dict></dict>
+        <dict><key>NSExtensionActivationRule</key><dict><key>NSExtensionActivationSupportsWebURLWithMaxCount</key><integer>1</integer><key>NSExtensionActivationSupportsText</key><true/><key>NSExtensionActivationSupportsImageWithMaxCount</key><integer>10</integer><key>NSExtensionActivationSupportsMovieWithMaxCount</key><integer>10</integer><key>NSExtensionActivationSupportsFileWithMaxCount</key><integer>10</integer></dict></dict>
     </dict>
 </dict>
 </plist>

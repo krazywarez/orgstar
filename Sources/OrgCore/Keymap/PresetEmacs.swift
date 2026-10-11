@@ -194,6 +194,84 @@ extension KeymapPreset {
         keys = "C-c C-x C-l"
         command = "org.latex-preview"
         [[bind]]
+        keys = "C-c C-a a"
+        command = "app.attach.attach"
+        [[bind]]
+        keys = "C-c C-a C-a"
+        command = "app.attach.attach"
+        [[bind]]
+        keys = "C-c C-a c"
+        command = "app.attach.attach"
+        [[bind]]
+        keys = "C-c C-a C-c"
+        command = "app.attach.attach"
+        [[bind]]
+        keys = "C-c C-a m"
+        command = "app.attach.move"
+        [[bind]]
+        keys = "C-c C-a C-m"
+        command = "app.attach.move"
+        [[bind]]
+        keys = "C-c C-a l"
+        command = "app.attach.link"
+        [[bind]]
+        keys = "C-c C-a C-l"
+        command = "app.attach.link"
+        [[bind]]
+        keys = "C-c C-a y"
+        command = "app.attach.symlink"
+        [[bind]]
+        keys = "C-c C-a C-y"
+        command = "app.attach.symlink"
+        [[bind]]
+        keys = "C-c C-a u"
+        command = "app.attach.url"
+        [[bind]]
+        keys = "C-c C-a C-u"
+        command = "app.attach.url"
+        [[bind]]
+        keys = "C-c C-a n"
+        command = "app.attach.new"
+        [[bind]]
+        keys = "C-c C-a C-n"
+        command = "app.attach.new"
+        [[bind]]
+        keys = "C-c C-a z"
+        command = "app.attach.sync"
+        [[bind]]
+        keys = "C-c C-a C-z"
+        command = "app.attach.sync"
+        [[bind]]
+        keys = "C-c C-a o"
+        command = "app.attach.open"
+        [[bind]]
+        keys = "C-c C-a C-o"
+        command = "app.attach.open"
+        [[bind]]
+        keys = "C-c C-a f"
+        command = "app.attach.reveal"
+        [[bind]]
+        keys = "C-c C-a C-f"
+        command = "app.attach.reveal"
+        [[bind]]
+        keys = "C-c C-a d"
+        command = "app.attach.delete"
+        [[bind]]
+        keys = "C-c C-a C-d"
+        command = "app.attach.delete"
+        [[bind]]
+        keys = "C-c C-a D"
+        command = "app.attach.delete-all"
+        [[bind]]
+        keys = "C-c C-a s"
+        command = "app.attach.set-directory"
+        [[bind]]
+        keys = "C-c C-a C-s"
+        command = "app.attach.set-directory"
+        [[bind]]
+        keys = "C-c C-a S"
+        command = "app.attach.unset-directory"
+        [[bind]]
         keys = "C-c \\" g"
         command = "app.plot"
         [[bind]]

@@ -1008,6 +1008,26 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Truncate or Wrap Long Lines (=editor.toggle-truncate-lines=) | =C-x x t= | — | =SPC t w= (N) | Switches between wrapping and truncating long lines (=toggle-truncate-lines=). |
 | Quit orgstar (=app.quit=) | — | — | =SPC q q= (N) | Quits orgstar (=save-buffers-kill-terminal=). |
 
+** Attachments
+
+The Emacs keys also work with Control on the last key (=C-c C-a C-a=), as in Org's dispatcher. See [[file:04-outlines.org][Outlines]].
+
+| Command | Emacs | Mac | Doom | What it does |
+|-+-+-+-+-|
+| Attach File… (=app.attach.attach=) | =C-c C-a a=, =C-c C-a c= | — | =SPC m a a= (N) | Asks for files and copies them into the entry's attachment folder (=org-attach-attach=). |
+| Attach File by Moving… (=app.attach.move=) | =C-c C-a m= | — | — | Moves the files there (=org-attach-attach-mv=). |
+| Attach File as Hard Link… (=app.attach.link=) | =C-c C-a l= | — | — | Makes hard links to the files there (=org-attach-attach-ln=). |
+| Attach File as Symbolic Link… (=app.attach.symlink=) | =C-c C-a y= | — | — | Makes symbolic links to the files there (=org-attach-attach-lns=). |
+| Attach File from URL… (=app.attach.url=) | =C-c C-a u= | — | =SPC m a u= (N) | Downloads a URL into the folder (=org-attach-url=). |
+| New Attachment… (=app.attach.new=) | =C-c C-a n= | — | =SPC m a n= (N) | Makes an empty file of that name in the folder and opens it (=org-attach-new=). |
+| Open Attachment… (=app.attach.open=) | =C-c C-a o= | — | =SPC m a o= (N) | Opens the attachment, asking which when there are several (=org-attach-open=). |
+| Show Attachment Folder (=app.attach.reveal=) | =C-c C-a f= | — | =SPC m a r= (N) | Shows the folder in the Finder, or the Files app on iOS, making it if missing (=org-attach-reveal=). |
+| Delete Attachment… (=app.attach.delete=) | =C-c C-a d= | — | =SPC m a d= (N) | Deletes one attachment (=org-attach-delete-one=). |
+| Delete All Attachments… (=app.attach.delete-all=) | =C-c C-a D= | — | =SPC m a D= (N) | Deletes the folder and removes the =ATTACH= tag (=org-attach-delete-all=). |
+| Sync Attachments (=app.attach.sync=) | =C-c C-a z= | — | =SPC m a S= (N) | Sets or removes the =ATTACH= tag as the folder has files, and offers to delete an empty folder (=org-attach-sync=). |
+| Set Attachment Folder… (=app.attach.set-directory=) | =C-c C-a s= | — | =SPC m a s= (N) | Sets the entry's =DIR= property (=org-attach-set-directory=). |
+| Unset Attachment Folder (=app.attach.unset-directory=) | =C-c C-a S= | — | — | Removes =DIR= (=org-attach-unset-directory=). |
+
 ** Unbound commands
 
 No preset binds these. Run them from the palette or a menu, or bind them in =keymap.toml=.
@@ -1024,6 +1044,11 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Import Table from File… (=app.table-import=) | Asks for a CSV, TSV or space-separated file and inserts it as a table (=org-table-import=). |
 | Export Table to File… (=app.table-export=) | Writes the table at point to a CSV or TSV file (=org-table-export=). |
 | Plot Table (=app.plot=) | Plots the table at point as its =#+PLOT:= lines say (=org-plot/gnuplot=, =C-c " g= in the Emacs and Doom presets). |
+| Encrypt Entry… (=app.crypt.encrypt-entry=) | Encrypts the entry at point with a passphrase (=org-encrypt-entry=). See [[file:04-outlines.org][Outlines]]. |
+| Decrypt Entry… (=app.crypt.open-entry=) | Shows the entry's decrypted text in a sheet, to read or change. |
+| Decrypt Entry in File… (=app.crypt.decrypt-entry=) | Puts the decrypted text in the file (=org-decrypt-entry=). |
+| Encrypt Tagged Entries… (=app.crypt.encrypt-entries=) | Encrypts every entry with the =crypt= tag (=org-encrypt-entries=). |
+| Forget Encryption Passphrase (=app.crypt.forget-passphrase=) | Removes the file's passphrase from the Keychain. |
 | Show or Hide Outline (=app.toggle-outline=) | Shows or hides the outline pane. View ▸ Show or Hide Outline, =⌥⌘O=. |
 | Show or Hide Backlinks (=app.toggle-backlinks=) | Shows or hides the backlinks pane. View ▸ Show or Hide Backlinks. |
 | Show or Hide Columns and Clock (=app.toggle-inspector=) | Shows or hides the columns and clock inspector. View ▸ Show or Hide Columns and Clock, =⌥⌘I=. |

@@ -1128,6 +1128,7 @@ struct RefileSheet: View {
     /// `org-refile-allow-creating-parent-nodes`: `parent/new` in the search field offers to
     /// add the heading.
     var create: ((RefileTarget, String) -> Void)?
+    var title = "Refile to"
     let choose: (RefileTarget?) -> Void
     @State private var query = ""
 
@@ -1173,7 +1174,7 @@ struct RefileSheet: View {
                 }
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always))
-            .navigationTitle("Refile to")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { choose(nil) } } }
         }

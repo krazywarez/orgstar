@@ -543,6 +543,11 @@ public struct EmacsImport: Sendable {
             else if let keywords = value.elements?.compactMap(\.string), !keywords.isEmpty, keywords.count == value.elements?.count {
                 add(name, .string(keywords.joined(separator: " ")))
             } else { note("unexpected value \(value.description)") }
+        case "org-attach-id-dir":
+            guard let dir = value.string else { return note("not a string") }
+            add(name, .string(dir))
+        case "org-attach-use-inheritance":
+            if value.symbol == "selective" { add(name, .string("selective")) } else { add(name, .string(truthy ? "t" : "nil")) }
         case "org-crypt-tag-matcher":
             guard let tag = value.string, tag.range(of: "^[\\w@#%]+$", options: .regularExpression) != nil else { return note("not a single tag") }
             add(name, .string(tag))

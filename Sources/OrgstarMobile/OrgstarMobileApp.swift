@@ -77,6 +77,12 @@ extension View {
     }
 }
 
+/// A share of files from the share extension.
+struct SharedFiles: Identifiable {
+    let id = UUID()
+    let batch: URL
+}
+
 /// An org-protocol capture, or a plain one.
 struct CaptureRequest: Identifiable {
     let id = UUID()
@@ -101,6 +107,8 @@ struct RootView: View {
     @State private var capture: CaptureRequest?
     /// Captures from the share extension after the one showing.
     @State private var waiting: [CaptureRequest] = []
+    /// Files from the share extension, waiting for the entry to attach them to.
+    @State private var sharedFiles: SharedFiles?
     @State private var tab = AppTab.agenda
     @State private var agendaPath = NavigationPath()
     @State private var hour = 0
@@ -232,6 +240,19 @@ struct RootView: View {
         .sheet(item: $capture, onDismiss: showWaiting) { request in
             CaptureScreen(workspace: workspace, session: session, request: request)
         }
+        .sheet(item: $sharedFiles) { shared in
+            RefileSheet(targets: workspace.refileTargets(openPath: nil, document: nil, settings: RefileSettings(targets: [.init(files: .workspace, spec: .all)])),
+                        title: "Attach to") { target in
+                sharedFiles = nil
+                if let target {
+                    message = session.attach(AttachmentInbox.files(in: shared.batch), to: target.path, at: target.start ?? 0)
+                } else {
+                    message = "The shared files weren't attached"
+                }
+                AttachmentInbox()?.remove(shared.batch)
+                takeShared()
+            }
+        }
         .task {
             takeShared()
             // Development: `ORGSTAR_ROOT` adds a folder at launch, as on the Mac.
@@ -285,6 +306,7 @@ struct RootView: View {
     private func takeShared() {
         waiting += (model.inbox?.take() ?? []).compactMap(CaptureRequest.init(link:))
         if capture == nil { showWaiting() }
+        if sharedFiles == nil, let batch = AttachmentInbox()?.batches().first { sharedFiles = SharedFiles(batch: batch) }
     }
 
     private func showWaiting() {

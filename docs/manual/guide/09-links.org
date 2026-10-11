@@ -104,14 +104,17 @@ After =::=, a file link can carry a search option:
 ** Attachment links
 
 An =attachment:= link names a file in the attachment folder of the entry that holds
-the link, with org-attach's default settings. Relative folders are resolved against
-the folder of the file that holds the link:
+the link (see [[file:04-outlines.org][Outlines]] for the attachment commands). Relative folders are resolved
+against the folder of the file that holds the link:
 
 1. When the entry has a =DIR= property, or the older =ATTACH_DIR=, that folder.
 2. Otherwise, for an entry with an =ID=, the first of these folders that exists:
-   =data/= followed by the ID's first two characters, =/= and the rest of the ID;
-   =data/= followed by its first six characters, =/= and the rest;
-   =data/__/=, the ID's first character, =/= and the whole ID.
+   =org-attach-id-dir= (=data/=) followed by the ID's first two characters, =/= and
+   the rest of the ID; followed by its first six characters, =/= and the rest;
+   =__/=, the ID's first character, =/= and the whole ID. When =org-attach-id-dir= is
+   something else, the same folders under =data/= are found too.
+
+=org-attach-use-inheritance= decides whether =DIR= and =ID= may come from an ancestor.
 
 When the folder does not exist, the path is relative to the file's own folder. The file then opens as a =file:= link would, and
 a search option after =::= works the same way.

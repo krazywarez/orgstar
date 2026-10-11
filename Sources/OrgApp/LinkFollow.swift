@@ -38,7 +38,7 @@ extension DocumentSession {
             return shown(Links.searchRadio(link.path, tree: document.tree))
         case "attachment":
             guard let tree = document?.tree,
-                  let file = Links.attachmentFile(link, tree: tree, path: path, isDirectory: Self.isDirectory) else {
+                  let file = Links.attachmentFile(link, tree: tree, path: path, idDir: OrgPreferences.attachIDDir(), inherit: OrgPreferences.attachUseInheritance(), isDirectory: Self.isDirectory) else {
                 return .message("Need absolute `org-attach-id-dir' to attach in buffers without filename")
             }
             return followFile(file, isText: isText)

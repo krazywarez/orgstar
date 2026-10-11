@@ -219,6 +219,24 @@ public struct PrecomputedEdit: OrgCommand {
     }
 }
 
+/// The text replaced by `new`, as long as it is still `old`: a change computed outside the
+/// buffer, such as attaching a file.
+public struct ReplaceText: OrgCommand {
+    public let old: String
+    public let new: String
+    public init(old: String, new: String) {
+        self.old = old
+        self.new = new
+    }
+    public var id: String { "internal.replace-text" }
+    public var title: String { "Replace Text" }
+    public func applies(in context: EditContext) -> Bool { context.text == old }
+    public func run(in context: EditContext) -> CommandStep {
+        guard context.text == old else { return .failed("The file changed; try again.") }
+        return .commit(EditResult(baseRevision: context.revision, edits: TextEdit.between(old, new)))
+    }
+}
+
 /// Things a command asks for besides text changes; the platform layer carries them out.
 public enum Effect: Sendable, Equatable {
     case message(String)

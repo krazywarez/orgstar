@@ -2,6 +2,8 @@
 import OrgApp
 import OrgCore
 import OrgDocument
+import PhotosUI
+import QuickLook
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -44,6 +46,12 @@ struct EditorScreen: View {
     @State private var importingTable = false
     /// The table at the caret, for `org-table-export`'s save dialog.
     @State private var exportedTable: TableFile?
+    /// org-attach's file picker is up, for this method.
+    @State private var attaching: Attachments.Method?
+    @State private var attachingPhotos = false
+    @State private var photos: [PhotosPickerItem] = []
+    /// A file shown in Quick Look.
+    @State private var previewed: URL?
 
     enum Sheet: Identifiable {
         case palette, conflict, syncCopies, recovery
@@ -102,6 +110,19 @@ struct EditorScreen: View {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                     RecentClockMenu(clock: clock) { editor?.run($0) }
+                    Menu("Attachments", systemImage: "paperclip") {
+                        Button("Attach File…", systemImage: "doc.badge.plus") { attaching = .cp }
+                        Button("Attach Photo or Video…", systemImage: "photo.badge.plus") { attachingPhotos = true }
+                        Button("Attach File from URL…", systemImage: "link.badge.plus") { attachActions.run("app.attach.url") }
+                        Button("New Attachment…", systemImage: "square.and.pencil") { attachActions.run("app.attach.new") }
+                        Button("Open Attachment…", systemImage: "paperclip") { attachActions.run("app.attach.open") }
+                        Button("Show Attachment Folder", systemImage: "folder") { attachActions.run("app.attach.reveal") }
+                        Button("Delete Attachment…", systemImage: "trash") { attachActions.run("app.attach.delete") }
+                        Button("Delete All Attachments…", systemImage: "trash.slash") { attachActions.run("app.attach.delete-all") }
+                        Button("Sync Attachments", systemImage: "arrow.triangle.2.circlepath") { attachActions.run("app.attach.sync") }
+                        Button("Set Attachment Folder…", systemImage: "folder.badge.gearshape") { attachActions.run("app.attach.set-directory") }
+                        Button("Unset Attachment Folder", systemImage: "folder.badge.minus") { attachActions.run("app.attach.unset-directory") }
+                    }
                     Menu("Encryption", systemImage: "lock") {
                         Button("Encrypt Entry…", systemImage: "lock") { crypt("app.crypt.encrypt-entry") }
                         Button("Decrypt Entry…", systemImage: "lock.open") { crypt("app.crypt.open-entry") }
@@ -178,6 +199,24 @@ struct EditorScreen: View {
         .fileImporter(isPresented: $importingTable, allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]) { result in
             importTable(result)
         }
+        .background {
+            // A second importer on the same view would replace the first.
+            Color.clear.fileImporter(isPresented: Binding(get: { attaching != nil }, set: { if !$0 { attaching = nil } }),
+                                     allowedContentTypes: [.item, .folder], allowsMultipleSelection: true) { result in
+                let method = attaching ?? .cp
+                switch result {
+                case .success(let urls): attachActions.attach(urls, method: method)
+                case .failure(let error): message = error.localizedDescription
+                }
+            }
+        }
+        .photosPicker(isPresented: $attachingPhotos, selection: $photos, matching: .any(of: [.images, .videos]))
+        .onChange(of: photos) { _, items in
+            guard !items.isEmpty else { return }
+            photos = []
+            attachPhotos(items)
+        }
+        .quickLookPreview($previewed)
         .fileExporter(isPresented: Binding(get: { exportedTable != nil }, set: { if !$0 { exportedTable = nil } }),
                       document: exportedTable, contentType: exportedTable?.type ?? .commaSeparatedText,
                       defaultFilename: exportedTable?.type == .tabSeparatedText ? "table.tsv" : "table.csv") { result in
@@ -252,13 +291,7 @@ struct EditorScreen: View {
             editor.onChange = { [weak session] in session?.bufferChanged(path) }
             editor.onMessage = { message = $0 }
             editor.onPrompt = { prompt, reply in self.prompt = PromptRequest(prompt: prompt, reply: reply) }
-            editor.onLink = { link in
-                switch session.follow(link, workspace: workspace, isText: { _ in false }) {
-                case .shown: message = session.path == path ? nil : "Opened \((session.path.map { ($0 as NSString).lastPathComponent }) ?? "")"
-                case .openExternally(let url): openURL(url)
-                case .message(let text): message = text
-                }
-            }
+            editor.onLink = { link in follow(link) }
             editor.onEditBlock = { edit in sheet = .block(edit) }
             editor.onColumnView = { view in sheet = .columns(view) }
             editor.onTangle = { scope in message = session.tangle(scope) }
@@ -280,6 +313,8 @@ struct EditorScreen: View {
                     plotTable()
                 } else if id.hasPrefix("app.crypt.") {
                     crypt(id)
+                } else if id.hasPrefix("app.attach.") {
+                    attachActions.run(id)
                 } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
                 } else if MobileEditor.linkCommands.contains(id) {
@@ -301,6 +336,51 @@ struct EditorScreen: View {
 }
 
 extension EditorScreen {
+    /// Follows a link; files the editor doesn't open show in Quick Look.
+    private func follow(_ link: OrgLink) {
+        switch session.follow(link, workspace: workspace, isText: { _ in false }) {
+        case .shown: message = session.path == path ? nil : "Opened \((session.path.map { ($0 as NSString).lastPathComponent }) ?? "")"
+        case .openExternally(let url): if url.isFileURL { previewed = url } else { openURL(url) }
+        case .message(let text): message = text
+        }
+    }
+
+    /// org-attach's commands for the entry at the caret.
+    private var attachActions: AttachActions {
+        AttachActions(
+            entry: {
+                guard let editor else { return nil }
+                let context = editor.editContext()
+                return Attachments.Entry(text: context.text, offset: context.caret, path: path, options: context.options)
+            },
+            apply: { new in
+                guard let editor else { return }
+                let context = editor.editContext()
+                let caret = min(context.caret, (new as NSString).length)
+                _ = editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new), selection: [caret..<caret])))
+            },
+            show: { message = $0 },
+            ask: { prompt = PromptRequest(prompt: $0, reply: $1) },
+            storeLink: { _ = StoredLink.add($0, to: &model.storedLinks) },
+            open: { follow(OrgLink(type: "file", path: $0, raw: "file:" + $0)) },
+            reveal: { dir in
+                if let url = URL(string: "shareddocuments://" + (dir.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? dir)) { openURL(url) }
+            },
+            pick: { attaching = $0 })
+    }
+
+    /// Photos and videos attached under the names Photos gives them.
+    private func attachPhotos(_ items: [PhotosPickerItem]) {
+        Task { @MainActor in
+            var urls: [URL] = []
+            for item in items {
+                if let picked = try? await item.loadTransferable(type: PickedFile.self) { urls.append(picked.url) }
+            }
+            if urls.count < items.count { message = "Can't read \(items.count - urls.count) of the items" }
+            if !urls.isEmpty { attachActions.attach(urls, method: .mv) }
+        }
+    }
+
     /// `org-table-import`: a TSV, CSV or space-separated file becomes a table at the caret.
     private func importTable(_ result: Result<URL, Error>) {
         guard case .success(let url) = result, let editor else { return }
@@ -657,6 +737,10 @@ struct CommandPalette: View {
         ("app.table-import", "Import Table from File…"), ("app.table-export", "Export Table to File…"), ("app.plot", "Plot Table"),
         ("app.crypt.encrypt-entry", "Encrypt Entry…"), ("app.crypt.open-entry", "Decrypt Entry…"), ("app.crypt.decrypt-entry", "Decrypt Entry in File…"),
         ("app.crypt.encrypt-entries", "Encrypt Tagged Entries…"), ("app.crypt.forget-passphrase", "Forget Encryption Passphrase"),
+        ("app.attach.attach", "Attach File…"), ("app.attach.url", "Attach File from URL…"), ("app.attach.new", "New Attachment…"),
+        ("app.attach.open", "Open Attachment…"), ("app.attach.reveal", "Show Attachment Folder"), ("app.attach.delete", "Delete Attachment…"),
+        ("app.attach.delete-all", "Delete All Attachments…"), ("app.attach.sync", "Sync Attachments"),
+        ("app.attach.set-directory", "Set Attachment Folder…"), ("app.attach.unset-directory", "Unset Attachment Folder"),
     ]
 
     /// The commands that apply at the caret and their keys, worked out once when the palette
@@ -728,6 +812,21 @@ struct PlotScreen: View {
         }
     }
 }
+/// A file from the photo picker, copied out of the picker's temporary place with its name.
+struct PickedFile: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(importedContentType: .item) { received in
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let url = folder.appendingPathComponent(received.file.lastPathComponent)
+            try FileManager.default.copyItem(at: received.file, to: url)
+            return PickedFile(url: url)
+        }
+    }
+}
+
 /// The passphrase sheet for org-crypt, its new text applied in the editor.
 struct CryptScreen: View {
     let request: CryptRequest

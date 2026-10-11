@@ -883,6 +883,33 @@ subtree at the caret under a sibling heading named =Archive= with the =ARCHIVE= 
 creating it at the end of the parent's children if needed. The moved entry gets an
 =ARCHIVE_TIME= property, and the =Archive= sibling is folded.
 
+* Attachments
+
+An entry's attachments are files in a folder that belongs to it, as with org-attach. The folder is the entry's =DIR= property when it has one, relative to the file's folder unless absolute. Otherwise it comes from the entry's =ID=: =data/ab/cdef…= for the ID =abcdef…=, under the org file's folder. The first attachment gives an entry without either an =ID= property, and it gets the =ATTACH= tag. =attachment:= links open files in the folder (see [[file:09-links.org][Links]]).
+
+| Command | Emacs | What it does |
+|-+-+-|
+| Attach File… | =C-c C-a a= | Asks for files or folders and copies them into the folder. |
+| Attach File by Moving…, as Hard Link…, as Symbolic Link… | =C-c C-a m=, =l=, =y= | The same, moving the files or linking to them. |
+| Attach File from URL… | =C-c C-a u= | Downloads the URL as the name after its last =/=. |
+| New Attachment… | =C-c C-a n= | Makes an empty file in the folder and opens it. |
+| Open Attachment… | =C-c C-a o= | Opens the attachment, or asks which. Org files open in orgstar; others open in their app, or in Quick Look on iOS. |
+| Show Attachment Folder | =C-c C-a f= | Shows the folder in the Finder (the Files app on iOS), making it if missing. |
+| Delete Attachment… | =C-c C-a d= | Asks for an attachment and deletes it. |
+| Delete All Attachments… | =C-c C-a D= | Asks, then deletes the folder and everything in it, and removes the =ATTACH= tag. |
+| Sync Attachments | =C-c C-a z= | Adds =ATTACH= when the folder has files, removes it when it hasn't, and offers to delete an empty folder. |
+| Set Attachment Folder… | =C-c C-a s= | Asks for a folder and sets =DIR= to its full path. When the entry had a folder already, offers to copy its files over and to delete it. |
+| Unset Attachment Folder | =C-c C-a S= | Removes =DIR=, with the same offers when the folder changes. |
+
+The Doom keys are under =SPC m a=; see [[file:03-keys.org][Keys]]. Attaching a file stores an =attachment:= link to it, for Insert Link (=C-c C-l=). Deleting removes files for good, without the Trash.
+
+On iOS the commands are under More ▸ Attachments, with Attach Photo or Video… for the photo library. Moving and linking aren't offered there. Files, photos and videos shared to orgstar from another app are attached too: the share sheet offers Attach, and orgstar asks for the entry when it next opens.
+
+| Setting | Default | What it does |
+|-+-+-|
+| =org-attach-id-dir= | ="data/"= | The folder ID-based folders go in, relative to the org file's folder unless absolute. Folders under =data/= are still found when it's something else. |
+| =org-attach-use-inheritance= | ="selective"= | Whether =DIR= and =ID= come from an ancestor: =selective= follows =org-use-property-inheritance=, ="t"= always, ="nil"= never. Doom sets =t=. |
+
 * Encrypted entries
 
 orgstar reads and writes entries encrypted by org-crypt with a passphrase (=org-crypt-key= nil, symmetric encryption). The text after the entry's planning line, property drawer and logbook, through the end of its subtree, is replaced by an OpenPGP message under the heading:
@@ -903,7 +930,7 @@ ww0ECQMI…
 | Encrypt Tagged Entries… (=app.crypt.encrypt-entries=) | Encrypts every entry with the =crypt= tag, its own or inherited, that isn't encrypted yet (=org-encrypt-entries=). A tagged entry's tagged children go inside its message. |
 | Forget Encryption Passphrase (=app.crypt.forget-passphrase=) | Removes the current file's passphrase from the Keychain. |
 
-The commands have no keys, as in Org; run them from the Org menu or the palette, or bind them in =keymap.toml=. On iOS they are under More ▸ Encryption.
+The commands have no keys, as in Org; run them from the command palette, or bind them in =keymap.toml=. On iOS they are under More ▸ Encryption.
 
 Remember in the Keychain stores the passphrase for the file. The next command on that file uses it after Touch ID, Face ID or the device password, without asking. =org-crypt-tag-matcher= in =config.toml= sets the tag; it must be a single tag, not a match expression.
 
