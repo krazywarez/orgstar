@@ -334,7 +334,7 @@ Fidelity is checked against Emacs itself, using the same oracle pattern as orgo'
 
 Seven phases, each usable on its own. Phase 1 is read-only, so it can run next to Emacs from the first build.
 
-Status, 2026-10-06: phases 1–6 are built for macOS. Owed from phase 1: the items left open below and the gate run on the M1 Air. The gates pass on an M-series Mac except peak memory for small real files (about 20x for a 161 kB file, from fixed overhead). Phase 7 has started: the iOS app has the agenda and capture, and runs in the Simulator; device builds need signing.
+Status, 2026-10-10: phases 1–7 are built. The Mac app is released as v0.2.0 (universal, notarized DMG, Homebrew cask). The iOS app is complete for Simulator builds; device signing and TestFlight are not set up. Owed: the phase-1 gate run on the M1 Air, and the VoiceOver check on both platforms. The gates pass on an M-series Mac except peak memory for small real files (about 20x for a 161 kB file, from fixed overhead).
 
 1. **Core and viewer:** `OrgCore` parser, workspace, index, read-only rendering, folding, search.
 2. **Editor:** text editing, structure and heading commands, timestamps, `M-q`, table alignment, command palette, Emacs and Mac keymaps, remaining tree-sitter grammars.
@@ -343,6 +343,8 @@ Status, 2026-10-06: phases 1–6 are built for macOS. Owed from phase 1: the ite
 5. **Export and capture:** native HTML and Markdown export, pandoc or Emacs for the rest, capture templates, global capture hotkey.
 6. **Beyond Emacs:** clock reports, habit charts, table and kanban views over properties, Doom keymap.
 7. **iOS:** same core; touch input, capture and agenda first.
+
+Plans in `docs/plans/` are ticked when their commits land, and a step that did not ship is marked in the plan. Open work is in the repository's issues.
 
 **Phase 1 scope**
 
@@ -387,7 +389,7 @@ Phase 2 (writable editor) does not start until every gate passes.
 
 ## Open questions
 
-- [ ] App name: Orgstar (chosen).
+- [x] App name: orgstar, spelt in lowercase.
 - [x] Save model: a user setting (see Saving).
 - [x] Minimum OS: macOS 26 and iOS 26. One release behind current (macOS 27).
 - [x] License: 0BSD.
