@@ -532,6 +532,18 @@ public struct EmacsImport: Sendable {
             } else {
                 add(name, .bool(truthy))
             }
+        case "org-icalendar-use-deadline", "org-icalendar-use-scheduled":
+            let symbols = (value.elements ?? []).compactMap(\.symbol)
+            guard symbols.count == value.elements?.count || value.symbol == "nil" else { return note("not a list of symbols") }
+            add(name, .string(symbols.joined(separator: " ")))
+        case "org-icalendar-include-todo":
+            if let symbol = value.symbol, ["nil", "t", "all", "unblocked"].contains(symbol) { add(name, .string(symbol)) }
+            else if let keywords = value.elements?.compactMap(\.string), !keywords.isEmpty, keywords.count == value.elements?.count {
+                add(name, .string(keywords.joined(separator: " ")))
+            } else { note("unexpected value \(value.description)") }
+        case "org-icalendar-combined-agenda-file":
+            guard let file = value.string ?? Self.evaluate(value, env)?.string else { return note("not a file name") }
+            add(name, .string(file))
         case "org-refile-targets":
             switch RefileSettings.parseTargets(value.description) {
             case .success: add(name, .string(value.description))

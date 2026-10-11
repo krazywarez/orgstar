@@ -972,6 +972,9 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Export to LaTeX with Emacs (=app.export.latex=) | =C-c C-e l l= | — | — | Exports to LaTeX through Emacs (=org-latex-export-to-latex=). |
 | Export to ODT with Emacs (=app.export.odt=) | =C-c C-e o o= | — | — | Exports to ODT through Emacs (=org-odt-export-to-odt=). |
 | Export to Plain Text with Emacs (=app.export.text=) | =C-c C-e t u= | — | — | Exports to plain text through Emacs (=org-ascii-export-to-ascii=). |
+| Export to iCalendar (=app.export.icalendar=) | =C-c C-e c f= | — | — | Exports to an =.ics= calendar (=org-icalendar-export-to-ics=). |
+| Export Agenda Files to iCalendar (=app.export.icalendar-agenda=) | =C-c C-e c a= | — | — | Writes an =.ics= beside each agenda file (=org-icalendar-export-agenda-files=). |
+| Combine Agenda Files into iCalendar (=app.export.icalendar-combined=) | =C-c C-e c c= | — | — | Writes the agenda files' entries to one calendar (=org-icalendar-combine-agenda-files=). |
 
 ** Files, buffers and the app
 

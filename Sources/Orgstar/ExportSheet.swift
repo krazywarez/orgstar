@@ -20,12 +20,13 @@ struct ExportSheet: View {
         ("html", "HTML", "html"), ("markdown", "Markdown", "md"), ("print-pdf", "PDF", "pdf"), ("docx", "Word", "docx"),
         ("rtf", "Rich Text (RTF)", "rtf"), ("plain-text", "Plain text", "txt"), ("pdf", "PDF via LaTeX (Emacs)", "pdf"),
         ("odt", "ODT (Emacs)", "odt"), ("latex", "LaTeX (Emacs)", "tex"), ("text", "Plain text, ASCII (Emacs)", "txt"),
+        ("icalendar", "iCalendar", "ics"),
     ]
 
     private var ext: String { Self.formats.first { $0.id == format }?.ext ?? "html" }
     private var chosen: URL { destination ?? target(ext, subtree) }
     /// PDF and ODT are whole documents.
-    private var allowsBodyOnly: Bool { !["pdf", "print-pdf", "odt", "docx", "rtf", "plain-text"].contains(format) }
+    private var allowsBodyOnly: Bool { !["pdf", "print-pdf", "odt", "docx", "rtf", "plain-text", "icalendar"].contains(format) }
 
     var body: some View {
         Form {

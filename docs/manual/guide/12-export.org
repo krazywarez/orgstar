@@ -1,6 +1,6 @@
 #+TITLE: Export
-#+DESCRIPTION: Exporting Org files from orgstar to HTML, Markdown, PDF, Word, RTF and plain text, and to LaTeX, ODT and ASCII through Emacs; copying as rich text.
-#+LEDE: orgstar exports HTML, Markdown, PDF, Word, RTF and plain text itself, and hands LaTeX, ODT, ASCII and LaTeX-made PDF to Emacs on the Mac.
+#+DESCRIPTION: Exporting Org files from orgstar to HTML, Markdown, PDF, Word, RTF, plain text and iCalendar, and to LaTeX, ODT and ASCII through Emacs; copying as rich text.
+#+LEDE: orgstar exports HTML, Markdown, PDF, Word, RTF, plain text and iCalendar itself, and hands LaTeX, ODT, ASCII and LaTeX-made PDF to Emacs on the Mac.
 
 * Exporting a file
 
@@ -21,18 +21,21 @@ Export works on the file in the current editor, using its text as it is now, sav
 | LaTeX              | Export to LaTeX with Emacs       | =C-c C-e l l= | =C-c C-e l l=                 | yes         |
 | ODT                | Export to ODT with Emacs         | =C-c C-e o o= | =C-c C-e o o=                 | yes         |
 | ASCII text         | Export to Plain Text with Emacs  | =C-c C-e t u= | =C-c C-e t u=                 | yes         |
+| iCalendar          | Export to iCalendar              | =C-c C-e c f= | =C-c C-e c f=                 | no          |
+| iCalendar, every agenda file | Export Agenda Files to iCalendar | =C-c C-e c a= | =C-c C-e c a=       | no          |
+| iCalendar, agenda files in one | Combine Agenda Files into iCalendar | =C-c C-e c c= | =C-c C-e c c=  | no          |
 
 The keys follow Emacs's export dispatcher (=org-export-dispatch=). =C-c C-e= on its own is only a prefix: pause after it and the key hints list the formats. The =SPC m e= keys work in normal state; the =C-c C-e= keys work in every Doom state. The Mac preset has no keys for the single formats; its =⇧⌘E= opens the export dialog.
 
-All eleven commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.docx=, =.rtf=, =.tex=, =.odt= or =.txt=. =#+EXPORT_FILE_NAME:= names it instead, as in Org: relative to the Org file's folder (or absolute, or starting with =~=), with its extension replaced by the format's, so =#+EXPORT_FILE_NAME: out/report= writes =out/report.html=. A file already there is replaced. The message area shows "Exported to /name/".
+All fourteen commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.docx=, =.rtf=, =.tex=, =.odt=, =.txt= or =.ics=. The two agenda-file commands are the exceptions; see [[*iCalendar export][iCalendar export]]. =#+EXPORT_FILE_NAME:= names it instead, as in Org: relative to the Org file's folder (or absolute, or starting with =~=), with its extension replaced by the format's, so =#+EXPORT_FILE_NAME: out/report= writes =out/report.html=. A file already there is replaced. The message area shows "Exported to /name/".
 
 ** The export dialog
 
 *Export…* in the command palette, or =⇧⌘E= in the Mac preset, opens a dialog. The Emacs and Doom presets have no key for it; bind =app.export-dialog= in =keymap.toml= if you want one (see [[file:03-keys.org][Keys and commands]]). The dialog has:
 
-- *Format*: HTML, Markdown, PDF, Word, Rich Text (RTF), Plain text, PDF via LaTeX (Emacs), ODT (Emacs), LaTeX (Emacs) or Plain text, ASCII (Emacs).
-- *Scope*: the whole file, or the subtree at the caret (Org's =C-s= in the dispatcher). A subtree is exported as a document of its own: its heading is the title, its text the body, and its child headings move up a level. The file's =#+= keywords still apply, and the heading's =EXPORT_TITLE=, =EXPORT_AUTHOR=, =EXPORT_DATE=, =EXPORT_EMAIL=, =EXPORT_OPTIONS=, =EXPORT_SELECT_TAGS=, =EXPORT_EXCLUDE_TAGS=, =EXPORT_HTML_HEAD= and =EXPORT_HTML_HEAD_EXTRA= properties override them. Its planning line and property drawer are left out. The choice is available when the caret is under a heading.
-- *Body only*: leave out the title and the page around the text (Org's =C-b=). HTML is then the table of contents, the text and the footnotes, without =<html>=, =<head>= or the title; Markdown has no title heading. Not available for PDF, Word, RTF, plain text and ODT.
+- *Format*: HTML, Markdown, PDF, Word, Rich Text (RTF), Plain text, PDF via LaTeX (Emacs), ODT (Emacs), LaTeX (Emacs), Plain text, ASCII (Emacs) or iCalendar.
+- *Scope*: the whole file, or the subtree at the caret (Org's =C-s= in the dispatcher). A subtree is exported as a document of its own: its heading is the title, its text the body, and its child headings move up a level. iCalendar is the exception: there the subtree's heading is an entry like any other. The file's =#+= keywords still apply, and the heading's =EXPORT_TITLE=, =EXPORT_AUTHOR=, =EXPORT_DATE=, =EXPORT_EMAIL=, =EXPORT_OPTIONS=, =EXPORT_SELECT_TAGS=, =EXPORT_EXCLUDE_TAGS=, =EXPORT_HTML_HEAD= and =EXPORT_HTML_HEAD_EXTRA= properties override them. Its planning line and property drawer are left out. The choice is available when the caret is under a heading.
+- *Body only*: leave out the title and the page around the text (Org's =C-b=). HTML is then the table of contents, the text and the footnotes, without =<html>=, =<head>= or the title; Markdown has no title heading. Not available for PDF, Word, RTF, plain text, ODT and iCalendar.
 - *Destination*: where =#+EXPORT_FILE_NAME:= says, or the subtree's =EXPORT_FILE_NAME= property for a subtree, else beside the Org file. *Choose…* picks another place and name. Changing the format changes the extension.
 - *Open after export*: opens the file in its default app when the export finishes.
 
@@ -40,7 +43,7 @@ The dialog remembers the format and the *Open after export* setting.
 
 ** On iOS
 
-The Export menu offers HTML, Markdown, PDF, Rich Text (RTF) and Plain Text, and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac. Word, LaTeX, ODT, ASCII and PDF through LaTeX are not available on iOS; RTF opens in Word and Pages.
+The Export menu offers HTML, Markdown, PDF, Rich Text (RTF), Plain Text and iCalendar, and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac. Word, LaTeX, ODT, ASCII and PDF through LaTeX are not available on iOS, nor are the agenda-file iCalendar exports; RTF opens in Word and Pages.
 
 * HTML export
 
@@ -234,6 +237,29 @@ Markdown export writes GitHub-flavored Markdown:
 - Citations are handled as in HTML export.
 
 As in HTML export, =#+INCLUDE:= lines are expanded and macros replaced first, and =#+EXCLUDE_TAGS=, =#+SELECT_TAGS=, =COMMENT= headings and =ARCHIVE= tags decide which headings are exported (see /Which headings are exported/). Of the =#+OPTIONS=, Markdown export reads =todo=, =pri=, =tags=, =^= and =title=; the others do not apply. It writes no author or date.
+
+* iCalendar export
+
+iCalendar export writes the =.ics= file =org-icalendar-export-to-ics= writes, for calendar apps to read or subscribe to. Each heading can give:
+
+- a =VEVENT= for its =DEADLINE= and one for its =SCHEDULED= date, as =org-icalendar-use-deadline= and =org-icalendar-use-scheduled= say. Their summaries start with =DL: = and =S: =;
+- a =VEVENT= for each other timestamp in its title and text, active ones only unless =#+OPTIONS= has =<:t= or =<:inactive=;
+- a =VTODO= for a task, as =org-icalendar-include-todo= says. Its =DTSTART= is the scheduled date (with =todo-start= in =org-icalendar-use-scheduled=), its =DUE= the deadline (with =todo-due= in =org-icalendar-use-deadline=); without a scheduled date, a deadline with a =+= repeater starts its warning period before it. =STATUS= is =NEEDS-ACTION= or =COMPLETED=, and =PRIORITY= maps =A= to 1, =B= to 5 and =C= to 9.
+
+| Setting                              | Values                                                                                        | Default                        |
+|--------------------------------------+-----------------------------------------------------------------------------------------------+--------------------------------|
+| =org-icalendar-use-deadline=         | =event-if-not-todo=, =event-if-todo=, =event-if-todo-not-done=, =todo-due=, separated by spaces | ="event-if-not-todo todo-due"= |
+| =org-icalendar-use-scheduled=        | the same, with =todo-start= for =todo-due=                                                    | ="todo-start"=                 |
+| =org-icalendar-include-todo=         | =nil=, =t= (tasks not done), =all=, =unblocked= (not done, without unfinished children, and not after an unfinished sibling under an =ORDERED= parent), or TODO keywords separated by spaces | ="nil"= |
+| =org-icalendar-combined-agenda-file= | the file Combine Agenda Files into iCalendar writes                                           | ="~/org.ics"=                  |
+
+The summary is the heading's title, or its =SUMMARY= property. The description is the heading's text as Org's ASCII export writes it, filled to 70 columns, or its =DESCRIPTION= property; =LOCATION=, =CLASS=, =TIMEZONE= and =APPT_WARNTIME= (an alarm, minutes before a timed event) are read too. =CATEGORIES= lists the heading's tags and its category. An =ID= property is the =UID=; a heading without one gets a new random =UID= each time, as in Org with =org-icalendar-store-UID= nil. Repeaters become =RRULE= lines. Times are local times without a zone, as Org writes them by default; a =TIMEZONE= property of =UTC= writes them in UTC, and any other value names the zone (=TZID=).
+
+=#+ICALENDAR_EXCLUDE_TAGS:= lists tags whose subtrees are left out; =#+EXCLUDE_TAGS:= doesn't apply, so =noexport= subtrees are exported unless listed. =#+SELECT_TAGS=, =COMMENT= headings and =ARCHIVE= tags apply as in the other exports. =#+ICAL-TTL:= sets =X-PUBLISHED-TTL=, the refresh period, such as =PT1H=. The calendar is named after the file, its description is =#+TITLE:=, and its owner =#+AUTHOR:= or your full name. Lines longer than 75 characters are folded and lines end in CRLF, as RFC 5545 asks.
+
+Export Agenda Files to iCalendar writes an =.ics= beside each agenda file (see [[file:07-agenda.org][The agenda]]). Combine Agenda Files into iCalendar writes all their entries to one calendar named =OrgMode= at =org-icalendar-combined-agenda-file=. On iOS, the Export menu's iCalendar shares the current file's calendar.
+
+Differences from Org: diary sexps (=%%(…)= lines and =<%%(…)>= timestamps) are left out, as they need Emacs's =icalendar.el=. The other =org-icalendar-*= variables keep Org's defaults: alarms only from =APPT_WARNTIME=, categories =(local-tags category)=, the whole body as the description, and local times. Descriptions of tables with column groups or alignment cookies, center blocks and links to targets can differ from Org's in layout.
 
 * Exporting through Emacs
 

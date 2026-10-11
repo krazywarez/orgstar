@@ -127,6 +127,26 @@ public enum OrgPreferences {
         return RefileSettings(targets: targets, outlinePath: RefileSettings.OutlinePath(rawValue: string("refileUseOutlinePath", defaults)) ?? .file,
                               creating: RefileSettings.Creating(rawValue: string("refileAllowCreatingParentNodes", defaults)) ?? .no)
     }
+    /// `org-icalendar-use-deadline`, `-use-scheduled` and `-include-todo`; the owner is the
+    /// user's full name.
+    public static func icalendarOptions(_ defaults: UserDefaults = .standard) -> ICalendarOptions {
+        var options = ICalendarOptions()
+        options.useDeadline = words(string("icalendarUseDeadline", defaults))
+        options.useScheduled = words(string("icalendarUseScheduled", defaults))
+        options.includeTodo = switch string("icalendarIncludeTodo", defaults).trimmingCharacters(in: .whitespaces) {
+        case "", "nil": .none
+        case "t": .unfinished
+        case "all": .all
+        case "unblocked": .unblocked
+        case let list: .keywords(words(list))
+        }
+        options.userFullName = NSFullUserName()
+        return options
+    }
+    /// `org-icalendar-combined-agenda-file`, `~` expanded.
+    public static func icalendarCombinedFile(_ defaults: UserDefaults = .standard) -> String {
+        (string("icalendarCombinedAgendaFile", defaults) as NSString).expandingTildeInPath
+    }
     /// `org-stuck-projects`.
     public static func stuckProjects(_ defaults: UserDefaults = .standard) -> StuckProjects {
         StuckProjects(match: string("stuckProjectsMatch", defaults), todo: words(string("stuckProjectsTodo", defaults)),

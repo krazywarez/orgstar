@@ -1373,3 +1373,35 @@ struct LinkFollowTests {
         #expect(session.revealRequest?.offset == (text as NSString).range(of: "<<<the plan>>>").location)
     }
 }
+
+struct ICalendarFilesTests {
+    @Test func writesBesideEachFileAndCombined() throws {
+        let folder = try Folder()
+        let a = try folder.write("a.org", "#+EXPORT_FILE_NAME: out/cal\n* Meeting <2026-10-12 Mon 10:00>\n")
+        let b = try folder.write("b.org", "* TODO Task\nDEADLINE: <2026-10-20 Tue>\n")
+        var options = ICalendarOptions()
+        options.includeTodo = .unfinished
+        let read = { (path: String) -> (text: String, settings: OrgSettings)? in (try? String(contentsOfFile: path, encoding: .utf8)).map { ($0, OrgSettings.default) } }
+        let written = try ICalendarFiles.exportEach([a.path, b.path], options: options, read: read)
+        #expect(written.map(\.lastPathComponent) == ["cal.ics", "b.ics"])
+        #expect(written[0].deletingLastPathComponent().lastPathComponent == "out")
+        let first = try String(contentsOf: written[0], encoding: .utf8)
+        #expect(first.hasPrefix("BEGIN:VCALENDAR\r\n") && first.contains("SUMMARY:Meeting <2026-10-12 Mon 10:00>\r\n"))
+        let combined = folder.url.appendingPathComponent("all/org.ics").path
+        let url = try ICalendarFiles.combine([a.path, b.path], to: combined, options: options, read: read)
+        let text = try String(contentsOf: url, encoding: .utf8)
+        #expect(text.contains("X-WR-CALNAME:OrgMode\r\n") && text.contains("BEGIN:VTODO\r\n") && text.contains("DUE;VALUE=DATE:20261020\r\n"))
+    }
+
+    @Test func readsSettings() {
+        let defaults = UserDefaults(suiteName: "orgstar-ics-\(UUID().uuidString)")!
+        #expect(OrgPreferences.icalendarOptions(defaults).includeTodo == .none)
+        #expect(OrgPreferences.icalendarOptions(defaults).useDeadline == ["event-if-not-todo", "todo-due"])
+        defaults.set("NEXT WAIT", forKey: "icalendarIncludeTodo")
+        defaults.set("event-if-todo", forKey: "icalendarUseScheduled")
+        #expect(OrgPreferences.icalendarOptions(defaults).includeTodo == .keywords(["NEXT", "WAIT"]))
+        #expect(OrgPreferences.icalendarOptions(defaults).useScheduled == ["event-if-todo"])
+        defaults.set("unblocked", forKey: "icalendarIncludeTodo")
+        #expect(OrgPreferences.icalendarOptions(defaults).includeTodo == .unblocked)
+    }
+}

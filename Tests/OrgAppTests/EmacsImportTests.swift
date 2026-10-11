@@ -165,6 +165,23 @@ struct EmacsImportTests {
         #expect(result.unsupported.contains { $0.name == "C-c l" && $0.reason == "bound to code, not a command" })
     }
 
+    @Test func readsICalendarSettings() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try #"""
+            (setq org-icalendar-use-deadline '(event-if-todo todo-due)
+                  org-icalendar-use-scheduled '(event-if-not-todo)
+                  org-icalendar-include-todo '("NEXT" "WAIT")
+                  org-icalendar-combined-agenda-file (concat "~/cal" "/org.ics"))
+            """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let s = settings(EmacsImport.scan(EmacsImport.files(in: folder)))
+        #expect(s["org-icalendar-use-deadline"] == .string("event-if-todo todo-due"))
+        #expect(s["org-icalendar-use-scheduled"] == .string("event-if-not-todo"))
+        #expect(s["org-icalendar-include-todo"] == .string("NEXT WAIT"))
+        #expect(s["org-icalendar-combined-agenda-file"] == .string("~/cal/org.ics"))
+    }
+
     @Test func readsCaptureTargetsFromVariablesAndForms() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

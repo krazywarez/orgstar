@@ -122,6 +122,9 @@ public enum EditorCommands {
         EditorCommand(id: "app.export.odt", title: "Export to ODT with Emacs", action: .app),
         EditorCommand(id: "app.export.latex", title: "Export to LaTeX with Emacs", action: .app),
         EditorCommand(id: "app.export.text", title: "Export to Plain Text with Emacs", action: .app),
+        EditorCommand(id: "app.export.icalendar", title: "Export to iCalendar", action: .app),
+        EditorCommand(id: "app.export.icalendar-agenda", title: "Export Agenda Files to iCalendar", action: .app),
+        EditorCommand(id: "app.export.icalendar-combined", title: "Combine Agenda Files into iCalendar", action: .app),
 
         movement("forward-char", "Forward Character", "moveForward:"),
         movement("backward-char", "Backward Character", "moveBackward:"),

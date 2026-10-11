@@ -173,6 +173,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =[org-agenda-time-grid]=, =org-agenda-use-time-grid=, =org-agenda-show-current-time-in-grid= | |
 | =[org-stuck-projects]=           |                            |
 | =org-agenda-files=               |                            |
+| =org-icalendar-use-deadline=, =org-icalendar-use-scheduled=, =org-icalendar-include-todo=, =org-icalendar-combined-agenda-file= | |
 | =org-refile-targets=, =org-refile-use-outline-path=, =org-refile-allow-creating-parent-nodes= | |
 | =theme-file=                     |                            |
 
@@ -235,6 +236,10 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-refile-use-outline-path=        | string  | ="file"= | How refile targets are written: =nil=, =t=, =file=, =full-file-path=, =buffer-name= or =title=. Mirrors =org-refile-use-outline-path=. |
 | =org-refile-allow-creating-parent-nodes= | string | ="nil"= | =t= or =confirm=: a refile target typed as =TARGET/New heading= adds the heading; =confirm= asks first. Mirrors =org-refile-allow-creating-parent-nodes=. |
 | =org-agenda-files=                   | string  | =""=    | Files and folders the agenda reads, separated by =\n=; a file that isn't =.org= lists more, one per line. =""= reads the folders' files. See [[file:07-agenda.org][The agenda]]. Mirrors =org-agenda-files=. |
+| =org-icalendar-use-deadline=         | string  | ="event-if-not-todo todo-due"= | What a =DEADLINE= makes in iCalendar export: =event-if-not-todo=, =event-if-todo=, =event-if-todo-not-done=, =todo-due=. See [[file:12-export.org][Export]]. Mirrors =org-icalendar-use-deadline=. |
+| =org-icalendar-use-scheduled=        | string  | ="todo-start"= | As the last, for =SCHEDULED=, with =todo-start=. Mirrors =org-icalendar-use-scheduled=. |
+| =org-icalendar-include-todo=         | string  | ="nil"= | Tasks as =VTODO=: =nil=, =t= (not done), =all=, =unblocked=, or TODO keywords separated by spaces. Mirrors =org-icalendar-include-todo=. |
+| =org-icalendar-combined-agenda-file= | string  | ="~/org.ics"= | Where Combine Agenda Files into iCalendar writes. Mirrors =org-icalendar-combined-agenda-file=. |
 | =org-agenda-use-time-grid=           | boolean | =true=  | Grid lines at the times in =[org-agenda-time-grid]=, on the days it names. Mirrors =org-agenda-use-time-grid=. |
 | =org-agenda-show-current-time-in-grid= | boolean | =true= | The now line on today's grid. Mirrors =org-agenda-show-current-time-in-grid=. |
 | =org-agenda-sort-notime-is-late=     | boolean | =true=  | Lines without a time sort after timed ones for =time-up=, and lines without a date after dated ones for the date keys. Mirrors =org-agenda-sort-notime-is-late=. |
@@ -528,6 +533,9 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-refile-use-outline-path=, =org-refile-allow-creating-parent-nodes= | The symbol as a string                                                          |
 | =org-stuck-projects=                                               | =[org-stuck-projects]=: =match=, =todo=, =tags= and =regexp= from the four elements          |
 | =org-agenda-time-grid=                                             | =[org-agenda-time-grid]=: =when= from the first element, =times= from the second; the strings are left out |
+| =org-icalendar-use-deadline=, =org-icalendar-use-scheduled=        | The list's symbols, separated by spaces                                                       |
+| =org-icalendar-include-todo=                                       | =nil=, =t=, =all= or =unblocked=, or a list of keywords separated by spaces                  |
+| =org-icalendar-combined-agenda-file=                               | The file name, from a string or a simple form                                                 |
 | =org-log-done=, =org-log-reschedule=, =org-log-redeadline=         | The same key: =nil=, =time= (also =t=) or =note=                                              |
 | =org-log-into-drawer=                                              | A string as given; =t= becomes ="LOGBOOK"=; =nil= becomes =""=                                 |
 | =display-line-numbers-type=                                        | =true= unless =nil=; =relative= and =visual= become absolute numbers                          |

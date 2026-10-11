@@ -6,10 +6,11 @@ import OrgPresentation
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A file exported as HTML, Markdown or PDF, written when the share sheet takes it.
+/// A file exported as HTML, Markdown, PDF, RTF, plain text or iCalendar, written when the share
+/// sheet takes it.
 struct OrgExport: Transferable {
     enum Format: CaseIterable {
-        case html, markdown, pdf, rtf, plainText
+        case html, markdown, pdf, rtf, plainText, icalendar
 
         var name: String {
             switch self {
@@ -18,6 +19,7 @@ struct OrgExport: Transferable {
             case .pdf: "PDF"
             case .rtf: "Rich Text (RTF)"
             case .plainText: "Plain Text"
+            case .icalendar: "iCalendar"
             }
         }
 
@@ -28,6 +30,7 @@ struct OrgExport: Transferable {
             case .pdf: "pdf"
             case .rtf: "rtf"
             case .plainText: "txt"
+            case .icalendar: "ics"
             }
         }
     }
@@ -56,6 +59,8 @@ struct OrgExport: Transferable {
             .exportingCondition { $0.format == .rtf }
         FileRepresentation(exportedContentType: .plainText) { try await $0.write() }
             .exportingCondition { $0.format == .plainText }
+        FileRepresentation(exportedContentType: .calendarEvent) { try await $0.write() }
+            .exportingCondition { $0.format == .icalendar }
     }
 
     private func write() async throws -> SentTransferredFile {
@@ -70,6 +75,8 @@ struct OrgExport: Transferable {
                 .write(to: url, atomically: true, encoding: .utf8)
         case .markdown:
             try MarkdownExport.document(text, settings: settings, path: path).write(to: url, atomically: true, encoding: .utf8)
+        case .icalendar:
+            try ICalendarFiles.export(text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(), destination: url)
         case .pdf, .rtf, .plainText:
             let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle)
             let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
@@ -84,7 +91,7 @@ struct OrgExport: Transferable {
     }
 }
 
-/// Sharing the file as HTML, Markdown, PDF, RTF or plain text: to another app, or saved with
+/// Sharing the file as HTML, Markdown, PDF, RTF, plain text or iCalendar: to another app, or saved with
 /// Save to Files; or copying it as rich text.
 struct ExportMenu: View {
     let path: String

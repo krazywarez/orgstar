@@ -334,6 +334,15 @@ extension KeymapPreset {
         [[bind]]
         keys = "C-c C-e t u"
         command = "app.export.text"
+        [[bind]]
+        keys = "C-c C-e c f"
+        command = "app.export.icalendar"
+        [[bind]]
+        keys = "C-c C-e c a"
+        command = "app.export.icalendar-agenda"
+        [[bind]]
+        keys = "C-c C-e c c"
+        command = "app.export.icalendar-combined"
 
         # Org
         [[bind]]

@@ -547,6 +547,7 @@ struct ContentView: View {
     /// dispatcher does, or to `destination`, and opens it with `open`. `subtree` exports the
     /// subtree at the caret alone; `bodyOnly` leaves out the title and page wrapper.
     private func export(_ format: String, to destination: URL? = nil, open: Bool = false, subtree: Bool = false, bodyOnly: Bool = false) {
+        if format == "icalendar-agenda" || format == "icalendar-combined" { return exportAgendaCalendars(combined: format == "icalendar-combined") }
         guard let path = session.path, var text = session.document?.text else {
             commands.show("No file is open")
             return
@@ -562,6 +563,15 @@ struct ContentView: View {
             text = narrowed
         }
         switch format {
+        case "icalendar":
+            do {
+                let target = try ICalendarFiles.export(whole, path: path, settings: defaults, options: OrgPreferences.icalendarOptions(),
+                                                       subtree: subtree ? caret : nil, destination: destination)
+                commands.show("Exported to \(target.lastPathComponent)")
+                if open { NSWorkspace.shared.open(target) }
+            } catch {
+                commands.show("Can't export: \(error.localizedDescription)")
+            }
         case "html", "html-open", "markdown":
             let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
             let target = destination ?? ExportScope.output(for: url, name: name, extension: format == "markdown" ? "md" : "html")
@@ -630,6 +640,27 @@ struct ContentView: View {
                     commands.show("\(error)")
                 }
             }
+        }
+    }
+
+    /// `org-icalendar-export-agenda-files`, or with `combined`, `org-icalendar-combine-agenda-files`.
+    private func exportAgendaCalendars(combined: Bool) {
+        let paths = workspace.agendaFilePaths()
+        let read = { (path: String) -> (text: String, settings: OrgSettings)? in
+            guard let text = session.openDocuments.first(where: { $0.path == path })?.document.text ?? (try? String(contentsOfFile: path, encoding: .utf8)) else { return nil }
+            return (text, Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile))
+        }
+        do {
+            let options = OrgPreferences.icalendarOptions()
+            if combined {
+                let url = try ICalendarFiles.combine(paths, to: OrgPreferences.icalendarCombinedFile(), options: options, read: read)
+                commands.show("Exported \(paths.count) agenda files to \(url.lastPathComponent)")
+            } else {
+                let written = try ICalendarFiles.exportEach(paths, options: options, read: read)
+                commands.show("Exported \(written.count) agenda files to iCalendar")
+            }
+        } catch {
+            commands.show("Can't export: \(error.localizedDescription)")
         }
     }
 
@@ -740,7 +771,7 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
-        let orgOnly = ["app.refile", "app.refile.copy", "app.archive", "app.clock.in", "app.clock.default", "app.copy-rich-text"].contains(id) || id.hasPrefix("app.export.") || id.hasPrefix("org.")
+        let orgOnly = ["app.refile", "app.refile.copy", "app.archive", "app.clock.in", "app.clock.default", "app.copy-rich-text"].contains(id) || (id.hasPrefix("app.export.") && !id.hasPrefix("app.export.icalendar-")) || id.hasPrefix("org.")
         if orgOnly, !session.isOrg {
             commands.show("Not an org file")
             return

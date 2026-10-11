@@ -25,6 +25,10 @@ public struct ExportOptions: Sendable, Equatable {
     public var author = true
     public var date = true
     public var title = true
+    /// `-`: `--`, `---`, `...` and `\-` as special strings.
+    public var specialStrings = true
+    /// `<`, as written: nil, t, active, inactive; nil when not given.
+    public var timestamps: String?
     public var excludeTags = ["noexport"]
     public var selectTags = ["export"]
     /// `#+HTML_HEAD` and `#+HTML_HEAD_EXTRA` lines, in order.
@@ -72,6 +76,8 @@ public struct ExportOptions: Sendable, Equatable {
                     case "author": options.author = on
                     case "date": options.date = on
                     case "title": options.title = on
+                    case "-": options.specialStrings = on
+                    case "<": options.timestamps = v
                     default: break
                     }
                 }
