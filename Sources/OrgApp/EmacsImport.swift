@@ -471,7 +471,7 @@ public struct EmacsImport: Sendable {
         func note(_ reason: String) { unsupported.append(Note(id: id(), name: name, reason: reason, source: source)) }
         let truthy = value.symbol != "nil" && value.elements?.isEmpty != true
         switch name {
-        case "fill-column", "org-tags-column", "appt-message-warning-time":
+        case "fill-column", "org-tags-column", "appt-message-warning-time", "org-deadline-warning-days":
             guard let n = value.integer else { return note("not a number") }
             add(name, .integer(n))
         case "org-insert-heading-respect-content", "org-list-allow-alphabetical", "org-hide-emphasis-markers", "org-pretty-entities",

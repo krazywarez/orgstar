@@ -288,7 +288,7 @@ match, one keystroke:
 | =T=  | headings with the keywords you give (several separated by a vertical bar) | =org-show-todo-tree=   |
 | =m=  | headings matching a tags and properties match                         | =org-match-sparse-tree= |
 | =p=  | headings where a property has a value (asks for both, with completion) | =org-match-sparse-tree= |
-| =d=  | deadlines past due or due within 14 days (fixed), in entries not done | =org-check-deadlines=  |
+| =d=  | deadlines past due or due within =org-deadline-warning-days= (14), in entries not done | =org-check-deadlines=  |
 | =b=  | entries with a =SCHEDULED= or =DEADLINE= before a date                | =org-check-before-date= |
 | =a=  | entries with a =SCHEDULED= or =DEADLINE= on or after a date           | =org-check-after-date= |
 | =D=  | entries with a =SCHEDULED= or =DEADLINE= in a date range              | =org-check-dates-range= |

@@ -242,8 +242,8 @@ public struct SparseTreeCommand: OrgCommand {
             matches = SparseTree.match(name.replacingOccurrences(of: "-", with: "\\-") + "=" + value, in: text, now: context.now, calendar: context.calendar)
             message = nil
         case "d":
-            matches = SparseTree.deadlines(within: 14, in: text, settings: settings, now: context.now, calendar: context.calendar)
-            message = "\(matches.points.count) deadlines past-due or due within 14 days"
+            matches = SparseTree.deadlines(within: settings.deadlineWarningDays, in: text, settings: settings, now: context.now, calendar: context.calendar)
+            message = "\(matches.points.count) deadlines past-due or due within \(settings.deadlineWarningDays) days"
         case "b", "a":
             if let step = ask("date", "Date:", date: true) { return step }
             let date = dateString(context.answers["date"]!)

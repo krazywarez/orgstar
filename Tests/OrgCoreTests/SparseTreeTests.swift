@@ -45,6 +45,7 @@ struct SparseTreeTests {
             ("(org-match-sparse-tree nil \"home|work\")", SparseTree.match("home|work", in: Self.text, now: now, calendar: utc)),
             ("(org-match-sparse-tree nil \"LEVEL>2\")", SparseTree.match("LEVEL>2", in: Self.text, now: now, calendar: utc)),
             ("(org-check-deadlines nil)", SparseTree.deadlines(within: 14, in: Self.text, settings: tree.settings, now: now, calendar: utc)),
+            ("(let ((org-deadline-warning-days 90)) (org-check-deadlines nil))", SparseTree.deadlines(within: 90, in: Self.text, settings: tree.settings, now: now, calendar: utc)),
             ("(org-check-before-date \"2026-09-20\")", SparseTree.planning(from: nil, to: "2026-09-20", in: Self.text, calendar: utc)),
             ("(org-check-after-date \"2026-09-20\")", SparseTree.planning(from: "2026-09-20", to: nil, in: Self.text, calendar: utc)),
             ("(org-check-dates-range \"2026-09-01\" \"2026-10-01 10:00\")", SparseTree.planning(from: "2026-09-01", to: "2026-10-01 10:00", in: Self.text, calendar: utc)),

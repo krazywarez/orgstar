@@ -133,7 +133,7 @@ DEADLINE: <2026-10-31 Sat -7d> SCHEDULED: <2026-10-20 Tue>
 #+END_SRC
 
 - =SCHEDULED= is the day you plan to start. The agenda shows the entry from that day until it is done.
-- =DEADLINE= is the day it is due. The agenda warns about it 14 days ahead (=org-deadline-warning-days=), or as the timestamp's own =-Nd= says.
+- =DEADLINE= is the day it is due. The agenda warns about it 14 days ahead (=org-deadline-warning-days= in =config.toml=), or as the timestamp's own =-Nd= says.
 
 | Command          | Org command      | Emacs, Doom | Mac  | Doom leader |
 |------------------+------------------+-------------+------+-------------|

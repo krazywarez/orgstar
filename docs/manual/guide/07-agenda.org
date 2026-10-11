@@ -95,7 +95,7 @@ An entry with a time of day shows the time instead of the status: =08:00=, or =1
 
 Details:
 
-- Deadline warnings use =org-deadline-warning-days=, fixed at 14 days. A =-Nd= cookie in the timestamp (=<2026-10-20 Tue -3d>=) changes the warning for that deadline; =w=, =m= and =y= units work too.
+- Deadline warnings start =org-deadline-warning-days= days ahead, 14 by default, set in =config.toml=. A =-Nd= cookie in the timestamp (=<2026-10-20 Tue -3d>=) changes the warning for that deadline; =w=, =m= and =y= units work too.
 - A =-Nd= cookie on a =SCHEDULED= timestamp delays it: the entry first shows N days after the scheduled date.
 - Repeaters on =SCHEDULED= and =DEADLINE= timestamps (=+1w=, =++1w=, =.+1d=) make the entry show on the next occurrence on future days, as in Org.
 - A done entry shows only on the day of its deadline or scheduled date, not as overdue. With =org-agenda-skip-scheduled-if-done= or =org-agenda-skip-deadline-if-done= set to =true= in =config.toml=, a done entry's scheduled date or deadline doesn't show on that day either. Both are =false= by default, as in Org.

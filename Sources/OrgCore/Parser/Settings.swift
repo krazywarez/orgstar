@@ -49,6 +49,8 @@ public struct OrgSettings: Sendable, Equatable {
     public var listAllowAlphabetical = false
     /// `org-use-property-inheritance`.
     public var propertyInheritance: SemanticSettings.PropertyInheritance = .none
+    /// `org-deadline-warning-days`.
+    public var deadlineWarningDays = 14
     /// Keyword lines from the file's `#+SETUPFILE`s, as `#+KEY: value` lines: they count as
     /// the file's own, before them.
     public var setupKeywords = ""
@@ -136,6 +138,7 @@ enum SettingsScanner {
                                    radioTargets: radio.sorted { $0.count > $1.count })
         settings.listAllowAlphabetical = defaults.listAllowAlphabetical
         settings.propertyInheritance = defaults.propertyInheritance
+        settings.deadlineWarningDays = defaults.deadlineWarningDays
         settings.setupKeywords = defaults.setupKeywords
         settings.startup = startup
         return settings

@@ -13,6 +13,7 @@ public enum OrgPreferences {
         var settings = OrgSettings.default.withTodoKeywords(line) ?? .default
         settings.listAllowAlphabetical = bool("alphabeticalLists", defaults)
         settings.propertyInheritance = .init(string("propertyInheritance", defaults))
+        settings.deadlineWarningDays = integer("deadlineWarningDays", defaults)
         return settings
     }
 
@@ -59,9 +60,10 @@ public enum OrgPreferences {
     public static func agendaSkipDeadlineIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipDeadlineIfDone", defaults) }
     public static func agendaSearchAlwaysBoolean(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchAlwaysBoolean", defaults) }
     public static func agendaSearchForceFullWords(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchForceFullWords", defaults) }
-    /// `options` with the skip-if-done, search and blocked-entry settings.
+    /// `options` with the deadline warning, skip-if-done, search and blocked-entry settings.
     public static func agendaOptions(_ options: AgendaOptions, _ defaults: UserDefaults = .standard) -> AgendaOptions {
         var options = options
+        options.deadlineWarningDays = integer("deadlineWarningDays", defaults)
         options.skipScheduledIfDone = agendaSkipScheduledIfDone(defaults)
         options.skipDeadlineIfDone = agendaSkipDeadlineIfDone(defaults)
         options.searchAlwaysBoolean = agendaSearchAlwaysBoolean(defaults)

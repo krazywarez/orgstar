@@ -39,6 +39,7 @@ struct EmacsImportTests {
     (defun +org-init-appearance-h ()
       (setq org-tags-column 0
             org-agenda-span 10
+            org-deadline-warning-days 7
             org-agenda-start-day "-3d"
             org-clock-idle-time 15
             org-clock-history-length 10
@@ -80,6 +81,7 @@ struct EmacsImportTests {
         // after! org runs after the top-level setq.
         #expect(s["org-tags-column"] == .integer(-80))
         #expect(s["org-agenda-span"] == .integer(10))
+        #expect(s["org-deadline-warning-days"] == .integer(7))
         #expect(s["org-agenda-start-day"] == .string("-3d"))
         #expect(s["org-clock-idle-time"] == .integer(15))
         #expect(s["org-clock-history-length"] == .integer(10))
@@ -171,7 +173,7 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 19 settings, 3 capture templates, 3 key bindings."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 20 settings, 3 capture templates, 3 key bindings."), "\(summary)")
         #expect(defaults.string(forKey: "themeFont") == "JetBrains Mono")
         #expect(defaults.integer(forKey: "themeFontSize") == 14)
 
