@@ -57,12 +57,14 @@ public struct EmacsImport: Sendable {
     // MARK: - Finding the configuration
 
     /// The configuration files in `folder` (a Doom folder, an `.emacs.d`) or the file itself.
+    /// A literate `config.org` is read when there's no `config.el` tangled from it.
     public static func files(in location: URL) -> [URL] {
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: location.path, isDirectory: &isDirectory) else { return [] }
         guard isDirectory.boolValue else { return [location] }
-        return ["init.el", "config.el", "custom.el"].map { location.appendingPathComponent($0) }
-            .filter { FileManager.default.fileExists(atPath: $0.path) }
+        let exists = { (name: String) in FileManager.default.fileExists(atPath: location.appendingPathComponent(name).path) }
+        let names = ["init.el", exists("config.el") ? "config.el" : "config.org", "custom.el"]
+        return names.filter(exists).map { location.appendingPathComponent($0) }
     }
 
     /// Where an Emacs configuration usually is, first found first.
@@ -110,7 +112,7 @@ public struct EmacsImport: Sendable {
                 result.problems.append("Can't read \(url.path)")
                 continue
             }
-            sources.append((url.lastPathComponent, text, 1))
+            sources.append((url.lastPathComponent, url.pathExtension == "org" ? Tangle.literateLisp(text) : text, 1))
         }
         result.isDoom = sources.contains { $0.text.contains("(doom!") || $0.text.contains("(map! ") || $0.text.contains("(after! ") }
         if result.isDoom {
@@ -1019,15 +1021,24 @@ extension EmacsImport {
     /// `directory`, leaving out templates whose key is there already and bindings that are
     /// there already. Returns a summary.
     @MainActor
+    /// With `writeConfig`, settings and structure templates are written into `config.toml` too,
+    /// for where nothing syncs user defaults into it (iOS).
     public static func apply(
-        _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory
+        _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory,
+        writeConfig: Bool = false
     ) async -> String {
+        var stored: [UserConfig.Setting] = []
         var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0, views = 0, projects = 0
         var problems: [String] = []
         for item in items {
             guard case .setting(let key, let value) = item.change,
                   let setting = UserConfig.settings.first(where: { $0.path == key || $0.key == key }) else { continue }
-            if let problem = UserConfig.store(value, setting, in: defaults) { problems.append(problem) } else { settings += 1 }
+            if let problem = UserConfig.store(value, setting, in: defaults) {
+                problems.append(problem)
+            } else {
+                settings += 1
+                stored.append(setting)
+            }
         }
         for item in items {
             guard case .folder(let path) = item.change else { continue }
@@ -1110,6 +1121,17 @@ extension EmacsImport {
             blocks += 1
         }
         if blocks > 0 { UserConfig.setStructureTemplates(rows, in: defaults) }
+        if writeConfig, settings + blocks > 0 {
+            var text = (try? String(contentsOf: configFile, encoding: .utf8)) ?? ""
+            for setting in stored {
+                text = UserConfig.setting(text, section: setting.section, key: setting.key, to: UserConfig.value(setting, in: defaults))
+            }
+            for item in items {
+                guard case .structureTemplate(let key, let type) = item.change else { continue }
+                text = UserConfig.setting(text, section: UserConfig.structureTemplateTable, key: key, to: .string(type))
+            }
+            try? text.write(to: configFile, atomically: true, encoding: .utf8)
+        }
         func count(_ n: Int, _ word: String) -> String? { n == 0 ? nil : "\(n) \(word)\(n == 1 ? "" : "s")" }
         let done = [count(settings, "setting"), count(folders, "folder"), count(templates, "capture template"), count(bindings, "key binding"),
                     count(blocks, "structure template"), count(views, "agenda view"), count(projects, "publishing project")].compactMap { $0 }

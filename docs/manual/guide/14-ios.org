@@ -338,6 +338,14 @@ Edit config.toml opens the folder's =config.toml= as plain text, with smart quot
 
 Stop Using This Folder returns every setting to its default.
 
+Import from Emacs reads an Emacs or Doom configuration folder, such as a synced =~/.config/doom= or =~/.emacs.d=, as the Mac's import does (see [[file:13-configuration.org][Configuration]]):
+
+1. Tap Import from Emacs, then Choose Folder…, and choose the folder holding =init.el=, =config.el= or =config.org=.
+2. The screen lists the settings, capture templates, key bindings, structure templates and agenda views it found, each with the line it came from, all selected. Clear what you don't want.
+3. Tap Import. The screen then summarizes what was imported and any problems.
+
+With a configuration folder, settings and structure templates are written to its =config.toml=, and capture templates, key bindings and agenda views to its =capture.toml=, =keymap.toml= and =views.toml=, so the Mac reads them too. Without one, settings are kept on the device. Folders from =org-agenda-files= name the Mac's paths and aren't offered.
+
 The Agenda, TODO Dependencies and Calendar sections are the only places the app changes a setting itself:
 
 - Show days without entries :: turns =org-agenda-show-all-dates= on or off.
@@ -383,7 +391,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 - Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond orgstar's interpreter, and tables that need Emacs.
 - ODT, LaTeX, ASCII and LaTeX-made PDF export, and publishing.
 - Idle detection while a clock runs.
-- Import from Emacs.
+- Import from Emacs of agenda folders.
 - The Columns inspector, and the buffer list and tab bar. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).
 - The global capture hotkey and the Settings window.
 - Explicit saving.

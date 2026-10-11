@@ -183,6 +183,57 @@ struct EmacsImportTests {
         #expect(s["org-icalendar-combined-agenda-file"] == .string("~/cal/org.ics"))
     }
 
+    @Test func readsLiterateConfig() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try "(doom! :lang org)".write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        try #"""
+            #+title: Config
+            * Org
+            #+begin_src emacs-lisp
+            (setq org-tags-column 0)
+            #+end_src
+            #+begin_src emacs-lisp :tangle no
+            (setq org-log-done 'note)
+            #+end_src
+            * COMMENT Old
+            #+begin_src emacs-lisp
+            (setq org-startup-folded t)
+            #+end_src
+            """#.write(to: folder.appendingPathComponent("config.org"), atomically: true, encoding: .utf8)
+        #expect(EmacsImport.files(in: folder).map(\.lastPathComponent) == ["init.el", "config.org"])
+        let result = EmacsImport.scan(EmacsImport.files(in: folder), doomDefaults: [])
+        #expect(result.problems.isEmpty, "\(result.problems)")
+        #expect(result.isDoom)
+        let s = settings(result)
+        #expect(s["org-tags-column"] == .integer(0))
+        #expect(s["org-log-done"] == nil && s["org-startup-folded"] == nil)
+        #expect(result.items.first { $0.name == "org-tags-column" }?.source == "config.org:4")
+        // A config.el tangled from it is read instead.
+        try "(setq org-tags-column 4)".write(to: folder.appendingPathComponent("config.el"), atomically: true, encoding: .utf8)
+        #expect(EmacsImport.files(in: folder).map(\.lastPathComponent) == ["init.el", "config.el"])
+    }
+
+    @MainActor
+    @Test func writesSettingsIntoConfigFile() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-out-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "(setq org-tags-column 0 org-log-done 'time)\n(add-to-list 'org-structure-template-alist '(\"el\" . \"src emacs-lisp\"))"
+            .write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let result = EmacsImport.scan(EmacsImport.files(in: folder))
+        let name = "orgstar-import-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        _ = await EmacsImport.apply(result.items, defaults: defaults, workspace: nil, directory: folder, writeConfig: true)
+        let config = try String(contentsOf: folder.appendingPathComponent("config.toml"), encoding: .utf8)
+        let values = UserConfig.values(in: config)
+        #expect(values["org-tags-column"] == .integer(0), "\(config)")
+        #expect(values["org-log-done"] == .string("time"), "\(config)")
+        #expect(values["org-structure-template-alist.el"] == .string("src emacs-lisp"), "\(config)")
+    }
+
     @Test func readsDailies() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

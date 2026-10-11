@@ -495,8 +495,8 @@ Import from Emacs reads your Emacs or Doom Emacs configuration and offers to car
 ** Running it
 
 1. Open Settings ▸ General and click Import from Emacs…, or run Import from Emacs… from the command palette (=⇧⌘P=).
-2. orgstar looks for a configuration in these places, in order, and reads the first it finds: =$DOOMDIR=, =~/.config/doom=, =~/.doom.d=, =~/.config/emacs=, =~/.emacs.d=, =~/.emacs=. A folder counts when it holds =init.el=, =config.el= or =custom.el=. Doom's own installation folder (one with =lisp/doom.el=) is skipped.
-3. To read another configuration, click Choose… and pick a file or a folder. For a folder, orgstar reads =init.el=, =config.el= and =custom.el= in it.
+2. orgstar looks for a configuration in these places, in order, and reads the first it finds: =$DOOMDIR=, =~/.config/doom=, =~/.doom.d=, =~/.config/emacs=, =~/.emacs.d=, =~/.emacs=. A folder counts when it holds =init.el=, =config.el=, =config.org= or =custom.el=. Doom's own installation folder (one with =lisp/doom.el=) is skipped.
+3. To read another configuration, click Choose… and pick a file or a folder. For a folder, orgstar reads =init.el=, =config.el= (or =config.org= when there is no =config.el=) and =custom.el= in it.
 4. The sheet lists what it found under Settings, Folders, Capture templates, Key bindings, Structure templates and Agenda views, each with the line it came from (=config.el:27=, or =Doom default=). Everything is selected; clear what you don't want.
 5. Click Import. The sheet then summarizes what was imported and any problems.
 
@@ -510,7 +510,9 @@ What Import does with each kind of item:
 
 The Not imported section lists what orgstar read but can't use, with the reason: settings it has no equivalent for, values it can't work out without running Emacs, bindings to code rather than a command, and files it couldn't read. The footer counts variables that aren't about org, which are left alone.
 
-A literate configuration (=config.org=) isn't read. Point Choose… at the =config.el= it tangles to.
+A literate configuration (=config.org=) is read as =org-babel-load-file= and Doom tangle it: its =emacs-lisp= and =elisp= blocks, except blocks whose =:tangle= is =no= (set on the block, in a =#+HEADER:= line, in a =header-args= property or in =#+PROPERTY:=) and blocks under a COMMENT or =:ARCHIVE:= heading. Items show the line of =config.org= they came from. When the folder also has a =config.el=, it is read instead, as the file =config.org= tangles to.
+
+On iOS, Settings ▸ Import from Emacs reads a configuration folder you choose; see [[file:14-ios.org][iOS]].
 
 ** Doom Emacs
 

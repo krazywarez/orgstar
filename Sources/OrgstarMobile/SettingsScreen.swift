@@ -28,6 +28,9 @@ struct SettingsScreen: View {
                 Button(model.configFolder == nil ? "Choose Folder…" : "Choose Another Folder…") { choosing = true }
                 if model.configFolder != nil {
                     NavigationLink("Edit config.toml") { ConfigFileEditor(model: model) }
+                }
+                NavigationLink("Import from Emacs") { EmacsImportScreen(model: model) }
+                if model.configFolder != nil {
                     Button("Stop Using This Folder", role: .destructive) { model.setConfigFolder(nil) }
                 }
                 ForEach(model.configProblems, id: \.self) { Text($0).foregroundStyle(.red) }
