@@ -713,7 +713,7 @@ See [[file:07-agenda.org][Agenda]] for what these do. In the Capture window, typ
 
 * iOS and iPadOS
 
-With a hardware keyboard, the iOS app runs the Emacs preset's bindings, whatever preset the Mac uses. It does not read =keymap.toml= and has no Vim editing.
+With a hardware keyboard, the iOS app runs the preset =keymap= names in the folder's =config.toml=, with the folder's =keymap.toml= on it, as the Mac does. With =doom=, Vim keys work as on the Mac: normal, insert, visual and replace states, operators, motions, text objects, counts, registers, =.=, macros, marks, =/=, =?= and the ex commands =:w=, =:N= and =:s=, with a block cursor outside insert state. Typing on the on-screen keyboard in normal state goes in as insert state. Block selections show as one selection, and the clipboard is read only when =p= or =P= pastes, so iOS doesn't ask for it on every key.
 
 - Option acts as Meta when the key starts a binding (=M-RET=, =M-<left>=); otherwise Option types characters as usual.
 - Keys with =⌘= are left to iOS.

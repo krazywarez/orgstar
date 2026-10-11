@@ -45,6 +45,10 @@ final class MobileModel {
     }
     /// Bumped when settings apply, so views that read them update.
     private(set) var settingsVersion = 0
+    /// The `keymap` preset with the folder's `keymap.toml` on it, for a hardware keyboard, and
+    /// whether it is Doom's modal one.
+    private(set) var keymap = KeymapPreset.emacs.keymap
+    private(set) var modalKeys = false
     /// The theme from `config.toml` and its theme file, with the type settings.
     private(set) var theme = ThemeSpec.default
     /// `show-markup`, toggled in the editor; the folder's value applies when it changes.
@@ -128,6 +132,11 @@ final class MobileModel {
             configShowMarkup = markup
             showMarkup = markup
         }
+        let preset = KeymapPreset(rawValue: UserDefaults.standard.string(forKey: "keymap") ?? "") ?? .emacs
+        let loaded = KeymapLoader.load(preset, userFile: UserConfig.file("keymap.toml"))
+        keymap = loaded.keymap
+        modalKeys = preset.isModal
+        configProblems += loaded.problems.map { "keymap.toml: " + $0 }
         let settings = OrgPreferences.orgSettings()
         session.defaults = settings
         session.options = OrgPreferences.options()

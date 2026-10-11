@@ -41,7 +41,31 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var showMarkup = true {
         didSet { if showMarkup != oldValue { restyleAll() } }
     }
-    var keymap = KeymapPreset.emacs.keymap
+    var keymap = KeymapPreset.emacs.keymap {
+        didSet { dispatcher = KeyDispatcher(keymap: keymap) }
+    }
+    /// The Doom preset's modal editing, and its state: the engine, the caret in visual
+    /// states, marks, the jump list, what insert state began with, and macros.
+    var modal = false {
+        didSet {
+            if modal != oldValue { vim = Vim() }
+            updateCursor()
+        }
+    }
+    var vim = Vim()
+    var visualCaret: Int?
+    var vimMarks: [Character: Int] = [:]
+    var jumpList: [Int] = []
+    var jumpIndex = 0
+    var insertSnapshot: String?
+    var recordingRegister: Character?
+    var recordedKeys: [KeyChord] = []
+    var replayingMacro = 0
+    static var vimRegisters: [Character: (text: String, linewise: Bool)] = [:]
+    static var vimClipboardRecord: (text: String, linewise: Bool)?
+    static var macros: [Character: [KeyChord]] = [:]
+    /// What `:`, `/` and `?` read, oldest first, for `q:`.
+    static var promptHistory: [String: [String]] = [:]
     var onChange: (() -> Void)?
     var onMessage: ((String) -> Void)?
     var onPrompt: ((Prompt, @escaping (String?) -> Void) -> Void)?
@@ -280,7 +304,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     // MARK: - Hardware keyboard
 
-    private lazy var dispatcher = KeyDispatcher(keymap: keymap)
+    lazy var dispatcher = KeyDispatcher(keymap: keymap)
 
     private static let named: [UIKeyboardHIDUsage: String] = [
         .keyboardTab: "TAB", .keyboardReturnOrEnter: "RET", .keypadEnter: "RET", .keyboardSpacebar: "SPC",
@@ -310,6 +334,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// and editing keys (C-a, C-e, C-k...) are the text system's.
     func handleKey(_ key: UIKey) -> Bool {
         guard let chord = Self.chord(key), !chord.modifiers.contains(.command) else { return false }
+        if modal { return handleModal(chord) }
         // Option alone types characters unless it begins a binding.
         if chord.modifiers == [.meta], dispatcher.pending.isEmpty,
            keymap.candidates(for: [chord]).isEmpty, !keymap.isPrefix([chord]) { return false }
@@ -430,6 +455,7 @@ extension MobileEditor: UITextViewDelegate {
 
     /// `electric-pair-mode` for typed brackets and quotes, DEL and RET, from either keyboard.
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        if !applyingEdits { typedOutsideInsert() }
         guard options.electricPair, !applyingEdits, textView.markedTextRange == nil else { return true }
         let selected = textView.selectedRange
         let key: String

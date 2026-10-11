@@ -131,6 +131,8 @@ struct EditorScreen: View {
         .onChange(of: model.settingsVersion) {
             editor?.options = session.options
             editor?.themeSpec = model.theme
+            editor?.keymap = model.keymap
+            editor?.modal = model.modalKeys
         }
         .onChange(of: model.showMarkup) { editor?.showMarkup = model.showMarkup }
         .onDisappear {
@@ -197,8 +199,12 @@ struct EditorScreen: View {
             editor.onBabel = { job in run(job) }
             editor.onRefreshSetup = { session.refreshSetup() }
             editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
+            editor.keymap = model.keymap
+            editor.modal = model.modalKeys
             editor.onAppCommand = { id in
-                if id == "app.refile" {
+                if id == "app.save" {
+                    _ = session.save(path)
+                } else if id == "app.refile" {
                     sheet = .refile
                 } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()

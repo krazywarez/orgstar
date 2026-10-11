@@ -134,7 +134,7 @@ Cancel answers nothing, as =C-g= does.
 
 ** Hardware keyboard
 
-With a hardware keyboard, the editor uses the Emacs keymap, whatever =keymap= is set to on the Mac. =keymap.toml= isn't read on iOS.
+With a hardware keyboard, the editor uses the preset =keymap= sets in the folder's =config.toml= (=emacs=, =mac= or =doom=), with the folder's =keymap.toml= on it. The Doom preset brings Vim keys; see [[file:03-keys.org][Keys]]. Bindings with =⌘= stay with iOS, so the Mac preset adds little.
 
 - Option works as Meta when it begins a binding (=M-RET=, =M-<left>=). Otherwise Option types characters as usual.
 - Command shortcuts are the system's.
@@ -357,7 +357,7 @@ These settings from =config.toml= apply on iOS:
 - =reminders=, =appt-message-warning-time=
 - =org-clock-history-length=, =org-clock-into-drawer=, =org-clock-rounding-minutes=, =org-clock-out-remove-zero-time-clocks=, =org-clock-in-switch-to-state=, =org-clock-out-when-done=
 
-=capture.toml= and =views.toml= in the folder apply too. Other settings, including =keymap=, =save= and =org-clock-idle-time=, don't apply on iOS. See [[file:13-configuration.org][Configuration]].
+=capture.toml= and =views.toml= in the folder apply too. =keymap= and =keymap.toml= apply with a hardware keyboard. Other settings, including =save= and =org-clock-idle-time=, don't apply on iOS. See [[file:13-configuration.org][Configuration]].
 
 * Spotlight and Quick Look
 
@@ -369,7 +369,6 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 
 - Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond orgstar's interpreter, and tables that need Emacs.
 - Word, ODT, LaTeX, ASCII and LaTeX-made PDF export.
-- The Mac and Doom keymaps, Vim keys, and =keymap.toml=.
 - Idle detection while a clock runs.
 - Import from Emacs.
 - The board, column view, the backlinks pane, and the buffer list and tab bar.
