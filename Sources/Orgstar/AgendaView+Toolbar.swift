@@ -118,7 +118,7 @@ extension AgendaView {
             agenda.start = anchor
         case .week:
             agenda.mode = .agenda(span: 7, startOffset: nil)
-            agenda.start = anchor - (Days.weekday(anchor) + 6) % 7
+            agenda.start = Days.weekStart(anchor, on: agenda.startOnWeekday)
         case .month:
             let d = Days.date(anchor)
             let first = Days.absolute(year: d.year, month: d.month, day: 1)

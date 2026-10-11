@@ -350,7 +350,7 @@ These settings from =config.toml= apply on iOS:
 - =org-enforce-todo-dependencies=, =org-enforce-todo-checkbox-dependencies=, =org-agenda-dim-blocked-tasks=
 - =org-use-speed-commands=, with a hardware keyboard
 - =electric-pair-mode=, =spell-check=
-- =org-agenda-span=, =org-agenda-start-day=, =org-deadline-warning-days=, =agenda-include-subfolders=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=, =org-agenda-search-view-always-boolean=, =org-agenda-search-view-force-full-words=
+- =org-agenda-span=, =org-agenda-start-day=, =org-agenda-start-on-weekday=, =org-deadline-warning-days=, =agenda-include-subfolders=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=, =org-agenda-search-view-always-boolean=, =org-agenda-search-view-force-full-words=
 - =calendar-events=, =calendar-event-calendars=
 - =reminders=, =appt-message-warning-time=
 - =org-clock-history-length=

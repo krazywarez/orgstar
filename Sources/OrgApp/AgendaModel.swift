@@ -29,6 +29,9 @@ public final class AgendaModel {
     public var span = 10
     /// Where the view starts relative to today, as `org-agenda-start-day` (`"-3d"` is -3).
     public var startOffset = 0
+    /// `org-agenda-start-on-weekday`: 7- and 14-day spans start on this weekday (0 is Sunday);
+    /// nil starts them on the first day.
+    public var startOnWeekday: Int? = 1
     /// Files below the top level of each folder are agenda files too.
     public var includeSubfolders = false
     public var options = AgendaOptions()
@@ -70,13 +73,7 @@ public final class AgendaModel {
         isComputing = true
         let today = Days.absolute(now, calendar: calendar)
         let clock = calendar.dateComponents([.hour, .minute], from: now)
-        var span = self.span
-        var startOffset = self.startOffset
-        if case .agenda(let viewSpan, let viewStart) = mode {
-            span = viewSpan ?? span
-            startOffset = viewStart ?? startOffset
-        }
-        let first = start ?? today + startOffset
+        let (first, span) = shown(today: today)
         let options = self.options
         let mode = self.mode
         let provider = calendarEvents
@@ -218,15 +215,24 @@ public final class AgendaModel {
 
     public func showToday() { start = nil }
 
-    /// Moves the view by a whole span, forward or back.
-    public func shift(forward: Bool, now: Date = Date(), calendar: Calendar = .current) {
+    /// The first day the agenda shows and how many, as `org-agenda-list` works them out: the
+    /// view's span and start, or the settings', with 7- and 14-day spans moved back to
+    /// `startOnWeekday`.
+    public func shown(today: Int) -> (first: Int, span: Int) {
         var span = self.span
         var startOffset = self.startOffset
         if case .agenda(let viewSpan, let viewStart) = mode {
             span = viewSpan ?? span
             startOffset = viewStart ?? startOffset
         }
-        let current = start ?? Days.absolute(now, calendar: calendar) + startOffset
+        var first = start ?? today + startOffset
+        if span == 7 || span == 14 { first = Days.weekStart(first, on: startOnWeekday) }
+        return (first, span)
+    }
+
+    /// Moves the view by a whole span, forward or back.
+    public func shift(forward: Bool, now: Date = Date(), calendar: Calendar = .current) {
+        let (current, span) = shown(today: Days.absolute(now, calendar: calendar))
         start = current + (forward ? span : -span)
     }
 }

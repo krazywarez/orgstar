@@ -12,6 +12,7 @@ struct OrgPreferencesTests {
         #expect(OrgPreferences.options(defaults).logDone == nil && OrgPreferences.options(defaults).tagsColumn == -77)
         #expect(OrgPreferences.agendaSpan(defaults) == 10 && OrgPreferences.agendaStartOffset(defaults) == 0)
         #expect(OrgPreferences.orgSettings(defaults).deadlineWarningDays == 14)
+        #expect(OrgPreferences.agendaStartOnWeekday(defaults) == 1)
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 14)
         #expect(OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 12)
         let fallbacks = OrgPreferences.options(defaults)
@@ -26,6 +27,7 @@ struct OrgPreferencesTests {
             org-agenda-start-day = "-1d"
             appt-message-warning-time = 30
             org-deadline-warning-days = 5
+            org-agenda-start-on-weekday = "nil"
             org-M-RET-may-split-line = true
             org-hide-emphasis-markers = false
             org-pretty-entities = false
@@ -39,8 +41,12 @@ struct OrgPreferencesTests {
         #expect(options.metaReturnMaySplitLine && !options.hideEmphasisMarkers && !options.prettyEntities)
         #expect(OrgPreferences.agendaSpan(defaults) == 7 && OrgPreferences.agendaStartOffset(defaults) == -1)
         #expect(OrgPreferences.orgSettings(defaults).deadlineWarningDays == 5)
+        #expect(OrgPreferences.agendaStartOnWeekday(defaults) == nil)
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 5)
         #expect(!OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 30)
+        #expect(UserConfig.apply("org-agenda-start-on-weekday = \"0\"", to: defaults).isEmpty)
+        #expect(OrgPreferences.agendaStartOnWeekday(defaults) == 0)
+        #expect(!UserConfig.apply("org-agenda-start-on-weekday = \"7\"", to: defaults).isEmpty)
     }
 
     @Test func themeTypeAndShowMarkup() throws {

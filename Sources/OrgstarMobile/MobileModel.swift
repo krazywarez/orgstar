@@ -128,6 +128,7 @@ final class MobileModel {
         if let agenda {
             agenda.span = OrgPreferences.agendaSpan()
             agenda.startOffset = OrgPreferences.agendaStartOffset()
+            agenda.startOnWeekday = OrgPreferences.agendaStartOnWeekday()
             agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
             agenda.options = OrgPreferences.agendaOptions(agenda.options)
             agenda.calendarEvents = OrgPreferences.calendarEvents() ? calendarEvents : nil
@@ -259,6 +260,7 @@ final class MobileModel {
         guard let workspace else { return }
         let days = AgendaModel(workspace: workspace, cache: agenda?.cache ?? AgendaSourceCache())
         days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
+        days.startOnWeekday = nil
         if let agenda {
             days.includeSubfolders = agenda.includeSubfolders
             days.options = agenda.options

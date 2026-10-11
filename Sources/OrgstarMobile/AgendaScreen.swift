@@ -345,15 +345,7 @@ struct AgendaScreen: View, Equatable {
     // MARK: - Span
 
     /// The first day shown, as `Days` numbers it, and how many.
-    private var shown: (first: Int, span: Int) {
-        var span = agenda.span
-        var offset = agenda.startOffset
-        if case .agenda(let viewSpan, let viewStart) = agenda.mode {
-            span = viewSpan ?? span
-            offset = viewStart ?? offset
-        }
-        return (agenda.start ?? agenda.today + offset, span)
-    }
+    private var shown: (first: Int, span: Int) { agenda.shown(today: agenda.today) }
 
     private var firstDay: Int { shown.first }
 
@@ -375,7 +367,7 @@ struct AgendaScreen: View, Equatable {
     }
 
     private func weekStart(_ day: Int) -> Int {
-        day - (Days.weekday(day) + 6) % 7
+        Days.weekStart(day, on: agenda.startOnWeekday)
     }
 
     /// Shows `range` around `day`; nil returns to the configured span.

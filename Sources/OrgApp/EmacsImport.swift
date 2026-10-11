@@ -515,6 +515,8 @@ public struct EmacsImport: Sendable {
             let days: Int? = value.integer ?? ["day": 1, "week": 7, "fortnight": 14, "month": 30, "year": 365][value.symbol ?? ""]
             guard let days else { return note("unknown span \(value.description)") }
             add(name, .integer(days))
+        case "org-agenda-start-on-weekday":
+            if value.symbol == "nil" { add(name, .string("nil")) } else if let day = value.integer, (0...6).contains(day) { add(name, .string("\(day)")) } else { note("not nil or a weekday from 0 to 6") }
         case "org-clock-idle-time":
             // nil is never; a number is minutes.
             if value.symbol == "nil" { add(name, .integer(0)) } else if let minutes = value.integer, minutes > 0 { add(name, .integer(minutes)) } else { note("not a number of minutes") }

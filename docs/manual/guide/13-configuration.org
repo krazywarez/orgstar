@@ -155,6 +155,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =tab-bar=                        | View ▸ Show Tab Bar        |
 | =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
 | =ignored-folders=                |                            |
+| =org-agenda-start-on-weekday=    |                            |
 | =org-deadline-warning-days=      |                            |
 | =org-agenda-skip-scheduled-if-done= |                         |
 | =org-agenda-skip-deadline-if-done=  |                         |
@@ -200,6 +201,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =display-line-numbers-type=          | boolean | =true=  | Line numbers in the editor's gutter. orgstar numbers lines absolutely; there is no relative or visual mode.    |
 | =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
 | =org-agenda-start-day=               | string  | ="+0d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
+| =org-agenda-start-on-weekday=        | string  | ="1"=   | The day weeks start on, ="0"= (Sunday) to ="6"= (Saturday), for the week view and spans of 7 or 14 days. ="nil"= starts them on the day the view starts from. Mirrors =org-agenda-start-on-weekday=. |
 | =org-deadline-warning-days=          | integer | =14=    | Days ahead the agenda and the deadline sparse tree warn about a deadline. A =-Nd= cookie in the timestamp overrides it. Mirrors =org-deadline-warning-days=. |
 | =org-agenda-show-all-dates=          | boolean | =false= | Show days without entries in the agenda; today always shows. Emacs's default is =t=. Mirrors =org-agenda-show-all-dates=. |
 | =org-agenda-skip-scheduled-if-done=  | boolean | =false= | Leave a done entry's scheduled date out of the agenda, even on its own day. Mirrors =org-agenda-skip-scheduled-if-done=. |

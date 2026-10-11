@@ -56,7 +56,7 @@ Both mirror the Emacs variables of the same name. The span's default is Doom's (
 
 ** Day, week and month
 
-The Day, Week and Month control in the toolbar, or =v d=, =v w= and =v m=, shows one day, one week or one calendar month, as =org-agenda-day-view=, =org-agenda-week-view= and =org-agenda-month-view= do. =d= and =w= also show a day and a week. The view is the one around the selected line's day, else around today when today is shown, else around the first day shown. Weeks start on Monday; there is no =org-agenda-start-on-weekday= setting.
+The Day, Week and Month control in the toolbar, or =v d=, =v w= and =v m=, shows one day, one week or one calendar month, as =org-agenda-day-view=, =org-agenda-week-view= and =org-agenda-month-view= do. =d= and =w= also show a day and a week. The view is the one around the selected line's day, else around today when today is shown, else around the first day shown. Weeks start on =org-agenda-start-on-weekday= in =config.toml=: Monday (="1"=) by default, ="0"= for Sunday, or ="nil"= to start on the day the view starts from. As in Org, a configured span of 7 or 14 days starts on that weekday too.
 
 To return to the configured span, choose Agenda from the view menu.
 
@@ -563,7 +563,7 @@ The board is not available on iOS.
 The Agenda tab shows the same views from the same files, using the settings in the synced =config.toml= and the views in =views.toml= (see [[file:14-ios.org][iOS]]). Differences from the Mac:
 
 - The Views menu, at the top left, lists the built-in views, your saved views, Tags and Properties…, which asks for a match string, and Search…, which asks for a search string. There is no TODO-only match or search from the menu; use =/!= in the match, =!= at the start of the search string, or a =todo-match= or =todo-search= view.
-- A bar floats at the bottom of the screen with Earlier, Filter, Today, Go to Date, the span and Later. The span menu switches between Day, Week, Month and the configured span (=10 Days= by default); Day, Week and Month are around today when today is shown, else around the first day shown. Weeks start on Monday, as on the Mac. In the TODO list and match views the bar has Filter and Agenda, which returns to the day view. Messages show above the bar; tap one to dismiss it.
+- A bar floats at the bottom of the screen with Earlier, Filter, Today, Go to Date, the span and Later. The span menu switches between Day, Week, Month and the configured span (=10 Days= by default); Day, Week and Month are around today when today is shown, else around the first day shown. Weeks start on =org-agenda-start-on-weekday=, as on the Mac. In the TODO list and match views the bar has Filter and Agenda, which returns to the day view. Messages show above the bar; tap one to dismiss it.
 - The title names the days shown: =Thu 8 Oct=, =Week of 5 Oct=, =October 2026=, or =5 Oct – 14 Oct=.
 - Day headers read =Today · Thu 8 Oct=, =Tomorrow · Fri 9 Oct= or =Mon 12 Oct=, with a + that captures onto that day. Days before today are grey.
 - Pull down to refresh.

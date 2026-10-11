@@ -69,6 +69,7 @@ struct AgendaView: View {
     @FocusState private var focused: Bool
     @AppStorage("agendaSpan") var span = 10
     @AppStorage("agendaStartOffset") var startOffset = 0
+    @AppStorage("agendaStartOnWeekday") private var startOnWeekday = "1"
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
     @AppStorage("agendaShowAllDates") private var showAllDates = false
     @AppStorage("calendarEvents") private var calendarEventsOn = false
@@ -120,6 +121,7 @@ struct AgendaView: View {
         var start: Int?
         var span: Int
         var startOffset: Int
+        var startOnWeekday: String
         var includeSubfolders: Bool
         var prefix: [String]
         var logMode: Bool
@@ -135,7 +137,7 @@ struct AgendaView: View {
     /// they redraw only it.
     private var refreshKey: RefreshKey {
         RefreshKey(
-            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags], logMode: logMode,
+            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags], logMode: logMode,
             calendars: calendarEventsOn ? [calendarNames] : [], files: 0, changed: nil, edits: 0, path: nil, tick: tick
         )
     }
@@ -143,6 +145,7 @@ struct AgendaView: View {
     private func refresh() async {
         agenda.span = span
         agenda.startOffset = startOffset
+        agenda.startOnWeekday = Int(startOnWeekday)
         agenda.includeSubfolders = includeSubfolders
         agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
         agenda.options.logMode = logMode

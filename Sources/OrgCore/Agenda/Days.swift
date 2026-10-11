@@ -36,6 +36,14 @@ public enum Days {
         ((absolute % 7) + 7) % 7
     }
 
+    /// The day on or before `absolute` that falls on `weekday` (0 is Sunday), as
+    /// `org-agenda-start-on-weekday` starts a week; nil keeps `absolute`.
+    public static func weekStart(_ absolute: Int, on weekday: Int?) -> Int {
+        guard let weekday else { return absolute }
+        let d = self.weekday(absolute) - weekday
+        return absolute - (d < 0 ? d + 7 : d)
+    }
+
     /// `org-days-to-iso-week`.
     public static func isoWeek(_ absolute: Int) -> Int {
         let monday = absolute - (weekday(absolute) + 6) % 7

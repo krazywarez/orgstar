@@ -53,6 +53,8 @@ public enum OrgPreferences {
 
     public static func agendaSpan(_ defaults: UserDefaults = .standard) -> Int { integer("agendaSpan", defaults) }
     public static func agendaStartOffset(_ defaults: UserDefaults = .standard) -> Int { integer("agendaStartOffset", defaults) }
+    /// `org-agenda-start-on-weekday`: 0 is Sunday; nil for `nil`.
+    public static func agendaStartOnWeekday(_ defaults: UserDefaults = .standard) -> Int? { Int(string("agendaStartOnWeekday", defaults)) }
     public static func agendaSubfolders(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSubfolders", defaults) }
     /// `org-agenda-show-all-dates`: days without entries show.
     public static func agendaShowAllDates(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaShowAllDates", defaults) }

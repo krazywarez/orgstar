@@ -584,6 +584,28 @@ struct AgendaModelTests {
         agenda.shift(forward: true, now: now, calendar: utc)
         await agenda.refresh(open: [:], now: now, calendar: utc)
         #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 12))
+
+        // org-agenda-start-on-weekday: a week starts on Monday by default, from a Wednesday.
+        let wednesday = try #require(utc.date(from: DateComponents(year: 2026, month: 10, day: 7, hour: 9)))
+        agenda.showToday()
+        agenda.span = 7
+        agenda.startOffset = 0
+        await agenda.refresh(open: [:], now: wednesday, calendar: utc)
+        #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 5))
+        agenda.startOnWeekday = 0
+        await agenda.refresh(open: [:], now: wednesday, calendar: utc)
+        #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 4))
+        agenda.shift(forward: true, now: wednesday, calendar: utc)
+        await agenda.refresh(open: [:], now: wednesday, calendar: utc)
+        #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 11))
+        agenda.showToday()
+        agenda.startOnWeekday = nil
+        await agenda.refresh(open: [:], now: wednesday, calendar: utc)
+        #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 7))
+        agenda.startOnWeekday = 1
+        agenda.span = 10
+        await agenda.refresh(open: [:], now: wednesday, calendar: utc)
+        #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 7))
     }
 }
 
