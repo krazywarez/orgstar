@@ -71,6 +71,37 @@ public enum DiarySexp {
         return 7 * (n + 1) + onOrBefore(Days.absolute(year: year, month: month, day: try day ?? lastDay(month: month, year: year)))
     }
 
+    /// `holiday-easter-etc-abs`.
+    static func easter(_ year: Int) -> Int {
+        let century = year / 100 + 1
+        let shiftedEpact = (14 + 11 * (year % 19) - (3 * century) / 4 + (5 + 8 * century) / 25 + 30 * century) % 30
+        let adjustedEpact = shiftedEpact == 0 || (shiftedEpact == 1 && 10 < year % 19) ? shiftedEpact + 1 : shiftedEpact
+        let paschalMoon = Days.absolute(year: year, month: 4, day: 19) - adjustedEpact
+        let date = paschalMoon + 7
+        return date - date % 7
+    }
+
+    /// `calendar-check-holidays` with the holidays of Emacs's default `calendar-holidays` that
+    /// follow fixed rules: `holiday-general-holidays` (the United States') and
+    /// `holiday-christian-holidays` without `calendar-christian-all-holidays-flag`.
+    static func holidays(_ day: Int) -> [String] {
+        let year = Days.date(day).year
+        func fixed(_ month: Int, _ d: Int) -> Int { Days.absolute(year: year, month: month, day: d) }
+        func float(_ month: Int, _ dayname: Int, _ n: Int) -> Int { (try? nthNamedAbsday(n, dayname, month, year, nil)) ?? 0 }
+        let easter = easter(year)
+        let list: [(Int, String)] = [
+            (fixed(1, 1), "New Year's Day"), (float(1, 1, 3), "Martin Luther King Day"), (fixed(2, 2), "Groundhog Day"),
+            (fixed(2, 14), "Valentine's Day"), (float(2, 1, 3), "President's Day"), (fixed(3, 17), "St. Patrick's Day"),
+            (fixed(4, 1), "April Fools' Day"), (float(5, 0, 2), "Mother's Day"), (float(5, 1, -1), "Memorial Day"),
+            (fixed(6, 14), "Flag Day"), (float(6, 0, 3), "Father's Day"), (fixed(7, 4), "Independence Day"),
+            (float(9, 1, 1), "Labor Day"), (float(10, 1, 2), "Columbus Day"), (fixed(10, 31), "Halloween"),
+            (fixed(11, 11), "Veteran's Day"), (float(11, 4, 4), "Thanksgiving"),
+            (easter - 46, "Ash Wednesday"), (easter - 2, "Good Friday"), (easter, "Easter Sunday"), (fixed(12, 25), "Christmas"),
+        ]
+        // `calendar-holiday-list` puts each form's holidays before the earlier ones'.
+        return list.filter { $0.0 == day }.map(\.1).reversed()
+    }
+
     /// `diary-ordinal-suffix`.
     static func ordinalSuffix(_ n: Int) throws -> String {
         if [11, 12, 13].contains(n % 100) || 3 < n % 10 { return "th" }
@@ -268,6 +299,14 @@ public enum DiarySexp {
         lisp.define("org-cyclic") { lisp, args in try iso(lisp) { try lisp.callNamed("diary-cyclic", args) } }
         lisp.define("org-block") { lisp, args in try iso(lisp) { try lisp.callNamed("diary-block", args) } }
         lisp.define("org-date") { lisp, args in try iso(lisp) { try lisp.callNamed("diary-date", args) } }
+        lisp.define("calendar-check-holidays") { _, args in
+            try arity(args, 1...1, "calendar-check-holidays")
+            return Elisp.list(holidays(try absolute(args[0])).map(Sexp.string))
+        }
+        lisp.define("org-calendar-holiday") { _, _ in
+            let names = holidays(try absolute(try date()))
+            return names.isEmpty ? .nil : .string(names.joined(separator: "; "))
+        }
         lisp.define("org-class") { _, args in
             try arity(args, 7...Int.max, "org-class")
             let ints = try args.prefix(7).map(bounded)
@@ -275,10 +314,11 @@ public enum DiarySexp {
             let last = Days.absolute(year: ints[3], month: ints[4], day: ints[5])
             let d = try absolute(try date())
             let skip = Array(args.dropFirst(7))
-            // Holiday names and `holidays' need the calendar's holiday lists.
-            guard skip.allSatisfy({ $0.integer != nil }) else { throw Elisp.Unsupported(what: "org-class holidays") }
             let week = Days.isoWeek(d)
             guard first <= d, d <= last, Days.weekday(d) == ints[6], !skip.contains(.integer(week)) else { return .nil }
+            // `holidays' skips every holiday, a holiday's name that one.
+            let names = skip.isEmpty ? [] : holidays(d)
+            if !names.isEmpty, skip.contains(.symbol("holidays")) || names.contains(where: { skip.contains(.string($0)) }) { return .nil }
             return try entry()
         }
     }

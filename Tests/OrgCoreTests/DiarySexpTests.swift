@@ -72,3 +72,42 @@ struct DiarySexpTests {
         try AgendaOracle.compare(files: files, start: leap, span: 4, today: leap)
     }
 }
+
+/// `calendar-check-holidays` with the lists orgstar has: Emacs's general and Christian holidays.
+struct DiaryHolidayTests {
+    @Test(.enabled(if: DiarySexpTests.oracle))
+    func checksHolidaysLikeEmacs() throws {
+        let first = Days.absolute(year: 2024, month: 1, day: 1)
+        let last = Days.absolute(year: 2030, month: 12, day: 31)
+        let form = """
+            (progn
+              (require 'holidays)
+              (let ((calendar-christian-all-holidays-flag nil)
+                    (calendar-holidays (append holiday-general-holidays holiday-christian-holidays))
+                    out)
+                (dotimes (i \(last - first + 1))
+                  (let ((names (calendar-check-holidays (calendar-gregorian-from-absolute (+ \(first) i)))))
+                    (when names (push (format "%d %s" (+ \(first) i) (mapconcat #'identity names "|")) out))))
+                (nreverse out)))
+            """
+        let emacs = try EmacsOracle.evaluate("", form)
+        let ours = (first...last).compactMap { day -> String? in
+            let names = DiarySexp.holidays(day)
+            return names.isEmpty ? nil : "\(day) " + names.joined(separator: "|")
+        }
+        #expect(ours == emacs, "\(Array(Set(ours).symmetricDifference(Set(emacs))).sorted().prefix(10))")
+    }
+
+    @Test func holidaySexps() throws {
+        let thanksgiving = Days.absolute(year: 2026, month: 11, day: 26)
+        func read(_ text: String) throws -> Sexp { try LispReader.read(text)[0].sexp }
+        #expect(DiarySexp.entries(try read("(org-calendar-holiday)"), entry: "", day: thanksgiving) == ["Thanksgiving"])
+        #expect(DiarySexp.entries(try read("(org-calendar-holiday)"), entry: "", day: thanksgiving + 1) == nil)
+        // Thursdays in November, skipping holidays, then only Thanksgiving by name.
+        let thursdays = "(org-class 2026 11 1 2026 11 30 4"
+        #expect(DiarySexp.entries(try read(thursdays + " 'holidays)"), entry: "Class", day: thanksgiving) == nil)
+        #expect(DiarySexp.entries(try read(thursdays + " \"Thanksgiving\")"), entry: "Class", day: thanksgiving) == nil)
+        #expect(DiarySexp.entries(try read(thursdays + " \"Christmas\")"), entry: "Class", day: thanksgiving) == ["Class"])
+        #expect(DiarySexp.entries(try read(thursdays + " 'holidays)"), entry: "Class", day: thanksgiving - 7) == ["Class"])
+    }
+}
