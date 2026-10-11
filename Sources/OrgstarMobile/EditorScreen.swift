@@ -62,6 +62,7 @@ struct EditorScreen: View {
         case columns(ColumnView.View)
         case plot(TablePlot.Plot)
         case crypt(CryptRequest)
+        case backlinks
 
         var id: String {
             switch self {
@@ -74,6 +75,7 @@ struct EditorScreen: View {
             case .columns: "columns"
             case .plot: "plot"
             case .crypt(let request): request.id.uuidString
+            case .backlinks: "backlinks"
             }
         }
     }
@@ -111,6 +113,18 @@ struct EditorScreen: View {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                     RecentClockMenu(clock: clock) { editor?.run($0) }
+                    Button("Backlinks", systemImage: "arrow.uturn.backward.circle") { sheet = .backlinks }
+                    Menu("Daily Notes", systemImage: "calendar") {
+                        Button("Today", systemImage: "calendar") { roamActions.run("app.dailies.today") }
+                        Button("Yesterday", systemImage: "chevron.backward") { roamActions.run("app.dailies.yesterday") }
+                        Button("Tomorrow", systemImage: "chevron.forward") { roamActions.run("app.dailies.tomorrow") }
+                        Button("Date…", systemImage: "calendar.badge.clock") { roamActions.run("app.dailies.date") }
+                        Button("Capture to Today", systemImage: "square.and.pencil") { roamActions.run("app.dailies.capture-today") }
+                        Button("Previous Daily Note", systemImage: "arrow.left") { roamActions.run("app.dailies.previous") }
+                        Button("Next Daily Note", systemImage: "arrow.right") { roamActions.run("app.dailies.next") }
+                    }
+                    Button("Find Node…", systemImage: "point.3.connected.trianglepath.dotted") { roamActions.run("app.node.find") }
+                    Button("Insert Node Link…", systemImage: "link") { roamActions.run("app.node.insert") }
                     Menu("Attachments", systemImage: "paperclip") {
                         Button("Attach File…", systemImage: "doc.badge.plus") { attaching = .cp }
                         Button("Attach Photo or Video…", systemImage: "photo.badge.plus") { attachingPhotos = true }
@@ -203,6 +217,10 @@ struct EditorScreen: View {
                 PlotScreen(plot: plot)
             case .crypt(let request):
                 CryptScreen(request: request, session: session, editor: editor) { message = $0 }
+            case .backlinks:
+                BacklinksScreen(workspace: workspace, session: session, path: path, caret: editor?.editContext().caret ?? 0) { location in
+                    if location.path == path { editor?.reveal(location.start) } else { model.openRequest = .heading(location) }
+                }
             }
         }
         .fileImporter(isPresented: $importingTable, allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]) { result in
@@ -325,6 +343,10 @@ struct EditorScreen: View {
                     crypt(id)
                 } else if id.hasPrefix("app.attach.") {
                     attachActions.run(id)
+                } else if id.hasPrefix("app.dailies.") || id.hasPrefix("app.node.") {
+                    roamActions.run(id)
+                } else if id == "app.backlinks" {
+                    sheet = .backlinks
                 } else if id == "app.toggle-markup" {
                     model.showMarkup.toggle()
                 } else if MobileEditor.linkCommands.contains(id) {
@@ -353,6 +375,27 @@ extension EditorScreen {
         case .openExternally(let url): if url.isFileURL { previewed = url } else { openURL(url) }
         case .message(let text): message = text
         }
+    }
+
+    /// org-roam's daily notes and nodes.
+    private var roamActions: RoamActions {
+        RoamActions(
+            session: session, roots: { workspace.rootPaths },
+            nodes: { workspace.nodes(overlay: workspace.overlay(session.openDocuments)) },
+            show: { message = $0 }, ask: { prompt = PromptRequest(prompt: $0, reply: $1) },
+            open: { file, offset in
+                if file == path { editor?.reveal(offset) } else { model.openRequest = .offset(file, offset) }
+            },
+            insertLink: { link, title in
+                guard let editor else { return }
+                let context = editor.editContext()
+                let range = context.selection.first ?? context.caret..<context.caret
+                let selected = (context.text as NSString).substring(with: NSRange(range))
+                let text = Links.makeString(link, selected.isEmpty ? title : selected)
+                let end = range.lowerBound + (text as NSString).length
+                _ = editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: [TextEdit(range: range, replacement: text)], selection: [end..<end])))
+            },
+            refresh: { Task { await workspace.refresh() } })
     }
 
     /// org-attach's commands for the entry at the caret.
@@ -747,6 +790,12 @@ struct CommandPalette: View {
         ("app.table-import", "Import Table from File…"), ("app.table-export", "Export Table to File…"), ("app.plot", "Plot Table"),
         ("app.crypt.encrypt-entry", "Encrypt Entry…"), ("app.crypt.open-entry", "Decrypt Entry…"), ("app.crypt.decrypt-entry", "Decrypt Entry in File…"),
         ("app.crypt.encrypt-entries", "Encrypt Tagged Entries…"), ("app.crypt.forget-passphrase", "Forget Encryption Passphrase"),
+        ("app.backlinks", "Show Backlinks"), ("app.node.find", "Find Node…"), ("app.node.insert", "Insert Node Link…"),
+        ("app.dailies.today", "Go to Today's Daily Note"), ("app.dailies.yesterday", "Go to Yesterday's Daily Note"),
+        ("app.dailies.tomorrow", "Go to Tomorrow's Daily Note"), ("app.dailies.date", "Go to Daily Note for Date…"),
+        ("app.dailies.capture-today", "Capture to Today's Daily Note"), ("app.dailies.capture-yesterday", "Capture to Yesterday's Daily Note"),
+        ("app.dailies.capture-tomorrow", "Capture to Tomorrow's Daily Note"), ("app.dailies.capture-date", "Capture to Daily Note for Date…"),
+        ("app.dailies.next", "Next Daily Note"), ("app.dailies.previous", "Previous Daily Note"),
         ("app.attach.attach", "Attach File…"), ("app.attach.url", "Attach File from URL…"), ("app.attach.new", "New Attachment…"),
         ("app.attach.open", "Open Attachment…"), ("app.attach.reveal", "Show Attachment Folder"), ("app.attach.delete", "Delete Attachment…"),
         ("app.attach.delete-all", "Delete All Attachments…"), ("app.attach.sync", "Sync Attachments"),

@@ -15,6 +15,7 @@ struct FoldersScreen: View {
     @State private var creating: NewItem?
     /// The added folder whose deletion from disk is being confirmed.
     @State private var deletingRoot: String?
+    @Environment(MobileModel.self) private var model
 
     var body: some View {
         List {
@@ -71,6 +72,13 @@ struct FoldersScreen: View {
             }
             if !workspace.rootPaths.isEmpty {
                 ToolbarItem(placement: .primaryAction) {
+                    Menu("Daily Notes", systemImage: "calendar") {
+                        Button("Today", systemImage: "calendar") { dailies("app.dailies.today") }
+                        Button("Yesterday", systemImage: "chevron.backward") { dailies("app.dailies.yesterday") }
+                        Button("Tomorrow", systemImage: "chevron.forward") { dailies("app.dailies.tomorrow") }
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Menu("New", systemImage: "plus") {
                         // One added folder takes them directly; several each get a submenu.
                         if workspace.rootPaths.count == 1, let root = workspace.rootPaths.first {
@@ -98,6 +106,15 @@ struct FoldersScreen: View {
         }
     }
 }
+extension FoldersScreen {
+    /// A daily note, opened in the reader.
+    private func dailies(_ id: String) {
+        RoamActions(session: session, roots: { workspace.rootPaths }, nodes: { [] }, show: { workspace.lastError = $0 }, ask: { $1(nil) },
+                    open: { path, offset in model.openRequest = .offset(path, offset) }, insertLink: { _, _ in },
+                    refresh: { Task { await workspace.refresh() } }).run(id)
+    }
+}
+
 /// A subfolder's own list, asking about its own changes.
 private struct FolderPage: View {
     let workspace: WorkspaceModel

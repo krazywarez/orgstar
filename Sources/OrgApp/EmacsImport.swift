@@ -548,6 +548,19 @@ public struct EmacsImport: Sendable {
             add(name, .string(format))
         case "org-timer-default-timer":
             if let text = value.string { add(name, .string(text)) } else if let number = value.integer { add(name, .string(String(number))) } else { note("not a string or number") }
+        case "org-roam-directory", "org-roam-dailies-directory":
+            guard let dir = value.string else { return note("not a string") }
+            add(name, .string(dir))
+        case "org-roam-dailies-capture-templates":
+            // The first template's entry and its `(file+head NAME HEAD)` target.
+            guard let first = value.elements?.first?.elements, first.count >= 4, let entry = first[3].string,
+                  let at = first.firstIndex(of: .symbol(":target")), at + 1 < first.count, let target = first[at + 1].elements,
+                  target.count == 3, target[0].symbol == "file+head", let file = target[1].string, let head = target[2].string else {
+                return note("not a template with a (file+head NAME HEAD) target")
+            }
+            add("org-roam-dailies-file", .string(file))
+            add("org-roam-dailies-head", .string(head))
+            add("org-roam-dailies-entry", .string(entry))
         case "org-attach-id-dir":
             guard let dir = value.string else { return note("not a string") }
             add(name, .string(dir))

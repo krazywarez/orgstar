@@ -304,7 +304,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
              "app.clock.goto-recent", "app.clock.default", "app.clock.resolve", "app.toggle-markup": return onAppCommand != nil
         case "app.refile.goto", "app.table-import", "app.crypt.encrypt-entries", "app.crypt.forget-passphrase", "app.attach.attach", "app.attach.url",
              "app.attach.new", "app.attach.open", "app.attach.reveal", "app.attach.delete", "app.attach.delete-all", "app.attach.sync",
-             "app.attach.set-directory", "app.attach.unset-directory": return onAppCommand != nil
+             "app.attach.set-directory", "app.attach.unset-directory", "app.backlinks", "app.node.find", "app.node.insert": return onAppCommand != nil
+        case _ where id.hasPrefix("app.dailies."): return onAppCommand != nil
         case "app.crypt.encrypt-entry": return onAppCommand != nil && OrgCrypt.heading(context.text, at: context.caret) != nil && OrgCrypt.encryptedRange(context.text, at: context.caret) == nil
         case "app.crypt.open-entry", "app.crypt.decrypt-entry": return onAppCommand != nil && OrgCrypt.encryptedRange(context.text, at: context.caret) != nil
         case "app.table-export", "app.plot": return onAppCommand != nil && ImportTable.exportText(context.text, at: context.caret, path: "") != nil

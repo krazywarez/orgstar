@@ -156,7 +156,7 @@ extension Links {
     }
 
     /// `org-link-make-string`.
-    static func makeString(_ link: String, _ description: String?) -> String {
+    public static func makeString(_ link: String, _ description: String?) -> String {
         let zeroWidthSpace = "\u{200B}"
         let description = description.flatMap { d -> String? in
             guard d.contains(where: { !$0.isWhitespace }) else { return nil }

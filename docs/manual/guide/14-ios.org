@@ -133,6 +133,8 @@ Cancel answers nothing, as =C-g= does.
 
 =C-c '= on a block, and =C-c `= on a table field, open the text in a sheet of its own; Save puts it back. A src block's code is colored as its language, as in the editor.
 
+More ▸ Backlinks lists the links to the heading at the caret and to the file; More ▸ Daily Notes, Find Node… and Insert Node Link… work with org-roam-style notes, and the Folders tab's calendar menu opens today's, yesterday's and tomorrow's note. See [[file:09-links.org][Links]].
+
 The org-timer commands are in Commands; a running timer shows above the text. See [[file:06-dates-and-clocking.org][Dates and clocking]].
 
 More ▸ Attachments has the org-attach commands and Attach Photo or Video…; files shared to orgstar can be attached to an entry. See [[file:04-outlines.org][Outlines]].
@@ -355,6 +357,7 @@ These settings from =config.toml= apply on iOS:
 - =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
 - =org-enforce-todo-dependencies=, =org-enforce-todo-checkbox-dependencies=, =org-track-ordered-property-with-tag=, =org-agenda-dim-blocked-tasks=
+- =org-roam-directory=, =org-roam-dailies-directory=, =org-roam-dailies-file=, =org-roam-dailies-head=, =org-roam-dailies-entry=
 - =org-crypt-tag-matcher=, =org-attach-id-dir=, =org-attach-use-inheritance=, =org-timer-format=, =org-timer-default-timer=
 - =org-archive-location=, =[org-structure-template-alist]=
 - =org-use-tag-inheritance=, =org-tags-exclude-from-inheritance=, =org-tag-alist=
@@ -379,7 +382,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 - ODT, LaTeX, ASCII and LaTeX-made PDF export, and publishing.
 - Idle detection while a clock runs.
 - Import from Emacs.
-- The Columns inspector, the backlinks pane, and the buffer list and tab bar. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).
+- The Columns inspector, and the buffer list and tab bar. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).
 - The global capture hotkey and the Settings window.
 - Explicit saving.
 

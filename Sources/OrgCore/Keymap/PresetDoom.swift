@@ -220,6 +220,58 @@ extension KeymapPreset {
         command = "org.edit-special"
         mode = "normal"
         [[bind]]
+        keys = "SPC n r f"
+        command = "app.node.find"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r i"
+        command = "app.node.insert"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d t"
+        command = "app.dailies.today"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d y"
+        command = "app.dailies.yesterday"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d m"
+        command = "app.dailies.tomorrow"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d d"
+        command = "app.dailies.date"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d n"
+        command = "app.dailies.capture-today"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d T"
+        command = "app.dailies.capture-today"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d Y"
+        command = "app.dailies.capture-yesterday"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d M"
+        command = "app.dailies.capture-tomorrow"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d D"
+        command = "app.dailies.capture-date"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d f"
+        command = "app.dailies.next"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC n r d b"
+        command = "app.dailies.previous"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m a a"
         command = "app.attach.attach"
         mode = "normal"

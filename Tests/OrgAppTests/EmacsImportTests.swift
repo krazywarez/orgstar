@@ -143,7 +143,8 @@ struct EmacsImportTests {
         let folders = result.items.compactMap { if case .folder(let f) = $0.change { f } else { nil } }
         #expect(folders == ["~/notes/", "~/work"])
         #expect(result.unreadable.map(\.name) == ["fill-column"])
-        #expect(Set(result.unsupported.map(\.name)) == ["org-support-shift-select", "doom-theme", "org-roam-directory",
+        #expect(s["org-roam-directory"] == .string("~/notes/roam"))
+        #expect(Set(result.unsupported.map(\.name)) == ["org-support-shift-select", "doom-theme",
             "capture \"x\"", "SPC z t → tr/report", "C-c l", "agenda command \"f\""])
         #expect(result.skipped == 1)
         #expect(result.doomDefaultsLeftOut == 1)
@@ -180,6 +181,22 @@ struct EmacsImportTests {
         #expect(s["org-icalendar-use-scheduled"] == .string("event-if-not-todo"))
         #expect(s["org-icalendar-include-todo"] == .string("NEXT WAIT"))
         #expect(s["org-icalendar-combined-agenda-file"] == .string("~/cal/org.ics"))
+    }
+
+    @Test func readsDailies() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try #"""
+            (setq org-roam-dailies-directory "journal/")
+            (setq org-roam-dailies-capture-templates
+                  '(("d" "default" entry "* %<%H:%M> %?" :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%A %d %B>\n"))))
+            """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let s = settings(EmacsImport.scan(EmacsImport.files(in: folder)))
+        #expect(s["org-roam-dailies-directory"] == .string("journal/"))
+        #expect(s["org-roam-dailies-file"] == .string("%<%Y-%m-%d>.org"))
+        #expect(s["org-roam-dailies-head"] == .string("#+title: %<%A %d %B>\n"))
+        #expect(s["org-roam-dailies-entry"] == .string("* %<%H:%M> %?"))
     }
 
     @Test func readsPublishingProjects() async throws {
@@ -283,7 +300,7 @@ struct EmacsImportTests {
         let keymap = folder.appendingPathComponent("keymap.toml")
         #expect(KeymapLoader.load(.doom, userFile: keymap).problems.isEmpty)
         #expect(KeymapLoader.load(.doom, userFile: keymap).keymap.keyLabels(for: "app.agenda", modes: ["normal"]).contains("C-c a"))
-        #expect(summary.hasPrefix("Imported 46 settings, 3 capture templates, 3 key bindings, 2 structure templates, 3 agenda views."), "\(summary)")
+        #expect(summary.hasPrefix("Imported 47 settings, 3 capture templates, 3 key bindings, 2 structure templates, 3 agenda views."), "\(summary)")
         let views = AgendaViewLoader.load(userFile: folder.appendingPathComponent("views.toml"))
         #expect(views.problems.isEmpty, "\(views.problems)")
         #expect(views.views.dropFirst(3).map(\.name) == ["Daily", "Work", "Stuck"])

@@ -154,6 +154,15 @@ public final class IndexStore: Sendable {
                 UPDATE files SET settings_version = -1;
                 """)
         }
+        migrator.registerMigration("v3") { db in
+            // File-level IDs and titles, for org-roam file nodes; files are read again to fill them.
+            try db.execute(sql: """
+                ALTER TABLE files ADD COLUMN org_id TEXT;
+                ALTER TABLE files ADD COLUMN title TEXT;
+                CREATE INDEX files_org_id ON files(org_id);
+                UPDATE files SET settings_version = -1;
+                """)
+        }
         return migrator
     }
 
@@ -187,11 +196,11 @@ public final class IndexStore: Sendable {
         try db.execute(sql: "DELETE FROM files WHERE path = ?", arguments: [record.path])
         try db.execute(
             sql: """
-                INSERT INTO files (path, root, kind, size, mtime, hash, settings_version, parsed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO files (path, root, kind, size, mtime, hash, settings_version, parsed_at, org_id, title)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             arguments: [record.path, record.root, record.kind.rawValue, record.size, record.mtime, record.hash,
-                        record.settingsVersion, Date().timeIntervalSince1970]
+                        record.settingsVersion, Date().timeIntervalSince1970, record.fileID, record.title]
         )
         let fileID = db.lastInsertedRowID
         for link in record.links {
@@ -333,10 +342,47 @@ public final class IndexStore: Sendable {
                 arguments: [id]
             ).map(location)
         }
-        let live = overlay.values.sorted { $0.path < $1.path }.flatMap { record in
-            record.headings.filter { $0.orgID == id }.map { location(record, $0) }
+        let files = try database.read { db in
+            try Row.fetchAll(db, sql: "SELECT path, hash FROM files WHERE org_id = ? ORDER BY path", arguments: [id])
+                .map { HeadingLocation.file($0["path"], contentHash: $0["hash"]) }
         }
-        return indexed.filter { overlay[$0.path] == nil } + live
+        let live = overlay.values.sorted { $0.path < $1.path }.flatMap { record in
+            (record.fileID == id ? [HeadingLocation.file(record.path, contentHash: record.hash)] : [])
+                + record.headings.filter { $0.orgID == id }.map { location(record, $0) }
+        }
+        return (files + indexed).filter { overlay[$0.path] == nil } + live
+    }
+
+    /// A heading or file with an ID: an org-roam node.
+    public struct Node: Sendable, Hashable {
+        public let id: String
+        public let title: String
+        public let location: HeadingLocation
+    }
+
+    /// Every heading and file with an ID, files first, unsaved buffers' in place of their
+    /// files'. A file's title is its `#+TITLE`, else its name without `.org`.
+    public func nodes(overlay: [String: FileRecord] = [:]) throws -> [Node] {
+        func fileTitle(_ path: String, _ title: String?) -> String { title ?? ((path as NSString).lastPathComponent as NSString).deletingPathExtension }
+        let indexed = try database.read { db in
+            let files = try Row.fetchAll(db, sql: "SELECT path, hash, org_id, title FROM files WHERE org_id IS NOT NULL AND kind = 'org' ORDER BY path").map { row in
+                Node(id: row["org_id"], title: fileTitle(row["path"], row["title"]), location: .file(row["path"], contentHash: row["hash"]))
+            }
+            let headings = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT f.path, f.hash, h.ordinal, h.title, h.start_offset, h.org_id
+                    FROM headings h JOIN files f ON f.id = h.file_id
+                    WHERE h.org_id IS NOT NULL AND f.kind = 'org' ORDER BY f.path, h.ordinal
+                    """
+            ).map { Node(id: $0["org_id"], title: $0["title"], location: location($0)) }
+            return files + headings
+        }
+        let live = overlay.values.sorted { $0.path < $1.path }.flatMap { record in
+            (record.fileID.map { [Node(id: $0, title: fileTitle(record.path, record.title), location: .file(record.path, contentHash: record.hash))] } ?? [])
+                + record.headings.compactMap { heading in heading.orgID.map { Node(id: $0, title: heading.title, location: location(record, heading)) } }
+        }
+        return indexed.filter { overlay[$0.location.path] == nil } + live
     }
 
     /// Every link and the heading it's in, or the file for links before its first heading,

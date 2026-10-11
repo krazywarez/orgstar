@@ -368,6 +368,11 @@ public final class WorkspaceModel {
         }
     }
 
+    /// Headings and files with IDs (org-roam's nodes).
+    public func nodes(overlay: [String: FileRecord] = [:]) -> [IndexStore.Node] {
+        (try? index.nodes(overlay: overlay)) ?? []
+    }
+
     public func search(_ query: String, overlay: [String: FileRecord] = [:]) -> [HeadingLocation] {
         (try? index.search(query, overlay: overlay)) ?? []
     }

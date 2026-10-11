@@ -59,7 +59,9 @@ struct BacklinksPane: View {
             return
         }
         let overlay = workspace.overlay(session.openDocuments)
-        toFile = workspace.backlinks(to: Backlinks.Target(path: path), overlay: overlay)
+        // The file's own ID, as an org-roam file node.
+        let fileID = session.document.map { DocumentModel(tree: $0.tree).property("ID", of: nil)?.value }
+        toFile = workspace.backlinks(to: Backlinks.Target(path: path, id: fileID ?? nil), overlay: overlay)
         guard let heading, let tree = session.document?.tree,
               let info = DocumentModel(tree: tree).headings.first(where: { $0.headingRange.lowerBound == heading.start }) else {
             toHeading = []

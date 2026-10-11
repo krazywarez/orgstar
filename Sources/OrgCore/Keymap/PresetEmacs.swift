@@ -194,6 +194,39 @@ extension KeymapPreset {
         keys = "C-c C-x C-l"
         command = "org.latex-preview"
         [[bind]]
+        keys = "C-c n f"
+        command = "app.node.find"
+        [[bind]]
+        keys = "C-c n i"
+        command = "app.node.insert"
+        [[bind]]
+        keys = "C-c n j"
+        command = "app.dailies.capture-today"
+        [[bind]]
+        keys = "C-c n d d"
+        command = "app.dailies.today"
+        [[bind]]
+        keys = "C-c n d y"
+        command = "app.dailies.yesterday"
+        [[bind]]
+        keys = "C-c n d t"
+        command = "app.dailies.tomorrow"
+        [[bind]]
+        keys = "C-c n d n"
+        command = "app.dailies.capture-today"
+        [[bind]]
+        keys = "C-c n d f"
+        command = "app.dailies.next"
+        [[bind]]
+        keys = "C-c n d b"
+        command = "app.dailies.previous"
+        [[bind]]
+        keys = "C-c n d c"
+        command = "app.dailies.date"
+        [[bind]]
+        keys = "C-c n d v"
+        command = "app.dailies.capture-date"
+        [[bind]]
         keys = "C-c C-x 0"
         command = "org.timer.start"
         [[bind]]

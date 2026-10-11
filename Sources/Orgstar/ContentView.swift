@@ -672,6 +672,25 @@ struct ContentView: View {
         }
     }
 
+    /// org-roam's daily notes and nodes.
+    private var roamActions: RoamActions {
+        RoamActions(
+            session: session, roots: { [workspace] in workspace.rootPaths },
+            nodes: { [workspace, session] in workspace.nodes(overlay: workspace.overlay(session.openDocuments)) },
+            show: { [commands] in commands.show($0) }, ask: { [commands] in commands.ask($0, reply: $1) },
+            open: { [commands] path, offset in commands.jump(path: path, offset: offset) },
+            insertLink: { [commands] link, title in
+                guard let editor = commands.editor else { return commands.show("No file is open") }
+                let context = editor.context()
+                let range = context.selection.first ?? context.caret..<context.caret
+                let selected = (context.text as NSString).substring(with: NSRange(range))
+                let text = Links.makeString(link, selected.isEmpty ? title : selected)
+                let end = range.lowerBound + (text as NSString).length
+                editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: [TextEdit(range: range, replacement: text)], selection: [end..<end])))
+            },
+            refresh: { [workspace] in Task { await workspace.refresh() } })
+    }
+
     /// org-attach's commands for the entry at the caret.
     private var attachActions: AttachActions {
         AttachActions(
@@ -1116,6 +1135,8 @@ struct ContentView: View {
             crypt(id)
         case let id where id.hasPrefix("app.attach."):
             attachActions.run(id)
+        case let id where id.hasPrefix("app.dailies.") || id.hasPrefix("app.node."):
+            roamActions.run(id)
         default:
             if let editor = commands.editor { editor.run(id) } else { commands.show("No file is open") }
         }

@@ -110,6 +110,10 @@ public struct FileRecord: Sendable, Equatable {
     public let headings: [HeadingRecord]
     /// Links before the first heading, the file's own.
     public let links: [LinkRow]
+    /// The `ID` in the property drawer before the first heading: the file as an org-roam node.
+    public let fileID: String?
+    /// `#+TITLE`, joined with spaces when there are several.
+    public let title: String?
 
     public static func hash(_ bytes: [UInt8]) -> String {
         SHA256.hash(data: Data(bytes)).map { String(format: "%02x", $0) }.joined()
@@ -126,7 +130,7 @@ public struct FileRecord: Sendable, Equatable {
         var resolved = settings
         resolved.org = settings.org.resolvingSetupFiles(in: source.text, path: path, read: OrgSettings.readFile)
         self.settingsVersion = Self.settingsVersion(settings, text: source.text, setupKeywords: resolved.org.setupKeywords)
-        (headings, links) = kind == .conflict ? ([], []) : Self.rows(source.text, settings: resolved)
+        (headings, links, fileID, title) = kind == .conflict ? ([], [], nil, nil) : Self.rows(source.text, settings: resolved)
     }
 
     /// The settings version a file's rows are built under: the index's, with the keywords of
@@ -160,11 +164,13 @@ public struct FileRecord: Sendable, Equatable {
         self.settingsVersion = settings.version
         headings = []
         links = []
+        fileID = nil
+        title = nil
     }
 
     public static func unreadHash(size: Int, mtime: Double) -> String { "unread:\(size):\(mtime)" }
 
-    static func rows(_ text: String, settings: IndexSettings) -> (headings: [HeadingRecord], links: [LinkRow]) {
+    static func rows(_ text: String, settings: IndexSettings) -> (headings: [HeadingRecord], links: [LinkRow], fileID: String?, title: String?) {
         let model = DocumentModel(tree: OrgParser.parse(text, defaults: settings.org), settings: settings.semantic)
         let utf16 = text.utf16
         func slice(_ range: Range<Int>) -> String {
@@ -203,7 +209,10 @@ public struct FileRecord: Sendable, Equatable {
                 links: heading.links.map(linkRow)
             )
         }
-        return (headings, model.links.map(linkRow))
+        let fileID = model.property("ID", of: nil)?.value.trimmingCharacters(in: .whitespaces)
+        let zeroth = model.headings.first.map { slice(0..<$0.sectionRange.lowerBound) } ?? text
+        let titles = zeroth.matches(of: /(?im)^[ \t]*#\+title:[ \t]*(.*?)[ \t]*$/).map { String($0.1) }
+        return (headings, model.links.map(linkRow), fileID?.isEmpty == false ? fileID : nil, titles.isEmpty ? nil : titles.joined(separator: " "))
     }
 
     static func linkRow(_ target: String) -> LinkRow {

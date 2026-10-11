@@ -1037,6 +1037,25 @@ The Emacs keys also work with Control on the last key (=C-c C-a C-a=), as in Org
 | Set Attachment Folder… (=app.attach.set-directory=) | =C-c C-a s= | — | =SPC m a s= (N) | Sets the entry's =DIR= property (=org-attach-set-directory=). |
 | Unset Attachment Folder (=app.attach.unset-directory=) | =C-c C-a S= | — | — | Removes =DIR= (=org-attach-unset-directory=). |
 
+** Notes and daily notes
+
+See [[file:09-links.org][Links]].
+
+| Command | Emacs | Mac | Doom | What it does |
+|-+-+-+-+-|
+| Find Node… (=app.node.find=) | =C-c n f= | — | =SPC n r f= (N) | Opens a heading or file with an ID, chosen by title (=org-roam-node-find=). |
+| Insert Node Link… (=app.node.insert=) | =C-c n i= | — | =SPC n r i= (N) | Inserts an =id:= link to a node (=org-roam-node-insert=). |
+| Go to Today's Daily Note (=app.dailies.today=) | =C-c n d d= | — | =SPC n r d t= (N) | =org-roam-dailies-goto-today=. |
+| Go to Yesterday's Daily Note (=app.dailies.yesterday=) | =C-c n d y= | — | =SPC n r d y= (N) | =org-roam-dailies-goto-yesterday=. |
+| Go to Tomorrow's Daily Note (=app.dailies.tomorrow=) | =C-c n d t= | — | =SPC n r d m= (N) | =org-roam-dailies-goto-tomorrow=. |
+| Go to Daily Note for Date… (=app.dailies.date=) | =C-c n d c= | — | =SPC n r d d= (N) | =org-roam-dailies-goto-date=. |
+| Capture to Today's Daily Note (=app.dailies.capture-today=) | =C-c n j=, =C-c n d n= | — | =SPC n r d n=, =SPC n r d T= (N) | =org-roam-dailies-capture-today=. |
+| Capture to Yesterday's Daily Note (=app.dailies.capture-yesterday=) | — | — | =SPC n r d Y= (N) | =org-roam-dailies-capture-yesterday=. |
+| Capture to Tomorrow's Daily Note (=app.dailies.capture-tomorrow=) | — | — | =SPC n r d M= (N) | =org-roam-dailies-capture-tomorrow=. |
+| Capture to Daily Note for Date… (=app.dailies.capture-date=) | =C-c n d v= | — | =SPC n r d D= (N) | =org-roam-dailies-capture-date=. |
+| Next Daily Note (=app.dailies.next=) | =C-c n d f= | — | =SPC n r d f= (N) | =org-roam-dailies-goto-next-note=. |
+| Previous Daily Note (=app.dailies.previous=) | =C-c n d b= | — | =SPC n r d b= (N) | =org-roam-dailies-goto-previous-note=. |
+
 ** Unbound commands
 
 No preset binds these. Run them from the palette or a menu, or bind them in =keymap.toml=.

@@ -147,6 +147,14 @@ public enum OrgPreferences {
         options.userFullName = NSFullUserName()
         return options
     }
+    /// `org-roam-directory`; empty for the first folder.
+    public static func roamDirectory(_ defaults: UserDefaults = .standard) -> String { string("roamDirectory", defaults) }
+    /// `org-roam-dailies-directory`, relative to `org-roam-directory` unless absolute.
+    public static func dailiesDirectory(_ defaults: UserDefaults = .standard) -> String { string("dailiesDirectory", defaults).nonEmpty ?? "daily/" }
+    /// The daily capture template's file name, head and entry.
+    public static func dailiesFile(_ defaults: UserDefaults = .standard) -> String { string("dailiesFile", defaults).nonEmpty ?? "%<%Y-%m-%d>.org" }
+    public static func dailiesHead(_ defaults: UserDefaults = .standard) -> String { string("dailiesHead", defaults).nonEmpty ?? "#+title: %<%Y-%m-%d>\n" }
+    public static func dailiesEntry(_ defaults: UserDefaults = .standard) -> String { string("dailiesEntry", defaults).nonEmpty ?? "* %?" }
     /// `org-attach-id-dir`, relative to an org file's folder unless absolute.
     public static func attachIDDir(_ defaults: UserDefaults = .standard) -> String {
         let dir = string("attachIDDir", defaults)

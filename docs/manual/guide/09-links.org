@@ -122,8 +122,9 @@ a search option after =::= works the same way.
 ** id links
 
 =id:= links are resolved through the index, so the target heading must be in a file
-under one of your sidebar folders. A link to an ID that isn't indexed shows =No heading
-has the ID= followed by the ID.
+under one of your sidebar folders. An =ID= in the property drawer before a file's first
+heading names the file, as org-roam's file nodes do, and the link opens the file. A link
+to an ID that isn't indexed shows =No heading has the ID= followed by the ID.
 
 ** Timestamps
 
@@ -275,7 +276,7 @@ The pane looks at every org file in your sidebar folders, including unsaved chan
 in open buffers. A link counts when following it would lead to the heading or the
 file:
 
-- =id:= links to the heading's =ID=;
+- =id:= links to the heading's =ID=, or to the file's own =ID= for the file section;
 - =file:= links and plain paths (=./=, =../=, =/=, =~/=) to the file, with no search
   option for the file section, or with =::*Title=, =::#custom-id= or =::Title= for a
   heading;
@@ -283,6 +284,42 @@ file:
 
 Links to targets, names and line numbers are not counted. A heading's links to itself
 are left out.
+
+* Nodes and daily notes
+
+orgstar works with notes kept the org-roam way: headings and files with an =ID= are
+/nodes/, linked with =id:= links, and a daily note is a file a day. It reads them from
+the index, without org-roam's database.
+
+| Command | Emacs | Doom | What it does |
+|-+-+-+-|
+| Find Node… | =C-c n f= | =SPC n r f= | Asks for a node by title and opens it (=org-roam-node-find=). |
+| Insert Node Link… | =C-c n i= | =SPC n r i= | Asks for a node and inserts =[[id:…][Title]]=; with a selection, the selection is the description (=org-roam-node-insert=). |
+| Go to Today's, Yesterday's, Tomorrow's Daily Note | =C-c n d d=, =y=, =t= | =SPC n r d t=, =y=, =m= | Opens the day's note, making it if missing (=org-roam-dailies-goto-today= and the others). |
+| Go to Daily Note for Date… | =C-c n d c= | =SPC n r d d= | Asks for a date, then opens its note. |
+| Capture to Today's Daily Note (and Yesterday's, Tomorrow's, for Date…) | =C-c n j=, =C-c n d n=, =C-c n d v= | =SPC n r d n=, =T=, =Y=, =M=, =D= | Files the entry template at the end of the day's note and opens it at =%?= (=org-roam-dailies-capture-today= and the others). |
+| Next Daily Note, Previous Daily Note | =C-c n d f=, =b= | =SPC n r d f=, =b= | From a daily note, opens the next or previous one there is (=org-roam-dailies-goto-next-note=). |
+
+The keys are the ones org-roam's manual suggests for Emacs and Doom's. Titles that
+repeat show their file's name. A file node's title is its =#+TITLE=, or its name.
+
+Daily notes are in =org-roam-dailies-directory= (=daily/=) under =org-roam-directory=,
+which is the first sidebar folder unless set. A new note is named and started as
+org-roam's default daily template does it, with an =ID= like every new org-roam file:
+
+#+BEGIN_SRC org
+,:PROPERTIES:
+,:ID:       5f0c1e2a-…
+,:END:
+,#+title: 2026-10-11
+#+END_SRC
+
+=org-roam-dailies-file= (="%<%Y-%m-%d>.org"=), =org-roam-dailies-head=
+(="#+title: %<%Y-%m-%d>\n"=) and =org-roam-dailies-entry= (="* %?"=) change the file name,
+what a new note starts with, and what capturing adds; =%<…>= formats the note's date as
+=format-time-string= does. The entry is an org-capture template; its date escapes
+(=%t=, =%U= and the like) use the note's day. Import from Emacs reads them from the first of
+=org-roam-dailies-capture-templates=. See [[file:13-configuration.org][Configuration]].
 
 * Inline images
 
@@ -365,8 +402,9 @@ web, mail and other files go to the system. The iOS editor shows inline images a
 Mac does; the reader doesn't. In the editor, Store Link, Store ID Link and Insert Link…
 are in Commands, and on a hardware keyboard the Emacs keys run them; they work as
 described above, and stored links last until the app quits. =org-protocol://store-link=
-links opened on the device are stored and copied too. The backlinks pane is Mac only.
-See [[file:14-ios.org][iOS]].
+links opened on the device are stored and copied too. More ▸ Backlinks lists the same
+links as the Mac's backlinks pane, for the heading at the caret and the file. See
+[[file:14-ios.org][iOS]].
 
 * Code references
 
