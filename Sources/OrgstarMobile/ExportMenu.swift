@@ -43,10 +43,14 @@ struct OrgExport: Transferable {
     let settings: OrgSettings
     /// Made on the main actor, where the editor's highlighter is.
     let codeStyle: HTMLCodeStyle
+    /// The subtree at this offset exported alone.
+    var subtree: Int?
 
-    /// `#+EXPORT_FILE_NAME`'s name, or the file's, with the format's extension.
+    /// The subtree's `EXPORT_FILE_NAME`, `#+EXPORT_FILE_NAME`'s name, or the file's, with the
+    /// format's extension.
     var fileName: String {
-        ExportScope.output(for: URL(fileURLWithPath: path), name: ExportScope.fileName(text, settings: settings), extension: format.fileExtension)
+        ExportScope.output(for: URL(fileURLWithPath: path), name: ExportScope.fileName(text, subtreeAt: subtree, settings: settings),
+                           extension: format.fileExtension)
             .lastPathComponent
     }
 
@@ -73,6 +77,7 @@ struct OrgExport: Transferable {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let url = folder.appendingPathComponent(fileName)
+        let text = subtree.flatMap { ExportScope.subtree(self.text, at: $0, settings: settings) } ?? self.text
         switch format {
         case .html:
             try HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
@@ -80,7 +85,8 @@ struct OrgExport: Transferable {
         case .markdown:
             try MarkdownExport.document(text, settings: settings, path: path).write(to: url, atomically: true, encoding: .utf8)
         case .icalendar:
-            try ICalendarFiles.export(text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(), destination: url)
+            try ICalendarFiles.export(self.text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(),
+                                      subtree: subtree, destination: url)
         case .docx:
             let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
             try await RichTextExport.docx(html: html, directory: URL(fileURLWithPath: path).deletingLastPathComponent()).write(to: url, options: .atomic)
@@ -106,6 +112,8 @@ struct ExportMenu: View {
     @Environment(MobileModel.self) private var model
     /// Shows what happened, as the screen's message line does.
     var report: (String) -> Void = { _ in }
+    /// Offers the subtree at the caret alone, where there is a caret.
+    var exportSubtree: (() -> Void)?
 
     var body: some View {
         Menu("Export", systemImage: "square.and.arrow.up") {
@@ -113,6 +121,9 @@ struct ExportMenu: View {
                 let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings(),
                                        codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))
                 ShareLink(item: export, preview: SharePreview(export.fileName)) { Text(format.name) }
+            }
+            if let exportSubtree {
+                Button("Export Subtree…", systemImage: "list.bullet.indent") { exportSubtree() }
             }
             Divider()
             Button("Copy as Rich Text", systemImage: "doc.on.doc") { copy() }
@@ -130,6 +141,28 @@ struct ExportMenu: View {
             report("Copied as rich text")
         } catch {
             report("\(error)")
+        }
+    }
+}
+
+/// The subtree at `caret` shared alone, in each of the export formats.
+struct SubtreeExportScreen: View {
+    let path: String
+    let text: String
+    let caret: Int
+    @Environment(MobileModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(OrgExport.Format.allCases, id: \.self) { format in
+                let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings(),
+                                       codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme), subtree: caret)
+                ShareLink(item: export, preview: SharePreview(export.fileName)) { Text(format.name) }
+            }
+            .navigationTitle("Export Subtree")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
         }
     }
 }

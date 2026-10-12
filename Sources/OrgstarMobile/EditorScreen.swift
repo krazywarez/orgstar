@@ -76,6 +76,8 @@ struct EditorScreen: View {
         case plot(TablePlot.Plot)
         case crypt(CryptRequest)
         case backlinks
+        /// The subtree at this offset, to export.
+        case exportSubtree(Int)
 
         var id: String {
             switch self {
@@ -89,6 +91,7 @@ struct EditorScreen: View {
             case .plot: "plot"
             case .crypt(let request): request.id.uuidString
             case .backlinks: "backlinks"
+            case .exportSubtree: "exportSubtree"
             }
         }
     }
@@ -163,7 +166,9 @@ struct EditorScreen: View {
                         Button("Encrypt Tagged Entries…", systemImage: "lock.rectangle.stack") { crypt("app.crypt.encrypt-entries") }
                         Button("Forget Encryption Passphrase", systemImage: "key.slash") { crypt("app.crypt.forget-passphrase") }
                     }
-                    if let text = session.document(of: path)?.text { ExportMenu(path: path, text: text) { message = $0 } }
+                    if let text = session.document(of: path)?.text {
+                        ExportMenu(path: path, text: text, report: { message = $0 }, exportSubtree: exportSubtree)
+                    }
                     Button("Sync Conflict Copies", systemImage: "doc.on.doc") { sheet = .syncCopies }
                     Button("Recovered Versions", systemImage: "clock.arrow.circlepath") { sheet = .recovery }
                     if onPaneCommand != nil, sizeClass == .regular {
@@ -247,6 +252,8 @@ struct EditorScreen: View {
                 PlotScreen(plot: plot)
             case .crypt(let request):
                 CryptScreen(request: request, session: session, editor: editor) { message = $0 }
+            case .exportSubtree(let caret):
+                if let text = session.document(of: path)?.text { SubtreeExportScreen(path: path, text: text, caret: caret) }
             case .backlinks:
                 BacklinksScreen(workspace: workspace, session: session, path: path, caret: editor?.editContext().caret ?? 0) { location in
                     if location.path == path { editor?.reveal(location.start) } else { model.openRequest = .heading(location) }
@@ -519,6 +526,13 @@ extension EditorScreen {
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return message = "Can't read \(url.lastPathComponent)" }
         _ = editor.perform(ImportTable(contents: contents))
+    }
+
+    /// The export formats for the subtree at the caret, as the Mac's export sheet's scope.
+    private func exportSubtree() {
+        guard let context = editor?.editContext() else { return }
+        guard ExportScope.subtree(context.text, at: context.caret) != nil else { return message = "Not in a subtree" }
+        sheet = .exportSubtree(context.caret)
     }
 
     /// org-crypt's commands at the caret, through the passphrase sheet.
