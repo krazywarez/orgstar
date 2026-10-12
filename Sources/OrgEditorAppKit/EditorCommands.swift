@@ -181,6 +181,7 @@ public enum EditorCommands {
         edit("backward-kill-word", "Kill Word Backward", "deleteWordBackward:"),
         edit("kill-line", "Kill Line", "deleteToEndOfParagraph:"),
         edit("yank", "Yank", "yank:"),
+        edit("yank-media", "Yank Media", "paste:"),
         edit("select-all", "Select All", "selectAll:"),
         edit("kill-region", "Kill Region", "cut:"),
         edit("copy-region", "Copy Region", "copy:"),

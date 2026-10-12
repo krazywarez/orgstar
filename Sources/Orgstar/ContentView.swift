@@ -295,6 +295,8 @@ struct ContentView: View {
         .onChange(of: editorSettings, initial: true) { _, settings in commands.editorSettings = settings }
         .onAppear {
             commands.externalHandler = runExternal
+            commands.filesHandler = { attachActions.drop($0) }
+            commands.imageHandler = { attachActions.yankImage($0, ext: $1) }
             // `org-clock-out-when-done`, and the notification when the Effort runs out.
             clock.notifications = SystemReminderCenter.isAvailable ? SystemReminderCenter() : nil
             session.textChanged = { [weak session, weak clock, weak commands] path in
@@ -704,7 +706,7 @@ struct ContentView: View {
                 let context = editor.context()
                 return Attachments.Entry(text: context.text, offset: context.caret, path: path, options: context.options)
             },
-            apply: applyText, show: { [commands] in commands.show($0) }, ask: { [commands] in commands.ask($0, reply: $1) },
+            apply: { applyText($0, caret: $1) }, show: { [commands] in commands.show($0) }, ask: { [commands] in commands.ask($0, reply: $1) },
             storeLink: { [commands] in _ = StoredLink.add($0, to: &commands.storedLinks) },
             open: { [session, workspace, commands] file in
                 if let message = LinkOpener.open(OrgLink(type: "file", path: file, raw: "file:" + file), session: session, workspace: workspace) { commands.show(message) }
@@ -737,7 +739,7 @@ struct ContentView: View {
         case .plotImage(_, let url):
             PlotSheet(content: .image(url))
         case .crypt(_, let request):
-            CryptSheet(request: request, text: { session.document?.text ?? "" }, apply: applyText) { message in
+            CryptSheet(request: request, text: { session.document?.text ?? "" }, apply: { applyText($0) }) { message in
                 self.panel = nil
                 if let message { commands.show(message) }
             }
@@ -750,12 +752,12 @@ struct ContentView: View {
         }
     }
 
-    /// `new` in place of the buffer's text, as one edit.
-    private func applyText(_ new: String) {
+    /// `new` in place of the buffer's text, as one edit, with the caret at `caret` or where it was.
+    private func applyText(_ new: String, caret: Int? = nil) {
         guard let editor = commands.editor else { return }
         let context = editor.context()
-        editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new),
-                                                  selection: [min(context.caret, (new as NSString).length)..<min(context.caret, (new as NSString).length)])))
+        let caret = min(caret ?? context.caret, (new as NSString).length)
+        editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new), selection: [caret..<caret])))
     }
 
     /// `org-plot/gnuplot` for the table at the caret: through gnuplot when it's installed, as

@@ -31,6 +31,9 @@ final class AppCommands {
     var editorSettings = EditorSettings()
     /// Runs work outside the text (a table recalculation in Emacs); the main window sets it.
     var externalHandler: ((ExternalRequest) -> Void)?
+    /// Files and images pasted or dropped on an editor; the main window sets them.
+    var filesHandler: (([URL]) -> Void)?
+    var imageHandler: ((Data, String) -> Void)?
     /// Tags used across the workspace, for tag completion; the main window sets it.
     var knownTags: () -> [String] = { [] }
     /// The pending key prefix, and what can follow it.

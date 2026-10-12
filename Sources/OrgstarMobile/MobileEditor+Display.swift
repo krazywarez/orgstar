@@ -111,7 +111,7 @@ extension MobileEditor {
     }
 
     /// Image lines in `range` show the image over the link, which is hidden unless the caret is
-    /// on the line.
+    /// on the line; then the image goes under it.
     func applyImages(_ range: Range<Int>, in storage: NSTextStorage, revealed: NSRange) {
         guard showsImages else { return }
         let text = storage.string as NSString
@@ -127,13 +127,15 @@ extension MobileEditor {
             let height = picture.size.width > 0 ? width * picture.size.height / picture.size.width : 0
             let content = NSRange(location: line.location, length: line.length - (text.substring(with: line).hasSuffix("\n") ? 1 : 0))
             // Invisible, keeping the line's height.
-            if line.location != revealed.location, content.length > 0 {
+            let shown = line.location == revealed.location && content.length > 0
+            if !shown, content.length > 0 {
                 storage.addAttributes([.foregroundColor: UIColor.clear, .underlineStyle: 0], range: content)
             }
-            storage.addAttribute(.orgImage, value: InlineImageBox(image: picture, size: CGSize(width: width, height: height)), range: NSRange(location: line.location, length: max(1, content.length)))
+            storage.addAttribute(.orgImage, value: InlineImageBox(image: picture, size: CGSize(width: width, height: height), below: shown), range: NSRange(location: line.location, length: max(1, content.length)))
             let style = (storage.attribute(.paragraphStyle, at: line.location, effectiveRange: nil) as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
-            // The image sits where the line is; the spacing makes room for the rest of it.
-            style.paragraphSpacing = max(0, height + 4 - theme.font.lineHeight)
+            // The image sits where the line is, or under it while the link shows; the spacing
+            // makes room for the rest of it.
+            style.paragraphSpacing = shown ? height + 4 : max(0, height + 4 - theme.font.lineHeight)
             storage.addAttribute(.paragraphStyle, value: style, range: line)
         }
     }

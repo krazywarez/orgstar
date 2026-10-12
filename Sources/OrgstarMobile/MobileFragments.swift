@@ -121,9 +121,12 @@ final class LatexBox: NSObject, @unchecked Sendable {
 final class InlineImageBox: NSObject, @unchecked Sendable {
     let image: UIImage
     let size: CGSize
-    init(image: UIImage, size: CGSize) {
+    /// Drawn under the line's text, which shows while the caret is on it.
+    let below: Bool
+    init(image: UIImage, size: CGSize, below: Bool = false) {
         self.image = image
         self.size = size
+        self.below = below
     }
 }
 
@@ -217,7 +220,7 @@ final class OrgLineFragment: NSTextLayoutFragment, @unchecked Sendable {
 
     private var imageRect: CGRect? {
         guard let image, let line = textLineFragments.first else { return nil }
-        return CGRect(x: line.typographicBounds.minX, y: line.typographicBounds.minY + 2, width: image.size.width, height: image.size.height)
+        return CGRect(x: line.typographicBounds.minX, y: (image.below ? line.typographicBounds.maxY : line.typographicBounds.minY) + 2, width: image.size.width, height: image.size.height)
     }
 
     override var renderingSurfaceBounds: CGRect {

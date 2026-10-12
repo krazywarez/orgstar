@@ -575,6 +575,11 @@ public struct EmacsImport: Sendable {
             add(name, .string(dir))
         case "org-attach-use-inheritance":
             if value.symbol == "selective" { add(name, .string("selective")) } else { add(name, .string(truthy ? "t" : "nil")) }
+        case "org-yank-image-save-method":
+            if value.symbol == "attach" { add(name, .string("attach")) } else if let dir = value.string { add(name, .string(dir)) } else { note("not attach or a folder") }
+        case "org-yank-dnd-method":
+            guard let method = value.symbol, ["ask", "attach", "open", "file-link"].contains(method) else { return note("not ask, attach, open or file-link") }
+            add(name, .string(method))
         case "org-crypt-tag-matcher":
             guard let tag = value.string, tag.range(of: "^[\\w@#%]+$", options: .regularExpression) != nil else { return note("not a single tag") }
             add(name, .string(tag))

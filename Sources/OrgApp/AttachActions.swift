@@ -7,7 +7,8 @@ import OrgCore
 public struct AttachActions {
     /// The open file's entry at the caret; nil when no file is open.
     public var entry: () -> Attachments.Entry?
-    public var apply: (String) -> Void
+    /// The buffer's new text, and where the caret goes; nil keeps it where it is.
+    public var apply: (String, Int?) -> Void
     public var show: (String) -> Void
     public var ask: (Prompt, @escaping (String?) -> Void) -> Void
     public var storeLink: (StoredLink) -> Void
@@ -19,7 +20,7 @@ public struct AttachActions {
     public var pick: (Attachments.Method) -> Void
 
     public init(
-        entry: @escaping () -> Attachments.Entry?, apply: @escaping (String) -> Void, show: @escaping (String) -> Void,
+        entry: @escaping () -> Attachments.Entry?, apply: @escaping (String, Int?) -> Void, show: @escaping (String) -> Void,
         ask: @escaping (Prompt, @escaping (String?) -> Void) -> Void, storeLink: @escaping (StoredLink) -> Void,
         open: @escaping (String) -> Void, reveal: @escaping (String) -> Void, pick: @escaping (Attachments.Method) -> Void
     ) {
@@ -47,10 +48,10 @@ public struct AttachActions {
         let original = entry.text
         do {
             let message = try body(&entry)
-            if entry.text != original { apply(entry.text) }
+            if entry.text != original { apply(entry.text, nil) }
             if let message { show(message) }
         } catch {
-            if entry.text != original { apply(entry.text) }
+            if entry.text != original { apply(entry.text, nil) }
             show((error as? Attachments.Failure)?.description ?? error.localizedDescription)
         }
     }
@@ -181,6 +182,56 @@ public struct AttachActions {
             let link = try Attachments.attach(data, named: name, to: &entry)
             storeLink(link)
             return Self.attached([name])
+        }
+    }
+
+    /// Runs `body` on the entry and puts the links it returns at the caret.
+    private func insert(_ body: (inout Attachments.Entry) throws -> [String]) {
+        guard var entry = entry() else { return show("No file is open") }
+        let original = entry.text
+        do {
+            let links = try body(&entry)
+            guard !links.isEmpty else { return }
+            let (text, caret) = ImageYank.inserting(links, into: entry.text, at: ImageYank.map(entry.offset, from: original, to: entry.text))
+            apply(text, caret)
+            let names = links.compactMap { $0.firstMatch(of: /^\[\[attachment:(.*)\]\]$/).map { String($0.1) } }
+            if let message = Self.attached(names) { show(message) }
+        } catch {
+            if entry.text != original { apply(entry.text, nil) }
+            show((error as? Attachments.Failure)?.description ?? error.localizedDescription)
+        }
+    }
+
+    /// `yank-media` with an image: `data` saved as `org-yank-image-save-method` says, with
+    /// extension `ext`, and its link at the caret. `prefix` replaces "clipboard" in the name.
+    public func yankImage(_ data: Data, ext: String, prefix: String = "clipboard") {
+        let method = ImageYank.SaveMethod(OrgPreferences.yankImageSaveMethod())
+        insert { entry in [try ImageYank.save(data, ext: ext, method: method, in: &entry, prefix: prefix)] }
+    }
+
+    /// Files dropped or pasted, as `org-yank-dnd-method` says: attached with `attachMethod`,
+    /// opened, or linked; their links at the caret.
+    public func drop(_ files: [URL], method: ImageYank.DropMethod = OrgPreferences.yankDndMethod(), attachMethod: Attachments.Method = .cp) {
+        guard !files.isEmpty else { return }
+        switch method {
+        case .ask:
+            ask(Prompt(key: "dnd", message: "What to do with file?", choices: ["attach", "open", "insert file: link"])) { answer in
+                switch answer {
+                case "attach": drop(files, method: .attach, attachMethod: attachMethod)
+                case "open": drop(files, method: .open, attachMethod: attachMethod)
+                case "insert file: link": drop(files, method: .fileLink, attachMethod: attachMethod)
+                default: break
+                }
+            }
+        case .open:
+            for file in files { open(file.path) }
+        case .attach, .fileLink:
+            let saveMethod = ImageYank.SaveMethod(OrgPreferences.yankImageSaveMethod())
+            insert { entry in
+                let scoped = files.map { $0.startAccessingSecurityScopedResource() }
+                defer { for (file, on) in zip(files, scoped) where on { file.stopAccessingSecurityScopedResource() } }
+                return try ImageYank.drop(files, method: method, attachMethod: attachMethod, saveMethod: saveMethod, in: &entry)
+            }
         }
     }
 

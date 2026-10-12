@@ -114,9 +114,12 @@ final class LatexFragment: NSTextLayoutFragment, @unchecked Sendable {
 final class InlineImageBox: NSObject, @unchecked Sendable {
     let image: NSImage
     let size: CGSize
-    init(image: NSImage, size: CGSize) {
+    /// Drawn under the line's text, which shows while the caret is on it.
+    let below: Bool
+    init(image: NSImage, size: CGSize, below: Bool = false) {
         self.image = image
         self.size = size
+        self.below = below
     }
 }
 
@@ -133,7 +136,7 @@ final class ImageFragment: NSTextLayoutFragment, @unchecked Sendable {
 
     private var frame: CGRect? {
         guard let box = (textElement as? NSTextParagraph).flatMap({ Self.image($0.attributedString) }), let line = textLineFragments.first else { return nil }
-        return CGRect(x: line.typographicBounds.minX, y: line.typographicBounds.minY + 2, width: box.size.width, height: box.size.height)
+        return CGRect(x: line.typographicBounds.minX, y: (box.below ? line.typographicBounds.maxY : line.typographicBounds.minY) + 2, width: box.size.width, height: box.size.height)
     }
 
     override var renderingSurfaceBounds: CGRect {

@@ -172,6 +172,18 @@ public final class OrgEditor: NSObject {
             self.accessibleCache = (self.storageGeneration, text)
             return text
         }
+        view.onFiles = { [weak self, unowned view] files in
+            guard let self, let onFiles = self.onFiles, self.isOrg else { return false }
+            self.active = view
+            onFiles(files)
+            return true
+        }
+        view.onImage = { [weak self, unowned view] data, ext in
+            guard let self, let onImage = self.onImage, self.isOrg else { return false }
+            self.active = view
+            onImage(data, ext)
+            return true
+        }
         view.onMouseDown = { [weak self, unowned view] in
             self?.active = view
             self?.markActive = false
@@ -364,6 +376,12 @@ public final class OrgEditor: NSObject {
     public var knownTags: @Sendable () -> [String] = { [] }
     /// Effects other than messages, for the app to carry out.
     public var onEffect: ((Effect) -> Void)?
+    /// Where paste looks for images and files; scripts checking the app set another.
+    public static var pasteboard = NSPasteboard.general
+    /// Files pasted or dropped at the caret; nil leaves them to the text view.
+    public var onFiles: (([URL]) -> Void)?
+    /// An image pasted or dropped at the caret, with its extension (`yank-media`).
+    public var onImage: ((Data, String) -> Void)?
 
     public var keymap: Keymap {
         get { dispatcher.keymap }

@@ -17,6 +17,9 @@ final class OrgTextView: NSTextView {
     /// The text as shown, for accessibility.
     var accessibleText: (() -> AccessibleText)?
     var onMouseDown: (() -> Void)?
+    /// Files and an image pasted or dropped; each returns whether it took them.
+    var onFiles: (([URL]) -> Bool)?
+    var onImage: ((Data, String) -> Bool)?
     /// The view gained or lost focus, or its window key status: the selection's color changes.
     var onFocusChange: (() -> Void)?
     private var keyObservers: [NSObjectProtocol] = []

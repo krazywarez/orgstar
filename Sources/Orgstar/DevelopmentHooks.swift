@@ -1,4 +1,5 @@
 import AppKit
+import OrgEditorAppKit
 
 /// Switches for checking the app from scripts, read from the environment:
 /// - `ORGSTAR_DATA_DIR`: where the index and roots live (see `WorkspaceModel.defaultDirectory`).
@@ -9,6 +10,8 @@ import AppKit
 ///   sheet or prompt they open is what the snapshot renders.
 /// - `ORGSTAR_ANSWERS`: answers to the prompts those commands ask, in order, separated by commas.
 /// - `ORGSTAR_URL`: an `org-protocol://` link to handle at launch, as if opened from a browser.
+/// - `ORGSTAR_PASTEBOARD`: the name of a pasteboard to paste images and files from, instead of
+///   the clipboard.
 /// - `ORGSTAR_APPEARANCE`: `dark` or `light`, instead of the system's.
 /// - `ORGSTAR_SNAPSHOT`: after `ORGSTAR_SNAPSHOT_DELAY` seconds (default 3), render the main
 ///   window to this PNG path and quit. Rendering from inside the app needs no screen-recording
@@ -24,6 +27,7 @@ enum DevelopmentHooks {
     @MainActor
     static func scheduleSnapshot() {
         let environment = ProcessInfo.processInfo.environment
+        if let name = environment["ORGSTAR_PASTEBOARD"] { OrgEditor.pasteboard = NSPasteboard(name: NSPasteboard.Name(name)) }
         if let appearance = environment["ORGSTAR_APPEARANCE"] {
             NSApp.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
         }

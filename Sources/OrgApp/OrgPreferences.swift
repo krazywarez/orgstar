@@ -175,6 +175,14 @@ public enum OrgPreferences {
         default: nil
         }
     }
+    /// `org-yank-image-save-method`: "attach", or the folder pasted images go in.
+    public static func yankImageSaveMethod(_ defaults: UserDefaults = .standard) -> String {
+        string("yankImageSaveMethod", defaults).nonEmpty ?? "attach"
+    }
+    /// `org-yank-dnd-method`.
+    public static func yankDndMethod(_ defaults: UserDefaults = .standard) -> ImageYank.DropMethod {
+        ImageYank.DropMethod(rawValue: string("yankDndMethod", defaults)) ?? .ask
+    }
     /// `org-crypt-tag-matcher`, a tag.
     public static func cryptTag(_ defaults: UserDefaults = .standard) -> String {
         let tag = string("cryptTagMatcher", defaults).trimmingCharacters(in: .whitespaces)

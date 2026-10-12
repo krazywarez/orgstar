@@ -491,10 +491,10 @@ extension EditorScreen {
                 let context = editor.editContext()
                 return Attachments.Entry(text: context.text, offset: context.caret, path: path, options: context.options)
             },
-            apply: { new in
+            apply: { new, caret in
                 guard let editor else { return }
                 let context = editor.editContext()
-                let caret = min(context.caret, (new as NSString).length)
+                let caret = min(caret ?? context.caret, (new as NSString).length)
                 _ = editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: TextEdit.between(context.text, new), selection: [caret..<caret])))
             },
             show: { message = $0 },
