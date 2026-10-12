@@ -2,12 +2,14 @@
 <!-- Product page header. header.html renders the 21:9 header (3840x1646), header.html#wide the
      16:9 one (5244x2950), with headless Chromium, then the alpha channel is removed:
      Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=3840,1646 --screenshot=header-21x9.png header.html
-     Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=5244,2950 --screenshot=header-16x9.png 'header.html#wide'
+     Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=5244,2950 --screenshot=header-16x9.png "file://$PWD/header.html#wide"
      magick header-21x9.png -alpha off PNG24:header-21x9.png -->
 <html>
 <head>
 <meta charset="utf-8">
 <style>
+  :root { --u: 1px; --row-top: 420px; }
+  * { box-sizing: border-box; }
   html, body { margin: 0; width: 3840px; height: 1646px; overflow: hidden; }
   body {
     background: linear-gradient(120deg, #21338c 0%, #3a2c9a 45%, #6638b3 100%);
@@ -25,35 +27,44 @@
     text-align: center; font-size: 150px; font-weight: 700; letter-spacing: -2px;
   }
   h1 span { color: #ffc74d; }
-  .device {
-    position: absolute; background: #0c0c12; box-shadow: 0 60px 140px rgba(0, 0, 0, 0.45);
+  /* One row, centered, one gap: the space between devices is equal by construction. */
+  .row {
+    position: absolute; top: var(--row-top); left: 0; right: 0;
+    display: flex; justify-content: center; align-items: flex-start; gap: calc(150 * var(--u));
   }
+  .device { flex: none; box-shadow: 0 calc(60 * var(--u)) calc(140 * var(--u)) rgba(0, 0, 0, 0.45); }
   .device img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-  .ipad { width: 1500px; height: 2000px; left: 1170px; top: 400px; padding: 34px; border-radius: 90px; }
-  .ipad img { border-radius: 58px; }
-  .iphone { width: 600px; height: 1304px; top: 520px; padding: 22px; border-radius: 110px; }
-  .iphone img { border-radius: 90px; }
-  .left { left: 440px; }
-  .right { right: 440px; }
+  .ipad {
+    width: calc(940 * var(--u)); height: calc(1233 * var(--u)); margin-top: calc(60 * var(--u));
+    padding: calc(30 * var(--u)); border-radius: calc(70 * var(--u)); background: #0c0c12;
+  }
+  .ipad img { border-radius: calc(44 * var(--u)); }
+  .mac {
+    width: calc(1800 * var(--u)); height: calc(1209 * var(--u));
+    border-radius: calc(26 * var(--u)); overflow: hidden; background: #fff;
+    outline: calc(2 * var(--u)) solid rgba(255, 255, 255, 0.25);
+  }
+  .iphone {
+    width: calc(560 * var(--u)); height: calc(1170 * var(--u)); margin-top: calc(110 * var(--u));
+    padding: calc(20 * var(--u)); border-radius: calc(100 * var(--u)); background: #0c0c12;
+  }
+  .iphone img { border-radius: calc(82 * var(--u)); }
 
   /* 16:9, 5244x2950. */
+  html.wide { --u: 1.38px; --row-top: 760px; }
   html.wide, .wide body { width: 5244px; height: 2950px; }
   .wide .glow { width: 3800px; height: 2400px; }
   .wide h1 { top: 260px; font-size: 220px; letter-spacing: -3px; }
-  .wide .ipad { width: 2100px; height: 2800px; left: 1524px; top: 680px; padding: 48px; border-radius: 126px; }
-  .wide .ipad img { border-radius: 80px; }
-  .wide .iphone { width: 860px; height: 1869px; top: 900px; padding: 32px; border-radius: 158px; }
-  .wide .iphone img { border-radius: 128px; }
-  .wide .left { left: 560px; }
-  .wide .right { right: 560px; }
 </style>
 <script>if (location.hash === "#wide") document.documentElement.className = "wide";</script>
 </head>
 <body>
   <div class="glow"></div>
   <h1>Your org files, <span>wherever you are.</span></h1>
-  <div class="device ipad"><img src="screenshots/ipad/01-agenda.png"></div>
-  <div class="device iphone left"><img src="screenshots/iphone-6.9/02-reader.png"></div>
-  <div class="device iphone right"><img src="screenshots/iphone-6.9/05-capture.png"></div>
+  <div class="row">
+    <div class="device ipad"><img src="screenshots/ipad/01-agenda.png"></div>
+    <div class="device mac"><img src="screenshots/mac/01-editor.png"></div>
+    <div class="device iphone"><img src="screenshots/iphone-6.9/05-capture.png"></div>
+  </div>
 </body>
 </html>

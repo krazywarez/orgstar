@@ -1,6 +1,6 @@
 # orgstar
 
-![orgstar on iPhone and iPad](ios/AppStore/header-21x9.png)
+![orgstar on iPad, Mac and iPhone](ios/AppStore/header-21x9.png)
 
 A native macOS editor for org-mode files, with an iOS app for iPhone and iPad.
 
