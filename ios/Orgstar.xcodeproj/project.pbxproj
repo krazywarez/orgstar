@@ -700,7 +700,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarQuickLook/Info.plist;
@@ -709,7 +709,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.quicklook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -722,7 +722,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = OrgstarShare/OrgstarShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarShare/Info.plist;
@@ -731,7 +731,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -744,7 +744,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = OrgstarShare/OrgstarShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarShare/Info.plist;
@@ -753,7 +753,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -767,7 +767,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Orgstar/Orgstar.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Orgstar/Info.plist;
@@ -777,7 +777,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar;
 				PRODUCT_MODULE_NAME = OrgstarMobile;
 				PRODUCT_NAME = Orgstar;
@@ -790,7 +790,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = OrgstarWidgets/OrgstarWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarWidgets/Info.plist;
@@ -800,7 +800,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -812,7 +812,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarQuickLook/Info.plist;
@@ -821,7 +821,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.quicklook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -852,7 +852,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Orgstar/Orgstar.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Orgstar/Info.plist;
@@ -862,7 +862,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar;
 				PRODUCT_MODULE_NAME = OrgstarMobile;
 				PRODUCT_NAME = Orgstar;
@@ -875,7 +875,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = OrgstarWidgets/OrgstarWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarWidgets/Info.plist;
@@ -885,7 +885,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -919,7 +919,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = OrgstarWatch/OrgstarWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarWatch/Info.plist;
@@ -927,7 +927,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -943,7 +943,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = OrgstarWatch/OrgstarWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarWatch/Info.plist;
@@ -951,7 +951,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -967,7 +967,7 @@
 				SKIP_INSTALL = YES;
 				CODE_SIGN_ENTITLEMENTS = OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarWatchWidgets/Info.plist;
@@ -976,7 +976,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -992,7 +992,7 @@
 				SKIP_INSTALL = YES;
 				CODE_SIGN_ENTITLEMENTS = OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = OrgstarWatchWidgets/Info.plist;
@@ -1001,7 +1001,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.1;
+				MARKETING_VERSION = 0.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.watchkitapp.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
