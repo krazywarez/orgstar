@@ -113,6 +113,7 @@ See Themes and Fonts below.
 | Agenda starts N days before today   | 0 to 14 days before    | 3 days       | =org-agenda-start-day=      |
 | Include files in subfolders         | On or off              | Off          | =agenda-include-subfolders= |
 | Show days without entries           | On or off              | Off          | =org-agenda-show-all-dates= |
+| Habits only today                   | On or off              | On           | =org-habit-show-habits-only-for-today= |
 | Blocked entries                     | Dimmed; Hidden; Shown as usual | Dimmed | =org-agenda-dim-blocked-tasks= |
 | Show events from Calendar           | On or off              | Off          | =calendar-events=           |
 | A checkbox for each calendar        | On or off              | All on       | =calendar-event-calendars=  |
@@ -175,6 +176,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-deadline-warning-days=      |                            |
 | =org-agenda-skip-scheduled-if-done= |                         |
 | =org-agenda-skip-deadline-if-done=  |                         |
+| =org-habit-show-habits-only-for-today= |                      |
 | =org-agenda-log-mode-items=      |                            |
 | =org-clock-into-drawer=          |                            |
 | =org-clock-rounding-minutes=, =org-clock-out-remove-zero-time-clocks=, =org-clock-in-switch-to-state=, =org-clock-out-when-done= | |
@@ -251,6 +253,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-agenda-show-all-dates=          | boolean | =false= | Show days without entries in the agenda; today always shows. Emacs's default is =t=. Mirrors =org-agenda-show-all-dates=. |
 | =org-agenda-skip-scheduled-if-done=  | boolean | =false= | Leave a done entry's scheduled date out of the agenda, even on its own day. Mirrors =org-agenda-skip-scheduled-if-done=. |
 | =org-agenda-skip-deadline-if-done=   | boolean | =false= | Leave a done entry's deadline out of the agenda, even on its own day. Mirrors =org-agenda-skip-deadline-if-done=. |
+| =org-habit-show-habits-only-for-today= | boolean | =true= | Show habits only on today's agenda. Off, a habit also shows on the later days it is scheduled for. Mirrors =org-habit-show-habits-only-for-today=. |
 | =org-agenda-log-mode-items=          | string  | ="closed clock"= | What log mode shows, separated by spaces: =closed=, =clock= and =state=. Mirrors =org-agenda-log-mode-items=. |
 | =org-agenda-todo-ignore-with-date=   | boolean | =false= | The TODO list leaves out entries with an active timestamp anywhere in their text. Mirrors =org-agenda-todo-ignore-with-date=. |
 | =org-agenda-todo-ignore-scheduled=   | string  | ="nil"= | The TODO list leaves out scheduled entries: ="all"= (or ="t"=) all of them, ="future"= those scheduled after today, ="past"= today or before, ="N"= N or more days ahead, ="-N"= N or more days ago. Mirrors =org-agenda-todo-ignore-scheduled=. |

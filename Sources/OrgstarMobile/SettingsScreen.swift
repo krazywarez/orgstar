@@ -45,6 +45,9 @@ struct SettingsScreen: View {
                 Toggle("Show days without entries", isOn: Binding {
                     OrgPreferences.agendaShowAllDates()
                 } set: { model.set("agendaShowAllDates", to: .bool($0)) })
+                Toggle("Habits only today", isOn: Binding {
+                    OrgPreferences.habitsOnlyForToday()
+                } set: { model.set("habitsOnlyForToday", to: .bool($0)) })
                 Picker("Blocked entries", selection: Binding {
                     UserDefaults.standard.string(forKey: "agendaDimBlockedTasks") ?? "t"
                 } set: { model.set("agendaDimBlockedTasks", to: .string($0)) }) {

@@ -587,6 +587,7 @@ struct SettingsView: View {
     @AppStorage("agendaStartOffset") private var agendaStartOffset = 0
     @AppStorage("agendaSubfolders") private var agendaSubfolders = false
     @AppStorage("agendaShowAllDates") private var agendaShowAllDates = false
+    @AppStorage("habitsOnlyForToday") private var habitsOnlyForToday = true
     @AppStorage("agendaDimBlockedTasks") private var agendaDimBlockedTasks = "t"
     @AppStorage("calendarEvents") private var calendarEvents = false
     @AppStorage("calendarEventCalendars") private var calendarEventCalendars = ""
@@ -766,6 +767,7 @@ struct SettingsView: View {
                 Stepper(agendaStartOffset == 0 ? "Agenda starts today" : "Agenda starts \(-agendaStartOffset) days before today", value: $agendaStartOffset, in: -14...0)
                 Toggle("Include files in subfolders", isOn: $agendaSubfolders)
                 Toggle("Show days without entries", isOn: $agendaShowAllDates)
+                Toggle("Habits only today", isOn: $habitsOnlyForToday)
                 Picker("Blocked entries", selection: $agendaDimBlockedTasks) {
                     Text("Dimmed").tag("t")
                     Text("Hidden").tag("invisible")

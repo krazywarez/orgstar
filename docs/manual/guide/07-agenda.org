@@ -103,7 +103,7 @@ The entries follow =org-agenda-get-day-entries= with Org's default entry types. 
 | Repeating timestamp =<… +1w>=           | On each occurrence within the span                                                                    | =All day=                      |
 | Date range =<…>--<…>=                   | On every day of the range                                                                             | =Day 2/5= (day 2 of 5)         |
 | Diary sexp =%%(…)= line or =<%%(…)>=    | On each day the sexp applies; see [[*Diary sexps][Diary sexps]]                                       | =All day=                      |
-| Habit (=STYLE: habit=)                  | On today only, while not done; see [[*Habits][Habits]]                                               | =Habit=, with a consistency graph |
+| Habit (=STYLE: habit=)                  | On today only, while not done, unless habits only today is off; see [[*Habits][Habits]]               | =Habit=, with a consistency graph |
 
 An entry with a time of day shows the time instead of the status: =08:00=, or =13:50–14:30= with an end time.
 
@@ -132,7 +132,7 @@ Days with a time grid show dotted lines at the grid's times among the timed entr
 
 ** Sorting
 
-Lines are sorted by =org-agenda-sorting-strategy=, set per kind of view in the =[org-agenda-sorting-strategy]= table of =config.toml= (see [[file:13-configuration.org][Configuration]]) or for one view in =views.toml=. The defaults are Org's: =habit-down time-up urgency-down category-keep= for days, =urgency-down category-keep= for the TODO list and matches, and =category-keep= for text search. With those, habits go last; timed entries come first, earliest first; the rest by urgency, which combines priority with how overdue an entry is; ties keep file order. Calendar events go among them as described in [[*Calendar events][Calendar events]].
+Lines are sorted by =org-agenda-sorting-strategy=, set per kind of view in the =[org-agenda-sorting-strategy]= table of =config.toml= (see [[file:13-configuration.org][Configuration]]) or for one view in =views.toml=. The defaults are =time-up habit-down urgency-down category-keep= for days, =urgency-down category-keep= for the TODO list and matches, and =category-keep= for text search. With those, timed entries come first, earliest first, timed habits among them; then untimed entries, habits last, by urgency, which combines priority with how overdue an entry is; ties keep file order. Calendar events go among them as described in [[*Calendar events][Calendar events]].
 
 Each key compares two lines, and the next key is tried when they tie:
 
@@ -315,7 +315,7 @@ To make every entry of a file a habit, put =#+PROPERTY: STYLE habit= at the top 
 
 The repeater can be =+=, =++= or =.+=, with an optional =/Nd= maximum interval. Days the habit was done are read from =- State "DONE" … [date]= lines (for any done keyword) and =CLOSING NOTE [date]= lines in the entry.
 
-A habit appears only on today's agenda and not once it is done for the day. Its row carries the consistency graph: one cell per day for the 21 days before today and the 7 after (=org-habit-preceding-days= and =org-habit-following-days=). On the Mac the graph is at the right of the row, with =*= on days the habit was done and =!= on today; on iOS it is a strip under the title, with a dot on days it was done and today outlined. Cell colors follow org-habit's faces:
+A habit appears only on today's agenda and not once it is done for the day. To show habits on the later days they are scheduled for too, turn off Settings ▸ Agenda ▸ Habits only today, or set =org-habit-show-habits-only-for-today = false= in =config.toml=. Its row carries the consistency graph: one cell per day for the 21 days before today and the 7 after (=org-habit-preceding-days= and =org-habit-following-days=). On the Mac the graph is at the right of the row, with =*= on days the habit was done and =!= on today; on iOS it is a strip under the title, with a dot on days it was done and today outlined. Cell colors follow org-habit's faces:
 
 | Color  | Meaning                                    | Theme key       |
 |--------+--------------------------------------------+-----------------|

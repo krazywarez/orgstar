@@ -115,7 +115,8 @@ enum AgendaOracle {
 
     static func compare(
         files: [(name: String, text: String)], start: Int, span: Int, today: Int, hour: Int = 9, minute: Int = 30,
-        prefix: [String: String]? = nil, logMode: Bool = false, logItems: Set<String>? = nil, skipIfDone: Bool = false
+        prefix: [String: String]? = nil, logMode: Bool = false, logItems: Set<String>? = nil, skipIfDone: Bool = false,
+        habitsOnlyForToday: Bool = true
     ) throws {
         let date = Days.date(start)
         var form = "(org-agenda-list nil \"\(String(format: "%04d-%02d-%02d", date.year, date.month, date.day))\" \(span))"
@@ -123,6 +124,7 @@ enum AgendaOracle {
         if logMode { form = "(let ((org-agenda-start-with-log-mode t)) \(form))" }
         if let logItems { form = "(let ((org-agenda-log-mode-items '(\(logItems.sorted().joined(separator: " "))))) \(form))" }
         if skipIfDone { form = "(let ((org-agenda-skip-scheduled-if-done t) (org-agenda-skip-deadline-if-done t)) \(form))" }
+        if !habitsOnlyForToday { form = "(let ((org-habit-show-habits-only-for-today nil)) \(form))" }
         form = "(let ((org-agenda-sorting-strategy '((agenda \(AgendaSort.defaults["agenda"]!.joined(separator: " ")))))) \(form))"
         let emacs = try run(files: files, form: form, today: today, hour: hour, minute: minute)
         let defaults = OrgSettings.default.withTodoKeywords(keywords)!
@@ -133,6 +135,7 @@ enum AgendaOracle {
         if let logItems { options.logItems = logItems }
         options.skipScheduledIfDone = skipIfDone
         options.skipDeadlineIfDone = skipIfDone
+        options.habitsOnlyForToday = habitsOnlyForToday
         let ours = Agenda.list(sources, start: start, days: span, today: today, now: (hour, minute), options: options)
         #expect(ours.count == emacs.count)
         for (o, e) in zip(ours, emacs) {
@@ -337,6 +340,21 @@ struct AgendaTests {
         let day = Days.absolute(year: 2026, month: 10, day: 6)
         try AgendaOracle.compare(files: files, start: day, span: 1, today: day)
         try AgendaOracle.compare(files: files, start: day + 1, span: 1, today: day)
+    }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func habitsOnLaterDaysMatchEmacs() throws {
+        let files = [("h.org", HabitTests.habits)]
+        for today in [(2026, 10, 5), (2026, 10, 8)] {
+            let day = Days.absolute(year: today.0, month: today.1, day: today.2)
+            for only in [true, false] {
+                try AgendaOracle.compare(files: files, start: day - 2, span: 10, today: day, habitsOnlyForToday: only)
+            }
+            var options = AgendaOptions.terminal
+            options.habitsOnlyForToday = false
+            let later = Agenda.list([AgendaSource(path: "h.org", text: HabitTests.habits)], start: day + 1, days: 7, today: day, now: (9, 30), options: options)
+            #expect(later.flatMap(\.items).contains { $0.habit != nil })
+        }
     }
 
     static let doneEntries = """

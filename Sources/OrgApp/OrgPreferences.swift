@@ -90,6 +90,7 @@ public enum OrgPreferences {
     /// `org-agenda-show-all-dates`: days without entries show.
     public static func agendaShowAllDates(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaShowAllDates", defaults) }
     public static func agendaSkipScheduledIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipScheduledIfDone", defaults) }
+    public static func habitsOnlyForToday(_ defaults: UserDefaults = .standard) -> Bool { bool("habitsOnlyForToday", defaults) }
     public static func agendaSkipDeadlineIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipDeadlineIfDone", defaults) }
     public static func agendaSearchAlwaysBoolean(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchAlwaysBoolean", defaults) }
     public static func agendaSearchForceFullWords(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSearchForceFullWords", defaults) }
@@ -99,6 +100,7 @@ public enum OrgPreferences {
         options.deadlineWarningDays = integer("deadlineWarningDays", defaults)
         options.skipScheduledIfDone = agendaSkipScheduledIfDone(defaults)
         options.skipDeadlineIfDone = agendaSkipDeadlineIfDone(defaults)
+        options.habitsOnlyForToday = habitsOnlyForToday(defaults)
         options.searchAlwaysBoolean = agendaSearchAlwaysBoolean(defaults)
         options.searchForceFullWords = agendaSearchForceFullWords(defaults)
         options.enforceTodoDependencies = bool("enforceTodoDependencies", defaults)

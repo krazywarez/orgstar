@@ -112,6 +112,9 @@ public struct AgendaOptions: Sendable, Equatable {
     /// `org-agenda-skip-scheduled-if-done`: done entries' scheduled items are left out even
     /// on the day they are scheduled.
     public var skipScheduledIfDone = false
+    /// `org-habit-show-habits-only-for-today`: habits show only on today's agenda, not on the
+    /// later days they are scheduled for.
+    public var habitsOnlyForToday = true
     /// `org-agenda-skip-deadline-if-done`: done entries' deadlines are left out even on the day due.
     public var skipDeadlineIfDone = false
     /// `org-agenda-search-view-always-boolean`: search strings are always `+word -word` snippets.
@@ -283,8 +286,9 @@ public enum Agenda {
                 continue
             }
             if heading.isDone, options.skipScheduledIfDone || schedule != current { continue }
-            // org-habit: habits only on today's agenda, and not when done.
-            if heading.isHabit, heading.isDone || !isToday { continue }
+            // org-habit: done habits never show, others only on today's agenda unless
+            // `org-habit-show-habits-only-for-today` is off.
+            if heading.isHabit, heading.isDone || (options.habitsOnlyForToday && !isToday) { continue }
             let time: Dotime? = !heading.isHabit && current != schedule && current != repeat_ ? nil : (timeIn(s).map { .string($0) } ?? .headline)
             let extra = heading.isHabit ? "" : isToday && past ? String(format: "Sched.%2dx: ", diff) : "Scheduled: "
             let habit = heading.isHabit ? heading.habit : nil

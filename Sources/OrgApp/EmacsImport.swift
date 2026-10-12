@@ -506,7 +506,8 @@ public struct EmacsImport: Sendable {
              "org-startup-indented", "org-hide-leading-stars", "org-startup-align-all-tables", "org-startup-truncated", "auto-fill-mode",
              "org-enforce-todo-dependencies", "org-enforce-todo-checkbox-dependencies",
              "org-agenda-todo-ignore-with-date", "org-agenda-tags-todo-honor-ignore-options", "org-clock-out-remove-zero-time-clocks",
-             "org-agenda-sort-notime-is-late", "org-agenda-sort-noeffort-is-high", "org-agenda-use-time-grid", "org-agenda-show-current-time-in-grid":
+             "org-agenda-sort-notime-is-late", "org-agenda-sort-noeffort-is-high", "org-agenda-use-time-grid", "org-agenda-show-current-time-in-grid",
+             "org-habit-show-habits-only-for-today":
             add(name, .bool(truthy))
         case "org-archive-location":
             guard let location = value.string, location.contains("::") else { return note("not a file::heading location") }
