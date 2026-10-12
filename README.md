@@ -1,6 +1,11 @@
 # orgstar
 
+![orgstar on iPhone and iPad](ios/AppStore/header-21x9.png)
+
 A native macOS editor for org-mode files, with an iOS app for iPhone and iPad.
+
+[Download on the App Store](https://apps.apple.com/app/idXXXXXXXXXX). Screenshots are in
+[ios/AppStore/screenshots](ios/AppStore/screenshots).
 
 The files are the source of truth: orgstar edits them in place and leaves
 every byte you didn't change as it was, so Emacs and sync tools can work on
