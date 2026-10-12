@@ -1,7 +1,5 @@
 #+OPTIONS: toc:nil
 
-* [[file:ios/AppStore/icon-64.png]]  orgstar
-
 #+ATTR_HTML: :alt orgstar on iPad, Mac and iPhone
 [[file:ios/AppStore/header-21x9.png]]
 
