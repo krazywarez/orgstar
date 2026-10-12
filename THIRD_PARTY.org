@@ -1,0 +1,15 @@
+* Third-party code
+Orgstar is 0BSD. It builds on these projects, under their own licenses.
+
+| Project | Use | License |
+|-+-+-|
+| [[https://github.com/groue/GRDB.swift][GRDB.swift]] | Index database | MIT |
+| [[https://github.com/tree-sitter/tree-sitter][tree-sitter]], [[https://github.com/tree-sitter/swift-tree-sitter][swift-tree-sitter]] | Src block parsing | MIT |
+| tree-sitter grammars: [[https://github.com/tree-sitter/tree-sitter-bash][bash]], [[https://github.com/tree-sitter/tree-sitter-c][c]], [[https://github.com/tree-sitter/tree-sitter-cpp][cpp]], [[https://github.com/tree-sitter/tree-sitter-go][go]], [[https://github.com/tree-sitter/tree-sitter-haskell][haskell]], [[https://github.com/tree-sitter/tree-sitter-java][java]], [[https://github.com/tree-sitter/tree-sitter-javascript][javascript]], [[https://github.com/tree-sitter/tree-sitter-json][json]], [[https://github.com/tree-sitter/tree-sitter-python][python]], [[https://github.com/tree-sitter/tree-sitter-ruby][ruby]], [[https://github.com/tree-sitter/tree-sitter-rust][rust]] | Highlighting; parsers, scanners and queries | MIT |
+| [[https://github.com/tree-sitter-grammars/tree-sitter-lua][tree-sitter-lua]], [[https://github.com/tree-sitter-grammars/tree-sitter-yaml][tree-sitter-yaml]] | Highlighting | MIT |
+| [[https://github.com/r-lib/tree-sitter-r][tree-sitter-r]] | Highlighting | MIT |
+| [[https://github.com/6cdh/tree-sitter-scheme][tree-sitter-scheme]] | Highlighting | MIT |
+| [[https://github.com/Wilfred/tree-sitter-elisp][tree-sitter-elisp]] | Highlighting (vendored in =Sources/TreeSitterElisp=) | MIT |
+| [[https://github.com/sogaiu/tree-sitter-clojure][tree-sitter-clojure]] | Highlighting (vendored in =Sources/TreeSitterClojure=) | CC0-1.0 |
+
+The JavaScript, Lua, Python and YAML scanners are copied into =Sources/TreeSitterScanners= with their licenses. Highlight queries are embedded in =Sources/OrgHighlight/Queries.swift= by =scripts/update-highlight-queries.sh=.
