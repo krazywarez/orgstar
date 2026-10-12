@@ -95,6 +95,12 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var onColumnView: ((ColumnView.View) -> Void)?
     /// Commands the app runs, as `app.clock.in`.
     var onAppCommand: ((String) -> Void)?
+    /// Where paste looks for an image; scripts checking the app set another.
+    static var pasteboard = UIPasteboard.general
+    /// Files dropped at the caret; nil leaves them to the text view.
+    var onFiles: (([URL]) -> Void)?
+    /// An image pasted at the caret, with its extension (`yank-media`).
+    var onImage: ((Data, String) -> Void)?
     /// Tags used across the workspace, for completion.
     var knownTags: @Sendable () -> [String] = { [] }
 
@@ -171,6 +177,19 @@ final class MobileEditor: NSObject, DocumentBuffer {
             return handleKey(key)
         }
         view.onLayout = { [weak self] in self?.viewResized() }
+        view.onFiles = { [weak self, weak view] files in
+            guard let self, let onFiles else { return false }
+            if let view { focus(view) }
+            onFiles(files)
+            return true
+        }
+        view.onImage = { [weak self, weak view] data, ext in
+            guard let self, let onImage else { return false }
+            if let view { focus(view) }
+            onImage(data, ext)
+            return true
+        }
+        view.textDropDelegate = view
         view.isEditable = editable
         view.autocorrectionType = .no
         view.autocapitalizationType = .none

@@ -53,6 +53,8 @@ cat > "$app/Info.plist" <<PLIST
     <array><string>iPhoneSimulator</string></array>
     <key>MinimumOSVersion</key>
     <string>26.0</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Photos you take from the editor are saved with your notes and linked where the caret is.</string>
     <key>NSFaceIDUsageDescription</key>
     <string>Face ID unlocks the passphrase of encrypted entries you asked orgstar to remember.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>

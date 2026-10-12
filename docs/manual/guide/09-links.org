@@ -342,9 +342,37 @@ to a file ending in =.png=, =.jpg=, =.jpeg=, =.gif=, =.svg=, =.webp=, =.tif=, =.
 [[./photo.jpg]]
 #+END_SRC
 
-Relative paths are resolved against the file's folder. =attachment:= links are not
-shown as images. The link text is hidden while the image is shown, except on the line
-that holds the caret.
+Relative paths are resolved against the file's folder, and =attachment:= links against the
+entry's attachment folder. The link text is hidden while the image is shown, except on the
+line that holds the caret, where the image is drawn under the link.
+
+** Pasting and dropping images
+
+Paste (⌘V, or Edit ▸ Paste on iOS) with an image on the clipboard and no text runs
+=yank-media=, as in Emacs 29 and later: the image is saved as =org-yank-image-save-method=
+says and a link to it is inserted at the caret. M-x =yank-media= does the same on the Mac.
+
+| =org-yank-image-save-method= | Where the image goes                                                     | Link                    |
+|------------------------------+--------------------------------------------------------------------------+-------------------------|
+| =attach= (the default)       | The entry's attachment folder, as =org-attach-attach= puts it            | =[[attachment:NAME]]=   |
+| a folder, such as ="images/"= | That folder, relative to the file's folder unless absolute; made if missing | =[[file:images/NAME]]= |
+
+The name is Org's: =clipboard-= and the time, as in =clipboard-20261011T232238.png=; a
+second image in the same second gets =-2=. PNG, JPEG and GIF are saved as they are, and
+other image types as PNG. Before the first heading, =attach= gives the file a file-level
+=ID=, as Emacs does.
+
+Files dropped on the editor on the Mac, or pasted after copying them in Finder, are handled
+as =org-yank-dnd-method= says: =attach= copies them into the entry's attachment folder (an
+image goes to the =org-yank-image-save-method= folder when that is a folder), =file-link=
+links to them where they are, =open= opens them, and =ask=, the default, asks which. An
+image dragged in without a file, such as one from a browser, is pasted as above. On iOS,
+dropped files are always attached, since what a drop hands over is a copy. Attach Photo or
+Video… and Take Photo… also insert their links at the caret.
+
+Two things differ from Emacs, so that a pasted image shows at once: the link has no
+description (Org writes =[[attachment:NAME][NAME]]=, which inline display skips), and it
+goes on a line of its own, breaking the line around the caret when it holds text.
 
 ** Remote images
 

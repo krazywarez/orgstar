@@ -155,7 +155,7 @@ Incremental Search is in Commands, and on =C-s= and =C-r= with a hardware keyboa
 
 The org-timer commands are in Commands; a running timer shows above the text. See [[file:06-dates-and-clocking.org][Dates and clocking]].
 
-More ▸ Attachments has the org-attach commands and Attach Photo or Video…; files shared to orgstar can be attached to an entry. See [[file:04-outlines.org][Outlines]].
+More ▸ Attachments has the org-attach commands, Attach Photo or Video… and Take Photo…, which insert the photo's link at the caret; files shared to orgstar can be attached to an entry. Pasting an image and dropping files on the editor attach them and link them at the caret. See [[file:04-outlines.org][Outlines]] and [[file:09-links.org][Links]].
 
 More ▸ Encryption has the org-crypt commands; see [[file:04-outlines.org][Outlines]]. A remembered passphrase is used after Face ID, Touch ID or the device passcode.
 
@@ -405,7 +405,7 @@ These settings from =config.toml= apply on iOS:
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
 - =org-enforce-todo-dependencies=, =org-enforce-todo-checkbox-dependencies=, =org-track-ordered-property-with-tag=, =org-agenda-dim-blocked-tasks=
 - =org-roam-directory=, =org-roam-dailies-directory=, =org-roam-dailies-file=, =org-roam-dailies-head=, =org-roam-dailies-entry=
-- =org-crypt-tag-matcher=, =org-attach-id-dir=, =org-attach-use-inheritance=, =org-timer-format=, =org-timer-default-timer=
+- =org-crypt-tag-matcher=, =org-attach-id-dir=, =org-attach-use-inheritance=, =org-yank-image-save-method=, =org-timer-format=, =org-timer-default-timer=
 - =org-archive-location=, =[org-structure-template-alist]=
 - =org-use-tag-inheritance=, =org-tags-exclude-from-inheritance=, =org-tag-alist=
 - =org-use-speed-commands=, with a hardware keyboard

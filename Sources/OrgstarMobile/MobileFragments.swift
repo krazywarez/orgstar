@@ -36,6 +36,9 @@ final class FragmentStyle: @unchecked Sendable {
 /// A text view that offers hardware-keyboard presses to the editor's keymap first.
 final class KeyedTextView: UITextView {
     var keyHandler: ((UIKey) -> Bool)?
+    /// Files dropped and an image pasted; each returns whether it took them.
+    var onFiles: (([URL]) -> Bool)?
+    var onImage: ((Data, String) -> Bool)?
     /// Keys the editor took, whose release the text system doesn't see. Optional: made by
     /// UIKit's `init(usingTextLayoutManager:)`, the view skips Swift's default values.
     private var handled: Set<UIKeyboardHIDUsage>?

@@ -2312,6 +2312,16 @@
         }
       }
     },
+    "Habits only today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewohnheiten nur heute"
+          }
+        }
+      }
+    },
     "Headings": {
       "localizations": {
         "de": {
@@ -4779,6 +4789,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tags …"
+          }
+        }
+      }
+    },
+    "Take Photo…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto aufnehmen …"
           }
         }
       }

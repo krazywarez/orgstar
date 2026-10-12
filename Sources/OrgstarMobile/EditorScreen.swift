@@ -63,6 +63,7 @@ struct EditorScreen: View {
     /// org-attach's file picker is up, for this method.
     @State private var attaching: Attachments.Method?
     @State private var attachingPhotos = false
+    @State private var takingPhoto = false
     @State private var photos: [PhotosPickerItem] = []
     /// A file shown in Quick Look.
     @State private var previewed: URL?
@@ -149,6 +150,9 @@ struct EditorScreen: View {
                     Menu("Attachments", systemImage: "paperclip") {
                         Button("Attach File…", systemImage: "doc.badge.plus") { attaching = .cp }
                         Button("Attach Photo or Video…", systemImage: "photo.badge.plus") { attachingPhotos = true }
+                        if CameraPicker.isAvailable {
+                            Button("Take Photo…", systemImage: "camera") { takingPhoto = true }
+                        }
                         Button("Attach File from URL…", systemImage: "link.badge.plus") { attachActions.run("app.attach.url") }
                         Button("New Attachment…", systemImage: "square.and.pencil") { attachActions.run("app.attach.new") }
                         Button("Open Attachment…", systemImage: "paperclip") { attachActions.run("app.attach.open") }
@@ -275,6 +279,13 @@ struct EditorScreen: View {
             }
         }
         .photosPicker(isPresented: $attachingPhotos, selection: $photos, matching: .any(of: [.images, .videos]))
+        .fullScreenCover(isPresented: $takingPhoto) {
+            CameraPicker { data in
+                takingPhoto = false
+                if let data { attachActions.yankImage(data, ext: "jpg", prefix: "photo") }
+            }
+            .ignoresSafeArea()
+        }
         .onChange(of: photos) { _, items in
             guard !items.isEmpty else { return }
             photos = []
@@ -415,6 +426,9 @@ struct EditorScreen: View {
         editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
         editor.keymap = model.keymap
         editor.modal = model.modalKeys
+        // Dropped files are copies the drop made, so they are attached, not linked or opened.
+        editor.onFiles = { attachActions.drop($0, method: .attach, attachMethod: .mv) }
+        editor.onImage = { attachActions.yankImage($0, ext: $1) }
         editor.onAppCommand = { id in
             if Self.paneCommands.contains(id) {
                 if let onPaneCommand { onPaneCommand(id) } else { message = "Not available here" }
@@ -507,7 +521,7 @@ extension EditorScreen {
             pick: { attaching = $0 })
     }
 
-    /// Photos and videos attached under the names Photos gives them.
+    /// Photos and videos attached under the names Photos gives them, linked at the caret.
     private func attachPhotos(_ items: [PhotosPickerItem]) {
         Task { @MainActor in
             var urls: [URL] = []
@@ -515,7 +529,7 @@ extension EditorScreen {
                 if let picked = try? await item.loadTransferable(type: PickedFile.self) { urls.append(picked.url) }
             }
             if urls.count < items.count { message = "Can't read \(items.count - urls.count) of the items" }
-            if !urls.isEmpty { attachActions.attach(urls, method: .mv) }
+            if !urls.isEmpty { attachActions.drop(urls, method: .attach, attachMethod: .mv) }
         }
     }
 

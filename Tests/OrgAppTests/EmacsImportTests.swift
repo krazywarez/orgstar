@@ -184,6 +184,19 @@ struct EmacsImportTests {
         #expect(s["org-icalendar-combined-agenda-file"] == .string("~/cal/org.ics"))
     }
 
+    @Test func readsYankSettings() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try #"""
+            (setq org-yank-image-save-method "images/"
+                  org-yank-dnd-method 'attach)
+            """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let s = settings(EmacsImport.scan(EmacsImport.files(in: folder)))
+        #expect(s["org-yank-image-save-method"] == .string("images/"))
+        #expect(s["org-yank-dnd-method"] == .string("attach"))
+    }
+
     @Test func readsLiterateConfig() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

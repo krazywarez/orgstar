@@ -262,6 +262,12 @@ struct RootView: View {
             takeShared()
             // Development: `ORGSTAR_ROOT` adds a folder at launch, as on the Mac.
             if let root = ProcessInfo.processInfo.environment["ORGSTAR_ROOT"] { try? await workspace.addRoot(URL(fileURLWithPath: root)) }
+            // `ORGSTAR_PASTE_IMAGE`: paste takes this PNG from a pasteboard of the app's own.
+            if let image = ProcessInfo.processInfo.environment["ORGSTAR_PASTE_IMAGE"], let data = try? Data(contentsOf: URL(fileURLWithPath: image)),
+               let pasteboard = UIPasteboard(name: UIPasteboard.Name("orgstar-check"), create: true) {
+                pasteboard.setData(data, forPasteboardType: "public.png")
+                MobileEditor.pasteboard = pasteboard
+            }
             workspace.startWatching()
             await workspace.refresh()
         }

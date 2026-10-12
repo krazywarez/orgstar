@@ -171,6 +171,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-timer-format=, =org-timer-default-timer= |                  |
 | =org-roam-directory=, =org-roam-dailies-directory=, =org-roam-dailies-file=, =org-roam-dailies-head=, =org-roam-dailies-entry= | |
 | =org-attach-id-dir=, =org-attach-use-inheritance= |              |
+| =org-yank-image-save-method=, =org-yank-dnd-method= |            |
 | =org-crypt-tag-matcher=          |                            |
 | =org-agenda-start-on-weekday=    |                            |
 | =org-deadline-warning-days=      |                            |
@@ -232,6 +233,8 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-timer-default-timer= | string | ="0"= | The countdown Set Countdown Timer… offers, in minutes or =h:mm:ss=; ="0"= offers none. Mirrors =org-timer-default-timer=. |
 | =org-attach-id-dir= | string | ="data/"= | The folder ID-based attachment folders go in, relative to the org file's folder unless absolute. See [[file:04-outlines.org][Outlines]]. Mirrors =org-attach-id-dir=. |
 | =org-attach-use-inheritance= | string | ="selective"= | Whether attachment folders come from an ancestor's =DIR= or =ID=: =selective=, ="t"= or ="nil"=. Mirrors =org-attach-use-inheritance=. |
+| =org-yank-image-save-method= | string | ="attach"= | Where a pasted image goes: =attach= for the entry's attachment folder, or a folder, relative to the org file's folder unless absolute. See [[file:09-links.org][Links]]. Mirrors =org-yank-image-save-method=. |
+| =org-yank-dnd-method= | string | ="ask"= | What dropping files on the editor does: =ask=, =attach=, =open= or =file-link=. See [[file:09-links.org][Links]]. Mirrors =org-yank-dnd-method=. |
 | =org-crypt-tag-matcher= | string | ="crypt"= | The tag Encrypt Tagged Entries… encrypts. A single tag. See [[file:04-outlines.org][Outlines]]. Mirrors =org-crypt-tag-matcher=. |
 | =org-startup-indented=               | boolean | =true=  | Indent bodies under their headings, as =org-indent-mode=. =#+STARTUP: indent= / =noindent= override it. Mirrors =org-startup-indented=. |
 | =org-hide-leading-stars=             | boolean | =false= | Show only a heading's last star, without indentation. =#+STARTUP: hidestars= / =showstars= override it. Mirrors =org-hide-leading-stars=. |
@@ -601,6 +604,8 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-timer-format=, =org-timer-default-timer=                     | The same keys; a number becomes a string                                                     |
 | =org-attach-id-dir=                                                | The same key, when the value is a string or an =expand-file-name= form                         |
 | =org-attach-use-inheritance=                                       | =selective=, or =t= / =nil= as ="t"= / ="nil"=                                                 |
+| =org-yank-image-save-method=                                       | =attach=, or a folder name                                                                     |
+| =org-yank-dnd-method=                                              | =ask=, =attach=, =open= or =file-link=                                                         |
 | =org-crypt-tag-matcher=                                            | The same key, when the value is a single tag                                                  |
 | =org-archive-location=                                             | The same key, when the value is a =file::heading= string                                      |
 | =org-structure-template-alist=                                     | =[org-structure-template-alist]=: each =("key" . "type")= entry that isn't one of Org's, from =setq= or =(add-to-list 'org-structure-template-alist …)= |
