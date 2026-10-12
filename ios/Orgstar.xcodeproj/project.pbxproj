@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C3C75F379379A9A6CE73594 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
-		66B4CC5BE465CB078976E641 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
-		D2A6A2AF120C4594370B7128 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
 		1B78003BBCE8A4B809333342 /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = A2BE626BBE45EA52880B6169 /* OrgApp */; };
 		1E5861C0EFE1D96CDC21A22F /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = BA239181876756F7732397EB /* OrgApp */; };
 		2BE799BF03ED43EAA6849F53 /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = EDEF22C5B4F393296F1D17BB /* OrgApp */; };
@@ -24,8 +21,6 @@
 		0A61626884F48A1B4963D767 /* OrgWatchData in Frameworks */ = {isa = PBXBuildFile; productRef = 925F6F580D155C1597A5F07B /* OrgWatchData */; };
 		C6824548013D3A2076EAF9C7 /* OrgWatchData in Frameworks */ = {isa = PBXBuildFile; productRef = 2EFA0D9CD8BD435F6283F3AA /* OrgWatchData */; };
 		625E39E946591E6D43200C02 /* OrgstarWatch/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C908C5209CABA6130FD12641 /* OrgstarWatch/Assets.xcassets */; };
-		B376F3ABC97B1DD45ACF72E6 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
-		19C76E12526FA2C682420D8D /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E28063B787B853DBF86E0BE8 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -291,6 +286,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3F4C2119C1AEC3C58EDF26F9 /* Build configuration list for PBXNativeTarget "Orgstar iOS" */;
 			buildPhases = (
+				B86570FC8656E397B56018C7 /* Compile string catalog */,
 				FD11E99E3EE9450636C880B9 /* Sources */,
 				843FAAECD041CD2466904790 /* Frameworks */,
 				287027B677CE75B2D4715EE6 /* Resources */,
@@ -321,6 +317,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9E5D2D8CAA074680FE17F119 /* Build configuration list for PBXNativeTarget "OrgstarShare" */;
 			buildPhases = (
+				641BAD6CBA4413E3690E3513 /* Compile string catalog */,
 				E5AC38BB173B87555EBEC0AC /* Sources */,
 				1439C48F60EF427CC7ADB87B /* Frameworks */,
 				1A9DC7DD7E76A6C5A1DC674C /* Resources */,
@@ -367,6 +364,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 14080276016DB67528B057D6 /* Build configuration list for PBXNativeTarget "OrgstarWidgets" */;
 			buildPhases = (
+				C9A138A7D511613ADA30B0C1 /* Compile string catalog */,
 				296E85448BDDDD3245D3D432 /* Sources */,
 				AE22603FB5DE3C5FFFBBC68E /* Frameworks */,
 				EA6C64E8D42ADCFBC3B131FF /* Resources */,
@@ -390,6 +388,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F016DC0514ED09D03670EA41 /* Build configuration list for PBXNativeTarget "OrgstarWatch" */;
 			buildPhases = (
+				4316AE7E93B32A6A11452968 /* Compile string catalog */,
 				CACD414798C1FBC733B9DAEF /* Sources */,
 				19E8368F7C3E6B0B873B86D7 /* Frameworks */,
 				D80B89150108F9E7F9B977F1 /* Resources */,
@@ -415,6 +414,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4B3C4C78C0194125D7118FBE /* Build configuration list for PBXNativeTarget "OrgstarWatchWidgets" */;
 			buildPhases = (
+				76C7F6FC6E17B50D801D8E15 /* Compile string catalog */,
 				56106460CED1CCEA1C324745 /* Sources */,
 				BCA36593052CBFAC52822B63 /* Frameworks */,
 				A068258849F81C306955A8BE /* Resources */,
@@ -477,7 +477,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D2A6A2AF120C4594370B7128 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -485,7 +484,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C3C75F379379A9A6CE73594 /* Localizable.xcstrings in Resources */,
 				67AD8B4FFD1ED43852CFC2CA /* Orgstar/Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -501,7 +499,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				66B4CC5BE465CB078976E641 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -509,7 +506,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B376F3ABC97B1DD45ACF72E6 /* Localizable.xcstrings in Resources */,
 				625E39E946591E6D43200C02 /* OrgstarWatch/Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -518,11 +514,113 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				19C76E12526FA2C682420D8D /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		B86570FC8656E397B56018C7 /* Compile string catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../l10n/Localizable.xcstrings",
+			);
+			name = "Compile string catalog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/de.lproj/Localizable.strings",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The catalog is compiled here rather than as a resource, so that Xcode doesn't sync it\n# from this target's sources; scripts/sync-strings.sh keeps it.\nxcrun xcstringstool compile \"$SCRIPT_INPUT_FILE_0\" --output-directory \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+		};
+		641BAD6CBA4413E3690E3513 /* Compile string catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../l10n/Localizable.xcstrings",
+			);
+			name = "Compile string catalog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/de.lproj/Localizable.strings",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The catalog is compiled here rather than as a resource, so that Xcode doesn't sync it\n# from this target's sources; scripts/sync-strings.sh keeps it.\nxcrun xcstringstool compile \"$SCRIPT_INPUT_FILE_0\" --output-directory \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+		};
+		C9A138A7D511613ADA30B0C1 /* Compile string catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../l10n/Localizable.xcstrings",
+			);
+			name = "Compile string catalog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/de.lproj/Localizable.strings",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The catalog is compiled here rather than as a resource, so that Xcode doesn't sync it\n# from this target's sources; scripts/sync-strings.sh keeps it.\nxcrun xcstringstool compile \"$SCRIPT_INPUT_FILE_0\" --output-directory \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+		};
+		4316AE7E93B32A6A11452968 /* Compile string catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../l10n/Localizable.xcstrings",
+			);
+			name = "Compile string catalog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/de.lproj/Localizable.strings",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The catalog is compiled here rather than as a resource, so that Xcode doesn't sync it\n# from this target's sources; scripts/sync-strings.sh keeps it.\nxcrun xcstringstool compile \"$SCRIPT_INPUT_FILE_0\" --output-directory \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+		};
+		76C7F6FC6E17B50D801D8E15 /* Compile string catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../l10n/Localizable.xcstrings",
+			);
+			name = "Compile string catalog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/de.lproj/Localizable.strings",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The catalog is compiled here rather than as a resource, so that Xcode doesn't sync it\n# from this target's sources; scripts/sync-strings.sh keeps it.\nxcrun xcstringstool compile \"$SCRIPT_INPUT_FILE_0\" --output-directory \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		296E85448BDDDD3245D3D432 /* Sources */ = {
