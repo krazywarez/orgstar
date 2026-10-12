@@ -10,8 +10,9 @@ public enum AgendaSort {
         "todo-state-down", "habit-up", "habit-down", "alpha-up", "alpha-down",
     ]
 
+    /// Org's, except the agenda sorts by time before habits, so timed habits go among timed entries.
     public static let defaults: [String: [String]] = [
-        "agenda": ["habit-down", "time-up", "urgency-down", "category-keep"],
+        "agenda": ["time-up", "habit-down", "urgency-down", "category-keep"],
         "todo": ["urgency-down", "category-keep"],
         "tags": ["urgency-down", "category-keep"],
         "search": ["category-keep"],

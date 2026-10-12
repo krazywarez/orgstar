@@ -123,6 +123,7 @@ enum AgendaOracle {
         if logMode { form = "(let ((org-agenda-start-with-log-mode t)) \(form))" }
         if let logItems { form = "(let ((org-agenda-log-mode-items '(\(logItems.sorted().joined(separator: " "))))) \(form))" }
         if skipIfDone { form = "(let ((org-agenda-skip-scheduled-if-done t) (org-agenda-skip-deadline-if-done t)) \(form))" }
+        form = "(let ((org-agenda-sorting-strategy '((agenda \(AgendaSort.defaults["agenda"]!.joined(separator: " ")))))) \(form))"
         let emacs = try run(files: files, form: form, today: today, hour: hour, minute: minute)
         let defaults = OrgSettings.default.withTodoKeywords(keywords)!
         let sources = files.map { AgendaSource(path: $0.name, text: $0.text, defaults: defaults) }

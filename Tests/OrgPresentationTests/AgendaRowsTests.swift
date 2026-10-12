@@ -165,6 +165,31 @@ struct AgendaRowsTests {
         #expect(later.nowIndex(now: 900) == nil)
     }
 
+    @Test func timedHabitsGoAmongTimedRows() {
+        let file = """
+            * TODO Lunch
+            SCHEDULED: <2026-10-05 Mon 12:00>
+            * TODO Medication
+            SCHEDULED: <2026-10-05 Mon 20:00>
+            * TODO Bathe
+            SCHEDULED: <2026-10-05 Mon 18:30 .+1d>
+            :PROPERTIES:
+            :STYLE: habit
+            :END:
+            """
+        let source = AgendaSource(path: "life.org", text: file, defaults: OrgSettings.default.withTodoKeywords("TODO | DONE")!)
+        let days = Agenda.list([source], start: Self.today, days: 1, today: Self.today, now: (10, 0))
+        let day = Self.today
+        let events = [
+            AgendaEvent(id: "a", title: "Call", calendarID: "c1", calendarTitle: "Work", color: nil, start: Self.date(day, 19), end: Self.date(day, 19, 30), isAllDay: false),
+        ]
+        let today = AgendaRows.groups(days, events: events, today: day, calendar: Self.utc)[0]
+        #expect(today.rows.map(\.title) == ["Lunch", "Bathe", "Call", "Medication"])
+        #expect(today.nowIndex(now: 1800) == 1)
+        #expect(today.nowIndex(now: 1904) == 3)
+        #expect(today.grid.first { $0.time == 1800 }?.before == 1)
+    }
+
     @Test func gridLinesGoBeforeLaterRows() {
         let today = AgendaRows.groups(Self.days(), today: Self.today)[0]
         #expect(today.grid.map(\.time) == [800, 1000, 1200, 1400, 1600, 1800, 2000])
@@ -175,7 +200,7 @@ struct AgendaRowsTests {
         for line in lines {
             switch line {
             case .row(let index):
-                if let start = today.rows[index].start, today.rows[index].item?.habit == nil { #expect(start >= last) ; last = start }
+                if let start = today.rows[index].start { #expect(start >= last) ; last = start }
             case .grid(let time): #expect(time >= last); last = time
             case .now: #expect(1100 >= last); last = 1100
             }

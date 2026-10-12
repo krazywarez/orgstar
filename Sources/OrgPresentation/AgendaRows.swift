@@ -327,7 +327,8 @@ public enum AgendaRows {
     ///   today always stays.
     /// - Today's past-scheduled entries and past deadlines (not habits) go in `overdue`,
     ///   oldest date first, Org's order among the same date.
-    /// - Other rows keep Org's order (timed by time, then untimed by urgency, habits last).
+    /// - Other rows keep the agenda's order (timed by time, then untimed by urgency, habits
+    ///   after other entries at the same time).
     ///   All-day events come first, timed events go among the timed entries by start time,
     ///   after entries at the same time. Reminders due before today show in today's
     ///   `overdue`.
@@ -372,8 +373,8 @@ public enum AgendaRows {
         return groups
     }
 
-    /// `org` (in Org's order) with event rows added: untimed events first, timed ones before
-    /// the first untimed or habit entry, or the first timed entry starting later.
+    /// `org` (in agenda order) with event rows added: untimed events first, timed ones before
+    /// the first untimed entry, or the first timed entry starting later.
     static func merge(_ org: [AgendaRow], events: [AgendaRow]) -> [AgendaRow] {
         let allDay = events.filter { $0.start == nil }
         var result = org
@@ -383,7 +384,7 @@ public enum AgendaRows {
         for event in timed {
             let at = result.firstIndex { row in
                 if row.isEvent { return row.start.map { $0 > event.start! } ?? false }
-                guard let start = row.start, row.item?.habit == nil else { return true }
+                guard let start = row.start else { return true }
                 return start > event.start!
             } ?? result.count
             result.insert(event, at: at)
@@ -405,7 +406,7 @@ public enum AgendaRows {
 
     /// See `AgendaDayGroup.nowIndex(now:)`.
     public static func nowIndex(_ rows: [AgendaRow], now: Int) -> Int? {
-        let timed = rows.indices.filter { rows[$0].start != nil && rows[$0].item?.habit == nil }
+        let timed = rows.indices.filter { rows[$0].start != nil }
         guard let last = timed.last else { return nil }
         return timed.first { rows[$0].start! > now } ?? last + 1
     }
