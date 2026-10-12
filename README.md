@@ -2,71 +2,64 @@
 
 ![orgstar on iPad, Mac and iPhone](ios/AppStore/header-21x9.png)
 
-A native macOS editor for org-mode files, with an iOS app for iPhone and iPad.
+orgstar is an editor for [Org mode](https://orgmode.org) files on the Mac, iPhone and
+iPad. It reads and writes the same plain-text `.org` files Emacs does, and leaves every
+byte you didn't change as it was, so Emacs, the Mac app, the iOS app and your sync tool
+can all work on the same folder.
 
-[Download on the App Store](https://apps.apple.com/app/idXXXXXXXXXX). Screenshots are in
-[ios/AppStore/screenshots](ios/AppStore/screenshots).
+[Download on the App Store](https://apps.apple.com/app/idXXXXXXXXXX) ·
+[Download for Mac](https://gitbay.org/krz/orgstar/releases) ·
+[Manual](https://krz.gitbay.site/orgstar/) ·
+[Screenshots](ios/AppStore/screenshots)
 
-The files are the source of truth: orgstar edits them in place and leaves
-every byte you didn't change as it was, so Emacs and sync tools can work on
-the same folder.
+## Your files stay yours
 
-Status: macOS v1, design phases 1–6: editing with Emacs, Mac and Doom keys,
-agenda, table formulas, Babel and tangling, export, capture, clocking, board,
-themes and buffers. Owed: the M1 Air gate run and the VoiceOver check. iOS
-(phase 7): the editor, agenda, capture, search, clocking, reminders, export
-and tangling, Simulator builds only so far.
+There is no database of your notes and no account. orgstar works on folders you choose,
+in iCloud Drive, a Syncthing folder or anywhere else, and keeps only an index for search
+and the agenda, rebuilt from the files whenever they change. Open the same files in
+Emacs tomorrow and nothing has been reformatted.
 
-## Build and run
+## What it does
 
-Requires macOS 26 and Xcode 27 (Swift 6.2 tools).
+- **Editor.** Headings, TODO keywords, priorities, tags, timestamps, links, lists,
+  tables and source blocks, styled as you type. Folding, structure editing, and Emacs,
+  Mac or Doom (Vim) keys.
+- **Agenda.** Scheduled items, deadlines and timestamps from all your files, by day,
+  with habits and Calendar events. On the Mac, a board shows entries as a table or as
+  kanban columns.
+- **Capture.** Capture templates as in Org, from a global shortcut, the share sheet,
+  Shortcuts, widgets, or `org-protocol://` links, so existing browser bookmarklets work
+  unchanged.
+- **Clocking.** Clock in and out of entries, with clock reports and a Live Activity on
+  iPhone.
+- **Tables.** Aligned as you type, with `#+TBLFM` formulas.
+- **Code blocks.** Run source blocks and tangle them into files, as `org-babel-tangle`
+  does.
+- **Export.** HTML and Markdown built in; PDF, LaTeX, ODT and more through Emacs when
+  it is installed.
+- **Search.** Across file names, headings and text, plus Spotlight and Quick Look
+  previews of `.org` files.
 
-```sh
-scripts/build-app.sh          # builds .build/app/orgstar.app, signed ad hoc
-open .build/app/orgstar.app
-```
+## Coming from Emacs
 
-`scripts/release-mac.sh <version>` builds a universal app, signs it with the keychain's
-Developer ID, notarizes a DMG, tags `v<version>`, uploads the DMG to the gitbay release
-and updates the cask in krz/homebrew-tap.
+orgstar behaves the way Org does where the two overlap. Settings ▸ General ▸ Import from
+Emacs reads an existing Emacs or Doom configuration and carries over its org settings,
+folders, capture templates, key bindings and agenda views. Settings live in plain files
+under `~/.config/orgstar/`, so they can sit in your dotfiles next to your Emacs config.
 
-Add a folder with File > Add Folder… (⇧⌘O). ⌘P opens a file by name, ⇧⌘F
-searches, ⇧⌘A shows the agenda. In the editor, TAB on a heading cycles its
-folding and Shift-TAB cycles the whole file. orgstar opens `.org` files from
-Finder once the app has been launched.
+## Get it
 
-C-c C-v t tangles the file's source blocks into the files their `:tangle`
-header names, as `org-babel-tangle` does.
-
-`org-protocol://capture?template=…&url=…&title=…&body=…` and
-`org-protocol://store-link?url=…&title=…` links work as in Emacs, so browser
-bookmarklets written for org-protocol work unchanged. Shortcuts has a
-"Capture to orgstar" action that files text with a capture template.
-
-The iOS app (iOS 26) is the "Orgstar iOS" scheme in `ios/Orgstar.xcodeproj`, with the
-share and Quick Look extensions. It builds from the package's sources and signs
-automatically with the team set in the project; choose a device or Simulator and Run.
-For the Simulator without Xcode:
-
-```sh
-scripts/build-ios-app.sh      # builds .build/ios-app/orgstar.app
-xcrun simctl install booted .build/ios-app/orgstar.app
-```
-
-On iOS, orgstar in the share sheet takes a page or text with a template; the
-app opens its capture sheet with it when it's next active. Shortcuts has the
-same "Capture to orgstar" action as on the Mac.
-
-Settings live in `~/.config/orgstar/config.toml` (orgstar ▸ Edit Config File),
-with keys in `keymap.toml` and capture templates in `capture.toml` beside it.
-Settings ▸ General ▸ Import from Emacs reads an existing Emacs or Doom
-configuration.
+On the Mac (macOS 26 or later), with Homebrew:
 
 ```sh
-swift test                                            # all tests
-ORGSTAR_GATES=1 swift test -c release --filter GateTests   # performance gates
+brew tap krz/tap https://gitbay.org/krz/homebrew-tap.git
+brew install --cask orgstar
 ```
 
-`docs/design.md` is the design; `docs/plans/` has one plan per piece of work.
+or download the notarized DMG from the
+[releases page](https://gitbay.org/krz/orgstar/releases). iPhone and iPad (iOS 26 or
+later): [App Store](https://apps.apple.com/app/idXXXXXXXXXX).
+
+To build from source or contribute, see [CONTRIBUTING.org](CONTRIBUTING.org).
 
 License: 0BSD.

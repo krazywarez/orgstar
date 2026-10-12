@@ -1,0 +1,70 @@
+#+TITLE: Contributing
+
+* Status
+
+macOS v1, design phases 1–6: editing with Emacs, Mac and Doom keys, agenda, table
+formulas, Babel and tangling, export, capture, clocking, board, themes and buffers.
+Owed: the M1 Air gate run and the VoiceOver check. iOS (phase 7): the editor, agenda,
+capture, search, clocking, reminders, export and tangling, Simulator builds only so far.
+
+=docs/design.md= is the design; =docs/plans/= has one plan per piece of work.
+
+* Build and run
+
+Requires macOS 26 and Xcode 27 (Swift 6.2 tools).
+
+#+BEGIN_SRC sh
+scripts/build-app.sh          # builds .build/app/orgstar.app, signed ad hoc
+open .build/app/orgstar.app
+#+END_SRC
+
+Add a folder with File > Add Folder… (⇧⌘O). ⌘P opens a file by name, ⇧⌘F searches,
+⇧⌘A shows the agenda. In the editor, TAB on a heading cycles its folding and Shift-TAB
+cycles the whole file. orgstar opens =.org= files from Finder once the app has been
+launched.
+
+C-c C-v t tangles the file's source blocks into the files their =:tangle= header
+names, as =org-babel-tangle= does.
+
+=org-protocol://capture?template=…&url=…&title=…&body=…= and
+=org-protocol://store-link?url=…&title=…= links work as in Emacs, so browser
+bookmarklets written for org-protocol work unchanged. Shortcuts has a "Capture to
+orgstar" action that files text with a capture template.
+
+Settings live in =~/.config/orgstar/config.toml= (orgstar ▸ Edit Config File), with
+keys in =keymap.toml= and capture templates in =capture.toml= beside it. Settings ▸
+General ▸ Import from Emacs reads an existing Emacs or Doom configuration.
+
+* iOS
+
+The iOS app (iOS 26) is the "Orgstar iOS" scheme in =ios/Orgstar.xcodeproj=, with the
+share and Quick Look extensions. It builds from the package's sources and signs
+automatically with the team set in the project; choose a device or Simulator and Run.
+For the Simulator without Xcode:
+
+#+BEGIN_SRC sh
+scripts/build-ios-app.sh      # builds .build/ios-app/orgstar.app
+xcrun simctl install booted .build/ios-app/orgstar.app
+#+END_SRC
+
+On iOS, orgstar in the share sheet takes a page or text with a template; the app opens
+its capture sheet with it when it's next active. Shortcuts has the same "Capture to
+orgstar" action as on the Mac.
+
+* Tests
+
+#+BEGIN_SRC sh
+swift test                                                 # all tests
+ORGSTAR_GATES=1 swift test -c release --filter GateTests   # performance gates
+#+END_SRC
+
+* Release
+
+=scripts/release-mac.sh <version>= builds a universal app, signs it with the
+keychain's Developer ID, notarizes a DMG, tags =v<version>=, uploads the DMG to the
+gitbay release and updates the cask in krz/homebrew-tap.
+
+* App Store header
+
+=ios/AppStore/header.html= renders the product page headers; the commands are in the
+comment at the top of the file.
