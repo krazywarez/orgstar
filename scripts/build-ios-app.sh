@@ -5,7 +5,7 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-version="${1:-0.4.1}"
+version="${1:-0.4.2}"
 app=".build/ios-app/orgstar.app"
 products=".build/ios/Build/Products/Debug-iphonesimulator"
 
