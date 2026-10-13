@@ -31,6 +31,7 @@ struct PaneDivider: View {
 struct BufferTabs: View {
     let session: DocumentSession
     let pane: EditorPane
+    let close: (String) -> Void
     @Environment(\.orgTheme) private var theme
 
     var body: some View {
@@ -55,7 +56,7 @@ struct BufferTabs: View {
                 .accessibilityAddTraits(current ? [.isButton, .isSelected] : .isButton)
                 .accessibilityAction { session.open(path, in: pane) }
             Button {
-                if UnsavedChanges.resolve(session, paths: [path]) { session.kill(path) }
+                close(path)
             } label: {
                 Image(systemName: session.dirtyPaths.contains(path) ? "circle.fill" : "xmark")
                     .font(.system(size: session.dirtyPaths.contains(path) ? 6 : 9, weight: .semibold))

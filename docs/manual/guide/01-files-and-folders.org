@@ -148,7 +148,7 @@ Menu shortcuts (=⇧⌘]=, =⌘W= and the others) work in every preset. The Doom
 
 Switch to Buffer asks in the echo area. The choices are the open buffers, most recently shown first, with the current buffer last. Type to narrow them, =Tab= to complete the top choice, =Return= to switch, =Escape= to cancel.
 
-Close Buffer closes the current buffer and shows the buffer you showed before it. With no buffer open, =⌘W= closes the window. In other windows (Agenda, Board and so on) =⌘W= closes that window. File ▸ Close Window (=⇧⌘W=) closes the window in front.
+Close Buffer closes the current buffer and shows the buffer you showed before it. With no buffer open, =⌘W= closes the window. In a window split into panes, closing the last tab of a pane closes the pane; its buffer stays open when another pane shows it. In other windows (Agenda, Board and so on) =⌘W= closes that window. File ▸ Close Window (=⇧⌘W=) closes the window in front.
 
 When you close buffers with unsaved edits, what happens depends on the save mode (see /Saving/ below): in automatic mode they are saved first; in explicit mode orgstar asks =Save=, =Don't Save= or =Cancel= (=Save All= for several files). A buffer whose save fails or conflicts stays open.
 
@@ -169,7 +169,7 @@ These names show in the window title, the tab bar and Switch to Buffer.
 View ▸ Show Tab Bar shows a row of tabs above each pane, one per buffer that pane has shown, in the order it first showed them. It is off by default; the setting is =tab-bar= in =config.toml=.
 
 - Click a tab to show its buffer. Hover to see the file's full path.
-- Click =×= to close a buffer, in every pane. A dot replaces the =×= while the buffer has unsaved edits; clicking it also closes the buffer, with the same unsaved-changes handling as Close Buffer.
+- Click =×= to close a buffer, in every pane. On a pane's last tab, with other panes in the window, it closes the pane as well, as Close Buffer does. A dot replaces the =×= while the buffer has unsaved edits; clicking it also closes the buffer, with the same unsaved-changes handling as Close Buffer.
 
 * Searching your notes
 

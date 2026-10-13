@@ -73,7 +73,7 @@ struct PaneCell: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if showTabBar { BufferTabs(session: session, pane: pane) }
+            if showTabBar { BufferTabs(session: session, pane: pane) { window.closeTab($0, in: pane, commands: commands) } }
             if pane.path != nil {
                 PaneView(pane: pane, session: session, commands: commands, settings: commands.editorSettings, onAppCommand: onAppCommand)
             } else {

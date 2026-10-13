@@ -137,14 +137,7 @@ struct ContentView: View {
 
     /// Gives the focused pane's text view the keyboard, after a pane command moved the focus.
     private func focusPane(_ window: WindowModel) {
-        let pane = window.focusedPane
-        session.focused = pane
-        if let path = pane.path, let textView = commands.store.textView(for: pane.id, path: path) {
-            textView.window?.makeFirstResponder(textView)
-            commands.editor = commands.store.editor(for: path)
-        } else {
-            commands.editor = nil
-        }
+        window.activate(commands)
     }
     /// Carets of restored buffers, shown when each first shows.
     @State private var pendingCarets: [String: Int] = [:]
@@ -988,11 +981,13 @@ struct ContentView: View {
         case "app.buffer.previous": session.cycle(-1)
         case "app.buffer.last": session.showPrevious()
         case "app.buffer.kill":
-            guard let path = session.path else {
+            if let window = paneWindow, window.paneCount > 1 {
+                window.closeTab(session.path, in: window.focusedPane, commands: commands)
+            } else if let path = session.path {
+                if UnsavedChanges.resolve(session) { session.kill(path) }
+            } else {
                 NSApp.keyWindow?.performClose(nil)
-                return
             }
-            if UnsavedChanges.resolve(session) { session.kill(path) }
         case "app.buffer.kill-others":
             let others = session.openPaths.filter { $0 != session.path }
             if UnsavedChanges.resolve(session, paths: others) { others.forEach(session.kill) }

@@ -45,6 +45,37 @@ final class WindowModel: Identifiable {
         if focused == id { focus(rest.panes[0]) }
     }
 
+    /// Closes `path`'s tab in `pane`, or the empty pane when `path` is nil. With other panes in
+    /// the window and no other tab here, the pane closes too, and the buffer closes only if no
+    /// other pane shows it. False when unsaved changes kept it open.
+    @discardableResult
+    func closeTab(_ path: String?, in pane: EditorPane, commands: AppCommands) -> Bool {
+        let closesPane = paneCount > 1 && pane.shown.allSatisfy { $0 == path }
+        let elsewhere = path.map { path in session.panes.contains { $0 !== pane && $0.shown.contains(path) } } ?? true
+        if let path, !(closesPane && elsewhere) {
+            guard UnsavedChanges.resolve(session, paths: [path]) else { return false }
+        }
+        if closesPane {
+            commands.store.releasePane(pane.id)
+            close(pane.id)
+            activate(commands)
+        }
+        if let path, !(closesPane && elsewhere) { session.kill(path) }
+        return true
+    }
+
+    /// Gives the focused pane's text view the keyboard, after a pane command moved the focus.
+    func activate(_ commands: AppCommands) {
+        let pane = focusedPane
+        session.focused = pane
+        if let path = pane.path, let textView = commands.store.textView(for: pane.id, path: path) {
+            textView.window?.makeFirstResponder(textView)
+            commands.editor = commands.store.editor(for: path)
+        } else {
+            commands.editor = nil
+        }
+    }
+
     /// Removes every pane but the focused one.
     func closeOthers() {
         for id in layout.panes where id != focused { close(id) }
