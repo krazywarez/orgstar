@@ -74,6 +74,9 @@ struct MobileTheme {
         style.firstLineHeadIndent = CGFloat(firstLine) * column
         style.headIndent = CGFloat(wrapped) * column
         style.lineSpacing = CGFloat(max(0, spec.lineSpacing))
+        // `tab-width` 8, counted from the line's own start, past org-indent's indentation.
+        style.defaultTabInterval = 8 * column
+        style.tabStops = (1...32).map { NSTextTab(textAlignment: .left, location: style.firstLineHeadIndent + CGFloat($0 * 8) * column) }
         return style
     }
 
