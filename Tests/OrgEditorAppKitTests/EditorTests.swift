@@ -136,6 +136,15 @@ struct FoldingTests {
         #expect(h.caret == 3)
     }
 
+    @Test func newHeadingAtTheEndOfAFoldedHeadingGoesAfterItsSubtree() {
+        let h = Harness(outline)
+        h.caret(at: 1)
+        h.editor.cycleAtCaret()
+        h.caret(at: 3)
+        h.editor.run("org.heading.insert")
+        #expect(h.string == "* a\nbody\n** b\nmore\n* \n* c\ntext\n")
+    }
+
     @Test func copyingAcrossAFoldIncludesHiddenText() {
         let h = Harness(outline)
         h.caret(at: 1)

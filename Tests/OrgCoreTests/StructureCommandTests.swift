@@ -35,6 +35,21 @@ struct StructureCommandTests {
         }
         #expect(result.selection == [9..<9])
     }
+
+    /// The caret at the end of a folded heading stands for Emacs's point behind the ellipsis:
+    /// the new heading goes after the subtree, not between the heading and its folded body.
+    @Test func newHeadingAtTheEndOfAFoldedHeadingGoesAfterTheSubtree() {
+        let text = "* One\nbody one\n** One child\nchild body\n* Two\nbody two\n"
+        // As the editors hide a folded heading: the lines after it, to its section's end.
+        let fold = 6..<(text as NSString).range(of: "* Two").location
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [5..<5], hidden: [fold])
+        guard case .commit(let result) = InsertHeading().run(in: context) else {
+            Issue.record("expected a commit")
+            return
+        }
+        let new = result.edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(text) { $1.apply(to: $0) }
+        #expect(new == "* One\nbody one\n** One child\nchild body\n* \n* Two\nbody two\n")
+    }
 }
 
 struct StructureOracleTests {

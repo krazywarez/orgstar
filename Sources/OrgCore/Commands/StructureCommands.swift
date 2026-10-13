@@ -47,7 +47,9 @@ extension EmacsBuffer {
         let blank = blankBeforeHeading
         let level = currentLevel
         let stars = String(repeating: "*", count: level ?? 1)
-        let invisible = hidden.contains { $0.contains(max(point - 1, 0)) }
+        // The caret at the end of a folded heading's line, just before its hidden body, is where
+        // Emacs's point sits behind the ellipsis.
+        let invisible = hidden.contains { $0.contains(max(point - 1, 0)) || (!$0.isEmpty && $0.lowerBound == point + 1 && atHeading && eolp) }
         if respectContent || invisible {
             if level == nil {
                 outlineNextHeading()

@@ -221,13 +221,25 @@ extension MobileEditor {
         textView.scrollRangeToVisible(NSRange(location: target, length: 0))
     }
 
-    /// The caret left hidden text (a tap past a fold): what hides it opens.
+    /// The caret in hidden text: an arrow key moving forward into a fold jumps past it and
+    /// moving back jumps to the end of the heading line, as on the Mac; a tap past a fold
+    /// opens it.
     func selectionChanged() {
         let interval = Perf.begin("editor.selection")
         defer { interval.end() }
         redrawSelectedBlocks()
         let caret = textView.selectedRange.location
-        if hidden.containing(caret) != nil { unfold(around: caret) }
+        defer {
+            previousCaret = textView.selectedRange.location
+            movedByArrow = false
+        }
+        if let range = hidden.containing(caret) {
+            if movedByArrow, textView.selectedRange.length == 0 {
+                textView.selectedRange = NSRange(location: caret >= previousCaret ? range.upperBound : range.lowerBound - 1, length: 0)
+            } else {
+                unfold(around: caret)
+            }
+        }
         revealCaretLine()
     }
 }

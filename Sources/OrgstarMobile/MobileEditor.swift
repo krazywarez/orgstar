@@ -108,6 +108,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
     internal(set) var fold = FoldState()
     var globalVisibility: GlobalVisibility?
     let hidden = LockedRanges()
+    /// An arrow key moved the caret, and where it was before; the caret skips folds then.
+    var movedByArrow = false
+    var previousCaret = 0
     /// Blocks drawn on a band.
     let shaded = LockedRanges()
     let fragmentStyle = FragmentStyle()
@@ -444,6 +447,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
     /// The Emacs keymap's commands on an iPad keyboard. Keys it doesn't bind, Command shortcuts
     /// and editing keys (C-a, C-e, C-k...) are the text system's.
     func handleKey(_ key: UIKey) -> Bool {
+        movedByArrow = [.keyboardUpArrow, .keyboardDownArrow, .keyboardLeftArrow, .keyboardRightArrow].contains(key.keyCode)
         guard let chord = Self.chord(key), !chord.modifiers.contains(.command) else { return false }
         if isearch != nil, isearchKey(chord) { return true }
         if modal { return handleModal(chord) }
