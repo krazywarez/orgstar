@@ -271,6 +271,16 @@ struct QuestionField: View {
         if !tags.contains(choice) { answer = (tags + [choice]).joined(separator: ":") }
     }
 
+    /// `date` at the next whole hour from now when it has no time of day yet, for a time
+    /// switched on; otherwise as it is.
+    static func timed(_ date: Date, now: Date = Date()) -> Date {
+        let calendar = Calendar.current
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        guard parts.hour == 0, parts.minute == 0 else { return date }
+        let hour = min(calendar.component(.hour, from: now) + 1, 23)
+        return calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
+    }
+
     static func stamp(_ date: Date, withTime: Bool) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -335,7 +345,7 @@ private struct EntryFields: View {
     }
 
     static func initial(_ stamp: Timestamp?) -> Date {
-        guard let stamp else { return Date() }
+        guard let stamp else { return Calendar.current.startOfDay(for: Date()) }
         let point = stamp.start
         return Calendar.current.date(from: DateComponents(year: point.year, month: point.month, day: point.day, hour: point.hour, minute: point.minute)) ?? Date()
     }
@@ -363,6 +373,7 @@ private struct DateTimeSheet: View {
             Form {
                 DatePicker(title, selection: $date, displayedComponents: .date).datePickerStyle(.graphical)
                 Toggle("Time", isOn: $withTime)
+                    .onChange(of: withTime) { if withTime { date = QuestionField.timed(date) } }
                 if withTime { DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute) }
             }
             .navigationTitle(title)
@@ -373,7 +384,11 @@ private struct DateTimeSheet: View {
             }
         }
         .presentationDetents([.large])
-        .onAppear { date = initial }
+        .onAppear {
+            date = initial
+            let parts = Calendar.current.dateComponents([.hour, .minute], from: initial)
+            withTime = parts.hour != 0 || parts.minute != 0
+        }
     }
 }
 

@@ -691,6 +691,7 @@ struct PromptSheet: View {
     let answer: (String?) -> Void
     @State private var text = ""
     @State private var date = Date()
+    @State private var withTime = false
     @State private var keys: [FastSelection.Input] = []
 
     var body: some View {
@@ -710,7 +711,13 @@ struct PromptSheet: View {
                     if prompt.date != nil {
                         DatePicker("Date", selection: $date, displayedComponents: [.date])
                             .datePickerStyle(.graphical)
-                            .onChange(of: date) { text = Self.stamp(date) }
+                            .onChange(of: date) { text = QuestionField.stamp(date, withTime: withTime) }
+                        Toggle("Time", isOn: $withTime)
+                            .onChange(of: withTime) {
+                                if withTime { date = QuestionField.timed(date) }
+                                text = QuestionField.stamp(date, withTime: withTime)
+                            }
+                        if withTime { DatePicker("Time", selection: $date, displayedComponents: .hourAndMinute) }
                     }
                     if !prompt.choices.isEmpty {
                         let matching = prompt.choices.filter { lastPart.isEmpty || $0.localizedCaseInsensitiveContains(lastPart) }
@@ -736,7 +743,7 @@ struct PromptSheet: View {
         }
         .onAppear {
             text = prompt.initial
-            if let day = prompt.date?.defaultDate { date = day }
+            date = prompt.date?.defaultDate ?? Calendar.current.startOfDay(for: Date())
         }
     }
 
@@ -780,13 +787,6 @@ struct PromptSheet: View {
         } footer: {
             if fast.multiple, !fast.inherited.isEmpty { Text("Inherited: :" + fast.inherited.joined(separator: ":") + ":") }
         }
-    }
-
-    static func stamp(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
     }
 }
 
