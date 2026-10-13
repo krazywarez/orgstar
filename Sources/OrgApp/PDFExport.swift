@@ -9,6 +9,11 @@ import UIKit
 /// PDF from the HTML export, laid out and paginated by WebKit as printing does: no Emacs or TeX.
 @MainActor
 public enum PDFExport {
+    /// US Letter where it's the custom, A4 elsewhere.
+    nonisolated static func usesLetter(_ region: String? = Locale.current.region?.identifier) -> Bool {
+        ["US", "CA", "MX", "PH", "CL", "CO", "VE", "PR"].contains(region ?? "")
+    }
+
     public struct Failure: Error, CustomStringConvertible {
         public let description: String
     }
@@ -99,8 +104,7 @@ public enum PDFExport {
     }
     #else
     private static func render(_ webView: WKWebView) async throws -> Data {
-        // US Letter where it's the custom, A4 elsewhere.
-        let letter = ["US", "CA", "MX", "PH", "CL", "CO", "VE", "PR"].contains(Locale.current.region?.identifier ?? "")
+        let letter = usesLetter()
         let paper = CGRect(x: 0, y: 0, width: letter ? 612 : 595.2, height: letter ? 792 : 841.8)
         let renderer = UIPrintPageRenderer()
         renderer.addPrintFormatter(webView.viewPrintFormatter(), startingAtPageAt: 0)

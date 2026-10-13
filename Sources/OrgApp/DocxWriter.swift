@@ -23,7 +23,7 @@ enum DocxWriter {
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" \
             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>\(body)\
-            <w:sectPr><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>\
+            \(section(letter: PDFExport.usesLetter()))\
             </w:body></w:document>
             """
         let relationships = links.enumerated().map { index, url in
@@ -50,6 +50,13 @@ enum DocxWriter {
             """)
         zip.add("word/document.xml", document)
         return zip.data()
+    }
+
+    /// The page: Letter or A4, as PDF export has it. Without a size, readers pick their own, and
+    /// Quick Look and Pages pick a narrow one.
+    static func section(letter: Bool) -> String {
+        let size = letter ? "<w:pgSz w:w=\"12240\" w:h=\"15840\"/>" : "<w:pgSz w:w=\"11906\" w:h=\"16838\"/>"
+        return "<w:sectPr>\(size)<w:pgMar w:top=\"1134\" w:right=\"1134\" w:bottom=\"1134\" w:left=\"1134\" w:header=\"0\" w:footer=\"0\" w:gutter=\"0\"/></w:sectPr>"
     }
 
     /// Paragraphs in order, consecutive ones in the same table gathered into `<w:tbl>`.

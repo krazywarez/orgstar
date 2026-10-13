@@ -45,9 +45,17 @@ struct RichTextExportTests {
         let data = DocxWriter.data(from: try RichTextExport.attributed(html: page, directory: nil), tables: tables)
         let xml = String(decoding: data, as: UTF8.self)
         #expect(xml.contains("<w:tbl>") && !xml.contains("\u{E000}"))
+        // A page size of its own, or readers choose a narrow one.
+        #expect(xml.contains("<w:pgSz w:w="))
         let back = try NSAttributedString(data: data, options: [:], documentAttributes: nil).string
         #expect(back.contains("Report") && back.contains("Count") && back.contains("second"), "\(back)")
         #expect(RichTextExport.decode("a &amp;lt; &#233;&#x41; &quot;") == "a &lt; éA \"")
+    }
+
+    @Test func wordPagesAreLetterOrA4() {
+        #expect(PDFExport.usesLetter("US") && !PDFExport.usesLetter("DE") && !PDFExport.usesLetter(nil))
+        #expect(DocxWriter.section(letter: true).contains("<w:pgSz w:w=\"12240\" w:h=\"15840\"/>"))
+        #expect(DocxWriter.section(letter: false).contains("<w:pgSz w:w=\"11906\" w:h=\"16838\"/>"))
     }
 
     @Test func plainTextAndDarkSystemsStayReadable() throws {
