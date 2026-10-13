@@ -4,6 +4,16 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.4.2</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.4.2</link>
+      <sparkle:version>490</sparkle:version>
+      <sparkle:shortVersionString>0.4.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 12 Oct 2026 23:31:15 -0500</pubDate>
+      <description><![CDATA[Universal (Apple silicon and Intel), macOS 26 or later. Notarized.]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.4.2/orgstar-0.4.2.dmg" type="application/octet-stream" sparkle:edSignature="fBFIEB6062S2DWb/KP3cb7Ghb7koQEwVxble7NYi+A8koHm+fCcE2qYbmeqa0nkoO7OZVAxh5fZivSIk4ga9Dw==" length="52794043"/>
+    </item>
+    <item>
       <title>orgstar 0.4.1</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.4.1</link>
       <sparkle:version>487</sparkle:version>
