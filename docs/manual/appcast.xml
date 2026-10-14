@@ -4,6 +4,27 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.5.0</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.5.0</link>
+      <sparkle:version>509</sparkle:version>
+      <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Wed, 14 Oct 2026 00:11:59 -0500</pubDate>
+      <description><![CDATA[<p>Writing, search and export, Org's defaults, and a German translation of what's new.</p>
+<ul>
+<li><b>Writing.</b> A proportional body font (Settings ▸ Appearance ▸ Body text), with tables, code, dates and tags kept monospaced. A text width that centres lines in a wide window. Line numbers are off by default. Emphasize (C-c C-x C-f), with ⌘B, ⌘I and ⌘U in the Mac keys. The word count shows characters and reading time.</li>
+<li><b>Search.</b> Search Notes finds text before a file's first heading, and shows the passage each result matched with the words in bold.</li>
+<li><b>Notes.</b> Find Node and Insert Node Link make a new node from a title that isn't found. Backlinks show the line each link is on.</li>
+<li><b>Export.</b> Word files have heading styles and the file's images. PDF export has page numbers, and settings for margins and font in the Export dialog.</li>
+<li><b>Safety.</b> Recovery Versions keeps an hourly snapshot of a file before saving.</li>
+<li><b>Org's defaults.</b> New installs get Org's TODO keywords (TODO and DONE) and M-RET at the caret; existing settings are kept. Logging, speed keys and spell checking are in Settings ▸ Editing.</li>
+<li><b>Getting started.</b> A welcome sheet offers to add a folder or make one in iCloud Drive, and to choose the keys.</li>
+<li><b>Smaller changes.</b> The date prompt reads today, tomorrow, yesterday, next week and last week. Remove Schedule and Remove Deadline have keys. Recovery Versions, Resolve Sync Conflicts, Revert to File on Disk and Check Spelling While Typing are in the menus.</li>
+</ul>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.5.0/orgstar-0.5.0.dmg" type="application/octet-stream" sparkle:edSignature="D6ejdGoS0X14FzjiteFw8zbHPbCIKYPMDEIU1AI0qUgIPVevG8RXS/NFqz5uRxBrwCjG9ai2olLtHW3sqT94Dg==" length="53122632"/>
+    </item>
+    <item>
       <title>orgstar 0.4.2</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.4.2</link>
       <sparkle:version>490</sparkle:version>
