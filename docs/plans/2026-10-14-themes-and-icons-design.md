@@ -25,18 +25,7 @@ Out:
 
 ### Palettes
 
-Each palette covers one appearance and is TOML text in a Swift string literal, one file per palette, `Sources/OrgPresentation/Themes/<Name>.swift`. They are not SwiftPM resources: `OrgPresentation` is linked into the widget, Quick Look and Spotlight extensions, and a resource bundle would have to be copied into each by `build-app.sh` and the Xcode project.
-
-```toml
-name = "Solarized Light"
-appearance = "light"
-
-[theme]
-background = "#fdf6e3"
-foreground = "#657b83"
-accent = "#268bd2"
-# … every slot
-```
+Each palette covers one appearance and is defined in Swift, in `Sources/OrgPresentation/Palettes.swift`, by 12 named colors (`ThemeSpec.Roles`: `bg`, `alt`, `fg`, `dim`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `purple`, `accent`). One table, `Roles.slots`, maps those colors onto every slot, so each palette is a dozen hex values, and the same table keeps every palette's slots in step when slots are added. Palettes are not SwiftPM resources: `OrgPresentation` is linked into the widget, Quick Look and Spotlight extensions, and a resource bundle would have to be copied into each by `build-app.sh` and the Xcode project.
 
 | Light | Dark |
 | --- | --- |
@@ -50,11 +39,11 @@ accent = "#268bd2"
 | | `tokyo-night` Tokyo Night |
 | | `doom-one` doom-one |
 
-`default-light` and `default-dark` hold the values now in `ThemeSpec.default`, which is built from them. They leave `ThemeSpec.systemDefaults` and `accent` unset, so the default look does not change. Every other palette sets every slot, the sidebar, modeline and agenda backgrounds included.
+`default-light` and `default-dark` are `ThemeSpec.default`'s light and dark colors, unchanged and not through `Roles`. They leave `ThemeSpec.systemDefaults` and `accent` unset, so the default look does not change. Every other palette sets every slot, the sidebar, modeline and agenda backgrounds included.
 
-Each ported palette's upstream license is recorded in `THIRD_PARTY.org`. Paper is original.
+Where a ported palette's color fails the contrast test on its background, the palette uses a darker or lighter value of the same hue; the palette's comment in `Palettes.swift` lists those. Each ported palette's upstream license is recorded in `THIRD_PARTY.org`. Paper is original.
 
-`ThemeSpec.palettes(_ appearance:) -> [Palette]` lists the palettes in the table's order, parsed once with `ThemeSpec.reading`. `Palette` has `id`, `name`, `appearance` and `colors: [String: RGBA]`.
+`ThemeSpec.palettes(_ appearance:) -> [Palette]` lists the palettes in the table's order. `Palette` has `id`, `name`, `appearance` and `colors: [String: RGBA]`.
 
 ### Settings
 
@@ -71,7 +60,7 @@ An id that isn't a bundled palette of that appearance adds the problem `config.t
 
 `UserConfig.theme` builds the base from the two palettes: `light` = the light palette's colors, `dark` = the dark palette's colors. Then `theme-file`, then `config.toml`'s `[theme]`, `[theme.light]`, `[theme.dark]`, `[theme.todo]` and `[theme.category]`, as today. With both settings at Default the result equals today's.
 
-`default-theme.toml` is still written at launch from `default-light` and `default-dark`.
+`default-theme.toml` is still written at launch from `ThemeSpec.default`.
 
 ### Accent
 
@@ -84,7 +73,7 @@ Existing `.tint(` call sites are left alone.
 
 ### Copy to Config Folder
 
-Writes the selected palette of the current appearance as `<id>.toml` into the configuration folder, as a theme file (`[theme.light]` or `[theme.dark]`), and sets `theme-file` to it. An existing file of that name is not overwritten; the button reports it instead.
+Writes the two selected palettes as `my-theme.toml` into the configuration folder, `[theme.light]` from the light palette and `[theme.dark]` from the dark, every slot written out, and sets `theme-file` to it. An existing file of that name is not overwritten; the button reports it instead.
 
 ### Picker UI
 
@@ -139,10 +128,10 @@ The unicorn is drawn for orgstar in `make-icon.swift`; the Org mode logo is not 
 Outputs:
 
 - `ios/Orgstar/Assets.xcassets/AppIcon.appiconset` and `AppIcon-<Id>.appiconset` for the others, each a 1024-pixel PNG per variant, with `appearances` entries `luminosity: dark` and `luminosity: tinted` in `Contents.json`.
-- `packaging/AppIcons.xcassets` for the Mac, the same sets at the Mac's sizes, compiled by `build-app.sh`.
-- Previews (light and dark, 256 pixels): on iOS an `IconPreview-<id>` image set in `Assets.xcassets`; on the Mac PNGs `build-app.sh` copies into `Contents/Resources/IconPreviews/`, loaded with `Bundle.main`.
+- `packaging/AppIcons.xcassets` for the Mac: the `AppIcon` set only, at the Mac's sizes, compiled by `build-app.sh`.
+- Previews: on iOS an `IconPreview-<id>` image set (256 pixels, light and dark appearances) in `Assets.xcassets`; on the Mac `packaging/IconPreviews/<id>-light.png` and `<id>-dark.png` (512 pixels), which `build-app.sh` copies into `Contents/Resources/IconPreviews/`, loaded with `Bundle.main`.
 
-The generated catalogs are committed; `make-icon.swift` is run by hand when the icons change, and a check in `scripts/` fails when the committed PNGs differ from a fresh run.
+The generated files are committed; `swift scripts/make-icon.swift` is run by hand when the icons change.
 
 ### iOS
 
@@ -161,12 +150,12 @@ The generated catalogs are committed; `make-icon.swift` is run by hand when the 
 - `OrgPresentationTests`:
   - Each bundled palette parses with no problems, has a known `appearance`, and sets every slot outside `systemDefaults` (Default palettes) or every slot (the others).
   - Contrast against `background`: `foreground` and `table` at least 4.5:1; headings, TODO classes, `link`, `timestamp`, `code` and `syntax-*` at least 3:1.
-  - `ThemeSpec.default` equals the result of `default-light` + `default-dark`.
+  - Every palette's `colors` has exactly the keys of `ThemeSpec.slots` (Default palettes: minus `systemDefaults`).
 - `OrgAppTests` (`UserConfig.theme`):
   - Default/Default with no overrides equals today's output.
   - `light-theme = "nord"` (wrong appearance) and an unknown id give a problem and Default.
   - `theme-file` and `[theme.dark]` still layer over the chosen palettes.
-- Icons: the generated-asset check; manual check on an iOS 26 device and macOS 26 of each icon in default, dark and tinted styles.
+- Icons: manual check on an iOS 26 device and macOS 26 of each icon in default, dark and tinted styles.
 
 ## Risks
 
