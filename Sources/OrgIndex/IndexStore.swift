@@ -26,6 +26,8 @@ public struct HeadingLocation: Sendable, Hashable {
     public let title: String
     public let start: Int
     public let contentHash: String
+    /// The text around the match, for search results whose match is in the text.
+    public internal(set) var snippet: Snippet?
 
     public init(path: String, ordinal: Int, title: String, start: Int, contentHash: String) {
         self.path = path
@@ -163,6 +165,16 @@ public final class IndexStore: Sendable {
                 UPDATE files SET settings_version = -1;
                 """)
         }
+        migrator.registerMigration("v4") { db in
+            // Text before a file's first heading, searched as the file; files are read again to fill it.
+            try db.execute(sql: """
+                CREATE VIRTUAL TABLE files_fts USING fts5(body, tokenize = 'unicode61 remove_diacritics 2');
+                CREATE TRIGGER files_fts_delete AFTER DELETE ON files BEGIN
+                    DELETE FROM files_fts WHERE rowid = old.id;
+                END;
+                UPDATE files SET settings_version = -1;
+                """)
+        }
         return migrator
     }
 
@@ -203,6 +215,9 @@ public final class IndexStore: Sendable {
                         record.settingsVersion, Date().timeIntervalSince1970, record.fileID, record.title]
         )
         let fileID = db.lastInsertedRowID
+        if !record.preamble.allSatisfy(\.isWhitespace) {
+            try db.execute(sql: "INSERT INTO files_fts (rowid, body) VALUES (?, ?)", arguments: [fileID, record.preamble])
+        }
         for link in record.links {
             try db.execute(sql: "INSERT INTO file_links VALUES (?, ?, ?)", arguments: [fileID, link.type, link.target])
         }
@@ -270,35 +285,64 @@ public final class IndexStore: Sendable {
     // `overlay` holds records for open documents with unsaved edits, keyed by path. Their rows
     // replace that file's indexed rows in every query.
 
-    /// Headings whose title or body contain every word of `query` as a word prefix.
+    /// Headings whose title or body contain every word of `query` as a word prefix, and files
+    /// whose text before the first heading does, best first, each with a snippet of the text
+    /// when the match is there.
     public func search(_ query: String, overlay: [String: FileRecord] = [:], limit: Int = 50) throws -> [HeadingLocation] {
         let terms = query.split(whereSeparator: \.isWhitespace).map(String.init)
         guard !terms.isEmpty else { return [] }
         let match = terms.map { "\"" + $0.replacingOccurrences(of: "\"", with: "\"\"") + "\"*" }.joined(separator: " ")
+        let prefixes = terms.flatMap(Self.words)
+        func withSnippet(_ location: HeadingLocation, _ body: String) -> HeadingLocation {
+            var location = location
+            location.snippet = Snippet(text: body, prefixes: prefixes)
+            return location
+        }
         let indexed = try database.read { db in
-            try Row.fetchAll(
+            let headings = try Row.fetchAll(
                 db,
                 sql: """
-                    SELECT f.path, f.hash, h.ordinal, h.title, h.start_offset
+                    SELECT f.path, f.hash, h.ordinal, h.title, h.start_offset, headings_fts.body, bm25(headings_fts) AS rank
                     FROM headings_fts
                     JOIN headings h ON h.id = headings_fts.rowid
                     JOIN files f ON f.id = h.file_id
                     WHERE headings_fts MATCH ?
-                    ORDER BY bm25(headings_fts)
+                    ORDER BY rank
                     LIMIT ?
                     """,
                 arguments: [match, limit + overlay.count * 10]
-            ).map(location)
+            ).map { (location: withSnippet(location($0), $0["body"]), rank: $0["rank"] as Double) }
+            let files = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT f.path, f.hash, f.title, files_fts.body, bm25(files_fts) AS rank
+                    FROM files_fts
+                    JOIN files f ON f.id = files_fts.rowid
+                    WHERE files_fts MATCH ?
+                    ORDER BY rank
+                    LIMIT ?
+                    """,
+                arguments: [match, limit + overlay.count]
+            ).map { (location: withSnippet(fileLocation($0["path"], title: $0["title"], hash: $0["hash"]), $0["body"]), rank: $0["rank"] as Double) }
+            return (headings + files).sorted { $0.rank < $1.rank }.map(\.location)
         }
         // Unsaved buffers get the same word-prefix matching as the full-text index.
-        let prefixes = terms.flatMap(Self.words)
+        func matches(_ text: String) -> Bool {
+            let words = Self.words(text)
+            return prefixes.allSatisfy { prefix in words.contains { $0.hasPrefix(prefix) } }
+        }
         let live = overlay.values.sorted { $0.path < $1.path }.flatMap { record in
-            record.headings.filter { heading in
-                let words = Self.words(heading.title + "\n" + heading.body)
-                return prefixes.allSatisfy { prefix in words.contains { $0.hasPrefix(prefix) } }
-            }.map { location(record, $0) }
+            let file = matches(record.preamble) ? [withSnippet(fileLocation(record.path, title: record.title, hash: record.hash), record.preamble)] : []
+            return file + record.headings.filter { matches($0.title + "\n" + $0.body) }.map { withSnippet(location(record, $0), $0.body) }
         }
         return Array((live + indexed.filter { overlay[$0.path] == nil }).prefix(limit))
+    }
+
+    /// The file before its first heading, titled by its `#+TITLE` or else its name.
+    private func fileLocation(_ path: String, title: String?, hash: String) -> HeadingLocation {
+        let file = HeadingLocation.file(path, contentHash: hash)
+        guard let title, !title.isEmpty else { return file }
+        return HeadingLocation(path: path, ordinal: file.ordinal, title: title, start: 0, contentHash: hash)
     }
 
     /// Headings down to `maxLevel` in org files (not archives or conflict copies), with their

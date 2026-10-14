@@ -80,7 +80,7 @@ first folder. See [[file:guide/08-capture.org][Capture]].
 
 * Search
 
-=⇧⌘F= searches the text of every indexed file. Results open at the matching line.
+=⇧⌘F= searches the headings and text of every indexed file. Each result shows the passage it matched; click it to open the file there.
 
 * Next
 

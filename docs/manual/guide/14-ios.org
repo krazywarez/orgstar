@@ -177,7 +177,7 @@ See [[file:03-keys.org][Keys and commands]] for the Emacs bindings.
 Search finds:
 
 - Files :: up to eight org files whose path matches what you type, ranked as Quick Open ranks them on the Mac.
-- Headings :: headings whose title or text contains your words, including unsaved edits in the open file.
+- Notes :: headings whose title or text contains your words, and files whose text before the first heading does, including unsaved edits in the open file. Under each is the passage the words were found in, with them in bold.
 
 Tap a result to open it in the reader. A heading result opens at that heading.
 

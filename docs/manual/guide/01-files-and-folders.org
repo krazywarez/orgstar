@@ -175,13 +175,13 @@ View ▸ Show Tab Bar shows a row of tabs above each pane, one per buffer that p
 
 The search field in the toolbar searches every org file in your folders. Click it or choose Edit ▸ Search Notes (=⇧⌘F=; =SPC /= or =SPC s p= in Doom normal state) and type.
 
-While the field holds text, the outline pane shows the results in place of the outline. Each result is a heading, with its file's name below it. Click a result to open the file at that heading. Clear the field to get the outline back.
+While the field holds text, the outline pane shows the results in place of the outline. Each result is a heading, or a file when the match is in the text before its first heading, titled by its =#+TITLE= or its name. Under the title is the passage the words were found in, with them in bold, then the file's name. Click a result to open the file at that heading. Clear the field to get the outline back.
 
 How matching works:
 
-- orgstar searches heading titles and the text under each heading, in =.org= and =.org_archive= files. Text before the first heading and files that aren't org are not searched. Syncthing conflict copies are not searched.
-- Each word you type matches words that start with it: =proj= finds =project= and =projection=.
-- Every word must match within the same heading.
+- orgstar searches heading titles, the text under each heading and the text before a file's first heading, in =.org= and =.org_archive= files. Files that aren't org are not searched. Syncthing conflict copies are not searched.
+- Each word you type matches words that start with it, ignoring case and accents: =proj= finds =project= and =projection=.
+- Every word must match within the same heading, or within the text before the first heading.
 - Up to 50 results show, best matches first.
 - Open buffers with unsaved edits are searched as they are in the buffer, not as they are on disk.
 

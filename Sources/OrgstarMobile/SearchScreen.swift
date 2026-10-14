@@ -24,13 +24,16 @@ struct SearchScreen: View {
                     }
                 }
                 let headings = Perf.measure("search.headings") { workspace.search(trimmed, overlay: workspace.overlay(session.openDocuments)) }
-                Section("Headings") {
-                    if headings.isEmpty { Text("No headings match").foregroundStyle(.secondary) }
+                Section("Notes") {
+                    if headings.isEmpty { Text("No notes match").foregroundStyle(.secondary) }
                     ForEach(headings, id: \.self) { location in
                         NavigationLink(value: ReaderRoute.heading(location)) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(location.title.isEmpty ? "(untitled)" : location.title).lineLimit(2)
-                                Text((location.path as NSString).lastPathComponent).font(.caption).foregroundStyle(.secondary)
+                                if let snippet = location.snippet {
+                                    Text(snippet.attributed).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
+                                }
+                                Text((location.path as NSString).lastPathComponent).font(.caption).foregroundStyle(.tertiary)
                             }
                         }
                     }
