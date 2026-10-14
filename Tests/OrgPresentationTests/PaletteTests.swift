@@ -60,4 +60,18 @@ struct PaletteTests {
             }
         }
     }
+
+    @Test func baseTakesEachAppearanceFromItsPalette() throws {
+        let (spec, problems) = ThemeSpec.base(light: "paper", dark: "nord")
+        #expect(problems.isEmpty)
+        #expect(spec.light == ThemeSpec.palette("paper", .light)?.colors && spec.dark == ThemeSpec.palette("nord", .dark)?.colors)
+        #expect(ThemeSpec.base(light: nil, dark: nil).0 == ThemeSpec.default)
+        #expect(ThemeSpec.base(light: "", dark: "").0 == ThemeSpec.default)
+    }
+
+    @Test func aPaletteOfTheOtherAppearanceIsAProblem() {
+        let (spec, problems) = ThemeSpec.base(light: "nord", dark: "unknown")
+        #expect(spec == ThemeSpec.default)
+        #expect(problems == ["config.toml: unknown light-theme nord", "config.toml: unknown dark-theme unknown"])
+    }
 }

@@ -253,4 +253,31 @@ struct ThemeReadingTests {
         #expect(bad.problems == ["t.toml: unknown theme color nope", "config.toml: theme.link must be a color such as \"#1f2328\""])
         #expect(UserConfig.theme(config: "[theme", themeFile: nil, in: folder)?.theme == nil)
     }
+
+    @Test @MainActor func chosenPalettesSitUnderTheThemeFileAndConfig() throws {
+        let name = "orgstar-palette-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "[theme.dark]\nlink = \"#000001\"\n".write(to: folder.appendingPathComponent("mine.toml"), atomically: true, encoding: .utf8)
+        try "[theme]\nlight-theme = \"paper\"\ndark-theme = \"nord\"\ntheme-file = \"mine.toml\"\n[theme.dark]\ntodo = \"#000002\"\n"
+            .write(to: folder.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+        let sync = ConfigSync(url: folder.appendingPathComponent("config.toml"), defaults: defaults)
+        sync.start(watch: false)
+        #expect(sync.problems.isEmpty, "\(sync.problems)")
+        #expect(defaults.string(forKey: "themeLight") == "paper" && defaults.string(forKey: "themeDark") == "nord")
+        let nord = try #require(ThemeSpec.palette("nord", .dark))
+        #expect(sync.theme.light["background"] == ThemeSpec.palette("paper", .light)?.colors["background"])
+        #expect(sync.theme.dark["background"] == nord.colors["background"])
+        #expect(sync.theme.dark["link"]?.hex == "#000001")
+        #expect(sync.theme.dark["todo"]?.hex == "#000002")
+    }
+
+    @Test func noThemeSettingsGiveTheDefaultTheme() throws {
+        let folder = FileManager.default.temporaryDirectory
+        let theme = try #require(UserConfig.theme(config: "", themeFile: nil, lightTheme: nil, darkTheme: nil, in: folder))
+        #expect(theme.theme == ThemeSpec.default && theme.problems.isEmpty)
+    }
 }

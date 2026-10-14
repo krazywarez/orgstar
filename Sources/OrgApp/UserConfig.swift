@@ -24,19 +24,20 @@ public enum UserConfig {
     }
 
     /// The theme `config.toml` (`text`) sets: its `[theme]` tables' colors over those of
-    /// `theme-file` (a path relative to `folder`), over the default theme; with problems in
-    /// both. Nil when `text` isn't TOML.
+    /// `theme-file` (a path relative to `folder`), over the palettes `light-theme` and
+    /// `dark-theme` name; with problems in all three. Nil when `text` isn't TOML.
     public static func theme(
-        config text: String, themeFile name: String?, in folder: URL,
+        config text: String, themeFile name: String?, lightTheme: String? = nil, darkTheme: String? = nil, in folder: URL,
         read: (URL) -> String? = { try? String(contentsOf: $0, encoding: .utf8) }
     ) -> (theme: ThemeSpec, problems: [String])? {
         guard let tables = try? TOML.parse(text) else { return nil }
-        var spec = ThemeSpec.default
-        var problems: [String] = []
+        var (spec, problems) = ThemeSpec.base(light: lightTheme, dark: darkTheme)
         if let name, !name.isEmpty {
             if let themeText = read(folder.appendingPathComponent(name)) {
                 do {
-                    (spec, problems) = ThemeSpec.reading(try TOML.parse(themeText), file: name)
+                    let (read, more) = ThemeSpec.reading(try TOML.parse(themeText), over: spec, file: name)
+                    spec = read
+                    problems += more
                 } catch {
                     problems.append("\(name): \(error)")
                 }
@@ -307,6 +308,10 @@ public enum UserConfig {
                 comment: "points a heading is larger than the level below; level 4 and deeper are body size", legacy: ""),
         Setting(section: "theme", key: "theme-file", defaultsKey: "themeFile", kind: .string, fallback: .string(""),
                 comment: "a theme in its own file in this folder, under the colors set here; colors: see default-theme.toml", legacy: ""),
+        Setting(section: "theme", key: "light-theme", defaultsKey: "themeLight", kind: .string, fallback: .string("default-light"),
+                comment: "the built-in theme for the light appearance: default-light, solarized-light, gruvbox-light, modus-operandi, catppuccin-latte, tomorrow or paper", legacy: ""),
+        Setting(section: "theme", key: "dark-theme", defaultsKey: "themeDark", kind: .string, fallback: .string("default-dark"),
+                comment: "the built-in theme for the dark appearance: default-dark, solarized-dark, gruvbox-dark, modus-vivendi, catppuccin-mocha, nord, dracula, tokyo-night or doom-one", legacy: ""),
         Setting(section: "orgstar", key: "save", defaultsKey: "saveMode", kind: .choice([("automatic", "automatic"), ("explicit", "explicit")]),
                 fallback: .string("automatic"), comment: "automatic (1 s after typing stops) or explicit (only with ⌘S)", legacy: "general.save"),
         Setting(section: "orgstar", key: "keymap", defaultsKey: "keymap", kind: .choice([("emacs", "emacs"), ("mac", "mac"), ("doom", "doom")]),

@@ -117,7 +117,9 @@ public final class ConfigSync {
     /// The theme from the file read last and its theme file.
     func readTheme() {
         guard let text, let read = UserConfig.theme(
-            config: text, themeFile: defaults.string(forKey: "themeFile"), in: url.deletingLastPathComponent()
+            config: text, themeFile: defaults.string(forKey: "themeFile"),
+            lightTheme: defaults.string(forKey: "themeLight"), darkTheme: defaults.string(forKey: "themeDark"),
+            in: url.deletingLastPathComponent()
         ) else { return }
         if read.theme != theme { theme = read.theme }
         problems = configProblems + read.problems

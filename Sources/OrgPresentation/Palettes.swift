@@ -29,6 +29,22 @@ extension ThemeSpec {
         "default-" + appearance.rawValue
     }
 
+    /// The default theme with each appearance's colors from the palette `light-theme` and
+    /// `dark-theme` name; Default where one is unset or unknown, with a problem for unknown.
+    public static func base(light: String?, dark: String?) -> (ThemeSpec, [String]) {
+        var spec = ThemeSpec.default
+        var problems: [String] = []
+        for (id, appearance) in [(light, Palette.Appearance.light), (dark, .dark)] {
+            guard let id, !id.isEmpty, id != defaultPaletteID(appearance) else { continue }
+            guard let palette = palette(id, appearance) else {
+                problems.append("config.toml: unknown \(appearance.rawValue)-theme \(id)")
+                continue
+            }
+            if appearance == .light { spec.light = palette.colors } else { spec.dark = palette.colors }
+        }
+        return (spec, problems)
+    }
+
     // Upstream palettes; see THIRD_PARTY.org. Colors darkened from upstream to read at 3:1 on
     // the background: Solarized Light yellow, green and cyan; Catppuccin Latte orange, yellow
     // and green; Tomorrow orange and yellow.

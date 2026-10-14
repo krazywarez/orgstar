@@ -238,12 +238,19 @@ final class MobileModel {
     }
 
     private static func readConfig(_ folder: URL?) -> ([String], ThemeSpec) {
-        guard let folder else { return ([], .default) }
+        let defaults = UserDefaults.standard
+        guard let folder else {
+            let (base, problems) = ThemeSpec.base(light: defaults.string(forKey: "themeLight"), dark: defaults.string(forKey: "themeDark"))
+            return (problems, base)
+        }
         guard let text = read(folder.appendingPathComponent("config.toml")) else {
             return (["No config.toml in \(folder.lastPathComponent); the defaults apply."], .default)
         }
-        let problems = UserConfig.apply(text, to: .standard)
-        guard let theme = UserConfig.theme(config: text, themeFile: UserDefaults.standard.string(forKey: "themeFile"), in: folder, read: read) else {
+        let problems = UserConfig.apply(text, to: defaults)
+        guard let theme = UserConfig.theme(
+            config: text, themeFile: defaults.string(forKey: "themeFile"),
+            lightTheme: defaults.string(forKey: "themeLight"), darkTheme: defaults.string(forKey: "themeDark"), in: folder, read: read
+        ) else {
             return (problems, .default)
         }
         return (problems + theme.problems, theme.theme)
