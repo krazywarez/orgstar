@@ -32,6 +32,8 @@ struct ContentView: View {
     @State private var keymap = KeymapPreset.emacs.keymap
     @AppStorage("tagsColumn") private var tagsColumn = -77
     @AppStorage("headingAfterSubtree") private var headingAfterSubtree = false
+    /// The welcome sheet has been shown once; it comes back only through the empty state.
+    @AppStorage("welcomeShown") private var welcomeShown = false
     @AppStorage("splitLine") private var splitLine = false
     @AppStorage("alphabeticalLists") private var alphabeticalLists = true
     @AppStorage("fillColumn") private var fillColumn = 80
@@ -171,11 +173,13 @@ struct ContentView: View {
                 }
             }
         } else {
-            ContentUnavailableView(
-                workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file",
-                systemImage: "doc.text",
-                description: Text(workspace.roots.isEmpty ? "File ▸ Add Folder… (⇧⌘O)" : "Or press ⌘P to open one by name.")
-            )
+            ContentUnavailableView {
+                Label(workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file", systemImage: "doc.text")
+            } description: {
+                Text(workspace.roots.isEmpty ? "File ▸ Add Folder… (⇧⌘O)" : "Or press ⌘P to open one by name.")
+            } actions: {
+                if workspace.roots.isEmpty { Button("Get Started…") { commands.showingWelcome = true } }
+            }
         }
     }
 
@@ -299,6 +303,10 @@ struct ContentView: View {
             clock.remindAtEffort(session)
             commands.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
             commands.mainWindowOpen = true
+            if workspace.roots.isEmpty, !welcomeShown {
+                welcomeShown = true
+                commands.showingWelcome = true
+            }
             if let stale = window { commands.store.windows.removeAll { $0 === stale } }
             // The session's first pane the first time; a new one showing the focused buffer
             // when the window opens again.
@@ -335,6 +343,12 @@ struct ContentView: View {
                 guard let content else { return }
                 commands.editor?.perform(ReplaceBlockLines(edit: request.edit, content: content))
             }
+        }
+        .sheet(isPresented: $commands.showingWelcome) {
+            WelcomeView(workspace: workspace, chooseFolder: {
+                // After the sheet closes, so the picker can present.
+                DispatchQueue.main.async { commands.showingFolderPicker = true }
+            }, open: { selectedFile = $0 })
         }
         .sheet(isPresented: $commands.showingPalette) {
             PaletteView(commands: commands) { id in

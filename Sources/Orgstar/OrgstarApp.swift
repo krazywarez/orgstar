@@ -12,6 +12,8 @@ import UserNotifications
 final class AppCommands {
     var showingQuickOpen = false
     var showingFolderPicker = false
+    /// The first-launch sheet, while no folder has been added.
+    var showingWelcome = false
     var focusSearch = false
     var showingConflict = false
     var showingPalette = false

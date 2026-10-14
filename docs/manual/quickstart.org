@@ -4,7 +4,11 @@
 
 * Add a folder
 
-Choose File ▸ Add Folder… (=⇧⌘O=) and pick the folder that holds your org files.
+The first time orgstar opens with no folder, a welcome sheet offers to choose a folder,
+to make one (=org= in iCloud Drive, with a =notes.org= to start on), and the keys to use. Get
+Started… in the empty window opens it again.
+
+Otherwise, choose File ▸ Add Folder… (=⇧⌘O=) and pick the folder that holds your org files.
 It appears in the sidebar, and orgstar indexes every org file under it for search,
 the agenda and links. You can add several folders. Nothing is copied or moved.
 

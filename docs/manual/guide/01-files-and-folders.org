@@ -46,7 +46,7 @@ orgstar does not open a single folder like a project. You add any number of fold
 
 ** Adding a folder
 
-Choose File ▸ Add Folder… (=⇧⌘O=), or click =+= at the bottom of the sidebar, and pick a folder. orgstar indexes it in the background; the toolbar shows a progress indicator while it works.
+Choose File ▸ Add Folder… (=⇧⌘O=), or click =+= at the bottom of the sidebar, and pick a folder. The first time orgstar opens with no folder, a welcome sheet offers the same, or a new =org= folder in iCloud Drive with a =notes.org= in it, and the choice of keys; Get Started… in the empty window opens the sheet again. orgstar indexes it in the background; the toolbar shows a progress indicator while it works.
 
 orgstar keeps a bookmark to each folder, so a folder you move or rename in Finder is followed. If a folder can't be found at launch, orgstar reports =Can't find the folder PATH.= Adding a folder that is already in the sidebar does nothing.
 

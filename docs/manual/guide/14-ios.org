@@ -4,7 +4,7 @@
 
 * Overview
 
-The app has three tabs:
+The app has three tabs, and opens on Folders until a folder has been added:
 
 - Agenda :: the agenda over your folders, with capture.
 - Folders :: the folders of org files you added. Each shows its subfolders and org files; tap a subfolder to open it.
