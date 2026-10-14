@@ -18,3 +18,12 @@ public enum AppIcons {
         ids.first { self.alternateName($0) == alternateName && alternateName != nil } ?? "default"
     }
 }
+
+extension AppIcons {
+    /// The Mac's Dock icon file for `id` in an appearance, in `Contents/Resources/IconPreviews`;
+    /// nil for the default, which is the bundle's own icon.
+    public static func dockFile(_ id: String, dark: Bool) -> String? {
+        guard id != "default", ids.contains(id) else { return nil }
+        return "\(id)-\(dark ? "dark" : "light")"
+    }
+}

@@ -182,6 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     let updates = Updates()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        DockIcon.start()
         if SystemReminderCenter.isAvailable { UNUserNotificationCenter.current().delegate = self }
         updates.start()
     }
@@ -780,6 +781,7 @@ struct SettingsView: View {
     private var appearance: some View {
         Form {
             ThemePickerSection()
+            AppIconSection()
             Section {
                 Picker("Font", selection: $themeFont) {
                     Text("System monospaced").tag("")
@@ -822,7 +824,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 380)
+        .frame(height: 620)
     }
 
     private var agenda: some View {

@@ -94,4 +94,11 @@ struct PaletteTests {
         #expect(AppIcons.id(alternateName: nil) == "default" && AppIcons.id(alternateName: "AppIcon-Gone") == "default")
         #expect(AppIcons.name("unicorn-pastel") == "Unicorn Pastel")
     }
+
+    @Test func dockFilesFollowTheAppearance() {
+        #expect(AppIcons.dockFile("default", dark: true) == nil)
+        #expect(AppIcons.dockFile("gone", dark: false) == nil)
+        #expect(AppIcons.dockFile("unicorn", dark: false) == "unicorn-light")
+        #expect(AppIcons.dockFile("unicorn", dark: true) == "unicorn-dark")
+    }
 }
