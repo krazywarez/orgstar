@@ -47,7 +47,7 @@ struct WelcomeView: View {
         .frame(width: 480)
     }
 
-    private var presetNote: String {
+    private var presetNote: LocalizedStringKey {
         switch preset {
         case .emacs: "Org's own bindings: C-c C-t cycles TODO, C-c C-s schedules, M-RET makes a heading."
         case .mac: "Standard Mac editing keys, with Org commands on ⌃⌘: ⌃⌘T cycles TODO, ⌃⌘S schedules."

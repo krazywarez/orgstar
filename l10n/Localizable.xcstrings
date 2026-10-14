@@ -17,9 +17,6 @@
         }
       }
     },
-    "%@ ": {
-      "shouldTranslate": false
-    },
     "%@ %@": {
       "localizations": {
         "en": {
@@ -108,6 +105,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld Tage"
+          }
+        }
+      }
+    },
+    "%lld columns": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Spalten"
           }
         }
       }
@@ -711,6 +718,16 @@
         }
       }
     },
+    "Body text": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fließtext"
+          }
+        }
+      }
+    },
     "Both": {
       "localizations": {
         "de": {
@@ -921,6 +938,16 @@
         }
       }
     },
+    "Check Spelling While Typing": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechtschreibung während der Eingabe prüfen"
+          }
+        }
+      }
+    },
     "Check for Updates…": {
       "localizations": {
         "de": {
@@ -937,6 +964,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Automatisch nach Updates suchen"
+          }
+        }
+      }
+    },
+    "Check spelling while typing (spell-check)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechtschreibung während der Eingabe prüfen (spell-check)"
           }
         }
       }
@@ -2012,6 +2049,26 @@
         }
       }
     },
+    "Export Subtree": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilbaum exportieren"
+          }
+        }
+      }
+    },
+    "Export Subtree…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilbaum exportieren …"
+          }
+        }
+      }
+    },
     "Export Table as CSV…": {
       "localizations": {
         "de": {
@@ -2232,6 +2289,16 @@
         }
       }
     },
+    "Get Started…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loslegen …"
+          }
+        }
+      }
+    },
     "Git branch": {
       "localizations": {
         "de": {
@@ -2323,6 +2390,7 @@
       }
     },
     "Headings": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -2538,6 +2606,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tasten"
+          }
+        }
+      }
+    },
+    "Keyword flags such as DONE(d!) and #+STARTUP words in a file override these. org-log-reschedule and org-log-redeadline are in config.toml.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlüsselwort-Markierungen wie DONE(d!) und #+STARTUP-Wörter in einer Datei haben Vorrang. org-log-reschedule und org-log-redeadline stehen in config.toml."
           }
         }
       }
@@ -2758,6 +2836,26 @@
         }
       }
     },
+    "Makes org/notes.org in iCloud Drive and adds the folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legt org/notes.org in iCloud Drive an und fügt den Ordner hinzu"
+          }
+        }
+      }
+    },
+    "Margins: %lld pt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ränder: %lld pt"
+          }
+        }
+      }
+    },
     "Mark": {
       "localizations": {
         "de": {
@@ -2804,6 +2902,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mit Markierungen zusammenführen"
+          }
+        }
+      }
+    },
+    "Modal editing as in Doom Emacs, with SPC as the leader: SPC m t cycles TODO.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modales Bearbeiten wie in Doom Emacs, mit SPC als Leader: SPC m t schaltet TODO weiter."
           }
         }
       }
@@ -2934,6 +3042,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Neuer Ordner"
+          }
+        }
+      }
+    },
+    "New Folder in iCloud Drive": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Ordner in iCloud Drive"
           }
         }
       }
@@ -3185,6 +3303,7 @@
       }
     },
     "No headings match": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -3214,6 +3333,16 @@
         }
       }
     },
+    "No notes match": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine passenden Notizen"
+          }
+        }
+      }
+    },
     "No outline": {
       "localizations": {
         "de": {
@@ -3230,6 +3359,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keine"
+          }
+        }
+      }
+    },
+    "Not Now": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht jetzt"
           }
         }
       }
@@ -3270,6 +3409,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nicht importiert"
+          }
+        }
+      }
+    },
+    "Notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen"
           }
         }
       }
@@ -3517,6 +3666,16 @@
         }
       }
     },
+    "Org's own bindings: C-c C-t cycles TODO, C-c C-s schedules, M-RET makes a heading.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orgs eigene Belegung: C-c C-t schaltet TODO weiter, C-c C-s plant, M-RET erstellt eine Überschrift."
+          }
+        }
+      }
+    },
     "Outline": {
       "localizations": {
         "de": {
@@ -3549,6 +3708,16 @@
     },
     "P": {
       "shouldTranslate": false
+    },
+    "Page numbers": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seitenzahlen"
+          }
+        }
+      }
     },
     "Panes": {
       "localizations": {
@@ -3770,12 +3939,52 @@
         }
       }
     },
+    "Record nothing": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts festhalten"
+          }
+        }
+      }
+    },
+    "Record the time and ask for a note": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit festhalten und nach einer Notiz fragen"
+          }
+        }
+      }
+    },
+    "Record the time, as CLOSED": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit festhalten, als CLOSED"
+          }
+        }
+      }
+    },
     "Recovered Versions": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Wiederhergestellte Versionen"
+          }
+        }
+      }
+    },
+    "Recovery Versions…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederherstellungsversionen …"
           }
         }
       }
@@ -3970,12 +4179,32 @@
         }
       }
     },
+    "Resolve Sync Conflicts…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierungskonflikte auflösen …"
+          }
+        }
+      }
+    },
     "Restore": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Wiederherstellen"
+          }
+        }
+      }
+    },
+    "Revert to File on Disk": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf die Datei auf der Festplatte zurücksetzen"
           }
         }
       }
@@ -4006,6 +4235,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Befehl ausführen"
+          }
+        }
+      }
+    },
+    "Same as Font": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie Schrift"
           }
         }
       }
@@ -4550,6 +4789,26 @@
         }
       }
     },
+    "Speed keys: single letters at the start of a heading line run commands (org-use-speed-commands)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnelltasten: Einzelne Buchstaben am Anfang einer Überschriftszeile führen Befehle aus (org-use-speed-commands)"
+          }
+        }
+      }
+    },
+    "Spell checking applies to files as they open; Check Spelling While Typing switches the current file. Code, links, dates, tags and keywords aren't checked.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Rechtschreibprüfung gilt für Dateien beim Öffnen; „Rechtschreibung während der Eingabe prüfen“ schaltet die aktuelle Datei um. Code, Links, Daten, Tags und Schlüsselwörter werden nicht geprüft."
+          }
+        }
+      }
+    },
     "Split Pane Below": {
       "localizations": {
         "de": {
@@ -4570,6 +4829,16 @@
         }
       }
     },
+    "Standard Mac editing keys, with Org commands on ⌃⌘: ⌃⌘T cycles TODO, ⌃⌘S schedules.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übliche Mac-Bearbeitungstasten, Org-Befehle auf ⌃⌘: ⌃⌘T schaltet TODO weiter, ⌃⌘S plant."
+          }
+        }
+      }
+    },
     "Starts": {
       "localizations": {
         "de": {
@@ -4586,6 +4855,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Status"
+          }
+        }
+      }
+    },
+    "State notes go in a LOGBOOK drawer (org-log-into-drawer)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statusnotizen kommen in ein LOGBOOK-Fach (org-log-into-drawer)"
           }
         }
       }
@@ -4680,6 +4959,16 @@
         }
       }
     },
+    "System": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        }
+      }
+    },
     "System monospaced": {
       "localizations": {
         "de": {
@@ -4763,7 +5052,18 @@
         }
       }
     },
+    "Tags and tables line up in columns, so Font should be monospaced. With a Body text font, prose uses it while tables, code, dates, tags and drawers keep Font.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags und Tabellen stehen in Spalten, daher sollte die Schrift eine feste Breite haben. Mit einer Fließtextschrift verwendet Fließtext diese, Tabellen, Code, Daten, Tags und Fächer behalten die Schrift."
+          }
+        }
+      }
+    },
     "Tags and tables line up in columns, so a monospaced font keeps them straight.": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -4843,6 +5143,16 @@
         }
       }
     },
+    "Text width": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Textbreite"
+          }
+        }
+      }
+    },
     "The agenda reads the org files at the top of each folder you add.": {
       "localizations": {
         "de": {
@@ -4869,6 +5179,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Der leere Ordner wird entfernt."
+          }
+        }
+      }
+    },
+    "The export's own": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die des Exports"
           }
         }
       }
@@ -5203,6 +5523,16 @@
         }
       }
     },
+    "Welcome to orgstar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Willkommen bei orgstar"
+          }
+        }
+      }
+    },
     "What the agenda shows": {
       "localizations": {
         "de": {
@@ -5223,6 +5553,26 @@
         }
       }
     },
+    "When an entry is done (org-log-done)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn ein Eintrag erledigt ist (org-log-done)"
+          }
+        }
+      }
+    },
+    "Whole editor": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ganzer Editor"
+          }
+        }
+      }
+    },
     "Whole file": {
       "localizations": {
         "de": {
@@ -5233,12 +5583,33 @@
         }
       }
     },
+    "Word Count": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wortzahl"
+          }
+        }
+      }
+    },
     "Words in the file (count-words)": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Wörter in der Datei (count-words)"
+          }
+        }
+      }
+    },
+    "Words in the file (count-words); click for characters and reading time": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wörter in der Datei (count-words); klicke für Zeichen und Lesezeit"
           }
         }
       }
@@ -5338,6 +5709,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "orgstar fragt beim nächsten Öffnen, an welchen Eintrag sie angehängt werden."
+          }
+        }
+      }
+    },
+    "orgstar edits a folder of plain-text org files in place. Add the folder your notes are in, or start a new one. Nothing is copied or moved, and you can add more folders later with File ▸ Add Folder….": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar bearbeitet einen Ordner mit Org-Dateien im Klartext direkt. Füge den Ordner mit deinen Notizen hinzu oder beginne einen neuen. Nichts wird kopiert oder verschoben, und mit Ablage ▸ Ordner hinzufügen … kannst du später weitere Ordner hinzufügen."
           }
         }
       }
