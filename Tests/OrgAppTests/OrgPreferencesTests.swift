@@ -8,7 +8,8 @@ struct OrgPreferencesTests {
     @Test func readsWhatConfigTomlSets() throws {
         let defaults = try #require(UserDefaults(suiteName: "orgstar-preferences-\(UUID().uuidString)"))
         // Nothing set: the file's fallbacks, which match the Mac's.
-        #expect(OrgPreferences.orgSettings(defaults).todoSequences.first?.active.map(\.name) == ["TODO", "PROJ", "LOOP", "STRT", "WAIT", "HOLD", "IDEA"])
+        #expect(OrgPreferences.orgSettings(defaults).todoSequences.first?.active.map(\.name) == ["TODO"])
+        #expect(OrgPreferences.orgSettings(defaults).todoSequences.first?.done.map(\.name) == ["DONE"])
         #expect(OrgPreferences.options(defaults).logDone == nil && OrgPreferences.options(defaults).tagsColumn == -77)
         #expect(OrgPreferences.agendaSpan(defaults) == 10 && OrgPreferences.agendaStartOffset(defaults) == 0)
         #expect(OrgPreferences.orgSettings(defaults).deadlineWarningDays == 14)
@@ -19,7 +20,7 @@ struct OrgPreferencesTests {
         #expect(OrgPreferences.agendaOptions(AgendaOptions(), defaults).deadlineWarningDays == 14)
         #expect(OrgPreferences.reminders(defaults) && OrgPreferences.reminderLead(defaults) == 12)
         let fallbacks = OrgPreferences.options(defaults)
-        #expect(!fallbacks.metaReturnMaySplitLine && fallbacks.hideEmphasisMarkers && fallbacks.prettyEntities && fallbacks.subSuperscriptsNeedBraces)
+        #expect(!fallbacks.insertHeadingRespectContent && !fallbacks.metaReturnMaySplitLine && fallbacks.hideEmphasisMarkers && fallbacks.prettyEntities && fallbacks.subSuperscriptsNeedBraces)
         #expect(fallbacks.startupIndented && !fallbacks.spellCheck && fallbacks.hideDrawerStartup && !fallbacks.hideBlockStartup)
 
         let problems = UserConfig.apply("""

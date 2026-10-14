@@ -253,7 +253,7 @@ Completing or editing a reminder is done in Reminders. On the Mac, double-click 
 A keyword that isn't in =org-todo-keywords= or the file's =#+TODO= lines is not a keyword to orgstar, as to Org: it is part of the title. A heading such as =SKIPPED Call the bank= with a =SCHEDULED= date last week is therefore an open entry, and shows as overdue. To make such a word a done state, add it after the ~|~:
 
 #+BEGIN_SRC toml
-org-todo-keywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k) SKIPPED"
+org-todo-keywords = "TODO | DONE SKIPPED"
 #+END_SRC
 
 Done entries leave the Overdue group. With =org-agenda-skip-scheduled-if-done= and =org-agenda-skip-deadline-if-done= on, they leave their own day too.

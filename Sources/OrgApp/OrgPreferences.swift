@@ -5,7 +5,7 @@ import OrgPresentation
 /// The Org settings `config.toml` holds, read from user defaults with the file's fallbacks, for
 /// both apps.
 public enum OrgPreferences {
-    public static let defaultTodoKeywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)"
+    public static let defaultTodoKeywords = "TODO | DONE"
 
     /// TODO keywords for files without `#+TODO`, and alphabetical lists.
     public static func orgSettings(_ defaults: UserDefaults = .standard) -> OrgSettings {

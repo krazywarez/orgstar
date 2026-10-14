@@ -181,8 +181,6 @@ orgstar's defaults follow a common Doom Emacs setup rather than plain Emacs in s
 | Setting                              | orgstar default                     | Plain Emacs default             |
 |--------------------------------------+-------------------------------------+---------------------------------|
 | =fill-column=                        | 80                                  | 70                              |
-| =org-todo-keywords=                  | =TODO PROJ LOOP STRT WAIT HOLD IDEA=, done =DONE KILL= | =TODO=, done =DONE= |
-| =org-insert-heading-respect-content= | =true=                              | =nil=                           |
 | =org-M-RET-may-split-line=           | =false=                             | =t=                             |
 | =org-list-allow-alphabetical=        | =true=                              | =nil=                           |
 | =org-hide-emphasis-markers=          | =true=                              | =nil=                           |

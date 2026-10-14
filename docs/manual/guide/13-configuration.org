@@ -67,7 +67,7 @@ Automatic saving writes a file one second after you stop typing. The keymap pres
 | Control                                                    | Choices or range                                       | Default             | Key                                  |
 |------------------------------------------------------------+--------------------------------------------------------+---------------------+--------------------------------------|
 | Tags                                                       | Aligned to end at column 77; One space after the title | Aligned (=-77=)     | =org-tags-column=                    |
-| M-RET adds the new heading after the subtree               | On or off                                              | On                  | =org-insert-heading-respect-content= |
+| M-RET adds the new heading after the subtree               | On or off                                              | Off                 | =org-insert-heading-respect-content= |
 | M-RET splits the line at the caret                         | On or off                                              | Off                 | =org-M-RET-may-split-line=           |
 | Lists can use letters (a. b. c.)                           | On or off                                              | On                  | =org-list-allow-alphabetical=        |
 | M-q fills to column N                                      | 40 to 200                                              | 80                  | =fill-column=                        |
@@ -205,7 +205,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 |--------------------------------------+---------+---------+----------------------------------------------------------------------------------------------------------------|
 | =fill-column=                        | integer | =80=    | The column =M-q= fills to. Mirrors =fill-column=.                                                              |
 | =org-tags-column=                    | integer | =-77=   | Negative: tags end at that column. =0=: one space between title and tags. Mirrors =org-tags-column=.          |
-| =org-insert-heading-respect-content= | boolean | =true=  | =M-RET= adds the new heading after the current subtree. Mirrors =org-insert-heading-respect-content=.        |
+| =org-insert-heading-respect-content= | boolean | =false= | =M-RET= adds the new heading after the current subtree. Mirrors =org-insert-heading-respect-content=.        |
 | =org-M-RET-may-split-line=           | boolean | =false= | =M-RET= in the middle of a line splits it at the caret. Mirrors the =default= entry of =org-M-RET-may-split-line=. |
 | =org-list-allow-alphabetical=        | boolean | =true=  | =a.=, =b)=, =A.= are list bullets. Mirrors =org-list-allow-alphabetical=.                                     |
 | =org-hide-emphasis-markers=          | boolean | =true=  | Your Emacs hides =*bold*= and ~=code=~ markers; orgstar hides them when markup is hidden and measures text without them. Mirrors =org-hide-emphasis-markers=. |
@@ -287,7 +287,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-clock-out-when-done=            | string  | ="t"=   | ="t"=: marking the clocked entry done clocks out; ="nil"=: it doesn't; or the keywords that clock out, separated by spaces. Mirrors =org-clock-out-when-done=. |
 | =org-clock-history-length=           | integer | =5=     | How many recently clocked entries orgstar remembers. Mirrors =org-clock-history-length=.                     |
 
-The default =org-todo-keywords= is the first sequence of Doom Emacs's default:
+The default =org-todo-keywords= is Org's, ="TODO | DONE"=. Doom Emacs's set, as Import from Emacs writes it from a Doom configuration, is:
 
 #+BEGIN_SRC toml
 org-todo-keywords = "TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)"

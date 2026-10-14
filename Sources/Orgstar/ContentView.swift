@@ -31,7 +31,7 @@ struct ContentView: View {
     @AppStorage("optionAsMeta") private var optionAsMeta = OptionAsMeta.left.rawValue
     @State private var keymap = KeymapPreset.emacs.keymap
     @AppStorage("tagsColumn") private var tagsColumn = -77
-    @AppStorage("headingAfterSubtree") private var headingAfterSubtree = true
+    @AppStorage("headingAfterSubtree") private var headingAfterSubtree = false
     @AppStorage("splitLine") private var splitLine = false
     @AppStorage("alphabeticalLists") private var alphabeticalLists = true
     @AppStorage("fillColumn") private var fillColumn = 80

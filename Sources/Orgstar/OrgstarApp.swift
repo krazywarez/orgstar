@@ -576,7 +576,7 @@ struct SettingsView: View {
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
     @AppStorage("optionAsMeta") private var optionAsMeta = OptionAsMeta.left.rawValue
     @AppStorage("tagsColumn") private var tagsColumn = -77
-    @AppStorage("headingAfterSubtree") private var headingAfterSubtree = true
+    @AppStorage("headingAfterSubtree") private var headingAfterSubtree = false
     @AppStorage("splitLine") private var splitLine = false
     @AppStorage("alphabeticalLists") private var alphabeticalLists = true
     @AppStorage("fillColumn") private var fillColumn = 80

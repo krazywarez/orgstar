@@ -48,10 +48,10 @@ Editing and in =config.toml= under the Emacs variable names:
 
 | Setting (=config.toml=)              | Settings ▸ Editing                            | orgstar default | Org default |
 |--------------------------------------+-----------------------------------------------+-----------------+-------------|
-| =org-insert-heading-respect-content= | M-RET adds the new heading after the subtree  | =true=          | =nil=       |
+| =org-insert-heading-respect-content= | M-RET adds the new heading after the subtree  | =false=         | =nil=       |
 | =org-M-RET-may-split-line=           | M-RET splits the line at the caret            | =false=         | =t=         |
 
-With =org-insert-heading-respect-content= on (the orgstar default), Insert Heading
+With =org-insert-heading-respect-content= on, Insert Heading
 behaves as Insert Heading After Subtree: the new heading goes after the end of the
 current subtree, at the current level. Insert Heading also does this when the caret is
 in folded text.

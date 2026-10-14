@@ -15,13 +15,13 @@ Keywords come in sequences. Each sequence has active keywords, a =|=, and done k
 
 ** The default keywords
 
-Files without a =#+TODO= line use the keywords in Settings ▸ Editing ▸ Default TODO keywords, which is the =org-todo-keywords= key in =config.toml=. The default is:
+Files without a =#+TODO= line use the keywords in Settings ▸ Editing ▸ Default TODO keywords, which is the =org-todo-keywords= key in =config.toml=. The default is Org's, =TODO | DONE=. Doom Emacs's set, which Import from Emacs carries over from a Doom configuration, is:
 
 #+BEGIN_SRC org
 TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)
 #+END_SRC
 
-The value uses =#+TODO= syntax. To define more than one sequence, put one per line (=\n= in =config.toml=). orgstar reads this setting at launch, so a change takes effect after you restart the app. See [[file:13-configuration.org][Configuration]] for the file itself and for keyword colors under =[theme.todo]=.
+A =config.toml= written by an earlier version keeps the keywords it has. The value uses =#+TODO= syntax. To define more than one sequence, put one per line (=\n= in =config.toml=). orgstar reads this setting at launch, so a change takes effect after you restart the app. See [[file:13-configuration.org][Configuration]] for the file itself and for keyword colors under =[theme.todo]=.
 
 ** Keywords in the file
 
@@ -72,7 +72,7 @@ With speed commands on (=org-use-speed-commands=), =t= at the start of a heading
 
 =C-c C-t= behaves in one of two ways:
 
-- If any keyword in the file has a fast-selection key, it opens fast selection (=org-use-fast-todo-selection= =auto=). The default keywords all have keys, so this is what you get unless you define keywords without keys.
+- If any keyword in the file has a fast-selection key, it opens fast selection (=org-use-fast-todo-selection= =auto=). The default keywords have no keys, so =C-c C-t= cycles until you define keywords with keys, as Doom's set has them.
 - Otherwise it cycles: no keyword, then each keyword of the first sequence in order, then no keyword again. From a keyword in another sequence it moves through that sequence and then to no keyword. From a =#+TYP_TODO= keyword it goes straight to the sequence's first done keyword, as Org does; pressing =C-c C-t= again right away moves to the next type keyword instead. In the iOS app and the agenda, each press on a type keyword goes to the done keyword.
 
 =S-<right>= and =S-<left>= never use fast selection. They step through every keyword of every sequence in order, then to no keyword, and wrap around.
