@@ -57,10 +57,13 @@ fi
 # The UI's translations, from l10n/Localizable.xcstrings.
 scripts/localize.sh "$app/Contents/Resources"
 
-iconset="$(mktemp -d)/AppIcon.iconset"
-swift scripts/make-icon.swift "$iconset"
-iconutil -c icns "$iconset" -o "$app/Contents/Resources/AppIcon.icns"
-rm -rf "$(dirname "$iconset")"
+# The icon, in the system's default, dark and tinted styles, and the Dock icons Settings offers.
+work="$(mktemp -d)"
+xcrun actool packaging/AppIcons.xcassets --compile "$app/Contents/Resources" --platform macosx \
+    --minimum-deployment-target 26.0 --app-icon AppIcon --output-partial-info-plist "$work/icon.plist" > /dev/null
+rm -rf "$work"
+mkdir -p "$app/Contents/Resources/IconPreviews"
+cp packaging/IconPreviews/*.png "$app/Contents/Resources/IconPreviews/"
 
 cat > "$app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -81,7 +84,7 @@ cat > "$app/Contents/Info.plist" <<EOF
     <string>Orgstar</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
-    <key>CFBundleIconFile</key>
+    <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>UTImportedTypeDeclarations</key>
     <array>
