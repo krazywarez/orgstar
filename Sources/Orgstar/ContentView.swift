@@ -87,7 +87,7 @@ struct ContentView: View {
     @AppStorage("backlinksShown") private var backlinksShown = true
     @AppStorage("inspectorShown") private var inspectorShown = false
     @AppStorage("showMarkup") private var showMarkup = false
-    @AppStorage("showLineNumbers") private var showLineNumbers = true
+    @AppStorage("showLineNumbers") private var showLineNumbers = false
     @AppStorage("lineNumbersType") private var lineNumbersType = "t"
     @AppStorage("showHiddenFiles") private var showHiddenFiles = true
     @AppStorage("ignoredFolders") private var ignoredFolders = ScanRules.defaultIgnoredFolders.sorted().joined(separator: " ")
@@ -95,6 +95,7 @@ struct ContentView: View {
     @AppStorage("themeBodyFont") private var themeBodyFont = ""
     @AppStorage("themeFontSize") private var themeFontSize = 13
     @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
+    @AppStorage("themeTextWidth") private var themeTextWidth = 0
     @AppStorage("themeHeadingStep") private var themeHeadingStep = 1
 
     /// The theme's colors from config.toml with the type settings.
@@ -104,6 +105,7 @@ struct ContentView: View {
         spec.bodyFont = themeBodyFont
         spec.fontSize = themeFontSize
         spec.lineSpacing = themeLineSpacing
+        spec.textWidth = themeTextWidth
         spec.headingSizeStep = themeHeadingStep
         return spec
     }

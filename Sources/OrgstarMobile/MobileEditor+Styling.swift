@@ -28,6 +28,7 @@ extension MobileEditor {
         view.backgroundColor = theme.color("background") ?? .systemBackground
         view.tintColor = theme.color("cursor")
         view.typingAttributes = theme.base
+        (view as? KeyedTextView)?.textWidth = CGFloat(max(0, theme.spec.textWidth)) * theme.column
         themeSelection(view)
     }
 

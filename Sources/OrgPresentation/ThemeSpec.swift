@@ -44,6 +44,9 @@ public struct ThemeSpec: Equatable, Sendable {
     public var fontSize = 13
     /// Points between lines.
     public var lineSpacing = 2
+    /// The widest the text runs, in columns of `font`, centred in a wider editor; 0 for the
+    /// editor's whole width.
+    public var textWidth = 0
     /// Points a heading is larger than the next level down (level 4 and deeper are body size).
     public var headingSizeStep = 1
     public var light: [String: RGBA]
@@ -185,7 +188,7 @@ public struct ThemeSpec: Equatable, Sendable {
     // MARK: - Reading
 
     /// Keys of `[theme]` that aren't colors; config.toml's settings handle them.
-    public static let typeKeys: Set<String> = ["font", "body-font", "font-size", "line-spacing", "heading-size-step", "theme-file"]
+    public static let typeKeys: Set<String> = ["font", "body-font", "font-size", "line-spacing", "text-width", "heading-size-step", "theme-file"]
 
     /// Whether a table holds theme colors.
     public static func isThemeTable(_ name: String) -> Bool {

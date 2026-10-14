@@ -106,6 +106,7 @@ orgstar's menus, settings and agenda are in English and German, and follow the l
 | Body text                       | Same as Font, System, or any installed proportional family | Same as Font | =body-font=   |
 | Size                            | 8 to 36 pt                                    | 13 pt              | =font-size=         |
 | Line spacing                    | 0 to 16 pt                                    | 2 pt               | =line-spacing=      |
+| Text width                      | Whole editor, or 60 to 120 columns            | Whole editor       | =text-width=        |
 | Headings grow by N pt a level   | 0 to 8 pt                                     | 1 pt               | =heading-size-step= |
 | Colors: Edit in config.toml     | Opens =config.toml=                           |                    |                     |
 | Colors: Show Default Theme      | Opens =default-theme.toml=                    |                    |                     |
@@ -251,7 +252,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-use-speed-commands=             | boolean | =false= | Single keys at the start of a heading line run commands (=n=, =p=, =t=, =c=, …). Mirrors =org-use-speed-commands=. |
 | =org-cycle-hide-drawer-startup=      | boolean | =true=  | Fold drawers when a file opens. =#+STARTUP: hidedrawers= / =nohidedrawers= override it. Mirrors =org-cycle-hide-drawer-startup=. |
 | =org-cycle-hide-block-startup=       | boolean | =false= | Fold blocks when a file opens. =#+STARTUP: hideblocks= / =nohideblocks= override it. Mirrors =org-cycle-hide-block-startup=. |
-| =display-line-numbers-type=          | boolean or string | =true=  | Line numbers in the editor's gutter: =true=, =false=, ="relative"= or ="visual"=. See [[file:02-the-editor.org][The editor]]. |
+| =display-line-numbers-type=          | boolean or string | =false= | Line numbers in the editor's gutter: =true=, =false=, ="relative"= or ="visual"=. See [[file:02-the-editor.org][The editor]]. |
 | =org-agenda-span=                    | integer | =10=    | Days the agenda shows. Mirrors =org-agenda-span=.                                                               |
 | =org-agenda-start-day=               | string  | ="+0d"= | The agenda's first day relative to today, as ="-3d"= or ="+0d"=. Only day offsets are accepted. Mirrors =org-agenda-start-day=. |
 | =org-agenda-start-on-weekday=        | string  | ="1"=   | The day weeks start on, ="0"= (Sunday) to ="6"= (Saturday), for the week view and spans of 7 or 14 days. ="nil"= starts them on the day the view starts from. Mirrors =org-agenda-start-on-weekday=. |
@@ -363,6 +364,7 @@ Publishing projects, one table each, as =org-publish-project-alist= has them. Th
 | =body-font=         | string  | =""=    | A font family for prose, or ="system"= for the system's proportional font. =""= uses =font= throughout. |
 | =font-size=         | integer | =13=    | Points.                                                                                      |
 | =line-spacing=      | integer | =2=     | Points between lines.                                                                        |
+| =text-width=        | integer | =0=     | The widest the text runs, in columns of =font=, centred in a wider editor. =0= uses the whole width. |
 | =heading-size-step= | integer | =1=     | Points a heading is larger than the level below. Level 4 and deeper are body size.           |
 | =theme-file=        | string  | =""=    | A theme in its own file in the configuration folder, applied under the colors in =config.toml=. |
 
@@ -774,5 +776,6 @@ By default the editor uses one font for everything: body text, headings, code an
 - =font-size= is the body size, at least 6 points.
 - Headings are bold. Level 1 is =font-size= plus three times =heading-size-step=, level 2 plus two times, level 3 plus one time; level 4 and deeper are body size. Set =heading-size-step = 0= for one size throughout.
 - =line-spacing= adds space between lines, in points.
+- =text-width= keeps lines of text to that many columns of =font= in a wider editor, with equal margins either side and the line numbers beside the text, as =olivetti-mode= does in Emacs. Long lines wrap at it; with lines truncated (View ▸ Truncate or Wrap Long Lines) the text takes the whole width. It changes only the display: =M-q= still fills to =fill-column=.
 
 On iPhone and iPad, the editor and reader use the same theme, read from the synced configuration folder. =font= and =body-font= apply when the family is installed on the device, otherwise the system's monospaced font is used, and =font-size= is the size at the default Dynamic Type setting, scaled with the size chosen on the device. The =selection= color, the =cursor= color and the =syntax-*= colors apply there too. See [[file:14-ios.org][iPhone and iPad]].

@@ -30,7 +30,7 @@ The two Org options are in Settings ▸ Editing as "Emacs hides emphasis markers
 - Blocks (=#+BEGIN_…= to =#+END_…=), dynamic blocks and fixed-width lines are drawn on a shaded band across the whole width of the editor, as Emacs extends the =org-block= face. Code in src blocks is highlighted for its language (see [[file:11-code-blocks.org][Code blocks]]).
 - A folded heading shows an ellipsis after its line.
 
-Colours come from the theme and follow the system's light or dark appearance. The font, size and line spacing are in Settings ▸ Appearance; colours are set in =config.toml=. See [[file:13-configuration.org][Configuration]]. The font should be monospaced, since tags and tables line up by columns. A body font for prose can be set beside it, as =mixed-pitch-mode= does in Emacs: prose and headings use it, and tables, code, dates, tags, drawers and the start of each line keep the monospaced font.
+Colours come from the theme and follow the system's light or dark appearance. The font, size, line spacing and text width are in Settings ▸ Appearance; colours are set in =config.toml=. See [[file:13-configuration.org][Configuration]]. The font should be monospaced, since tags and tables line up by columns. A body font for prose can be set beside it, as =mixed-pitch-mode= does in Emacs: prose and headings use it, and tables, code, dates, tags, drawers and the start of each line keep the monospaced font.
 
 ** Indentation and stars
 
@@ -307,7 +307,7 @@ Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Pa
 | Toggle                        | Menu                          | Keys                                            | Default | =config.toml=                    | Scope          |
 |-------------------------------+-------------------------------+-------------------------------------------------+---------+----------------------------------+----------------|
 | Show Markup                   | View ▸ Show Markup            | =⇧⌘M=                                           | off     | =show-markup=                    | every buffer   |
-| Show Line Numbers             | View ▸ Show Line Numbers      | =⇧⌘L=                                           | on      | =display-line-numbers-type=      | every buffer   |
+| Show Line Numbers             | View ▸ Show Line Numbers      | =⇧⌘L=                                           | off     | =display-line-numbers-type=      | every buffer   |
 | Auto fill                     | View ▸ Turn Auto Fill On or Off | palette                                       | off     | =auto-fill-mode=                 | current buffer |
 | Inline images                 | Org ▸ Show or Hide Inline Images | =C-c C-x C-v= (Emacs, Doom)                  | off     | =org-startup-with-inline-images= | current buffer |
 | LaTeX previews                | palette                       | =C-c C-x C-l= (Emacs, Doom)                     | off     | =org-startup-with-latex-preview= | current buffer |
@@ -318,7 +318,7 @@ Toggles that apply to the current buffer last until it closes; the =config.toml=
 
 ** Line numbers
 
-Line numbers show in a margin left of the text, as =display-line-numbers-mode= shows them: one number per line of the file, so wrapped lines are numbered once and folded lines are skipped. The caret's line number is brighter. Line numbers are on by default.
+Line numbers show in a margin left of the text, as =display-line-numbers-mode= shows them: one number per line of the file, so wrapped lines are numbered once and folded lines are skipped. The caret's line number is brighter. Line numbers are off by default, as in Emacs.
 
 View ▸ Line Numbers chooses how they count, as =display-line-numbers-type= does in =config.toml=:
 

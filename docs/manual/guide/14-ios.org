@@ -85,6 +85,7 @@ The editor and the reader use the theme set in the configuration folder's =confi
 - Font :: =font= when that family is installed on the device, otherwise the system's monospaced font. =body-font=, when set, is used for prose as on the Mac.
 - Size :: =font-size= is the size at the default Dynamic Type setting, 13 pt by default. Text grows and shrinks with the text size chosen in the system Settings app.
 - Line spacing and headings :: =line-spacing= and =heading-size-step= apply as on the Mac.
+- Text width :: =text-width= keeps the editor's text to that many columns, centred, on an iPad or a wide window.
 - Caret and selection :: the selection highlight takes the theme's =selection= colour, over block bands too; the caret and the selection handles take =cursor=.
 
 The editor and the reader apply these display settings; only the editor aligns tables when a file opens. The startup settings (=org-cycle-hide-*-startup=, =org-startup-*=, =org-hide-leading-stars=) apply when a file opens, and a =#+STARTUP= keyword in the file overrides them, as on the Mac.
@@ -401,7 +402,7 @@ These settings from =config.toml= apply on iOS:
 - =org-tags-column=, =org-insert-heading-respect-content=, =org-M-RET-may-split-line=, =fill-column=
 - =org-hide-emphasis-markers= and =org-pretty-entities=, for what hidden markup shows and for how tag and table alignment and filling measure text, as on the Mac
 - =show-markup=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-with-inline-images=, =org-startup-with-latex-preview=, =org-startup-align-all-tables=, =org-startup-truncated=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=
-- =[theme]= (=font=, =font-size=, =line-spacing=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
+- =[theme]= (=font=, =body-font=, =font-size=, =line-spacing=, =text-width=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=
 - =org-enforce-todo-dependencies=, =org-enforce-todo-checkbox-dependencies=, =org-track-ordered-property-with-tag=, =org-agenda-dim-blocked-tasks=
 - =org-roam-directory=, =org-roam-dailies-directory=, =org-roam-dailies-file=, =org-roam-dailies-head=, =org-roam-dailies-entry=

@@ -284,6 +284,7 @@ public final class OrgEditor: NSObject {
         for view in orgTextViews {
             view.font = theme.body
             view.typingAttributes = theme.base
+            view.textWidth = CGFloat(max(0, theme.spec.textWidth)) * theme.column
             view.drawsBackground = true
             view.backgroundColor = theme.color("background") ?? .textBackgroundColor
             view.insertionPointColor = theme.color("cursor") ?? .textColor

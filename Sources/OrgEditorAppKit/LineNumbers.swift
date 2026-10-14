@@ -18,6 +18,12 @@ extension OrgTextView {
             let digits = max(2, String(lines).count)
             width = ceil(("0" as NSString).size(withAttributes: [.font: lineNumberFont]).width * CGFloat(digits) + 16)
         }
+        // A text width narrower than the view: the same margin either side, the numbers
+        // still just left of the text.
+        if textWidth > 0, textContainer?.widthTracksTextView == true {
+            let padding = 2 * (textContainer?.lineFragmentPadding ?? 0)
+            width = max(width, floor((bounds.width - textWidth - padding) / 2))
+        }
         if textContainerInset.width != width {
             textContainerInset = NSSize(width: width, height: textContainerInset.height)
             needsDisplay = true

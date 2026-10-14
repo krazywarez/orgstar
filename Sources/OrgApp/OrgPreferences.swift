@@ -69,6 +69,7 @@ public enum OrgPreferences {
         spec.bodyFont = string("themeBodyFont", defaults)
         spec.fontSize = integer("themeFontSize", defaults)
         spec.lineSpacing = integer("themeLineSpacing", defaults)
+        spec.textWidth = integer("themeTextWidth", defaults)
         spec.headingSizeStep = integer("themeHeadingStep", defaults)
         return spec
     }

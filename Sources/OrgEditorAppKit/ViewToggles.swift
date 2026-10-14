@@ -54,6 +54,8 @@ extension OrgEditor {
                 }
                 textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
             }
+            // Truncated lines take the whole width; wrapped ones the text width again.
+            (textView as? OrgTextView)?.updateGutter()
             textView.needsDisplay = true
         }
     }

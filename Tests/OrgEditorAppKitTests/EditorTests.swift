@@ -244,6 +244,24 @@ struct EditingTests {
         h.checkInSync()
     }
 
+    @Test func textWidth() throws {
+        let h = Harness("Prose that is long enough to wrap in a narrow text area, past sixty columns of text.\n")
+        let full = try #require(h.textView.textContainer).size.width
+        var spec = ThemeSpec.default
+        spec.textWidth = 40
+        h.editor.themeSpec = spec
+        h.layout()
+        let narrow = try #require(h.textView.textContainer).size.width
+        #expect(narrow < full)
+        #expect(abs(narrow - 40 * h.editor.theme.column - 2 * h.textView.textContainer!.lineFragmentPadding) < 1)
+        // Centred: the same margin either side.
+        #expect(abs(h.textView.textContainerInset.width * 2 + narrow - h.textView.bounds.width) < 1)
+        spec.textWidth = 0
+        h.editor.themeSpec = spec
+        h.layout()
+        #expect(try #require(h.textView.textContainer).size.width == full)
+    }
+
     @Test func mixedPitch() throws {
         let text = "**** Heading :tag:\nProse text.\n- item\n| a | b |\n#+begin_src sh\necho\n#+end_src\n"
         let h = Harness(text)

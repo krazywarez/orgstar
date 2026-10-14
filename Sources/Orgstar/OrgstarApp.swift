@@ -527,7 +527,7 @@ struct OrgMenuItems: View {
 struct MarkupToggle: View {
     @AppStorage("showTabBar") private var showTabBar = false
     @AppStorage("showMarkup") private var showMarkup = false
-    @AppStorage("showLineNumbers") private var showLineNumbers = true
+    @AppStorage("showLineNumbers") private var showLineNumbers = false
     @AppStorage("lineNumbersType") private var lineNumbersType = "t"
 
     var body: some View {
@@ -624,6 +624,7 @@ struct SettingsView: View {
     @AppStorage("themeBodyFont") private var themeBodyFont = ""
     @AppStorage("themeFontSize") private var themeFontSize = 13
     @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
+    @AppStorage("themeTextWidth") private var themeTextWidth = 0
     @AppStorage("themeHeadingStep") private var themeHeadingStep = 1
 
     /// Installed font families that aren't monospaced, for body text.
@@ -790,6 +791,11 @@ struct SettingsView: View {
                 }
                 Stepper("Size: \(themeFontSize) pt", value: $themeFontSize, in: 8...36)
                 Stepper("Line spacing: \(themeLineSpacing) pt", value: $themeLineSpacing, in: 0...16)
+                Picker("Text width", selection: $themeTextWidth) {
+                    Text("Whole editor").tag(0)
+                    ForEach([60, 70, 80, 90, 100, 120], id: \.self) { Text("\($0) columns").tag($0) }
+                    if ![0, 60, 70, 80, 90, 100, 120].contains(themeTextWidth) { Text("\(themeTextWidth) columns").tag(themeTextWidth) }
+                }
                 Stepper("Headings grow by \(themeHeadingStep) pt a level", value: $themeHeadingStep, in: 0...8)
             } footer: {
                 Text("Tags and tables line up in columns, so Font should be monospaced. With a Body text font, prose uses it while tables, code, dates, tags and drawers keep Font.")

@@ -46,6 +46,12 @@ final class KeyedTextView: UITextView {
     var onLayout: (() -> Void)?
     /// The text container's width while lines are truncated.
     static let truncatedWidth: CGFloat = 100_000
+    /// The widest the text runs, centred in a wider view; 0 for the view's width.
+    var textWidth: CGFloat = 0 {
+        didSet { if textWidth != oldValue { setNeedsLayout() } }
+    }
+    /// The side inset without a text width.
+    static let sideInset: CGFloat = 8
 
     /// Long lines run off the right edge and the view scrolls sideways.
     var truncates: Bool {
@@ -64,6 +70,11 @@ final class KeyedTextView: UITextView {
     }
 
     override func layoutSubviews() {
+        let side = textWidth > 0 && !truncates ? max(Self.sideInset, floor((bounds.width - textWidth - 2 * textContainer.lineFragmentPadding) / 2)) : Self.sideInset
+        if textContainerInset.left != side {
+            textContainerInset.left = side
+            textContainerInset.right = side
+        }
         // The text view sets its container's width to its own when it lays out.
         if truncates, textContainer.size.width != Self.truncatedWidth {
             textContainer.size = CGSize(width: Self.truncatedWidth, height: CGFloat.greatestFiniteMagnitude)

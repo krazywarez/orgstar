@@ -54,6 +54,16 @@ final class OrgTextView: NSTextView {
     var showsLineNumbers = false {
         didSet { if showsLineNumbers != oldValue { updateGutter() } }
     }
+    /// The widest the text container gets, centred in the view; 0 for the view's width.
+    var textWidth: CGFloat = 0 {
+        didSet { if textWidth != oldValue { updateGutter() } }
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        let widthChanged = newSize.width != frame.width
+        super.setFrameSize(newSize)
+        if widthChanged, textWidth > 0 { updateGutter() }
+    }
     var lineNumbersType = LineNumbersType.absolute {
         didSet { if lineNumbersType != oldValue { needsDisplay = true } }
     }
