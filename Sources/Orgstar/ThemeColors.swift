@@ -37,6 +37,7 @@ extension ThemeSpec {
         case "sidebar-background", "modeline-background": .windowBackgroundColor
         case "agenda-background", "background": .textBackgroundColor
         case "sidebar-header", "modeline-foreground", "agenda-time", "agenda-category", "tags": .secondaryLabelColor
+        case "accent": .controlAccentColor
         default: .labelColor
         }
     }

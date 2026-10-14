@@ -73,6 +73,7 @@ public struct ThemeSpec: Equatable, Sendable {
         ("foreground", "body text"),
         ("cursor", "the caret"),
         ("selection", "selected text's background"),
+        ("accent", "buttons, toggles and selection in lists; unset: the system's"),
         ("heading-1", "level 1 headings"), ("heading-2", "level 2 headings"), ("heading-3", "level 3 headings"),
         ("heading-4", "level 4 headings"), ("heading-5", "level 5 headings"), ("heading-6", "level 6 headings"),
         ("heading-7", "level 7 headings"), ("heading-8", "level 8 and deeper headings"),
@@ -135,6 +136,7 @@ public struct ThemeSpec: Equatable, Sendable {
     /// Keys the default theme leaves to the system, so windows keep the macOS look.
     public static let systemDefaults: Set<String> = [
         "sidebar-background", "sidebar-foreground", "sidebar-header", "modeline-background", "modeline-foreground", "agenda-background",
+        "accent",
     ]
 
     // MARK: - The default theme
@@ -188,7 +190,7 @@ public struct ThemeSpec: Equatable, Sendable {
     // MARK: - Reading
 
     /// Keys of `[theme]` that aren't colors; config.toml's settings handle them.
-    public static let typeKeys: Set<String> = ["font", "body-font", "font-size", "line-spacing", "text-width", "heading-size-step", "theme-file"]
+    public static let typeKeys: Set<String> = ["font", "body-font", "font-size", "line-spacing", "text-width", "heading-size-step", "theme-file", "light-theme", "dark-theme"]
 
     /// Whether a table holds theme colors.
     public static func isThemeTable(_ name: String) -> Bool {
