@@ -89,6 +89,19 @@ struct SettingsScreen: View {
             } footer: {
                 if badges == false { Text("Turn on Badges in orgstar's notification settings.") }
             }
+            Section("Appearance") {
+                let _ = model.settingsVersion
+                NavigationLink {
+                    ThemePickerScreen(model: model, appearance: .light)
+                } label: {
+                    LabeledContent("Light Theme", value: ThemePickerScreen.current(.light).name)
+                }
+                NavigationLink {
+                    ThemePickerScreen(model: model, appearance: .dark)
+                } label: {
+                    LabeledContent("Dark Theme", value: ThemePickerScreen.current(.dark).name)
+                }
+            }
             calendarSection
             reminderSection
             Section("In use") {
@@ -97,7 +110,7 @@ struct SettingsScreen: View {
                 LabeledContent("Agenda", value: agenda)
                 LabeledContent("Reminders", value: OrgPreferences.reminders() ? "\(OrgPreferences.reminderLead()) min before" : "Off")
                 LabeledContent("Capture templates", value: CaptureTemplates.load().templates.map(\.key).joined(separator: " "))
-                LabeledContent("Theme", value: UserDefaults.standard.string(forKey: "themeFile").flatMap { $0.isEmpty ? nil : $0 } ?? "Default")
+                LabeledContent("Theme", value: themeInUse)
                 LabeledContent("Font", value: font)
             }
         }
@@ -110,6 +123,13 @@ struct SettingsScreen: View {
     }
 
     /// `calendar-events` and `calendar-event-calendars`, written to config.toml.
+    /// The two palettes' names, and the theme file's when there is one.
+    private var themeInUse: String {
+        let names = "\(ThemePickerScreen.current(.light).name) / \(ThemePickerScreen.current(.dark).name)"
+        guard let file = UserDefaults.standard.string(forKey: "themeFile"), !file.isEmpty else { return names }
+        return "\(names), \(file)"
+    }
+
     private var calendarSection: some View {
         let _ = model.settingsVersion
         let on = OrgPreferences.calendarEvents()
