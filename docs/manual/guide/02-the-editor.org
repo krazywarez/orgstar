@@ -32,6 +32,12 @@ The two Org options are in Settings ▸ Editing as "Emacs hides emphasis markers
 
 Colours come from the theme and follow the system's light or dark appearance. The font, size, line spacing and text width are in Settings ▸ Appearance; colours are set in =config.toml=. See [[file:13-configuration.org][Configuration]]. The font should be monospaced, since tags and tables line up by columns. A body font for prose can be set beside it, as =mixed-pitch-mode= does in Emacs: prose and headings use it, and tables, code, dates, tags, drawers and the start of each line keep the monospaced font.
 
+** Adding emphasis
+
+Emphasize… (=C-c C-x C-f= in the Emacs and Doom presets, =org-emphasize=) asks for a marker: =*= bold, =/= italic, =_= underline, === verbatim, =~= code, =+= strike-through, or =SPC= to remove emphasis. With a selection it wraps the selection in the marker, replacing one the selection already has. Without one it inserts a pair of markers with the caret between them. A space goes before or after the markers where the text next to them couldn't border emphasis, as Org adds it.
+
+The Mac preset binds =⌘B=, =⌘I= and =⌘U= to bold, italic and underline. Each marker is also a command of its own in the palette (Bold, Italic, Underline, Verbatim, Code, Strike-Through), for binding in =keymap.toml=; see [[file:03-keys.org][Keys and commands]]. On iOS the key bar has Bold, Italic and Code.
+
 ** Indentation and stars
 
 Org files display as =org-indent-mode= shows them, by default: each heading's body is indented to start one column past its stars, all stars but the last are hidden, and a wrapped heading title continues under the title. The indentation is display only; the file keeps its text at the left margin.

@@ -134,6 +134,7 @@ A bar above the on-screen keyboard has buttons for Org's keys. Each does what it
 | Deadline             | =C-c C-d=   |
 | Tags                 | =C-c C-q=   |
 | Open link            | =C-c C-o=   |
+| Bold, Italic, Code   | Emphasize with =*=, =/= or =~=: the selection, or a pair of markers with the caret between |
 | Hide keyboard        |             |
 
 ** Commands

@@ -951,6 +951,10 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Command | Emacs | Mac | Doom | What it does |
 |-+-+-+-+-|
 | Open Link (=org.link.open=) | =C-c C-o= | =⌃⌘O= | — | Follows the link or timestamp at the caret (=org-open-at-point=). |
+| Emphasize… (=org.emphasize=) | =C-c C-x C-f= | — | — | Asks for a marker and wraps the selection in it, or inserts a pair with the caret between (=org-emphasize=). |
+| Bold (=org.emphasize.bold=) | — | =⌘B= | — | =org-emphasize= with =*=. |
+| Italic (=org.emphasize.italic=) | — | =⌘I= | — | =org-emphasize= with =/=. |
+| Underline (=org.emphasize.underline=) | — | =⌘U= | — | =org-emphasize= with =_=. |
 | Insert Link… (=org.link.insert=) | =C-c C-l= | =⌘K= | =SPC m l l= (N) | Asks for a link and description and inserts it, offering stored links (=org-insert-link=). |
 | Store Link (=org.link.store=) | =C-c l= | =⌃⌘L= | =SPC m l s= (N), =SPC n l= (N) | Stores a link to the current entry for a later Insert Link (=org-store-link=). |
 | Store ID Link (=org.id.store-link=) | — | — | =SPC m l i= (N) | Gives the entry an =ID= if needed and stores an =id:= link to it (=org-id-store-link=). |
@@ -1074,6 +1078,7 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Command | What it does |
 |-+-|
 | Board (=app.board=) | Opens the Board window. Window ▸ Board, =⇧⌘B=. |
+| Verbatim, Code, Strike-Through (=org.emphasize.verbatim=, =org.emphasize.code=, =org.emphasize.strike-through=) | =org-emphasize= with ===, =~= or =+=. |
 | Cancel Running Task (=app.babel.cancel=) | Stops the src block that is running, or an export or table recalculation running in Emacs. Edit ▸ Cancel Running Task, =⌘.=. |
 | Edit Config File (=app.edit-config=) | Opens =config.toml= in the editor. =⌥⌘,=. |
 | Import from Emacs… (=app.import-emacs=) | Opens Import from Emacs…. |

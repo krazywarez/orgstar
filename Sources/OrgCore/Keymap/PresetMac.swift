@@ -211,6 +211,15 @@ extension KeymapPreset {
         keys = "s-k"
         command = "org.link.insert"
         [[bind]]
+        keys = "s-b"
+        command = "org.emphasize.bold"
+        [[bind]]
+        keys = "s-i"
+        command = "org.emphasize.italic"
+        [[bind]]
+        keys = "s-u"
+        command = "org.emphasize.underline"
+        [[bind]]
         keys = "C-s-o"
         command = "org.link.open"
         [[bind]]

@@ -662,6 +662,13 @@ struct KeyBar: View {
         ("Open link", "link", "C-c C-o"),
     ]
 
+    /// Emphasis for the selection, or a pair of markers with the caret between.
+    private static let emphasis: [(label: String, symbol: String, command: String)] = [
+        ("Bold", "bold", "org.emphasize.bold"),
+        ("Italic", "italic", "org.emphasize.italic"),
+        ("Code", "chevron.left.forwardslash.chevron.right", "org.emphasize.code"),
+    ]
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
@@ -673,6 +680,9 @@ struct KeyBar: View {
                         if let symbol = key.symbol { Label(key.label, systemImage: symbol) } else { Text(key.label).font(.callout.weight(.semibold)) }
                     }
                     .accessibilityLabel(key.label)
+                }
+                ForEach(Self.emphasis, id: \.command) { item in
+                    Button(item.label, systemImage: item.symbol) { editor.run(item.command) }
                 }
                 Button("Hide keyboard", systemImage: "keyboard.chevron.compact.down") { editor.textView.resignFirstResponder() }
             }

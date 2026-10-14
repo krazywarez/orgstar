@@ -194,6 +194,9 @@ extension KeymapPreset {
         keys = "C-c C-x o"
         command = "org.property.toggle-ordered"
         [[bind]]
+        keys = "C-c C-x C-f"
+        command = "org.emphasize"
+        [[bind]]
         keys = "C-c C-x C-v"
         command = "org.toggle-inline-images"
         [[bind]]
