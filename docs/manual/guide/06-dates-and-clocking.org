@@ -82,6 +82,8 @@ orgstar reads the answer as Org 9.8 does, with =org-read-date-prefer-future= =t=
 | =+fri=             | The next Friday after today                               |
 | =-fri=             | The last Friday before today                              |
 | =+2fri=            | The second Friday from today                              |
+| =today=, =tomorrow=, =yesterday= | Those days. orgstar's additions; Org's prompt ignores them |
+| =next week=, =last week= | Seven days from today, forward or back. orgstar's additions |
 | =2026-10-07=, =2026-10-7= | That date                                          |
 | =10-7=             | 7 October, the next one                                   |
 | =7.10.=, =7.10.2027= | 7 October (day first)                                   |
@@ -97,7 +99,7 @@ orgstar reads the answer as Org 9.8 does, with =org-read-date-prefer-future= =t=
 | =10:00+1:30=       | 10:00-11:30                                               |
 | =fri 10:00=, =+2d 9:00= | A date and a time together                           |
 
-Forms without a sign, such as =fri=, =15= or =10:00=, fill in what is missing from the default date: the date of the timestamp being changed, or today. Forms with a single sign count from today; =++= counts from the default date. Two-digit years are read relative to the current year. Words the prompt does not recognize are ignored, so =tomorrow= gives the default date.
+Forms without a sign, such as =fri=, =15= or =10:00=, fill in what is missing from the default date: the date of the timestamp being changed, or today. Forms with a single sign count from today; =++= counts from the default date. Two-digit years are read relative to the current year. Other words the prompt does not recognize are ignored and give the default date. =today=, =tomorrow=, =yesterday=, =next week= and =last week= are orgstar's additions, read before the rest of the answer; Org's prompt ignores them.
 
 * Changing dates
 

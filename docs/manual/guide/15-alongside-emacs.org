@@ -239,6 +239,7 @@ Tables and dynamic blocks (see [[file:10-tables.org][Tables]] and [[file:06-date
 Other:
 
 - =C-c C-q= before the first heading (setting file tags) isn't supported.
+- The date prompt also reads =today=, =tomorrow=, =yesterday=, =next week= and =last week=, which Org's prompt ignores.
 - Priority ranges that aren't letters or numbers are refused.
 - =#+SETUPFILE= URLs aren't fetched.
 - Most =#+STARTUP= options for footnotes, entities, numbering and odd levels are accepted and ignored; see [[file:13-configuration.org][Configuration]].

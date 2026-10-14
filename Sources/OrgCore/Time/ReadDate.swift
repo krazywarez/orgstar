@@ -165,10 +165,25 @@ public enum ReadDate {
         return (n * (direction == "-" ? -1 : 1), what, relativeToDefault, match)
     }
 
+    /// Words orgstar reads that Org's prompt ignores, and the relative forms they stand for.
+    /// Rewritten before analysis, so a time after them still counts (`tomorrow 14:00`).
+    static let words: [(String, String)] = [
+        ("next week", "+1w"), ("last week", "-1w"), ("today", "+0"), ("tomorrow", "+1"), ("yesterday", "-1"),
+    ]
+
+    static func expandWords(_ input: String) -> String {
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
+        let lower = trimmed.lowercased()
+        for (word, form) in words where lower == word || lower.hasPrefix(word + " ") {
+            return form + trimmed.dropFirst(word.count)
+        }
+        return input
+    }
+
     /// `org-read-date`'s reading of a prompt answer: an empty one takes the default date.
     public static func read(_ answer: String, default defaultDate: Date?, now: Date, calendar: Calendar) -> Answer {
         let def = defaultDate ?? now
-        var input = answer
+        var input = expandWords(answer)
         if input.trimmingCharacters(in: .whitespaces).isEmpty {
             let c = calendar.dateComponents([.year, .month, .day], from: def)
             input = String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!)

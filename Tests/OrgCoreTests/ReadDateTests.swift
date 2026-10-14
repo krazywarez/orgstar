@@ -48,6 +48,19 @@ struct ReadDateTests {
         "w42", "2027-w01", "w3-5", "tomorrow", "nonsense",
     ]
 
+    /// orgstar reads these words; Org's prompt ignores them. `analyze` stays Org's.
+    @Test func wordsBeforeAnalysis() {
+        func read(_ s: String) -> String { Self.format(ReadDate.read(s, default: nil, now: Self.now, calendar: Self.utc)) }
+        #expect(read("today") == "2026-09-10|nil")
+        #expect(read("tomorrow") == "2026-09-11|nil")
+        #expect(read("Yesterday") == "2026-09-09|nil")
+        #expect(read("next week") == "2026-09-17|nil")
+        #expect(read("last week") == "2026-09-03|nil")
+        #expect(read("tomorrow 14:00") == "2026-09-11 14:00|nil")
+        #expect(read("todays") == "2026-09-10|nil")
+        #expect(Self.format(ReadDate.analyze("tomorrow", default: Self.now, now: Self.now, calendar: Self.utc)) == "2026-09-10|nil")
+    }
+
     @Test func examples() {
         let answer = ReadDate.analyze("fri 10:00", default: Self.now, now: Self.now, calendar: Self.utc)
         #expect(Self.format(answer) == "2026-09-11 10:00|nil")
