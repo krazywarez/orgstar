@@ -184,10 +184,15 @@ struct KeymapTests {
     @Test func structureCommandsAreBound() {
         let emacs = KeymapPreset.emacs.keymap, doom = KeymapPreset.doom.keymap
         for (command, keys) in [("org.drawer.insert", "C-c C-x d"), ("app.refile.copy", "C-c M-w"), ("app.refile.goto", "C-u C-c C-w"),
-                                ("org.element.drag-forward", "M-<down>"), ("org.item.bullet-next", "S-<right>")] {
+                                ("org.element.drag-forward", "M-<down>"), ("org.item.bullet-next", "S-<right>"),
+                                ("org.schedule.remove", "C-u C-c C-s"), ("org.deadline.remove", "C-u C-c C-d")] {
             #expect(emacs.keyLabels(for: command).contains(keys), "\(command)")
         }
         #expect(doom.keyLabels(for: "app.refile.goto", modes: ["normal"]).contains("SPC u SPC m r r"))
+        #expect(doom.keyLabels(for: "org.schedule.remove", modes: ["normal"]).contains("SPC u SPC m d s"))
+        #expect(doom.keyLabels(for: "org.deadline.remove", modes: ["normal"]).contains("SPC u SPC m d d"))
+        let mac = KeymapPreset.mac.keymap
+        #expect(mac.keyLabels(for: "org.schedule.remove").contains("C-M-s-s") && mac.keyLabels(for: "org.deadline.remove").contains("C-M-s-e"))
         #expect(doom.keyLabels(for: "org.element.drag-backward", modes: ["normal"]).contains("M-k"))
         let labels = doom.keyLabels(for: "org.item.bullet-previous", modes: ["normal"], limit: 5)
         #expect(labels.contains("C-H"), "\(labels)")

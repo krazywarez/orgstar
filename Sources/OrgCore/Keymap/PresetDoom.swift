@@ -400,6 +400,14 @@ extension KeymapPreset {
         command = "org.schedule"
         mode = "normal"
         [[bind]]
+        keys = "SPC u SPC m d s"
+        command = "org.schedule.remove"
+        mode = "normal"
+        [[bind]]
+        keys = "SPC u SPC m d d"
+        command = "org.deadline.remove"
+        mode = "normal"
+        [[bind]]
         keys = "SPC m d t"
         command = "org.timestamp.active"
         mode = "normal"

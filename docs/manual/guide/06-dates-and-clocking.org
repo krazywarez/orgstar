@@ -139,10 +139,10 @@ DEADLINE: <2026-10-31 Sat -7d> SCHEDULED: <2026-10-20 Tue>
 |------------------+------------------+-------------+------+-------------|
 | Schedule         | =org-schedule=   | =C-c C-s=   | ⌃⌘S  | =SPC m d s= |
 | Set Deadline     | =org-deadline=   | =C-c C-d=   | ⌃⌘E  | =SPC m d d= |
-| Remove Schedule  | =org-schedule= with =C-u= |    |      |             |
-| Remove Deadline  | =org-deadline= with =C-u= |    |      |             |
+| Remove Schedule  | =org-schedule= with =C-u= | =C-u C-c C-s= | ⌃⌥⌘S | =SPC u SPC m d s= |
+| Remove Deadline  | =org-deadline= with =C-u= | =C-u C-c C-d= | ⌃⌥⌘E | =SPC u SPC m d d= |
 
-Schedule and Set Deadline ask for a date, starting from the entry's current one and its time. They replace an existing date, keep its repeater and warning, and remove a =CLOSED= stamp from the entry. Remove Schedule and Remove Deadline have no default keys; run them from the Org menu or the command palette ([[file:03-keys.org][Keys]]).
+Schedule and Set Deadline ask for a date, starting from the entry's current one and its time. They replace an existing date, keep its repeater and warning, and remove a =CLOSED= stamp from the entry. Remove Schedule and Remove Deadline are bound to Org's =C-u= forms as separate sequences, and are in the Org menu and the command palette ([[file:03-keys.org][Keys]]).
 
 With =org-log-reschedule= or =org-log-redeadline= set to =time= or =note= in =config.toml=, or the matching =#+STARTUP= words, orgstar logs each change of an existing date and each removal:
 

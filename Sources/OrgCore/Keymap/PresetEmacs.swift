@@ -644,6 +644,12 @@ extension KeymapPreset {
         keys = "C-c C-d"
         command = "org.deadline"
         [[bind]]
+        keys = "C-u C-c C-s"
+        command = "org.schedule.remove"
+        [[bind]]
+        keys = "C-u C-c C-d"
+        command = "org.deadline.remove"
+        [[bind]]
         keys = "M-q"
         command = "org.fill-paragraph"
         [[bind]]

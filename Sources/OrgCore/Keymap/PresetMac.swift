@@ -123,6 +123,12 @@ extension KeymapPreset {
         keys = "C-s-e"
         command = "org.deadline"
         [[bind]]
+        keys = "C-M-s-s"
+        command = "org.schedule.remove"
+        [[bind]]
+        keys = "C-M-s-e"
+        command = "org.deadline.remove"
+        [[bind]]
         keys = "C-s-p"
         command = "org.fill-paragraph"
         [[bind]]

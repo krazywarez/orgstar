@@ -890,6 +890,8 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Insert Inactive Timestamp (=org.timestamp.inactive=) | =C-c != | =⌃⌥⌘.= | =SPC m d T= (N) | Same, inactive (=org-timestamp-inactive=). |
 | Schedule (=org.schedule=) | =C-c C-s= | =⌃⌘S= | =SPC m d s= (N) | Asks for a date and sets =SCHEDULED= (=org-schedule=). |
 | Set Deadline (=org.deadline=) | =C-c C-d= | =⌃⌘E= | =SPC m d d= (N) | Asks for a date and sets =DEADLINE= (=org-deadline=). |
+| Remove Schedule (=org.schedule.remove=) | =C-u C-c C-s= | =⌃⌥⌘S= | =SPC u SPC m d s= (N) | Removes =SCHEDULED= (=org-schedule= with =C-u=). |
+| Remove Deadline (=org.deadline.remove=) | =C-u C-c C-d= | =⌃⌥⌘E= | =SPC u SPC m d d= (N) | Removes =DEADLINE= (=org-deadline= with =C-u=). |
 | Increase Timestamp Part (=org.timestamp.up=) | =S-<up>= | =⌃⌘↑= | =C-S-k= (N, I) | On a timestamp, increases the part under the caret: year, month, day, hour or minute (=org-timestamp-up=). |
 | Decrease Timestamp Part (=org.timestamp.down=) | =S-<down>= | =⌃⌘↓= | =C-S-j= (N, I) | On a timestamp, decreases the part under the caret (=org-timestamp-down=). |
 | Timestamp One Day Later (=org.timestamp.day-later=) | =S-<right>= | =⌃⌘→= | =C-S-l= (N, I) | On a timestamp, moves it one day later (=org-timestamp-up-day=). |
@@ -1093,8 +1095,6 @@ No preset binds these. Run them from the palette or a menu, or bind them in =key
 | Show or Hide Line Numbers (=app.toggle-line-numbers=) | Shows or hides line numbers. View ▸ Show Line Numbers, =⇧⌘L=. |
 | Show or Hide Tab Bar (=app.toggle-tab-bar=) | Shows or hides the tab bar. View ▸ Show Tab Bar. |
 | Column View of File (=org.columns.global=) | Shows the column view of the whole file (=org-columns= with =C-u=). |
-| Remove Schedule (=org.schedule.remove=) | Removes =SCHEDULED= (=org-schedule= with =C-u=). |
-| Remove Deadline (=org.deadline.remove=) | Removes =DEADLINE= (=org-deadline= with =C-u=). |
 | Create ID (=org.id.create=) | Gives the entry an =ID= property, a lowercase UUID, unless it has one (=org-id-get-create=). |
 | Delete Property… (=org.property.delete=) | Asks for a property of the entry and deletes it (=org-delete-property=). |
 | Delete Property Everywhere… (=org.property.delete-globally=) | Asks for a property and deletes it from every entry in the file (=org-delete-property-globally=). |
