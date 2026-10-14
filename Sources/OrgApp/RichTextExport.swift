@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 #if os(macOS)
 import AppKit
 #else
@@ -49,14 +50,67 @@ public enum RichTextExport {
     }
     #endif
 
-    /// The HTML export as Word's `.docx`, tables included.
+    /// The HTML export as Word's `.docx`, with tables, heading styles and pictures.
     public static func docx(html: String, directory: URL?) throws -> Data {
+        let (marked, images) = markingHeadingsAndImages(html, directory: directory)
         #if os(macOS)
-        return try docx(attributed(html: html, directory: directory))
+        return DocxWriter.data(from: try attributed(html: marked, directory: directory), images: images)
         #else
-        let (page, tables) = extractingTables(html)
-        return DocxWriter.data(from: try attributed(html: page, directory: directory), tables: tables)
+        let (page, tables) = extractingTables(marked)
+        return DocxWriter.data(from: try attributed(html: page, directory: directory), tables: tables, images: images)
         #endif
+    }
+
+    /// `html` with each heading's text starting with `DocxWriter.headingMarker` (`<h1>` the
+    /// title, `<h2>` to `<h7>` Word's levels 1 to 6), and each local image replaced by
+    /// `DocxWriter.imageMarker` for the pictures returned: what the system's HTML import
+    /// leaves out or, on iOS, can't say.
+    static func markingHeadingsAndImages(_ html: String, directory: URL?) -> (html: String, images: [DocxWriter.Image]) {
+        var out = html.replacing(#/(?i)<h([1-7])\b([^>]*)>/#) { match in
+            let level = Int(match.1)! - 1
+            return "<h\(match.1)\(match.2)>" + DocxWriter.headingMarker(min(level, 6))
+        }
+        var images: [DocxWriter.Image] = []
+        out = out.replacing(#/(?i)<img\b[^>]*>/#) { match in
+            let tag = String(match.0)
+            guard let src = tag.firstMatch(of: #/(?i)\bsrc="([^"]*)"/#).map({ decode(String($0.1)) }),
+                  let image = image(src, width: tag.firstMatch(of: #/(?i)\bwidth="(\d+)/#).flatMap { Int($0.1) }, directory: directory) else { return tag }
+            images.append(image)
+            return DocxWriter.imageMarker(images.count - 1)
+        }
+        return (out, images)
+    }
+
+    /// A local image as Word takes it: PNG, JPEG or GIF as they are, other formats ImageIO
+    /// reads as PNG. `width` in pixels scales it, as `#+ATTR_HTML: :width` does on the page.
+    static func image(_ src: String, width: Int?, directory: URL?) -> DocxWriter.Image? {
+        let url: URL
+        if src.hasPrefix("file://") {
+            guard let file = URL(string: src) else { return nil }
+            url = file
+        } else if src.contains("://") || src.hasPrefix("data:") {
+            return nil
+        } else {
+            let path = src.removingPercentEncoding ?? src
+            if path.hasPrefix("/") { url = URL(fileURLWithPath: path) } else if let directory { url = directory.appendingPathComponent(path) } else { return nil }
+        }
+        guard let data = try? Data(contentsOf: url), let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let pixelWidth = properties[kCGImagePropertyPixelWidth] as? Int, let pixelHeight = properties[kCGImagePropertyPixelHeight] as? Int,
+              pixelWidth > 0, pixelHeight > 0 else { return nil }
+        let (w, h) = width.map { ($0, pixelHeight * $0 / pixelWidth) } ?? (pixelWidth, pixelHeight)
+        switch CGImageSourceGetType(source) as String? {
+        case "public.png": return DocxWriter.Image(data: data, ext: "png", width: w, height: h)
+        case "public.jpeg": return DocxWriter.Image(data: data, ext: "jpeg", width: w, height: h)
+        case "com.compuserve.gif": return DocxWriter.Image(data: data, ext: "gif", width: w, height: h)
+        default:
+            let png = NSMutableData()
+            guard let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+                  let destination = CGImageDestinationCreateWithData(png, "public.png" as CFString, 1, nil) else { return nil }
+            CGImageDestinationAddImage(destination, image, nil)
+            guard CGImageDestinationFinalize(destination) else { return nil }
+            return DocxWriter.Image(data: png as Data, ext: "png", width: w, height: h)
+        }
     }
 
     /// `html` with each `<table>` replaced by a paragraph holding `DocxWriter.marker`, and the

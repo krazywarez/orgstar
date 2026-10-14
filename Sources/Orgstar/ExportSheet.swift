@@ -12,6 +12,9 @@ struct ExportSheet: View {
     @AppStorage("exportFormat") private var format = "html"
     @AppStorage("exportOpenAfter") private var openAfter = false
     @AppStorage("exportBodyOnly") private var bodyOnly = false
+    @AppStorage("pdfMargin") private var pdfMargin = 50
+    @AppStorage("pdfFont") private var pdfFont = ""
+    @AppStorage("pdfPageNumbers") private var pdfPageNumbers = true
     @State private var subtree = false
     @State private var destination: URL?
     @Environment(\.dismiss) private var dismiss
@@ -42,6 +45,15 @@ struct ExportSheet: View {
             Toggle("Body only", isOn: $bodyOnly)
                 .disabled(!allowsBodyOnly)
                 .help("Leave out the title and page wrapper, as Org's body-only export")
+            if format == "print-pdf" {
+                Stepper("Margins: \(pdfMargin) pt", value: $pdfMargin, in: 18...144, step: 6)
+                Picker("Font", selection: $pdfFont) {
+                    Text("The export's own").tag("")
+                    Divider()
+                    ForEach(NSFontManager.shared.availableFontFamilies, id: \.self) { Text($0).tag($0) }
+                }
+                Toggle("Page numbers", isOn: $pdfPageNumbers)
+            }
             LabeledContent("Destination") {
                 HStack {
                     Text(chosen.path(percentEncoded: false)).lineLimit(1).truncationMode(.middle).foregroundStyle(.secondary)

@@ -328,7 +328,7 @@ The app icon's badge counts the entries in the agenda's Overdue section that are
 
 Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text and iCalendar, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.
 
-ODT, LaTeX, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
+PDF export follows =pdf-margin=, =pdf-font= and =pdf-page-numbers= in =config.toml=, and Word files get heading styles and the file's images, as on the Mac. ODT, LaTeX, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
 
 * Code blocks and tables
 
@@ -402,6 +402,7 @@ These settings from =config.toml= apply on iOS:
 - =org-todo-keywords=, =org-list-allow-alphabetical=
 - =org-tags-column=, =org-insert-heading-respect-content=, =org-M-RET-may-split-line=, =fill-column=
 - =org-hide-emphasis-markers= and =org-pretty-entities=, for what hidden markup shows and for how tag and table alignment and filling measure text, as on the Mac
+- =pdf-margin=, =pdf-font=, =pdf-page-numbers=
 - =show-markup=, =org-startup-indented=, =org-hide-leading-stars=, =org-startup-with-inline-images=, =org-startup-with-latex-preview=, =org-startup-align-all-tables=, =org-startup-truncated=, =org-cycle-hide-drawer-startup=, =org-cycle-hide-block-startup=
 - =[theme]= (=font=, =body-font=, =font-size=, =line-spacing=, =text-width=, =heading-size-step=, =theme-file= and colours), =[theme.light]=, =[theme.dark]=, =[theme.todo]=, =[theme.category]=
 - =org-log-done=, =org-log-reschedule=, =org-log-redeadline=, =org-log-into-drawer=

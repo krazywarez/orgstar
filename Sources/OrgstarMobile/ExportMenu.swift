@@ -94,7 +94,7 @@ struct OrgExport: Transferable {
             let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
             let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
             let data: Data = switch format {
-            case .pdf: try await PDFExport.pdf(html: html, directory: directory)
+            case .pdf: try await PDFExport.pdf(html: html, directory: directory, options: OrgPreferences.pdfOptions())
             case .rtf: try await RichTextExport.rtf(html: html, directory: directory)
             default: Data(try await RichTextExport.plain(html: html, directory: directory).utf8)
             }

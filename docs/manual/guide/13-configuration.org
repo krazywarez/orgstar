@@ -165,6 +165,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-cycle-hide-block-startup=   |                            |
 | =electric-pair-mode=             |                            |
 | =display-line-numbers-type=      | View ▸ Show Line Numbers (=⇧⌘L=), View ▸ Line Numbers |
+| =pdf-margin=, =pdf-font=, =pdf-page-numbers= | File ▸ Export ▸ Export… (the dialog's PDF settings) |
 | =tab-bar=                        | View ▸ Show Tab Bar        |
 | =show-markup=                    | View ▸ Show Markup (=⇧⌘M=) |
 | =ignored-folders=                |                            |
@@ -377,6 +378,9 @@ Any other key in =[theme]= is a color; see Themes below.
 | =save=                      | string  | ="automatic"= | =automatic= (one second after typing stops) or =explicit= (only with =⌘S=).            |
 | =keymap=                    | string  | ="emacs"=     | =emacs=, =mac= or =doom=. Your own bindings go in =keymap.toml=.                       |
 | =option-as-meta=            | string  | ="left"=      | Which Option key is Meta: =left=, =right=, =both= or =none=.                           |
+| =pdf-margin=                | integer | =50=          | PDF export's page margins, in points.                                                   |
+| =pdf-font=                  | string  | =""=          | A font family for PDF export's text; =""= keeps the export's own.                       |
+| =pdf-page-numbers=          | boolean | =true=        | Number PDF export's pages.                                                              |
 | =tab-bar=                   | boolean | =false=       | A tab for each open buffer above the editor.                                            |
 | =show-markup=               | boolean | =false=       | Show link brackets and emphasis markers.                                                |
 | =show-hidden-files=         | boolean | =true=        | List dotfiles and dot folders in your folders.                                          |

@@ -1,4 +1,5 @@
 import Foundation
+import PDFKit
 import WebKit
 #if os(macOS)
 import AppKit
@@ -18,6 +19,50 @@ public enum PDFExport {
         public let description: String
     }
 
+    /// The page's margins in points, a font family for the text (empty: the export's own), and
+    /// whether pages are numbered.
+    public struct Options: Sendable, Equatable {
+        public var margin: Int
+        public var font: String
+        public var pageNumbers: Bool
+        public init(margin: Int = 50, font: String = "", pageNumbers: Bool = true) {
+            self.margin = margin
+            self.font = font
+            self.pageNumbers = pageNumbers
+        }
+    }
+
+    /// `printCSS` with the body font, when one is set.
+    static func css(_ options: Options) -> String {
+        guard !options.font.isEmpty else { return printCSS }
+        let family = options.font.replacingOccurrences(of: "\"", with: "")
+        return printCSS.replacingOccurrences(of: "</style>", with: "body { font-family: \"\(family)\", -apple-system, sans-serif; }\n</style>")
+    }
+
+    /// Each page's number, centred in its bottom margin, as an annotation: drawing it into the
+    /// page would mean drawing the page again and losing WebKit's links.
+    static func numberPages(_ data: Data, margin: Int) -> Data {
+        guard let document = PDFDocument(data: data) else { return data }
+        for index in 0..<document.pageCount {
+            guard let page = document.page(at: index) else { continue }
+            let box = page.bounds(for: .mediaBox)
+            let height: CGFloat = 14
+            let bottom = box.minY + max(4, (CGFloat(margin) - height) / 2)
+            let note = PDFAnnotation(bounds: CGRect(x: box.midX - 40, y: bottom, width: 80, height: height), forType: .freeText, withProperties: nil)
+            note.contents = String(index + 1)
+            note.font = .systemFont(ofSize: 9)
+            note.fontColor = .gray
+            note.color = .clear
+            note.alignment = .center
+            let border = PDFBorder()
+            border.lineWidth = 0
+            note.border = border
+            note.isReadOnly = true
+            page.addAnnotation(note)
+        }
+        return document.dataRepresentation() ?? data
+    }
+
     /// Rules added for paper: the page's own width, light colors, and no breaks inside code,
     /// tables and figures or right after a heading.
     static let printCSS = """
@@ -33,8 +78,8 @@ public enum PDFExport {
 
     /// The page `html` (an `HTMLExport.page`) as a PDF. `directory` is the Org file's folder,
     /// where relative image links are read from.
-    public static func pdf(html: String, directory: URL?) async throws -> Data {
-        let page = html.replacingOccurrences(of: "</head>", with: printCSS + "\n</head>")
+    public static func pdf(html: String, directory: URL?, options: Options = Options()) async throws -> Data {
+        let page = html.replacingOccurrences(of: "</head>", with: css(options) + "\n</head>")
         let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 800, height: 1100))
         let loader = Loader()
         webView.navigationDelegate = loader
@@ -58,20 +103,21 @@ public enum PDFExport {
             "if (window.MathJax && MathJax.startup && MathJax.startup.promise) { await MathJax.startup.promise; }",
             contentWorld: .page
         )
-        return try await render(webView)
+        let data = try await render(webView, margin: CGFloat(max(0, options.margin)))
+        return options.pageNumbers ? numberPages(data, margin: options.margin) : data
     }
 
     #if os(macOS)
-    private static func render(_ webView: WKWebView) async throws -> Data {
+    private static func render(_ webView: WKWebView, margin: CGFloat) async throws -> Data {
         let output = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-\(UUID().uuidString).pdf")
         defer { try? FileManager.default.removeItem(at: output) }
         let info = (NSPrintInfo.shared.copy() as? NSPrintInfo) ?? NSPrintInfo()
         info.jobDisposition = .save
         info.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = output
-        info.topMargin = 50
-        info.bottomMargin = 50
-        info.leftMargin = 50
-        info.rightMargin = 50
+        info.topMargin = margin
+        info.bottomMargin = margin
+        info.leftMargin = margin
+        info.rightMargin = margin
         info.horizontalPagination = .fit
         info.verticalPagination = .automatic
         info.isHorizontallyCentered = false
@@ -103,13 +149,13 @@ public enum PDFExport {
         }
     }
     #else
-    private static func render(_ webView: WKWebView) async throws -> Data {
+    private static func render(_ webView: WKWebView, margin: CGFloat) async throws -> Data {
         let letter = usesLetter()
         let paper = CGRect(x: 0, y: 0, width: letter ? 612 : 595.2, height: letter ? 792 : 841.8)
         let renderer = UIPrintPageRenderer()
         renderer.addPrintFormatter(webView.viewPrintFormatter(), startingAtPageAt: 0)
         renderer.setValue(NSValue(cgRect: paper), forKey: "paperRect")
-        renderer.setValue(NSValue(cgRect: paper.insetBy(dx: 50, dy: 50)), forKey: "printableRect")
+        renderer.setValue(NSValue(cgRect: paper.insetBy(dx: margin, dy: margin)), forKey: "printableRect")
         let data = NSMutableData()
         UIGraphicsBeginPDFContextToData(data, paper, nil)
         renderer.prepare(forDrawingPages: NSRange(location: 0, length: renderer.numberOfPages))

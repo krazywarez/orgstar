@@ -606,8 +606,8 @@ struct ContentView: View {
                 do {
                     let data: Data
                     switch format {
-                    case "print-pdf": data = try await PDFExport.pdf(html: html, directory: directory)
-                    case "docx": data = try RichTextExport.docx(RichTextExport.attributed(html: html, directory: directory))
+                    case "print-pdf": data = try await PDFExport.pdf(html: html, directory: directory, options: OrgPreferences.pdfOptions())
+                    case "docx": data = try RichTextExport.docx(html: html, directory: directory)
                     case "rtf": data = try RichTextExport.rtf(RichTextExport.attributed(html: html, directory: directory))
                     default: data = Data(RichTextExport.plain(try RichTextExport.attributed(html: html, directory: directory)).utf8)
                     }

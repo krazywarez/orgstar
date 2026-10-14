@@ -15,27 +15,52 @@ typealias DocxColor = UIColor
 /// its `marker` alone.
 enum DocxWriter {
     static func marker(_ index: Int) -> String { "\u{E000}\(index)\u{E001}" }
+    /// Put at the start of a heading's text: 0 for the title, 1 to 6 for Word's heading levels.
+    static func headingMarker(_ level: Int) -> String { "\u{E002}\(level)\u{E003}" }
+    /// Stands for `images[index]` in the text.
+    static func imageMarker(_ index: Int) -> String { "\u{E004}\(index)\u{E005}" }
 
-    static func data(from text: NSAttributedString, tables: [String] = []) -> Data {
+    /// A picture for the document: PNG, JPEG or GIF bytes and its size in pixels.
+    struct Image: Equatable {
+        let data: Data
+        let ext: String
+        let width: Int
+        let height: Int
+    }
+
+    /// EMUs to a pixel at 96 to the inch, and to a twip.
+    static let emuPerPixel = 9525, emuPerTwip = 635
+
+    static func data(from text: NSAttributedString, tables: [String] = [], images: [Image] = []) -> Data {
         var links: [String] = []
-        let body = paragraphs(text, tables: tables, links: &links)
+        let letter = PDFExport.usesLetter()
+        let body = paragraphs(text, tables: tables, images: images, maxWidth: (letter ? 12240 : 11906) - 2 * 1134, links: &links)
         let document = """
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" \
-            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>\(body)\
-            \(section(letter: PDFExport.usesLetter()))\
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" \
+            xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" \
+            xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" \
+            xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>\(body)\
+            \(section(letter: letter))\
             </w:body></w:document>
             """
-        let relationships = links.enumerated().map { index, url in
-            "<Relationship Id=\"link\(index + 1)\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" Target=\"\(escape(url))\" TargetMode=\"External\"/>"
-        }.joined()
+        let relationships = "<Relationship Id=\"styles\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
+            + links.enumerated().map { index, url in
+                "<Relationship Id=\"link\(index + 1)\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" Target=\"\(escape(url))\" TargetMode=\"External\"/>"
+            }.joined()
+            + images.enumerated().map { index, image in
+                "<Relationship Id=\"img\(index + 1)\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/image\" Target=\"media/image\(index + 1).\(image.ext)\"/>"
+            }.joined()
+        let mediaTypes = Set(images.map(\.ext)).sorted().map { "<Default Extension=\"\($0)\" ContentType=\"image/\($0)\"/>" }.joined()
         var zip = ZipWriter()
         zip.add("[Content_Types].xml", """
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\
             <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\
-            <Default Extension="xml" ContentType="application/xml"/>\
+            <Default Extension="xml" ContentType="application/xml"/>\(mediaTypes)\
             <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>\
+            <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>\
             </Types>
             """)
         zip.add("_rels/.rels", """
@@ -49,7 +74,46 @@ enum DocxWriter {
             <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\(relationships)</Relationships>
             """)
         zip.add("word/document.xml", document)
+        zip.add("word/styles.xml", styles)
+        for (index, image) in images.enumerated() { zip.add("word/media/image\(index + 1).\(image.ext)", data: image.data) }
         return zip.data()
+    }
+
+    /// Normal, Title and Word's built-in heading 1 to 6, so the navigation pane, outline view
+    /// and contents fields see the headings. The runs keep their own fonts and colors.
+    static let styles: String = {
+        let headings = (1...6).map { level in
+            "<w:style w:type=\"paragraph\" w:styleId=\"Heading\(level)\"><w:name w:val=\"heading \(level)\"/><w:basedOn w:val=\"Normal\"/>"
+                + "<w:next w:val=\"Normal\"/><w:uiPriority w:val=\"9\"/><w:qFormat/><w:pPr><w:keepNext/><w:outlineLvl w:val=\"\(level - 1)\"/></w:pPr>"
+                + "<w:rPr><w:b/></w:rPr></w:style>"
+        }.joined()
+        return """
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">\
+            <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Helvetica Neue" w:hAnsi="Helvetica Neue" w:cs="Helvetica Neue"/>\
+            <w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault/></w:docDefaults>\
+            <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>\
+            <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>\
+            <w:qFormat/><w:pPr><w:keepNext/></w:pPr><w:rPr><w:b/><w:sz w:val="40"/></w:rPr></w:style>\(headings)\
+            </w:styles>
+            """
+    }()
+
+    /// An inline picture, as wide as its pixels at 96 to the inch, or `maxWidth` twips if less.
+    static func drawing(_ image: Image, index: Int, maxWidth: Int) -> String {
+        var cx = image.width * emuPerPixel, cy = image.height * emuPerPixel
+        let limit = maxWidth * emuPerTwip
+        if cx > limit, cx > 0 {
+            cy = cy * limit / cx
+            cx = limit
+        }
+        let id = index + 1
+        return "<w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"\(cx)\" cy=\"\(cy)\"/>"
+            + "<wp:docPr id=\"\(id)\" name=\"Picture \(id)\"/><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
+            + "<pic:pic><pic:nvPicPr><pic:cNvPr id=\"\(id)\" name=\"image\(id).\(image.ext)\"/><pic:cNvPicPr/></pic:nvPicPr>"
+            + "<pic:blipFill><a:blip r:embed=\"img\(id)\"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>"
+            + "<pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"\(cx)\" cy=\"\(cy)\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></pic:spPr>"
+            + "</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>"
     }
 
     /// The page: Letter or A4, as PDF export has it. Without a size, readers pick their own, and
@@ -76,7 +140,7 @@ enum DocxWriter {
         return out + "</w:tbl>"
     }
 
-    private static func paragraphs(_ text: NSAttributedString, tables: [String], links: inout [String]) -> String {
+    private static func paragraphs(_ text: NSAttributedString, tables: [String], images: [Image], maxWidth: Int, links: inout [String]) -> String {
         let string = text.string as NSString
         var out = ""
         #if os(macOS)
@@ -101,7 +165,7 @@ enum DocxWriter {
                 continue
             }
             let style = text.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle
-            let paragraph = self.paragraph(text, range, style, links: &links)
+            let paragraph = self.paragraph(text, range, style, images: images, maxWidth: maxWidth, links: &links)
             #if os(macOS)
             if let cell = style?.textBlocks.compactMap({ $0 as? NSTextTableBlock }).last {
                 if table?.block !== cell.table {
@@ -120,27 +184,35 @@ enum DocxWriter {
         return out
     }
 
-    private static func paragraph(_ text: NSAttributedString, _ range: NSRange, _ style: NSParagraphStyle?, links: inout [String]) -> String {
+    private static func paragraph(
+        _ text: NSAttributedString, _ range: NSRange, _ style: NSParagraphStyle?, images: [Image], maxWidth: Int, links: inout [String]
+    ) -> String {
+        // In the order the schema has them: style, tabs, spacing, indentation, justification.
         var properties = ""
+        let content = (text.string as NSString).substring(with: range)
+        if let match = content.firstMatch(of: /^\s*\u{E002}(\d)\u{E003}/), let level = Int(match.1) {
+            properties += "<w:pStyle w:val=\"\(level == 0 ? "Title" : "Heading\(level)")\"/>"
+        }
         if let style {
+            if !style.tabStops.isEmpty {
+                properties += "<w:tabs>" + style.tabStops.map { "<w:tab w:val=\"left\" w:pos=\"\(Int($0.location * 20))\"/>" }.joined() + "</w:tabs>"
+            }
+            properties += "<w:spacing w:before=\"\(Int(style.paragraphSpacingBefore * 20))\" w:after=\"\(Int(style.paragraphSpacing * 20))\"/>"
+            let left = Int(style.headIndent * 20), first = Int((style.firstLineHeadIndent - style.headIndent) * 20)
+            if left != 0 || first != 0 { properties += "<w:ind w:left=\"\(left)\" \(first < 0 ? "w:hanging=\"\(-first)\"" : "w:firstLine=\"\(first)\"")/>" }
             switch style.alignment {
             case .center: properties += "<w:jc w:val=\"center\"/>"
             case .right: properties += "<w:jc w:val=\"right\"/>"
             default: break
-            }
-            let left = Int(style.headIndent * 20), first = Int((style.firstLineHeadIndent - style.headIndent) * 20)
-            if left != 0 || first != 0 { properties += "<w:ind w:left=\"\(left)\" \(first < 0 ? "w:hanging=\"\(-first)\"" : "w:firstLine=\"\(first)\"")/>" }
-            properties += "<w:spacing w:before=\"\(Int(style.paragraphSpacingBefore * 20))\" w:after=\"\(Int(style.paragraphSpacing * 20))\"/>"
-            if !style.tabStops.isEmpty {
-                properties += "<w:tabs>" + style.tabStops.map { "<w:tab w:val=\"left\" w:pos=\"\(Int($0.location * 20))\"/>" }.joined() + "</w:tabs>"
             }
         }
         var runs = ""
         text.enumerateAttributes(in: range, options: []) { attributes, runRange, _ in
             var piece = (text.string as NSString).substring(with: runRange)
             piece = piece.trimmingCharacters(in: CharacterSet(charactersIn: "\n\r"))
+            piece = piece.replacing(/\u{E002}\d\u{E003}/, with: "")
             guard !piece.isEmpty else { return }
-            var run = run(piece, attributes)
+            var run = run(piece, attributes, images: images, maxWidth: maxWidth)
             let link = (attributes[.link] as? URL)?.absoluteString ?? (attributes[.link] as? String)
             if let link {
                 links.append(link)
@@ -151,7 +223,7 @@ enum DocxWriter {
         return "<w:p><w:pPr>\(properties)</w:pPr>\(runs)</w:p>"
     }
 
-    private static func run(_ piece: String, _ attributes: [NSAttributedString.Key: Any]) -> String {
+    private static func run(_ piece: String, _ attributes: [NSAttributedString.Key: Any], images: [Image], maxWidth: Int) -> String {
         var properties = ""
         if let font = attributes[.font] as? DocxFont {
             let traits = self.traits(font)
@@ -175,8 +247,20 @@ enum DocxWriter {
             if !textRun.isEmpty { content += "<w:t xml:space=\"preserve\">\(escape(textRun))</w:t>" }
             textRun = ""
         }
+        // A picture's marker: its index between the two marker characters.
+        var picture: String?
         for character in piece {
+            if picture != nil {
+                if character == "\u{E005}" {
+                    if let index = Int(picture!), images.indices.contains(index) { content += drawing(images[index], index: index, maxWidth: maxWidth) }
+                    picture = nil
+                } else {
+                    picture!.append(character)
+                }
+                continue
+            }
             switch character {
+            case "\u{E004}": flush(); picture = ""
             case "\t": flush(); content += "<w:tab/>"
             case "\u{2028}", "\n": flush(); content += "<w:br/>"
             default: textRun.append(character)
@@ -225,7 +309,10 @@ struct ZipWriter {
     private var archive = Data()
 
     mutating func add(_ name: String, _ text: String) {
-        let data = Data(text.utf8)
+        add(name, data: Data(text.utf8))
+    }
+
+    mutating func add(_ name: String, data: Data) {
         let nameData = Data(name.utf8)
         let crc = Self.crc32(data)
         let offset = UInt32(archive.count)

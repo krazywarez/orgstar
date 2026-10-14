@@ -52,6 +52,29 @@ struct RichTextExportTests {
         #expect(RichTextExport.decode("a &amp;lt; &#233;&#x41; &quot;") == "a &lt; éA \"")
     }
 
+    /// Headings get Word's heading styles, so its navigation pane and contents fields see them,
+    /// and image links come through as pictures.
+    @Test func wordHeadingStylesAndImages() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-docx-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let rep = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 40, pixelsHigh: 20, bitsPerSample: 8, samplesPerPixel: 4,
+                                                hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        try #require(rep.representation(using: .png, properties: [:])).write(to: folder.appendingPathComponent("red.png"))
+        let html = HTMLExport.page("#+TITLE: Report\n* Results\nText.\n** Detail\n[[file:red.png]]\n", fallbackTitle: "t")
+        let data = try RichTextExport.docx(html: html, directory: folder)
+        let xml = String(decoding: data, as: UTF8.self)
+        #expect(xml.contains("word/styles.xml") && xml.contains("w:styleId=\"Heading1\"") && xml.contains("<w:name w:val=\"heading 1\"/>"))
+        #expect(xml.contains("<w:pStyle w:val=\"Title\"/>"))
+        #expect(xml.contains("<w:pStyle w:val=\"Heading1\"/>") && xml.contains("<w:pStyle w:val=\"Heading2\"/>"))
+        #expect(!xml.contains("\u{E002}") && !xml.contains("\u{E004}"))
+        #expect(xml.contains("word/media/image1.png") && xml.contains("<w:drawing>") && xml.contains("r:embed=\"img1\""))
+        // 40 by 20 pixels at 96 to the inch.
+        #expect(xml.contains("cx=\"381000\" cy=\"190500\""))
+        let back = try NSAttributedString(data: data, options: [:], documentAttributes: nil).string
+        #expect(back.contains("Results") && back.contains("Detail") && back.contains("Text."))
+    }
+
     @Test func wordPagesAreLetterOrA4() {
         #expect(PDFExport.usesLetter("US") && !PDFExport.usesLetter("DE") && !PDFExport.usesLetter(nil))
         #expect(DocxWriter.section(letter: true).contains("<w:pgSz w:w=\"12240\" w:h=\"15840\"/>"))

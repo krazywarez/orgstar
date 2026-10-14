@@ -74,6 +74,12 @@ public enum OrgPreferences {
         return spec
     }
 
+    /// `pdf-margin`, `pdf-font` and `pdf-page-numbers`.
+    @MainActor
+    public static func pdfOptions(_ defaults: UserDefaults = .standard) -> PDFExport.Options {
+        PDFExport.Options(margin: integer("pdfMargin", defaults), font: string("pdfFont", defaults), pageNumbers: bool("pdfPageNumbers", defaults))
+    }
+
     /// `show-markup`: link brackets and emphasis markers shown.
     public static func showMarkup(_ defaults: UserDefaults = .standard) -> Bool { bool("showMarkup", defaults) }
 
