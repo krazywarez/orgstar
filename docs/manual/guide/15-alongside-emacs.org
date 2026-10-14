@@ -58,7 +58,7 @@ The sheet shows what differs, with lines marked - on disk and + in your version,
 | Merge with Markers | Puts both sets of changes in the buffer, with conflicting lines between =<<<<<<< yours= and =>>>>>>> disk= markers, as =git merge= leaves them. Edit and save. Your version as it was goes to the recovery folder. |
 | Decide Later       | Closes the sheet. Automatic saving stops for the file until you decide; the Conflict button in the toolbar opens the sheet again. |
 
-On the Mac, Revert to File on Disk (in the command palette) loads the disk version at any time; unsaved changes go to the recovery folder.
+On the Mac, File ▸ Revert to File on Disk loads the disk version at any time; unsaved changes go to the recovery folder.
 
 * Sync tools
 
@@ -74,7 +74,7 @@ Syncthing writes files without file coordination. orgstar sees its changes throu
 - Its folders =.stfolder= and =.stversions= are in the default =ignored-folders=.
 - Conflict copies (=name.sync-conflict-YYYYMMDD-HHMMSS-ID.org=) are listed in the sidebar but never indexed, so they don't appear in the agenda, search or ID links.
 
-When a file with conflict copies opens, a message says how many there are. Resolve Sync Conflicts… in the command palette (More ▸ Sync Conflict Copies on iOS) lists each copy against the file, with lines marked - in the file and + in the copy:
+When a file with conflict copies opens, a message says how many there are. File ▸ Resolve Sync Conflicts… (More ▸ Sync Conflict Copies on iOS) lists each copy against the file, with lines marked - in the file and + in the copy:
 
 | Button             | Effect                                                                                     |
 |--------------------+--------------------------------------------------------------------------------------------|
@@ -107,7 +107,7 @@ Each file has a subfolder named from a hash of its path, holding its last 20 kep
 | =local=         | orgstar's version was replaced, or set aside by Use Disk Version, Merge with Markers or Restore |
 | =sync-conflict= | A Syncthing conflict copy was resolved                                        |
 
-Recovery Versions… in the command palette (More ▸ Recovered Versions on iOS) lists the open file's kept versions, newest first, each compared with the buffer (lines marked - in the buffer, + in the kept version). Restore puts a version's text in the buffer as an edit you can undo; the buffer as it was goes to the recovery folder first. On the Mac, Show in Finder selects the version's file.
+File ▸ Recovery Versions… (More ▸ Recovered Versions on iOS) lists the open file's kept versions, newest first, each compared with the buffer (lines marked - in the buffer, + in the kept version). Restore puts a version's text in the buffer as an edit you can undo; the buffer as it was goes to the recovery folder first. On the Mac, Show in Finder selects the version's file.
 
 * Features that use Emacs on the Mac
 

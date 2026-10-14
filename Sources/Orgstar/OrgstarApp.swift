@@ -401,6 +401,13 @@ struct OrgstarApp: App {
                         Button(command.title) { commands.run(command.id) }
                     }
                 }
+                Divider()
+                Button("Revert to File on Disk") { commands.run("app.revert") }
+                    .disabled(session.path == nil)
+                Button("Resolve Sync Conflicts…") { commands.run("app.sync-conflicts") }
+                    .disabled(session.path == nil)
+                Button("Recovery Versions…") { commands.run("app.recovery") }
+                    .disabled(session.path == nil)
             }
             CommandGroup(replacing: .saveItem) {
                 Button("Close Buffer") {
@@ -444,6 +451,8 @@ struct OrgstarApp: App {
                 MarkupToggle()
                 Button("Truncate or Wrap Long Lines") { commands.run("editor.toggle-truncate-lines") }
                 Button("Turn Auto Fill On or Off") { commands.run("editor.toggle-auto-fill") }
+                Button("Check Spelling While Typing") { commands.editor?.run("editor.toggle-spell-check") }
+                    .disabled(commands.editor == nil)
             }
             CommandGroup(after: .pasteboard) {
                 Divider()

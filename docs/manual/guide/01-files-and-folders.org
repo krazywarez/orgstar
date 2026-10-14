@@ -25,7 +25,7 @@ Most commands are in the menu bar. The =Org= menu lists every org command, each 
 
 File ▸ Command Palette… (=⇧⌘P=; =M-x= in the Emacs and Doom presets; =SPC := in Doom normal state) lists every command by title with its keys. Type to filter (characters match in order, as in Quick Open), then press =Return= to run the top match or click one. =Escape= closes it. Text movement and editing commands (forward character, kill line and so on) are not listed; they are only on keys.
 
-Several commands in this chapter are only in the palette, not in a menu: Close Other Buffers, Close All Buffers, Last Buffer, Show or Hide Tab Bar, Revert to File on Disk, Resolve Sync Conflicts… and Recovery Versions….
+Several commands in this chapter are only in the palette, not in a menu: Close Other Buffers, Close All Buffers, Last Buffer and Show or Hide Tab Bar.
 
 ** Showing and hiding panes
 
@@ -241,7 +241,7 @@ Reloading or merging clears the buffer's undo history.
 
 If an open file is deleted on disk, its buffer stays open with its text. Saving it writes the file again.
 
-To throw away your unsaved edits and load the file as it is on disk, run Revert to File on Disk from the palette (=:e= in Doom). Your edits go to recovery.
+To throw away your unsaved edits and load the file as it is on disk, choose File ▸ Revert to File on Disk (also in the palette; =:e= in Doom). Your edits go to recovery.
 
 ** Conflicts
 
@@ -270,7 +270,7 @@ While a conflict is unresolved, saving that buffer does nothing except reopen th
 
 When two devices change a file before Syncthing syncs them, Syncthing keeps one version as a conflict copy beside the file, named like =notes.sync-conflict-20260301-142233-ABCDEF7.org=. orgstar lists these in the sidebar in orange with a warning icon, and leaves them out of search, the agenda, ID lookup and Quick Open.
 
-When you open a file that has conflict copies, the echo area says how many there are. Run Resolve Sync Conflicts… from the palette to compare them. Pick a copy from the menu at the top; lines marked =-= are in the file (as the buffer holds it) and lines marked =+= are in the copy. Then choose:
+When you open a file that has conflict copies, the echo area says how many there are. Choose File ▸ Resolve Sync Conflicts… to compare them. Pick a copy from the menu at the top; lines marked =-= are in the file (as the buffer holds it) and lines marked =+= are in the copy. Then choose:
 
 | Button             | What it does                                                                       |
 |--------------------+------------------------------------------------------------------------------------|
@@ -284,7 +284,7 @@ Each choice moves the copy to recovery and deletes it from the folder. The buffe
 
 Whenever orgstar replaces a version of a file, it keeps a copy: your buffer when you take the disk version, the disk version when you keep yours, a version another program wrote while orgstar saved, and resolved Syncthing copies. orgstar keeps the last 20 versions per file in =~/Library/Application Support/Orgstar/Recovery=.
 
-Run Recovery Versions… from the palette to see the open file's versions, newest first, each with its date and why it was kept:
+Choose File ▸ Recovery Versions… to see the open file's versions, newest first, each with its date and why it was kept:
 
 | Label                   | Meaning                                         |
 |-------------------------+-------------------------------------------------|
