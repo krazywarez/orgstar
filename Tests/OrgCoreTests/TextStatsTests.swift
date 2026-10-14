@@ -77,3 +77,14 @@ struct TextStatsTests {
         #expect(TextStats.position(in: text, at: 0) == (1, 0))
     }
 }
+
+struct ReadingTimeTests {
+    @Test func minutesAtTwoHundredThirtyWords() {
+        #expect(TextStats.readingMinutes(words: 0) == 0)
+        #expect(TextStats.readingMinutes(words: 1) == 1)
+        #expect(TextStats.readingMinutes(words: 230) == 1)
+        #expect(TextStats.readingMinutes(words: 231) == 2)
+        #expect(TextStats.summary(words: 1234, characters: 6789) == "\(1234.formatted()) words, \(6789.formatted()) characters, about 6 minutes to read")
+        #expect(TextStats.summary(words: 1, characters: 4) == "1 word, 4 characters, about 1 minute to read")
+    }
+}

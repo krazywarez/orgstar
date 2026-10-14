@@ -14,6 +14,7 @@ struct ModeLine: View {
     let perform: (String) -> Void
     @Environment(\.orgTheme) private var theme
     @State private var words: Int?
+    @State private var characters = 0
     @State private var crlf = false
     @State private var branch: String?
 
@@ -70,8 +71,18 @@ struct ModeLine: View {
             Text("\(position.line):\(position.column)")
                 .help("Line \(position.line), column \(position.column)")
             if let words {
-                Text("\(words.formatted()) \(words == 1 ? "word" : "words")")
-                    .help("Words in the file (count-words)")
+                Menu {
+                    Text(TextStats.summary(words: words, characters: characters))
+                    if selection.length > 0, let region = region(text, selection) {
+                        Text("Selection: " + TextStats.summary(words: region.words, characters: region.characters))
+                    }
+                } label: {
+                    Text("\(words.formatted()) \(words == 1 ? "word" : "words")")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Words in the file (count-words); click for characters and reading time")
             }
             ForEach(encodingNotes, id: \.self) { note in
                 Text(note).foregroundStyle(.orange)
@@ -103,7 +114,8 @@ struct ModeLine: View {
                 words = nil
                 return
             }
-            (words, crlf) = await Task.detached(priority: .utility) { (TextStats.words(in: text), text.contains("\r\n")) }.value
+            let counts = await Task.detached(priority: .utility) { (TextStats.region(text), text.contains("\r\n")) }.value
+            (words, characters, crlf) = (counts.0.words, counts.0.characters, counts.1)
         }
     }
 

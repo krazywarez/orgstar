@@ -194,13 +194,13 @@ The line under the editor shows, from the left:
 | Running clock              | a clock is running                 | elapsed time and the clocked heading; click for Clock Out, Cancel Clock and Go to Clocked Entry |
 | Selection counts           | text is selected                   | lines, words and characters in the selection, as =count-words-region= |
 | Line and column            | always                             | =LINE:COLUMN= of the caret (the end of the selection)             |
-| Word count                 | always                             | words in the whole file, as =count-words=                         |
+| Word count                 | always                             | words in the whole file, as =count-words=; click for the characters and reading time of the file and the selection |
 | Encoding notes             | the file differs from UTF-8 with LF | =Read-only=, =BOM= and =CRLF=, in orange                         |
 | Git branch                 | the file is in a Git repository    | the checked-out branch, or the first 7 characters of the commit when detached |
 
 Lines count from 1. Columns count from 0, as Emacs's =column-number-mode= does: a tab advances to the next multiple of 8, and wide characters such as CJK count as two columns. Hover over an item for a description.
 
-The word count follows edits after a pause. The Git branch is read from the repository's =HEAD= file without running =git=, and checked again every 5 seconds; worktrees and submodules are followed.
+The word count follows edits after a pause. Reading time is at 230 words a minute, rounded up. The Git branch is read from the repository's =HEAD= file without running =git=, and checked again every 5 seconds; worktrees and submodules are followed.
 
 The running clock is covered in [[file:06-dates-and-clocking.org][Dates and clocking]]; the evil states in [[file:03-keys.org][Keys and commands]].
 
@@ -290,7 +290,7 @@ Misspelt words are underlined, using the macOS spelling dictionary. In org files
 
 orgstar never corrects spelling on its own; automatic spelling correction, text replacement and smart quotes and dashes are off.
 
-On iOS, spell checking follows =spell-check= in the synced =config.toml=, and is off by default.
+On iOS, spell checking follows =spell-check= in the synced =config.toml=, and is off by default. It leaves out the same text as on the Mac: misspelt words get a dotted red underline, and selecting one, or tapping it to show the edit menu, offers guesses and Learn Spelling. The word being typed is checked once the caret leaves it.
 
 * Wrapping and filling
 

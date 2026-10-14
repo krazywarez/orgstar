@@ -36,4 +36,10 @@ struct SpellCheckTests {
             """ + "\n"
         #expect(checked(text) == ["Headng", "wurd", "Prose", "wurds", "itemm", "quotd"])
     }
+
+    @Test func checkableRangesLeaveOutTheSkipped() {
+        #expect(SpellCheck.checkable(0..<20, skipped: [2..<5, 4..<8, 15..<30]) == [0..<2, 8..<15])
+        #expect(SpellCheck.checkable(10..<20, skipped: []) == [10..<20])
+        #expect(SpellCheck.checkable(10..<20, skipped: [0..<25]).isEmpty)
+    }
 }

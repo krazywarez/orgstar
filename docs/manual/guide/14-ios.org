@@ -46,7 +46,7 @@ Tap a file in Folders, Search or the agenda to read it.
 
 Tap Edit in the reader. The title shows the buffer name, with =•= while there are unsaved changes. The tab bar is hidden while you edit.
 
-The editor folds headings, drawers and blocks (tap a fold's =…= to open it, and an open drawer's first line to fold it), styles text with the theme from the configuration folder (see Themes and display below), and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows =spell-check= in =config.toml= and is off by default.
+The editor folds headings, drawers and blocks (tap a fold's =…= to open it, and an open drawer's first line to fold it), styles text with the theme from the configuration folder (see Themes and display below), and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows =spell-check= in =config.toml= and is off by default; it leaves out code, links, dates, tags and keywords, as on the Mac. More ▸ Word Count shows the words, characters and reading time of the selection, or of the file.
 
 The toolbar has:
 

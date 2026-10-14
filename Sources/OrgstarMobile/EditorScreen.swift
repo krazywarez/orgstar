@@ -122,6 +122,7 @@ struct EditorScreen: View {
                 Button("Undo", systemImage: "arrow.uturn.backward") { editor?.run("edit.undo") }
                 Menu("More", systemImage: "ellipsis.circle") {
                     Button("Commands", systemImage: "command") { sheet = .palette }
+                    Button("Word Count", systemImage: "textformat.123") { message = wordCount() }
                     Button("Clock In", systemImage: "stopwatch") { editor?.run("app.clock.in") }
                     Button("Column View", systemImage: "tablecells") { editor?.run("org.columns") }
                     Button("Column View of File", systemImage: "tablecells.badge.ellipsis") { editor?.run("org.columns.global") }
@@ -592,6 +593,16 @@ extension EditorScreen {
     }
 
     /// `org-table-export` of the table at the caret, as CSV or TSV.
+    /// Words, characters and reading time of the selection, or of the file.
+    private func wordCount() -> String {
+        guard let editor else { return "No file is open" }
+        let text = editor.document.text as NSString
+        let selection = editor.textView.selectedRange
+        let selected = selection.length > 0 && NSMaxRange(selection) <= text.length
+        let counts = TextStats.region(selected ? text.substring(with: selection) : text as String)
+        return (selected ? "Selection: " : "") + TextStats.summary(words: counts.words, characters: counts.characters)
+    }
+
     private func exportTable(csv: Bool) {
         guard let editor else { return }
         let context = editor.editContext()

@@ -41,4 +41,17 @@ public enum SpellCheck {
         }
         return ranges
     }
+
+    /// The parts of `range` outside every `skipped` range, in order: what a spell checker of
+    /// the app's own checks.
+    public static func checkable(_ range: Range<Int>, skipped: [Range<Int>]) -> [Range<Int>] {
+        var out: [Range<Int>] = []
+        var start = range.lowerBound
+        for skip in skipped.filter({ $0.overlaps(range) }).sorted(by: { $0.lowerBound < $1.lowerBound }) {
+            if skip.lowerBound > start { out.append(start..<skip.lowerBound) }
+            start = max(start, skip.upperBound)
+        }
+        if start < range.upperBound { out.append(start..<range.upperBound) }
+        return out
+    }
 }

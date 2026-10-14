@@ -216,6 +216,7 @@ extension MobileEditor {
         applyShrunk(whole, in: storage)
         applyImages(whole, in: storage, revealed: revealed)
         applyLatex(whole, in: storage, revealed: revealed)
+        if options.spellCheck { markMisspellings(in: whole, storage: storage) }
         storage.endEditing()
     }
 

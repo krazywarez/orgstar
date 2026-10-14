@@ -21,7 +21,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
     private(set) var textView: UITextView
     var options: EditingOptions = .org {
         didSet {
-            for view in textViews { view.spellCheckingType = options.spellCheck ? .yes : .no }
+            if options.spellCheck != oldValue.spellCheck { restyleAll() }
             if !showMarkup, options.hideEmphasisMarkers != oldValue.hideEmphasisMarkers || options.prettyEntities != oldValue.prettyEntities {
                 restyleAll()
             }
@@ -120,6 +120,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
     var hideStars = false
     /// One paragraph style per indent pair.
     var paragraphStyles: [[Int]: NSParagraphStyle] = [:]
+    /// `SpellCheck.skipped` for a revision of the buffer.
+    var spellSkipCache: (revision: Int, ranges: [Range<Int>])?
     /// The line last revealed while markup is hidden, to hide again when the caret leaves.
     var revealedLine: NSRange?
     /// `org-toggle-inline-images`: lines that are only an image link show the image.
@@ -199,7 +201,8 @@ final class MobileEditor: NSObject, DocumentBuffer {
         view.smartQuotesType = .no
         view.smartDashesType = .no
         view.smartInsertDeleteType = .no
-        view.spellCheckingType = options.spellCheck ? .yes : .no
+        // The editor checks spelling itself, outside code, links and keywords.
+        view.spellCheckingType = .no
         view.keyboardDismissMode = .interactive
         view.alwaysBounceVertical = true
         view.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 24, right: 8)
@@ -571,6 +574,10 @@ extension MobileEditor: UITextViewDelegate {
 
     /// Another view's caret moves with edits made in this one; only the focused view's
     /// selection drives the display.
+    func textView(_ textView: UITextView, editMenuForTextIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
+        options.spellCheck ? spellingMenu(for: range, in: textView, suggested: suggestedActions) : nil
+    }
+
     func textViewDidChangeSelection(_ textView: UITextView) {
         if textView.isFirstResponder { focus(textView) }
         guard textView === self.textView else { return }

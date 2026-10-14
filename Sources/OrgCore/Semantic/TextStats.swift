@@ -97,6 +97,18 @@ public enum TextStats {
     }
 
     /// `count-words-region`: lines (a partial last line counts), words and characters.
+    /// Minutes to read `words` at 230 words a minute, rounded up.
+    public static func readingMinutes(words: Int) -> Int {
+        (words + 229) / 230
+    }
+
+    /// Words, characters and reading time, as the word count shows them.
+    public static func summary(words: Int, characters: Int) -> String {
+        let minutes = readingMinutes(words: words)
+        return "\(words.formatted()) \(words == 1 ? "word" : "words"), \(characters.formatted()) \(characters == 1 ? "character" : "characters"), "
+            + "about \(minutes) \(minutes == 1 ? "minute" : "minutes") to read"
+    }
+
     public static func region(_ text: some StringProtocol) -> (lines: Int, words: Int, characters: Int) {
         var lines = 0
         var characters = 0
