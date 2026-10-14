@@ -51,8 +51,9 @@ extension AgendaSnapshot.Hex {
 }
 
 extension AgendaSnapshot {
+    /// Nil where the theme leaves `key` to the system in `scheme`.
     func color(_ key: String, _ scheme: ColorScheme) -> Color? {
-        colors[key]?.color(scheme)
+        colors[key].flatMap { AgendaSnapshot.Hex.parse(scheme == .dark ? $0.dark : $0.light) }
     }
 
     /// A day for the gallery and previews.

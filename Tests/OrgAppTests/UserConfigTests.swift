@@ -294,4 +294,20 @@ struct ThemeReadingTests {
         #expect(try !UserConfig.copyTheme(light: light, dark: dark, to: folder))
         #expect(try String(contentsOf: file, encoding: .utf8) == "mine")
     }
+
+    @Test @MainActor func aThemePickedInTheAppAppliesAtOnce() throws {
+        let name = "orgstar-pick-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "[theme]\n".write(to: folder.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+        let sync = ConfigSync(url: folder.appendingPathComponent("config.toml"), defaults: defaults)
+        sync.start(watch: false)
+        defaults.set("nord", forKey: "themeDark")
+        sync.writeBack()
+        #expect(try String(contentsOf: folder.appendingPathComponent("config.toml"), encoding: .utf8).contains("dark-theme = \"nord\""))
+        #expect(sync.theme.dark["background"] == ThemeSpec.palette("nord", .dark)?.colors["background"])
+    }
 }

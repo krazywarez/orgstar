@@ -13,6 +13,7 @@ struct BacklinksPane: View {
     @State private var toHeading: [HeadingLocation] = []
     @State private var toFile: [HeadingLocation] = []
     @Environment(\.orgTheme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
 
     /// The heading at the caret.
     private var heading: OutlineEntry? { session.outline.last { $0.start <= commands.selection.location } }
@@ -30,7 +31,7 @@ struct BacklinksPane: View {
             }
             Section("Links to this file") { rows(toFile) }
         }
-        .themedListBackground(theme.color("sidebar-background"))
+        .themedListBackground(theme.color("sidebar-background", in: colorScheme))
         .task(id: Key(path: session.path, heading: heading?.start, version: session.editVersion)) { refresh() }
     }
 

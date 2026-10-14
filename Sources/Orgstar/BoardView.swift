@@ -24,6 +24,7 @@ struct BoardView: View {
     @AppStorage("agendaSubfolders") private var includeSubfolders = false
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgTheme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
 
     init(workspace: WorkspaceModel, session: DocumentSession, commands: AppCommands) {
         self.workspace = workspace
@@ -137,7 +138,7 @@ struct BoardView: View {
             }
             .padding(12)
         }
-        .background(theme.color("agenda-background") ?? .clear)
+        .background(theme.color("agenda-background", in: colorScheme) ?? .clear)
     }
 
     private func column(_ keyword: String) -> some View {

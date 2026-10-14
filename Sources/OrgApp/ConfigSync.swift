@@ -144,6 +144,8 @@ public final class ConfigSync {
         guard current != original else { return }
         text = current
         try? current.write(to: target, atomically: true, encoding: .utf8)
+        // A theme picked in Settings; the watcher's reload sees the text unchanged and skips it.
+        readTheme()
     }
 }
 #endif

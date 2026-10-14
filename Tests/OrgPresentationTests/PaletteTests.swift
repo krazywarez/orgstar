@@ -101,4 +101,12 @@ struct PaletteTests {
         #expect(AppIcons.dockFile("unicorn", dark: false) == "unicorn-light")
         #expect(AppIcons.dockFile("unicorn", dark: true) == "unicorn-dark")
     }
+
+    @Test func aDarkOnlyChoiceLeavesTheLightSideToTheSystem() {
+        let spec = ThemeSpec.base(light: nil, dark: "nord").0
+        for key in ThemeSpec.systemDefaults {
+            #expect(spec.color(key, dark: false) == nil, "\(key)")
+            #expect(spec.color(key, dark: true) != nil, "\(key)")
+        }
+    }
 }

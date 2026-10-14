@@ -78,6 +78,13 @@ struct AgendaSnapshotTests {
         #expect(snapshot.colors["agenda-background"] == nil)
     }
 
+    @Test func aColorTheSystemKeepsInOneAppearanceStaysUnsetThere() throws {
+        let theme = ThemeSpec.base(light: nil, dark: "nord").0
+        let snapshot = AgendaSnapshot(groups: [], today: Self.today, theme: theme, generated: Date())
+        let background = try #require(snapshot.colors["agenda-background"])
+        #expect(background.light == "" && background.dark == "#2e3440")
+    }
+
     @Test func encodesAndDecodes() throws {
         let snapshot = Self.snapshot()
         let data = try AgendaSnapshot.encoder.encode(snapshot)

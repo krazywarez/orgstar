@@ -33,6 +33,7 @@ struct BufferTabs: View {
     let pane: EditorPane
     let close: (String) -> Void
     @Environment(\.orgTheme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -43,7 +44,7 @@ struct BufferTabs: View {
             }
         }
         .frame(height: 28)
-        .background { Rectangle().fill(theme.color("modeline-background").map(AnyShapeStyle.init) ?? AnyShapeStyle(.bar)) }
+        .background { Rectangle().fill(theme.color("modeline-background", in: colorScheme).map(AnyShapeStyle.init) ?? AnyShapeStyle(.bar)) }
         .overlay(alignment: .bottom) { Divider() }
     }
 

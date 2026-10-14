@@ -35,7 +35,9 @@ let variants: [Variant] = [
     Variant(id: "unicorn-pastel", top: rgb(0xffc6dd), bottom: rgb(0xc7b8ff), glyph: rgb(0xffc74d), bars: .white, style: .unicorn),
 ]
 
-enum Look { case light, dark, tinted }
+/// `darkTile`: the dark look on a near-black tile, for the Mac's Dock, which draws nothing
+/// behind an icon set with `NSApp.applicationIconImage`.
+enum Look { case light, dark, darkTile, tinted }
 
 /// The macOS icon grid: an 824-point rounded square in a 1024 canvas; `fullBleed` fills the
 /// canvas, as iOS wants. Dark and tinted leave the background clear (dark) or black (tinted)
@@ -67,10 +69,17 @@ func draw(_ v: Variant, _ size: CGFloat, look: Look = .light, fullBleed: Bool = 
         NSGraphicsContext.restoreGraphicsState()
     case .light: NSGradient(colors: [v.top, v.bottom])!.draw(in: shape, angle: -60)
     case .dark: break
+    case .darkTile: NSColor(srgbRed: 0.11, green: 0.11, blue: 0.12, alpha: 1).setFill(); shape.fill()
     case .tinted: NSColor.black.setFill(); shape.fill()
     }
-    let glyph = look == .tinted ? NSColor(white: 0.95, alpha: 1) : v.glyph
-    let bars = look == .tinted ? NSColor(white: 0.75, alpha: 1) : v.bars
+    // On a dark background a dark glyph (Paper, Outline) is drawn light.
+    func lifted(_ color: NSColor, _ light: CGFloat) -> NSColor {
+        guard look == .dark || look == .darkTile, let c = color.usingColorSpace(.sRGB),
+              0.2126 * c.redComponent + 0.7152 * c.greenComponent + 0.0722 * c.blueComponent < 0.4 else { return color }
+        return NSColor(white: light, alpha: 1)
+    }
+    let glyph = look == .tinted ? NSColor(white: 0.95, alpha: 1) : lifted(v.glyph, 0.95)
+    let bars = look == .tinted ? NSColor(white: 0.75, alpha: 1) : lifted(v.bars, 0.8)
     switch v.style {
     case .filled: drawOutline(s, glyph: glyph, bars: bars, filled: true)
     case .outline: drawOutline(s, glyph: glyph, bars: bars, filled: false)
@@ -193,7 +202,7 @@ for v in variants {
 
     // The Mac's Dock icons and picker previews.
     try write(png(draw(v, 512)), "packaging/IconPreviews/\(v.id)-light.png")
-    try write(png(draw(v, 512, look: .dark)), "packaging/IconPreviews/\(v.id)-dark.png")
+    try write(png(draw(v, 512, look: .darkTile)), "packaging/IconPreviews/\(v.id)-dark.png")
 }
 
 // The Mac's bundle icon: the default variant at the Mac's sizes. actool drops dark and

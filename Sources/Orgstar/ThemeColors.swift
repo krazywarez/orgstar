@@ -21,6 +21,12 @@ extension ThemeSpec {
         })
     }
 
+    /// `key` in `scheme` only, nil where the theme leaves it to the system there, for
+    /// backgrounds that fall back to a material rather than a color.
+    func color(_ key: String, in scheme: ColorScheme) -> Color? {
+        color(key, dark: scheme == .dark).map { Color(.sRGB, red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) }
+    }
+
     /// A color that follows the appearance from a helper taking `dark:` (`todoColor`,
     /// `statusColor`, …), or `fallback` where it gives none.
     func dynamic(_ fallback: NSColor = .labelColor, _ pick: @escaping @Sendable (_ dark: Bool) -> RGBA?) -> Color {

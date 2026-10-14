@@ -14,6 +14,7 @@ struct KeyHint: Hashable {
 struct EchoArea: View {
     let commands: AppCommands
     @Environment(\.orgTheme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingHints = false
     @State private var answer = ""
     @FocusState private var answerFocused: Bool
@@ -107,7 +108,7 @@ struct EchoArea: View {
             }
         }
         .foregroundStyle(theme.color("modeline-foreground") ?? .primary)
-        .background { if let bg = theme.color("modeline-background") { bg } else { Rectangle().fill(.bar) } }
+        .background { if let bg = theme.color("modeline-background", in: colorScheme) { bg } else { Rectangle().fill(.bar) } }
         .task(id: commands.pendingKeys) {
             showingHints = false
             guard commands.pendingKeys != nil else { return }

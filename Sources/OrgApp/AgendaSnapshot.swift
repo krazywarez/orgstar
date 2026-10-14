@@ -145,7 +145,13 @@ public struct AgendaSnapshot: Codable, Equatable, Sendable {
         }
         var colors: [String: Hex] = [:]
         for key in ["agenda-today", "agenda-time", "agenda-date", "foreground", "agenda-background"] {
-            colors[key] = Hex { theme.color(key, dark: $0) }
+            if ThemeSpec.systemDefaults.contains(key) {
+                // Left to the system in an appearance the theme doesn't set: "" there.
+                let (light, dark) = (theme.color(key, dark: false), theme.color(key, dark: true))
+                if light != nil || dark != nil { colors[key] = Hex(light: light?.hex ?? "", dark: dark?.hex ?? "") }
+            } else {
+                colors[key] = Hex { theme.color(key, dark: $0) }
+            }
         }
         self.colors = colors
         self.generated = generated

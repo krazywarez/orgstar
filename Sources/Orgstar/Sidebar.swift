@@ -14,6 +14,7 @@ struct Sidebar: View {
     @State private var removing: String?
     /// A file operation waiting for a name or a confirmation.
     @Environment(\.orgTheme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
     @State var pending: FileOperation?
     @State var name = ""
     @State var failure: String?
@@ -50,7 +51,7 @@ struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .themedListBackground(theme.color("sidebar-background"))
+        .themedListBackground(theme.color("sidebar-background", in: colorScheme))
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack(spacing: 4) {
                 Button("Add Folder…", systemImage: "plus", action: addFolder)
@@ -120,6 +121,7 @@ struct Sidebar: View {
 struct OutlineColumn: View {
     let session: DocumentSession
     @Environment(\.orgTheme) private var theme
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         List(Array(session.outline.enumerated()), id: \.element.start) { _, entry in
@@ -133,7 +135,7 @@ struct OutlineColumn: View {
             }
             .buttonStyle(.plain)
         }
-        .themedListBackground(theme.color("sidebar-background"))
+        .themedListBackground(theme.color("sidebar-background", in: colorScheme))
         .overlay {
             if session.path != nil, !session.isOrg {
                 ContentUnavailableView("No outline", systemImage: "doc.plaintext", description: Text("Only org files have an outline."))
