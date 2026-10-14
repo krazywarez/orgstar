@@ -146,3 +146,18 @@ extension ThemeSpec {
         Palette(id: id, name: name, appearance: appearance, colors: roles.colors(dark: appearance == .dark))
     }
 }
+
+extension ThemeSpec {
+    /// Two palettes as a theme file, every color written out, in slot order.
+    public static func themeFile(light: Palette, dark: Palette) -> String {
+        var out = "# \(light.name) and \(dark.name), copied from orgstar's built-in themes. Used with\n"
+            + "# theme-file = \"my-theme.toml\" under [theme] in config.toml; colors there apply on top.\n"
+        for (table, palette) in [("theme.light", light), ("theme.dark", dark)] {
+            out += "\n[\(table)]\n"
+            for slot in slots {
+                if let color = palette.colors[slot.key] { out += "\(slot.key) = \"\(color.hex)\"\n" }
+            }
+        }
+        return out
+    }
+}

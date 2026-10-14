@@ -280,4 +280,18 @@ struct ThemeReadingTests {
         let theme = try #require(UserConfig.theme(config: "", themeFile: nil, lightTheme: nil, darkTheme: nil, in: folder))
         #expect(theme.theme == ThemeSpec.default && theme.problems.isEmpty)
     }
+
+    @Test func copyingAThemeNeverOverwrites() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-copy-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let light = try #require(ThemeSpec.palette("paper", .light))
+        let dark = try #require(ThemeSpec.palette("nord", .dark))
+        #expect(try UserConfig.copyTheme(light: light, dark: dark, to: folder))
+        let file = folder.appendingPathComponent(UserConfig.copiedThemeFile)
+        #expect(try String(contentsOf: file, encoding: .utf8) == ThemeSpec.themeFile(light: light, dark: dark))
+        try "mine".write(to: file, atomically: true, encoding: .utf8)
+        #expect(try !UserConfig.copyTheme(light: light, dark: dark, to: folder))
+        #expect(try String(contentsOf: file, encoding: .utf8) == "mine")
+    }
 }

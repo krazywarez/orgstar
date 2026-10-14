@@ -779,6 +779,7 @@ struct SettingsView: View {
 
     private var appearance: some View {
         Form {
+            ThemePickerSection()
             Section {
                 Picker("Font", selection: $themeFont) {
                     Text("System monospaced").tag("")
@@ -950,7 +951,7 @@ struct SettingsView: View {
     }
 }
 
-private extension Text {
+extension Text {
     func settingsFooter() -> some View {
         font(.caption)
             .foregroundStyle(.secondary)

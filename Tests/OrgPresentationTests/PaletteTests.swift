@@ -1,4 +1,5 @@
 import Foundation
+import OrgCore
 import OrgPresentation
 import Testing
 
@@ -73,5 +74,15 @@ struct PaletteTests {
         let (spec, problems) = ThemeSpec.base(light: "nord", dark: "unknown")
         #expect(spec == ThemeSpec.default)
         #expect(problems == ["config.toml: unknown light-theme nord", "config.toml: unknown dark-theme unknown"])
+    }
+
+    @Test func aCopiedThemeReadsBackAsThePalettes() throws {
+        let light = try #require(ThemeSpec.palette("paper", .light))
+        let dark = try #require(ThemeSpec.palette("nord", .dark))
+        let text = ThemeSpec.themeFile(light: light, dark: dark)
+        #expect(text.hasPrefix("# Paper and Nord, copied from orgstar's built-in themes."))
+        let (spec, problems) = ThemeSpec.reading(try TOML.parse(text))
+        #expect(problems.isEmpty, "\(problems)")
+        #expect(spec.light.filter { light.colors[$0.key] != nil } == light.colors && spec.dark.filter { dark.colors[$0.key] != nil } == dark.colors)
     }
 }

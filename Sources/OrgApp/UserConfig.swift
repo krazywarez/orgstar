@@ -49,6 +49,18 @@ public enum UserConfig {
         return (merged, problems + more)
     }
 
+    /// The file Copy to Config Folder writes.
+    public static let copiedThemeFile = "my-theme.toml"
+
+    /// Writes the two palettes into `folder` as `copiedThemeFile`; false, writing nothing, when
+    /// the file is already there.
+    public static func copyTheme(light: Palette, dark: Palette, to folder: URL) throws -> Bool {
+        let file = folder.appendingPathComponent(copiedThemeFile)
+        guard !FileManager.default.fileExists(atPath: file.path) else { return false }
+        try ThemeSpec.themeFile(light: light, dark: dark).write(to: file, atomically: true, encoding: .utf8)
+        return true
+    }
+
     /// Where earlier versions kept the configuration files.
     public static var legacyDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Orgstar")
