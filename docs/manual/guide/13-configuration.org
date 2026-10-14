@@ -77,6 +77,10 @@ Automatic saving writes a file one second after you stop typing. The keymap pres
 | Default TODO keywords                                      | Text in =#+TODO= syntax, one sequence per line         | See below           | =org-todo-keywords=                  |
 | Entries can't be done before their TODO children (org-enforce-todo-dependencies) | On or off                 | Off                 | =org-enforce-todo-dependencies=      |
 | Entries can't be done with unchecked boxes (org-enforce-todo-checkbox-dependencies) | On or off              | Off                 | =org-enforce-todo-checkbox-dependencies= |
+| When an entry is done (org-log-done)                       | Record nothing; Record the time, as CLOSED; Record the time and ask for a note | Record nothing | =org-log-done= |
+| State notes go in a LOGBOOK drawer (org-log-into-drawer)   | On or off                                              | Off                 | =org-log-into-drawer=                |
+| Speed keys (org-use-speed-commands)                        | On or off                                              | Off                 | =org-use-speed-commands=             |
+| Check spelling while typing (spell-check)                  | On or off                                              | Off                 | =spell-check=                        |
 
 The two "Emacs hides" and "Emacs shows" switches describe your Emacs, not orgstar's display. Tag alignment, table alignment and =M-q= measure text the way your Emacs displays it, so a file edited in both keeps the same layout. Set them to match your Emacs configuration. They also control whether orgstar hides markers and shows entities when markup is hidden.
 
@@ -87,6 +91,8 @@ The long-lines switch applies to files as they open; View ▸ Truncate or Wrap L
 Default TODO keywords apply to files without a =#+TODO= line. orgstar reads them at launch, so a change takes effect after you quit and reopen orgstar.
 
 The two dependency switches are described under Dependencies in [[file:05-todos-and-tags.org][TODOs and tags]].
+
+The LOGBOOK switch writes =org-log-into-drawer= as ="LOGBOOK"= or =""=. A drawer name of your own in =config.toml= shows the switch on; turning it off and on again replaces the name with =LOGBOOK=. Logging is described under Logging in [[file:05-todos-and-tags.org][TODOs and tags]], speed keys in [[file:03-keys.org][Keys and commands]] and spell checking in [[file:02-the-editor.org][The editor]].
 
 ** Language
 
@@ -145,10 +151,8 @@ These settings have no control in the Settings window. Some are in the View menu
 
 | Key                              | Also in                    |
 |----------------------------------+----------------------------|
-| =org-log-done=                   |                            |
 | =org-log-reschedule=             |                            |
 | =org-log-redeadline=             |                            |
-| =org-log-into-drawer=            |                            |
 | =org-startup-indented=           |                            |
 | =org-hide-leading-stars=         |                            |
 | =org-startup-align-all-tables=   |                            |
@@ -157,8 +161,6 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-display-remote-inline-images= |                          |
 | =org-cycle-hide-drawer-startup=  |                            |
 | =org-cycle-hide-block-startup=   |                            |
-| =org-use-speed-commands=         |                            |
-| =spell-check=                    |                            |
 | =electric-pair-mode=             |                            |
 | =display-line-numbers-type=      | View ▸ Show Line Numbers (=⇧⌘L=), View ▸ Line Numbers |
 | =tab-bar=                        | View ▸ Show Tab Bar        |

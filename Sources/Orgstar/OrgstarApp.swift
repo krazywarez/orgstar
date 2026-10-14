@@ -584,6 +584,10 @@ struct SettingsView: View {
     @AppStorage("prettyEntities") private var prettyEntities = true
     @AppStorage("startupTruncated") private var startupTruncated = false
     @AppStorage("todoKeywords") private var todoKeywords = Preferences.defaultTodoKeywords
+    @AppStorage("logDone") private var logDone = "nil"
+    @AppStorage("logIntoDrawer") private var logIntoDrawer = ""
+    @AppStorage("useSpeedCommands") private var useSpeedCommands = false
+    @AppStorage("spellCheck") private var spellCheck = false
     @AppStorage("enforceTodoDependencies") private var enforceTodoDependencies = false
     @AppStorage("enforceTodoCheckboxDependencies") private var enforceTodoCheckboxDependencies = false
     @AppStorage("agendaSpan") private var agendaSpan = 10
@@ -723,9 +727,32 @@ struct SettingsView: View {
                 Text("Under a parent with the ORDERED property (Toggle ORDERED Property, C-c C-x o), TODO children are also done in order.")
                     .settingsFooter()
             }
+            Section {
+                Picker("When an entry is done (org-log-done)", selection: $logDone) {
+                    Text("Record nothing").tag("nil")
+                    Text("Record the time, as CLOSED").tag("time")
+                    Text("Record the time and ask for a note").tag("note")
+                }
+                Toggle("State notes go in a LOGBOOK drawer (org-log-into-drawer)", isOn: logIntoDrawerOn)
+            } footer: {
+                Text("Keyword flags such as DONE(d!) and #+STARTUP words in a file override these. org-log-reschedule and org-log-redeadline are in config.toml.")
+                    .settingsFooter()
+            }
+            Section {
+                Toggle("Speed keys: single letters at the start of a heading line run commands (org-use-speed-commands)", isOn: $useSpeedCommands)
+                Toggle("Check spelling while typing (spell-check)", isOn: $spellCheck)
+            } footer: {
+                Text("Spell checking applies to files as they open; Check Spelling While Typing switches the current file. Code, links, dates, tags and keywords aren't checked.")
+                    .settingsFooter()
+            }
         }
         .formStyle(.grouped)
-        .frame(height: 640)
+        .frame(height: 860)
+    }
+
+    /// `org-log-into-drawer` as a switch: on is "LOGBOOK" (Emacs's t); a drawer name of its own counts as on.
+    private var logIntoDrawerOn: Binding<Bool> {
+        Binding(get: { !logIntoDrawer.isEmpty }, set: { logIntoDrawer = $0 ? "LOGBOOK" : "" })
     }
 
     private var appearance: some View {

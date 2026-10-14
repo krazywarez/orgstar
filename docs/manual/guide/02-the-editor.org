@@ -278,7 +278,7 @@ Electric pairs are on by default and work in org files only. Set =electric-pair-
 
 * Spell checking
 
-Spell checking is off by default. Turn it on for the current buffer with Check Spelling While Typing from the palette (=SPC t s= in Doom normal state); the echo area says whether it is now on or off. To have it on in every file, set =spell-check = true= in =config.toml=.
+Spell checking is off by default. Turn it on for the current buffer with Check Spelling While Typing from the palette (=SPC t s= in Doom normal state); the echo area says whether it is now on or off. To have it on in every file, turn on Settings ▸ Editing ▸ Check spelling while typing, or set =spell-check = true= in =config.toml=.
 
 Misspelt words are underlined, using the macOS spelling dictionary. In org files, orgstar doesn't mark words where spell-fu skips them: code, verbatim, links, timestamps, tags, TODO keywords, priorities, list bullets, checkboxes, keywords and affiliated keywords, planning and clock lines, property drawers, the first and last lines of drawers and blocks, the whole of src, example, export and comment blocks, LaTeX, entities, macros, targets, footnote references, citations, table formulas and fixed-width lines.
 

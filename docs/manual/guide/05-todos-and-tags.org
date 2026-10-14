@@ -180,7 +180,7 @@ In =config.toml=, ="LOGBOOK"= is the equivalent of Emacs's =t=, and =""= (the de
 
 Later sources override earlier ones:
 
-1. =config.toml=: =org-log-done=, =org-log-reschedule=, =org-log-redeadline= (each =nil=, =time= or =note=, default =nil=) and =org-log-into-drawer= (default =""=). These have no control in the Settings window. =org-log-repeat= is always =time= unless the file changes it.
+1. =config.toml=: =org-log-done=, =org-log-reschedule=, =org-log-redeadline= (each =nil=, =time= or =note=, default =nil=) and =org-log-into-drawer= (default =""=). =org-log-done= and =org-log-into-drawer= are also in Settings ▸ Editing; the other two are in the file only. =org-log-repeat= is always =time= unless the file changes it.
 2. Keyword flags such as =DONE(d!)=.
 3. =#+STARTUP= words in the file or its setup files.
 4. The =LOGGING= property, inherited from ancestors.
@@ -338,9 +338,9 @@ The =COOKIE_DATA= property changes what the parent's cookie counts:
 | Setting                 | Where                                     | Default                    |
 |-------------------------+-------------------------------------------+----------------------------|
 | =org-todo-keywords=     | Settings ▸ Editing, =config.toml=         | See "The default keywords" above |
-| =org-log-done=          | =config.toml=                             | =nil=                      |
-| =org-log-into-drawer=   | =config.toml=                             | =""= (no drawer)           |
+| =org-log-done=          | Settings ▸ Editing, =config.toml=         | =nil=                      |
+| =org-log-into-drawer=   | Settings ▸ Editing, =config.toml=         | =""= (no drawer)           |
 | =org-enforce-todo-dependencies= | Settings ▸ Editing (iOS: Settings ▸ TODO Dependencies), =config.toml= | =false= |
 | =org-enforce-todo-checkbox-dependencies= | Settings ▸ Editing (iOS: Settings ▸ TODO Dependencies), =config.toml= | =false= |
 | =org-tags-column=       | Settings ▸ Editing, =config.toml=         | =-77=                      |
-| =org-use-speed-commands= | =config.toml=                            | =false=                    |
+| =org-use-speed-commands= | Settings ▸ Editing, =config.toml=        | =false=                    |

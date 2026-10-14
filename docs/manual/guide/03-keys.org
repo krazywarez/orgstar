@@ -142,7 +142,7 @@ With Settings ▸ Capture ▸ "⌃⌥Space opens Capture from any app" on (the d
 
 * Speed keys
 
-With =org-use-speed-commands= set to =true= in =config.toml=, single letters typed at the very start of a heading line, before the stars, run commands instead of inserting text (=org-speed-commands=). Anywhere else the letters type as usual. The setting is off by default and has no checkbox in Settings.
+With Settings ▸ Editing ▸ Speed keys on (=org-use-speed-commands= in =config.toml=), single letters typed at the very start of a heading line, before the stars, run commands instead of inserting text (=org-speed-commands=). Anywhere else the letters type as usual. The setting is off by default.
 
 Speed keys work in the Emacs and Mac presets, and in the Doom preset in insert state. The full list is in the [[*Speed keys reference][speed keys reference]].
 
