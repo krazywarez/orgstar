@@ -512,6 +512,16 @@
         }
       }
     },
+    "App Icon": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App-Symbol"
+          }
+        }
+      }
+    },
     "Appearance": {
       "localizations": {
         "de": {
@@ -1294,6 +1304,16 @@
         }
       }
     },
+    "Colors set in config.toml or in the theme file apply on top of these.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Farben aus config.toml oder aus der Themendatei gelten zusätzlich zu diesen."
+          }
+        }
+      }
+    },
     "Column": {
       "localizations": {
         "de": {
@@ -1404,6 +1424,16 @@
         }
       }
     },
+    "Copied to my-theme.toml, now the theme file.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In my-theme.toml kopiert, jetzt die Themendatei."
+          }
+        }
+      }
+    },
     "Copy": {
       "localizations": {
         "de": {
@@ -1420,6 +1450,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Als formatierten Text kopieren"
+          }
+        }
+      }
+    },
+    "Copy to Config Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In den Konfigurationsordner kopieren"
           }
         }
       }
@@ -1470,6 +1510,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tagesnotizen"
+          }
+        }
+      }
+    },
+    "Dark": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dunkel"
+          }
+        }
+      }
+    },
+    "Dark Theme": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dunkles Thema"
           }
         }
       }
@@ -2656,6 +2716,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Linke Wahltaste"
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hell"
+          }
+        }
+      }
+    },
+    "Light Theme": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Helles Thema"
           }
         }
       }
@@ -4839,6 +4919,16 @@
         }
       }
     },
+    "Starting point": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgangspunkt"
+          }
+        }
+      }
+    },
     "Starts": {
       "localizations": {
         "de": {
@@ -5209,6 +5299,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Der Ordner und seine Dateien bleiben auf der Festplatte."
+          }
+        }
+      }
+    },
+    "The icon shows in the Dock while orgstar runs. Finder, and the Dock after orgstar quits, show the default icon.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Symbol erscheint im Dock, solange orgstar läuft. Der Finder und das Dock nach dem Beenden zeigen das Standardsymbol."
           }
         }
       }
@@ -5666,6 +5766,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "gnuplot hat kein Bild erzeugt"
+          }
+        }
+      }
+    },
+    "my-theme.toml is already in the config folder; it was left as it is.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "my-theme.toml liegt bereits im Konfigurationsordner und wurde nicht verändert."
           }
         }
       }

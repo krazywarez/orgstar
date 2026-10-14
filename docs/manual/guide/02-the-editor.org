@@ -338,7 +338,9 @@ In the relative and visual kinds the caret's line shows its own number, as =disp
 
 * Themes
 
-The editor's font, size, line spacing and heading sizes are in Settings ▸ Appearance. Colours for the editor, the sidebar, the modeline, line numbers, the selection and the caret come from =config.toml=, under =[theme]= for both appearances, =[theme.light]= and =[theme.dark]= for one, and =[theme.todo]= for colours of TODO keywords. Settings ▸ Appearance ▸ Show Default Theme opens =default-theme.toml=, which lists every colour with its default value. Changes apply while orgstar runs. See [[file:13-configuration.org][Configuration]].
+The editor's font, size, line spacing and heading sizes are in Settings ▸ Appearance. Settings ▸ Appearance ▸ Theme chooses a built-in theme for the light appearance and one for the dark: Default, Solarized Light, Gruvbox Light, Modus Operandi, Catppuccin Latte, Tomorrow or Paper; and Default, Solarized Dark, Gruvbox Dark, Modus Vivendi, Catppuccin Mocha, Nord, Dracula, Tokyo Night or doom-one. They are =light-theme= and =dark-theme= under =[theme]= in =config.toml=. Colours set in =config.toml=, under =[theme]= for both appearances, =[theme.light]= and =[theme.dark]= for one and =[theme.todo]= for TODO keywords, apply on top, as do those of a theme file named by =theme-file=. Copy to Config Folder writes the two chosen themes, every colour, into =my-theme.toml= and makes it the theme file, to start a theme of your own. Show Default Theme opens =default-theme.toml=, which lists every colour with its default value. Changes apply while orgstar runs. See [[file:13-configuration.org][Configuration]].
+
+Settings ▸ Appearance ▸ App Icon chooses the icon the Dock shows while orgstar runs. Finder, and the Dock once orgstar has quit, show the default icon, in the system's icon style (Default, Dark or Tinted).
 
 The iOS editor uses the same theme and display settings, read from the synced =config.toml=; see [[file:14-ios.org][iPhone and iPad]].
 

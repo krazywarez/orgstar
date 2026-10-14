@@ -80,7 +80,9 @@ Files that aren't valid UTF-8 open read-only; commands that would change them sa
 
 ** Themes and display
 
-The editor and the reader use the theme set in the configuration folder's =config.toml=, stacked as on the Mac: the default theme, then the theme file named by =theme-file=, then the colours in =[theme]=, =[theme.light]=, =[theme.dark]=, =[theme.todo]= and =[theme.category]=. A TODO keyword without a colour in =[theme.todo]= takes its class's colour: =todo-next= for =NEXT= and =STRT=, =todo-waiting= for =WAIT= and =HOLD=, =todo-cancelled= for =KILL= and =CANCELLED=, and so on (see [[file:13-configuration.org][Configuration]] for the lists). Colours follow the system's light or dark appearance. Problems in the theme show in the Settings tab with the other problems. A change to =config.toml= or the theme file applies as it syncs, to open editors too. See [[file:13-configuration.org][Configuration]] for the colour keys.
+The editor and the reader use the theme set in the configuration folder's =config.toml=, stacked as on the Mac: the themes chosen with =light-theme= and =dark-theme=, then the theme file named by =theme-file=, then the colours in =[theme]=, =[theme.light]=, =[theme.dark]=, =[theme.todo]= and =[theme.category]=. A TODO keyword without a colour in =[theme.todo]= takes its class's colour: =todo-next= for =NEXT= and =STRT=, =todo-waiting= for =WAIT= and =HOLD=, =todo-cancelled= for =KILL= and =CANCELLED=, and so on (see [[file:13-configuration.org][Configuration]] for the lists). Colours follow the system's light or dark appearance. Problems in the theme show in the Settings tab with the other problems. A change to =config.toml= or the theme file applies as it syncs, to open editors too. See [[file:13-configuration.org][Configuration]] for the colour keys.
+
+Settings ▸ Light Theme and Dark Theme choose the built-in themes, shown as a few lines of Org in each theme's colours; with a configuration folder the choice is written to its =config.toml=, so the Mac uses it too. Settings ▸ App Icon chooses the home screen icon from the same thirteen as the Mac; iOS confirms the change. The icon is chosen per device.
 
 - Font :: =font= when that family is installed on the device, otherwise the system's monospaced font. =body-font=, when set, is used for prose as on the Mac.
 - Size :: =font-size= is the size at the default Dynamic Type setting, 13 pt by default. Text grows and shrinks with the text size chosen in the system Settings app.
@@ -395,7 +397,7 @@ The Agenda, TODO Dependencies, Calendar and Reminders sections are the only plac
 
 These write =config.toml= in the configuration folder, as the Mac's Settings window does, so the Mac sees the change too. Without a configuration folder they are kept on the device.
 
-The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting today=), the reminder lead time, the capture template keys, the theme (=Default=, or the theme file's name), and the font with its size. When =font= names a family that isn't installed on the device, Font shows the system's font with a note, as =System monospaced, 13 pt (JetBrains Mono isn't installed)=.
+The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting today=), the reminder lead time, the capture template keys, the light and dark themes, and the theme file's name when there is one, and the font with its size. When =font= names a family that isn't installed on the device, Font shows the system's font with a note, as =System monospaced, 13 pt (JetBrains Mono isn't installed)=.
 
 These settings from =config.toml= apply on iOS:
 

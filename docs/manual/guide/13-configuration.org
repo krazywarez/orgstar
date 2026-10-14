@@ -102,6 +102,10 @@ orgstar's menus, settings and agenda are in English and German, and follow the l
 
 | Control                         | Range                                         | Default            | Key                 |
 |---------------------------------+-----------------------------------------------+--------------------+---------------------|
+| Theme: Light                    | A built-in light theme                        | Default            | =light-theme=       |
+| Theme: Dark                     | A built-in dark theme                         | Default            | =dark-theme=        |
+| Theme: Copy to Config Folder    | Writes =my-theme.toml= and makes it =theme-file= |                 |                     |
+| App Icon                        | One of 13 icons, shown in the Dock while orgstar runs | Default    | (this Mac only)     |
 | Font                            | System monospaced, or any installed monospaced family | System monospaced | =font=        |
 | Body text                       | Same as Font, System, or any installed proportional family | Same as Font | =body-font=   |
 | Size                            | 8 to 36 pt                                    | 13 pt              | =font-size=         |
@@ -367,6 +371,8 @@ Publishing projects, one table each, as =org-publish-project-alist= has them. Th
 | =line-spacing=      | integer | =2=     | Points between lines.                                                                        |
 | =text-width=        | integer | =0=     | The widest the text runs, in columns of =font=, centred in a wider editor. =0= uses the whole width. |
 | =heading-size-step= | integer | =1=     | Points a heading is larger than the level below. Level 4 and deeper are body size.           |
+| =light-theme=       | string  | ="default-light"= | The built-in theme for light appearance: =default-light=, =solarized-light=, =gruvbox-light=, =modus-operandi=, =catppuccin-latte=, =tomorrow= or =paper=. |
+| =dark-theme=        | string  | ="default-dark"=  | The built-in theme for dark appearance: =default-dark=, =solarized-dark=, =gruvbox-dark=, =modus-vivendi=, =catppuccin-mocha=, =nord=, =dracula=, =tokyo-night= or =doom-one=. |
 | =theme-file=        | string  | =""=    | A theme in its own file in the configuration folder, applied under the colors in =config.toml=. |
 
 Any other key in =[theme]= is a color; see Themes below.
@@ -643,7 +649,11 @@ Key bindings are imported when the command is one orgstar has a counterpart for,
 
 * Themes
 
-orgstar has one built-in theme, the default theme, with light and dark colors after GitHub's light and dark themes for text and code. TODO keywords, priorities and the agenda's statuses use the system's red, orange, blue and green, as iOS and macOS show them. You change it by setting colors in =config.toml=, or by keeping a theme in its own file.
+The default theme has light and dark colors after GitHub's light and dark themes for text and code. TODO keywords, priorities and the agenda's statuses use the system's red, orange, blue and green, as iOS and macOS show them. It leaves the sidebar, the modeline, the agenda's background and the accent of buttons and toggles to the system.
+
+=light-theme= and =dark-theme= choose a built-in theme for each appearance instead (Settings ▸ Appearance ▸ Theme). The light themes are Default, Solarized Light, Gruvbox Light, Modus Operandi, Catppuccin Latte, Tomorrow and Paper; the dark themes are Default, Solarized Dark, Gruvbox Dark, Modus Vivendi, Catppuccin Mocha, Nord, Dracula, Tokyo Night and doom-one. Every one but Default sets every color key, the sidebar, modeline, agenda and accent included. An unknown name, or one of the other appearance, is reported and Default is used.
+
+You change any of them by setting colors in =config.toml=, or by keeping a theme in its own file. Copy to Config Folder writes the two chosen themes, every color written out, into =my-theme.toml= and sets =theme-file= to it; it leaves an existing =my-theme.toml= as it is.
 
 Colors are strings in the form ="#rrggbb"= or ="#rrggbbaa"=. They go in these tables:
 
@@ -696,7 +706,7 @@ To keep a theme in its own file, put it in the configuration folder with the sam
 theme-file = "solarized.toml"
 #+END_SRC
 
-The colors stack in this order, each over the one before: the default theme, the theme file, then the colors in =config.toml=. The path is relative to the configuration folder and may name a subfolder, as =themes/solarized.toml=. orgstar reloads the theme file when it changes. Only colors are read from a theme file; =font= and the other type keys in its =[theme]= table are ignored.
+The colors stack in this order, each over the one before: the themes chosen with =light-theme= and =dark-theme=, the theme file, then the colors in =config.toml=. The path is relative to the configuration folder and may name a subfolder, as =themes/solarized.toml=. orgstar reloads the theme file when it changes. Only colors are read from a theme file; =font= and the other type keys in its =[theme]= table are ignored.
 
 ** Color keys
 
@@ -706,6 +716,7 @@ The colors stack in this order, each over the one before: the default theme, the
 | =foreground=            | body text                                                    |
 | =cursor=                | the caret                                                    |
 | =selection=             | selected text's background                                   |
+| =accent=                | buttons, toggles and selection in lists; unset: the system's |
 | =heading-1= … =heading-7= | headings of that level                                     |
 | =heading-8=             | level 8 and deeper headings                                  |
 | =todo=                  | TODO keywords not yet done                                   |

@@ -20,7 +20,7 @@ struct ThemePickerSection: View {
         } header: {
             Text("Theme")
         } footer: {
-            Text(message ?? "Colors set in config.toml or in the theme file apply on top of these.")
+            Text(message ?? String(localized: "Colors set in config.toml or in the theme file apply on top of these."))
                 .settingsFooter()
         }
     }
