@@ -337,6 +337,7 @@ struct OrgstarApp: App {
             case .success(let model):
                 ContentView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)
                     .environment(\.orgTheme, ConfigSync.shared.theme)
+                    .tint(ConfigSync.shared.theme.color("accent"))
                     .onAppear {
                         delegate.session = session
                         delegate.commands = commands
@@ -351,6 +352,7 @@ struct OrgstarApp: App {
             if case .success = workspace {
                 EditorWindowView(session: session, commands: commands, clock: clock)
                     .environment(\.orgTheme, ConfigSync.shared.theme)
+                    .tint(ConfigSync.shared.theme.color("accent"))
             }
         }
         .defaultSize(width: 900, height: 700)
@@ -359,6 +361,7 @@ struct OrgstarApp: App {
             if case .success(let model) = workspace {
                 AgendaView(workspace: model, session: session, commands: commands, scheduler: scheduler, clock: clock)
                     .environment(\.orgTheme, ConfigSync.shared.theme)
+                    .tint(ConfigSync.shared.theme.color("accent"))
             }
         }
         .defaultSize(width: 760, height: 720)
@@ -366,6 +369,7 @@ struct OrgstarApp: App {
             if case .success(let model) = workspace {
                 BoardView(workspace: model, session: session, commands: commands)
                     .environment(\.orgTheme, ConfigSync.shared.theme)
+                    .tint(ConfigSync.shared.theme.color("accent"))
             }
         }
         .defaultSize(width: 1100, height: 700)

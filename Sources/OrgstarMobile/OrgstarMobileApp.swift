@@ -190,6 +190,7 @@ struct RootView: View {
             }
         }
         .clockAccessory(model.clock, perform: clock)
+        .tint(model.theme.accentColor)
         // Until a folder is added there is nothing for the agenda to show.
         .onAppear { if workspace.rootPaths.isEmpty { tab = .folders } }
         .sheet(item: Binding(get: { model.clockPrompts.pending }, set: { if $0 == nil { model.clockPrompts.answer(nil) } })) { pending in

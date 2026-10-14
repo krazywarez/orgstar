@@ -153,4 +153,16 @@ struct MobileTheme {
     /// A theme color for SwiftUI views.
     func swiftColor(_ key: String) -> Color? { color(key).map { Color(uiColor: $0) } }
 }
+extension ThemeSpec {
+    /// `accent` for `.tint`, the system's blue in an appearance the theme leaves it unset; nil
+    /// when neither appearance sets it.
+    var accentColor: Color? {
+        let (light, dark) = (light["accent"], dark["accent"])
+        guard light != nil || dark != nil else { return nil }
+        return Color(uiColor: UIColor { traits in
+            guard let c = traits.userInterfaceStyle == .dark ? dark : light else { return .systemBlue }
+            return UIColor(red: c.red, green: c.green, blue: c.blue, alpha: c.alpha)
+        })
+    }
+}
 #endif
