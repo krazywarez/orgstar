@@ -12,7 +12,7 @@ In:
 - An `accent` theme slot that tints SwiftUI controls.
 - 13 app icons, each with default, dark and tinted variants for the system icon styles.
 - iOS: alternate app icons through `setAlternateIconName`.
-- Mac: the selected icon shown in the Dock while the app runs; the bundle's icon compiled from an asset catalog so the system's dark and tinted styles apply to it.
+- Mac: the selected icon shown in the Dock while the app runs; the bundle's icon compiled from an asset catalog. actool keeps only the default rendition for macOS, so macOS derives the dark and tinted styles itself.
 
 Out:
 

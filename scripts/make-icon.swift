@@ -137,18 +137,16 @@ for v in variants {
     try write(png(draw(v, 512, look: .dark)), "packaging/IconPreviews/\(v.id)-dark.png")
 }
 
-// The Mac's bundle icon: the default variant at the Mac's sizes, in each appearance.
+// The Mac's bundle icon: the default variant at the Mac's sizes. actool drops dark and
+// tinted renditions from a macOS app icon set, so macOS derives those styles itself.
 let mac = "packaging/AppIcons.xcassets/AppIcon.appiconset"
+try? FileManager.default.removeItem(atPath: mac)
 var macImages: [[String: Any]] = []
 for base in [16, 32, 128, 256, 512] {
     for scale in [1, 2] {
-        for (look, suffix, appearance) in appearances {
-            let name = "icon_\(base)x\(base)\(scale == 2 ? "@2x" : "")\(suffix).png"
-            try write(png(draw(variants[0], CGFloat(base * scale), look: look)), "\(mac)/\(name)")
-            var image: [String: Any] = ["filename": name, "idiom": "mac", "scale": "\(scale)x", "size": "\(base)x\(base)"]
-            if !appearance.isEmpty { image["appearances"] = appearance }
-            macImages.append(image)
-        }
+        let name = "icon_\(base)x\(base)\(scale == 2 ? "@2x" : "").png"
+        try write(png(draw(variants[0], CGFloat(base * scale))), "\(mac)/\(name)")
+        macImages.append(["filename": name, "idiom": "mac", "scale": "\(scale)x", "size": "\(base)x\(base)"])
     }
 }
 try json(["images": macImages, "info": info], "\(mac)/Contents.json")
