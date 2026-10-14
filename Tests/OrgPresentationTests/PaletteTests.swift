@@ -85,4 +85,13 @@ struct PaletteTests {
         #expect(problems.isEmpty, "\(problems)")
         #expect(spec.light.filter { light.colors[$0.key] != nil } == light.colors && spec.dark.filter { dark.colors[$0.key] != nil } == dark.colors)
     }
+
+    @Test func iconIdsMapToAlternateNames() {
+        #expect(AppIcons.ids.first == "default" && AppIcons.ids.count == 13)
+        #expect(AppIcons.alternateName("default") == nil)
+        #expect(AppIcons.alternateName("unicorn-night") == "AppIcon-UnicornNight")
+        #expect(AppIcons.id(alternateName: "AppIcon-UnicornNight") == "unicorn-night")
+        #expect(AppIcons.id(alternateName: nil) == "default" && AppIcons.id(alternateName: "AppIcon-Gone") == "default")
+        #expect(AppIcons.name("unicorn-pastel") == "Unicorn Pastel")
+    }
 }

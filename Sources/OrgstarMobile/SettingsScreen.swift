@@ -101,6 +101,11 @@ struct SettingsScreen: View {
                 } label: {
                     LabeledContent("Dark Theme", value: ThemePickerScreen.current(.dark).name)
                 }
+                NavigationLink {
+                    AppIconScreen()
+                } label: {
+                    LabeledContent("App Icon", value: AppIcons.name(AppIcons.id(alternateName: UIApplication.shared.alternateIconName)))
+                }
             }
             calendarSection
             reminderSection

@@ -24,6 +24,7 @@ struct ThemePickerScreen: View {
                     if palette.id == current { Image(systemName: "checkmark").foregroundStyle(.tint) }
                 }
             }
+            .buttonStyle(.plain)
         }
         .navigationTitle(appearance == .light ? "Light Theme" : "Dark Theme")
     }
@@ -41,13 +42,13 @@ struct ThemePickerScreen: View {
         }
         let font = Font.system(.footnote, design: .monospaced)
         return VStack(alignment: .leading, spacing: 2) {
-            (Text("* ").foregroundColor(color("heading-1")) + Text("TODO ").foregroundColor(color("todo")).bold()
-                + Text("Plan the trip ").foregroundColor(color("heading-1")).bold() + Text(":travel:").foregroundColor(color("tags")))
-            (Text("  SCHEDULED: ").foregroundColor(color("metadata")) + Text("<2026-10-20 Tue>").foregroundColor(color("timestamp")))
-            (Text("  Book via ").foregroundColor(color("foreground")) + Text("the site").foregroundColor(color("link")).underline()
-                + Text(", ").foregroundColor(color("foreground")) + Text("~code~").foregroundColor(color("code")))
-            (Text("** ").foregroundColor(color("heading-2")) + Text("DONE ").foregroundColor(color("done")).bold()
-                + Text("Passport").foregroundColor(color("heading-2")).bold())
+            (Text(verbatim: "* ").foregroundColor(color("heading-1")) + Text(verbatim: "TODO ").foregroundColor(color("todo")).bold()
+                + Text(verbatim: "Plan the trip ").foregroundColor(color("heading-1")).bold() + Text(verbatim: ":travel:").foregroundColor(color("tags")))
+            (Text(verbatim: "  SCHEDULED: ").foregroundColor(color("metadata")) + Text(verbatim: "<2026-10-20 Tue>").foregroundColor(color("timestamp")))
+            (Text(verbatim: "  Book via ").foregroundColor(color("foreground")) + Text(verbatim: "the site").foregroundColor(color("link")).underline()
+                + Text(verbatim: ", ").foregroundColor(color("foreground")) + Text(verbatim: "~code~").foregroundColor(color("code")))
+            (Text(verbatim: "** ").foregroundColor(color("heading-2")) + Text(verbatim: "DONE ").foregroundColor(color("done")).bold()
+                + Text(verbatim: "Passport").foregroundColor(color("heading-2")).bold())
         }
         .font(font)
         .padding(8)
