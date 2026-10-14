@@ -65,6 +65,10 @@ ORGSTAR_GATES=1 swift test -c release --filter GateTests   # performance gates
 keychain's Developer ID, notarizes a DMG, tags =v<version>=, uploads the DMG to the
 gitbay release and updates the cask in krz/homebrew-tap.
 
+Set =ORGSTAR_NOTES= to an HTML file of release notes for the appcast, which Sparkle's
+update window shows, and =ORGSTAR_RELEASE_NOTES= to a Markdown file for the gitbay
+release. Without them both get the one-line platform note.
+
 * App Store header
 
 =ios/AppStore/header.html= renders the product page headers; the commands are in the

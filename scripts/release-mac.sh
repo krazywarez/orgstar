@@ -6,6 +6,9 @@
 #   ORGSTAR_NOTARY   notarytool keychain profile (default: orgstar)
 #   ORGSTAR_TAP      the homebrew-tap checkout (default: ../homebrew-tap)
 #   ORGSTAR_PUBLISH  0 builds and notarizes without tagging, uploading or touching the tap
+#   ORGSTAR_NOTES    an HTML file of release notes for the appcast entry, which Sparkle's
+#                    update window shows; the platform line is added after it
+#   ORGSTAR_RELEASE_NOTES  a Markdown file of release notes for the gitbay release
 #   ORGSTAR_ED_PUBLIC_KEY  the Sparkle public key (default: the one whose private half is in the
 #                    release Mac's login keychain, from generate_keys); passed on to build-app.sh
 #
@@ -24,6 +27,9 @@ sign="${ORGSTAR_SIGN:-$(security find-identity -v -p codesigning | sed -n 's/.*"
 # The Sparkle public key; its private half is in the release Mac's login keychain (generate_keys).
 export ORGSTAR_ED_PUBLIC_KEY="${ORGSTAR_ED_PUBLIC_KEY:-StvsRDaDoGd4S/G66l7XHAcd3KPlpJlu0Gsv9GemsSo=}"
 notes="Universal (Apple silicon and Intel), macOS 26 or later. Notarized."
+for file in "${ORGSTAR_NOTES:-}" "${ORGSTAR_RELEASE_NOTES:-}"; do
+    [ -z "$file" ] || [ -f "$file" ] || { echo "No notes file $file." >&2; exit 1; }
+done
 
 if [ "$publish" != 0 ]; then
     [ -z "$(git status --porcelain)" ] || { echo "The working tree has changes." >&2; exit 1; }
@@ -52,7 +58,11 @@ xcrun stapler staple "$app"
 spctl --assess --type open --context context:primary-signature -v "$dmg"
 sha="$(shasum -a 256 "$dmg" | cut -d' ' -f1)"
 echo "$dmg $sha"
-printf '%s\n' "$notes" > "$out/notes.txt"
+if [ -n "${ORGSTAR_NOTES:-}" ]; then
+    { cat "$ORGSTAR_NOTES"; printf '<p>%s</p>\n' "$notes"; } > "$out/notes.txt"
+else
+    printf '%s\n' "$notes" > "$out/notes.txt"
+fi
 
 if [ "$publish" = 0 ]; then
     # The appcast entry on a copy, so a dry run shows the signature.
@@ -63,7 +73,11 @@ fi
 
 git tag -s "$tag" -m "orgstar $version"
 git push origin "$tag"
-gitbay release create krz/orgstar "$tag" --title "orgstar $version" --notes "$notes"
+if [ -n "${ORGSTAR_RELEASE_NOTES:-}" ]; then
+    { cat "$ORGSTAR_RELEASE_NOTES"; printf '\n%s\n' "$notes"; } | gitbay release create krz/orgstar "$tag" --title "orgstar $version" --file -
+else
+    gitbay release create krz/orgstar "$tag" --title "orgstar $version" --notes "$notes"
+fi
 gitbay release asset add krz/orgstar "$tag" "orgstar-$version.dmg" < "$dmg"
 
 # The appcast goes in through a merge request, as every change to main does, after the DMG
