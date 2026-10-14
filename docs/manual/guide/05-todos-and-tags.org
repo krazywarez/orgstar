@@ -285,7 +285,7 @@ The view shows the inherited tags, the current selection, and each tag with its 
 - Tags without a key get one: their first letter if it is free, otherwise the next free character from =a–z=, =A–Z= and ={|}~=.
 - The selected tags are written in the order of the =#+TAGS= lines, followed by any others.
 
-=#+TAGS= lines come only from the file and its setup files. orgstar has no global tag list (=org-tag-alist=); the workspace's tags are used for completion only.
+=#+TAGS= lines come from the file and its setup files, and =org-tag-alist= in =config.toml= stands in when there are none. Tags used across your folders are offered for completion only.
 
 ** Inheritance
 

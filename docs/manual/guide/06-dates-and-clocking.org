@@ -139,8 +139,8 @@ DEADLINE: <2026-10-31 Sat -7d> SCHEDULED: <2026-10-20 Tue>
 |------------------+------------------+-------------+------+-------------|
 | Schedule         | =org-schedule=   | =C-c C-s=   | ⌃⌘S  | =SPC m d s= |
 | Set Deadline     | =org-deadline=   | =C-c C-d=   | ⌃⌘E  | =SPC m d d= |
-| Remove Schedule  | =C-u C-c C-s=    |             |      |             |
-| Remove Deadline  | =C-u C-c C-d=    |             |      |             |
+| Remove Schedule  | =org-schedule= with =C-u= |    |      |             |
+| Remove Deadline  | =org-deadline= with =C-u= |    |      |             |
 
 Schedule and Set Deadline ask for a date, starting from the entry's current one and its time. They replace an existing date, keep its repeater and warning, and remove a =CLOSED= stamp from the entry. Remove Schedule and Remove Deadline have no default keys; run them from the Org menu or the command palette ([[file:03-keys.org][Keys]]).
 
@@ -202,7 +202,7 @@ Set Effort asks for a value, such as =0:30= or =2:00=, starting with the current
 ,#+PROPERTY: Effort_ALL 0:15 0:30 1:00 2:00 4:00
 #+END_SRC
 
-Effort appears in column view and in clock tables with =:properties ("Effort")=. orgstar does not compare the running clock with the effort estimate.
+Effort appears in column view and in clock tables with =:properties ("Effort")=. The mode line does not show the effort beside the running clock; a notification is posted when the time clocked passes it (see /Clocking/ below).
 
 * Timers
 

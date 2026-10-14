@@ -225,7 +225,6 @@ Code blocks (see [[file:11-code-blocks.org][Code blocks]]):
 
 Links (see [[file:09-links.org][Links]]):
 
-- Coderef links (=[[(ref)]]=) and regexp search links (=[[/regexp/]]=) aren't supported.
 - =shell:= and =elisp:= links aren't run.
 
 Capture templates (see [[file:08-capture.org][Capture]]):

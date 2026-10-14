@@ -166,8 +166,6 @@ Export writes the table at the caret. A file name ending in =.csv= gets CSV: fie
 separated by commas, with fields that contain a comma or a double quote quoted and
 inner quotes doubled. Any other name gets TSV. Rules are left out.
 
-Import and export are Mac only.
-
 * Formulas
 
 orgstar evaluates Org's spreadsheet formulas, =org-table-recalculate= and

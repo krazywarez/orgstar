@@ -76,7 +76,7 @@ Keywords in files named by =#+SETUPFILE:= count, as they do in Org.
 | =author=| =t=, =nil=                            | =t=     | The author.                                                            |
 | =date=  | =t=, =nil=                            | =t=     | The date.                                                              |
 
-A depth for =toc= or =num= larger than =H= is cut to =H=. Any value other than =nil= turns an option on. Other =#+OPTIONS= keys are ignored.
+A depth for =toc= or =num= larger than =H= is cut to =H=. Any value other than =nil= turns an option on. Other =#+OPTIONS= keys are ignored by HTML export. iCalendar export also reads =<= (see /iCalendar/ below) and =-=, which is on by default and turns =---=, =--= and =...= into dashes and an ellipsis in the text it writes.
 
 #+BEGIN_SRC org
 ,#+TITLE: Field notes

@@ -70,7 +70,8 @@ The text search follows =org-link-search=. A dedicated =<<target>>= matches its 
 case-insensitively, with any run of blanks between them. A heading matches when its
 title, with statistics cookies such as =[2/5]= and a leading =COMMENT= removed, has the
 same words as the link, ignoring case. A search that starts with =*= looks at headings
-only. Regular-expression searches (=/re/=) are not supported.
+only. A regular-expression search (=/re/=) shows a sparse tree of its matches on the
+Mac, as =org-occur= does, and moves to the first match on iOS.
 
 Following a radio link moves to its =<<<radio target>>>=, matching the words without
 regard to case, as =org-link--search-radio-target= does. When the target is gone, the
@@ -262,15 +263,16 @@ When a key is defined twice, the first definition wins.
 
 * The backlinks pane
 
-View ▸ Show or Hide Backlinks shows a pane beside the editor of an org file. It has
-two sections:
+View ▸ Show or Hide Backlinks shows a pane under the outline pane of an org file. It
+has two sections:
 
 - *Links to* the heading at the caret, named after that heading.
 - *Links to this file*.
 
 Each row shows the linking heading and its file name; a link in the text before a
 file's first heading is listed under the file's name. Click a row to open it. The
-pane is shown by default and updates as you move the caret and edit.
+pane is shown by default, orgstar remembers whether it is shown, and it updates as
+you move the caret and edit.
 
 The pane looks at every org file in your sidebar folders, including unsaved changes
 in open buffers. A link counts when following it would lead to the heading or the

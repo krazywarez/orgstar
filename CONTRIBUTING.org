@@ -2,10 +2,11 @@
 
 * Status
 
-macOS v1, design phases 1–6: editing with Emacs, Mac and Doom keys, agenda, table
-formulas, Babel and tangling, export, capture, clocking, board, themes and buffers.
-Owed: the M1 Air gate run and the VoiceOver check. iOS (phase 7): the editor, agenda,
-capture, search, clocking, reminders, export and tangling, Simulator builds only so far.
+Design phases 1–7 are built. The Mac app is released as a notarized DMG and a Homebrew
+cask, with Sparkle updates. The iOS and watchOS apps build from the Xcode project for the
+Simulator and for a device signed with your own team; device signing and TestFlight for
+releases are not set up (issue 8). Owed: the M1 Air gate run (issue 2) and the VoiceOver
+passes on the Mac and iOS (issues 3 and 4).
 
 =docs/design.md= is the design; =docs/plans/= has one plan per piece of work.
 

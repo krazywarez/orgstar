@@ -1020,6 +1020,6 @@ The full list is in [[file:03-keys.org][Keys]].
 
 These Org structure features are not in orgstar:
 
-- Editing values in column view, and writing summaries from it; the
-  =columnview= dynamic block does write summaries.
+- Writing summaries from the column view sheet into the file; the =columnview=
+  dynamic block does write summaries.
 - The =ORDERED= property in the list commands.

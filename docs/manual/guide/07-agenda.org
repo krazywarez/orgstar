@@ -687,8 +687,6 @@ With a match that includes entries without a TODO keyword, those entries appear 
 
 Choose Board from the Views menu in the Agenda tab. The board opens over the agenda with a List / Kanban switch at the top, a match field under it (press Search to apply it), and Done to close it. The list shows the entries sorted by keyword, then title; tap one to open it. In Kanban, columns scroll sideways; touch and hold a card, then drag it to another column to set that keyword. A card's or row's menu has Move To (a keyword, or None), Set Property… (=NAME value=) and Open. The Kanban or List choice and the match are remembered, separately from the Mac's.
 
-The board is not available on iOS.
-
 * Desktop widgets
 
 On the Mac, orgstar's widgets go on the desktop and in Notification Center: right-click the desktop, choose Edit Widgets…, and pick orgstar in the gallery. They appear there once orgstar has run.

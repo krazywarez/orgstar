@@ -8,7 +8,6 @@ iPad. It reads and writes the same plain-text =.org= files Emacs does, and leave
 byte you didn't change as it was, so Emacs, the Mac app, the iOS app and your sync tool
 can all work on the same folder.
 
-[[https://apps.apple.com/app/idXXXXXXXXXX][Download on the App Store]] ·
 [[https://gitbay.org/krz/orgstar/releases][Download for Mac]] ·
 [[https://krz.gitbay.site/orgstar/][Manual]] ·
 [[file:ios/AppStore/screenshots][Screenshots]]
@@ -54,8 +53,8 @@ brew install --cask orgstar
 #+end_src
 
 or download the notarized DMG from the
-[[https://gitbay.org/krz/orgstar/releases][releases page]]. iPhone and iPad (iOS 26 or
-later): [[https://apps.apple.com/app/idXXXXXXXXXX][App Store]].
+[[https://gitbay.org/krz/orgstar/releases][releases page]]. The iPhone and iPad app (iOS 26
+or later) is built from source with Xcode; see [[file:docs/manual/install.org]].
 
 To build from source or contribute, see [[file:CONTRIBUTING.org]].
 
