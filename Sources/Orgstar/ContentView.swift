@@ -92,6 +92,7 @@ struct ContentView: View {
     @AppStorage("showHiddenFiles") private var showHiddenFiles = true
     @AppStorage("ignoredFolders") private var ignoredFolders = ScanRules.defaultIgnoredFolders.sorted().joined(separator: " ")
     @AppStorage("themeFont") private var themeFont = ""
+    @AppStorage("themeBodyFont") private var themeBodyFont = ""
     @AppStorage("themeFontSize") private var themeFontSize = 13
     @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
     @AppStorage("themeHeadingStep") private var themeHeadingStep = 1
@@ -100,6 +101,7 @@ struct ContentView: View {
     private var theme: ThemeSpec {
         var spec = ConfigSync.shared.theme
         spec.font = themeFont
+        spec.bodyFont = themeBodyFont
         spec.fontSize = themeFontSize
         spec.lineSpacing = themeLineSpacing
         spec.headingSizeStep = themeHeadingStep

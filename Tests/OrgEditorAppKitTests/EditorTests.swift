@@ -244,6 +244,32 @@ struct EditingTests {
         h.checkInSync()
     }
 
+    @Test func mixedPitch() throws {
+        let text = "**** Heading :tag:\nProse text.\n- item\n| a | b |\n#+begin_src sh\necho\n#+end_src\n"
+        let h = Harness(text)
+        var spec = ThemeSpec.default
+        spec.bodyFont = "system"
+        h.editor.themeSpec = spec
+        h.drainStyling()
+        let storage = try #require(h.textView.textStorage)
+        let ns = text as NSString
+        func fixed(_ needle: String, offset: Int = 0) -> Bool {
+            let font = storage.attribute(.font, at: ns.range(of: needle).location + offset, effectiveRange: nil) as? NSFont
+            return font?.isFixedPitch == true
+        }
+        #expect(!fixed("Prose"))
+        #expect(!fixed("Heading"))
+        #expect(fixed("****"))
+        #expect(fixed(":tag:"))
+        #expect(fixed("- item") && !fixed("item"))
+        #expect(fixed("| a"))
+        #expect(fixed("echo"))
+        // Body indentation is still counted in columns of the fixed-pitch font.
+        let style = try #require(storage.attribute(.paragraphStyle, at: ns.range(of: "Prose").location, effectiveRange: nil) as? NSParagraphStyle)
+        #expect(style.firstLineHeadIndent == 5 * h.editor.theme.column)
+        #expect(h.editor.theme.font.isFixedPitch)
+    }
+
     @Test func styling() throws {
         let h = Harness("** b\nbody\n")
         let storage = try #require(h.textView.textStorage)

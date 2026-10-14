@@ -245,7 +245,8 @@ struct ReaderScreen: View {
         var result = AttributedString()
         for segment in segments {
             var part = AttributedString(segment.text)
-            var font = level.map(theme.headingFont) ?? theme.font
+            var font = level.map(theme.headingFont) ?? theme.body
+            if theme.mixedPitch, segment.roles.contains(where: Presentation.isFixedPitch) { font = theme.fixedPitch(font) }
             var color = level.flatMap { theme.color("heading-\(min(max($0, 1), 8))") } ?? theme.foreground
             func fg(_ key: String) { if let c = theme.color(key) { color = c } }
             // Outer roles first, so inner ones win.

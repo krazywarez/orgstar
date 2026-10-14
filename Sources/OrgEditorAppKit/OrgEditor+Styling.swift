@@ -43,6 +43,12 @@ extension OrgEditor {
             }
             if Presentation.excludesScripts(run.role) { scriptExclusions.append(run.range) }
         }
+        if theme.mixedPitch {
+            for prefix in Presentation.fixedPitchPrefixes(storage.string as NSString, in: range) {
+                guard let clipped = clip(prefix, to: range) else { continue }
+                storage.addAttribute(.font, value: theme.fixedPitch(storage, clipped), range: clipped)
+            }
+        }
         if !showMarkup, options.prettyEntities { prettify(range, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
         applyShrunk(range, in: storage)
         applyHighlights(range, in: storage)
@@ -70,7 +76,7 @@ extension OrgEditor {
                 }
                 let size = theme.font.pointSize
                 storage.addAttributes([
-                    .font: NSFont.monospacedSystemFont(ofSize: size * 0.7, weight: .regular),
+                    .font: theme.mixedPitch ? theme.body.withSize(size * 0.7) : NSFont.monospacedSystemFont(ofSize: size * 0.7, weight: .regular),
                     .baselineOffset: (superscript ? 0.3 : -0.3) * size,
                 ], range: NSRange(location: lineStart + body.lowerBound, length: body.count))
             }

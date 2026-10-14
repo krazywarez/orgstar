@@ -30,7 +30,7 @@ The two Org options are in Settings ▸ Editing as "Emacs hides emphasis markers
 - Blocks (=#+BEGIN_…= to =#+END_…=), dynamic blocks and fixed-width lines are drawn on a shaded band across the whole width of the editor, as Emacs extends the =org-block= face. Code in src blocks is highlighted for its language (see [[file:11-code-blocks.org][Code blocks]]).
 - A folded heading shows an ellipsis after its line.
 
-Colours come from the theme and follow the system's light or dark appearance. The font, size and line spacing are in Settings ▸ Appearance; colours are set in =config.toml=. See [[file:13-configuration.org][Configuration]]. Use a monospaced font: tags and tables line up by columns.
+Colours come from the theme and follow the system's light or dark appearance. The font, size and line spacing are in Settings ▸ Appearance; colours are set in =config.toml=. See [[file:13-configuration.org][Configuration]]. The font should be monospaced, since tags and tables line up by columns. A body font for prose can be set beside it, as =mixed-pitch-mode= does in Emacs: prose and headings use it, and tables, code, dates, tags, drawers and the start of each line keep the monospaced font.
 
 ** Indentation and stars
 

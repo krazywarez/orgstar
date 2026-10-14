@@ -82,7 +82,7 @@ Files that aren't valid UTF-8 open read-only; commands that would change them sa
 
 The editor and the reader use the theme set in the configuration folder's =config.toml=, stacked as on the Mac: the default theme, then the theme file named by =theme-file=, then the colours in =[theme]=, =[theme.light]=, =[theme.dark]=, =[theme.todo]= and =[theme.category]=. A TODO keyword without a colour in =[theme.todo]= takes its class's colour: =todo-next= for =NEXT= and =STRT=, =todo-waiting= for =WAIT= and =HOLD=, =todo-cancelled= for =KILL= and =CANCELLED=, and so on (see [[file:13-configuration.org][Configuration]] for the lists). Colours follow the system's light or dark appearance. Problems in the theme show in the Settings tab with the other problems. A change to =config.toml= or the theme file applies as it syncs, to open editors too. See [[file:13-configuration.org][Configuration]] for the colour keys.
 
-- Font :: =font= when that family is installed on the device, otherwise the system's monospaced font.
+- Font :: =font= when that family is installed on the device, otherwise the system's monospaced font. =body-font=, when set, is used for prose as on the Mac.
 - Size :: =font-size= is the size at the default Dynamic Type setting, 13 pt by default. Text grows and shrinks with the text size chosen in the system Settings app.
 - Line spacing and headings :: =line-spacing= and =heading-size-step= apply as on the Mac.
 - Caret and selection :: the selection highlight takes the theme's =selection= colour, over block bands too; the caret and the selection handles take =cursor=.

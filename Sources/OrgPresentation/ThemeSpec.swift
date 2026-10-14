@@ -38,6 +38,9 @@ public struct RGBA: Hashable, Sendable {
 public struct ThemeSpec: Equatable, Sendable {
     /// A font family; empty for the system's monospaced font.
     public var font = ""
+    /// The font for prose: a family, `system` for the system's proportional font, or empty for
+    /// `font` throughout. Tables, code and other `Presentation.isFixedPitch` text keep `font`.
+    public var bodyFont = ""
     public var fontSize = 13
     /// Points between lines.
     public var lineSpacing = 2
@@ -182,7 +185,7 @@ public struct ThemeSpec: Equatable, Sendable {
     // MARK: - Reading
 
     /// Keys of `[theme]` that aren't colors; config.toml's settings handle them.
-    public static let typeKeys: Set<String> = ["font", "font-size", "line-spacing", "heading-size-step", "theme-file"]
+    public static let typeKeys: Set<String> = ["font", "body-font", "font-size", "line-spacing", "heading-size-step", "theme-file"]
 
     /// Whether a table holds theme colors.
     public static func isThemeTable(_ name: String) -> Bool {

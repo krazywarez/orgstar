@@ -295,6 +295,8 @@ public enum UserConfig {
                 comment: "the grid's times as HHMM, separated by spaces", legacy: ""),
         Setting(section: "theme", key: "font", defaultsKey: "themeFont", kind: .string, fallback: .string(""),
                 comment: "a monospaced font family; \"\" for the system's", legacy: ""),
+        Setting(section: "theme", key: "body-font", defaultsKey: "themeBodyFont", kind: .string, fallback: .string(""),
+                comment: "a font family for prose, or \"system\"; tables, code, dates and tags keep the font above; \"\" for the font above throughout", legacy: ""),
         Setting(section: "theme", key: "font-size", defaultsKey: "themeFontSize", kind: .integer, fallback: .integer(13),
                 comment: "points", legacy: ""),
         Setting(section: "theme", key: "line-spacing", defaultsKey: "themeLineSpacing", kind: .integer, fallback: .integer(2),

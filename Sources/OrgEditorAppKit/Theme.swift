@@ -6,7 +6,10 @@ import OrgPresentation
 @MainActor
 struct Theme {
     let spec: ThemeSpec
+    /// The fixed-pitch font: columns, tables, code and the rest of `Presentation.isFixedPitch`.
     let font: NSFont
+    /// The font for prose; `font` unless the theme names a body font.
+    let body: NSFont
 
     init(_ spec: ThemeSpec = .default) {
         self.spec = spec
@@ -14,7 +17,22 @@ struct Theme {
         font = spec.font.isEmpty ? NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
             : NSFontManager.shared.font(withFamily: spec.font, traits: [], weight: 5, size: size)
             ?? NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+        body = switch spec.bodyFont {
+        case "": font
+        case "system": NSFont.systemFont(ofSize: size)
+        case let family: NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: size) ?? font
+        }
         Self.blockBackground = color("block-background") ?? .clear
+    }
+
+    /// Prose and fixed-pitch text use different fonts.
+    var mixedPitch: Bool { body != font }
+
+    /// The fixed-pitch font at the size and weight the text in `range` has.
+    func fixedPitch(_ storage: NSTextStorage, _ range: NSRange) -> NSFont {
+        let current = currentFont(storage, range)
+        let sized = font.withSize(current.pointSize)
+        return current.fontDescriptor.symbolicTraits.contains(.bold) ? NSFontManager.shared.convert(sized, toHaveTrait: .boldFontMask) : sized
     }
 
     /// A color that follows the appearance, or nil when the theme has none for `key`.
@@ -43,7 +61,7 @@ struct Theme {
     var foreground: NSColor { color("foreground") ?? .textColor }
 
     var base: [NSAttributedString.Key: Any] {
-        [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraphStyle(firstLine: 0, wrapped: 0)]
+        [.font: body, .foregroundColor: foreground, .paragraphStyle: paragraphStyle(firstLine: 0, wrapped: 0)]
     }
 
     /// Width of one column of the monospaced font.
@@ -78,10 +96,13 @@ struct Theme {
         func fg(_ key: String) {
             if let color = color(key) { storage.addAttribute(.foregroundColor, value: color, range: range) }
         }
+        if mixedPitch, Presentation.isFixedPitch(role) {
+            storage.addAttribute(.font, value: fixedPitch(storage, range), range: range)
+        }
         switch role {
         case .heading(let level):
-            let size = font.pointSize + CGFloat(max(0, spec.headingSizeStep) * max(0, 4 - level))
-            let heading = NSFontManager.shared.convert(font.withSize(size), toHaveTrait: .boldFontMask)
+            let size = body.pointSize + CGFloat(max(0, spec.headingSizeStep) * max(0, 4 - level))
+            let heading = NSFontManager.shared.convert(body.withSize(size), toHaveTrait: .boldFontMask)
             storage.addAttribute(.font, value: heading, range: range)
             fg("heading-\(min(max(level, 1), 8))")
         case .leadingStars:
@@ -126,7 +147,7 @@ struct Theme {
     }
 
     private func currentFont(_ storage: NSTextStorage, _ range: NSRange) -> NSFont {
-        storage.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont ?? font
+        storage.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont ?? body
     }
 
     private func bold(_ storage: NSTextStorage, _ range: NSRange) -> NSFont {

@@ -7,7 +7,10 @@ import UIKit
 @MainActor
 struct MobileTheme {
     let spec: ThemeSpec
+    /// The fixed-pitch font: columns, tables, code and the rest of `Presentation.isFixedPitch`.
     let font: UIFont
+    /// The font for prose; `font` unless the theme names a body font.
+    let body: UIFont
 
     init(_ spec: ThemeSpec = .default) {
         self.spec = spec
@@ -16,7 +19,24 @@ struct MobileTheme {
         // theme's size for the default Dynamic Type size, scaled for others.
         let chosen = spec.font.isEmpty || UIFont.fontNames(forFamilyName: spec.font).isEmpty ? nil
             : UIFont(descriptor: UIFontDescriptor(fontAttributes: [.family: spec.font]), size: size)
-        font = UIFontMetrics(forTextStyle: .body).scaledFont(for: chosen ?? .monospacedSystemFont(ofSize: size, weight: .regular))
+        let metrics = UIFontMetrics(forTextStyle: .body)
+        font = metrics.scaledFont(for: chosen ?? .monospacedSystemFont(ofSize: size, weight: .regular))
+        body = switch spec.bodyFont {
+        case "": font
+        case "system": metrics.scaledFont(for: .systemFont(ofSize: size))
+        case let family where !UIFont.fontNames(forFamilyName: family).isEmpty:
+            metrics.scaledFont(for: UIFont(descriptor: UIFontDescriptor(fontAttributes: [.family: family]), size: size))
+        default: font
+        }
+    }
+
+    /// Prose and fixed-pitch text use different fonts.
+    var mixedPitch: Bool { body != font }
+
+    /// The fixed-pitch font at the size and weight of `current`.
+    func fixedPitch(_ current: UIFont) -> UIFont {
+        let sized = font.withSize(current.pointSize)
+        return current.fontDescriptor.symbolicTraits.contains(.traitBold) ? Self.adding(.traitBold, to: sized) : sized
     }
 
     /// A color that follows the appearance, or nil when the theme has none for `key`.
@@ -46,8 +66,8 @@ struct MobileTheme {
 
     /// A heading's font: larger by the heading step for levels 1 to 3, bold.
     func headingFont(_ level: Int) -> UIFont {
-        let size = font.pointSize + CGFloat(max(0, spec.headingSizeStep) * max(0, 4 - level))
-        return Self.adding(.traitBold, to: font.withSize(size))
+        let size = body.pointSize + CGFloat(max(0, spec.headingSizeStep) * max(0, 4 - level))
+        return Self.adding(.traitBold, to: body.withSize(size))
     }
 
     static func adding(_ traits: UIFontDescriptor.SymbolicTraits, to font: UIFont) -> UIFont {
@@ -56,7 +76,7 @@ struct MobileTheme {
     }
 
     var base: [NSAttributedString.Key: Any] {
-        [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraphStyle(firstLine: 0, wrapped: 0)]
+        [.font: body, .foregroundColor: foreground, .paragraphStyle: paragraphStyle(firstLine: 0, wrapped: 0)]
     }
 
     /// Markup hidden from view: no width, no color.
@@ -85,8 +105,12 @@ struct MobileTheme {
             if let color = color(key) { storage.addAttribute(.foregroundColor, value: color, range: range) }
         }
         func traits(_ add: UIFontDescriptor.SymbolicTraits) {
-            let current = storage.attribute(.font, at: range.location, effectiveRange: nil) as? UIFont ?? font
+            let current = storage.attribute(.font, at: range.location, effectiveRange: nil) as? UIFont ?? body
             storage.addAttribute(.font, value: Self.adding(add, to: current), range: range)
+        }
+        if mixedPitch, Presentation.isFixedPitch(role) {
+            let current = storage.attribute(.font, at: range.location, effectiveRange: nil) as? UIFont ?? body
+            storage.addAttribute(.font, value: fixedPitch(current), range: range)
         }
         switch role {
         case .heading(let level):

@@ -92,6 +92,63 @@ extension Presentation {
         return out
     }
 
+    /// Roles drawn in the fixed-pitch font when the body font is proportional, as Emacs's
+    /// mixed-pitch-mode keeps `mixed-pitch-fixed-pitch-faces`: text that lines up by column.
+    public static func isFixedPitch(_ role: StyleRole) -> Bool {
+        switch role {
+        case .table, .rule, .block, .blockDelimiter, .verbatim, .code, .inlineSource, .metadata, .keyword, .tags, .timestamp, .syntax: true
+        default: false
+        }
+    }
+
+    /// The start of each line in `range` that sets where its text begins, for the fixed-pitch
+    /// font under a proportional body: a heading's stars and space, and the leading blanks,
+    /// bullet and checkbox `hangingColumns` counts. org-indent's indentation is in columns of
+    /// the fixed-pitch font, so these keep text lined up under it.
+    public static func fixedPitchPrefixes(_ text: NSString, in range: Range<Int>) -> [Range<Int>] {
+        var out: [Range<Int>] = []
+        var location = range.lowerBound
+        while location < range.upperBound {
+            let line = text.lineRange(for: NSRange(location: location, length: 0))
+            guard line.length > 0 else { break }
+            location = NSMaxRange(line)
+            let content = text.substring(with: line)
+            let stars = content.prefix { $0 == "*" }.count
+            let length: Int
+            if stars > 0, content.dropFirst(stars).first == " " {
+                length = stars + 1
+            } else {
+                length = hangingPrefix(content).utf16.count
+            }
+            if length > 0 { out.append(line.location..<(line.location + length)) }
+        }
+        return out
+    }
+
+    /// The characters `hangingColumns` counts: leading blanks, then a bullet, its space and a
+    /// checkbox.
+    static func hangingPrefix(_ line: String) -> Substring {
+        let blanks = line.prefix { $0 == " " || $0 == "\t" }
+        let rest = line.dropFirst(blanks.count)
+        var bullet = 0
+        if let first = rest.first, first == "-" || first == "+" || (first == "*" && !blanks.isEmpty) {
+            bullet = 1
+        } else {
+            let digits = rest.prefix { $0.isASCII && $0.isNumber }
+            if !digits.isEmpty, let separator = rest.dropFirst(digits.count).first, separator == "." || separator == ")" {
+                bullet = digits.count + 1
+            }
+        }
+        guard bullet > 0, rest.dropFirst(bullet).first == " " else { return blanks }
+        var length = blanks.count + bullet + 1
+        let afterBullet = rest.dropFirst(bullet + 1)
+        if afterBullet.count >= 4, afterBullet.first == "[", "X x-".contains(afterBullet.dropFirst().first!),
+           afterBullet.dropFirst(2).first == "]", afterBullet.dropFirst(3).first == " " {
+            length += 4
+        }
+        return line.prefix(length)
+    }
+
     /// Columns a wrapped continuation of `line` should start past the line's own start.
     public static func hangingColumns(_ line: String) -> Int {
         var columns = 0

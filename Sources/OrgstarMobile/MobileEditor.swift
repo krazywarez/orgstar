@@ -32,7 +32,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
         get { theme.spec }
         set {
             let new = MobileTheme(newValue)
-            guard new.spec != theme.spec || new.font != theme.font else { return }
+            guard new.spec != theme.spec || new.font != theme.font || new.body != theme.body else { return }
             theme = new
             paragraphStyles = [:]
             applyThemeToView()

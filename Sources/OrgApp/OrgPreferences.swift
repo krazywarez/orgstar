@@ -66,6 +66,7 @@ public enum OrgPreferences {
     public static func theme(_ colors: ThemeSpec, _ defaults: UserDefaults = .standard) -> ThemeSpec {
         var spec = colors
         spec.font = string("themeFont", defaults)
+        spec.bodyFont = string("themeBodyFont", defaults)
         spec.fontSize = integer("themeFontSize", defaults)
         spec.lineSpacing = integer("themeLineSpacing", defaults)
         spec.headingSizeStep = integer("themeHeadingStep", defaults)

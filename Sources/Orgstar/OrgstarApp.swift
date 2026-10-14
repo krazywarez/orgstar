@@ -621,9 +621,15 @@ struct SettingsView: View {
     @AppStorage("settingsTab") private var tab = "general"
     @AppStorage("showHiddenFiles") private var showHiddenFiles = true
     @AppStorage("themeFont") private var themeFont = ""
+    @AppStorage("themeBodyFont") private var themeBodyFont = ""
     @AppStorage("themeFontSize") private var themeFontSize = 13
     @AppStorage("themeLineSpacing") private var themeLineSpacing = 2
     @AppStorage("themeHeadingStep") private var themeHeadingStep = 1
+
+    /// Installed font families that aren't monospaced, for body text.
+    private static let proportionalFamilies: [String] = NSFontManager.shared.availableFontFamilies.filter { family in
+        NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: 13)?.isFixedPitch == false
+    }
 
     /// Installed monospaced font families.
     private static let monospacedFamilies: [String] = NSFontManager.shared.availableFontFamilies.filter { family in
@@ -775,11 +781,18 @@ struct SettingsView: View {
                     ForEach(Self.monospacedFamilies, id: \.self) { Text($0).tag($0) }
                     if !themeFont.isEmpty, !Self.monospacedFamilies.contains(themeFont) { Text(themeFont).tag(themeFont) }
                 }
+                Picker("Body text", selection: $themeBodyFont) {
+                    Text("Same as Font").tag("")
+                    Text("System").tag("system")
+                    Divider()
+                    ForEach(Self.proportionalFamilies, id: \.self) { Text($0).tag($0) }
+                    if !["", "system"].contains(themeBodyFont), !Self.proportionalFamilies.contains(themeBodyFont) { Text(themeBodyFont).tag(themeBodyFont) }
+                }
                 Stepper("Size: \(themeFontSize) pt", value: $themeFontSize, in: 8...36)
                 Stepper("Line spacing: \(themeLineSpacing) pt", value: $themeLineSpacing, in: 0...16)
                 Stepper("Headings grow by \(themeHeadingStep) pt a level", value: $themeHeadingStep, in: 0...8)
             } footer: {
-                Text("Tags and tables line up in columns, so a monospaced font keeps them straight.")
+                Text("Tags and tables line up in columns, so Font should be monospaced. With a Body text font, prose uses it while tables, code, dates, tags and drawers keep Font.")
                     .settingsFooter()
             }
             Section {

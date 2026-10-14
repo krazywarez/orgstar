@@ -282,7 +282,7 @@ public final class OrgEditor: NSObject {
     private func applyThemeToView() {
         Theme.selection = theme.color("selection") ?? .selectedTextBackgroundColor
         for view in orgTextViews {
-            view.font = theme.font
+            view.font = theme.body
             view.typingAttributes = theme.base
             view.drawsBackground = true
             view.backgroundColor = theme.color("background") ?? .textBackgroundColor

@@ -203,6 +203,14 @@ extension MobileEditor {
             }
             if Presentation.excludesScripts(run.role) { scriptExclusions.append(run.range) }
         }
+        if theme.mixedPitch {
+            for prefix in Presentation.fixedPitchPrefixes(ns, in: whole) {
+                let clipped = NSIntersectionRange(NSRange(prefix), lines)
+                guard clipped.length > 0 else { continue }
+                let current = storage.attribute(.font, at: clipped.location, effectiveRange: nil) as? UIFont ?? theme.body
+                storage.addAttribute(.font, value: theme.fixedPitch(current), range: clipped)
+            }
+        }
         if !showMarkup, options.prettyEntities { prettify(whole, in: storage, revealed: revealed, scriptExclusions: scriptExclusions) }
         applyShrunk(whole, in: storage)
         applyImages(whole, in: storage, revealed: revealed)
@@ -238,7 +246,7 @@ extension MobileEditor {
                 }
                 let size = theme.font.pointSize
                 storage.addAttributes([
-                    .font: theme.font.withSize(size * 0.7),
+                    .font: theme.body.withSize(size * 0.7),
                     .baselineOffset: (superscript ? 0.3 : -0.3) * size,
                 ], range: NSRange(location: lineStart + body.lowerBound, length: body.count))
             }
