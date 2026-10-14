@@ -204,6 +204,7 @@ struct RecoverySheet: View {
         case "local": "Your version, replaced"
         case "external": "Disk version, replaced"
         case "sync-conflict": "Sync conflict copy"
+        case "snapshot": "Snapshot, before a save"
         default: label
         }
     }

@@ -282,7 +282,7 @@ Each choice moves the copy to recovery and deletes it from the folder. The buffe
 
 ** Recovery versions
 
-Whenever orgstar replaces a version of a file, it keeps a copy: your buffer when you take the disk version, the disk version when you keep yours, a version another program wrote while orgstar saved, and resolved Syncthing copies. orgstar keeps the last 20 versions per file in =~/Library/Application Support/Orgstar/Recovery=.
+Whenever orgstar replaces a version of a file, it keeps a copy: your buffer when you take the disk version, the disk version when you keep yours, a version another program wrote while orgstar saved, and resolved Syncthing copies. It also keeps a snapshot of the file as it was before a save, at most once an hour, so there is a version of your own writing to go back to. orgstar keeps the last 20 replaced versions and the last 10 snapshots per file in =~/Library/Application Support/Orgstar/Recovery=.
 
 Choose File ▸ Recovery Versions… to see the open file's versions, newest first, each with its date and why it was kept:
 

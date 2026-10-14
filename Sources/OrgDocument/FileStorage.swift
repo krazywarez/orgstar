@@ -53,14 +53,33 @@ public struct CoordinatedFileSystem: FileSystem {
     }
 }
 
-/// Keeps the last `limit` displaced versions per file in `directory/<hash of path>/`.
+/// Keeps the last `limit` displaced versions per file in `directory/<hash of path>/`, and
+/// apart from them up to `snapshotLimit` snapshots, the version before a save at most once
+/// every `snapshotInterval`.
 public struct FileRecoveryStore: RecoveryStore {
     public let directory: URL
     public let limit: Int
+    public static let snapshotLimit = 10
+    public static let snapshotInterval: TimeInterval = 3600
+    static let snapshotLabel = "snapshot"
+    /// The clock, for tests.
+    public var now: @Sendable () -> Date = { Date() }
 
     public init(directory: URL, limit: Int = 20) {
         self.directory = directory
         self.limit = limit
+    }
+
+    /// Whether the version file named `name` is a snapshot: after the 20-digit time and `-`.
+    static func isSnapshot(_ name: String) -> Bool {
+        name.dropFirst(21).hasPrefix(snapshotLabel + "-")
+    }
+
+    public func keepSnapshot(_ bytes: [UInt8], for url: URL) throws {
+        let last = try versions(for: url).map(\.lastPathComponent).last(where: Self.isSnapshot)
+        if let last, let nanoseconds = UInt64(last.prefix(20)),
+           now().timeIntervalSince1970 - Double(nanoseconds) / 1_000_000_000 < Self.snapshotInterval { return }
+        try keep(bytes, for: url, label: Self.snapshotLabel)
     }
 
     public func folder(for url: URL) -> URL {
@@ -74,11 +93,12 @@ public struct FileRecoveryStore: RecoveryStore {
         let manager = FileManager.default
         try manager.createDirectory(at: folder, withIntermediateDirectories: true)
         // Zero-padded wall-clock nanoseconds sort by time; the UUID keeps same-instant names apart.
-        let stamp = String(format: "%020llu", UInt64(Date().timeIntervalSince1970 * 1_000_000_000))
+        let stamp = String(format: "%020llu", UInt64(now().timeIntervalSince1970 * 1_000_000_000))
         let name = "\(stamp)-\(label)-\(UUID().uuidString.prefix(8))-\(url.lastPathComponent)"
         try Data(bytes).write(to: folder.appendingPathComponent(name))
         let kept = try manager.contentsOfDirectory(atPath: folder.path).sorted()
-        for old in kept.dropLast(limit) {
+        let snapshots = kept.filter(Self.isSnapshot)
+        for old in kept.filter({ !Self.isSnapshot($0) }).dropLast(limit) + snapshots.dropLast(Self.snapshotLimit) {
             try manager.removeItem(at: folder.appendingPathComponent(old))
         }
     }

@@ -202,3 +202,50 @@ struct FileStorageTests {
         #expect(try versions.map { try String(contentsOf: $0, encoding: .utf8) } == ["v2", "v3", "v4"])
     }
 }
+
+final class SnapshotRecovery: RecoveryStore, @unchecked Sendable {
+    var snapshots: [String] = []
+    func keep(_ bytes: [UInt8], for url: URL, label: String) throws {}
+    func keepSnapshot(_ bytes: [UInt8], for url: URL) throws {
+        snapshots.append(String(decoding: bytes, as: UTF8.self))
+    }
+}
+
+struct SnapshotTests {
+    /// A save that changes the file offers the version it replaces as a snapshot.
+    @Test func savesOfferTheReplacedVersion() throws {
+        let files = FaultyFileSystem("a\nb\nc\n")
+        let recovery = SnapshotRecovery()
+        var doc = try editedState()
+        #expect(try Saver(fileSystem: files, recovery: recovery).save(&doc, to: url) == .saved)
+        #expect(recovery.snapshots == ["a\nb\nc\n"])
+        // Saving the same text again changes nothing, so nothing is offered.
+        _ = try Saver(fileSystem: files, recovery: recovery).save(&doc, to: url)
+        #expect(recovery.snapshots.count == 1)
+    }
+
+    @Test func keptHourlyWithTheirOwnLimit() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-snap-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        nonisolated(unsafe) var clock = Date(timeIntervalSince1970: 1_800_000_000)
+        var store = FileRecoveryStore(directory: folder)
+        store.now = { clock }
+        func labels() throws -> [String] { try store.versions(for: url).map { $0.lastPathComponent.split(separator: "-")[1].description } }
+        try store.keepSnapshot(Array("one".utf8), for: url)
+        clock += 1800
+        try store.keepSnapshot(Array("two".utf8), for: url)
+        #expect(try labels() == ["snapshot"])
+        clock += 1801
+        try store.keepSnapshot(Array("three".utf8), for: url)
+        #expect(try labels() == ["snapshot", "snapshot"])
+        // Displaced versions don't count towards the hour, and snapshots don't push them out.
+        try store.keep(Array("theirs".utf8), for: url, label: "external")
+        for _ in 0..<15 {
+            clock += 3601
+            try store.keepSnapshot(Array("later".utf8), for: url)
+        }
+        let kept = try labels()
+        #expect(kept.filter { $0 == "snapshot" }.count == FileRecoveryStore.snapshotLimit)
+        #expect(kept.contains("external"))
+    }
+}

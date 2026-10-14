@@ -94,18 +94,19 @@ When scanning folders, orgstar skips Emacs lock files (=.#name=), backups (=name
 
 * Recovery versions
 
-Every version a save, a merge or a conflict resolution displaces is kept in the recovery folder:
+Every version a save, a merge or a conflict resolution displaces is kept in the recovery folder, and so is a snapshot of the file before a save, at most once an hour:
 
 - on the Mac, =~/Library/Application Support/Orgstar/Recovery= (or =$ORGSTAR_DATA_DIR/Recovery=),
 - on iOS, the app's own Application Support folder.
 
-Each file has a subfolder named from a hash of its path, holding its last 20 kept versions. A version's file name has a timestamp, a label and the file's name. The labels are:
+Each file has a subfolder named from a hash of its path, holding its last 20 replaced versions and, apart from them, its last 10 snapshots. A version's file name has a timestamp, a label and the file's name. The labels are:
 
 | Label           | Kept when                                                                     |
 |-----------------+-------------------------------------------------------------------------------|
 | =external=      | A version written by another program was replaced or merged                   |
 | =local=         | orgstar's version was replaced, or set aside by Use Disk Version, Merge with Markers or Restore |
 | =sync-conflict= | A Syncthing conflict copy was resolved                                        |
+| =snapshot=      | A save changed the file and the last snapshot was more than an hour before    |
 
 File ▸ Recovery Versions… (More ▸ Recovered Versions on iOS) lists the open file's kept versions, newest first, each compared with the buffer (lines marked - in the buffer, + in the kept version). Restore puts a version's text in the buffer as an edit you can undo; the buffer as it was goes to the recovery folder first. On the Mac, Show in Finder selects the version's file.
 

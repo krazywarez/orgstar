@@ -11,6 +11,12 @@ public protocol FileSystem: Sendable {
 
 public protocol RecoveryStore: Sendable {
     func keep(_ bytes: [UInt8], for url: URL, label: String) throws
+    /// Offered the version a save is about to replace, to keep now and then as a snapshot.
+    func keepSnapshot(_ bytes: [UInt8], for url: URL) throws
+}
+
+extension RecoveryStore {
+    public func keepSnapshot(_ bytes: [UInt8], for url: URL) throws {}
 }
 
 public enum SaveOutcome: Sendable, Equatable {
@@ -62,6 +68,8 @@ public struct Saver: Sendable {
             }
             let bytes = try state.encodedText()
             guard try fileSystem.read(url) == disk else { continue }
+            // A snapshot is a convenience: one that can't be kept doesn't stop the save.
+            if let disk, disk != bytes { try? recovery.keepSnapshot(disk, for: url) }
 
             let replaced = try fileSystem.replace(url, with: bytes)
             state.didWrite(bytes)
