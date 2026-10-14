@@ -11,5 +11,14 @@ Orgstar is 0BSD. It builds on these projects, under their own licenses.
 | [[https://github.com/6cdh/tree-sitter-scheme][tree-sitter-scheme]] | Highlighting | MIT |
 | [[https://github.com/Wilfred/tree-sitter-elisp][tree-sitter-elisp]] | Highlighting (vendored in =Sources/TreeSitterElisp=) | MIT |
 | [[https://github.com/sogaiu/tree-sitter-clojure][tree-sitter-clojure]] | Highlighting (vendored in =Sources/TreeSitterClojure=) | CC0-1.0 |
+| [[https://ethanschoonover.com/solarized/][Solarized]] | Colors of the Solarized themes | MIT |
+| [[https://github.com/morhetz/gruvbox][Gruvbox]] | Colors of the Gruvbox themes | MIT |
+| [[https://protesilaos.com/emacs/modus-themes][Modus themes]] | Colors of Modus Operandi and Modus Vivendi (color values only, no code) | GPL-3.0-or-later |
+| [[https://github.com/catppuccin/catppuccin][Catppuccin]] | Colors of Catppuccin Latte and Mocha | MIT |
+| [[https://github.com/chriskempson/tomorrow-theme][Tomorrow]] | Colors of the Tomorrow theme | MIT |
+| [[https://www.nordtheme.com][Nord]] | Colors of the Nord theme | MIT |
+| [[https://draculatheme.com][Dracula]] | Colors of the Dracula theme | MIT |
+| [[https://github.com/folke/tokyonight.nvim][Tokyo Night]] | Colors of the Tokyo Night theme | Apache-2.0 |
+| [[https://github.com/doomemacs/themes][doom-themes]] | Colors of doom-one | MIT |
 
-The JavaScript, Lua, Python and YAML scanners are copied into =Sources/TreeSitterScanners= with their licenses. Highlight queries are embedded in =Sources/OrgHighlight/Queries.swift= by =scripts/update-highlight-queries.sh=.
+The JavaScript, Lua, Python and YAML scanners are copied into =Sources/TreeSitterScanners= with their licenses. Highlight queries are embedded in =Sources/OrgHighlight/Queries.swift= by =scripts/update-highlight-queries.sh=. The theme colors are in =Sources/OrgPresentation/Palettes.swift=; a few light-theme colors are darkened from upstream for contrast, as noted there.

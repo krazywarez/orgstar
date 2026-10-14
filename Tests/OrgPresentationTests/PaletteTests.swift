@@ -1,3 +1,4 @@
+import Foundation
 import OrgPresentation
 import Testing
 
@@ -26,6 +27,37 @@ struct PaletteTests {
         for palette in ThemeSpec.palettes(.light) + ThemeSpec.palettes(.dark) {
             let expected = palette.id.hasPrefix("default-") ? all.subtracting(ThemeSpec.systemDefaults) : all
             #expect(Set(palette.colors.keys) == expected, "\(palette.id): \(expected.symmetricDifference(palette.colors.keys))")
+        }
+    }
+    @Test func theCatalogIsInOrder() {
+        #expect(ThemeSpec.palettes(.light).map(\.id) == ["default-light", "solarized-light", "gruvbox-light", "modus-operandi", "catppuccin-latte", "tomorrow", "paper"])
+        #expect(ThemeSpec.palettes(.dark).map(\.id) == ["default-dark", "solarized-dark", "gruvbox-dark", "modus-vivendi", "catppuccin-mocha", "nord", "dracula", "tokyo-night", "doom-one"])
+    }
+
+    /// WCAG 2 contrast ratio.
+    static func contrast(_ a: RGBA, _ b: RGBA) -> Double {
+        func luminance(_ c: RGBA) -> Double {
+            func channel(_ v: Double) -> Double { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+            return 0.2126 * channel(c.red) + 0.7152 * channel(c.green) + 0.0722 * channel(c.blue)
+        }
+        let (x, y) = (luminance(a), luminance(b))
+        return (max(x, y) + 0.05) / (min(x, y) + 0.05)
+    }
+
+    @Test func textReadsOnTheBackground() throws {
+        let body = ["foreground", "table"]
+        let marks = ["heading-1", "heading-2", "heading-3", "heading-4", "todo", "todo-next", "todo-waiting", "done", "link", "timestamp", "code",
+                     "syntax-keyword", "syntax-string", "syntax-function", "syntax-type", "syntax-number", "syntax-property", "syntax-label"]
+        for palette in ThemeSpec.palettes(.light) + ThemeSpec.palettes(.dark) {
+            let background = try #require(palette.colors["background"])
+            for key in body {
+                let ratio = Self.contrast(try #require(palette.colors[key]), background)
+                #expect(ratio >= 4.5, "\(palette.id) \(key): \(ratio)")
+            }
+            for key in marks {
+                let ratio = Self.contrast(try #require(palette.colors[key]), background)
+                #expect(ratio >= 3, "\(palette.id) \(key): \(ratio)")
+            }
         }
     }
 }
