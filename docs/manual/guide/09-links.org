@@ -269,8 +269,9 @@ has two sections:
 - *Links to* the heading at the caret, named after that heading.
 - *Links to this file*.
 
-Each row shows the linking heading and its file name; a link in the text before a
-file's first heading is listed under the file's name. Click a row to open it. The
+Each row shows the linking heading, the line the link is on with links shown as they read
+and this one in bold, and the file name; a link in the text before a file's first heading is
+listed under the file's name. Click a row to open it. The
 pane is shown by default, orgstar remembers whether it is shown, and it updates as
 you move the caret and edit.
 
@@ -304,6 +305,8 @@ the index, without org-roam's database.
 
 The keys are the ones org-roam's manual suggests for Emacs and Doom's. Titles that
 repeat show their file's name. A file node's title is its =#+TITLE=, or its name.
+
+A title that no node has makes a new node, as org-roam's default capture template does: a file named =%<%Y%m%d%H%M%S>-${slug}.org= in =org-roam-directory= (the first folder unless it is set), starting with an =ID= property drawer and =#+title:= and the title. Find Node… opens it; Insert Node Link… links to it. The slug is the title in lower case, accents dropped, with everything but letters and digits as one =_=, as =org-roam-node-slugify= makes it.
 
 Daily notes are in =org-roam-dailies-directory= (=daily/=) under =org-roam-directory=,
 which is the first sidebar folder unless set. A new note is named and started as

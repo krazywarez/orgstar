@@ -118,6 +118,9 @@ struct WorkspaceModelTests {
         #expect(model.backlinks(to: Backlinks.Target(path: a)).map(\.title) == ["Plumbing", "c.org"])
         #expect(model.backlinks(to: Backlinks.Target(path: a, title: "Taps")).map(\.title) == ["Sink"])
         #expect(model.backlinks(to: sink, excluding: 0).map(\.title) == ["Plumbing", "Other", "c.org"])
+        // Each with the line its link is on, the link as it reads.
+        #expect(model.backlinks(to: sink).map { $0.snippet?.text } == ["the sink and file:a.org", "file:a.org::#sink https://x.org", "About file:a.org::*Sink and file:a.org."])
+        #expect(model.backlinks(to: sink).first?.snippet?.matches == [0..<8])
         let fromC = try #require(model.backlinks(to: sink).last)
         #expect(fromC == .file(c, contentHash: fromC.contentHash))
         let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))

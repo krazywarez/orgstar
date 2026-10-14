@@ -73,9 +73,19 @@ public struct RoamActions {
                 show("\(error)")
             }
         case "app.node.find":
-            chooseNode("Node: ") { node in open(node.location.path, node.location.start) }
+            chooseNode("Node: ") { choice in
+                switch choice {
+                case .existing(let node): open(node.location.path, node.location.start)
+                case .created(let path, _, _): open(path, (session.text(of: path).map { ($0 as NSString).length }) ?? 0)
+                }
+            }
         case "app.node.insert":
-            chooseNode("Node: ") { node in insertLink("id:" + node.id, node.title) }
+            chooseNode("Node: ") { choice in
+                switch choice {
+                case .existing(let node): insertLink("id:" + node.id, node.title)
+                case .created(_, let id, let title): insertLink("id:" + id, title)
+                }
+            }
         default:
             show("Unknown command \(id)")
         }
@@ -130,17 +140,33 @@ public struct RoamActions {
         ask([])
     }
 
-    /// `org-roam-node-read`: a node by its title, with its file's name when titles repeat.
-    private func chooseNode(_ message: String, _ then: @escaping (IndexStore.Node) -> Void) {
+    enum NodeChoice {
+        case existing(IndexStore.Node)
+        case created(path: String, id: String, title: String)
+    }
+
+    /// `org-roam-node-read`: a node by its title, with its file's name when titles repeat. A
+    /// title no node has makes a node with it, as org-roam's default capture template does.
+    private func chooseNode(_ message: String, _ then: @escaping (NodeChoice) -> Void) {
         let all = nodes()
-        guard !all.isEmpty else { return show("No headings or files have IDs") }
         let counts = Dictionary(all.map { ($0.title, 1) }, uniquingKeysWith: +)
         let labels = all.map { node in
             counts[node.title, default: 0] > 1 ? "\(node.title) (\((node.location.path as NSString).lastPathComponent))" : node.title
         }
-        ask(Prompt(key: "node", message: message, choices: labels)) { answer in
-            guard let answer, let index = labels.firstIndex(of: answer) else { return }
-            then(all[index])
+        ask(Prompt(key: "node", message: message, choices: labels, requireMatch: false)) { answer in
+            guard let answer else { return }
+            if let index = labels.firstIndex(of: answer) { return then(.existing(all[index])) }
+            let title = answer.trimmingCharacters(in: .whitespaces)
+            guard !title.isEmpty else { return }
+            guard let folder = RoamNode.directory(roots: roots()) else { return show("No folder for new nodes") }
+            do {
+                let node = try RoamNode.create(title: title, in: folder)
+                refresh()
+                show("Created \((node.path as NSString).lastPathComponent)")
+                then(.created(path: node.path, id: node.id, title: title))
+            } catch {
+                show("Can't make the node: \(error)")
+            }
         }
     }
 }

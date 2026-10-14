@@ -55,4 +55,41 @@ public enum Backlinks {
         let wanted = search.hasPrefix("*") ? String(search.dropFirst()) : search
         return Links.normalizedTitle(wanted) == Links.normalizedTitle(title)
     }
+
+    /// The line of `body` with the link to `link` in it, links shown as they read (their
+    /// description, else what they link to), and the range of that link in the line. A line
+    /// longer than `width` keeps the part around the link.
+    public static func context(in body: String, link: String, width: Int = 160) -> (text: String, link: Range<Int>)? {
+        let pattern = /\[\[((?:[^\]\\]|\\.)+)\](?:\[([^\]]*)\])?\]/
+        for line in body.split(whereSeparator: \.isNewline) {
+            guard line.contains("[[" + link + "]") else { continue }
+            var text = ""
+            var found: Range<Int>?
+            var rest = Substring(line)
+            while let match = rest.firstMatch(of: pattern) {
+                text += rest[..<match.range.lowerBound]
+                let shown = match.2.map(String.init) ?? String(match.1)
+                let start = text.utf16.count
+                text += shown
+                if found == nil, match.1 == link { found = start..<text.utf16.count }
+                rest = rest[match.range.upperBound...]
+            }
+            text += rest
+            guard var range = found else { continue }
+            // Trim, then cut to `width` around the link.
+            let leading = text.prefix { $0.isWhitespace }.utf16.count
+            text = text.trimmingCharacters(in: .whitespaces)
+            range = (range.lowerBound - leading)..<(range.upperBound - leading)
+            let ns = text as NSString
+            if ns.length > width {
+                let start = max(0, min(range.lowerBound - width / 3, ns.length - width))
+                let end = min(ns.length, start + width)
+                let lead = start > 0 ? "…" : "", trail = end < ns.length ? "…" : ""
+                text = lead + ns.substring(with: NSRange(location: start, length: end - start)) + trail
+                range = (range.lowerBound - start + lead.utf16.count)..<(range.upperBound - start + lead.utf16.count)
+            }
+            return (text, range)
+        }
+        return nil
+    }
 }

@@ -43,7 +43,10 @@ struct BacklinksScreen: View {
             } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(location.title.isEmpty ? "(untitled)" : location.title).lineLimit(1).foregroundStyle(.primary)
-                    Text((location.path as NSString).lastPathComponent).font(.caption).foregroundStyle(.secondary)
+                    if let snippet = location.snippet {
+                        Text(snippet.attributed).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
+                    }
+                    Text((location.path as NSString).lastPathComponent).font(.caption).foregroundStyle(.tertiary)
                 }
             }
         }

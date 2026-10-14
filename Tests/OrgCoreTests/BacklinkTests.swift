@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import OrgCore
 
@@ -21,5 +22,20 @@ struct BacklinkTests {
         #expect(links("*Fix the sink", from: "/notes/a.org", to: heading) && links("#sink", from: "/notes/a.org", to: heading))
         #expect(links("Fix the sink", from: "/notes/a.org", to: heading))
         #expect(!links("*Fix the sink", from: "/notes/b.org", to: heading))
+    }
+
+    @Test func contextLineShowsLinksAsTheyRead() throws {
+        let body = ":PROPERTIES:\n:ID: x\n:END:\nFirst line.\nSee [[id:s-1][the sink]] and [[file:a.org]] today.\n"
+        let context = try #require(Backlinks.context(in: body, link: "id:s-1"))
+        #expect(context.text == "See the sink and file:a.org today.")
+        #expect((context.text as NSString).substring(with: NSRange(context.link)) == "the sink")
+        let plain = try #require(Backlinks.context(in: "Read [[file:a.org::*Sink]].\n", link: "file:a.org::*Sink"))
+        #expect(plain.text == "Read file:a.org::*Sink." && plain.link == 5..<22)
+        #expect(Backlinks.context(in: "nothing here\n", link: "id:zz") == nil)
+        // A long line keeps the part around the link.
+        let long = String(repeating: "word ", count: 60) + "[[id:q][target]]" + String(repeating: " more", count: 60)
+        let cut = try #require(Backlinks.context(in: long, link: "id:q"))
+        #expect(cut.text.utf16.count < 200 && cut.text.hasPrefix("…") && cut.text.hasSuffix("…"))
+        #expect((cut.text as NSString).substring(with: NSRange(cut.link)) == "target")
     }
 }

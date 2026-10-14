@@ -20,14 +20,25 @@ public struct IndexedHeading: Sendable, Hashable {
 }
 
 public struct HeadingLocation: Sendable, Hashable {
+    /// Locations are equal by where they are; the snippet is for showing them.
+    public static func == (a: HeadingLocation, b: HeadingLocation) -> Bool {
+        a.path == b.path && a.ordinal == b.ordinal && a.title == b.title && a.start == b.start && a.contentHash == b.contentHash
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(path)
+        hasher.combine(ordinal)
+        hasher.combine(start)
+    }
+
     public let path: String
     /// `fileOrdinal` for the file itself, before its first heading.
     public let ordinal: Int
     public let title: String
     public let start: Int
     public let contentHash: String
-    /// The text around the match, for search results whose match is in the text.
-    public internal(set) var snippet: Snippet?
+    /// The text around the match: a search's words, or a backlink's link.
+    public var snippet: Snippet?
 
     public init(path: String, ordinal: Int, title: String, start: Int, contentHash: String) {
         self.path = path
@@ -454,6 +465,26 @@ public final class IndexStore: Sendable {
                 + record.headings.flatMap { heading in heading.links.map { (source: location(record, heading), target: $0.target) } }
         }
         return indexed.filter { overlay[$0.source.path] == nil } + live
+    }
+
+    /// The text under a heading, or before a file's first heading, that a location from
+    /// `links` or `search` stands for.
+    public func text(of location: HeadingLocation, overlay: [String: FileRecord] = [:]) throws -> String? {
+        if let record = overlay[location.path] {
+            if location.ordinal == HeadingLocation.fileOrdinal { return record.preamble }
+            return record.headings.first { $0.ordinal == location.ordinal }?.body
+        }
+        return try database.read { db in
+            if location.ordinal == HeadingLocation.fileOrdinal {
+                return try String.fetchOne(db, sql: """
+                    SELECT files_fts.body FROM files_fts JOIN files f ON f.id = files_fts.rowid WHERE f.path = ?
+                    """, arguments: [location.path])
+            }
+            return try String.fetchOne(db, sql: """
+                SELECT headings_fts.body FROM headings_fts JOIN headings h ON h.id = headings_fts.rowid
+                JOIN files f ON f.id = h.file_id WHERE f.path = ? AND h.ordinal = ?
+                """, arguments: [location.path, location.ordinal])
+        }
     }
 
     /// IDs used by more than one heading.

@@ -7,6 +7,11 @@ public struct Snippet: Sendable, Hashable {
     /// The matched words, as UTF-16 ranges of `text`.
     public let matches: [Range<Int>]
 
+    public init(text: String, matches: [Range<Int>]) {
+        self.text = text
+        self.matches = matches
+    }
+
     /// The passage of `text` around the first word starting with one of `prefixes`, compared
     /// without case or diacritics as the full-text index compares them; nil when none does.
     public init?(text: String, prefixes: [String], width: Int = 160) {

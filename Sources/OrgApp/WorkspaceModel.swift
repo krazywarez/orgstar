@@ -358,13 +358,18 @@ public final class WorkspaceModel {
         FileTreeNode.build(root: path, files: files, downloading: downloading.sorted())
     }
 
-    /// Headings with links to `target`, the target heading's own links left out.
+    /// Headings with links to `target`, the target heading's own links left out, each with
+    /// the line its link is on as its snippet.
     public func backlinks(to target: Backlinks.Target, excluding start: Int? = nil, overlay: [String: FileRecord] = [:]) -> [HeadingLocation] {
         var seen = Set<HeadingLocation>()
         return ((try? index.links(overlay: overlay)) ?? []).compactMap { link in
             guard !(link.source.path == target.path && link.source.start == start),
                   Backlinks.links(link.target, from: link.source.path, to: target), seen.insert(link.source).inserted else { return nil }
-            return link.source
+            var source = link.source
+            if let text = try? index.text(of: source, overlay: overlay), let context = Backlinks.context(in: text, link: link.target) {
+                source.snippet = Snippet(text: context.text, matches: [context.link])
+            }
+            return source
         }
     }
 
