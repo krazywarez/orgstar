@@ -1424,6 +1424,16 @@
         }
       }
     },
+    "Copied to my-theme.toml, now the theme file in place of %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In my-theme.toml kopiert, jetzt die Themendatei anstelle von %@."
+          }
+        }
+      }
+    },
     "Copied to my-theme.toml, now the theme file.": {
       "localizations": {
         "de": {
@@ -1650,6 +1660,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "In der Datei entschlüsseln"
+          }
+        }
+      }
+    },
+    "Default": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standard"
           }
         }
       }
@@ -2305,6 +2325,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Für Dateien ohne #+TODO, in #+TODO-Syntax, eine Folge pro Zeile. Gilt nach einem Neustart von orgstar."
+          }
+        }
+      }
+    },
+    "Forest": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wald"
           }
         }
       }
@@ -2982,6 +3012,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mit Markierungen zusammenführen"
+          }
+        }
+      }
+    },
+    "Midnight": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitternacht"
           }
         }
       }
@@ -3809,6 +3849,16 @@
         }
       }
     },
+    "Paper": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Papier"
+          }
+        }
+      }
+    },
     "Passphrase": {
       "localizations": {
         "de": {
@@ -3995,6 +4045,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Schnell öffnen …"
+          }
+        }
+      }
+    },
+    "Rainbow": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regenbogen"
           }
         }
       }
@@ -5009,6 +5069,16 @@
         }
       }
     },
+    "Sunset": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonnenuntergang"
+          }
+        }
+      }
+    },
     "Switch to Buffer…": {
       "localizations": {
         "de": {
@@ -5343,6 +5413,16 @@
         }
       }
     },
+    "The theme file %@ sets colors over these, and config.toml's colors apply on top of both.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Themendatei %@ legt Farben über diese, und die Farben aus config.toml gelten zusätzlich zu beiden."
+          }
+        }
+      }
+    },
     "The whole file is removed. Files in iCloud Drive go to Recently Deleted in the Files app.": {
       "localizations": {
         "de": {
@@ -5489,6 +5569,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Klappt die Überschrift auf"
+          }
+        }
+      }
+    },
+    "Unicorn": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einhorn"
+          }
+        }
+      }
+    },
+    "Unicorn Night": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einhorn Nacht"
+          }
+        }
+      }
+    },
+    "Unicorn Pastel": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einhorn Pastell"
           }
         }
       }

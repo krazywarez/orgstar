@@ -460,7 +460,7 @@ struct ContentView: View {
         }
         .task(id: ReminderKey(
             enabled: remindersEnabled, lead: reminderLead, subfolders: agendaSubfolders, files: workspace.files.count,
-            changed: workspace.changedFile?.version, edits: session.editVersion, hour: hour
+            changed: workspace.changedFile?.version, edits: session.editVersion, hour: hour, theme: theme
         )) {
             await updateReminders()
             await updateWidgets()
@@ -905,7 +905,7 @@ struct ContentView: View {
         }
     }
 
-    private struct ReminderKey: Hashable {
+    private struct ReminderKey: Equatable {
         var enabled: Bool
         var lead: Int
         var subfolders: Bool
@@ -913,6 +913,8 @@ struct ContentView: View {
         var changed: Int?
         var edits: Int
         var hour: Int
+        /// The widgets' colors.
+        var theme: ThemeSpec
     }
 
     /// Sets the notifications for the next week's timed entries, once edits pause.

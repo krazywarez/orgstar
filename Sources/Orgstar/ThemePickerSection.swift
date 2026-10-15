@@ -20,15 +20,20 @@ struct ThemePickerSection: View {
         } header: {
             Text("Theme")
         } footer: {
-            Text(message ?? String(localized: "Colors set in config.toml or in the theme file apply on top of these."))
+            Text(message ?? footer)
                 .settingsFooter()
         }
+    }
+
+    private var footer: String {
+        themeFile.isEmpty ? String(localized: "Colors set in config.toml or in the theme file apply on top of these.")
+            : String(localized: "The theme file \(themeFile) sets colors over these, and config.toml's colors apply on top of both.")
     }
 
     private func picker(_ title: LocalizedStringKey, _ appearance: Palette.Appearance, _ selection: Binding<String>) -> some View {
         Picker(title, selection: selection) {
             ForEach(ThemeSpec.palettes(appearance), id: \.id) { palette in
-                Label { Text(palette.name) } icon: { Image(nsImage: Self.swatch(palette)) }.tag(palette.id)
+                Label { Text(palette.displayName) } icon: { Image(nsImage: Self.swatch(palette)) }.tag(palette.id)
             }
             if ThemeSpec.palette(selection.wrappedValue, appearance) == nil {
                 Text(selection.wrappedValue).tag(selection.wrappedValue)
@@ -59,8 +64,11 @@ struct ThemePickerSection: View {
                 message = String(localized: "my-theme.toml is already in the config folder; it was left as it is.")
                 return
             }
+            let previous = themeFile
             themeFile = UserConfig.copiedThemeFile
-            message = String(localized: "Copied to my-theme.toml, now the theme file.")
+            message = previous.isEmpty || previous == UserConfig.copiedThemeFile
+                ? String(localized: "Copied to my-theme.toml, now the theme file.")
+                : String(localized: "Copied to my-theme.toml, now the theme file in place of \(previous).")
         } catch {
             message = error.localizedDescription
         }

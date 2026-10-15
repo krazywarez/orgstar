@@ -41,11 +41,26 @@ struct MobileTheme {
 
     /// A color that follows the appearance, or nil when the theme has none for `key`.
     func color(_ key: String) -> UIColor? {
-        // As on the Mac: a key the theme has for one appearance only takes the default for the other.
-        let light = spec.light[key] ?? ThemeSpec.default.light[key] ?? spec.dark[key]
-        let dark = spec.dark[key] ?? ThemeSpec.default.dark[key] ?? spec.light[key]
-        guard let light, let dark else { return nil }
-        return Self.dynamic(light, dark)
+        // As on the Mac: a key the theme has for one appearance only takes the default for the
+        // other, except a key the system colors there.
+        let (light, dark) = (spec.editorColor(key, dark: false), spec.editorColor(key, dark: true))
+        if let light, let dark { return Self.dynamic(light, dark) }
+        guard light != nil || dark != nil else { return nil }
+        return UIColor { traits in
+            guard let c = traits.userInterfaceStyle == .dark ? dark : light else { return Self.systemColor(key) }
+            return UIColor(red: c.red, green: c.green, blue: c.blue, alpha: c.alpha)
+        }
+    }
+
+    /// What the system shows for a `ThemeSpec.systemDefaults` key the theme leaves unset.
+    static func systemColor(_ key: String) -> UIColor {
+        switch key {
+        case "sidebar-background", "modeline-background": .secondarySystemBackground
+        case "agenda-background": .systemBackground
+        case "sidebar-header", "modeline-foreground": .secondaryLabel
+        case "accent": .systemBlue
+        default: .label
+        }
     }
 
     static func dynamic(_ light: RGBA, _ dark: RGBA) -> UIColor {

@@ -1,3 +1,5 @@
+import Foundation
+
 /// A built-in theme for one appearance, chosen with `light-theme` or `dark-theme`.
 public struct Palette: Sendable, Equatable {
     public enum Appearance: String, Sendable { case light, dark }
@@ -6,6 +8,15 @@ public struct Palette: Sendable, Equatable {
     public let name: String
     public let appearance: Appearance
     public let colors: [String: RGBA]
+
+    /// `name` in the user's language: Default and Paper are translated, the others are names.
+    public var displayName: String {
+        switch id {
+        case "default-light", "default-dark": String(localized: "Default")
+        case "paper": String(localized: "Paper")
+        default: name
+        }
+    }
 
     public init(id: String, name: String, appearance: Appearance, colors: [String: RGBA]) {
         self.id = id
@@ -27,6 +38,15 @@ extension ThemeSpec {
 
     public static func defaultPaletteID(_ appearance: Palette.Appearance) -> String {
         "default-" + appearance.rawValue
+    }
+
+    /// `key`'s color in one appearance for the editor: the spec's own, else the default
+    /// theme's, else the spec's for the other appearance. Nil for a `systemDefaults` key the
+    /// spec leaves unset in this appearance, which the system colors there.
+    public func editorColor(_ key: String, dark isDark: Bool) -> RGBA? {
+        if let own = color(key, dark: isDark) { return own }
+        guard !Self.systemDefaults.contains(key) else { return nil }
+        return Self.default.color(key, dark: isDark) ?? color(key, dark: !isDark)
     }
 
     /// The default theme with each appearance's colors from the palette `light-theme` and

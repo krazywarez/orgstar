@@ -1,3 +1,5 @@
+import Foundation
+
 /// The app icons `scripts/make-icon.swift` draws, by id, in its order.
 public enum AppIcons {
     public static let ids = [
@@ -7,7 +9,22 @@ public enum AppIcons {
 
     private static func words(_ id: String) -> [String] { id.split(separator: "-").map { $0.prefix(1).uppercased() + $0.dropFirst() } }
 
-    public static func name(_ id: String) -> String { words(id).joined(separator: " ") }
+    /// The icon's name in the user's language.
+    public static func name(_ id: String) -> String {
+        switch id {
+        case "default": String(localized: "Default")
+        case "midnight": String(localized: "Midnight")
+        case "paper": String(localized: "Paper")
+        case "sunset": String(localized: "Sunset")
+        case "forest": String(localized: "Forest")
+        case "rainbow": String(localized: "Rainbow")
+        case "outline": String(localized: "Outline")
+        case "unicorn": String(localized: "Unicorn")
+        case "unicorn-night": String(localized: "Unicorn Night")
+        case "unicorn-pastel": String(localized: "Unicorn Pastel")
+        default: words(id).joined(separator: " ")
+        }
+    }
 
     /// The iOS alternate icon's name; nil for the primary icon.
     public static func alternateName(_ id: String) -> String? {

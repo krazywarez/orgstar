@@ -57,7 +57,7 @@ fi
 # The UI's translations, from l10n/Localizable.xcstrings.
 scripts/localize.sh "$app/Contents/Resources"
 
-# The icon, in the system's default, dark and tinted styles, and the Dock icons Settings offers.
+# The icon (macOS derives its dark and tinted styles), and the Dock icons Settings offers.
 work="$(mktemp -d)"
 xcrun actool packaging/AppIcons.xcassets --compile "$app/Contents/Resources" --platform macosx \
     --minimum-deployment-target 26.0 --app-icon AppIcon --output-partial-info-plist "$work/icon.plist" > /dev/null

@@ -13,6 +13,7 @@ struct SettingsScreen: View {
     @State private var calendars: [CalendarChoice] = []
     @State private var reminderLists: [CalendarChoice] = []
     @State private var badges: Bool?
+    @State private var appIcon = AppIcons.id(alternateName: UIApplication.shared.alternateIconName)
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
 
@@ -94,17 +95,17 @@ struct SettingsScreen: View {
                 NavigationLink {
                     ThemePickerScreen(model: model, appearance: .light)
                 } label: {
-                    LabeledContent("Light Theme", value: ThemePickerScreen.current(.light).name)
+                    LabeledContent("Light Theme", value: ThemePickerScreen.current(.light).displayName)
                 }
                 NavigationLink {
                     ThemePickerScreen(model: model, appearance: .dark)
                 } label: {
-                    LabeledContent("Dark Theme", value: ThemePickerScreen.current(.dark).name)
+                    LabeledContent("Dark Theme", value: ThemePickerScreen.current(.dark).displayName)
                 }
                 NavigationLink {
-                    AppIconScreen()
+                    AppIconScreen(current: $appIcon)
                 } label: {
-                    LabeledContent("App Icon", value: AppIcons.name(AppIcons.id(alternateName: UIApplication.shared.alternateIconName)))
+                    LabeledContent("App Icon", value: AppIcons.name(appIcon))
                 }
             }
             calendarSection
@@ -127,14 +128,14 @@ struct SettingsScreen: View {
         }
     }
 
-    /// `calendar-events` and `calendar-event-calendars`, written to config.toml.
     /// The two palettes' names, and the theme file's when there is one.
     private var themeInUse: String {
-        let names = "\(ThemePickerScreen.current(.light).name) / \(ThemePickerScreen.current(.dark).name)"
+        let names = "\(ThemePickerScreen.current(.light).displayName) / \(ThemePickerScreen.current(.dark).displayName)"
         guard let file = UserDefaults.standard.string(forKey: "themeFile"), !file.isEmpty else { return names }
         return "\(names), \(file)"
     }
 
+    /// `calendar-events` and `calendar-event-calendars`, written to config.toml.
     private var calendarSection: some View {
         let _ = model.settingsVersion
         let on = OrgPreferences.calendarEvents()

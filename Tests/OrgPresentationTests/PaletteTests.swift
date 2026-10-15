@@ -109,4 +109,18 @@ struct PaletteTests {
             #expect(spec.color(key, dark: true) != nil, "\(key)")
         }
     }
+
+    @Test func editorColorsFallBackExceptForSystemKeys() {
+        let spec = ThemeSpec.base(light: nil, dark: "nord").0
+        // A system key the light side leaves unset stays unset there, not the dark side's.
+        #expect(spec.editorColor("sidebar-background", dark: false) == nil)
+        #expect(spec.editorColor("sidebar-background", dark: true) == spec.dark["sidebar-background"])
+        // Other keys keep the default theme's color for a side the spec lacks.
+        var partial = ThemeSpec.default
+        partial.light["link"] = nil
+        #expect(partial.editorColor("link", dark: false) == ThemeSpec.default.light["link"])
+        // A key neither the spec's side nor the default has takes the spec's other side.
+        let oneSided = ThemeSpec(light: [:], dark: ["custom": RGBA(red: 1, green: 0, blue: 0)])
+        #expect(oneSided.editorColor("custom", dark: false) == RGBA(red: 1, green: 0, blue: 0))
+    }
 }

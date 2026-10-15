@@ -5,7 +5,8 @@ import UIKit
 
 /// The app icons, as previews; tapping one makes it the home screen's icon.
 struct AppIconScreen: View {
-    @State private var current = AppIcons.id(alternateName: UIApplication.shared.alternateIconName)
+    /// The icon in use, shared with the Settings row.
+    @Binding var current: String
     @State private var failure: String?
 
     var body: some View {

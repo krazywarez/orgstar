@@ -17,7 +17,7 @@ struct ThemePickerScreen: View {
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(palette.name).foregroundStyle(.primary)
+                        Text(palette.displayName).foregroundStyle(.primary)
                         Self.sample(palette)
                     }
                     Spacer()
