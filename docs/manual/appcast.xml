@@ -4,6 +4,22 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.6.0</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.6.0</link>
+      <sparkle:version>527</sparkle:version>
+      <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Thu, 15 Oct 2026 02:35:07 -0500</pubDate>
+      <description><![CDATA[<p>Built-in themes and app icons.</p>
+<ul>
+<li><b>Themes.</b> Settings ▸ Appearance ▸ Theme chooses a theme for the light appearance and one for the dark: Default, Solarized, Gruvbox, Modus, Catppuccin, Tomorrow and Paper for light; Default, Solarized, Gruvbox, Modus, Catppuccin, Nord, Dracula, Tokyo Night and doom-one for dark. They are light-theme and dark-theme in config.toml, and colors set there or in a theme file still apply on top. Themes other than Default also color the sidebar, the modeline, the agenda and buttons.</li>
+<li><b>Your own theme.</b> Copy to Config Folder writes the two chosen themes into my-theme.toml, every color written out, to start from.</li>
+<li><b>App icons.</b> Settings ▸ Appearance ▸ App Icon offers thirteen icons, three of them unicorns, shown in the Dock while orgstar runs. The default icon follows the system's Default, Dark and Tinted icon styles.</li>
+</ul>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.6.0/orgstar-0.6.0.dmg" type="application/octet-stream" sparkle:edSignature="GHl722oApUUw5sjTU8gwOpwYl0RBGX2WfmEdkIf/lYmfkyThcz5gDurL+V8o/3Vuo+DdPAhg206C+FZfsnMfBA==" length="54797148"/>
+    </item>
+    <item>
       <title>orgstar 0.5.0</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.5.0</link>
       <sparkle:version>509</sparkle:version>
