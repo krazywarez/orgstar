@@ -8,7 +8,7 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-version="${1:-0.6.0}"
+version="${1:-0.6.1}"
 build="${2:-$version}"
 sign="${ORGSTAR_SIGN:--}"
 app=".build/app/orgstar.app"

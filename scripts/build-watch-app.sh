@@ -7,7 +7,7 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-version="${1:-0.6.0}"
+version="${1:-0.6.1}"
 app=".build/watch-app/OrgstarWatch.app"
 products=".build/watch/Build/Products/Debug-watchsimulator"
 # The app group the complications read the agenda from, on the watch.
