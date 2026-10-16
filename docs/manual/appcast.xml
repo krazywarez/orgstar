@@ -4,6 +4,24 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.7.0</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.7.0</link>
+      <sparkle:version>541</sparkle:version>
+      <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Fri, 16 Oct 2026 12:57:22 -0500</pubDate>
+      <description><![CDATA[<p>Hide folders from the agenda, by hand or with a Focus, and agenda fixes.</p>
+<ul>
+<li><b>Hiding folders.</b> With more than one folder, the Folders menu in the agenda's toolbar shows or hides each folder's files in the agenda and the widgets; the shown folders' names appear under the title. Reminders still fire for hidden folders.</li>
+<li><b>Focus filter.</b> Add orgstar's Hide Folders filter to a Focus in System Settings ▸ Focus to hide its folders while the Focus is on and mute their reminders.</li>
+<li><b>Archived tasks.</b> agenda-exclude-archives in config.toml leaves out the files your agenda files archive to, by #+ARCHIVE:, an :ARCHIVE: property or org-archive-location.</li>
+<li><b>Reminders.</b> Notification titles are the heading without its TODO keyword and priority.</li>
+<li><b>Fix.</b> After a file changed, agenda rows could show another entry's title while opening the right one.</li>
+</ul>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.7.0/orgstar-0.7.0.dmg" type="application/octet-stream" sparkle:edSignature="EAjU6aDyTtfrxIYlDOyarmyY4dT5A49bLYaIwOGYxyzFnhJjCEypPGeyzemo44w2uniZ/jPXXc5f0sogRtFUBw==" length="56265203"/>
+    </item>
+    <item>
       <title>orgstar 0.6.1</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.6.1</link>
       <sparkle:version>531</sparkle:version>
