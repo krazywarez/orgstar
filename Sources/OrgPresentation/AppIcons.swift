@@ -19,9 +19,10 @@ public enum AppIcons {
         case "forest": String(localized: "Forest")
         case "rainbow": String(localized: "Rainbow")
         case "outline": String(localized: "Outline")
-        case "unicorn": String(localized: "Unicorn")
-        case "unicorn-night": String(localized: "Unicorn Night")
-        case "unicorn-pastel": String(localized: "Unicorn Pastel")
+        // Ids from when these were unicorns, kept so an icon chosen then stays chosen.
+        case "unicorn": String(localized: "Org Star")
+        case "unicorn-night": String(localized: "Night Star")
+        case "unicorn-pastel": String(localized: "Pastel Star")
         default: words(id).joined(separator: " ")
         }
     }

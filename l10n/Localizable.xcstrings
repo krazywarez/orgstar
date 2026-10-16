@@ -3302,6 +3302,16 @@
         }
       }
     },
+    "Night Star": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nachtstern"
+          }
+        }
+      }
+    },
     "No Emacs configuration found": {
       "localizations": {
         "de": {
@@ -3766,6 +3776,16 @@
     "Org": {
       "shouldTranslate": false
     },
+    "Org Star": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Org-Stern"
+          }
+        }
+      }
+    },
     "Org's date syntax works too: +2d, fri, 14:00": {
       "localizations": {
         "de": {
@@ -3865,6 +3885,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Passwort"
+          }
+        }
+      }
+    },
+    "Pastel Star": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pastellstern"
           }
         }
       }
@@ -5574,6 +5604,7 @@
       }
     },
     "Unicorn": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5584,6 +5615,7 @@
       }
     },
     "Unicorn Night": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5594,6 +5626,7 @@
       }
     },
     "Unicorn Pastel": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {

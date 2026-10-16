@@ -5,7 +5,7 @@
 import AppKit
 
 struct Variant {
-    enum Style { case filled, outline, unicorn }
+    enum Style { case filled, outline, star }
     let id: String
     /// The gradient, top-left to bottom-right.
     let top: NSColor, bottom: NSColor
@@ -30,9 +30,9 @@ let variants: [Variant] = [
     Variant(id: "rainbow", top: rgb(0xe40303), bottom: rgb(0x732982), glyph: .white, bars: NSColor(white: 1, alpha: 0.9)),
     Variant(id: "outline", top: .white, bottom: rgb(0xf2f2f2), glyph: rgb(0x2f5486), bars: rgb(0x2f5486), style: .outline),
     Variant(id: "terminal", top: rgb(0x0a0f0a), bottom: .black, glyph: rgb(0x39ff6a), bars: rgb(0x2bcc55)),
-    Variant(id: "unicorn", top: rgb(0x77aa99), bottom: rgb(0x3e7a6a), glyph: rgb(0xffc74d), bars: .white, style: .unicorn),
-    Variant(id: "unicorn-night", top: rgb(0x2b2a6b), bottom: rgb(0x14133a), glyph: rgb(0xd8dde6), bars: rgb(0xeae8ff), style: .unicorn),
-    Variant(id: "unicorn-pastel", top: rgb(0xffc6dd), bottom: rgb(0xc7b8ff), glyph: rgb(0xffc74d), bars: .white, style: .unicorn),
+    Variant(id: "unicorn", top: rgb(0x77aa99), bottom: rgb(0x3e7a6a), glyph: rgb(0xffc74d), bars: .white, style: .star),
+    Variant(id: "unicorn-night", top: rgb(0x2b2a6b), bottom: rgb(0x14133a), glyph: rgb(0xd8dde6), bars: rgb(0xeae8ff), style: .star),
+    Variant(id: "unicorn-pastel", top: rgb(0xffc6dd), bottom: rgb(0xc7b8ff), glyph: rgb(0xffc74d), bars: .white, style: .star),
 ]
 
 /// `darkTile`: the dark look on a near-black tile, for the Mac's Dock, which draws nothing
@@ -83,7 +83,7 @@ func draw(_ v: Variant, _ size: CGFloat, look: Look = .light, fullBleed: Bool = 
     switch v.style {
     case .filled: drawOutline(s, glyph: glyph, bars: bars, filled: true)
     case .outline: drawOutline(s, glyph: glyph, bars: bars, filled: false)
-    case .unicorn: drawUnicorn(s, glyph: glyph, head: bars)
+    case .star: drawStar(s, glyph: glyph)
     }
     NSGraphicsContext.restoreGraphicsState()
     return rep
@@ -107,46 +107,23 @@ func drawOutline(_ s: CGFloat, glyph: NSColor, bars: NSColor, filled: Bool) {
     }
 }
 
-/// A unicorn's head in profile, facing left, with a mane; its horn ends in the heading star.
-func drawUnicorn(_ s: CGFloat, glyph: NSColor, head: NSColor) {
-    func p(_ x: CGFloat, _ y: CGFloat) -> NSPoint { NSPoint(x: x * s, y: y * s) }
-    let face = NSBezierPath()
-    face.move(to: p(640, 200))                                                    // neck, back
-    face.curve(to: p(600, 560), controlPoint1: p(700, 330), controlPoint2: p(690, 480))
-    face.curve(to: p(470, 640), controlPoint1: p(560, 610), controlPoint2: p(520, 640))  // crown
-    face.line(to: p(440, 690))                                                    // ear
-    face.line(to: p(410, 620))
-    face.curve(to: p(250, 470), controlPoint1: p(340, 590), controlPoint2: p(270, 530))  // brow to nose
-    face.curve(to: p(290, 400), controlPoint1: p(235, 430), controlPoint2: p(250, 400))  // muzzle
-    face.curve(to: p(430, 430), controlPoint1: p(340, 400), controlPoint2: p(390, 410))  // jaw
-    face.curve(to: p(450, 200), controlPoint1: p(470, 360), controlPoint2: p(440, 280))  // throat
-    face.close()
-    head.setFill()
-    face.fill()
-
-    let mane = NSBezierPath()
-    mane.move(to: p(600, 560))
-    mane.curve(to: p(760, 220), controlPoint1: p(720, 520), controlPoint2: p(800, 360))
-    mane.line(to: p(690, 210))
-    mane.curve(to: p(600, 520), controlPoint1: p(730, 330), controlPoint2: p(680, 470))
-    mane.close()
-    glyph.withAlphaComponent(0.85).setFill()
-    mane.fill()
-
-    let horn = NSBezierPath()
-    horn.move(to: p(440, 640))
-    horn.line(to: p(300, 790))
-    horn.line(to: p(475, 660))
-    horn.close()
-    head.blended(withFraction: 0.25, of: glyph)?.setFill()
-    horn.fill()
-
-    let eye = NSBezierPath(ovalIn: NSRect(x: 360 * s, y: 520 * s, width: 28 * s, height: 28 * s))
-    NSColor(white: 0.15, alpha: 1).setFill()
-    eye.fill()
-
-    let star = NSAttributedString(string: "✱", attributes: [.font: NSFont.systemFont(ofSize: 190 * s, weight: .heavy), .foregroundColor: glyph])
-    star.draw(at: p(205, 700))
+/// The heading star alone, filling the tile: the glyph's outline, centred and scaled to fit.
+func drawStar(_ s: CGFloat, glyph: NSColor) {
+    // The font the system draws ✱ in; the system font itself has no such glyph.
+    let font = CTFontCreateForString(NSFont.systemFont(ofSize: 100, weight: .heavy) as CTFont, "✱" as CFString, CFRange(location: 0, length: 1))
+    var character: UniChar = 0x2731
+    var glyphID: CGGlyph = 0
+    CTFontGetGlyphsForCharacters(font, &character, &glyphID, 1)
+    guard let outline = CTFontCreatePathForGlyph(font, glyphID, nil) else { return }
+    let bounds = outline.boundingBoxOfPath
+    let scale = 560 * s / max(bounds.width, bounds.height)
+    var transform = CGAffineTransform(translationX: 512 * s, y: 512 * s)
+        .scaledBy(x: scale, y: scale)
+        .translatedBy(x: -bounds.midX, y: -bounds.midY)
+    guard let placed = outline.copy(using: &transform), let context = NSGraphicsContext.current?.cgContext else { return }
+    context.addPath(placed)
+    context.setFillColor(glyph.cgColor)
+    context.fillPath()
 }
 
 func png(_ rep: NSBitmapImageRep) -> Data { rep.representation(using: .png, properties: [:])! }

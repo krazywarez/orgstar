@@ -92,7 +92,7 @@ struct PaletteTests {
         #expect(AppIcons.alternateName("unicorn-night") == "AppIcon-UnicornNight")
         #expect(AppIcons.id(alternateName: "AppIcon-UnicornNight") == "unicorn-night")
         #expect(AppIcons.id(alternateName: nil) == "default" && AppIcons.id(alternateName: "AppIcon-Gone") == "default")
-        #expect(AppIcons.name("unicorn-pastel") == "Unicorn Pastel")
+        #expect(AppIcons.name("unicorn") == "Org Star" && AppIcons.name("unicorn-night") == "Night Star" && AppIcons.name("unicorn-pastel") == "Pastel Star")
     }
 
     @Test func dockFilesFollowTheAppearance() {
