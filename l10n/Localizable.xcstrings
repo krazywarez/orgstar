@@ -452,12 +452,32 @@
         }
       }
     },
+    "All Folders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Ordner"
+          }
+        }
+      }
+    },
     "All day": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Ganztägig"
+          }
+        }
+      }
+    },
+    "All folders hidden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Ordner ausgeblendet"
           }
         }
       }
@@ -564,6 +584,16 @@
           "stringUnit": {
             "state": "new",
             "value": "Archive %1$lld %2$@?"
+          }
+        }
+      }
+    },
+    "Archive files are the ones your agenda files archive to, named by #+ARCHIVE:, an :ARCHIVE: property or org-archive-location.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivdateien sind die Dateien, in die deine Agenda-Dateien archivieren, festgelegt durch #+ARCHIVE:, eine :ARCHIVE:-Eigenschaft oder org-archive-location."
           }
         }
       }
@@ -1774,6 +1804,16 @@
         }
       }
     },
+    "Dimmed folders are hidden by the current Focus.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abgeblendete Ordner sind durch den aktuellen Fokus ausgeblendet."
+          }
+        }
+      }
+    },
     "Done": {
       "localizations": {
         "de": {
@@ -2510,6 +2550,26 @@
         }
       }
     },
+    "Hide %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ausblenden"
+          }
+        }
+      }
+    },
+    "Hide Folders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner ausblenden"
+          }
+        }
+      }
+    },
     "Hide Outline": {
       "localizations": {
         "de": {
@@ -2730,12 +2790,32 @@
         }
       }
     },
+    "Leave out archive files": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivdateien weglassen"
+          }
+        }
+      }
+    },
     "Leave out the title and page wrapper, as Org's body-only export": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Titel und Seitenrahmen weglassen, wie Orgs Export nur des Inhalts"
+          }
+        }
+      }
+    },
+    "Leaves folders out of the agenda and widgets, and mutes their reminders, while this Focus is on.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lässt Ordner aus der Agenda und den Widgets weg und stellt ihre Erinnerungen stumm, solange dieser Fokus aktiv ist."
           }
         }
       }
@@ -3408,6 +3488,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keine Ordner"
+          }
+        }
+      }
+    },
+    "No folders hidden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Ordner ausgeblendet"
           }
         }
       }
@@ -4789,6 +4879,16 @@
         }
       }
     },
+    "Show a folder from the Folders menu.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeige einen Ordner über das Menü „Ordner“."
+          }
+        }
+      }
+    },
     "Show days without entries": {
       "localizations": {
         "de": {
@@ -5399,6 +5499,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Der Ordner und seine Dateien bleiben auf der Festplatte."
+          }
+        }
+      }
+    },
+    "The folders the agenda shows": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Ordner, die die Agenda zeigt"
           }
         }
       }
