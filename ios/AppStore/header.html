@@ -1,6 +1,7 @@
 <!doctype html>
-<!-- Product page header. header.html renders the 21:9 header (3840x1646), header.html#wide the
-     16:9 one (5244x2950), with headless Chromium, then the alpha channel is removed:
+<!-- Product page header, after the krz.sh hero: three iPhones fanned over the app's green.
+     header.html renders the 21:9 header (3840x1646), header.html#wide the 16:9 one (5244x2950),
+     with headless Chromium, then the alpha channel is removed:
      Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=3840,1646 --screenshot=header-21x9.png header.html
      Chromium --headless --hide-scrollbars --force-device-scale-factor=1 --window-size=5244,2950 --screenshot=header-16x9.png "file://$PWD/header.html#wide"
      magick header-21x9.png -alpha off PNG24:header-21x9.png -->
@@ -8,63 +9,34 @@
 <head>
 <meta charset="utf-8">
 <style>
-  :root { --u: 1px; --row-top: 420px; }
+  :root { --u: 1px; --top: 180px; }
   * { box-sizing: border-box; }
   html, body { margin: 0; width: 3840px; height: 1646px; overflow: hidden; }
   body {
-    background: linear-gradient(120deg, #21338c 0%, #3a2c9a 45%, #6638b3 100%);
-    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
-    color: #fff;
     position: relative;
-  }
-  .glow {
-    position: absolute; left: 50%; top: 58%; width: 2600px; height: 1400px;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(closest-side, rgba(255, 199, 77, 0.22), rgba(255, 199, 77, 0));
-  }
-  h1 {
-    position: absolute; top: 120px; left: 0; right: 0; margin: 0;
-    text-align: center; font-size: 150px; font-weight: 700; letter-spacing: -2px;
-  }
-  h1 span { color: #ffc74d; }
-  /* One row, centered, one gap: the space between devices is equal by construction. */
-  .row {
-    position: absolute; top: var(--row-top); left: 0; right: 0;
-    display: flex; justify-content: center; align-items: flex-start; gap: calc(150 * var(--u));
-  }
-  .device { flex: none; box-shadow: 0 calc(60 * var(--u)) calc(140 * var(--u)) rgba(0, 0, 0, 0.45); }
-  .device img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
-  .ipad {
-    width: calc(940 * var(--u)); height: calc(1233 * var(--u)); margin-top: calc(60 * var(--u));
-    padding: calc(30 * var(--u)); border-radius: calc(70 * var(--u)); background: #0c0c12;
-  }
-  .ipad img { border-radius: calc(44 * var(--u)); }
-  .mac {
-    width: calc(1800 * var(--u)); height: calc(1209 * var(--u));
-    border-radius: calc(26 * var(--u)); overflow: hidden; background: #fff;
-    outline: calc(2 * var(--u)) solid rgba(255, 255, 255, 0.25);
+    background:
+      radial-gradient(ellipse 55% 75% at 50% 30%, #7a9845 0%, #56722c 35%, #33451a 70%, #182109 100%);
   }
   .iphone {
-    width: calc(560 * var(--u)); height: calc(1170 * var(--u)); margin-top: calc(110 * var(--u));
-    padding: calc(20 * var(--u)); border-radius: calc(100 * var(--u)); background: #0c0c12;
+    position: absolute; left: 50%; top: var(--top);
+    width: calc(860 * var(--u)); height: calc(1868 * var(--u));
+    padding: calc(24 * var(--u)); border-radius: calc(140 * var(--u)); background: #0c0c12;
+    box-shadow: 0 calc(50 * var(--u)) calc(120 * var(--u)) rgba(0, 0, 0, 0.5);
   }
-  .iphone img { border-radius: calc(82 * var(--u)); }
+  .iphone img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: calc(116 * var(--u)); }
+  .center { transform: translateX(-50%); z-index: 2; }
+  .left { transform: translate(calc(-50% - 760 * var(--u)), calc(120 * var(--u))) rotate(-8deg); }
+  .right { transform: translate(calc(-50% + 760 * var(--u)), calc(120 * var(--u))) rotate(8deg); }
 
   /* 16:9, 5244x2950. */
-  html.wide { --u: 1.38px; --row-top: 760px; }
+  html.wide { --u: 1.6px; --top: 420px; }
   html.wide, .wide body { width: 5244px; height: 2950px; }
-  .wide .glow { width: 3800px; height: 2400px; }
-  .wide h1 { top: 260px; font-size: 220px; letter-spacing: -3px; }
 </style>
 <script>if (location.hash === "#wide") document.documentElement.className = "wide";</script>
 </head>
 <body>
-  <div class="glow"></div>
-  <h1>Your org files, <span>wherever you are.</span></h1>
-  <div class="row">
-    <div class="device ipad"><img src="screenshots/ipad/01-agenda.png"></div>
-    <div class="device mac"><img src="screenshots/mac/01-editor.png"></div>
-    <div class="device iphone"><img src="screenshots/iphone-6.9/05-capture.png"></div>
-  </div>
+  <div class="iphone left"><img src="screenshots/iphone-6.9/02-reader.png"></div>
+  <div class="iphone right"><img src="screenshots/iphone-6.9/04-tables.png"></div>
+  <div class="iphone center"><img src="screenshots/iphone-6.9/01-agenda.png"></div>
 </body>
 </html>
