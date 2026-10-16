@@ -1,0 +1,8 @@
+#+TITLE: Inbox
+
+* TODO Read "Designing Data-Intensive Applications" ch. 5
+* TODO Call the dentist about the cleaning
+SCHEDULED: <2026-10-19 Mon>
+* Idea: a weekly review template for Fridays
+Captured from the share sheet.
+[[https://orgmode.org/manual/Capture.html][Capture (The Org Manual)]]

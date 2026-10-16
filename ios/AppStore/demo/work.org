@@ -1,0 +1,31 @@
+#+TITLE: Work
+#+TODO: TODO NEXT WAITING | DONE CANCELLED
+
+* Q4 planning :planning:
+** NEXT Draft the Q4 roadmap
+DEADLINE: <2026-10-19 Mon> SCHEDULED: <2026-10-16 Fri>
+:LOGBOOK:
+CLOCK: [2026-10-15 Thu 09:05]--[2026-10-15 Thu 10:40] =>  1:35
+:END:
+- [X] Collect team goals
+- [X] Review last quarter's metrics
+- [ ] Write milestones
+- [ ] Share with leads
+** TODO Budget review with finance :meeting:
+SCHEDULED: <2026-10-16 Fri 14:00-15:00>
+** WAITING Hiring plan sign-off :hiring:
+SCHEDULED: <2026-10-19 Mon>
+
+* Release 1.2 :release:
+** TODO Write release notes
+DEADLINE: <2026-10-19 Mon>
+** DONE Fix the sync conflict on rename
+CLOSED: [2026-10-14 Wed 16:22]
+** TODO Update screenshots
+SCHEDULED: <2026-10-16 Fri 11:00>
+
+* Meetings
+** Team standup
+<2026-10-16 Fri 09:30-09:45 +1d>
+** 1:1 with Sam
+<2026-10-20 Tue 15:00-15:30>

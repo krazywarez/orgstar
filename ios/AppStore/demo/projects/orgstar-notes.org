@@ -1,0 +1,25 @@
+#+TITLE: Project notes
+#+CATEGORY: orgstar
+
+* Overview
+Plain-text notes kept in a folder that syncs between the Mac and the phone.
+Edits touch only the bytes that changed.
+
+* Tasks
+** DONE Set up sync folder
+CLOSED: [2026-10-07 Wed 10:12]
+** NEXT Tangle the build script
+SCHEDULED: <2026-10-16 Fri>
+
+* Build script
+#+begin_src sh :tangle build.sh
+#!/bin/sh
+set -eu
+swift build -c release
+echo "built"
+#+end_src
+
+* Reading list
+- /The Pragmatic Programmer/
+- /A Philosophy of Software Design/
+- *Org Mode Manual* --- [[https://orgmode.org/manual/][online]]
