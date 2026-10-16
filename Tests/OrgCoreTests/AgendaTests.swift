@@ -411,7 +411,7 @@ struct ReminderTests {
 
     @Test func timedEntriesWithTheirWarnings() {
         let text = """
-        * TODO Call
+        * TODO [#A] Call [1/2]
         SCHEDULED: <2026-10-05 Mon 14:00>
         * Meeting
         :PROPERTIES:
@@ -432,14 +432,14 @@ struct ReminderTests {
         let source = AgendaSource(path: "/n/a.org", text: text)
         let now = Self.date(5, 9, 30)
         let reminders = Reminders.upcoming([source], now: now, calendar: Self.utc)
-        #expect(reminders.map(\.title) == ["Soon", "TODO Call", "Meeting", "TODO Report due"])
+        #expect(reminders.map(\.title) == ["Soon", "Call", "Meeting", "Report due"])
         #expect(reminders[0].fireDate == now.addingTimeInterval(1))
         #expect(reminders[1].fireDate == Self.date(5, 13, 48))
-        #expect(reminders[1].body == "14:00 · Scheduled: · a")
+        #expect(reminders[1].body == "14:00 · Scheduled · a")
         #expect(reminders[2].fireDate == Self.date(6, 9, 30))
         #expect(reminders[3].eventDate == Self.date(7, 17, 0))
         #expect(Reminders.upcoming([source], now: now, calendar: Self.utc, limit: 2).count == 2)
-        #expect(Reminders.upcoming([source], now: now, calendar: Self.utc, days: 1).map(\.title) == ["Soon", "TODO Call"])
+        #expect(Reminders.upcoming([source], now: now, calendar: Self.utc, days: 1).map(\.title) == ["Soon", "Call"])
     }
 
     @Test func repeatsFillTheWeek() {

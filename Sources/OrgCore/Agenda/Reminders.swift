@@ -43,11 +43,12 @@ public enum Reminders {
                       event > now else { continue }
                 let fire = max(event.addingTimeInterval(-Double((item.warntime ?? lead) * 60)), now.addingTimeInterval(1))
                 let clockText = String(format: "%d:%02d", time / 100, time % 100)
-                let title = item.text.trimmingCharacters(in: .whitespaces)
-                let leader = item.extra.trimmingCharacters(in: .whitespaces)
+                // `Scheduled:` reads `Scheduled` beside the time.
+                var leader = item.extra.trimmingCharacters(in: .whitespaces)
+                if leader.hasSuffix(":") { leader.removeLast() }
                 reminders.append(Reminder(
-                    id: "orgstar.\(path)|\(item.headingLine ?? title)|\(day.day)|\(time)|\(item.kind.rawValue)",
-                    fireDate: fire, eventDate: event, title: title,
+                    id: "orgstar.\(path)|\(item.headingLine ?? item.text.trimmingCharacters(in: .whitespaces))|\(day.day)|\(time)|\(item.kind.rawValue)",
+                    fireDate: fire, eventDate: event, title: item.title,
                     body: ([clockText] + (leader.isEmpty ? [] : [leader]) + [item.category]).joined(separator: " · "),
                     path: path, offset: item.markerOffset ?? item.headingOffset ?? 0
                 ))
