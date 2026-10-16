@@ -168,6 +168,7 @@ struct AgendaView: View {
         agenda.startOffset = startOffset
         agenda.startOnWeekday = Int(startOnWeekday)
         agenda.includeSubfolders = includeSubfolders
+        agenda.excludeArchives = OrgPreferences.agendaExcludeArchives()
         agenda.agendaFiles = OrgPreferences.agendaFiles()
         agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
         agenda.options.logMode = logMode

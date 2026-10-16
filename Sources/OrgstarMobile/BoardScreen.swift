@@ -94,6 +94,7 @@ struct BoardScreen: View {
         .task(id: RefreshKey(match: match, files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
                              tick: tick, settings: model.settingsVersion)) {
             agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
+            agenda.excludeArchives = OrgPreferences.agendaExcludeArchives()
             agenda.agendaFiles = OrgPreferences.agendaFiles()
             let result = await agenda.board(open: session.openTexts, match: match)
             entries = result.entries

@@ -630,6 +630,30 @@ struct AgendaModelTests {
         await agenda.refresh(open: [:], now: wednesday, calendar: utc)
         #expect(agenda.days.first?.day == Days.absolute(year: 2026, month: 10, day: 7))
     }
+
+    @Test func leavesOutArchiveFiles() async throws {
+        let notes = try Folder()
+        try notes.write("todo.org", "#+ARCHIVE: todo_archive.org::* %s\n* TODO Live\nSCHEDULED: <2026-10-05 Mon>\n")
+        try notes.write("todo_archive.org", "* DONE Old\nSCHEDULED: <2026-10-05 Mon>\n")
+        try notes.write("work.org", "* Project\n:PROPERTIES:\n:ARCHIVE: done/work.org::\n:END:\n** TODO Task\nSCHEDULED: <2026-10-05 Mon>\n")
+        try notes.write("self.org", "#+ARCHIVE: ::* Archived\n* TODO Mine\nSCHEDULED: <2026-10-05 Mon>\n")
+        try notes.write("done/work.org", "* DONE Older\nSCHEDULED: <2026-10-05 Mon>\n")
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(notes.url)
+        let agenda = AgendaModel(workspace: model)
+        agenda.includeSubfolders = true
+        agenda.span = 1
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let now = try #require(utc.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9)))
+
+        agenda.excludeArchives = false
+        await agenda.refresh(open: [:], now: now, calendar: utc)
+        #expect(Set(agenda.days[0].items.map(\.text)) == ["TODO Live", "DONE Old", "TODO Task", "TODO Mine", "DONE Older"])
+        agenda.excludeArchives = true
+        await agenda.refresh(open: [:], now: now, calendar: utc)
+        #expect(Set(agenda.days[0].items.map(\.text)) == ["TODO Live", "TODO Task", "TODO Mine"])
+    }
 }
 
 @MainActor

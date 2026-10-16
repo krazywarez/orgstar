@@ -79,6 +79,7 @@ struct BoardView: View {
         .navigationTitle(kanban ? "Kanban" : "Entries")
         .task(id: RefreshKey(match: match, subfolders: includeSubfolders, files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, path: session.path, tick: tick)) {
             agenda.includeSubfolders = includeSubfolders
+            agenda.excludeArchives = OrgPreferences.agendaExcludeArchives()
             agenda.agendaFiles = OrgPreferences.agendaFiles()
             let open = session.openTexts
             let result = await agenda.board(open: open, match: match)

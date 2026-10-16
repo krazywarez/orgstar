@@ -348,6 +348,8 @@ public enum UserConfig {
                 comment: "folder names never listed or searched, separated by spaces", legacy: ""),
         Setting(section: "orgstar", key: "agenda-include-subfolders", defaultsKey: "agendaSubfolders", kind: .bool, fallback: .bool(false),
                 comment: "the agenda reads org files in subfolders too", legacy: "agenda.include-subfolders"),
+        Setting(section: "orgstar", key: "agenda-exclude-archives", defaultsKey: "agendaExcludeArchives", kind: .bool, fallback: .bool(false),
+                comment: "the agenda leaves out files that other agenda files archive to (#+ARCHIVE:, org-archive-location)", legacy: ""),
         Setting(section: "orgstar", key: "reminders", defaultsKey: "reminders", kind: .bool, fallback: .bool(true),
                 comment: "notify before timed entries", legacy: "agenda.reminders"),
         Setting(section: "orgstar", key: "calendar-events", defaultsKey: "calendarEvents", kind: .bool, fallback: .bool(false),

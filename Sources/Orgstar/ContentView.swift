@@ -929,6 +929,7 @@ struct ContentView: View {
         let agenda = reminderAgenda ?? AgendaModel(workspace: workspace)
         reminderAgenda = agenda
         agenda.includeSubfolders = agendaSubfolders
+        agenda.excludeArchives = OrgPreferences.agendaExcludeArchives()
         let open = session.openTexts
         let reminders = await agenda.reminders(open: open, lead: reminderLead)
         guard !Task.isCancelled else { return }
@@ -944,6 +945,7 @@ struct ContentView: View {
         days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
         days.startOnWeekday = nil
         days.includeSubfolders = agendaSubfolders
+        days.excludeArchives = OrgPreferences.agendaExcludeArchives()
         days.agendaFiles = OrgPreferences.agendaFiles()
         days.options = OrgPreferences.agendaOptions(days.options)
         days.options.logMode = false

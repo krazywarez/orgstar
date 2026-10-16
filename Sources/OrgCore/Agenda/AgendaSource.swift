@@ -101,6 +101,12 @@ public struct AgendaSource: Sendable {
 
     let headings: [Heading]
 
+    /// The other files this one archives to, as `org-all-archive-files` names them, with
+    /// `location` (`org-archive-location`) when the file sets none.
+    public func archiveFiles(location: String) -> [String] {
+        ([archiveKeyword ?? location] + archiveProperties).compactMap { Archive.archiveFile($0, sourcePath: path) }.filter { $0 != path }
+    }
+
     /// The file's habits not done and not in skipped trees: their titles, heading offsets and
     /// what their consistency graphs are drawn from.
     public var habits: [(title: String, offset: Int, habit: Habit)] {
@@ -121,6 +127,9 @@ public struct AgendaSource: Sendable {
     let firstDone: [String: String]
     /// The file's text, for the search view.
     public let text: String
+    /// The archive locations the file names: its `#+ARCHIVE:`, then each `:ARCHIVE:` property's.
+    let archiveKeyword: String?
+    let archiveProperties: [String]
     let priorities: Priorities
 
     /// `checksBlocking` false leaves every heading unblocked, for when neither enforce
@@ -159,6 +168,7 @@ public struct AgendaSource: Sendable {
         func sectionStamps(_ index: Int) -> [String] { stampsByHeading[index] ?? [] }
 
         var keywordCategory = SetupFile.keywords(tree.settings.setupKeywords).last { $0.key == "CATEGORY" }?.value.trimmingCharacters(in: .whitespaces)
+        var archiveKeyword: String?
         var srcBodies: [Range<Int>] = []
         var planningLines: [Range<Int>] = []
         var timestampNodes: [Int] = []
@@ -170,6 +180,8 @@ public struct AgendaSource: Sendable {
                     let line = child.text.trimmingCharacters(in: .whitespacesAndNewlines)
                     if line.uppercased().hasPrefix("#+CATEGORY:") {
                         keywordCategory = line.dropFirst("#+CATEGORY:".count).trimmingCharacters(in: .whitespaces)
+                    } else if archiveKeyword == nil, line.uppercased().hasPrefix("#+ARCHIVE:") {
+                        archiveKeyword = line.dropFirst("#+ARCHIVE:".count).trimmingCharacters(in: .whitespaces)
                     }
                 case .block:
                     if DocumentModel.isSrcBlock(child) {
@@ -289,6 +301,9 @@ public struct AgendaSource: Sendable {
             ))
         }
         self.headings = headings
+        self.archiveKeyword = archiveKeyword
+            ?? SetupFile.keywords(tree.settings.setupKeywords).last { $0.key == "ARCHIVE" }?.value.trimmingCharacters(in: .whitespaces)
+        archiveProperties = (model.property("ARCHIVE", of: nil).map { [$0.value] } ?? []) + headings.compactMap { $0.properties["ARCHIVE"] }
 
         let starts = model.headings.map(\.headingRange.lowerBound)
         func heading(at offset: Int) -> Int? {

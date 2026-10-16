@@ -41,7 +41,7 @@ struct SettingsScreen: View {
             } footer: {
                 Text("A folder with config.toml and capture.toml, such as a synced copy of ~/.config/orgstar from your Mac. Changes to them apply as they sync.")
             }
-            Section("Agenda") {
+            Section {
                 let _ = model.settingsVersion
                 Toggle("Show days without entries", isOn: Binding {
                     OrgPreferences.agendaShowAllDates()
@@ -49,6 +49,9 @@ struct SettingsScreen: View {
                 Toggle("Habits only today", isOn: Binding {
                     OrgPreferences.habitsOnlyForToday()
                 } set: { model.set("habitsOnlyForToday", to: .bool($0)) })
+                Toggle("Leave out archive files", isOn: Binding {
+                    OrgPreferences.agendaExcludeArchives()
+                } set: { model.set("agendaExcludeArchives", to: .bool($0)) })
                 Picker("Blocked entries", selection: Binding {
                     UserDefaults.standard.string(forKey: "agendaDimBlockedTasks") ?? "t"
                 } set: { model.set("agendaDimBlockedTasks", to: .string($0)) }) {
@@ -56,6 +59,10 @@ struct SettingsScreen: View {
                     Text("Hidden").tag("invisible")
                     Text("Shown as usual").tag("nil")
                 }
+            } header: {
+                Text("Agenda")
+            } footer: {
+                Text("Archive files are the ones your agenda files archive to, named by #+ARCHIVE:, an :ARCHIVE: property or org-archive-location.")
             }
             Section {
                 let _ = model.settingsVersion

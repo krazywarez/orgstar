@@ -95,6 +95,8 @@ public enum OrgPreferences {
         return words == ["t"] || words.isEmpty ? [] : Set(words)
     }
     public static func agendaSubfolders(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSubfolders", defaults) }
+    /// The agenda leaves out the files other agenda files archive to.
+    public static func agendaExcludeArchives(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaExcludeArchives", defaults) }
     /// `org-agenda-show-all-dates`: days without entries show.
     public static func agendaShowAllDates(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaShowAllDates", defaults) }
     public static func agendaSkipScheduledIfDone(_ defaults: UserDefaults = .standard) -> Bool { bool("agendaSkipScheduledIfDone", defaults) }

@@ -36,6 +36,8 @@ public final class AgendaModel {
     public var startOnWeekday: Int? = 1
     /// Files below the top level of each folder are agenda files too.
     public var includeSubfolders = false
+    /// Files other agenda files archive to are left out.
+    public var excludeArchives = OrgPreferences.agendaExcludeArchives()
     /// `org-agenda-files`: when not empty, the agenda reads these instead of the folders' files.
     public var agendaFiles = OrgPreferences.agendaFiles()
     public var options = AgendaOptions()
@@ -207,7 +209,13 @@ public final class AgendaModel {
                 cache.open[source.path] = (defaults, blocking, source.source)
             }
         }
-        return loaded.map(\.source)
+        var sources = loaded.map(\.source)
+        if excludeArchives {
+            let location = OrgPreferences.options().archiveLocation ?? "%s_archive::"
+            let archives = Set(sources.flatMap { $0.archiveFiles(location: location) })
+            sources.removeAll { archives.contains($0.path) }
+        }
+        return sources
     }
 
     /// The days as rows with the events, empty days hidden unless `showAllDates`; see

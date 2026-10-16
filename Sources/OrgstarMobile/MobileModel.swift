@@ -153,6 +153,7 @@ final class MobileModel {
             agenda.startOffset = OrgPreferences.agendaStartOffset()
             agenda.startOnWeekday = OrgPreferences.agendaStartOnWeekday()
             agenda.includeSubfolders = OrgPreferences.agendaSubfolders()
+            agenda.excludeArchives = OrgPreferences.agendaExcludeArchives()
             agenda.agendaFiles = OrgPreferences.agendaFiles()
             agenda.options = OrgPreferences.agendaOptions(agenda.options)
             agenda.calendarEvents = OrgPreferences.calendarEvents() ? calendarEvents : nil
@@ -296,6 +297,7 @@ final class MobileModel {
         days.startOnWeekday = nil
         if let agenda {
             days.includeSubfolders = agenda.includeSubfolders
+            days.excludeArchives = agenda.excludeArchives
             days.options = agenda.options
             days.options.logMode = false
             days.calendarEvents = agenda.calendarEvents

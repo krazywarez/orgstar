@@ -389,6 +389,7 @@ The Agenda, TODO Dependencies, Calendar and Reminders sections are the only plac
 
 - Show days without entries :: turns =org-agenda-show-all-dates= on or off.
 - Habits only today :: turns =org-habit-show-habits-only-for-today= on or off.
+- Leave out archive files :: turns =agenda-exclude-archives= on or off: the agenda leaves out the files your agenda files archive to.
 - Blocked entries :: Dimmed, Hidden or Shown as usual (=org-agenda-dim-blocked-tasks=).
 - TODO Dependencies :: Not done before TODO children (=org-enforce-todo-dependencies=) and Not done with unchecked boxes (=org-enforce-todo-checkbox-dependencies=).
 - Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; orgstar changes a calendar only when you edit an event or add an entry. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
@@ -415,7 +416,7 @@ These settings from =config.toml= apply on iOS:
 - =org-use-tag-inheritance=, =org-tags-exclude-from-inheritance=, =org-tag-alist=
 - =org-use-speed-commands=, with a hardware keyboard
 - =electric-pair-mode=, =spell-check=, =auto-fill-mode=
-- =org-agenda-span=, =org-agenda-start-day=, =org-agenda-start-on-weekday=, =org-deadline-warning-days=, =agenda-include-subfolders=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=, =org-habit-show-habits-only-for-today=, =org-agenda-search-view-always-boolean=, =org-agenda-search-view-force-full-words=, =org-agenda-log-mode-items=, the =org-agenda-todo-ignore-= settings, =org-agenda-tags-todo-honor-ignore-options=
+- =org-agenda-span=, =org-agenda-start-day=, =org-agenda-start-on-weekday=, =org-deadline-warning-days=, =agenda-include-subfolders=, =agenda-exclude-archives=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=, =org-habit-show-habits-only-for-today=, =org-agenda-search-view-always-boolean=, =org-agenda-search-view-force-full-words=, =org-agenda-log-mode-items=, the =org-agenda-todo-ignore-= settings, =org-agenda-tags-todo-honor-ignore-options=
 - =calendar-events=, =calendar-event-calendars=, =agenda-reminders=, =agenda-reminder-lists=
 - =reminders=, =appt-message-warning-time=
 - =org-clock-history-length=, =org-clock-into-drawer=, =org-clock-rounding-minutes=, =org-clock-out-remove-zero-time-clocks=, =org-clock-in-switch-to-state=, =org-clock-out-when-done=

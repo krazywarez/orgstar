@@ -392,6 +392,7 @@ Any other key in =[theme]= is a color; see Themes below.
 | =show-hidden-files=         | boolean | =true=        | List dotfiles and dot folders in your folders.                                          |
 | =ignored-folders=           | string  | see below     | Folder names never listed or searched, separated by spaces.                            |
 | =agenda-include-subfolders= | boolean | =false=       | The agenda reads org files in subfolders too.                                           |
+| =agenda-exclude-archives=   | boolean | =false=       | The agenda leaves out files that other agenda files archive to.                         |
 | =reminders=                 | boolean | =true=        | Notify before timed entries.                                                            |
 | =calendar-events=           | boolean | =false=       | Show events from Calendar in the agenda.                                                |
 | =calendar-event-calendars=  | string  | =""=          | The calendars whose events show, by title or identifier, separated by commas; =""= for all. |
