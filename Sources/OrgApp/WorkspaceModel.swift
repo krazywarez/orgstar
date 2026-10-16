@@ -64,11 +64,19 @@ public final class WorkspaceModel {
     }
 
     /// `~/Library/Application Support/Orgstar`, or `ORGSTAR_DATA_DIR` when set (for development).
-    public static var defaultDirectory: URL {
+    public nonisolated static var defaultDirectory: URL {
         if let override = ProcessInfo.processInfo.environment["ORGSTAR_DATA_DIR"] {
             return URL(fileURLWithPath: override)
         }
         return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Orgstar")
+    }
+
+    /// The resolved paths of the roots saved in `directory`, without opening the index: for
+    /// App Intents, which may run before the app's models.
+    public nonisolated static func savedRootPaths(in directory: URL = defaultDirectory) -> [String] {
+        guard let data = try? Data(contentsOf: directory.appendingPathComponent("roots.json")),
+              let roots = try? JSONDecoder().decode([WorkspaceRoot].self, from: data) else { return [] }
+        return roots.compactMap { try? $0.resolve().url.path }.sorted()
     }
 
     // MARK: - Roots

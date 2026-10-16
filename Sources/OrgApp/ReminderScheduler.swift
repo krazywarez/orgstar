@@ -99,6 +99,7 @@ public struct SystemReminderCenter: ReminderCenter {
         content.body = reminder.body
         content.sound = .default
         content.userInfo = ["path": reminder.path, "offset": reminder.offset]
+        if let folder = reminder.folder { content.filterCriteria = folder }
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: reminder.fireDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: reminder.id, content: content, trigger: trigger))

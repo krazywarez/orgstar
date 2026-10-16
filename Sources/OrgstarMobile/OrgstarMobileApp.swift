@@ -136,7 +136,7 @@ struct RootView: View {
         var body: some View {
             Color.clear
                 // Reminders follow the files, the settings, coming back to the app and the hour.
-                .task(id: ReminderKey(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
+                .task(id: ReminderKey(hidden: HiddenFolders.shared.all, files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
                                       settings: model.settingsVersion, active: active, hour: hour)) {
                     guard active else { return }
                     try? await Task.sleep(for: .seconds(1))
@@ -160,6 +160,8 @@ struct RootView: View {
     }
 
     private struct ReminderKey: Equatable {
+        /// The widgets leave out hidden folders.
+        var hidden: Set<String>
         var files: Int
         var changed: Int?
         var edits: Int

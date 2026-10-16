@@ -141,6 +141,7 @@ struct AgendaView: View {
         var startOffset: Int
         var startOnWeekday: String
         var includeSubfolders: Bool
+        var hidden: Set<String>
         var prefix: [String]
         var settings: [String]
         var logMode: Bool
@@ -156,7 +157,7 @@ struct AgendaView: View {
     /// they redraw only it.
     private var refreshKey: RefreshKey {
         RefreshKey(
-            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, prefix: [prefixAgenda, prefixTodo, prefixTags],
+            mode: agenda.mode, start: agenda.start, span: span, startOffset: startOffset, startOnWeekday: startOnWeekday, includeSubfolders: includeSubfolders, hidden: HiddenFolders.shared.all, prefix: [prefixAgenda, prefixTodo, prefixTags],
             settings: [sortAgenda, sortTodo, sortTags, sortSearch, gridWhen, gridTimes, "\(useTimeGrid) \(showCurrentTime)", stuckMatch, stuckTodo, stuckTags, stuckRegexp, agendaFileList],
             logMode: logMode,
             calendars: (calendarEventsOn ? [calendarNames] : []) + (remindersOn ? ["reminders", reminderListNames] : []), files: 0, changed: nil, edits: 0, path: nil, tick: tick
@@ -169,6 +170,7 @@ struct AgendaView: View {
         agenda.startOnWeekday = Int(startOnWeekday)
         agenda.includeSubfolders = includeSubfolders
         agenda.excludeArchives = OrgPreferences.agendaExcludeArchives()
+        agenda.hiddenFolders = HiddenFolders.shared.all
         agenda.agendaFiles = OrgPreferences.agendaFiles()
         agenda.options.prefixFormat = ["agenda": prefixAgenda, "todo": prefixTodo, "tags": prefixTags]
         agenda.options.logMode = logMode
@@ -353,8 +355,10 @@ struct AgendaView: View {
         }
         .toolbar { toolbar }
         .overlay {
-            if agenda.files.isEmpty {
+            if agenda.files.isEmpty, !hidesFolders {
                 ContentUnavailableView("No agenda files", systemImage: "calendar", description: Text("The agenda reads the org files at the top of each folder you add."))
+            } else if agenda.files.isEmpty {
+                ContentUnavailableView("All folders hidden", systemImage: "folder", description: Text("Show a folder from the Folders menu."))
             }
         }
         .sheet(item: $eventRequest) { request in
@@ -412,7 +416,7 @@ struct AgendaView: View {
             }
         }
         .navigationTitle(title)
-        .navigationSubtitle(isAgenda && viewName != AgendaViewLoader.builtIn[0].name ? viewName : "")
+        .navigationSubtitle(([isAgenda && viewName != AgendaViewLoader.builtIn[0].name ? viewName : ""] + [shownFolders ?? ""]).filter { !$0.isEmpty }.joined(separator: " · "))
         .onChange(of: viewName) { applyView() }
         .onChange(of: commands.agendaRequest?.start, initial: true) { showRequestedDays() }
         .onChange(of: commands.agendaRequest?.days) { showRequestedDays() }

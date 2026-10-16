@@ -38,6 +38,8 @@ public final class AgendaModel {
     public var includeSubfolders = false
     /// Files other agenda files archive to are left out.
     public var excludeArchives = OrgPreferences.agendaExcludeArchives()
+    /// Files in these folders (root paths) are left out; see `HiddenFolders`.
+    public var hiddenFolders: Set<String> = []
     /// `org-agenda-files`: when not empty, the agenda reads these instead of the folders' files.
     public var agendaFiles = OrgPreferences.agendaFiles()
     public var options = AgendaOptions()
@@ -68,7 +70,10 @@ public final class AgendaModel {
 
     /// Org files directly in each folder (or below it, with `includeSubfolders`), by path, as
     /// Emacs lists a directory in `org-agenda-files`.
-    public var files: [String] { workspace.agendaFilePaths(list: agendaFiles, includeSubfolders: includeSubfolders) }
+    public var files: [String] {
+        let paths = workspace.agendaFilePaths(list: agendaFiles, includeSubfolders: includeSubfolders)
+        return hiddenFolders.isEmpty ? paths : paths.filter { !HiddenFolders.hides(hiddenFolders, path: $0) }
+    }
 
     /// Recomputes the days. `open` is the open buffers' text by path.
     public func refresh(open: [String: String], now: Date = Date(), calendar: Calendar = .current) async {
@@ -139,10 +144,17 @@ public final class AgendaModel {
         isComputing = false
     }
 
-    /// Reminders for the timed entries of the next `days` days.
+    /// Reminders for the timed entries of the next `days` days, each with the folder it is in.
     public func reminders(open: [String: String], now: Date = Date(), calendar: Calendar = .current, days: Int = 7, lead: Int = 12) async -> [Reminder] {
         let all = await sources(open: open)
-        return await Task.detached { Reminders.upcoming(all, now: now, calendar: calendar, days: days, lead: lead) }.value
+        let roots = workspace.rootPaths
+        return await Task.detached {
+            Reminders.upcoming(all, now: now, calendar: calendar, days: days, lead: lead).map { reminder in
+                var reminder = reminder
+                reminder.folder = roots.first { HiddenFolders.hides([$0], path: reminder.path) }
+                return reminder
+            }
+        }.value
     }
 
     /// The habits of the agenda files, file by file.

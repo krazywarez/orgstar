@@ -90,6 +90,7 @@ struct AgendaScreen: View, Equatable {
         var span: Int
         var startOffset: Int
         var subfolders: Bool
+        var hidden: Set<String>
         var settings: Int
         var logMode: Bool
     }
@@ -151,6 +152,7 @@ struct AgendaScreen: View, Equatable {
         // The now line is shorter than a row.
         .environment(\.defaultMinListRowHeight, 16)
         .navigationTitle(title)
+        .navigationSubtitle(shownFolders ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.success, trigger: done)
         .sensoryFeedback(.impact(weight: .light), trigger: moved)
@@ -211,6 +213,9 @@ struct AgendaScreen: View, Equatable {
                 } label: {
                     Label("Views", systemImage: "list.bullet.rectangle")
                 }
+            }
+            if workspace.rootPaths.count > 1 || shownFolders != nil {
+                ToolbarItem(placement: .topBarTrailing) { foldersMenu }
             }
         }
         .fullScreenCover(isPresented: $showingBoard) {
@@ -318,6 +323,36 @@ struct AgendaScreen: View, Equatable {
         .background { Refresher(workspace: workspace, session: session, agenda: agenda, model: model, tick: tick, logMode: logMode) }
     }
 
+    /// Shows or hides each folder's files; folders the Focus hides stay hidden.
+    private var foldersMenu: some View {
+        let hidden = HiddenFolders.shared
+        let hides = !hidden.all.isDisjoint(with: workspace.rootPaths)
+        return Menu {
+            Button("All Folders", systemImage: "folder") { hidden.manual = [] }
+                .disabled(hidden.manual.isEmpty)
+            Section(hidden.focus.isDisjoint(with: workspace.rootPaths) ? "" : "Dimmed folders are hidden by the current Focus.") {
+                ForEach(workspace.rootPaths, id: \.self) { root in
+                    Toggle((root as NSString).lastPathComponent, isOn: Binding {
+                        !hidden.all.contains(root)
+                    } set: { shown in
+                        if shown { hidden.manual.remove(root) } else { hidden.manual.insert(root) }
+                    })
+                    .disabled(hidden.focus.contains(root))
+                }
+            }
+        } label: {
+            Label("Folders", systemImage: hides ? "folder.fill" : "folder")
+        }
+    }
+
+    /// The folders shown, by name, while some are hidden.
+    private var shownFolders: String? {
+        let hidden = HiddenFolders.shared.all
+        guard !hidden.isDisjoint(with: workspace.rootPaths) else { return nil }
+        let shown = workspace.rootPaths.filter { !hidden.contains($0) }
+        return shown.isEmpty ? "No folders" : shown.map { ($0 as NSString).lastPathComponent }.joined(separator: ", ")
+    }
+
     /// Refreshes the agenda when files, edits or settings change. Its own view, so that what it
     /// watches redraws only it, not the whole list.
     private struct Refresher: View {
@@ -332,11 +367,12 @@ struct AgendaScreen: View, Equatable {
             Color.clear
                 .task(id: Key(files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion, tick: tick,
                               mode: agenda.mode, start: agenda.start, span: agenda.span, startOffset: agenda.startOffset,
-                              subfolders: agenda.includeSubfolders, settings: model.settingsVersion, logMode: logMode)) {
+                              subfolders: agenda.includeSubfolders, hidden: HiddenFolders.shared.all, settings: model.settingsVersion, logMode: logMode)) {
                     // Changes come in bursts (a folder scan, typing); a newer one cancels this wait.
                     try? await Task.sleep(for: .milliseconds(150))
                     guard !Task.isCancelled else { return }
                     agenda.options.logMode = logMode
+                    agenda.hiddenFolders = HiddenFolders.shared.all
                     await agenda.refresh(open: session.openTexts)
                 }
         }

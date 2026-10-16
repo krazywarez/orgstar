@@ -10,6 +10,8 @@ public struct Reminder: Sendable, Equatable {
     public let body: String
     public let path: String
     public let offset: Int
+    /// The folder the entry's file is in, for Focus filters to mute.
+    public var folder: String?
 
     public init(id: String, fireDate: Date, eventDate: Date, title: String, body: String, path: String, offset: Int) {
         self.id = id

@@ -459,7 +459,7 @@ struct ContentView: View {
             Text(workspace.lastError ?? session.lastError ?? "")
         }
         .task(id: ReminderKey(
-            enabled: remindersEnabled, lead: reminderLead, subfolders: agendaSubfolders, files: workspace.files.count,
+            enabled: remindersEnabled, lead: reminderLead, subfolders: agendaSubfolders, hidden: HiddenFolders.shared.all, files: workspace.files.count,
             changed: workspace.changedFile?.version, edits: session.editVersion, hour: hour, theme: theme
         )) {
             await updateReminders()
@@ -909,6 +909,8 @@ struct ContentView: View {
         var enabled: Bool
         var lead: Int
         var subfolders: Bool
+        /// The widgets leave out hidden folders.
+        var hidden: Set<String>
         var files: Int
         var changed: Int?
         var edits: Int
@@ -946,6 +948,7 @@ struct ContentView: View {
         days.startOnWeekday = nil
         days.includeSubfolders = agendaSubfolders
         days.excludeArchives = OrgPreferences.agendaExcludeArchives()
+        days.hiddenFolders = HiddenFolders.shared.all
         days.agendaFiles = OrgPreferences.agendaFiles()
         days.options = OrgPreferences.agendaOptions(days.options)
         days.options.logMode = false

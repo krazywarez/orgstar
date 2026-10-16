@@ -654,6 +654,45 @@ struct AgendaModelTests {
         await agenda.refresh(open: [:], now: now, calendar: utc)
         #expect(Set(agenda.days[0].items.map(\.text)) == ["TODO Live", "TODO Task", "TODO Mine"])
     }
+
+    @Test func leavesOutHiddenFoldersAndTagsReminders() async throws {
+        let work = try Folder()
+        let home = try Folder()
+        try work.write("work.org", "* TODO Report\nSCHEDULED: <2026-10-05 Mon 14:00>\n")
+        try home.write("home.org", "* TODO Groceries\nSCHEDULED: <2026-10-05 Mon 15:00>\n")
+        let model = try WorkspaceModel(directory: nil)
+        try await model.addRoot(work.url)
+        try await model.addRoot(home.url)
+        let workRoot = try #require(model.files.first { $0.name == "work.org" }?.root)
+        let agenda = AgendaModel(workspace: model)
+        agenda.span = 1
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let now = try #require(utc.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9)))
+
+        agenda.hiddenFolders = [workRoot]
+        await agenda.refresh(open: [:], now: now, calendar: utc)
+        #expect(agenda.days[0].items.filter { $0.path != nil }.map(\.title) == ["Groceries"])
+
+        // Reminders keep hidden folders' entries and carry their folder for Focus filters.
+        let reminders = await AgendaModel(workspace: model).reminders(open: [:], now: now, calendar: utc)
+        #expect(Set(reminders.map(\.title)) == ["Report", "Groceries"])
+        #expect(reminders.first { $0.title == "Report" }?.folder == workRoot)
+    }
+
+    @Test func hiddenFoldersPersistAndMatchPaths() {
+        let defaults = UserDefaults(suiteName: "hidden-\(UUID().uuidString)")!
+        let folders = HiddenFolders(defaults: defaults)
+        folders.manual = ["/a"]
+        folders.focus = ["/b"]
+        let reloaded = HiddenFolders(defaults: defaults)
+        #expect(reloaded.all == ["/a", "/b"])
+        #expect(HiddenFolders.hides(["/a"], path: "/a/x.org"))
+        #expect(!HiddenFolders.hides(["/a"], path: "/ab/x.org"))
+        let predicate = HiddenFolders.notificationPredicate(hiding: ["/a"])
+        #expect(!predicate.evaluate(with: "/a"))
+        #expect(predicate.evaluate(with: "/b"))
+    }
 }
 
 @MainActor

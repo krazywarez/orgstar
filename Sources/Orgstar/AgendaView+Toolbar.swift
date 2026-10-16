@@ -63,6 +63,7 @@ extension AgendaView {
                         }
                 }
             }
+            if workspace.rootPaths.count > 1 || hidesFolders { foldersMenu }
             Menu {
                 Button("Filter…") { askFilter("/") }
                 Button("By Tag…") { askFilter("\\") }
@@ -79,6 +80,41 @@ extension AgendaView {
             }
             .help("Filter the entries (/, \\, <, =, _; | removes)")
         }
+    }
+
+    /// Shows or hides each folder's files; folders the Focus hides stay hidden.
+    private var foldersMenu: some View {
+        let hidden = HiddenFolders.shared
+        return Menu {
+            Button("All Folders") { hidden.manual = [] }
+                .disabled(hidden.manual.isEmpty)
+            Divider()
+            ForEach(workspace.rootPaths, id: \.self) { root in
+                Toggle((root as NSString).lastPathComponent, isOn: Binding {
+                    !hidden.all.contains(root)
+                } set: { shown in
+                    if shown { hidden.manual.remove(root) } else { hidden.manual.insert(root) }
+                })
+                .disabled(hidden.focus.contains(root))
+            }
+            if !hidden.focus.isDisjoint(with: workspace.rootPaths) {
+                Divider()
+                Text("Dimmed folders are hidden by the current Focus.")
+            }
+        } label: {
+            Label("Folders", systemImage: hidesFolders ? "folder.fill" : "folder")
+        }
+        .help("The folders the agenda shows")
+    }
+
+    /// Some folder is hidden.
+    var hidesFolders: Bool { !HiddenFolders.shared.all.isDisjoint(with: workspace.rootPaths) }
+
+    /// The folders shown, by name, while some are hidden.
+    var shownFolders: String? {
+        guard hidesFolders else { return nil }
+        let shown = workspace.rootPaths.filter { !HiddenFolders.shared.all.contains($0) }
+        return shown.isEmpty ? "No folders" : shown.map { ($0 as NSString).lastPathComponent }.joined(separator: ", ")
     }
 
     /// The span shown, as the window's title: `Week of 5 Oct 2026`.

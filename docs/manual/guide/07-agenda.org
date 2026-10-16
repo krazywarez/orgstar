@@ -64,6 +64,12 @@ An entry's category is the nearest =CATEGORY= property on it or an ancestor, els
 
 If no agenda file exists, the window says so.
 
+** Hiding folders
+
+With more than one folder, the Folders menu in the agenda's toolbar shows or hides each folder's files; All Folders shows them all again. While some are hidden, the shown folders' names appear under the title. The choice is kept on each device, and it applies to the agenda, the widgets, the Apple Watch and the iOS icon's badge. Reminders still fire for hidden folders.
+
+To hide folders with a Focus, add orgstar's Hide Folders filter to the Focus in System Settings ▸ Focus (Settings ▸ Focus on iOS) and choose the folders. While the Focus is on, those folders are hidden as well as the ones you hid from the menu, where they show dimmed, and their reminders are muted. When the Focus ends they show again.
+
 * The day, week and month view
 
 The default view is =org-agenda-list=: a run of days, each under a header with its date, such as =Monday 5 October= (with the year when it isn't the current year). Today, tomorrow and yesterday are named before the date: =Today · Thursday 8 October=. Today's header is in the =agenda-today= color and days before today are grey. Each header stays at the top of the window while you scroll through its day.

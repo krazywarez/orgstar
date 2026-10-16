@@ -295,6 +295,7 @@ final class MobileModel {
         let days = AgendaModel(workspace: workspace, cache: agenda?.cache ?? AgendaSourceCache())
         days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
         days.startOnWeekday = nil
+        days.hiddenFolders = HiddenFolders.shared.all
         if let agenda {
             days.includeSubfolders = agenda.includeSubfolders
             days.excludeArchives = agenda.excludeArchives
