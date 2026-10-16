@@ -35,13 +35,12 @@ let variants: [Variant] = [
     Variant(id: "unicorn-pastel", top: rgb(0xffc6dd), bottom: rgb(0xc7b8ff), glyph: rgb(0xffc74d), bars: .white, style: .star),
 ]
 
-/// `darkTile`: the dark look on a near-black tile, for the Mac's Dock, which draws nothing
-/// behind an icon set with `NSApp.applicationIconImage`.
-enum Look { case light, dark, darkTile, tinted }
+/// `dark`: the icon's background darkened, so each icon keeps its color in the system's Dark
+/// icon style and the Mac's dark Dock; `tinted`: a grayscale glyph on black for the system to tint.
+enum Look { case light, dark, tinted }
 
 /// The macOS icon grid: an 824-point rounded square in a 1024 canvas; `fullBleed` fills the
-/// canvas, as iOS wants. Dark and tinted leave the background clear (dark) or black (tinted)
-/// for the system to fill.
+/// canvas, as iOS wants.
 func draw(_ v: Variant, _ size: CGFloat, look: Look = .light, fullBleed: Bool = false) -> NSBitmapImageRep {
     let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size), pixelsHigh: Int(size), bitsPerSample: 8,
                                samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
@@ -56,26 +55,31 @@ func draw(_ v: Variant, _ size: CGFloat, look: Look = .light, fullBleed: Bool = 
     }
     let square = NSRect(x: 100 * s, y: 100 * s, width: 824 * s, height: 824 * s)
     let shape = fullBleed ? NSBezierPath(rect: square) : NSBezierPath(roundedRect: square, xRadius: 185 * s, yRadius: 185 * s)
+    // The dark look's background: the light one's colors most of the way to black, light
+    // ones (Paper, Outline, Pastel) further, so every tile ends up about as dark.
+    func shade(_ color: NSColor) -> NSColor {
+        guard look == .dark, let c = color.usingColorSpace(.sRGB) else { return color }
+        let luminance = 0.2126 * c.redComponent + 0.7152 * c.greenComponent + 0.0722 * c.blueComponent
+        return c.blended(withFraction: luminance > 0.6 ? 0.8 : 0.7, of: .black)!
+    }
     switch look {
-    case .light where v.id == "rainbow":
+    case .light where v.id == "rainbow", .dark where v.id == "rainbow":
         NSGraphicsContext.saveGraphicsState()
         shape.addClip()
         let stripes = [0xe40303, 0xff8c00, 0xffed00, 0x008026, 0x004dff, 0x750787].map(rgb)
         let band = square.height / CGFloat(stripes.count)
         for (i, color) in stripes.enumerated() {
-            color.setFill()
+            shade(color).setFill()
             NSRect(x: square.minX, y: square.maxY - band * CGFloat(i + 1), width: square.width, height: band).fill()
         }
         NSGraphicsContext.restoreGraphicsState()
-    case .light: NSGradient(colors: [v.top, v.bottom])!.draw(in: shape, angle: -60)
-    case .dark: break
-    case .darkTile: NSColor(srgbRed: 0.11, green: 0.11, blue: 0.12, alpha: 1).setFill(); shape.fill()
+    case .light, .dark: NSGradient(colors: [shade(v.top), shade(v.bottom)])!.draw(in: shape, angle: -60)
     case .tinted: NSColor.black.setFill(); shape.fill()
     }
-    // On a dark background a dark glyph (Paper, Outline) is drawn light.
+    // On a dark background a dark or mid-tone glyph (Paper, Outline) is drawn light.
     func lifted(_ color: NSColor, _ light: CGFloat) -> NSColor {
-        guard look == .dark || look == .darkTile, let c = color.usingColorSpace(.sRGB),
-              0.2126 * c.redComponent + 0.7152 * c.greenComponent + 0.0722 * c.blueComponent < 0.4 else { return color }
+        guard look == .dark, let c = color.usingColorSpace(.sRGB),
+              0.2126 * c.redComponent + 0.7152 * c.greenComponent + 0.0722 * c.blueComponent < 0.5 else { return color }
         return NSColor(white: light, alpha: 1)
     }
     let glyph = look == .tinted ? NSColor(white: 0.95, alpha: 1) : lifted(v.glyph, 0.95)
@@ -168,18 +172,15 @@ for v in variants {
     }
     try json(["images": images, "info": info], "\(set)/Contents.json")
 
-    // Previews for the iOS picker, light and dark.
+    // The iOS picker's preview: the icon in color in both appearances, so each can be told apart.
     let preview = "ios/Orgstar/Assets.xcassets/IconPreview-\(v.id).imageset"
+    try? FileManager.default.removeItem(atPath: preview)
     try write(png(draw(v, 256, fullBleed: true)), "\(preview)/light.png")
-    try write(png(draw(v, 256, look: .dark, fullBleed: true)), "\(preview)/dark.png")
-    try json(["images": [
-        ["filename": "light.png", "idiom": "universal"],
-        ["filename": "dark.png", "idiom": "universal", "appearances": [["appearance": "luminosity", "value": "dark"]]],
-    ], "info": info], "\(preview)/Contents.json")
+    try json(["images": [["filename": "light.png", "idiom": "universal"]], "info": info], "\(preview)/Contents.json")
 
     // The Mac's Dock icons and picker previews.
     try write(png(draw(v, 512)), "packaging/IconPreviews/\(v.id)-light.png")
-    try write(png(draw(v, 512, look: .darkTile)), "packaging/IconPreviews/\(v.id)-dark.png")
+    try write(png(draw(v, 512, look: .dark)), "packaging/IconPreviews/\(v.id)-dark.png")
 }
 
 // The Mac's bundle icon: the default variant at the Mac's sizes. actool drops dark and
