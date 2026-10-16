@@ -15,7 +15,7 @@ reminders, export and tangling.
 
 * Start here
 
-- [[file:install.org][Install]]: build the app from source.
+- [[file:install.org][Install]]: the Mac app with Homebrew or a download, the iOS app from the App Store, or either from source.
 - [[file:quickstart.org][Quick start]]: add a folder, open a file, and the first keys to learn.
 - The manual, below: every feature, chapter by chapter.
 

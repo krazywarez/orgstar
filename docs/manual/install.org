@@ -1,6 +1,6 @@
 #+TITLE: Install
-#+DESCRIPTION: Installing orgstar on the Mac with Homebrew or a download, and building it from source.
-#+LEDE: The Mac app comes as a notarized download and a Homebrew cask; the iOS app is built from source.
+#+DESCRIPTION: Installing orgstar on the Mac with Homebrew or a download, on iPhone and iPad from the App Store, and building it from source.
+#+LEDE: The Mac app comes as a notarized download and a Homebrew cask; the iOS app is on the App Store.
 
 * Requirements
 
@@ -46,7 +46,12 @@ them formatted, and Spotlight indexes their headings and text.
 
 * The iOS app
 
-The iOS app (iOS 26 or later) is built with Xcode from =ios/Orgstar.xcodeproj=:
+The iPhone and iPad app (iOS 26 or later) is on the [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store]]. The Apple Watch
+app comes with it. The App Store keeps it up to date.
+
+** From source
+
+The iOS app can also be built with Xcode from =ios/Orgstar.xcodeproj=:
 
 1. Open =ios/Orgstar.xcodeproj=.
 2. Select the *Orgstar iOS* target, then Signing & Capabilities, and choose your team.
