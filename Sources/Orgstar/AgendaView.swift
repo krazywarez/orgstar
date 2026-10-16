@@ -229,11 +229,20 @@ struct AgendaView: View {
 
     // MARK: - Lines
 
-    /// A selectable line: its selection id, the row, and the day it is on.
+    /// A selectable line: its selection id, the row, and the day it is on. `key`, the view's
+    /// identity, follows the row where `id` follows its place; nil uses `id`.
     struct Line {
         let id: String
         let row: AgendaRow
         let day: Int
+        var key: String?
+
+        var viewID: String { key ?? id }
+    }
+
+    /// A day row's view identity.
+    static func key(_ row: AgendaRow, day: Int, prefix: String, overdue: Bool = false) -> String {
+        "\(prefix)\(day):\(overdue ? "o" : "")\(row.id)"
     }
 
     private var groups: [AgendaDayGroup] {
@@ -260,9 +269,17 @@ struct AgendaView: View {
 
     private func dayLines(_ groups: [AgendaDayGroup], prefix: String) -> [Line] {
         groups.flatMap { group in
-            (overdueShown ? group.overdue.enumerated().map { Line(id: "\(prefix)\(group.day):o\($0.offset)", row: $0.element, day: group.day) } : [])
-                + group.rows.enumerated().map { Line(id: "\(prefix)\(group.day):\($0.offset)", row: $0.element, day: group.day) }
+            (overdueShown ? group.overdue.enumerated().map { dayLine(group, $0.offset, prefix: prefix, overdue: true) } : [])
+                + group.rows.indices.map { dayLine(group, $0, prefix: prefix) }
         }
+    }
+
+    private func dayLine(_ group: AgendaDayGroup, _ index: Int, prefix: String, overdue: Bool = false) -> Line {
+        let row = overdue ? group.overdue[index] : group.rows[index]
+        return Line(
+            id: "\(prefix)\(group.day):\(overdue ? "o" : "")\(index)", row: row, day: group.day,
+            key: Self.key(row, day: group.day, prefix: prefix, overdue: overdue)
+        )
     }
 
     func line(_ id: String) -> Line? { lines(groups).first { $0.id == id } }
@@ -311,7 +328,7 @@ struct AgendaView: View {
                 .padding(.bottom, 12)
             }
             .onChange(of: selection) {
-                if let selection { proxy.scrollTo(selection) }
+                if let selection { proxy.scrollTo(line(selection)?.viewID ?? selection) }
             }
             .onChange(of: agenda.days.first?.day) {
                 if groups.contains(where: \.isToday) { proxy.scrollTo("day\(agenda.today)", anchor: .top) }
@@ -420,8 +437,8 @@ struct AgendaView: View {
         if group.isToday, !group.overdue.isEmpty {
             overdueHeader(count: group.overdue.count)
             if overdueShown {
-                ForEach(Array(group.overdue.enumerated()), id: \.element.id) { index, row in
-                    rowView(Line(id: "\(prefix)\(group.day):o\(index)", row: row, day: group.day))
+                ForEach(Array(group.overdue.enumerated()), id: \.element.id) { index, _ in
+                    rowView(dayLine(group, index, prefix: prefix, overdue: true))
                 }
                 Divider().padding(.leading, 16).padding(.vertical, 4)
             }
@@ -433,9 +450,18 @@ struct AgendaView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
         }
-        ForEach(Array(group.lines(now: Self.hhmm(now)).enumerated()), id: \.offset) { _, line in
+        // Identified by row, not place, so a refresh that moves rows doesn't reuse one row's view
+        // for another.
+        let lines = group.lines(now: Self.hhmm(now)).map { line in
             switch line {
-            case .row(let index): rowView(Line(id: "\(prefix)\(group.day):\(index)", row: group.rows[index], day: group.day))
+            case .row(let index): (Self.key(group.rows[index], day: group.day, prefix: prefix), line)
+            case .grid(let time): ("grid\(time)", line)
+            case .now: ("now", line)
+            }
+        }
+        ForEach(lines, id: \.0) { _, line in
+            switch line {
+            case .row(let index): rowView(dayLine(group, index, prefix: prefix))
             case .grid(let time): gridLine(time)
             case .now: nowLine
             }
@@ -540,7 +566,7 @@ struct AgendaView: View {
             row: line.row, day: line.day, showsGutter: showsGutter, selected: selection == line.id, hovered: hovered == line.id,
             marked: line.row.item.flatMap(EntryRef.init).map(marked.contains) ?? false
         )
-        .id(line.id)
+        .id(line.viewID)
         .contentShape(Rectangle())
         .onHover { inside in
             if inside { hovered = line.id } else if hovered == line.id { hovered = nil }
