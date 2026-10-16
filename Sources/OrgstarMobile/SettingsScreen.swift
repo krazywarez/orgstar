@@ -49,7 +49,7 @@ struct SettingsScreen: View {
                 Toggle("Habits only today", isOn: Binding {
                     OrgPreferences.habitsOnlyForToday()
                 } set: { model.set("habitsOnlyForToday", to: .bool($0)) })
-                Toggle("Leave out archive files", isOn: Binding {
+                Toggle("Exclude archived tasks", isOn: Binding {
                     OrgPreferences.agendaExcludeArchives()
                 } set: { model.set("agendaExcludeArchives", to: .bool($0)) })
                 Picker("Blocked entries", selection: Binding {

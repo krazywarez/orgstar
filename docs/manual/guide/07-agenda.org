@@ -31,7 +31,7 @@ To include files in subfolders as well, turn on Settings ▸ Agenda ▸ Include 
 agenda-include-subfolders = true
 #+END_SRC
 
-To leave out archive files, the files your agenda files archive to by their =#+ARCHIVE:= keyword, an =:ARCHIVE:= property or =org-archive-location=, turn on Settings ▸ Agenda ▸ Leave out archive files on iOS, or set this in =config.toml=:
+To leave out archive files, the files your agenda files archive to by their =#+ARCHIVE:= keyword, an =:ARCHIVE:= property or =org-archive-location=, turn on Settings ▸ Agenda ▸ Exclude archived tasks on iOS, or set this in =config.toml=:
 
 #+BEGIN_SRC toml
 [orgstar]

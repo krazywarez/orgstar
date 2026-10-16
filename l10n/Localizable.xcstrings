@@ -2149,6 +2149,16 @@
         }
       }
     },
+    "Exclude archived tasks": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivierte Aufgaben ausschließen"
+          }
+        }
+      }
+    },
     "Expand": {
       "localizations": {
         "de": {
@@ -2786,16 +2796,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Weglassen"
-          }
-        }
-      }
-    },
-    "Leave out archive files": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Archivdateien weglassen"
           }
         }
       }

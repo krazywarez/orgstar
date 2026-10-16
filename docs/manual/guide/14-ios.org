@@ -390,7 +390,7 @@ The Agenda, TODO Dependencies, Calendar and Reminders sections are the only plac
 
 - Show days without entries :: turns =org-agenda-show-all-dates= on or off.
 - Habits only today :: turns =org-habit-show-habits-only-for-today= on or off.
-- Leave out archive files :: turns =agenda-exclude-archives= on or off: the agenda leaves out the files your agenda files archive to.
+- Exclude archived tasks :: turns =agenda-exclude-archives= on or off: the agenda leaves out the files your agenda files archive to.
 - Blocked entries :: Dimmed, Hidden or Shown as usual (=org-agenda-dim-blocked-tasks=).
 - TODO Dependencies :: Not done before TODO children (=org-enforce-todo-dependencies=) and Not done with unchecked boxes (=org-enforce-todo-checkbox-dependencies=).
 - Show Calendar Events :: turns on =calendar-events=, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; orgstar changes a calendar only when you edit an event or add an entry. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy & Security ▸ Calendars.
