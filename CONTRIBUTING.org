@@ -4,8 +4,8 @@
 
 Design phases 1–7 are built. The Mac app is released as a notarized DMG and a Homebrew
 cask, with Sparkle updates. The iOS and watchOS apps build from the Xcode project for the
-Simulator and for a device signed with your own team; device signing and TestFlight for
-releases are not set up (issue 8). Owed: the M1 Air gate run (issue 2) and the VoiceOver
+Simulator and for a device signed with your own team, and go to TestFlight with
+=scripts/release-ios.sh=. Owed: the M1 Air gate run (issue 2) and the VoiceOver
 passes on the Mac and iOS (issues 3 and 4).
 
 =docs/design.md= is the design; =docs/plans/= has one plan per piece of work.
@@ -68,6 +68,13 @@ gitbay release and updates the cask in krz/homebrew-tap.
 Set =ORGSTAR_NOTES= to an HTML file of release notes for the appcast, which Sparkle's
 update window shows, and =ORGSTAR_RELEASE_NOTES= to a Markdown file for the gitbay
 release. Without them both get the one-line platform note.
+
+=scripts/release-ios.sh= then archives the =Orgstar iOS= scheme, with its extensions and the
+watch app, and uploads it to App Store Connect for TestFlight. It signs automatically with the
+team's distribution certificate through the Apple ID signed in to Xcode (Xcode ▸ Settings ▸
+Accounts), so it needs no key of its own. The version is the project's =MARKETING_VERSION=;
+the build number is the commit count, as the Mac's is, so each upload needs a new commit.
+=ORGSTAR_PUBLISH=0= archives and exports the =.ipa= to =.build/ios-release= without uploading.
 
 * App Store header
 

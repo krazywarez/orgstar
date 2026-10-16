@@ -56,6 +56,7 @@ or download the notarized DMG from the
 [[https://gitbay.org/krz/orgstar/releases][releases page]]. The iPhone and iPad app (iOS 26
 or later) is built from source with Xcode; see [[file:docs/manual/install.org]].
 
-To build from source or contribute, see [[file:CONTRIBUTING.org]].
+To build from source, contribute or release (the Mac app and TestFlight), see
+[[file:CONTRIBUTING.org]].
 
 License: 0BSD.
