@@ -4,6 +4,24 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.8.0</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.8.0</link>
+      <sparkle:version>549</sparkle:version>
+      <sparkle:shortVersionString>0.8.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Sat, 17 Oct 2026 14:33:36 -0500</pubDate>
+      <description><![CDATA[<p>Missed habits join the Overdue group, and the iPhone and iPad app gets an entry sheet, a first-launch guide and an About screen.</p>
+<ul>
+<li><b>Overdue.</b> A habit scheduled on an earlier day and not done goes in today's Overdue group, and every overdue row shows how late it is (2d ago) instead of the time of day it had.</li>
+<li><b>iOS: entry sheet.</b> Tapping an agenda entry opens a sheet to change its title, TODO state, priority, scheduled date, deadline, tags and notes, with undo and redo. Done writes the changes to the file together.</li>
+<li><b>iOS: Overdue section.</b> Overdue entries are a section of their own above today.</li>
+<li><b>iOS: first launch.</b> A few screens introduce the app, ask for the folder of org files, and offer notifications, Calendar events and Reminders, each asked for only when you choose it.</li>
+<li><b>iOS: About.</b> Settings ends with About orgstar: the version, the manual, release notes, the issue tracker, support email and the privacy policy.</li>
+</ul>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.8.0/orgstar-0.8.0.dmg" type="application/octet-stream" sparkle:edSignature="KoXgyNL6aSDjrN0Wu9RKLQRy0su3OrTptr5/tMqGRjNQu3EYycztUGdRNNHfuKPH0tY8uPWg/h1a0YN5Hl+GBQ==" length="56391805"/>
+    </item>
+    <item>
       <title>orgstar 0.7.0</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.7.0</link>
       <sparkle:version>541</sparkle:version>
