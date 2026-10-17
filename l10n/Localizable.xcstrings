@@ -342,6 +342,16 @@
         }
       }
     },
+    "Add notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen hinzufügen"
+          }
+        }
+      }
+    },
     "Add the folder your org files are in, from iCloud Drive or another app's storage.": {
       "localizations": {
         "de": {
@@ -498,6 +508,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zugriff auf Erinnerungen erlauben …"
+          }
+        }
+      }
+    },
+    "Allow Notifications": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitteilungen erlauben"
           }
         }
       }
@@ -848,6 +868,26 @@
         }
       }
     },
+    "Calendar events": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalenderereignisse"
+          }
+        }
+      }
+    },
+    "Can't open the entry": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Eintrag kann nicht geöffnet werden"
+          }
+        }
+      }
+    },
     "Can't open the index": {
       "localizations": {
         "de": {
@@ -968,6 +1008,16 @@
         }
       }
     },
+    "Change an entry's state, dates, tags and notes in place. Swipe to finish or reschedule.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status, Termine, Tags und Notizen eines Eintrags direkt ändern. Wischen, um ihn abzuschließen oder zu verschieben."
+          }
+        }
+      }
+    },
     "Changes apply to this occurrence only.": {
       "localizations": {
         "de": {
@@ -1038,6 +1088,16 @@
         }
       }
     },
+    "Choose Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner wählen"
+          }
+        }
+      }
+    },
     "Choose Folder…": {
       "localizations": {
         "de": {
@@ -1074,6 +1134,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wähle deine init.el oder den Ordner, der sie enthält (~/.emacs.d, ~/.config/doom)."
+          }
+        }
+      }
+    },
+    "Choose your org folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Org-Ordner wählen"
           }
         }
       }
@@ -1324,6 +1394,16 @@
         }
       }
     },
+    "Collapsed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eingeklappt"
+          }
+        }
+      }
+    },
     "Colors": {
       "localizations": {
         "de": {
@@ -1540,6 +1620,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "TODO-Status weiterschalten"
+          }
+        }
+      }
+    },
+    "D: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F: %@"
           }
         }
       }
@@ -1810,6 +1900,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abgeblendete Ordner sind durch den aktuellen Fokus ausgeblendet."
+          }
+        }
+      }
+    },
+    "Discard Changes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen verwerfen"
+          }
+        }
+      }
+    },
+    "Discard your changes?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen verwerfen?"
           }
         }
       }
@@ -2165,6 +2275,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aufklappen"
+          }
+        }
+      }
+    },
+    "Expanded": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeklappt"
           }
         }
       }
@@ -3412,6 +3532,16 @@
         }
       }
     },
+    "No State": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Status"
+          }
+        }
+      }
+    },
     "No agenda files": {
       "localizations": {
         "de": {
@@ -3573,6 +3703,16 @@
         }
       }
     },
+    "No priority": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Priorität"
+          }
+        }
+      }
+    },
     "None": {
       "localizations": {
         "de": {
@@ -3659,6 +3799,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nichts geplant"
+          }
+        }
+      }
+    },
+    "Notifications": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitteilungen"
           }
         }
       }
@@ -3769,6 +3919,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Datei öffnen"
+          }
+        }
+      }
+    },
+    "Open in File": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Datei öffnen"
           }
         }
       }
@@ -4029,6 +4189,16 @@
         }
       }
     },
+    "Pick the folder that holds your org files, in iCloud Drive or another provider. orgstar reads and writes them there; nothing is copied.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle den Ordner mit deinen Org-Dateien, in iCloud Drive oder bei einem anderen Anbieter. orgstar liest und schreibt sie dort; nichts wird kopiert."
+          }
+        }
+      }
+    },
     "Plot": {
       "localizations": {
         "de": {
@@ -4249,6 +4419,16 @@
         }
       }
     },
+    "Redo": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederholen"
+          }
+        }
+      }
+    },
     "Refile…": {
       "localizations": {
         "de": {
@@ -4315,6 +4495,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Erinnerungen"
+          }
+        }
+      }
+    },
+    "Reminders app": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungen-App"
           }
         }
       }
@@ -4499,6 +4689,16 @@
         }
       }
     },
+    "S: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "G: %@"
+          }
+        }
+      }
+    },
     "Same as Font": {
       "localizations": {
         "de": {
@@ -4569,6 +4769,16 @@
         }
       }
     },
+    "Schedule": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planen"
+          }
+        }
+      }
+    },
     "Scheduled": {
       "localizations": {
         "de": {
@@ -4585,6 +4795,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Geplant %@"
+          }
+        }
+      }
+    },
+    "Scheduled entries, deadlines and TODOs from all your files.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geplante Einträge, Fristen und TODOs aus all deinen Dateien."
           }
         }
       }
@@ -4919,6 +5139,16 @@
         }
       }
     },
+    "Show events from Calendar among your agenda's entries. You can choose which calendars in Settings.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignisse aus Kalender zwischen den Einträgen deiner Agenda zeigen. Welche Kalender, wählst du in den Einstellungen."
+          }
+        }
+      }
+    },
     "Show events from Calendar in the agenda.": {
       "localizations": {
         "de": {
@@ -4965,6 +5195,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "In Erinnerungen zeigen"
+          }
+        }
+      }
+    },
+    "Show incomplete reminders with a due date from the Reminders app in your agenda, read-only.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offene Erinnerungen mit Fälligkeitsdatum aus der Erinnerungen-App in deiner Agenda zeigen, schreibgeschützt."
           }
         }
       }
@@ -5145,6 +5385,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Statusnotizen kommen in ein LOGBOOK-Fach (org-log-into-drawer)"
+          }
+        }
+      }
+    },
+    "Step %lld of %lld": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schritt %1$lld von %2$lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Step %1$lld of %2$lld"
           }
         }
       }
@@ -5393,6 +5649,16 @@
         }
       }
     },
+    "Tap to edit": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Bearbeiten tippen"
+          }
+        }
+      }
+    },
     "Template": {
       "localizations": {
         "de": {
@@ -5439,6 +5705,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Textbreite"
+          }
+        }
+      }
+    },
+    "The agenda": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Agenda"
           }
         }
       }
@@ -5987,12 +6263,32 @@
         }
       }
     },
+    "Your capture templates, from the app, the share sheet, widgets and the watch.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Erfassungsvorlagen, in der App, im Teilen-Menü, in Widgets und auf der Watch."
+          }
+        }
+      }
+    },
     "Your habits and how consistently you've kept them.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Deine Gewohnheiten und wie beständig du sie eingehalten hast."
+          }
+        }
+      }
+    },
+    "Your org files on iPhone, in the folders where they already are.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Org-Dateien auf dem iPhone, in den Ordnern, in denen sie schon liegen."
           }
         }
       }
@@ -6072,6 +6368,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "orgstar fragt beim nächsten Öffnen, an welchen Eintrag sie angehängt werden."
+          }
+        }
+      }
+    },
+    "orgstar can notify you before timed entries, as Org's appointment reminders do, and show today's overdue count on its icon.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar kann dich vor Einträgen mit Uhrzeit benachrichtigen, wie Orgs Terminerinnerungen, und die Zahl der heute überfälligen Einträge auf dem Symbol zeigen."
           }
         }
       }

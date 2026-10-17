@@ -128,7 +128,7 @@ struct EntrySheet: View {
                 Button {
                     choosingTags = true
                 } label: {
-                    chip(fields.tags.isEmpty ? "Tags" : fields.tags.joined(separator: " "), systemImage: "tag", color: fields.tags.isEmpty ? .secondary : .accentColor)
+                    chip(fields.tags.isEmpty ? String(localized: "Tags") : fields.tags.joined(separator: " "), systemImage: "tag", color: fields.tags.isEmpty ? .secondary : .accentColor)
                 }
                 if let problem {
                     Text(problem).font(.footnote).foregroundStyle(.red)
@@ -164,7 +164,7 @@ struct EntrySheet: View {
             }
             Button("None") { run(SetTodo(keyword: nil)) }
         } label: {
-            chip(fields.todo ?? "No State", color: color)
+            chip(fields.todo ?? String(localized: "No State"), color: color)
         }
     }
 
@@ -187,7 +187,6 @@ struct EntrySheet: View {
 
     private func dateChip(_ which: Planning, _ value: String?) -> some View {
         let stamp = value.flatMap(Self.timestamp)
-        let prefix = which == .scheduled ? "S: " : "D: "
         return Menu {
             Button("Today") { set(which, days: 0, keeping: stamp) }
             Button("Tomorrow") { set(which, days: 1, keeping: stamp) }
@@ -197,7 +196,8 @@ struct EntrySheet: View {
                 Button("Remove", role: .destructive) { run(RemovePlanning(deadline: which == .deadline)) }
             }
         } label: {
-            chip(stamp.map { prefix + Self.text($0) } ?? (which == .scheduled ? "Schedule" : "Deadline"),
+            chip(stamp.map { which == .scheduled ? String(localized: "S: \(Self.text($0))") : String(localized: "D: \(Self.text($0))") }
+                    ?? (which == .scheduled ? String(localized: "Schedule") : String(localized: "Deadline")),
                  systemImage: which == .scheduled ? "calendar" : "flag", color: stamp == nil ? .secondary : .accentColor)
         }
     }
