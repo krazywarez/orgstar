@@ -75,7 +75,7 @@ cat > "$app/Contents/Info.plist" <<EOF
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleLocalizations</key>
-    <array><string>en</string><string>de</string></array>
+    <array><string>en</string><string>de</string><string>fr</string><string>ja</string><string>es</string><string>pt-BR</string></array>
     <key>CFBundleName</key>
     <string>orgstar</string>
     <key>CFBundleDisplayName</key>

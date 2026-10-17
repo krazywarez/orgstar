@@ -96,7 +96,7 @@ The LOGBOOK switch writes =org-log-into-drawer= as ="LOGBOOK"= or =""=. A drawer
 
 ** Language
 
-orgstar's menus, settings and agenda are in English and German, and follow the language chosen in System Settings ▸ General ▸ Language & Region on the Mac and Settings ▸ General ▸ Language & Region on iOS (or the app's own language there). What orgstar writes into your files, such as clock tables, is in the language Org would use: a clock table's =:lang=, else =org-export-default-language=. Exports use the file's =#+LANGUAGE:=; see [[file:12-export.org][Export]].
+orgstar's menus, settings and agenda are in English, German, French, Japanese, Spanish and Brazilian Portuguese, and follow the language chosen in System Settings ▸ General ▸ Language & Region on the Mac and Settings ▸ General ▸ Language & Region on iOS (or the app's own language there). What orgstar writes into your files, such as clock tables, is in the language Org would use: a clock table's =:lang=, else =org-export-default-language=. Exports use the file's =#+LANGUAGE:=; see [[file:12-export.org][Export]].
 
 * Appearance
 
