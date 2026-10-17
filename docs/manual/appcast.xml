@@ -4,6 +4,17 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.9.1</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.9.1</link>
+      <sparkle:version>557</sparkle:version>
+      <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Sat, 17 Oct 2026 16:18:41 -0500</pubDate>
+      <description><![CDATA[<p>Build fix for the iPhone, iPad and Apple Watch app: the plural forms added in 0.9.0 are now included in the iOS build. No changes to the Mac app.</p>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.9.1/orgstar-0.9.1.dmg" type="application/octet-stream" sparkle:edSignature="Vzmsm2VoHtef1P2oVrtrMzeGglsIPI9eBXu0s2T9TpM3Qq94J7qe+J2EBbGysoygImSlm29f7y7vpRc9TtXfBg==" length="56733477"/>
+    </item>
+    <item>
       <title>orgstar 0.9.0</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.9.0</link>
       <sparkle:version>554</sparkle:version>
