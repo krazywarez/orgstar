@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The agenda &middot; orgstar</title>
+<meta name="description" content="The agenda window, its rows, calendar events, the TODO list, tag and property matches, saved views, filters, reminders and the board.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>The agenda</h1>
+<p class="lede">The agenda collects dated entries and TODO items from your agenda files into one list you can act on.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#opening-the-agenda">Opening the agenda</a></li>
+<li><a href="#agenda-files">Agenda files</a>
+<ul>
+<li><a href="#hiding-folders">Hiding folders</a></li>
+</ul></li>
+<li><a href="#the-day-week-and-month-view">The day, week and month view</a>
+<ul>
+<li><a href="#day-week-and-month">Day, week and month</a></li>
+<li><a href="#moving-through-days">Moving through days</a></li>
+<li><a href="#what-appears-on-each-day">What appears on each day</a></li>
+<li><a href="#today-overdue-entries-and-empty-days">Today, overdue entries and empty days</a></li>
+<li><a href="#sorting">Sorting</a></li>
+<li><a href="#log-mode">Log mode</a></li>
+</ul></li>
+<li><a href="#rows">Rows</a></li>
+<li><a href="#calendar-events">Calendar events</a>
+<ul>
+<li><a href="#editing-events-and-adding-entries">Editing events and adding entries</a></li>
+</ul></li>
+<li><a href="#reminders-from-the-reminders-app">Reminders from the Reminders app</a></li>
+<li><a href="#done-keywords-the-agenda-doesn-t-know">Done keywords the agenda doesn&#x27;t know</a></li>
+<li><a href="#diary-sexps">Diary sexps</a></li>
+<li><a href="#habits">Habits</a></li>
+<li><a href="#the-todo-list">The TODO list</a></li>
+<li><a href="#tag-and-property-matches">Tag and property matches</a>
+<ul>
+<li><a href="#tags">Tags</a></li>
+<li><a href="#properties">Properties</a></li>
+<li><a href="#keywords">keywords</a></li>
+</ul></li>
+<li><a href="#stuck-projects">Stuck projects</a></li>
+<li><a href="#text-search">Text search</a></li>
+<li><a href="#views">Views</a>
+<ul>
+<li><a href="#skipping-entries">Skipping entries</a></li>
+<li><a href="#block-agendas">Block agendas</a></li>
+</ul></li>
+<li><a href="#filters">Filters</a></li>
+<li><a href="#prefix-format-and-colors">Prefix format and colors</a></li>
+<li><a href="#acting-on-entries">Acting on entries</a>
+<ul>
+<li><a href="#bulk-actions">Bulk actions</a></li>
+</ul></li>
+<li><a href="#reminders">Reminders</a></li>
+<li><a href="#the-board">The board</a>
+<ul>
+<li><a href="#table">Table</a></li>
+<li><a href="#kanban">Kanban</a></li>
+<li><a href="#on-ios">On iOS</a></li>
+</ul></li>
+<li><a href="#desktop-widgets">Desktop widgets</a></li>
+<li><a href="#the-agenda-on-ios">The agenda on iOS</a></li>
+</ul>
+</nav>
+<h2 id="opening-the-agenda">Opening the agenda</h2>
+<p>On the Mac the agenda is its own window. Open it with Window ▸ Agenda, or with the key for your preset:</p>
+<table>
+<thead>
+<tr><th>Preset</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Mac</td><td><code class="verbatim">⇧⌘A</code></td></tr>
+<tr><td>Emacs</td><td><code class="verbatim">C-c a</code> or <code class="verbatim">⇧⌘A</code></td></tr>
+<tr><td>Doom</td><td><code class="verbatim">SPC o a</code> (normal state), <code class="verbatim">C-c a</code> or <code class="verbatim">⇧⌘A</code></td></tr>
+</tbody>
+</table>
+<p>With <code class="verbatim">org-use-speed-commands</code> on, <code class="verbatim">v</code> at the start of a heading line opens it too (see <a href="03-keys.html">Keys</a>).</p>
+<p>The key opens the window directly. There is no <code class="verbatim">org-agenda</code> dispatcher; you choose what the window shows from the view menu at the left of its toolbar (see <a href="#views">Views</a>).</p>
+<p>Opening a timestamp with <code class="verbatim">org-open-at-point</code> (<code class="verbatim">C-c C-o</code> in the Emacs preset) opens the agenda on that timestamp's day, or on every day of a date range.</p>
+<p>On iOS the agenda is the first tab. See <a href="#the-agenda-on-ios">The agenda on iOS</a>.</p>
+<h2 id="agenda-files">Agenda files</h2>
+<p>By default the agenda reads every <code class="verbatim">.org</code> file at the top level of each folder you have added (see <a href="01-files-and-folders.html">Files and folders</a>). Files whose names start with a dot are left out, as <code class="verbatim">org-agenda-file-regexp</code> leaves them out.</p>
+<p>To include files in subfolders as well, turn on Settings ▸ Agenda ▸ Include files in subfolders, or set this in <code class="verbatim">config.toml</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">orgstar</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">agenda-include-subfolders</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span></span></code></pre>
+<p>To leave out archive files, the files your agenda files archive to by their <code class="verbatim">#+ARCHIVE:</code> keyword, an <code class="verbatim">:ARCHIVE:</code> property or <code class="verbatim">org-archive-location</code>, turn on Settings ▸ Agenda ▸ Exclude archived tasks on iOS, or set this in <code class="verbatim">config.toml</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">orgstar</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">agenda-exclude-archives</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span></span></code></pre>
+<p>To read a list of files instead, as <code class="verbatim">org-agenda-files</code> does, set <code class="verbatim">org-agenda-files</code> in <code class="verbatim">config.toml</code>, entries separated by <code class="verbatim">\n</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">org-agenda-files</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>~/notes/<span class="constant character escape toml">\n</span>~/work/plan.org<span class="constant character escape toml">\n</span>~/.agenda_files<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>Each entry is one of:</p>
+<ul>
+<li>a folder: its <code class="verbatim">.org</code> files whose names don't start with a dot, in name order, without subfolders;</li>
+<li>an <code class="verbatim">.org</code> file;</li>
+<li>another file: a list of entries, one per line, as Emacs reads the file named when <code class="verbatim">org-agenda-files</code> is a string. Files named in it are agenda files whatever their extension.</li>
+</ul>
+<p>Relative paths count from the first folder in the sidebar, standing in for <code class="verbatim">org-directory</code>. Entries that don't exist are left out. The agenda follows the order of the list. With a list, Include files in subfolders has no effect. The agenda refreshes on its own only for changes inside your folders; on iOS, files outside them can't be read.</p>
+<p>When a file is open in the editor, the agenda reads the buffer, so unsaved edits show. Other files are read from disk and cached until their modification date or size changes. A file that uses <code class="verbatim">#+SETUPFILE</code> is read again on every refresh, because its setup file may have changed.</p>
+<p>Within a file, the agenda skips:</p>
+<ul>
+<li>trees tagged <code class="verbatim">ARCHIVE</code>, and every entry in a file whose <code class="verbatim">#+FILETAGS</code> include <code class="verbatim">ARCHIVE</code>;</li>
+<li>commented trees (a heading whose title starts with <code class="verbatim">COMMENT</code>);</li>
+<li>everything below a skipped heading.</li>
+</ul>
+<p>An entry's category is the nearest <code class="verbatim">CATEGORY</code> property on it or an ancestor, else the file's <code class="verbatim">#+CATEGORY</code>, else the file name without <code class="verbatim">.org</code>.</p>
+<p>If no agenda file exists, the window says so.</p>
+<h3 id="hiding-folders">Hiding folders</h3>
+<p>With more than one folder, the Folders menu in the agenda's toolbar shows or hides each folder's files; All Folders shows them all again. While some are hidden, the shown folders' names appear under the title. The choice is kept on each device, and it applies to the agenda, the widgets, the Apple Watch and the iOS icon's badge. Reminders still fire for hidden folders.</p>
+<p>To hide folders with a Focus, add orgstar's Hide Folders filter to the Focus in System Settings ▸ Focus (Settings ▸ Focus on iOS) and choose the folders. While the Focus is on, those folders are hidden as well as the ones you hid from the menu, where they show dimmed, and their reminders are muted. When the Focus ends they show again.</p>
+<h2 id="the-day-week-and-month-view">The day, week and month view</h2>
+<p>The default view is <code class="verbatim">org-agenda-list</code>: a run of days, each under a header with its date, such as <code class="verbatim">Monday 5 October</code> (with the year when it isn't the current year). Today, tomorrow and yesterday are named before the date: <code class="verbatim">Today · Thursday 8 October</code>. Today's header is in the <code class="verbatim">agenda-today</code> color and days before today are grey. Each header stays at the top of the window while you scroll through its day.</p>
+<table>
+<thead>
+<tr><th>Setting</th><th>Default</th><th><code class="verbatim">config.toml</code></th><th>Range in Settings</th></tr>
+</thead>
+<tbody>
+<tr><td>Days shown</td><td>10</td><td><code class="verbatim">org-agenda-span = 10</code></td><td>1 to 366</td></tr>
+<tr><td>First day, relative to today</td><td>today</td><td><code class="verbatim">org-agenda-start-day = "+0d"</code></td><td>0 to 14 days before</td></tr>
+</tbody>
+</table>
+<p>Both mirror the Emacs variables of the same name. The span's default is Doom's (plain Emacs shows a week); the agenda starts today, as in plain Emacs. Doom starts it 3 days back, with <code class="verbatim">"-3d"</code>. <code class="verbatim">org-agenda-start-day</code> takes only day offsets such as <code class="verbatim">"-3d"</code> or <code class="verbatim">"+0d"</code>.</p>
+<h3 id="day-week-and-month">Day, week and month</h3>
+<p>The Day, Week and Month control in the toolbar, or <code class="verbatim">v d</code>, <code class="verbatim">v w</code> and <code class="verbatim">v m</code>, shows one day, one week or one calendar month, as <code class="verbatim">org-agenda-day-view</code>, <code class="verbatim">org-agenda-week-view</code> and <code class="verbatim">org-agenda-month-view</code> do. <code class="verbatim">d</code> and <code class="verbatim">w</code> also show a day and a week. The view is the one around the selected line's day, else around today when today is shown, else around the first day shown. Weeks start on <code class="verbatim">org-agenda-start-on-weekday</code> in <code class="verbatim">config.toml</code>: Monday (<code class="verbatim">"1"</code>) by default, <code class="verbatim">"0"</code> for Sunday, or <code class="verbatim">"nil"</code> to start on the day the view starts from. As in Org, a configured span of 7 or 14 days starts on that weekday too.</p>
+<p>To return to the configured span, choose Agenda from the view menu.</p>
+<p>The window's title names the days shown: <code class="verbatim">Thursday 8 October 2026</code> for a day, <code class="verbatim">Week of 5 Oct 2026</code>, <code class="verbatim">October 2026</code>, or the first and last day for the configured span, <code class="verbatim">5 Oct – 14 Oct 2026</code>.</p>
+<h3 id="moving-through-days">Moving through days</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Toolbar</th><th>Does</th><th>Org command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">f</code></td><td>Later (›)</td><td>Moves forward by the days shown; in the month view, to the next month</td><td><code class="verbatim">org-agenda-later</code></td></tr>
+<tr><td><code class="verbatim">b</code></td><td>Earlier (‹)</td><td>Moves back by the days shown; in the month view, to the month before</td><td><code class="verbatim">org-agenda-earlier</code></td></tr>
+<tr><td><code class="verbatim">.</code></td><td>Today</td><td>Returns to the days around today, keeping a day, week or month view</td><td><code class="verbatim">org-agenda-goto-today</code></td></tr>
+<tr><td><code class="verbatim">j</code></td><td>Go to Date (calendar)</td><td>Picks a date in a calendar and shows the days from it, or its day, week or month</td><td><code class="verbatim">org-agenda-goto-date</code></td></tr>
+<tr><td><code class="verbatim">g</code>, <code class="verbatim">r</code></td><td></td><td>Refreshes, and reloads <code class="verbatim">views.toml</code></td><td><code class="verbatim">org-agenda-redo</code></td></tr>
+</tbody>
+</table>
+<p>The agenda also refreshes on its own when files change and when you edit an open buffer. The now line (see below) moves each minute, and at midnight the agenda refreshes so that Today, the overdue entries and the statuses move to the new day.</p>
+<h3 id="what-appears-on-each-day">What appears on each day</h3>
+<p>The entries follow <code class="verbatim">org-agenda-get-day-entries</code> with Org's default entry types. The left column of each row shows the time, or for an untimed entry a short status:</p>
+<table>
+<thead>
+<tr><th>Entry</th><th>Where it appears</th><th>Left column</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">DEADLINE</code> on that day</td><td>On its day</td><td><code class="verbatim">Due today</code> on today, <code class="verbatim">Due</code> on other days</td></tr>
+<tr><td><code class="verbatim">DEADLINE</code> in the future</td><td>On today, from the warning period before it</td><td><code class="verbatim">Due in 3d</code></td></tr>
+<tr><td><code class="verbatim">DEADLINE</code> in the past, not done</td><td>On today, in the Overdue group</td><td><code class="verbatim">2d late</code></td></tr>
+<tr><td><code class="verbatim">SCHEDULED</code> on that day</td><td>On its day</td><td><code class="verbatim">Scheduled</code></td></tr>
+<tr><td><code class="verbatim">SCHEDULED</code> in the past, not done</td><td>On today, in the Overdue group</td><td><code class="verbatim">3d ago</code></td></tr>
+<tr><td>Active timestamp <code class="verbatim">&lt;2026-10-05 Mon&gt;</code></td><td>On its day; also in property drawers</td><td><code class="verbatim">All day</code></td></tr>
+<tr><td>Repeating timestamp <code class="verbatim">&lt;… +1w&gt;</code></td><td>On each occurrence within the span</td><td><code class="verbatim">All day</code></td></tr>
+<tr><td>Date range <code class="verbatim">&lt;…&gt;--&lt;…&gt;</code></td><td>On every day of the range</td><td><code class="verbatim">Day 2/5</code> (day 2 of 5)</td></tr>
+<tr><td>Diary sexp <code class="verbatim">%%(…)</code> line or <code class="verbatim">&lt;%%(…)&gt;</code></td><td>On each day the sexp applies; see <a href="#diary-sexps">Diary sexps</a></td><td><code class="verbatim">All day</code></td></tr>
+<tr><td>Habit (<code class="verbatim">STYLE: habit</code>)</td><td>On today only, while not done, unless habits only today is off; see <a href="#habits">Habits</a>; in the Overdue group when scheduled on an earlier day</td><td><code class="verbatim">Habit</code>, or <code class="verbatim">2d ago</code> when overdue, with a consistency graph</td></tr>
+</tbody>
+</table>
+<p>An entry with a time of day shows the time instead of the status: <code class="verbatim">08:00</code>, or <code class="verbatim">13:50–14:30</code> with an end time.</p>
+<p>Details:</p>
+<ul>
+<li>Deadline warnings start <code class="verbatim">org-deadline-warning-days</code> days ahead, 14 by default, set in <code class="verbatim">config.toml</code>. A <code class="verbatim">-Nd</code> cookie in the timestamp (<code class="verbatim">&lt;2026-10-20 Tue -3d&gt;</code>) changes the warning for that deadline; <code class="verbatim">w</code>, <code class="verbatim">m</code> and <code class="verbatim">y</code> units work too.</li>
+<li>A <code class="verbatim">-Nd</code> cookie on a <code class="verbatim">SCHEDULED</code> timestamp delays it: the entry first shows N days after the scheduled date.</li>
+<li>Repeaters on <code class="verbatim">SCHEDULED</code> and <code class="verbatim">DEADLINE</code> timestamps (<code class="verbatim">+1w</code>, <code class="verbatim">++1w</code>, <code class="verbatim">.+1d</code>) make the entry show on the next occurrence on future days, as in Org.</li>
+<li>A done entry shows only on the day of its deadline or scheduled date, not as overdue. With <code class="verbatim">org-agenda-skip-scheduled-if-done</code> or <code class="verbatim">org-agenda-skip-deadline-if-done</code> set to <code class="verbatim">true</code> in <code class="verbatim">config.toml</code>, a done entry's scheduled date or deadline doesn't show on that day either. Both are <code class="verbatim">false</code> by default, as in Org.</li>
+<li>Inactive timestamps (<code class="verbatim">[…]</code>) never appear, except in log mode.</li>
+<li>Ranges in comment lines and inside source blocks are ignored, as in Org.</li>
+</ul>
+<p>A time can come from the timestamp (<code class="verbatim">&lt;2026-10-05 Mon 14:00-15:30&gt;</code>) or from the heading text (<code class="verbatim">Call Ada 9:30am</code>), as <code class="verbatim">org-agenda-search-headline-for-time</code> allows. Times past 24:00, such as <code class="verbatim">25:30</code>, show as the time on the next day, <code class="verbatim">01:30</code>.</p>
+<h3 id="today-overdue-entries-and-empty-days">Today, overdue entries and empty days</h3>
+<p>Days without entries are left out. Today always shows, with <code class="verbatim">Nothing scheduled</code> when it has no entries. To show every day of the span, as Org does by default, turn on Settings ▸ Agenda ▸ Show days without entries (on iOS, Settings ▸ Agenda), or set this in <code class="verbatim">config.toml</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">org-agenda-show-all-dates</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span></span></code></pre>
+<p>Today's past deadlines and entries and habits scheduled on earlier days go in a group headed <code class="verbatim">Overdue</code> with their count, above today's other entries; on iOS it is a section of its own above today. Their left column shows how late they are, not the time of day they had. The oldest date comes first; entries with the same date keep Org's order. Click or tap the header to collapse or expand the group; it stays as you left it.</p>
+<p>Days with a time grid show dotted lines at the grid's times among the timed entries, as <code class="verbatim">org-agenda-time-grid</code> does: by default at 8:00, 10:00 and every two hours to 20:00, on today and in one-day views, when the day has a timed entry. An entry at a grid line's time comes before the line. On today, a line marked with the current time sits among them: before the first entry that starts later, or after the last one when all have started. The grid's days and times are set in <code class="verbatim">[org-agenda-time-grid]</code> in <code class="verbatim">config.toml</code>, <code class="verbatim">org-agenda-use-time-grid</code> turns the grid off, and <code class="verbatim">org-agenda-show-current-time-in-grid</code> the now line (see <a href="13-configuration.html">Configuration</a>). With the grid off there is no now line, as in Org.</p>
+<h3 id="sorting">Sorting</h3>
+<p>Lines are sorted by <code class="verbatim">org-agenda-sorting-strategy</code>, set per kind of view in the <code class="verbatim">[org-agenda-sorting-strategy]</code> table of <code class="verbatim">config.toml</code> (see <a href="13-configuration.html">Configuration</a>) or for one view in <code class="verbatim">views.toml</code>. The defaults are <code class="verbatim">time-up habit-down urgency-down category-keep</code> for days, <code class="verbatim">urgency-down category-keep</code> for the TODO list and matches, and <code class="verbatim">category-keep</code> for text search. With those, timed entries come first, earliest first, timed habits among them; then untimed entries, habits last, by urgency, which combines priority with how overdue an entry is; ties keep file order. Calendar events go among them as described in <a href="#calendar-events">Calendar events</a>.</p>
+<p>Each key compares two lines, and the next key is tried when they tie:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Sorts by</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">time-up</code>, <code class="verbatim">time-down</code></td><td>Time of day; lines without one go last (<code class="verbatim">org-agenda-sort-notime-is-late</code>)</td></tr>
+<tr><td><code class="verbatim">timestamp-up</code>, <code class="verbatim">timestamp-down</code></td><td>The date of the line's timestamp, of any kind</td></tr>
+<tr><td><code class="verbatim">scheduled-up</code>, <code class="verbatim">deadline-up</code>, <code class="verbatim">ts-up</code>, <code class="verbatim">tsia-up</code> and their <code class="verbatim">-down</code> forms</td><td>The date of a <code class="verbatim">SCHEDULED</code>, <code class="verbatim">DEADLINE</code>, active or inactive timestamp only</td></tr>
+<tr><td><code class="verbatim">priority-up</code>, <code class="verbatim">priority-down</code></td><td>Priority</td></tr>
+<tr><td><code class="verbatim">urgency-up</code>, <code class="verbatim">urgency-down</code></td><td>Urgency: priority adjusted for how close or overdue the date is</td></tr>
+<tr><td><code class="verbatim">effort-up</code>, <code class="verbatim">effort-down</code></td><td><code class="verbatim">Effort</code>; entries without one count as longest (<code class="verbatim">org-agenda-sort-noeffort-is-high</code>)</td></tr>
+<tr><td><code class="verbatim">category-up</code>, <code class="verbatim">category-down</code></td><td>Category name</td></tr>
+<tr><td><code class="verbatim">category-keep</code></td><td>Stops comparing lines of different categories, so they keep their order</td></tr>
+<tr><td><code class="verbatim">tag-up</code>, <code class="verbatim">tag-down</code></td><td>The last tag</td></tr>
+<tr><td><code class="verbatim">todo-state-up</code>, <code class="verbatim">todo-state-down</code></td><td>Done keywords first, then keywords in the order your sequences list them</td></tr>
+<tr><td><code class="verbatim">habit-up</code>, <code class="verbatim">habit-down</code></td><td>Habits first or last</td></tr>
+<tr><td><code class="verbatim">alpha-up</code>, <code class="verbatim">alpha-down</code></td><td>The title, ignoring case and the TODO keyword</td></tr>
+</tbody>
+</table>
+<p>In the TODO list and matches, the date keys use the first one in the strategy: with <code class="verbatim">scheduled-up</code> every line sorts by its <code class="verbatim">SCHEDULED</code> date, as in Org. Org's <code class="verbatim">user-defined-up</code> and <code class="verbatim">user-defined-down</code> are not supported.</p>
+<h3 id="log-mode">Log mode</h3>
+<p>Press <code class="verbatim">l</code> to turn log mode (<code class="verbatim">org-agenda-log-mode</code>) on or off; on iOS, use Log Mode in the span menu. Each day then also shows:</p>
+<ul>
+<li><code class="verbatim">Closed</code> entries whose <code class="verbatim">CLOSED:</code> timestamp is on that day;</li>
+<li><code class="verbatim">Clocked</code> entries for each <code class="verbatim">CLOCK:</code> line that starts on that day, with the clock's start and end times in the left column and the time clocked, such as <code class="verbatim">1:30</code>, after the title;</li>
+<li>with <code class="verbatim">state</code> in <code class="verbatim">org-agenda-log-mode-items</code>, <code class="verbatim">State:</code> entries for each state change logged that day (a <code class="verbatim">- State "DONE" from "TODO" [2026-10-05 Mon 16:20]</code> line), with the new state in parentheses and the note's first line after the title.</li>
+</ul>
+<p>A note under a clock line (a list item directly below it) is added to the title after a <code class="verbatim">-</code>. <code class="verbatim">org-agenda-log-mode-items</code> in <code class="verbatim">config.toml</code> picks the kinds, separated by spaces; the default is Org's, <code class="verbatim">"closed clock"</code>.</p>
+<h2 id="rows">Rows</h2>
+<p>Each row shows, from left to right:</p>
+<ul>
+<li>The time or status described above, with an icon below it on the Mac and before it on iOS: a calendar for scheduled entries, a flag for deadlines, arrows in a circle for habits, a clock or a calendar for timestamps, and a dot or a calendar for calendar events. An overdue entry shows a warning sign instead, and on the Mac a done entry shows a check mark.</li>
+<li>The category, with a colored dot, above the title. For a calendar event this is the calendar's name.</li>
+<li>The title: the heading without its TODO keyword, priority cookie, statistics cookies, timestamps and tags, with links shown as their descriptions. A done entry's title is struck through.</li>
+<li>The value of the first statistics cookie (<code class="verbatim">1/3</code>, <code class="verbatim">50%</code>) and the tags, inherited tags first, as small capsules. iOS shows at most three tags.</li>
+<li>The habit's consistency graph, for habits.</li>
+<li>The TODO keyword as a colored badge, and the priority as a colored letter in a circle.</li>
+</ul>
+<p>The status sets the color of the left column:</p>
+<table>
+<thead>
+<tr><th>Status</th><th>When</th><th>Theme key</th></tr>
+</thead>
+<tbody>
+<tr><td>Overdue</td><td>Not done, with a deadline or scheduled date before today</td><td><code class="verbatim">agenda-overdue</code></td></tr>
+<tr><td>Due soon</td><td>Not done, a deadline listed on today: due today or within its warning</td><td><code class="verbatim">agenda-due-soon</code></td></tr>
+<tr><td>Done</td><td>A done keyword</td><td><code class="verbatim">done</code></td></tr>
+<tr><td>Normal</td><td>Everything else</td><td><code class="verbatim">agenda-time</code></td></tr>
+</tbody>
+</table>
+<p>Ages and distances are written compactly: days up to 13 (<code class="verbatim">3d</code>), then whole weeks up to 59 days (<code class="verbatim">2w</code>), then months of 30 days up to a year (<code class="verbatim">4mo</code>), then years with any remaining months (<code class="verbatim">1y</code>, <code class="verbatim">1y 4mo</code>). They round down.</p>
+<p>The keyword's color comes from <code class="verbatim">[theme.todo]</code>, else from its class: <code class="verbatim">todo-next</code> for keywords of work under way such as <code class="verbatim">NEXT</code> and <code class="verbatim">STRT</code>, <code class="verbatim">todo-waiting</code> for <code class="verbatim">WAIT</code>, <code class="verbatim">HOLD</code> and similar, <code class="verbatim">todo-cancelled</code> for done keywords such as <code class="verbatim">KILL</code> and <code class="verbatim">CANCELLED</code>, and otherwise <code class="verbatim">todo</code> or <code class="verbatim">done</code>. Priorities <code class="verbatim">A</code>, <code class="verbatim">B</code> and <code class="verbatim">C</code> use <code class="verbatim">priority-a</code>, <code class="verbatim">priority-b</code> and <code class="verbatim">priority-c</code>; others use <code class="verbatim">priority</code>. A category's dot takes its color from <code class="verbatim">[theme.category]</code>, else a hue worked out from the category's name, the same on every device. See <a href="13-configuration.html">Configuration</a> for the keyword lists and the theme keys.</p>
+<p>With <code class="verbatim">org-enforce-todo-dependencies</code> or <code class="verbatim">org-enforce-todo-checkbox-dependencies</code> on, an entry that can't be marked done yet is dimmed in every view (<code class="verbatim">org-agenda-dim-blocked-tasks</code> <code class="verbatim">t</code>). Settings ▸ Agenda ▸ Blocked entries (on iOS, Settings ▸ Agenda) can hide such entries instead (<code class="verbatim">invisible</code>), though one held back only by its own checkboxes stays dimmed, or show them as usual (<code class="verbatim">nil</code>). Marking a blocked entry done from the agenda is refused with the same message as in the editor; see <a href="05-todos-and-tags.html">TODOs and tags</a>.</p>
+<h2 id="calendar-events">Calendar events</h2>
+<p>The agenda can show events from the system Calendar app (EventKit) among your entries. orgstar changes your calendars only when you edit an event or add an entry, as below. It is off by default. To turn it on:</p>
+<ul>
+<li>On the Mac, turn on Settings ▸ Agenda ▸ Show events from Calendar, and check the calendars to show.</li>
+<li>On iOS, turn on Settings ▸ Calendar ▸ Show Calendar Events, and tap the calendars to show.</li>
+<li>Or set the keys in <code class="verbatim">config.toml</code>:</li>
+</ul>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">orgstar</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">calendar-events</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span>
+<span class="variable other key toml">calendar-event-calendars</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Work, Family<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p><code class="verbatim">calendar-event-calendars</code> names calendars by title or identifier, separated by commas; <code class="verbatim">""</code> (the default) shows every calendar, including calendars added later. While every calendar is checked in Settings, the key stays empty.</p>
+<p>The first time events are turned on, orgstar asks for access to your calendars. The system asks for full access, because Calendar has no read-only level of access. If you declined, allow it in System Settings ▸ Privacy &amp; Security ▸ Calendars on the Mac, or in the Settings app on iOS.</p>
+<p>Events appear only in the day, week and month view:</p>
+<ul>
+<li>All-day events come first on their day, as calendars show them.</li>
+<li>Timed events go among the timed entries by start time, after entries with the same start and before untimed entries and habits.</li>
+<li>An event over several days shows its start time on its first day, <code class="verbatim">Until 02:00</code> on its last day, and <code class="verbatim">All day</code> on the days between.</li>
+<li>The dot and the icon take the calendar's color, or <code class="verbatim">agenda-event</code> when the calendar has none.</li>
+<li>Filters don't hide events.</li>
+</ul>
+<p>On the Mac, double-click an event, or select it and press <code class="verbatim">RET</code>, to open it in Calendar; its context menu has Show in Calendar. Entry commands such as <code class="verbatim">t</code> don't apply to events.</p>
+<h3 id="editing-events-and-adding-entries">Editing events and adding entries</h3>
+<dl>
+<dt>Edit Event…</dt>
+<dd>in an event's context menu on the Mac, or by tapping the event on iOS (touch and hold for Edit Event… and Show in Calendar). The sheet changes the title, All day, the start and end, the location and the calendar. For a repeating event, the change applies to that occurrence only.</dd>
+<dt>Add to Calendar…</dt>
+<dd>in an entry's context menu on the Mac and iOS. The sheet starts with the entry's title and its time on the day it shows: an entry at <code class="verbatim">10:00-11:30</code> becomes an event from 10:00 to 11:30, one at <code class="verbatim">10:00</code> an hour-long event, and one without a time an all-day event. The calendar starts as Calendar's default calendar for new events; only calendars that can be changed are offered. The entry itself doesn't change.</dd>
+</dl>
+<p>Both use the access granted for showing events. Read-only calendars, such as subscriptions and holidays, can't be chosen.</p>
+<h2 id="reminders-from-the-reminders-app">Reminders from the Reminders app</h2>
+<p>The agenda can also show reminders from the Reminders app (EventKit), read-only. It is off by default. To turn it on:</p>
+<ul>
+<li>On the Mac, turn on Settings ▸ Agenda ▸ Show reminders from Reminders, and check the lists to show.</li>
+<li>On iOS, turn on Settings ▸ Reminders ▸ Show Reminders, and tap the lists to show.</li>
+<li>Or set the keys in <code class="verbatim">config.toml</code>:</li>
+</ul>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">orgstar</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">agenda-reminders</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span>
+<span class="variable other key toml">agenda-reminder-lists</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Errands, Work<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p><code class="verbatim">agenda-reminder-lists</code> names lists by title or identifier, separated by commas; <code class="verbatim">""</code> (the default) shows every list. The first time reminders are turned on, orgstar asks for full access to your reminders; if you declined, allow it in System Settings ▸ Privacy &amp; Security ▸ Reminders on the Mac, or in the Settings app on iOS.</p>
+<p>Only incomplete reminders with a due date show, in the day, week and month view:</p>
+<ul>
+<li>A reminder with a due time shows at that time among the timed entries, as a timed event does. One with only a due date shows <code class="verbatim">Reminder</code> with the all-day events.</li>
+<li>A reminder due before today shows in today's Overdue group as <code class="verbatim">2d late</code>, among the overdue entries by date.</li>
+<li>The row's category is the list's name, and the dot takes the list's color.</li>
+</ul>
+<p>Completing or editing a reminder is done in Reminders. On the Mac, double-click a reminder, or press <code class="verbatim">RET</code>, to open it in Reminders; its context menu has Show in Reminders. On iOS, tap it.</p>
+<h2 id="done-keywords-the-agenda-doesn-t-know">Done keywords the agenda doesn't know</h2>
+<p>A keyword that isn't in <code class="verbatim">org-todo-keywords</code> or the file's <code class="verbatim">#+TODO</code> lines is not a keyword to orgstar, as to Org: it is part of the title. A heading such as <code class="verbatim">SKIPPED Call the bank</code> with a <code class="verbatim">SCHEDULED</code> date last week is therefore an open entry, and shows as overdue. To make such a word a done state, add it after the <code>|</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">org-todo-keywords</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>TODO | DONE SKIPPED<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>Done entries leave the Overdue group. With <code class="verbatim">org-agenda-skip-scheduled-if-done</code> and <code class="verbatim">org-agenda-skip-deadline-if-done</code> on, they leave their own day too.</p>
+<h2 id="diary-sexps">Diary sexps</h2>
+<p>The agenda evaluates diary sexps as <code class="verbatim">org-diary-sexp-entry</code> does. They can appear as a line starting with <code class="verbatim">%%(</code> under a heading, as an active timestamp <code class="verbatim">&lt;%%(…)&gt;</code>, or as a <code class="verbatim">SCHEDULED</code> or <code class="verbatim">DEADLINE</code> value.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Birthdays
+</span>%%(diary-anniversary 10 7 1990) Ada is %d years old
+%%(org-anniversary 1985 3 14) Bob turns %d
+
+<span class="markup heading org"><span class="punctuation definition heading org">*</span> Teaching
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> Algebra lecture
+</span>&lt;%%(org-class 2026 9 7 2026 12 18 1 41)&gt;</span></code></pre>
+<p>Lines before the first heading are ignored. A sexp that uses a function orgstar doesn't have, or signals an error, doesn't apply on any day, as Emacs reports a bad sexp and moves on.</p>
+<table>
+<thead>
+<tr><th>Function</th><th>Applies</th><th>Date order</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">diary-date</code> <em>month day year</em></td><td>On matching dates; <code class="verbatim">t</code> or a list matches any or several</td><td>month day year</td></tr>
+<tr><td><code class="verbatim">diary-block</code> <em>m1 d1 y1 m2 d2 y2</em></td><td>Every day from the first date to the second</td><td>month day year</td></tr>
+<tr><td><code class="verbatim">diary-float</code> <em>month dayname n</em> [/day/]</td><td>The nth <em>dayname</em> (0 is Sunday) of the month; negative n counts from the end</td><td>month</td></tr>
+<tr><td><code class="verbatim">diary-anniversary</code> <em>month day</em> [/year/]</td><td>Each year on the date; <code class="verbatim">%d</code> is the count, <code class="verbatim">%s</code> its ordinal suffix</td><td>month day year</td></tr>
+<tr><td><code class="verbatim">diary-cyclic</code> <em>n month day year</em></td><td>Every n days from the date</td><td>month day year</td></tr>
+<tr><td><code class="verbatim">diary-remind</code> <em>sexp days</em></td><td>On the days before another sexp applies: <code class="verbatim">Reminder: Only 3 days until …</code></td><td>n/a</td></tr>
+<tr><td><code class="verbatim">org-anniversary</code> <em>year month day</em></td><td>As <code class="verbatim">diary-anniversary</code></td><td>year month day</td></tr>
+<tr><td><code class="verbatim">org-cyclic</code> <em>n year month day</em></td><td>As <code class="verbatim">diary-cyclic</code></td><td>year month day</td></tr>
+<tr><td><code class="verbatim">org-block</code> <em>y1 m1 d1 y2 m2 d2</em></td><td>As <code class="verbatim">diary-block</code></td><td>year month day</td></tr>
+<tr><td><code class="verbatim">org-date</code> <em>year month day</em></td><td>As <code class="verbatim">diary-date</code></td><td>year month day</td></tr>
+<tr><td><code class="verbatim">org-class</code> <em>y1 m1 d1 y2 m2 d2 dayname</em> [/skip-weeks…/]</td><td>On <em>dayname</em> between the dates, except the ISO weeks listed, and holidays: all with <code class="verbatim">'holidays</code>, or those named</td><td>year month day</td></tr>
+<tr><td><code class="verbatim">org-calendar-holiday</code></td><td>On holidays, showing their names</td><td>n/a</td></tr>
+</tbody>
+</table>
+<p>The <code class="verbatim">diary-</code> functions read dates in <code class="verbatim">calendar-date-style</code> <code class="verbatim">american</code> (month, day, year); the <code class="verbatim">org-</code> functions use ISO order.</p>
+<p>The holidays are those of Emacs's default <code class="verbatim">calendar-holidays</code> that follow fixed rules: <code class="verbatim">holiday-general-holidays</code> (New Year's Day, Martin Luther King Day, Groundhog Day, Valentine's Day, President's Day, St. Patrick's Day, April Fools' Day, Mother's Day, Memorial Day, Flag Day, Father's Day, Independence Day, Labor Day, Columbus Day, Halloween, Veteran's Day, Thanksgiving) and <code class="verbatim">holiday-christian-holidays</code> (Ash Wednesday, Good Friday, Easter Sunday, Christmas). The Hebrew, Islamic, Bahá'í, Chinese and solar holidays, and holidays you add to <code class="verbatim">calendar-holidays</code> in Emacs, are not included.</p>
+<p>For your own expressions, the variables <code class="verbatim">date</code> (as <code class="verbatim">(month day year)</code>) and <code class="verbatim">entry</code> are bound, and these calendar functions are available: <code class="verbatim">calendar-extract-month</code>, <code class="verbatim">calendar-extract-day</code>, <code class="verbatim">calendar-extract-year</code>, <code class="verbatim">calendar-absolute-from-gregorian</code>, <code class="verbatim">calendar-gregorian-from-absolute</code>, <code class="verbatim">calendar-day-of-week</code>, <code class="verbatim">calendar-leap-year-p</code>, <code class="verbatim">calendar-last-day-of-month</code>, <code class="verbatim">calendar-date-equal</code>, <code class="verbatim">calendar-day-number</code>, <code class="verbatim">calendar-nth-named-absday</code>, <code class="verbatim">calendar-nth-named-day</code>, <code class="verbatim">calendar-iso-from-absolute</code>, <code class="verbatim">calendar-check-holidays</code>, <code class="verbatim">diary-ordinal-suffix</code> and <code class="verbatim">diary-make-date</code>. The evaluator also has the common special forms (<code class="verbatim">if</code>, <code class="verbatim">when</code>, <code class="verbatim">cond</code>, <code class="verbatim">and</code>, <code class="verbatim">or</code>, <code class="verbatim">let</code>, <code class="verbatim">progn</code> and others) and arithmetic. It is a small subset of Emacs Lisp, not Emacs.</p>
+<p>A sexp line that returns a string shows that string; one that returns a list of strings shows one line per string; otherwise the line's text after the sexp shows.</p>
+<h2 id="habits">Habits</h2>
+<p>An entry with the property <code class="verbatim">STYLE: habit</code> and a <code class="verbatim">SCHEDULED</code> timestamp with a repeater is a habit, as in <code class="verbatim">org-habit</code>:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Run
+</span>SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-05 Mon .+2d/4d&gt;</span>
+:PROPERTIES:
+:STYLE:    habit
+:END:
+<span class="punctuation definition list org">- </span>State &quot;DONE&quot;       from &quot;TODO&quot;       <span class="constant other timestamp org">[2026-10-03 Sat 07:10]</span>
+<span class="punctuation definition list org">- </span>State &quot;DONE&quot;       from &quot;TODO&quot;       <span class="constant other timestamp org">[2026-10-01 Thu 07:05]</span></span></code></pre>
+<p>To make every entry of a file a habit, put <code class="verbatim">#+PROPERTY: STYLE habit</code> at the top of the file and set <code class="verbatim">org-use-property-inheritance = "STYLE"</code> in <code class="verbatim">config.toml</code>. As in Org, the <code class="verbatim">#+PROPERTY</code> line counts only when STYLE inherits; set the same variable in Emacs, <code class="verbatim">(setq org-use-property-inheritance '("STYLE"))</code>, for Emacs to agree.</p>
+<p>The repeater can be <code class="verbatim">+</code>, <code class="verbatim">++</code> or <code class="verbatim">.+</code>, with an optional <code class="verbatim">/Nd</code> maximum interval. Days the habit was done are read from <code class="verbatim">- State "DONE" … [date]</code> lines (for any done keyword) and <code class="verbatim">CLOSING NOTE [date]</code> lines in the entry.</p>
+<p>A habit appears only on today's agenda and not once it is done for the day. To show habits on the later days they are scheduled for too, turn off Settings ▸ Agenda ▸ Habits only today, or set <code class="verbatim">org-habit-show-habits-only-for-today = false</code> in <code class="verbatim">config.toml</code>. Its row carries the consistency graph: one cell per day for the 21 days before today and the 7 after (<code class="verbatim">org-habit-preceding-days</code> and <code class="verbatim">org-habit-following-days</code>). On the Mac the graph is at the right of the row, with <code class="verbatim">*</code> on days the habit was done and <code class="verbatim">!</code> on today; on iOS it is a strip under the title, with a dot on days it was done and today outlined. Cell colors follow org-habit's faces:</p>
+<table>
+<thead>
+<tr><th>Color</th><th>Meaning</th><th>Theme key</th></tr>
+</thead>
+<tbody>
+<tr><td>Blue</td><td>Not yet due</td><td><code class="verbatim">habit-clear</code></td></tr>
+<tr><td>Green</td><td>Due, within the allowed interval</td><td><code class="verbatim">habit-ready</code></td></tr>
+<tr><td>Yellow</td><td>Last day of the interval</td><td><code class="verbatim">habit-alert</code></td></tr>
+<tr><td>Red</td><td>Overdue</td><td><code class="verbatim">habit-overdue</code></td></tr>
+</tbody>
+</table>
+<p>Future days use lighter shades. On the Mac, hover a cell to see its date. Habits sort after other entries.</p>
+<h2 id="the-todo-list">The TODO list</h2>
+<p>The built-in view TODO List is <code class="verbatim">org-todo-list</code>: every heading with a TODO keyword that is not a done keyword, sorted by urgency (priority first). By default every open TODO appears, as in Org. <code class="verbatim">org-agenda-todo-ignore-scheduled</code>, <code class="verbatim">org-agenda-todo-ignore-deadlines</code>, <code class="verbatim">org-agenda-todo-ignore-timestamp</code> and <code class="verbatim">org-agenda-todo-ignore-with-date</code> in <code class="verbatim">config.toml</code> leave out entries for their timestamps, so that the TODO list shows only what isn't already on the calendar; see <a href="13-configuration.html">Configuration</a>. As in Org, the searches look through the entry's text in order, so with both set, a <code class="verbatim">SCHEDULED</code> that doesn't leave the entry out hides a <code class="verbatim">DEADLINE</code> before it on the same line. With <code class="verbatim">org-agenda-tags-todo-honor-ignore-options</code>, TODO-only matches leave the same entries out.</p>
+<p>A saved view can list specific keywords instead, done ones included, with <code class="verbatim">keywords = "WAIT|HOLD"</code> (see <a href="#views">Views</a>). This mirrors <code class="verbatim">C-u M-x org-todo-list</code> with a keyword argument.</p>
+<p>The TODO list and the match views use the same rows as the day view (see <a href="#rows">Rows</a>), without the left column.</p>
+<h2 id="tag-and-property-matches">Tag and property matches</h2>
+<p>Choose Match… from the view menu to list entries matching a match string, as <code class="verbatim">org-tags-view</code> (<code class="verbatim">m</code>) does, or TODO Match… to list only entries with an open TODO keyword (<code class="verbatim">M</code>). Type the match in the toolbar field and press Return.</p>
+<p>The syntax is <code class="verbatim">org-make-tags-matcher</code>'s:</p>
+<pre><code class="language-text">+work-boss|LEVEL&gt;2+TODO="WAIT"/!NEXT</code></pre>
+<h3 id="tags">Tags</h3>
+<table>
+<thead>
+<tr><th>Form</th><th>Matches</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">work</code>, <code class="verbatim">+work</code></td><td>Entries with the tag</td></tr>
+<tr><td><code class="verbatim">-boss</code></td><td>Entries without the tag</td></tr>
+<tr><td><code class="verbatim">+work-boss</code></td><td>Both conditions (and)</td></tr>
+<tr><td><code class="verbatim">a&amp;b</code></td><td><code class="verbatim">&amp;</code> between terms is the same as <code class="verbatim">+</code></td></tr>
+<tr><td><code class="verbatim">{^proj}</code></td><td>Any tag matching the regular expression</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">work|home</code> matches either side: the vertical bar separates alternatives, and within an alternative, terms are joined by <code class="verbatim">+</code>, <code class="verbatim">-</code> or <code class="verbatim">&amp;</code>. Tags include inherited tags and <code class="verbatim">#+FILETAGS</code>. Tag names compare exactly; regular expressions in braces are Emacs regexps, matched without case.</p>
+<h3 id="properties">Properties</h3>
+<p>A term can compare a property: <code class="verbatim">NAME op value</code>.</p>
+<table>
+<thead>
+<tr><th>Operator</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">=</code>, <code class="verbatim">==</code></td><td>Equal</td></tr>
+<tr><td><code class="verbatim">&lt;&gt;</code>, <code class="verbatim">!=</code>, <code class="verbatim">/=</code></td><td>Not equal</td></tr>
+<tr><td><code class="verbatim">&lt;</code>, <code class="verbatim">&lt;=</code></td><td>Less, less or equal</td></tr>
+<tr><td><code class="verbatim">&gt;</code>, <code class="verbatim">&gt;=</code></td><td>Greater, greater or equal</td></tr>
+</tbody>
+</table>
+<p>The value decides how the comparison works:</p>
+<table>
+<thead>
+<tr><th>Value</th><th>Compared as</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">3</code>, <code class="verbatim">-1.5</code></td><td>Numbers; a missing or non-numeric property is 0</td></tr>
+<tr><td><code class="verbatim">"WAIT"</code></td><td>Strings</td></tr>
+<tr><td><code class="verbatim">{regexp}</code></td><td>Regular expression match; with <code class="verbatim">&lt;&gt;</code>, <code class="verbatim">!=</code> or <code class="verbatim">/=</code> it must not match</td></tr>
+<tr><td><code class="verbatim">"&lt;2026-10-01&gt;"</code></td><td>Dates. Also <code class="verbatim">"&lt;now&gt;"</code>, <code class="verbatim">"&lt;today&gt;"</code>, <code class="verbatim">"&lt;tomorrow&gt;"</code>, <code class="verbatim">"&lt;yesterday&gt;"</code>, and offsets such as <code class="verbatim">"&lt;-1w&gt;"</code> or <code class="verbatim">"&lt;+3d&gt;"</code> (units <code class="verbatim">h</code> <code class="verbatim">d</code> <code class="verbatim">w</code> <code class="verbatim">m</code> <code class="verbatim">y</code>). Brackets may be <code class="verbatim">[…]</code>.</td></tr>
+</tbody>
+</table>
+<p>Follow the operator with <code class="verbatim">*</code> (<code class="verbatim">Effort&gt;*1</code>) to require that the property exists; without it, a missing property compares as an empty string or 0.</p>
+<p>Names are case-insensitive. Prefix a character in a name with <code class="verbatim">\</code> to use it literally (<code class="verbatim">MY\-PROP</code>"x"=). Besides the entry's own property drawer, these special properties work:</p>
+<table>
+<thead>
+<tr><th>Name</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">LEVEL</code></td><td>The heading's level</td></tr>
+<tr><td><code class="verbatim">TODO</code></td><td>The TODO keyword</td></tr>
+<tr><td><code class="verbatim">ITEM</code></td><td>The heading title</td></tr>
+<tr><td><code class="verbatim">PRIORITY</code></td><td>The priority letter, or the default priority</td></tr>
+<tr><td><code class="verbatim">CATEGORY</code></td><td>The entry's category</td></tr>
+<tr><td><code class="verbatim">FILE</code></td><td>The file's path</td></tr>
+<tr><td><code class="verbatim">TAGS</code></td><td>The heading's own tags, as <code class="verbatim">:a:b:</code></td></tr>
+<tr><td><code class="verbatim">ALLTAGS</code></td><td>All tags including inherited ones</td></tr>
+<tr><td><code class="verbatim">SCHEDULED</code>, <code class="verbatim">DEADLINE</code>, <code class="verbatim">CLOSED</code></td><td>The planning timestamp</td></tr>
+<tr><td><code class="verbatim">TIMESTAMP</code>, <code class="verbatim">TIMESTAMP_IA</code></td><td>The entry's first active or inactive timestamp</td></tr>
+</tbody>
+</table>
+<p>Properties inherit in matches as <code class="verbatim">org-use-property-inheritance</code> says: by default they don't, so <code class="verbatim">TEAM</code>"ops"= matches only the entry with the property; with <code class="verbatim">org-use-property-inheritance = "TEAM"</code> it matches the entries under it too, and <code class="verbatim">#+PROPERTY</code> lines count. With a date value, <code class="verbatim">&lt;&gt;</code> and its synonyms match dates that are equal, as orgstar's comparison mirrors <code class="verbatim">org-time&lt;&gt;</code> in Org 9.8.7; use <code class="verbatim">&lt;</code> and <code class="verbatim">&gt;</code> for date ranges.</p>
+<h3 id="keywords"><span class="todo TODO">TODO</span> keywords</h3>
+<p>After the last <code class="verbatim">/</code> (one not followed by a quote), the match restricts TODO keywords:</p>
+<table>
+<thead>
+<tr><th>Form</th><th>Matches</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">/NEXT</code></td><td>Entries whose keyword is <code class="verbatim">NEXT</code></td></tr>
+<tr><td><code class="verbatim">/-WAIT</code></td><td>Any keyword but <code class="verbatim">WAIT</code>, and entries with none</td></tr>
+<tr><td><code class="verbatim">/{^W}</code></td><td>Keywords matching the regexp</td></tr>
+<tr><td><code class="verbatim">/!</code></td><td>Only entries with an open (not done) TODO keyword</td></tr>
+<tr><td><code class="verbatim">/!-WAIT-HOLD</code></td><td>Open TODO entries except those two</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">/TODO|NEXT</code> matches either keyword, and <code class="verbatim">/!NEXT|WAIT</code> either one while open. <code class="verbatim">/!</code> has the same effect as choosing TODO Match….</p>
+<h2 id="stuck-projects">Stuck projects</h2>
+<p>The built-in view Stuck Projects is <code class="verbatim">org-agenda-list-stuck-projects</code> (<code class="verbatim">#</code>): the projects that have no next action. <code class="verbatim">[org-stuck-projects]</code> in <code class="verbatim">config.toml</code> says what a project is and what makes one active, as <code class="verbatim">org-stuck-projects</code> does:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">match</code></td><td><code class="verbatim">"+LEVEL=2/-DONE"</code></td><td>A match as in <a href="#tag-and-property-matches">Tag and property matches</a>: the entries that are projects</td></tr>
+<tr><td><code class="verbatim">todo</code></td><td><code class="verbatim">"TODO NEXT NEXTACTION"</code></td><td>A heading with one of these keywords makes its project active; <code class="verbatim">*</code> for any open keyword</td></tr>
+<tr><td><code class="verbatim">tags</code></td><td><code class="verbatim">""</code></td><td>A heading with one of these tags set on it (not inherited) makes its project active; <code class="verbatim">*</code> for any tag</td></tr>
+<tr><td><code class="verbatim">regexp</code></td><td><code class="verbatim">""</code></td><td>Text matching this Emacs regular expression makes its project active</td></tr>
+</tbody>
+</table>
+<p>The project's own heading counts: a project whose heading has a <code class="verbatim">todo</code> keyword is not stuck. Keywords, tags and the regexp are case-sensitive. A project that isn't stuck can still contain stuck subprojects, which are listed. When <code class="verbatim">todo</code>, <code class="verbatim">tags</code> and <code class="verbatim">regexp</code> are all empty, every project is listed; Org signals an error instead. Lines sort as tag matches do.</p>
+<h2 id="text-search">Text search</h2>
+<p>Choose Search… from the view menu to list entries containing some text, as <code class="verbatim">org-search-view</code> (<code class="verbatim">s</code>) does, or TODO Search… to list only entries with an open TODO keyword (<code class="verbatim">S</code>, or <code class="verbatim">C-u s</code>). Type the search string in the toolbar field and press Return. An entry is its heading and the text up to the next heading; text before the first heading of a file is not searched. Entries show in file order, with the rows of the TODO list.</p>
+<p>By default the string is a phrase: <code class="verbatim">pay rent</code> finds those words in that order, case-insensitively, and each space matches any run of spaces, tabs and line breaks, so a phrase can span lines. A string that starts with <code class="verbatim">+</code>, <code class="verbatim">-</code> or <code class="verbatim">{</code> is a list of snippets separated by spaces instead, all of which must hold:</p>
+<table>
+<thead>
+<tr><th>Snippet</th><th>Entries that</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">+word</code>, <code class="verbatim">word</code></td><td>contain the text</td></tr>
+<tr><td><code class="verbatim">-word</code></td><td>don't contain it</td></tr>
+<tr><td><code class="verbatim">{regexp}</code></td><td>match the Emacs regular expression, without case</td></tr>
+<tr><td><code class="verbatim">-{regexp}</code></td><td>don't match it</td></tr>
+<tr><td><code class="verbatim">"two words"</code></td><td>contain the words with one space between them</td></tr>
+</tbody>
+</table>
+<p>Phrases and snippets match parts of words: <code class="verbatim">+rent</code> finds <code class="verbatim">parent</code>. These may come first in the string, in this order:</p>
+<table>
+<thead>
+<tr><th>Prefix</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">*</code></td><td>Search headlines only, not the text below them</td></tr>
+<tr><td><code class="verbatim">:</code></td><td>Snippets match whole words (regexps are unchanged)</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">*!:+rent -paid</code> lists open TODO headlines with the word <code class="verbatim">rent</code> and without <code class="verbatim">paid</code>.</p>
+<p>Two settings in <code class="verbatim">config.toml</code> change the defaults: <code class="verbatim">org-agenda-search-view-always-boolean</code> reads every string as snippets, and <code class="verbatim">org-agenda-search-view-force-full-words</code> makes snippets match whole words (see <a href="13-configuration.html">Configuration</a>).</p>
+<p>The search covers the agenda files only, not <code class="verbatim">org-agenda-text-search-extra-files</code> or archive files. Entries in archived or commented trees are left out, as in the other views. To search every file in the folders, use Search Notes (<code class="verbatim">⇧⌘F</code>).</p>
+<h2 id="views">Views</h2>
+<p>The view menu lists the built-in views, Agenda, TODO List and Stuck Projects, then the views in <code class="verbatim">views.toml</code>, then Match…, TODO Match…, Search… and TODO Search…. Saved views mirror <code class="verbatim">org-agenda-custom-commands</code>, with fewer options.</p>
+<p><code class="verbatim">views.toml</code> lives in the configuration folder beside <code class="verbatim">config.toml</code> (<code class="verbatim">~/.config/orgstar/</code> by default; see <a href="13-configuration.html">Configuration</a>). Each view is a <code class="verbatim">[[view]]</code> table:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Fortnight<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>agenda<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">span</span> <span class="keyword operator assignment toml">=</span> <span class="constant numeric toml">14</span>
+<span class="variable other key toml">start</span> <span class="keyword operator assignment toml">=</span> <span class="constant numeric toml">0</span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Waiting<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>todo<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">keywords</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>WAIT|HOLD<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Work<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>match<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">match</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>+work-boss<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Next at work<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>todo-match<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">match</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>+work/NEXT<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Invoices<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>search<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">match</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>+invoice -paid<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<table>
+<thead>
+<tr><th>Key</th><th>Applies to</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">name</code></td><td>all, required</td><td>The name in the view menu</td></tr>
+<tr><td><code class="verbatim">type</code></td><td>all</td><td><code class="verbatim">agenda</code> (the default), <code class="verbatim">todo</code>, <code class="verbatim">match</code>, <code class="verbatim">todo-match</code>, <code class="verbatim">search</code>, <code class="verbatim">todo-search</code> or <code class="verbatim">stuck</code></td></tr>
+<tr><td><code class="verbatim">span</code></td><td><code class="verbatim">agenda</code></td><td>Days shown; the setting when omitted</td></tr>
+<tr><td><code class="verbatim">start</code></td><td><code class="verbatim">agenda</code></td><td>First day as an integer number of days from today (<code class="verbatim">-3</code>, <code class="verbatim">0</code>); the setting when omitted</td></tr>
+<tr><td><code class="verbatim">keywords</code></td><td><code class="verbatim">todo</code></td><td>Keywords separated by the vertical bar; all open TODOs when omitted</td></tr>
+<tr><td><code class="verbatim">match</code></td><td><code class="verbatim">match</code>, <code class="verbatim">todo-match</code>, <code class="verbatim">search</code>, <code class="verbatim">todo-search</code>, required</td><td>A match string as in <a href="#tag-and-property-matches">Tag and property matches</a>, or for <code class="verbatim">search</code> a search string as in <a href="#text-search">Text search</a>; the <code class="verbatim">todo-</code> types keep only open TODO entries</td></tr>
+<tr><td><code class="verbatim">keywords</code>, <code class="verbatim">tags</code>, <code class="verbatim">regexp</code></td><td><code class="verbatim">stuck</code></td><td>The <code class="verbatim">todo</code>, <code class="verbatim">tags</code> (separated by spaces) and <code class="verbatim">regexp</code> of <code class="verbatim">[org-stuck-projects]</code>; with <code class="verbatim">match</code> they replace the setting's values for this view, and the ones left out keep them</td></tr>
+<tr><td><code class="verbatim">sorting-strategy</code></td><td>all</td><td>The view's <code class="verbatim">org-agenda-sorting-strategy</code>, keys separated by spaces, in place of the one in <code class="verbatim">config.toml</code> for its kind</td></tr>
+<tr><td><code class="verbatim">prefix-format</code></td><td>all</td><td>The view's <code class="verbatim">org-agenda-prefix-format</code>, in place of the one in <code class="verbatim">config.toml</code> for its kind</td></tr>
+<tr><td><code class="verbatim">header</code></td><td>all</td><td>The title over a list or block, as <code class="verbatim">org-agenda-overriding-header</code></td></tr>
+<tr><td><code class="verbatim">skip-entry-if</code>, <code class="verbatim">skip-subtree-if</code></td><td>all</td><td>Entries to leave out, as <code class="verbatim">org-agenda-skip-function</code> set to <code class="verbatim">org-agenda-skip-entry-if</code> or <code class="verbatim">org-agenda-skip-subtree-if</code>; see below</td></tr>
+</tbody>
+</table>
+<p>Note that <code class="verbatim">start</code> is a plain integer here, while <code class="verbatim">org-agenda-start-day</code> in <code class="verbatim">config.toml</code> is a string such as <code class="verbatim">"-3d"</code>.</p>
+<h3 id="skipping-entries">Skipping entries</h3>
+<p><code class="verbatim">skip-entry-if</code> takes the arguments of <code class="verbatim">org-agenda-skip-entry-if</code> as Lisp writes them, the quotes optional:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Unplanned<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>todo<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">skip-entry-if</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>&#39;scheduled &#39;deadline<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>An entry is left out when any condition holds: <code class="verbatim">scheduled</code>, <code class="verbatim">notscheduled</code>, <code class="verbatim">deadline</code> and <code class="verbatim">notdeadline</code> look at the planning line; <code class="verbatim">timestamp</code> and <code class="verbatim">nottimestamp</code> at active timestamps in the entry; <code class="verbatim">regexp "RE"</code> and <code class="verbatim">notregexp "RE"</code> at its text, with an Emacs regular expression; <code class="verbatim">todo</code> and <code class="verbatim">nottodo</code> at its keyword, given as a list (<code class="verbatim">'("WAIT" "HOLD")</code>, <code class="verbatim">"*"</code> for any) or a class (<code class="verbatim">todo</code>, <code class="verbatim">done</code> or <code class="verbatim">any</code>). <code class="verbatim">skip-subtree-if</code> takes the same conditions, looks at the whole subtree, and leaves out the subtree when one holds. As in Org, the day and TODO views match the regexps case-sensitively, and tag matches and search ignore case. Org's <code class="verbatim">todo-unblocked</code> and <code class="verbatim">nottodo-unblocked</code>, and skip functions of your own, are not supported.</p>
+<h3 id="block-agendas">Block agendas</h3>
+<p>A view with <code class="verbatim">[[view.block]]</code> tables after it shows several views one after the other, as an <code class="verbatim">org-agenda-custom-commands</code> entry with a list of blocks does. Each block takes the keys of a view except <code class="verbatim">name</code>; the view's <code class="verbatim">sorting-strategy</code>, <code class="verbatim">prefix-format</code> and skip settings, and for <code class="verbatim">agenda</code> blocks its <code class="verbatim">span</code> and <code class="verbatim">start</code>, apply to blocks that don't set their own:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Daily<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">span</span> <span class="keyword operator assignment toml">=</span> <span class="constant numeric toml">1</span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view.block</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>agenda<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">header</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Today<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view.block</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>todo<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">keywords</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>NEXT<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">skip-entry-if</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>&#39;scheduled &#39;deadline<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">view.block</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>stuck<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>Each block has its title over it: its <code class="verbatim">header</code>, or one for its kind such as <code class="verbatim">Day agenda</code> or <code class="verbatim">TODO items: NEXT</code>. Agenda blocks start from their own <code class="verbatim">start</code> (or the setting), so the arrows that move through days don't apply to them.</p>
+<p>The views load when the window opens and again on <code class="verbatim">g</code> or <code class="verbatim">r</code>. A problem in the file, such as a missing <code class="verbatim">name</code> or an unknown <code class="verbatim">type</code>, shows in the status line at the bottom of the window, and the remaining views still load.</p>
+<h2 id="filters">Filters</h2>
+<p>Filters hide lines without changing the view, as <code class="verbatim">org-agenda-filter</code> does. Calendar events always stay. The active filter shows in the status line at the bottom of the window as <code class="verbatim">Filter: …</code>.</p>
+<p>The Filter button in the toolbar asks for a combined filter, as <code class="verbatim">/</code> does; its menu has each of the filters below and Remove Filters.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Does</th><th>Org command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">\</code></td><td>Asks for a tag filter</td><td><code class="verbatim">org-agenda-filter-by-tag</code></td></tr>
+<tr><td><code class="verbatim">&lt;</code></td><td>Keeps only the selected line's category; again removes it</td><td><code class="verbatim">org-agenda-filter-by-category</code></td></tr>
+<tr><td><code class="verbatim">=</code></td><td>Asks for a regexp filter</td><td><code class="verbatim">org-agenda-filter-by-regexp</code></td></tr>
+</tbody>
+</table>
+<p>The vertical bar key, <code class="verbatim">|</code>, removes every filter (<code class="verbatim">org-agenda-filter-remove-all</code>).</p>
+<p>The combined filter <code class="verbatim">/</code> reads terms such as:</p>
+<pre><code class="language-text">+work-phone&lt;2:00/report/</code></pre>
+<ul>
+<li><code class="verbatim">+word</code> keeps and <code class="verbatim">-word</code> drops lines. A word without a sign keeps.</li>
+<li>A word is a tag if a line in the view has that tag, else a category if a line has that category; otherwise it is ignored and the status line says so. Quote a category that contains <code class="verbatim">-</code>: <code class="verbatim">"my-cat"</code>.</li>
+<li><code class="verbatim">&lt;0:30</code>, <code class="verbatim">&gt;1:00</code> and <code class="verbatim">=1:00</code> compare the entry's <code class="verbatim">Effort</code> property. Entries without an effort count as longer than any effort, as with <code class="verbatim">org-agenda-sort-noeffort-is-high</code> t. Durations can be <code class="verbatim">H:MM</code>, minutes, or units such as <code class="verbatim">1h 30min</code> or <code class="verbatim">2d</code>.</li>
+<li><code class="verbatim">/regexp/</code> keeps lines whose text matches; <code class="verbatim">-/regexp/</code> drops them. Matching ignores case.</li>
+<li>Starting the input with <code class="verbatim">+</code> followed by another sign (<code class="verbatim">++urgent</code>) adds to the current filter instead of replacing it.</li>
+</ul>
+<p>With two or more <code class="verbatim">+</code> categories, a line may have any of them. Tag terms all have to hold.</p>
+<p>The <code class="verbatim">/</code> prompt starts with the whole current filter written in this form, every term with its sign: categories, then tags, efforts and regexps, with categories that contain <code class="verbatim">-</code> in quotes. Pressing <code class="verbatim">Return</code> on it unchanged keeps the same filter.</p>
+<p>The <code class="verbatim">\</code> prompt reads every word as a tag, whether or not a line has it; there, <code class="verbatim">{regexp}</code> matches any tag that matches the regexp. The <code class="verbatim">=</code> prompt takes one regexp, with a leading <code class="verbatim">-</code> to drop matches. The <code class="verbatim">_</code> prompt takes one comparison such as <code class="verbatim">&lt;0:30</code>.</p>
+<h2 id="prefix-format-and-colors">Prefix format and colors</h2>
+<p>orgstar reads <code class="verbatim">org-agenda-prefix-format</code> from the <code class="verbatim">[org-agenda-prefix-format]</code> table in <code class="verbatim">config.toml</code> (see <a href="13-configuration.html">Configuration</a>) or a view's <code class="verbatim">prefix-format</code>. Rows already show the category, the time and the scheduled or deadline leader in their own places, so <code class="verbatim">%c</code>, <code class="verbatim">%t</code>, <code class="verbatim">%s</code> and <code class="verbatim">%i</code> add nothing there. What the format adds besides them shows after the category: <code class="verbatim">%e</code> the effort, <code class="verbatim">%b</code> the outline path (<code class="verbatim">Project-&gt;Phase-&gt;</code>), <code class="verbatim">%T</code> the last tag, and any literal text. <code class="verbatim">%l</code> (the level as spaces) and <code class="verbatim">%(…)</code> Lisp forms show nothing. Widths, <code class="verbatim">?</code> and punctuation work as in Org.</p>
+<p>Times written in heading text depend on <code class="verbatim">%t</code>: when the <code class="verbatim">agenda</code> format contains it, as the default <code class="verbatim">" %i %-12:c%?-12t% s"</code> does, a time such as <code class="verbatim">9:30am</code> in <code class="verbatim">Call Ada 9:30am</code> moves out of the title into the left column, as <code class="verbatim">org-agenda-remove-times-when-in-prefix</code> does. Without <code class="verbatim">%t</code>, the title keeps it.</p>
+<p>The agenda's colors come from these theme keys (see <a href="13-configuration.html">Configuration</a>):</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Colors</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">agenda-background</code></td><td>the Mac window's background, and the iOS widgets' background</td></tr>
+<tr><td><code class="verbatim">agenda-date</code></td><td>headers of days after today (Mac)</td></tr>
+<tr><td><code class="verbatim">agenda-today</code></td><td>today's header, the now line, and on iOS the widgets' date</td></tr>
+<tr><td><code class="verbatim">agenda-time</code></td><td>the left column of rows with the normal status</td></tr>
+<tr><td><code class="verbatim">agenda-overdue</code></td><td>the left column of overdue rows, and the Overdue group's header</td></tr>
+<tr><td><code class="verbatim">agenda-due-soon</code></td><td>the left column of deadlines due today or coming up</td></tr>
+<tr><td><code class="verbatim">agenda-event</code></td><td>calendar events whose calendar has no color</td></tr>
+<tr><td><code class="verbatim">agenda-category</code></td><td>category names (Mac)</td></tr>
+<tr><td><code class="verbatim">todo</code>, <code class="verbatim">todo-next</code>, <code class="verbatim">todo-waiting</code>, <code class="verbatim">done</code>, <code class="verbatim">todo-cancelled</code></td><td>TODO keyword badges, by class</td></tr>
+<tr><td><code class="verbatim">priority-a</code>, <code class="verbatim">priority-b</code>, <code class="verbatim">priority-c</code>, <code class="verbatim">priority</code></td><td>priority letters</td></tr>
+<tr><td><code class="verbatim">tags</code></td><td>tag capsules (Mac)</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">[theme.todo]</code> colors keywords by name and <code class="verbatim">[theme.category]</code> colors categories by name.</p>
+<h2 id="acting-on-entries">Acting on entries</h2>
+<p>Select a line with the mouse, or move the selection with <code class="verbatim">n</code> and <code class="verbatim">p</code>, <code class="verbatim">C-n</code> and <code class="verbatim">C-p</code>, or <code class="verbatim">↓</code> and <code class="verbatim">↑</code>. These keys work in the agenda window in every keymap preset; they are fixed and are not read from <code class="verbatim">keymap.toml</code>.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Does</th><th>Org command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">n</code>, <code class="verbatim">p</code></td><td>Moves to the next or previous line</td><td><code class="verbatim">org-agenda-next-line=/</code>-previous-line=</td></tr>
+<tr><td><code class="verbatim">RET</code>, <code class="verbatim">TAB</code> or double click</td><td>Shows the entry in the main window; opens a calendar event in Calendar</td><td><code class="verbatim">org-agenda-switch-to</code>, <code class="verbatim">org-agenda-goto</code></td></tr>
+<tr><td><code class="verbatim">SPC</code></td><td>Shows the entry in the main window, keeping the agenda in front</td><td><code class="verbatim">org-agenda-show-and-scroll-up</code></td></tr>
+<tr><td><code class="verbatim">t</code> or <code class="verbatim">C-c C-t</code></td><td>Changes the TODO state, as in the editor</td><td><code class="verbatim">org-agenda-todo</code></td></tr>
+<tr><td><code class="verbatim">+</code>, <code class="verbatim">-</code></td><td>Raises or lowers the priority</td><td><code class="verbatim">org-agenda-priority-up=/</code>-down=</td></tr>
+<tr><td><code class="verbatim">,</code></td><td>Sets the priority</td><td><code class="verbatim">org-agenda-priority</code></td></tr>
+<tr><td><code class="verbatim">:</code> or <code class="verbatim">C-c C-q</code></td><td>Sets tags</td><td><code class="verbatim">org-agenda-set-tags</code></td></tr>
+<tr><td><code class="verbatim">C-c C-s</code></td><td>Schedules</td><td><code class="verbatim">org-agenda-schedule</code></td></tr>
+<tr><td><code class="verbatim">C-c C-d</code></td><td>Sets a deadline</td><td><code class="verbatim">org-agenda-deadline</code></td></tr>
+<tr><td><code class="verbatim">S-&lt;right&gt;</code>, <code class="verbatim">S-&lt;left&gt;</code> (<code class="verbatim">⇧→</code>, <code class="verbatim">⇧←</code>)</td><td>Moves the date the line is listed for by a day</td><td><code class="verbatim">org-agenda-date-later=/</code>-earlier=</td></tr>
+<tr><td><code class="verbatim">I</code></td><td>Clocks in</td><td><code class="verbatim">org-agenda-clock-in</code></td></tr>
+<tr><td><code class="verbatim">O</code></td><td>Clocks out</td><td><code class="verbatim">org-agenda-clock-out</code></td></tr>
+<tr><td><code class="verbatim">X</code></td><td>Cancels the clock</td><td><code class="verbatim">org-agenda-clock-cancel</code></td></tr>
+<tr><td><code class="verbatim">C-c C-w</code></td><td>Refiles</td><td><code class="verbatim">org-agenda-refile</code></td></tr>
+<tr><td><code class="verbatim">$</code>, <code class="verbatim">C-c $</code>, <code class="verbatim">C-c C-x C-s</code></td><td>Archives</td><td><code class="verbatim">org-agenda-archive</code></td></tr>
+<tr><td><code class="verbatim">k</code></td><td>Captures an entry scheduled on the selected line's day</td><td><code class="verbatim">org-agenda-capture</code></td></tr>
+<tr><td><code class="verbatim">s</code></td><td>Saves every file</td><td><code class="verbatim">org-save-all-org-buffers</code></td></tr>
+</tbody>
+</table>
+<p>Without a selected line, <code class="verbatim">k</code> captures onto today when today is shown, else onto the first day shown. The + at the right of each day's header captures onto that day; see <a href="08-capture.html">Capture</a>.</p>
+<p>Right-click a line for Open, Cycle TODO State, Set Priority…, Set Tags…, Schedule…, Set Deadline…, Add to Calendar…, Clock In, Mark or Unmark, and Archive. A calendar event's menu has Show in Calendar and Edit Event…; a reminder's has Show in Reminders.</p>
+<p><code class="verbatim">t</code> follows <code class="verbatim">org-todo</code>: with fast-selection keys in your TODO keywords it asks for the state, otherwise it cycles (see <a href="05-todos-and-tags.html">TODOs and tags</a>). Questions an action needs, such as a date for <code class="verbatim">C-c C-s</code> or a note on a state change, appear in the agenda window. Dates take the same input as in the editor (see <a href="06-dates-and-clocking.html">Dates, scheduling and clocking</a>). <code class="verbatim">S-&lt;right&gt;</code> and <code class="verbatim">S-&lt;left&gt;</code> work only on deadline, scheduled and timestamp lines; they change the timestamp the line comes from.</p>
+<p><code class="verbatim">C-c C-w</code> brings the main window forward and asks for the target there, where the target list is searchable.</p>
+<p><code class="verbatim">I</code> clocks in as Clock In does, so with no clock running it first asks about open clocks, in the main window's echo area. See <a href="06-dates-and-clocking.html">Dates, scheduling and clocking</a>.</p>
+<p>Each action finds the entry again by its heading line before it changes anything, so an action on a line whose entry has since moved or changed reports that rather than editing the wrong text. Edits go through the open buffer when the file is open, and through the file otherwise.</p>
+<h3 id="bulk-actions">Bulk actions</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Does</th><th>Org command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">m</code></td><td>Marks the selected entry (shown with a bar at its left)</td><td><code class="verbatim">org-agenda-bulk-mark</code></td></tr>
+<tr><td><code class="verbatim">u</code></td><td>Unmarks it</td><td><code class="verbatim">org-agenda-bulk-unmark</code></td></tr>
+<tr><td><code class="verbatim">U</code></td><td>Unmarks everything</td><td><code class="verbatim">org-agenda-bulk-unmark-all</code></td></tr>
+<tr><td><code class="verbatim">B</code></td><td>Asks for an action on every marked entry</td><td><code class="verbatim">org-agenda-bulk-action</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">B</code> offers <code class="verbatim">$</code> archive, <code class="verbatim">r</code> refile, <code class="verbatim">t</code> set a TODO state (typed; empty for none), <code class="verbatim">+</code> add a tag, <code class="verbatim">-</code> remove a tag, <code class="verbatim">s</code> schedule and <code class="verbatim">d</code> set a deadline. Type the letter and press OK. Entries that changed since they were marked are skipped and counted in the status line. An action that needs a further answer per entry, such as a state-change note, is not run in bulk; the status line tells you to run it on the entry.</p>
+<p>On iOS, tap Select in the bar at the bottom, or Select in an entry's menu, then tap entries to mark them. The bar then shows how many are selected, Actions and Done. Actions offers the same actions: TODO State…, Add Tag…, Remove Tag…, Schedule…, Deadline…, Refile… and Archive…, which asks first. After an action, or Done, the selection ends.</p>
+<h2 id="reminders">Reminders</h2>
+<p>orgstar can post a notification before each timed entry, as <code class="verbatim">org-agenda-to-appt</code> hands entries to <code class="verbatim">appt</code>. Reminders cover the next 7 days and include deadline, scheduled, plain timestamp and range lines that have a time of day and are not done. Overdue items and upcoming-deadline warnings don't get reminders.</p>
+<table>
+<thead>
+<tr><th>Setting</th><th>Default</th><th><code class="verbatim">config.toml</code></th></tr>
+</thead>
+<tbody>
+<tr><td>Notify before timed entries</td><td>on</td><td><code class="verbatim">reminders = true</code> under <code class="verbatim">[orgstar]</code></td></tr>
+<tr><td>Minutes of warning</td><td>12</td><td><code class="verbatim">appt-message-warning-time = 12</code></td></tr>
+</tbody>
+</table>
+<p>Both are in Settings ▸ Agenda. An entry's <code class="verbatim">APPT_WARNTIME</code> property, in minutes, overrides the warning time for that entry. If the warning time has already passed but the entry hasn't started, the reminder fires at once.</p>
+<p>The notification's title is the heading; its body is the time, Org's leader text (<code class="verbatim">Scheduled:</code>, <code class="verbatim">Deadline:</code>) if any, and the category, such as <code class="verbatim">14:00 · Scheduled: · work</code>. Clicking it shows the entry in the main window.</p>
+<p>On the Mac, reminders are updated two seconds after edits stop, when files change, and every hour. At most 64 are set, the earliest first. The agenda's status line says how far ahead they are set, or that notifications are off for orgstar in System Settings. Turning reminders off removes the pending ones.</p>
+<h2 id="the-board">The board</h2>
+<p>The board shows the entries of your agenda files as a table or as kanban columns. It has no Org equivalent; the table is close to Org's column view across files. Open it with Window ▸ Board (<code class="verbatim">⇧⌘B</code>). It reads the same files as the agenda, including the subfolder setting.</p>
+<p>The toolbar has:</p>
+<ul>
+<li>a Table / Kanban switch;</li>
+<li>a match field, with the syntax of <a href="#tag-and-property-matches">Tag and property matches</a>. When empty, the board shows every entry with a TODO keyword;</li>
+<li>in table mode, a field of property names to show as extra columns, separated by commas (default <code class="verbatim">EFFORT</code>).</li>
+</ul>
+<p>These three choices are remembered by the app; they are not in <code class="verbatim">config.toml</code>.</p>
+<h3 id="table">Table</h3>
+<p>Columns: TODO, priority, title, tags, scheduled, deadline, your property columns, and the file. Click a column header to sort (the property columns don't sort). The TODO column sorts by the keyword's order in your sequences. The context menu on a row offers Set TODO (a keyword or None), Set Property… (asked in the main window as <code class="verbatim">NAME value</code>) and Open. Double-click a row to open the entry.</p>
+<h3 id="kanban">Kanban</h3>
+<p>Each TODO keyword your files use gets a column, in sequence order, done keywords included. A card shows the priority and title, the category and tags, and the deadline (in red) or the scheduled date. Drag a card to another column to set that keyword; this is the same edit as changing the state in the editor, so logging and state-change notes apply (a note is asked for in the main window). Double-click a card to open its entry. With VoiceOver, each card has a Move to … action for each other column.</p>
+<p>With a match that includes entries without a TODO keyword, those entries appear in the table but not on the kanban board, which has no column for them.</p>
+<h3 id="on-ios">On iOS</h3>
+<p>Choose Board from the Views menu in the Agenda tab. The board opens over the agenda with a List / Kanban switch at the top, a match field under it (press Search to apply it), and Done to close it. The list shows the entries sorted by keyword, then title; tap one to open it. In Kanban, columns scroll sideways; touch and hold a card, then drag it to another column to set that keyword. A card's or row's menu has Move To (a keyword, or None), Set Property… (<code class="verbatim">NAME value</code>) and Open. The Kanban or List choice and the match are remembered, separately from the Mac's.</p>
+<h2 id="desktop-widgets">Desktop widgets</h2>
+<p>On the Mac, orgstar's widgets go on the desktop and in Notification Center: right-click the desktop, choose Edit Widgets…, and pick orgstar in the gallery. They appear there once orgstar has run.</p>
+<table>
+<thead>
+<tr><th>Widget</th><th>Sizes</th><th>Shows</th></tr>
+</thead>
+<tbody>
+<tr><td>Today</td><td>Small, medium and large</td><td>The date, the open count, and what's left of today, as on iOS.</td></tr>
+<tr><td>Up Next</td><td>Small</td><td>The next entry's time or status and title, or the agenda when nothing is left today.</td></tr>
+<tr><td>Habits</td><td>Small, medium and large</td><td>Each habit's consistency graph, as on iOS.</td></tr>
+</tbody>
+</table>
+<p>Click a row in Today, the Up Next widget or a habit to show that entry in orgstar; click elsewhere to open the agenda. The widgets read the next seven days of the agenda and the habits, which the app writes to <code class="verbatim">~/Library/Application Support/Orgstar/Widgets</code> when files, edits or settings change and every hour while it runs; see <a href="14-ios.html">iOS</a> for what they show and leave out.</p>
+<h2 id="the-agenda-on-ios">The agenda on iOS</h2>
+<p>The Agenda tab shows the same views from the same files, using the settings in the synced <code class="verbatim">config.toml</code> and the views in <code class="verbatim">views.toml</code> (see <a href="14-ios.html">iOS</a>). Differences from the Mac:</p>
+<ul>
+<li>The Views menu, at the top left, lists the built-in views, your saved views, Tags and Properties…, which asks for a match string, and Search…, which asks for a search string. There is no TODO-only match or search from the menu; use <code class="verbatim">/!</code> in the match, <code class="verbatim">!</code> at the start of the search string, or a <code class="verbatim">todo-match</code> or <code class="verbatim">todo-search</code> view.</li>
+<li>A bar floats at the bottom of the screen with Earlier, Filter, Today, Go to Date, the span and Later. The span menu switches between Day, Week, Month and the configured span (<code class="verbatim">10 Days</code> by default); Day, Week and Month are around today when today is shown, else around the first day shown. Weeks start on <code class="verbatim">org-agenda-start-on-weekday</code>, as on the Mac. In the TODO list and match views the bar has Filter and Agenda, which returns to the day view. Messages show above the bar; tap one to dismiss it.</li>
+<li>The title names the days shown: <code class="verbatim">Thu 8 Oct</code>, <code class="verbatim">Week of 5 Oct</code>, <code class="verbatim">October 2026</code>, or <code class="verbatim">5 Oct – 14 Oct</code>.</li>
+<li>A block view lists its blocks one after the other, each under its title; an agenda block's days follow its title.</li>
+<li>Day headers read <code class="verbatim">Today · Thu 8 Oct</code>, <code class="verbatim">Tomorrow · Fri 9 Oct</code> or <code class="verbatim">Mon 12 Oct</code>, with a + that captures onto that day. Days before today are grey.</li>
+<li>Pull down to refresh.</li>
+<li>The Filter button opens a sheet: type a filter as for <code class="verbatim">/</code>, or tap a tag or category to cycle between Keep, Leave out and no filter.</li>
+<li>Tap an entry to open it. Tap a calendar event to open Calendar on the event's day; iOS can't open Calendar at one event.</li>
+<li>Swipe left on an open TODO entry for Done, which sets the first done keyword of its sequence, and Next State, which moves to the next keyword; and on any entry with a heading, for Delete, which asks first, as Delete… in the menu does. The sequence is the one the file defines: the default keywords from <code class="verbatim">config.toml</code>, the file's own <code class="verbatim">#+TODO</code> lines, and those of its setup files, with unsaved edits in an open buffer included.</li>
+<li>Swipe right on a scheduled entry, a deadline, a habit or a TODO entry, when it isn't done, for Tomorrow, Next Week and Pick Date. Tomorrow is the day after today and Next Week is next Monday. On a deadline row these move the deadline; on other rows they set the scheduled date. A timed row keeps its times.</li>
+<li>Touch and hold an entry for TODO State…, Reschedule (Tomorrow, Next Week, Pick Date…), Schedule…, Deadline…, Tags…, Priority…, Clock In, Add to Calendar…, Refile…, Archive… and Delete…, which removes the heading and everything under it.</li>
+<li>Marking an entry done and rescheduling one give haptic feedback.</li>
+<li>Log Mode, in the span menu, turns log mode on and off. The widgets never show log mode's entries.</li>
+<li>There are no keyboard commands; bulk actions use Select instead of marks (see <a href="#bulk-actions">Bulk actions</a>).</li>
+<li>Reminders are set while the app is open. iOS allows at most 64 pending notifications and the app can't add more while it isn't running, so the agenda's footer says how far ahead they go and asks you to open orgstar to set later ones.</li>
+</ul>
+<p>The Today and Up Next widgets show the agenda on the Home Screen and the Lock Screen; see <a href="14-ios.html">iPhone and iPad</a>.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

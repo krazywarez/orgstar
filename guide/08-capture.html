@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capture &middot; orgstar</title>
+<meta name="description" content="Capture templates, the capture window, date trees, org-protocol, Shortcuts and the iOS share sheet.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Capture</h1>
+<p class="lede">Capture files a note, task or link into the right place in your org files without leaving what you are doing.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#starting-a-capture">Starting a capture</a></li>
+<li><a href="#the-capture-window">The capture window</a></li>
+<li><a href="#capturing-onto-an-agenda-day">Capturing onto an agenda day</a></li>
+<li><a href="#capture-templates">Capture templates</a>
+<ul>
+<li><a href="#template-groups">Template groups</a></li>
+<li><a href="#keys">Keys</a></li>
+<li><a href="#targets">Targets</a></li>
+<li><a href="#template-types">Template types</a></li>
+<li><a href="#clocking-while-capturing">Clocking while capturing</a></li>
+</ul></li>
+<li><a href="#template-escapes">Template escapes</a>
+<ul>
+<li><a href="#inserted-values">Inserted values</a></li>
+<li><a href="#prompts">Prompts</a></li>
+<li><a href="#escaping-and-unsupported-escapes">Escaping and unsupported escapes</a></li>
+</ul></li>
+<li><a href="#date-trees">Date trees</a></li>
+<li><a href="#org-protocol">org-protocol</a>
+<ul>
+<li><a href="#capture">capture</a></li>
+<li><a href="#store-link">store-link</a></li>
+<li><a href="#bookmarklets">Bookmarklets</a></li>
+</ul></li>
+<li><a href="#shortcuts">Shortcuts</a></li>
+<li><a href="#capture-on-ios">Capture on iOS</a>
+<ul>
+<li><a href="#the-share-sheet">The share sheet</a></li>
+</ul></li>
+<li><a href="#importing-templates-from-emacs">Importing templates from Emacs</a></li>
+</ul>
+</nav>
+<h2 id="starting-a-capture">Starting a capture</h2>
+<p>Capture mirrors <code class="verbatim">org-capture</code>. Start it from anywhere in the app:</p>
+<table>
+<thead>
+<tr><th>Preset</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Mac</td><td><code class="verbatim">⇧⌘N</code> (File ▸ Capture…)</td></tr>
+<tr><td>Emacs</td><td><code class="verbatim">C-c c</code> or <code class="verbatim">⇧⌘N</code></td></tr>
+<tr><td>Doom</td><td><code class="verbatim">SPC X</code> (normal state), <code class="verbatim">C-c c</code> or <code class="verbatim">⇧⌘N</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">⌃⌥Space</code> opens the capture window from any app, with orgstar in the background. Turn it off in Settings ▸ Capture, or in <code class="verbatim">config.toml</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">orgstar</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">global-capture-hotkey</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">false</span></span></code></pre>
+<p>The shortcut is registered as a system hot key and needs no accessibility permission.</p>
+<p>Captures can also arrive from a browser through org-protocol, from Shortcuts, and on iOS from the share sheet; see the sections below.</p>
+<h2 id="the-capture-window">The capture window</h2>
+<p>A capture goes through up to three steps.</p>
+<ol>
+<li><strong>Choose a template.</strong> The window lists your templates and groups with their keys and targets. Type a template's key, or click it. For a key of several characters, such as <code class="verbatim">wb</code>, each character you type narrows the list, and the header shows the keys so far (<code class="verbatim">Capture: w</code>). With a group for <code class="verbatim">w</code> (see <a href="#template-groups">Template groups</a>), typing <code class="verbatim">w</code> or clicking the group lists what is in it. <code class="verbatim">Delete</code> removes the last key typed. The template is chosen as soon as the keys match one.</li>
+<li><strong>Answer its questions.</strong> If the template has prompts (<code class="verbatim">%^{…}</code>, <code class="verbatim">%^g</code>, <code class="verbatim">%^t</code> and the others below), they appear as a form, after <code class="verbatim">Date for tree entry</code> for a template with <code class="verbatim">time-prompt</code>. Leave a field empty for its default. Press Return (Continue) to go on.</li>
+<li><strong>Edit and file.</strong> The filled template appears in an editor, headed with the template's name and target, with the cursor where <code class="verbatim">%?</code> was. Press <code class="verbatim">⌘Return</code> (File It) to file it, or click Refile… to file it and then move it, as <code class="verbatim">C-c C-w</code> (<code class="verbatim">org-capture-refile</code>) does. Refile… asks for the target in the main window's echo area, offering the same targets as Refile in the editor (see <a href="04-outlines.org::*Refiling">Refiling</a>); it appears for <code class="verbatim">entry</code> templates only, as in Org.</li>
+</ol>
+<p>Press Esc (Cancel) at any step to close the window without filing anything, as <code class="verbatim">org-capture-kill</code> does.</p>
+<p>Filing, the equivalent of <code class="verbatim">org-capture-finalize</code>, places the text in its target and saves it through the open buffer if the file is open, or into the file otherwise. A target file that doesn't exist is created, with its folders. The status line in the main window then says where the entry went.</p>
+<p>If filing fails, for example because a heading on an <code class="verbatim">olp</code> path is missing, the window stays open with your text and shows the error in red below it, so you can try again after fixing the file or cancel.</p>
+<p>Limits compared with Emacs:</p>
+<ul>
+<li>The editor is a plain text editor. Org editing commands and keys such as <code class="verbatim">C-c C-c</code> and <code class="verbatim">C-c C-k</code> don't work in it; use <code class="verbatim">⌘Return</code> and Esc.</li>
+<li>The target is not shown while you edit (the capture buffer in Emacs is narrowed to the new entry in the target file).</li>
+</ul>
+<h2 id="capturing-onto-an-agenda-day">Capturing onto an agenda day</h2>
+<p>The + at the right of a day's header in the agenda, or <code class="verbatim">k</code> in the Mac agenda (<code class="verbatim">org-agenda-capture</code>), starts a capture for that day; see <a href="07-agenda.html">The agenda</a>. Choose a template as usual. The day then stands in for today, as <code class="verbatim">org-overriding-default-time</code> makes it do in Org:</p>
+<ul>
+<li><code class="verbatim">%t</code>, <code class="verbatim">%T</code>, <code class="verbatim">%u</code> and <code class="verbatim">%U</code> give that day. The escapes with a time use the current time of day.</li>
+<li>An empty answer to a date prompt (<code class="verbatim">%^t</code> and the others) is that day.</li>
+<li>With <code class="verbatim">datetree = true</code>, the entry goes under that day in the date tree, and <code class="verbatim">time-prompt</code> doesn't ask.</li>
+</ul>
+<p>When the filled template is a heading without an active timestamp, orgstar adds <code class="verbatim">SCHEDULED:</code> with that day on the line after the heading, or at the end of the planning line when the template has one:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Call the bank
+</span>SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-09 Fri&gt;</span></span></code></pre>
+<p>The line is part of the text you edit, so you can change or remove it before filing. A template with an active timestamp of its own, such as <code class="verbatim">%t</code> or <code class="verbatim">%^t</code>, gets no <code class="verbatim">SCHEDULED</code> line. On the Mac, the window's header names the day, as <code class="verbatim">Capture, scheduled Fri 9 Oct</code>.</p>
+<h2 id="capture-templates">Capture templates</h2>
+<p>Templates live in <code class="verbatim">capture.toml</code> in the configuration folder (<code class="verbatim">~/.config/orgstar/capture.toml</code> by default; see <a href="13-configuration.html">Configuration</a>). Settings ▸ Capture shows its path. Each template is a <code class="verbatim">[[template]]</code> table:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">template</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">key</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>t<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Personal todo<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">type</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>entry<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">file</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>todo.org<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">headline</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Inbox<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">template</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>* TODO %?<span class="constant character escape toml">\n</span>%i<span class="constant character escape toml">\n</span>%a<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">prepend</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">false</span></span></code></pre>
+<p>The file is read each time the capture window opens. If it doesn't exist, or none of its templates is valid, these two built-in templates are used:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Name</th><th>Target</th><th>Template</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">t</code></td><td>Personal todo</td><td><code class="verbatim">todo.org</code>, heading <code class="verbatim">Inbox</code></td><td><code class="verbatim">* TODO %?\n%i\n%a</code></td></tr>
+<tr><td><code class="verbatim">n</code></td><td>Personal notes</td><td><code class="verbatim">notes.org</code>, heading <code class="verbatim">Inbox</code></td><td><code class="verbatim">* %u %?\n%i\n%a</code></td></tr>
+</tbody>
+</table>
+<p>A problem in the file, such as a table without a key, shows in red at the bottom of the window; the other templates still load.</p>
+<p>Keys of several characters are typed one character at a time, as in Emacs.</p>
+<h3 id="template-groups">Template groups</h3>
+<p>A <code class="verbatim">[[template]]</code> with only <code class="verbatim">key</code> and <code class="verbatim">name</code> is a group, as an entry with only a key and a description is in <code class="verbatim">org-capture-templates</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">template</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">key</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>w<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Work<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">template</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">key</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>wm<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Meeting<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">file</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>work.org<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">olp</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Meetings<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">template</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>* %?<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>The first list then shows <code class="verbatim">[w] Work…</code> in place of the templates under it; choosing it lists the templates whose keys are one character longer and start with <code class="verbatim">w</code>, and the groups below it. A template longer than the next key with no group for its prefix is listed anyway, so that it can still be chosen. On iOS, the Template picker names each template after its groups, as <code class="verbatim">Work › Meeting</code>.</p>
+<h3 id="keys">Keys</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Value</th><th>Meaning</th><th>Org property</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">key</code></td><td>string, required</td><td>What you press to choose the template</td><td>key</td></tr>
+<tr><td><code class="verbatim">name</code></td><td>string</td><td>The name in the list; the key when omitted</td><td>description</td></tr>
+<tr><td><code class="verbatim">type</code></td><td>string</td><td><code class="verbatim">entry</code> (the default), <code class="verbatim">item</code>, <code class="verbatim">checkitem</code>, <code class="verbatim">plain</code> or <code class="verbatim">table-line</code></td><td>type</td></tr>
+<tr><td><code class="verbatim">template</code></td><td>string, required</td><td>The text to fill; see <a href="#template-escapes">Template escapes</a></td><td>template</td></tr>
+<tr><td><code class="verbatim">file</code></td><td>string</td><td>The target file; required except with <code class="verbatim">id</code> or <code class="verbatim">clock</code></td><td>target</td></tr>
+<tr><td><code class="verbatim">headline</code></td><td>string</td><td>A heading in <code class="verbatim">file</code></td><td><code class="verbatim">file+headline</code></td></tr>
+<tr><td><code class="verbatim">olp</code></td><td>string</td><td>An outline path in <code class="verbatim">file</code>, titles separated by <code class="verbatim">/</code></td><td><code class="verbatim">file+olp</code></td></tr>
+<tr><td><code class="verbatim">datetree</code></td><td>boolean</td><td>Today's entry in a date tree in <code class="verbatim">file</code>, under <code class="verbatim">olp</code> if given</td><td><code class="verbatim">file+olp+datetree</code></td></tr>
+<tr><td><code class="verbatim">tree-type</code></td><td>string</td><td><code class="verbatim">day</code> (the default), <code class="verbatim">week</code>, <code class="verbatim">month</code>, or groups such as <code class="verbatim">"year quarter"</code>, for <code class="verbatim">datetree</code></td><td><code class="verbatim">:tree-type</code></td></tr>
+<tr><td><code class="verbatim">time-prompt</code></td><td>boolean</td><td>With <code class="verbatim">datetree</code>, ask which day the entry is for</td><td><code class="verbatim">:time-prompt</code></td></tr>
+<tr><td><code class="verbatim">regexp</code></td><td>string</td><td>After the first match of an Emacs regexp in <code class="verbatim">file</code></td><td><code class="verbatim">file+regexp</code></td></tr>
+<tr><td><code class="verbatim">id</code></td><td>string</td><td>The heading with this <code class="verbatim">ID</code> property, in any file</td><td><code class="verbatim">id</code></td></tr>
+<tr><td><code class="verbatim">clock</code></td><td>boolean</td><td>The entry the clock is running in</td><td><code class="verbatim">clock</code></td></tr>
+<tr><td><code class="verbatim">prepend</code></td><td>boolean</td><td>Put the text first rather than last</td><td><code class="verbatim">:prepend</code></td></tr>
+<tr><td><code class="verbatim">immediate-finish</code></td><td>boolean</td><td>File without showing the editor</td><td><code class="verbatim">:immediate-finish</code></td></tr>
+<tr><td><code class="verbatim">empty-lines</code></td><td>integer</td><td>Blank lines before and after the captured text</td><td><code class="verbatim">:empty-lines</code></td></tr>
+<tr><td><code class="verbatim">empty-lines-before</code></td><td>integer</td><td>Blank lines before; overrides <code class="verbatim">empty-lines</code></td><td><code class="verbatim">:empty-lines-before</code></td></tr>
+<tr><td><code class="verbatim">empty-lines-after</code></td><td>integer</td><td>Blank lines after; overrides <code class="verbatim">empty-lines</code></td><td><code class="verbatim">:empty-lines-after</code></td></tr>
+<tr><td><code class="verbatim">jump-to-captured</code></td><td>boolean</td><td>Show the new entry in the editor after filing</td><td><code class="verbatim">:jump-to-captured</code></td></tr>
+<tr><td><code class="verbatim">clock-in</code></td><td>boolean</td><td>Clock in to the captured entry</td><td><code class="verbatim">:clock-in</code></td></tr>
+<tr><td><code class="verbatim">clock-keep</code></td><td>boolean</td><td>With <code class="verbatim">clock-in</code>, keep the clock running after filing</td><td><code class="verbatim">:clock-keep</code></td></tr>
+<tr><td><code class="verbatim">clock-resume</code></td><td>boolean</td><td>With <code class="verbatim">clock-in</code>, restart the clock that was running before</td><td><code class="verbatim">:clock-resume</code></td></tr>
+<tr><td><code class="verbatim">table-line-pos</code></td><td>string</td><td>Where a <code class="verbatim">table-line</code> goes, such as <code class="verbatim">"II-3"</code></td><td><code class="verbatim">:table-line-pos</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">capture.toml</code> uses a subset of TOML: basic strings in double quotes, literal strings in single quotes, booleans and integers. Multi-line strings (<code class="verbatim">"""…"""</code>) are not supported, so write a newline in a template as <code class="verbatim">\n</code> inside a double-quoted string. A double-quoted string accepts only the escapes <code class="verbatim">\"</code>, <code class="verbatim">\\</code>, <code class="verbatim">\n</code>, <code class="verbatim">\t</code>, <code class="verbatim">\uXXXX</code> and <code class="verbatim">\UXXXXXXXX</code>; any other backslash is an error. A template backslash, as in <code class="verbatim">%\1</code> or <code class="verbatim">\%</code>, is therefore written <code class="verbatim">%\\1</code> or <code class="verbatim">\\%</code> in double quotes, or as it is in a single-quoted string, which has no escapes and no <code class="verbatim">\n</code>.</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">template</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">key</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>m<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Meeting<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">file</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>work.org<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">olp</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Meetings<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">template</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>* %^{Topic} :meeting:<span class="constant character escape toml">\n</span>%U<span class="constant character escape toml">\n</span>- Attendees: %^{Attendees}<span class="constant character escape toml">\n</span>- Topic again: %<span class="constant character escape toml">\\</span>1<span class="constant character escape toml">\n</span>%?<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<h3 id="targets">Targets</h3>
+<p>The target keys are checked in this order: <code class="verbatim">id</code>, <code class="verbatim">clock</code>, <code class="verbatim">datetree</code>, <code class="verbatim">regexp</code>, <code class="verbatim">headline</code>, <code class="verbatim">olp</code>; with none of them the target is <code class="verbatim">file</code> itself.</p>
+<table>
+<thead>
+<tr><th>Target</th><th>Where the text goes</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">file</code> alone</td><td>The file's top level: an <code class="verbatim">entry</code> becomes a top-level heading at the end (or start, with <code class="verbatim">prepend</code>)</td></tr>
+<tr><td><code class="verbatim">headline = "Inbox"</code></td><td>Under the first heading with that exact title, at any level. If there is none, <code class="verbatim">* Inbox</code> is added at the end of the file</td></tr>
+<tr><td><code class="verbatim">olp = "Projects/Work"</code></td><td>Under <code class="verbatim">Work</code>, a child of <code class="verbatim">Projects</code>. Every heading on the path must exist; otherwise filing fails with <code class="verbatim">Heading not found on outline path</code></td></tr>
+<tr><td><code class="verbatim">datetree = true</code></td><td>Under today's heading in a date tree; see <a href="#date-trees">Date trees</a></td></tr>
+<tr><td><code class="verbatim">regexp = "…"</code></td><td>At the end of the first match (its start, with <code class="verbatim">prepend</code>), searched ignoring case. When the match is on a heading line, as under <code class="verbatim">headline</code>; otherwise an <code class="verbatim">entry</code> goes to the file's top level, <code class="verbatim">plain</code> text goes at the match, and an <code class="verbatim">item</code> or <code class="verbatim">table-line</code> uses the first list or table from the match's line to the next heading. Fails with <code class="verbatim">No match for target regexp in file</code></td></tr>
+<tr><td><code class="verbatim">id = "…"</code></td><td>Under the heading with that <code class="verbatim">ID</code>, found through the workspace index. Fails with <code class="verbatim">Cannot find target ID</code> if no heading has it</td></tr>
+<tr><td><code class="verbatim">clock = true</code></td><td>Under the heading the running clock is in. Fails with <code class="verbatim">No running clock</code> when no clock runs</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">file</code> may be absolute (<code class="verbatim">/Users/me/org/todo.org</code>), start with <code class="verbatim">~/</code>, or be relative. A relative path is relative to the first folder in the sidebar (your home folder if you have none). Heading titles match the title text without its TODO keyword, priority or tags. Because <code class="verbatim">olp</code> uses <code class="verbatim">/</code> as its separator, a heading whose title contains <code class="verbatim">/</code> can't be on an outline path; use <code class="verbatim">headline</code> or <code class="verbatim">id</code> for it.</p>
+<p>Emacs's <code class="verbatim">file+function</code> and <code class="verbatim">function</code> targets, and templates read from a file (<code class="verbatim">(file "…")</code>), are not supported.</p>
+<h3 id="template-types">Template types</h3>
+<table>
+<thead>
+<tr><th>Type</th><th>What is inserted</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">entry</code></td><td>An Org entry. If the text has no heading, <code class="verbatim">* = is added. Its level is adjusted to be one below the target heading, or 1 at the top level. Placed as the last child (first with =prepend</code>). Text whose first heading isn't its highest is refused: <code class="verbatim">Template is not a valid Org entry or tree</code></td></tr>
+<tr><td><code class="verbatim">item</code></td><td>A list item. A =- = bullet is added if the text has none. Goes after the last item of the first list in the target entry (or the file), with that list's indentation; if there is no list, at the end of the entry's text</td></tr>
+<tr><td><code class="verbatim">checkitem</code></td><td>As <code class="verbatim">item</code>, with a <code class="verbatim">[ ]</code> checkbox added if there is none</td></tr>
+<tr><td><code class="verbatim">plain</code></td><td>The text as it is, at the end of the entry's body (with <code class="verbatim">prepend</code>, right after the heading line)</td></tr>
+<tr><td><code class="verbatim">table-line</code></td><td>A table row, in the first table in the target entry (or the file); a new table is made if there is none</td></tr>
+</tbody>
+</table>
+<p>For <code class="verbatim">table-line</code>, a text that doesn't start with a vertical bar gets one. The row goes at the end of the table. With <code class="verbatim">prepend</code> it goes before the first data row after the first rule. With <code class="verbatim">table-line-pos</code>, <code class="verbatim">II-3</code> means three lines above the second horizontal rule and <code class="verbatim">I+1</code> the first line below the first rule; an impossible position fails with <code class="verbatim">Invalid table line specification</code>. After the row is placed, the table is aligned and its formulas recomputed; a table whose formulas need Emacs makes the capture fail with a message that says so (see <a href="10-tables.html">Tables</a>).</p>
+<p>Placement follows <code class="verbatim">org-capture-place-entry</code> and its siblings, including how blank lines are kept: without <code class="verbatim">empty-lines</code> options, a new heading gets a blank line before it when its neighbors have one (<code class="verbatim">org-blank-before-new-entry</code> <code class="verbatim">(heading . auto)</code>). Within an existing list, at most one blank line goes between items.</p>
+<h3 id="clocking-while-capturing">Clocking while capturing</h3>
+<p>With <code class="verbatim">clock-in = true</code>, the captured entry gets a clock entry from when the template was filled to when you filed it, as Emacs clocks in while the capture buffer is open and out on finalize. With <code class="verbatim">clock-keep = true</code> as well, the clock keeps running in the new entry. With <code class="verbatim">clock-resume = true</code>, the clock that was running before the capture starts again after filing. With no clock running, clocking in to the entry first asks about open clocks, as Clock In does, as of when the capture began; on the Mac the questions are in the main window's echo area. See <a href="06-dates-and-clocking.html">Dates, scheduling and clocking</a>.</p>
+<h2 id="template-escapes">Template escapes</h2>
+<p>These follow <code class="verbatim">org-capture-fill-template</code>. Escapes that need no answer are filled first; prompts are then asked in order.</p>
+<h3 id="inserted-values">Inserted values</h3>
+<table>
+<thead>
+<tr><th>Escape</th><th>Inserts</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">%?</code></td><td>Nothing; the cursor goes here</td></tr>
+<tr><td><code class="verbatim">%i</code></td><td>The initial text: the selection in the editor, or the body from org-protocol, Shortcuts or the share sheet. Later lines get the indentation of the line <code class="verbatim">%i</code> is on</td></tr>
+<tr><td><code class="verbatim">%a</code></td><td>A link to where capture started, <code class="verbatim">[[target][description]]</code></td></tr>
+<tr><td><code class="verbatim">%A</code></td><td>The same link, asking for its description</td></tr>
+<tr><td><code class="verbatim">%l</code></td><td>The link as <code class="verbatim">[[target]]</code>, without description</td></tr>
+<tr><td><code class="verbatim">%L</code></td><td>The link target alone</td></tr>
+<tr><td><code class="verbatim">%c</code>, <code class="verbatim">%x</code></td><td>The clipboard's text</td></tr>
+<tr><td><code class="verbatim">%f</code></td><td>The name of the file capture started from</td></tr>
+<tr><td><code class="verbatim">%F</code></td><td>The full path of that file</td></tr>
+<tr><td><code class="verbatim">%n</code></td><td>Your full name from macOS</td></tr>
+<tr><td><code class="verbatim">%k</code></td><td>The title of the entry the clock is running in</td></tr>
+<tr><td><code class="verbatim">%K</code></td><td>A link to that entry</td></tr>
+<tr><td><code class="verbatim">%t</code></td><td>Today's date as an active timestamp, <code class="verbatim">&lt;2026-10-07 Wed&gt;</code></td></tr>
+<tr><td><code class="verbatim">%T</code></td><td>Active timestamp with the current time</td></tr>
+<tr><td><code class="verbatim">%u</code></td><td>Inactive timestamp, <code class="verbatim">[2026-10-07 Wed]</code></td></tr>
+<tr><td><code class="verbatim">%U</code></td><td>Inactive timestamp with the current time</td></tr>
+<tr><td><code class="verbatim">%&lt;…&gt;</code></td><td>The current time formatted with a <code class="verbatim">format-time-string</code> pattern, such as <code class="verbatim">%&lt;%Y-%m-%d %H:%M&gt;</code></td></tr>
+<tr><td><code class="verbatim">%:name</code></td><td>A link property; see below</td></tr>
+<tr><td><code class="verbatim">%[file]</code></td><td>The contents of the file; see below</td></tr>
+<tr><td><code class="verbatim">%(sexp)</code></td><td>The value of an Emacs Lisp form; see below</td></tr>
+</tbody>
+</table>
+<p>From the Mac capture window, <code class="verbatim">%a</code> links to the heading at the cursor in the open file, as <code class="verbatim">[[file:~/org/work.org::*Heading][Heading]]</code>, or to the file itself before the first heading. It is empty with no file open.</p>
+<p><code class="verbatim">%&lt;…&gt;</code> understands <code class="verbatim">%Y</code>, <code class="verbatim">%m</code>, <code class="verbatim">%d</code>, <code class="verbatim">%e</code>, <code class="verbatim">%H</code>, <code class="verbatim">%M</code>, <code class="verbatim">%S</code>, <code class="verbatim">%a</code>, <code class="verbatim">%A</code>, <code class="verbatim">%b</code>, <code class="verbatim">%B</code>, <code class="verbatim">%F</code>, <code class="verbatim">%R</code> and <code class="verbatim">%%</code>, with English day and month names. Other <code class="verbatim">format-time-string</code> codes are left in the text as they are.</p>
+<p><code class="verbatim">%[file]</code> is replaced by the file's contents before anything else, as in Org, so escapes and prompts in the file work, and so does a <code class="verbatim">%[…]</code> in it. A relative path is relative to the configuration folder (the one with <code class="verbatim">capture.toml</code>), and <code class="verbatim">~</code> is your home folder. The file name runs to the last <code class="verbatim">]</code> on the line. A file that can't be read leaves <code class="verbatim">%![could not insert …]</code> in the text.</p>
+<p><code class="verbatim">%(sexp)</code> evaluates the form after the other escapes are expanded, as Org does, and inserts its value: a string as it is, nothing for <code class="verbatim">nil</code>; any other value is an error. Escapes inside the form, such as <code class="verbatim">%i</code> or <code class="verbatim">%:link</code> in a string, are expanded with backslashes and quotes escaped. orgstar evaluates the form with its own Lisp, not Emacs: <code class="verbatim">concat</code>, <code class="verbatim">format</code>, <code class="verbatim">upcase</code>, <code class="verbatim">substring</code>, <code class="verbatim">mapconcat</code>, <code class="verbatim">if</code>, <code class="verbatim">let</code> and the other basic functions, plus <code class="verbatim">format-time-string</code> (the codes <code class="verbatim">%&lt;…&gt;</code> takes, at the capture's time or a <code class="verbatim">current-time</code> value), <code class="verbatim">current-time</code>, <code class="verbatim">user-full-name</code> and <code class="verbatim">read-string</code>. <code class="verbatim">read-string</code> is asked as a question before the template's <code class="verbatim">%^</code> prompts. A form that calls anything else stops the capture with a message naming the function.</p>
+<p><code class="verbatim">%:name</code> inserts a property of the link being captured. From org-protocol these are <code class="verbatim">%:link</code>, <code class="verbatim">%:description</code> (the page title), <code class="verbatim">%:type</code> (the link's scheme, such as <code class="verbatim">https</code>), <code class="verbatim">%:annotation</code> (the same as <code class="verbatim">%a</code>) and <code class="verbatim">%:initial</code> (the same as <code class="verbatim">%i</code>). Without org-protocol, <code class="verbatim">%:annotation</code> and <code class="verbatim">%:initial</code> still work and other names insert nothing.</p>
+<h3 id="prompts">Prompts</h3>
+<table>
+<thead>
+<tr><th>Escape</th><th>Asks for</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">%^{Prompt}</code></td><td>A line of text</td></tr>
+<tr><td><code class="verbatim">%^g</code></td><td>Tags, offering the tags used in the target file</td></tr>
+<tr><td><code class="verbatim">%^G</code></td><td>Tags, offering every tag in your folders</td></tr>
+<tr><td><code class="verbatim">%^t</code>, <code class="verbatim">%^T</code></td><td>A date, inserted as an active timestamp; <code class="verbatim">%^T</code> always includes a time</td></tr>
+<tr><td><code class="verbatim">%^u</code>, <code class="verbatim">%^U</code></td><td>The same as an inactive timestamp</td></tr>
+<tr><td><code class="verbatim">%^C</code></td><td>Text, offering the initial text and the clipboard</td></tr>
+<tr><td><code class="verbatim">%^L</code></td><td>As <code class="verbatim">%^C</code>, inserted as a link</td></tr>
+<tr><td><code class="verbatim">%^{NAME}p</code></td><td>A value for the property <code class="verbatim">NAME</code>, set in the entry's property drawer</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">%^{Prompt|default|a|b}</code> asks for text with a default and suggested choices, separated by vertical bars.</p>
+<p>A name in braces before any of the keyed forms becomes its prompt: <code class="verbatim">%^{Start}T</code>, <code class="verbatim">%^{Context}g</code>. Leave a text answer empty for the default. Tags are typed separated by colons (<code class="verbatim">work:urgent</code>); on a heading line they are aligned to <code class="verbatim">org-tags-column</code>. A date takes the same input as the editor's date prompt, such as <code class="verbatim">+2d</code>, <code class="verbatim">fri</code> or <code class="verbatim">fri 14:00</code> (see <a href="06-dates-and-clocking.html">Dates, scheduling and clocking</a>); an empty answer is today, or now for <code class="verbatim">%^T</code> and <code class="verbatim">%^U</code>. A time in the answer makes <code class="verbatim">%^t</code> include it.</p>
+<p>After the prompts are answered, <code class="verbatim">%\1</code>, <code class="verbatim">%\2</code> and so on insert the answer to the first, second, … text prompt (<code class="verbatim">%^{…}</code> only), and <code class="verbatim">%\*1</code>, <code class="verbatim">%\*2</code> the answer to the first, second, … prompt of any kind.</p>
+<h3 id="escaping-and-unsupported-escapes">Escaping and unsupported escapes</h3>
+<p>Put a backslash before <code class="verbatim">%</code> to keep it literally: <code class="verbatim">\%t</code> inserts <code class="verbatim">%t</code> (in a double-quoted TOML string, write <code class="verbatim">\\%t</code>). Two backslashes insert one backslash followed by the escape's value.</p>
+<p>Any other <code class="verbatim">%</code> sequence is left as it is.</p>
+<h2 id="date-trees">Date trees</h2>
+<p>With <code class="verbatim">datetree = true</code>, the entry goes under today's date in a tree of headings, as <code class="verbatim">org-datetree-find-create-entry</code> builds it. Missing levels are created in date order among their siblings.</p>
+<table>
+<thead>
+<tr><th><code class="verbatim">tree-type</code></th><th>Levels</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">day</code></td><td><code class="verbatim">* 2026</code>, <code class="verbatim">** 2026-10 October</code>, <code class="verbatim">*** 2026-10-07 Wednesday</code></td></tr>
+<tr><td><code class="verbatim">week</code></td><td><code class="verbatim">* 2026</code>, <code class="verbatim">** 2026-W41</code>, <code class="verbatim">*** 2026-10-07 Wednesday</code> (ISO week and its year)</td></tr>
+<tr><td><code class="verbatim">month</code></td><td><code class="verbatim">* 2026</code>, <code class="verbatim">** 2026-10 October</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">tree-type</code> may instead list the levels, any of <code class="verbatim">year</code>, <code class="verbatim">quarter</code>, <code class="verbatim">month</code>, <code class="verbatim">week</code> and <code class="verbatim">day</code> separated by spaces, as a list does in Org: <code class="verbatim">"year quarter month"</code> gives <code class="verbatim">* 2026</code>, <code class="verbatim">** 2026-Q4</code>, <code class="verbatim">*** 2026-10 October</code>. The levels always come in that order. With <code class="verbatim">week</code>, the year is the ISO week's year and the month is the month of the week's Thursday; with <code class="verbatim">week</code> and <code class="verbatim">quarter</code> but no <code class="verbatim">month</code>, quarters are 13-week periods. The day heading always uses the calendar date.</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">template</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">key</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>j<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Journal<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">file</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>journal.org<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">datetree</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span>
+<span class="variable other key toml">template</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>* %&lt;%H:%M&gt; %?<span class="constant character escape toml">\n</span>%i<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>With <code class="verbatim">olp</code>, the tree goes under that outline path, one level down, instead of at the top of the file. The date is the day you file the capture, or, with <code class="verbatim">time-prompt = true</code>, the day you give for <code class="verbatim">Date for tree entry</code>, read as <code class="verbatim">org-read-date</code> reads it (<code class="verbatim">+2d</code>, <code class="verbatim">fri</code>). That date is also the template's date: without a time, a day other than today is midnight, so <code class="verbatim">%U</code> gives <code class="verbatim">00:00</code>; with a time, such as <code class="verbatim">fri 14:00</code>, it is that time. Org only asks for date trees, and so does orgstar.</p>
+<h2 id="org-protocol">org-protocol</h2>
+<p>orgstar registers the <code class="verbatim">org-protocol:</code> URL scheme and handles the two handlers browser bookmarklets use, as <code class="verbatim">org-protocol.el</code> does in Org 9.8.7. Both the <code class="verbatim">?key=value</code> form and the older <code class="verbatim">:/a/b/c</code> form work.</p>
+<h3 id="capture">capture</h3>
+<pre><code class="language-text">org-protocol://capture?template=w&amp;url=https%3A%2F%2Fexample.com&amp;title=Example&amp;body=Selected%20text</code></pre>
+<p>This opens the capture window with:</p>
+<ul>
+<li><code class="verbatim">template</code> chosen. Without <code class="verbatim">template</code>, the template list shows. A key with no template reports <code class="verbatim">No capture template "w"</code>.</li>
+<li><code class="verbatim">%a</code> and <code class="verbatim">%:annotation</code> set to <code class="verbatim">[[url][title]]</code> (the URL as its own description when the title is blank; the title alone when there is no URL).</li>
+<li><code class="verbatim">%i</code> and <code class="verbatim">%:initial</code> set to <code class="verbatim">body</code>.</li>
+<li><code class="verbatim">%:link</code> set to the URL, <code class="verbatim">%:description</code> to the title, and <code class="verbatim">%:type</code> to the URL's scheme.</li>
+</ul>
+<p>In the query form, <code class="verbatim">+</code> stands for a space, as in Org; encode a literal <code class="verbatim">+</code> as <code class="verbatim">%2B</code>.</p>
+<h3 id="store-link">store-link</h3>
+<pre><code class="language-text">org-protocol://store-link?url=https%3A%2F%2Fexample.com&amp;title=Example</code></pre>
+<p>This stores the link, so <code class="verbatim">C-c C-l</code> in the editor offers it (see <a href="09-links.html">Links</a>), and puts the URL on the clipboard.</p>
+<p>Other handlers, such as <code class="verbatim">open-source</code>, report that orgstar handles only capture and store-link.</p>
+<h3 id="bookmarklets">Bookmarklets</h3>
+<p>Bookmarklets written for Emacs's org-protocol work unchanged. Add a bookmark with one of these as its address:</p>
+<pre><code class="language-js highlight"><span class="source js"><span class="entity name label js">javascript</span><span class="punctuation separator js">:</span><span class="variable other object js">location</span><span class="punctuation accessor js">.</span><span class="meta property object js">href</span><span class="keyword operator assignment js">=</span><span class="string quoted single js"><span class="punctuation definition string begin js">&#39;</span>org-protocol://capture?template=w&amp;url=<span class="punctuation definition string end js">&#39;</span></span><span class="keyword operator arithmetic js">+</span><span class="meta function-call js"><span class="support function js">encodeURIComponent</span><span class="meta group js"><span class="punctuation section group js">(</span><span class="variable other object js">location</span><span class="punctuation accessor js">.</span><span class="meta property object js">href</span></span><span class="meta group js"><span class="punctuation section group js">)</span></span></span><span class="keyword operator arithmetic js">+</span><span class="string quoted single js"><span class="punctuation definition string begin js">&#39;</span>&amp;title=<span class="punctuation definition string end js">&#39;</span></span><span class="keyword operator arithmetic js">+</span><span class="meta function-call js"><span class="support function js">encodeURIComponent</span><span class="meta group js"><span class="punctuation section group js">(</span><span class="support type object dom js">document</span><span class="punctuation accessor js">.</span><span class="meta property object js">title</span></span><span class="meta group js"><span class="punctuation section group js">)</span></span></span><span class="keyword operator arithmetic js">+</span><span class="string quoted single js"><span class="punctuation definition string begin js">&#39;</span>&amp;body=<span class="punctuation definition string end js">&#39;</span></span><span class="keyword operator arithmetic js">+</span><span class="meta function-call js"><span class="support function js">encodeURIComponent</span><span class="meta group js"><span class="punctuation section group js">(</span><span class="support type object dom js">window</span><span class="punctuation accessor js">.</span><span class="meta function-call method js"><span class="variable function js">getSelection</span><span class="meta group js"><span class="punctuation section group js">(</span></span><span class="meta group js"><span class="punctuation section group js">)</span></span></span></span><span class="meta group js"><span class="punctuation section group js">)</span></span></span></span></code></pre>
+<pre><code class="language-js highlight"><span class="source js"><span class="entity name label js">javascript</span><span class="punctuation separator js">:</span><span class="variable other object js">location</span><span class="punctuation accessor js">.</span><span class="meta property object js">href</span><span class="keyword operator assignment js">=</span><span class="string quoted single js"><span class="punctuation definition string begin js">&#39;</span>org-protocol://store-link?url=<span class="punctuation definition string end js">&#39;</span></span><span class="keyword operator arithmetic js">+</span><span class="meta function-call js"><span class="support function js">encodeURIComponent</span><span class="meta group js"><span class="punctuation section group js">(</span><span class="variable other object js">location</span><span class="punctuation accessor js">.</span><span class="meta property object js">href</span></span><span class="meta group js"><span class="punctuation section group js">)</span></span></span><span class="keyword operator arithmetic js">+</span><span class="string quoted single js"><span class="punctuation definition string begin js">&#39;</span>&amp;title=<span class="punctuation definition string end js">&#39;</span></span><span class="keyword operator arithmetic js">+</span><span class="meta function-call js"><span class="support function js">encodeURIComponent</span><span class="meta group js"><span class="punctuation section group js">(</span><span class="support type object dom js">document</span><span class="punctuation accessor js">.</span><span class="meta property object js">title</span></span><span class="meta group js"><span class="punctuation section group js">)</span></span></span></span></code></pre>
+<p>A matching web capture template:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">template</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">key</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>w<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">name</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Web page<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">file</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>inbox.org<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">headline</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>Web<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">template</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>* %:description<span class="constant character escape toml">\n</span>:PROPERTIES:<span class="constant character escape toml">\n</span>:URL: %:link<span class="constant character escape toml">\n</span>:END:<span class="constant character escape toml">\n</span>%U<span class="constant character escape toml">\n</span>%i<span class="constant character escape toml">\n</span>%?<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<h2 id="shortcuts">Shortcuts</h2>
+<p>The Shortcuts action Capture to orgstar files text with a template, without the capture window. It has two parameters:</p>
+<table>
+<thead>
+<tr><th>Parameter</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>Text</td><td>The text, inserted as <code class="verbatim">%i</code></td></tr>
+<tr><td>Template Key</td><td>A template's <code class="verbatim">key</code> in <code class="verbatim">capture.toml</code>; the first template when empty</td></tr>
+</tbody>
+</table>
+<p>Every prompt in the template takes its default (an empty answer: today for dates, no tags), and <code class="verbatim">%?</code> is ignored. <code class="verbatim">%a</code> is empty. On the Mac, <code class="verbatim">%c</code> is the clipboard and <code class="verbatim">%n</code> your name; on iOS both are empty, because reading the pasteboard would ask for permission on every run. The action returns a message, <code class="verbatim">Captured to …</code> with the target on the Mac and <code class="verbatim">Captured with …</code> with the template name on iOS, or fails with the same messages as the capture window. You can also say "Capture to orgstar" to Siri.</p>
+<p>On the Mac, the action opens orgstar if it isn't running and waits up to five seconds for it to be ready.</p>
+<h2 id="capture-on-ios">Capture on iOS</h2>
+<p>The Capture button (a square with a pencil) at the top of the Agenda and Folders tabs opens the capture sheet. The + on a day's header in the Agenda tab opens it for that day, as described in <a href="#capturing-onto-an-agenda-day">Capturing onto an agenda day</a>; date prompts then show that day as their default. The templates come from the <code class="verbatim">capture.toml</code> in your synced configuration folder (see <a href="14-ios.html">iOS</a>).</p>
+<p>The sheet works as on the Mac, in a form:</p>
+<ul>
+<li>The Template picker chooses the template; it starts on the first one.</li>
+<li>Prompts appear as fields. Date prompts have a date picker; choices and tags appear as buttons, and tapping a tag adds it.</li>
+<li>Continue fills the template and shows the text to edit; File files it; Cancel discards it.</li>
+<li>Refile… in the bottom bar, for <code class="verbatim">entry</code> templates, files the text and then shows the refile targets. If you cancel or refiling fails, the entry opens where it was filed.</li>
+</ul>
+<p>Differences from the Mac: there is no selection, clipboard, current file, user name or clock link to insert, so <code class="verbatim">%i</code> and <code class="verbatim">%a</code> are empty unless the capture came from a link or the share sheet, and <code class="verbatim">%c</code>, <code class="verbatim">%x</code>, <code class="verbatim">%f</code>, <code class="verbatim">%F</code>, <code class="verbatim">%n</code>, <code class="verbatim">%k</code> and <code class="verbatim">%K</code> are empty. An org-protocol link naming a template key that doesn't exist opens the sheet on the first template and shows <code class="verbatim">No capture template "x"</code> with the key.</p>
+<h3 id="the-share-sheet">The share sheet</h3>
+<p>In another app, share a web page or text and choose orgstar. The share form has:</p>
+<ul>
+<li>a Template picker, with the templates the app read the last time it ran;</li>
+<li>for a link, its title (editable) and address;</li>
+<li>a Text field, filled with shared text.</li>
+</ul>
+<p>Capture saves the item in the app group's capture inbox. The next time you open orgstar, it opens the capture sheet with the item as an org-protocol capture: the link becomes <code class="verbatim">%a</code> and <code class="verbatim">%:link</code>, the title <code class="verbatim">%:description</code>, and the text <code class="verbatim">%i</code>. Several waiting items open one after another, oldest first. If the extension says orgstar's shared folder isn't available, the app group is missing from the build and nothing can be saved.</p>
+<p>The share form lists no templates until orgstar has run once with your configuration folder; the capture sheet then starts on the first template.</p>
+<h2 id="importing-templates-from-emacs">Importing templates from Emacs</h2>
+<p>Import from Emacs (see <a href="13-configuration.html">Configuration</a> and <a href="15-alongside-emacs.html">Alongside Emacs</a>) reads <code class="verbatim">org-capture-templates</code> and appends a <code class="verbatim">[[template]]</code> table to <code class="verbatim">capture.toml</code> for each template whose key isn't there already.</p>
+<table>
+<thead>
+<tr><th>Emacs</th><th>Imported as</th></tr>
+</thead>
+<tbody>
+<tr><td>types <code class="verbatim">entry</code>, <code class="verbatim">item</code>, <code class="verbatim">checkitem</code>, <code class="verbatim">plain</code>, <code class="verbatim">table-line</code></td><td><code class="verbatim">type</code></td></tr>
+<tr><td><code class="verbatim">(file "f")</code></td><td><code class="verbatim">file</code></td></tr>
+<tr><td><code class="verbatim">(file+headline "f" "H")</code></td><td><code class="verbatim">file</code>, <code class="verbatim">headline</code></td></tr>
+<tr><td><code class="verbatim">(file+olp "f" "A" "B")</code></td><td><code class="verbatim">file</code>, <code class="verbatim">olp = "A/B"</code></td></tr>
+<tr><td><code class="verbatim">(file+olp+datetree "f" …)</code></td><td><code class="verbatim">file</code>, <code class="verbatim">datetree</code>, <code class="verbatim">olp</code> if a path is given</td></tr>
+<tr><td><code class="verbatim">(file+datetree "f")</code></td><td><code class="verbatim">file</code>, <code class="verbatim">datetree</code></td></tr>
+<tr><td><code class="verbatim">(file+weektree "f")</code></td><td><code class="verbatim">file</code>, <code class="verbatim">datetree</code>, <code class="verbatim">tree-type = "week"</code></td></tr>
+<tr><td><code class="verbatim">(file+regexp "f" "re")</code></td><td><code class="verbatim">file</code>, <code class="verbatim">regexp</code></td></tr>
+<tr><td><code class="verbatim">(id "…")</code></td><td><code class="verbatim">id</code></td></tr>
+<tr><td><code class="verbatim">(clock)</code></td><td><code class="verbatim">clock</code></td></tr>
+<tr><td><code class="verbatim">:prepend</code>, <code class="verbatim">:immediate-finish</code>, <code class="verbatim">:jump-to-captured</code>, <code class="verbatim">:clock-in</code>, <code class="verbatim">:clock-keep</code>, <code class="verbatim">:clock-resume</code></td><td>the boolean of the same name</td></tr>
+<tr><td><code class="verbatim">:empty-lines</code>, <code class="verbatim">:empty-lines-before</code>, <code class="verbatim">:empty-lines-after</code>, <code class="verbatim">:table-line-pos</code></td><td>the key of the same name</td></tr>
+<tr><td><code class="verbatim">:tree-type</code>, a symbol or a list such as <code class="verbatim">(year quarter)</code></td><td><code class="verbatim">tree-type</code></td></tr>
+<tr><td><code class="verbatim">:time-prompt</code></td><td><code class="verbatim">time-prompt = true</code></td></tr>
+<tr><td><code class="verbatim">("w" "Work")</code>, a key and a description</td><td>a group: <code class="verbatim">key</code> and <code class="verbatim">name</code></td></tr>
+</tbody>
+</table>
+<p>A file name given as a variable or a simple form is evaluated where the importer can. The import report lists what it left out: other targets, templates that aren't strings, unknown <code class="verbatim">:tree-type</code> values, and other properties such as <code class="verbatim">:kill-buffer</code> or <code class="verbatim">:unnarrowed</code>.</p>
+<p>Emacs resolves relative target files against <code class="verbatim">org-directory</code>; orgstar resolves them against the first folder in the sidebar. If <code class="verbatim">org-directory</code> isn't your first folder, edit the imported <code class="verbatim">file</code> values or make them absolute.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

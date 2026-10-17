@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tables &middot; orgstar</title>
+<meta name="description" content="Creating and editing Org tables, column widths, import and export, and spreadsheet formulas.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Tables</h1>
+<p class="lede">Org tables are plain text that orgstar keeps aligned, edits by row and column, and recalculates with the same formulas Emacs uses.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#tables-in-org">Tables in Org</a></li>
+<li><a href="#creating-a-table">Creating a table</a></li>
+<li><a href="#moving-around-and-alignment">Moving around and alignment</a></li>
+<li><a href="#editing-rows-and-columns">Editing rows and columns</a>
+<ul>
+<li><a href="#sorting">Sorting</a></li>
+<li><a href="#transposing">Transposing</a></li>
+<li><a href="#the-field-editor">The field editor</a></li>
+</ul></li>
+<li><a href="#narrow-columns">Narrow columns</a></li>
+<li><a href="#importing-and-exporting">Importing and exporting</a></li>
+<li><a href="#formulas">Formulas</a>
+<ul>
+<li><a href="#kinds-of-formula">Kinds of formula</a></li>
+<li><a href="#references">References</a></li>
+<li><a href="#names-parameters-and-constants">Names, parameters and constants</a></li>
+<li><a href="#remote-references">Remote references</a></li>
+<li><a href="#calc-expressions">Calc expressions</a></li>
+<li><a href="#mode-flags-and-formats">Mode flags and formats</a></li>
+<li><a href="#durations">Durations</a></li>
+<li><a href="#dates">Dates</a></li>
+<li><a href="#lisp-formulas">Lisp formulas</a></li>
+</ul></li>
+<li><a href="#entering-formulas">Entering formulas</a></li>
+<li><a href="#recalculating">Recalculating</a></li>
+<li><a href="#when-emacs-is-needed">When Emacs is needed</a></li>
+<li><a href="#table-el-tables">table.el tables</a></li>
+<li><a href="#plotting">Plotting</a></li>
+<li><a href="#on-ios">On iOS</a></li>
+</ul>
+</nav>
+<h2 id="tables-in-org">Tables in Org</h2>
+<p>A table is a run of lines that start with <code class="verbatim">|</code>. Fields are separated by <code class="verbatim">|</code>, and a line that starts with <code class="verbatim">|-</code> is a horizontal rule:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup other table org">| Name  | Qty | Price |</span>
+<span class="markup other table org">|-------+-----+-------|</span>
+<span class="markup other table org">| Apple |   3 |  0.50 |</span>
+<span class="markup other table org">| Pear  |  12 |  0.75 |</span></span></code></pre>
+<p>orgstar follows <code class="verbatim">org-table.el</code> from Org 9.8.7, with <code class="verbatim">org-table-automatic-realign</code> on, <code class="verbatim">org-table-tab-jumps-over-hlines</code> on, and formulas adjusted without asking when rows and columns move (<code class="verbatim">org-table-fix-formulas-confirm</code> nil). Tables inside dynamic blocks count as tables; tables inside other blocks don't.</p>
+<h2 id="creating-a-table">Creating a table</h2>
+<p>Type <code class="verbatim">|</code>, a few field names separated by <code class="verbatim">|</code>, and press <code class="verbatim">TAB</code>: orgstar aligns the line as a table and moves to the next field, adding a row after the last one. Type <code class="verbatim">|-</code> on the line below a row and press <code class="verbatim">TAB</code> to turn it into a full-width rule.</p>
+<p><code class="verbatim">org-table-create-or-convert-from-region</code> builds one for you: <code>C-c |</code> in the Emacs and Doom presets, <code class="verbatim">⌃⌘\</code> in the Mac preset.</p>
+<p>With no selection it asks <code class="verbatim">Table size Columns x Rows [e.g. 5x2]:</code>. An empty answer makes a 5 × 2 table. When there is more than one row, a rule follows the first row.</p>
+<p>With text selected, the command converts the selected lines to a table instead (<code class="verbatim">org-table-convert-region</code>). The separator is guessed:</p>
+<ul>
+<li>tabs, when every line has a tab;</li>
+<li>otherwise commas, when every line has a comma, read as CSV: a field in double quotes can hold commas, and a line break in it becomes a space;</li>
+<li>otherwise runs of spaces.</li>
+</ul>
+<h2 id="moving-around-and-alignment">Moving around and alignment</h2>
+<table>
+<thead>
+<tr><th>Key</th><th>Org command</th><th>Action</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">TAB</code></td><td><code class="verbatim">org-table-next-field</code></td><td>Aligns the table and moves to the next field, skipping rules. In the last field it adds a row.</td></tr>
+<tr><td><code class="verbatim">S-TAB</code></td><td><code class="verbatim">org-table-previous-field</code></td><td>Aligns the table and moves to the previous field.</td></tr>
+<tr><td><code class="verbatim">RET</code></td><td><code class="verbatim">org-table-next-row</code></td><td>Aligns the table and moves down a row in the same column. Before a rule or at the end of the table it inserts a row.</td></tr>
+</tbody>
+</table>
+<p>These keys work the same in the Emacs and Mac presets. In Doom they apply in insert state; in normal state <code class="verbatim">RET</code> is Doom's "act at point" (see <em>Recalculating</em>).</p>
+<p>Alignment (<code class="verbatim">org-table-align</code>) pads every field to its column's width and redraws rules to match. A column is right-aligned when at least half of its non-empty fields are numbers, and left-aligned otherwise. A field that holds only a cookie <code class="verbatim">&lt;l&gt;</code>, <code class="verbatim">&lt;c&gt;</code> or <code class="verbatim">&lt;r&gt;</code> (optionally with a width, such as <code class="verbatim">&lt;r10&gt;</code>) fixes the column's alignment. Widths count display columns, so wide characters and hidden link markup are measured as they appear.</p>
+<p>Alignment happens when you press <code class="verbatim">TAB</code>, <code class="verbatim">S-TAB</code> or <code class="verbatim">RET</code> in a table and after every table command, not while you type. To align without moving, use Org ▸ Align Table:</p>
+<table>
+<thead>
+<tr><th>Preset</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Emacs</td><td><code class="verbatim">C-c C-c</code> in a table</td></tr>
+<tr><td>Mac</td><td><code class="verbatim">⌃⌘X</code> in a table</td></tr>
+<tr><td>Doom</td><td><code class="verbatim">C-c C-c</code>, or <code class="verbatim">SPC m b a</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">C-c C-c</code> (Mac <code class="verbatim">⌃⌘X</code>) in a table is <code class="verbatim">org-ctrl-c-ctrl-c</code>, as in Emacs. It first evaluates a formula typed in the current field (see <em>Entering formulas</em>). Then, in a row marked <code class="verbatim">#</code> (see <em>Names, parameters and constants</em>), it recalculates that row, which also aligns the table; in any other row it aligns the table. With the caret at the table's very first character, it recalculates the whole table instead.</p>
+<p>To align every table when a file opens, set <code class="verbatim">org-startup-align-all-tables</code> to <code class="verbatim">true</code> in the config file (default <code class="verbatim">false</code>), or put <code class="verbatim">#+STARTUP: align</code> in the file; <code class="verbatim">#+STARTUP: noalign</code> turns it off for that file. See <a href="13-configuration.html">Configuration</a>.</p>
+<h2 id="editing-rows-and-columns">Editing rows and columns</h2>
+<table>
+<thead>
+<tr><th>Action</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Move row up</td><td><code class="verbatim">org-table-move-row-up</code></td><td><code class="verbatim">M-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌘↑</code></td><td><code class="verbatim">M-&lt;up&gt;</code>, <code class="verbatim">M-k</code></td></tr>
+<tr><td>Move row down</td><td><code class="verbatim">org-table-move-row-down</code></td><td><code class="verbatim">M-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌘↓</code></td><td><code class="verbatim">M-&lt;down&gt;</code>, <code class="verbatim">M-j</code></td></tr>
+<tr><td>Move column left</td><td><code class="verbatim">org-table-move-column-left</code></td><td><code class="verbatim">M-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌘←</code></td><td><code class="verbatim">M-&lt;left&gt;</code>, <code class="verbatim">M-h</code></td></tr>
+<tr><td>Move column right</td><td><code class="verbatim">org-table-move-column-right</code></td><td><code class="verbatim">M-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌘→</code></td><td><code class="verbatim">M-&lt;right&gt;</code>, <code class="verbatim">M-l</code></td></tr>
+<tr><td>Insert column</td><td><code class="verbatim">org-table-insert-column</code></td><td><code class="verbatim">M-S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌥⌘→</code></td><td><code class="verbatim">M-S-&lt;right&gt;</code>, <code class="verbatim">SPC m b i c</code></td></tr>
+<tr><td>Delete column</td><td><code class="verbatim">org-table-delete-column</code></td><td><code class="verbatim">M-S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌥⌘←</code></td><td><code class="verbatim">M-S-&lt;left&gt;</code>, <code class="verbatim">SPC m b d c</code></td></tr>
+<tr><td>Insert row above</td><td><code class="verbatim">org-table-insert-row</code></td><td><code class="verbatim">M-S-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌥⌘↓</code></td><td><code class="verbatim">M-S-&lt;down&gt;</code>, <code class="verbatim">SPC m b i r</code></td></tr>
+<tr><td>Delete row</td><td><code class="verbatim">org-table-kill-row</code></td><td><code class="verbatim">M-S-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌥⌘↑</code></td><td><code class="verbatim">M-S-&lt;up&gt;</code>, <code class="verbatim">SPC m b d r</code></td></tr>
+<tr><td>Insert rule below</td><td><code class="verbatim">org-table-insert-hline</code></td><td><code class="verbatim">C-c -</code></td><td><code class="verbatim">⌃⌘-</code></td><td><code class="verbatim">C-c -</code>, <code class="verbatim">SPC m b -</code>, <code class="verbatim">SPC m b i h</code></td></tr>
+<tr><td>Sort rows</td><td><code class="verbatim">org-table-sort-lines</code></td><td><code class="verbatim">C-c ^</code></td><td><code class="verbatim">⌃⇧⌘S</code></td><td><code class="verbatim">C-c ^</code></td></tr>
+<tr><td>Transpose</td><td><code class="verbatim">org-table-transpose-table-at-point</code></td><td>Org ▸ Transpose Table</td><td>Org ▸ Transpose Table</td><td>Org ▸ Transpose Table</td></tr>
+<tr><td>Edit field in its own editor</td><td><code class="verbatim">org-table-edit-field</code></td><td><code class="verbatim">C-c `</code></td><td>Org ▸ Edit Table Field</td><td><code class="verbatim">C-c `</code></td></tr>
+</tbody>
+</table>
+<p>The new column goes to the left of the caret's column, empty. Deleting a row deletes the line; it doesn't go to the clipboard. When rows and columns move, are inserted or are deleted, the <code class="verbatim">#+TBLFM</code> line is updated to match: references are renumbered, and formulas for a deleted row or column are removed.</p>
+<p>The Mac preset uses the same keys for headings and list items; in a table they act on the table.</p>
+<h3 id="sorting">Sorting</h3>
+<p><code class="verbatim">C-c ^</code> in a table asks <code class="verbatim">Sort Table: [a]lphabetic, [n]umeric, [t]ime.  A/N/T means reversed:</code> and sorts the rows between the rules around the caret by the caret's column. If the caret isn't in a field, it asks for the column first. Sorting is stable.</p>
+<ul>
+<li><strong>a</strong> compares text without case.</li>
+<li><strong>n</strong> compares the number at the start of each field.</li>
+<li><strong>t</strong> compares a timestamp in the field, else a duration such as <code class="verbatim">1:30</code> or <code class="verbatim">2h 15min</code>, else a clock time <code class="verbatim">H:MM</code>. Fields with none of these sort as 0.</li>
+</ul>
+<h3 id="transposing">Transposing</h3>
+<p>Org ▸ Transpose Table swaps rows and columns. Rules are dropped.</p>
+<h3 id="the-field-editor">The field editor</h3>
+<p><code class="verbatim">C-c `</code> opens the field at the caret in an editor of its own, which is easier for long text. <code class="verbatim">C-c '</code> or <code class="verbatim">⌘Return</code> puts it back; <code class="verbatim">Escape</code> or <code class="verbatim">C-c C-k</code> leaves it unchanged. Line breaks become single spaces and lines that start with <code class="verbatim">#</code> are dropped, as <code class="verbatim">org-table-finish-edit-field</code> does.</p>
+<h2 id="narrow-columns">Narrow columns</h2>
+<p>A field that holds a width cookie <code class="verbatim">&lt;N&gt;</code>, optionally with an alignment letter (<code class="verbatim">&lt;l10&gt;</code>, <code class="verbatim">&lt;c8&gt;</code>, <code class="verbatim">&lt;r12&gt;</code>), marks the column for narrowing. Narrowed fields show their first <em>N</em> display columns followed by <code class="verbatim">…</code>. The text itself is unchanged.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Keys</th></tr>
+</thead>
+<tbody>
+<tr><td>Org ▸ Shrink or Expand Table Column</td><td><code class="verbatim">org-table-toggle-column-width</code></td><td>Emacs and Doom <code class="verbatim">C-c TAB</code></td></tr>
+<tr><td>Org ▸ Shrink Table Columns with Widths</td><td><code class="verbatim">org-table-shrink</code></td><td>No default key</td></tr>
+<tr><td>Org ▸ Expand Table Columns</td><td><code class="verbatim">org-table-expand</code></td><td>No default key</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">C-c TAB</code> in a field toggles that column. Outside a column, for example on the leading <code class="verbatim">|</code>, it asks for <code class="verbatim">Column ranges (e.g. 2-4 6-):</code>, where <code class="verbatim">6-</code> means column 6 to the end. A column without a width cookie shrinks to a bare <code class="verbatim">…</code> when toggled. Typing in a narrowed field widens its column again, as editing Org's overlays does. <code class="verbatim">#+STARTUP: shrink</code> narrows every column with a width cookie when the file opens.</p>
+<p>The iOS editor narrows columns the same way, with <code class="verbatim">#+STARTUP: shrink</code> and the three commands, which are in Commands when the caret is in a table. The iOS reader shows tables at full width.</p>
+<h2 id="importing-and-exporting">Importing and exporting</h2>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th></tr>
+</thead>
+<tbody>
+<tr><td>Import Table from File… (command palette)</td><td><code class="verbatim">org-table-import</code></td></tr>
+<tr><td>Export Table to File… (command palette)</td><td><code class="verbatim">org-table-export</code></td></tr>
+</tbody>
+</table>
+<p>Open the command palette with <code class="verbatim">⇧⌘P</code> (<code class="verbatim">M-x</code> in the Emacs preset, <code class="verbatim">SPC :</code> in Doom). On iOS, both are under More › Table in the editor, as Import Table from File…, Export Table as CSV… and Export Table as TSV…, and in Commands; the file comes from, and goes to, the Files app.</p>
+<p>Import asks for a CSV, TSV or plain text file, inserts its contents at the caret on a line of its own, and converts them to a table with the separator guessed as for a region (see <em>Creating a table</em>).</p>
+<p>Export writes the table at the caret. A file name ending in <code class="verbatim">.csv</code> gets CSV: fields separated by commas, with fields that contain a comma or a double quote quoted and inner quotes doubled. Any other name gets TSV. Rules are left out.</p>
+<h2 id="formulas">Formulas</h2>
+<p>orgstar evaluates Org's spreadsheet formulas, <code class="verbatim">org-table-recalculate</code> and <code class="verbatim">org-table-eval-formula</code>, natively: Calc expressions in a reimplementation of the part of Emacs Calc that tables use, and Lisp formulas in a small Emacs Lisp evaluator. What falls outside them is handed to Emacs on the Mac (see <em>When Emacs is needed</em>).</p>
+<p>Formulas live in a <code class="verbatim">#+TBLFM:</code> line right after the table, separated by <code class="verbatim">::</code>:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup other table org">| Item  | Qty | Price | Total |</span>
+<span class="markup other table org">|-------+-----+-------+-------|</span>
+<span class="markup other table org">| Apple |   3 |  0.50 |  1.50 |</span>
+<span class="markup other table org">| Pear  |  12 |  0.75 |  9.00 |</span>
+<span class="markup other table org">|-------+-----+-------+-------|</span>
+<span class="markup other table org">| Sum   |     |       | 10.50 |</span>
+<span class="keyword other keyword org">#+TBLFM:</span><span class="string unquoted org"> $4=$2*$3;%.2f::@&gt;$4=vsum(@I..@II);%.2f</span></span></code></pre>
+<p>Blank lines between the table and <code class="verbatim">#+TBLFM:</code> are allowed. If there are several <code class="verbatim">#+TBLFM:</code> lines, recalculating the table uses the first; <code class="verbatim">C-c C-c</code> on another applies that line instead (<code class="verbatim">org-table-calc-current-TBLFM</code>).</p>
+<h3 id="kinds-of-formula">Kinds of formula</h3>
+<table>
+<thead>
+<tr><th>Left side</th><th>Kind</th><th>Applies to</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">$3</code></td><td>Column formula</td><td>Every data row of column 3, except rows marked <code class="verbatim">!</code>, <code class="verbatim">^</code>, <code class="verbatim">_</code>, <code class="verbatim">$</code> or <code class="verbatim">/</code> in the first column.</td></tr>
+<tr><td><code class="verbatim">$&lt;</code>, <code class="verbatim">$&gt;</code></td><td>Column formula</td><td>The first or last column.</td></tr>
+<tr><td><code class="verbatim">@2$3</code>, <code class="verbatim">@&gt;$3</code></td><td>Field formula</td><td>One field. Field formulas override column formulas.</td></tr>
+<tr><td><code class="verbatim">@2$2..@4$3</code></td><td>Range formula</td><td>Every field in the rectangle.</td></tr>
+<tr><td><code class="verbatim">@4</code></td><td>Row formula</td><td>Every field of data row 4.</td></tr>
+<tr><td><code class="verbatim">$name</code></td><td>Named field formula</td><td>The field named by a <code class="verbatim">^</code> or <code class="verbatim">_</code> row (see <em>Names, parameters and constants</em>).</td></tr>
+</tbody>
+</table>
+<p>A left side relative to the current row, such as <code class="verbatim">@-1$2</code>, is an error (<code class="verbatim">Unknown field</code>), and so is one relative to a rule, such as <code class="verbatim">@I$2</code>, as in Org. Two formulas for the same field are an error.</p>
+<h3 id="references">References</h3>
+<p>Rows count data lines from 1; rules don't count. Columns count from 1.</p>
+<table>
+<thead>
+<tr><th>Reference</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">$2</code></td><td>Column 2 in the current row.</td></tr>
+<tr><td><code class="verbatim">$-1</code>, <code class="verbatim">$+1</code></td><td>The column before or after the current one.</td></tr>
+<tr><td><code class="verbatim">$&lt;</code>, <code class="verbatim">$&gt;</code>, <code class="verbatim">$&gt;&gt;</code></td><td>The first column, the last, the one before last.</td></tr>
+<tr><td><code class="verbatim">@3</code></td><td>Row 3 in the current column.</td></tr>
+<tr><td><code class="verbatim">@-1</code>, <code class="verbatim">@+1</code></td><td>The row above or below.</td></tr>
+<tr><td><code class="verbatim">@&lt;</code>, <code class="verbatim">@&gt;</code></td><td>The first or last data row.</td></tr>
+<tr><td><code class="verbatim">@I</code>, <code class="verbatim">@II</code>, <code class="verbatim">@III</code></td><td>The first, second, third rule; as a row, the line after it.</td></tr>
+<tr><td><code class="verbatim">@-I</code></td><td>The rule above the current row.</td></tr>
+<tr><td><code class="verbatim">@I+2</code></td><td>Two data rows after the first rule.</td></tr>
+<tr><td><code class="verbatim">@2$3</code></td><td>Row 2, column 3.</td></tr>
+<tr><td><code class="verbatim">$0</code></td><td>The current column.</td></tr>
+<tr><td><code class="verbatim">@0</code></td><td>The current row: <code class="verbatim">@0$2</code> is <code class="verbatim">$2</code>.</td></tr>
+<tr><td><code class="verbatim">@#</code>, <code class="verbatim">$#</code></td><td>The current row's or column's number, as a value.</td></tr>
+<tr><td><code class="verbatim">@2$1..@4$3</code></td><td>A range: the fields of the rectangle, as a vector.</td></tr>
+<tr><td><code class="verbatim">$1..$3</code></td><td>Columns 1 to 3 of the current row.</td></tr>
+<tr><td><code class="verbatim">@I..@II</code></td><td>The current column from the first rule to the second.</td></tr>
+</tbody>
+</table>
+<p>In a Calc formula a single field becomes a number in parentheses, and a range becomes a vector such as <code class="verbatim">[1,2,3]</code>. Without the <code class="verbatim">E</code> flag, empty fields count as 0 on their own and are left out of ranges.</p>
+<p>Fields in a Calc formula must hold numbers, timestamps or <code class="verbatim">nan</code>, unless the <code class="verbatim">N</code> flag reads every field as a number. A reference to a field with other text needs Emacs, because Calc would treat the text as a symbol.</p>
+<h3 id="names-parameters-and-constants">Names, parameters and constants</h3>
+<p>The first column can mark special rows, as in Org's spreadsheet:</p>
+<table>
+<thead>
+<tr><th>Mark</th><th>Row</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">#</code></td><td>Marked for recalculation.</td></tr>
+<tr><td><code class="verbatim">*</code></td><td>Marked for recalculation.</td></tr>
+</tbody>
+</table>
+<p>When any row's first field is one of <code class="verbatim">!</code>, <code class="verbatim">^</code>, <code class="verbatim">_</code>, <code class="verbatim">$</code>, <code class="verbatim">#</code> or <code class="verbatim">*</code>, column formulas in a whole-table recalculation apply only to the rows marked <code class="verbatim">#</code> or <code class="verbatim">*</code>, as <code class="verbatim">org-table-calculate-mark-regexp</code> decides in Org. So a table with a <code class="verbatim">!</code> names row and no <code class="verbatim">#</code> rows gets no column formulas applied; mark the rows to calculate. Field formulas apply either way. Rows marked <code class="verbatim">!</code>, <code class="verbatim">^</code>, <code class="verbatim">_</code>, <code class="verbatim">$</code> or <code class="verbatim">/</code> are never changed by column formulas.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup other table org">| ! | qty | price | total |</span>
+<span class="markup other table org">|---+-----+-------+-------|</span>
+<span class="markup other table org">| # |   2 |     3 |     6 |</span>
+<span class="markup other table org">| # |   4 |   0.5 |     2 |</span>
+<span class="keyword other keyword org">#+TBLFM:</span><span class="string unquoted org"> $4=$qty*$price</span></span></code></pre>
+<p>A <code class="verbatim">$name</code> that isn't a column name, parameter or named field is looked up as <code class="verbatim">org-table-get-constant</code> does:</p>
+<ul>
+<li>in <code class="verbatim">#+CONSTANTS:</code> lines of the file or its setup file, written <code>name=value</code> and separated by spaces (<code>#+CONSTANTS: c=299792458 g=9.81</code>);</li>
+<li><code class="verbatim">$PROP_xyz</code> reads the <code class="verbatim">xyz</code> property of the entry holding the table, with inheritance.</li>
+</ul>
+<p>A name that isn't found becomes <code class="verbatim">#UNDEFINED_NAME</code>. A parameter named <code class="verbatim">%</code> in a <code class="verbatim">$</code> row, for example <code>%=%.2f</code>, is put in front of the flags of every formula that has a <code class="verbatim">;</code>, so <code>$3=$2/3;</code> is formatted with <code class="verbatim">%.2f</code>.</p>
+<h3 id="remote-references">Remote references</h3>
+<p><code class="verbatim">remote(NAME, REF)</code> reads a field or range from another table:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+NAME:</span><span class="string unquoted org"> rates</span>
+<span class="markup other table org">| item | rate |</span>
+<span class="markup other table org">|------+------|</span>
+<span class="markup other table org">| a    |    2 |</span>
+<span class="markup other table org">| b    |    3 |</span>
+
+<span class="markup other table org">| x | y | z |</span>
+<span class="markup other table org">|---+---+---|</span>
+<span class="markup other table org">| 4 | 8 | 5 |</span>
+<span class="keyword other keyword org">#+TBLFM:</span><span class="string unquoted org"> $2=$1*remote(rates,@2$2)::$3=vsum(remote(rates,@2$2..@&gt;$2))</span></span></code></pre>
+<p><code class="verbatim">NAME</code> is found in this order:</p>
+<ol>
+<li>a table after <code class="verbatim">#+NAME: NAME</code> or <code class="verbatim">#+TBLNAME: NAME</code> in the same file;</li>
+<li>the first table in the entry whose <code class="verbatim">ID</code> property is <code class="verbatim">NAME</code>, in the same file;</li>
+<li>the first table in the entry with that <code class="verbatim">ID</code> in any indexed file in your sidebar folders, read from the file on disk.</li>
+</ol>
+<p><code class="verbatim">REF</code> may use spreadsheet-style references such as <code class="verbatim">B3</code> (column B, row 3), which become <code class="verbatim">@3$2</code>. A <code class="verbatim">REF</code> without a row, such as <code class="verbatim">$1..$2</code>, reads the row of the other table that has the current row's number. <code class="verbatim">NAME</code> can itself be a reference: in <code class="verbatim">remote($1,@1$1)</code>, the current row's first field holds the table's name.</p>
+<h3 id="calc-expressions">Calc expressions</h3>
+<p>Calc formulas use Calc's number rules: integers are exact, and decimal numbers are rounded to 12 significant digits after every operation. Results are shown with up to 8 significant digits unless a format flag says otherwise (<code class="verbatim">org-calc-default-modes</code>).</p>
+<p>Operators, from lowest to highest precedence (the lowest, <code>||</code>, is logical or, giving 1 or 0):</p>
+<table>
+<thead>
+<tr><th>Operator</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">&amp;&amp;</code></td><td>Logical and.</td></tr>
+<tr><td><code>==</code>, <code>!=</code>, <code class="verbatim">&lt;</code>, <code class="verbatim">&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code></td><td>Comparisons, giving 1 or 0. They can't be chained.</td></tr>
+<tr><td><code class="verbatim">+</code>, <code class="verbatim">-</code></td><td>Addition and subtraction.</td></tr>
+<tr><td><code class="verbatim">/</code>, <code class="verbatim">%</code>, <code class="verbatim">\</code></td><td>Division, modulo (sign of the divisor), integer division rounding down.</td></tr>
+<tr><td><code class="verbatim">*</code></td><td>Multiplication.</td></tr>
+<tr><td>unary <code class="verbatim">-</code></td><td>Negation.</td></tr>
+</tbody>
+</table>
+<p>Parentheses group, <code class="verbatim">[a, b, c]</code> writes a vector, <code class="verbatim">&lt;2026-10-05 Mon&gt;</code> writes a date, and <code class="verbatim">nan</code> is "not a number".</p>
+<p>Functions:</p>
+<table>
+<thead>
+<tr><th>Function</th><th>Result</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">vsum</code>, <code class="verbatim">vprod</code></td><td>Sum or product of a vector.</td></tr>
+<tr><td><code class="verbatim">vcount</code></td><td>Number of elements.</td></tr>
+<tr><td><code class="verbatim">vmean</code>, <code class="verbatim">vmedian</code></td><td>Mean, median.</td></tr>
+<tr><td><code class="verbatim">vmax</code>, <code class="verbatim">vmin</code></td><td>Largest, smallest element.</td></tr>
+<tr><td><code class="verbatim">vvar</code>, <code class="verbatim">vsdev</code></td><td>Sample variance, sample standard deviation.</td></tr>
+<tr><td><code class="verbatim">vpvar</code>, <code class="verbatim">vpsdev</code></td><td>Population variance, population standard deviation.</td></tr>
+<tr><td><code class="verbatim">max(a, b, …)</code>, <code class="verbatim">min(a, b, …)</code></td><td>Largest, smallest argument.</td></tr>
+<tr><td><code class="verbatim">if(c, a, b)</code></td><td><code class="verbatim">a</code> if <code class="verbatim">c</code> is nonzero, else <code class="verbatim">b</code>.</td></tr>
+<tr><td><code class="verbatim">abs</code></td><td>Absolute value.</td></tr>
+<tr><td><code class="verbatim">floor</code>, <code class="verbatim">ceil</code>, <code class="verbatim">trunc</code></td><td>Round down, up, toward zero, to an integer.</td></tr>
+<tr><td><code class="verbatim">round(x)</code>, <code class="verbatim">round(x, n)</code></td><td>Round to an integer, or to <em>n</em> decimal places.</td></tr>
+<tr><td><code class="verbatim">mod(a, b)</code>, <code class="verbatim">idiv(a, b)</code></td><td>As <code class="verbatim">%</code> and <code class="verbatim">\</code>.</td></tr>
+<tr><td><code class="verbatim">fact</code></td><td>Factorial of a non-negative integer.</td></tr>
+<tr><td><code class="verbatim">sqrt</code>, <code class="verbatim">exp</code>, <code class="verbatim">ln</code>, <code class="verbatim">log10</code></td><td>Square root, exponential, natural and base-10 logarithm.</td></tr>
+<tr><td><code class="verbatim">sin</code>, <code class="verbatim">cos</code>, <code class="verbatim">tan</code></td><td>Trigonometry, in degrees unless the <code class="verbatim">R</code> flag is set.</td></tr>
+<tr><td><code class="verbatim">arcsin</code>, <code class="verbatim">arccos</code>, <code class="verbatim">arctan</code></td><td>Inverse trigonometry, in degrees unless <code class="verbatim">R</code>.</td></tr>
+</tbody>
+</table>
+<p>Other Calc functions, variables such as <code class="verbatim">pi</code> or <code class="verbatim">e</code>, symbolic results, complex results and division by zero need Emacs.</p>
+<h3 id="mode-flags-and-formats">Mode flags and formats</h3>
+<p>After the formula, a <code class="verbatim">;</code> starts its flags, as in <code>$3=$1/$2;%.2f</code> or <code>$4=$1*2;f2</code>:</p>
+<table>
+<thead>
+<tr><th>Flag</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">nN</code></td><td>Float format with <em>N</em> significant digits.</td></tr>
+<tr><td><code class="verbatim">fN</code></td><td>Fixed format with <em>N</em> decimal places.</td></tr>
+<tr><td><code class="verbatim">sN</code></td><td>Scientific format with <em>N</em> digits.</td></tr>
+<tr><td><code class="verbatim">eN</code></td><td>Engineering format with <em>N</em> digits.</td></tr>
+<tr><td><code class="verbatim">pN</code></td><td>Calc precision. Only <code class="verbatim">p12</code>, the default, is evaluated natively; others need Emacs.</td></tr>
+<tr><td><code class="verbatim">D</code>, <code class="verbatim">R</code></td><td>Angles in degrees (the default) or radians.</td></tr>
+<tr><td><code class="verbatim">F</code></td><td>Prefer fractions: <code class="verbatim">1/3</code> stays <code class="verbatim">1:3</code>.</td></tr>
+<tr><td><code class="verbatim">N</code></td><td>Treat every field as a number; text counts as 0.</td></tr>
+<tr><td><code class="verbatim">E</code></td><td>Keep empty fields: in ranges they stay in, and count as <code class="verbatim">nan</code> in Calc.</td></tr>
+<tr><td><code class="verbatim">L</code></td><td>Literal: in Lisp formulas, insert fields as they are written.</td></tr>
+<tr><td><code class="verbatim">T</code></td><td>Durations: read <code class="verbatim">H:MM</code> and <code class="verbatim">H:MM:SS</code> fields as times, show the result as <code class="verbatim">HH:MM:SS</code>.</td></tr>
+<tr><td><code class="verbatim">U</code></td><td>As <code class="verbatim">T</code>, showing <code class="verbatim">HH:MM</code>.</td></tr>
+<tr><td><code class="verbatim">t</code></td><td>As <code class="verbatim">T</code>, showing decimal hours with two places, such as <code class="verbatim">1.50</code>.</td></tr>
+</tbody>
+</table>
+<p>The flags <code class="verbatim">S</code> (symbolic) and <code class="verbatim">u</code> need Emacs. Any other text after the flags is a <code class="verbatim">format</code> string applied to the result, such as <code class="verbatim">%.2f</code> or <code class="verbatim">%d</code>; <code class="verbatim">format</code> supports <code class="verbatim">%s</code>, <code class="verbatim">%S</code>, <code class="verbatim">%d</code>, <code class="verbatim">%o</code>, <code class="verbatim">%x</code>, <code class="verbatim">%X</code>, <code class="verbatim">%c</code>, <code class="verbatim">%e</code>, <code class="verbatim">%f</code> and <code class="verbatim">%g</code>.</p>
+<h3 id="durations">Durations</h3>
+<p>With <code class="verbatim">T</code>, <code class="verbatim">U</code> or <code class="verbatim">t</code>, fields like <code class="verbatim">1:30</code> or <code class="verbatim">10:00:30</code> are read as hours, minutes and seconds:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup other table org">| start    | end     | sum      | diff  | hours |</span>
+<span class="markup other table org">|----------+---------+----------+-------+-------|</span>
+<span class="markup other table org">| 1:30     | 0:45    | 02:15:00 | 00:45 |  3.00 |</span>
+<span class="markup other table org">| 10:00:30 | 2:15:10 | 12:15:40 | 07:45 | 20.02 |</span>
+<span class="keyword other keyword org">#+TBLFM:</span><span class="string unquoted org"> $3=$1+$2;T::$4=$1-$2;U::$5=$1*2;t</span></span></code></pre>
+<h3 id="dates">Dates</h3>
+<p>Timestamps in fields, active or inactive, take part in Calc arithmetic as dates. The difference of two dates is a number of days, with a fraction when the timestamps have times. A date plus a number is a date, written back as an inactive timestamp:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup other table org">| start            | end              | days | later            |</span>
+<span class="markup other table org">|------------------+------------------+------+------------------|</span>
+<span class="markup other table org">| &lt;2026-10-05 Mon&gt; | &lt;2026-10-12 Mon&gt; |    7 | [2026-10-12 Mon] |</span>
+<span class="keyword other keyword org">#+TBLFM:</span><span class="string unquoted org"> $3=$2-$1::$4=$1+7</span></span></code></pre>
+<h3 id="lisp-formulas">Lisp formulas</h3>
+<p>A formula that starts with <code class="verbatim">'(</code> is Emacs Lisp. Each reference becomes a Lisp string, or a number with <code class="verbatim">N</code>, or the field's text inserted as is with <code class="verbatim">L</code>. A range becomes the values separated by spaces, so wrap it in a quoted list:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup other table org">| name  | greeting |</span>
+<span class="markup other table org">|-------+----------|</span>
+<span class="markup other table org">| Ada   | Ada!     |</span>
+<span class="markup other table org">| Grace | Grace!   |</span>
+<span class="keyword other keyword org">#+TBLFM:</span><span class="string unquoted org"> $2=&#39;(concat $1 &quot;!&quot;)</span>
+
+<span class="markup other table org">| n |</span>
+<span class="markup other table org">|---|</span>
+<span class="markup other table org">| 1 |</span>
+<span class="markup other table org">| 2 |</span>
+<span class="markup other table org">|---|</span>
+<span class="markup other table org">| 3 |</span>
+<span class="keyword other keyword org">#+TBLFM:</span><span class="string unquoted org"> @&gt;$1=&#39;(apply &#39;+ &#39;(@I..@II));N</span></span></code></pre>
+<p>The evaluator supports:</p>
+<ul>
+<li>special forms: <code class="verbatim">quote</code>, <code class="verbatim">function</code>, <code class="verbatim">lambda</code>, <code class="verbatim">progn</code>, <code class="verbatim">prog1</code>, <code class="verbatim">if</code>, <code class="verbatim">when</code>, <code class="verbatim">unless</code>, <code class="verbatim">cond</code>, <code class="verbatim">and</code>, <code class="verbatim">or</code>, <code class="verbatim">let</code>, <code class="verbatim">let*</code>, <code class="verbatim">setq</code>, <code class="verbatim">push</code>, <code class="verbatim">pop</code>, <code class="verbatim">while</code>, <code class="verbatim">dolist</code>, <code class="verbatim">dotimes</code>, <code class="verbatim">with-output-to-string</code>, <code class="verbatim">ignore-errors</code>, <code class="verbatim">condition-case</code>;</li>
+<li>arithmetic: <code class="verbatim">+</code>, <code class="verbatim">-</code>, <code class="verbatim">*</code>, <code class="verbatim">/</code>, <code class="verbatim">%</code>, <code class="verbatim">mod</code>, <code class="verbatim">1+</code>, <code class="verbatim">1-</code>, <code class="verbatim">abs</code>, <code class="verbatim">max</code>, <code class="verbatim">min</code>, <code class="verbatim">float</code>, <code class="verbatim">floor</code>, <code class="verbatim">ceiling</code>, <code class="verbatim">round</code>, <code class="verbatim">truncate</code>, <code>=</code>, <code class="verbatim">&lt;</code>, <code class="verbatim">&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, <code>/=</code>, <code class="verbatim">zerop</code>;</li>
+<li>predicates: <code class="verbatim">not</code>, <code class="verbatim">null</code>, <code class="verbatim">eq</code>, <code class="verbatim">eql</code>, <code class="verbatim">equal</code>, <code class="verbatim">numberp</code>, <code class="verbatim">integerp</code>, <code class="verbatim">floatp</code>, <code class="verbatim">stringp</code>, <code class="verbatim">listp</code>, <code class="verbatim">consp</code>, <code class="verbatim">symbolp</code>;</li>
+<li>lists: <code class="verbatim">car</code>, <code class="verbatim">cdr</code>, <code class="verbatim">cadr</code>, <code class="verbatim">cddr</code>, <code class="verbatim">cons</code>, <code class="verbatim">list</code>, <code class="verbatim">nth</code>, <code class="verbatim">nthcdr</code>, <code class="verbatim">elt</code>, <code class="verbatim">aref</code>, <code class="verbatim">append</code>, <code class="verbatim">length</code>, <code class="verbatim">reverse</code>, <code class="verbatim">number-sequence</code>, <code class="verbatim">memq</code>, <code class="verbatim">member</code>, <code class="verbatim">memql</code>, <code class="verbatim">assoc</code>, <code class="verbatim">assq</code>, <code class="verbatim">delq</code>, <code class="verbatim">delete</code>, <code class="verbatim">mapcar</code>, <code class="verbatim">mapc</code>, <code class="verbatim">mapconcat</code>, <code class="verbatim">funcall</code>, <code class="verbatim">apply</code>, <code class="verbatim">identity</code>, <code class="verbatim">ignore</code>;</li>
+<li>strings: <code class="verbatim">concat</code>, <code class="verbatim">format</code>, <code class="verbatim">format-message</code>, <code>string=</code>, <code class="verbatim">string-equal</code>, <code class="verbatim">string&lt;</code>, <code class="verbatim">string-lessp</code>, <code class="verbatim">upcase</code>, <code class="verbatim">downcase</code>, <code class="verbatim">capitalize</code>, <code class="verbatim">substring</code>, <code class="verbatim">string-to-number</code>, <code class="verbatim">number-to-string</code>, <code class="verbatim">int-to-string</code>, <code class="verbatim">string-prefix-p</code>, <code class="verbatim">string-suffix-p</code>, <code class="verbatim">string-empty-p</code>, <code class="verbatim">string-trim</code>, <code class="verbatim">split-string</code>, <code class="verbatim">prin1-to-string</code>;</li>
+<li>output and errors: <code class="verbatim">princ</code>, <code class="verbatim">prin1</code>, <code class="verbatim">print</code>, <code class="verbatim">terpri</code>, <code class="verbatim">message</code>, <code class="verbatim">error</code>, <code class="verbatim">user-error</code>;</li>
+<li>Org's lookup functions <code class="verbatim">org-lookup-first</code>, <code class="verbatim">org-lookup-last</code> and <code class="verbatim">org-lookup-all</code>.</li>
+</ul>
+<p>Any other function needs Emacs. An error inside a Lisp formula writes <code class="verbatim">#ERROR</code> in the field, as does a Calc error.</p>
+<h2 id="entering-formulas">Entering formulas</h2>
+<p>There are three ways to set a formula.</p>
+<p><strong>In the field.</strong> Type <code>=expr</code> in a field and press <code class="verbatim">TAB</code> or <code class="verbatim">RET</code>: orgstar stores <code>$N=expr</code> as the column's formula and evaluates it, as <code class="verbatim">org-table-maybe-eval-formula</code> does. Type <code>:=expr</code> instead to store a field formula <code>@R$C=expr</code>.</p>
+<p><strong>With a prompt.</strong> <code class="verbatim">org-table-eval-formula</code> asks for the formula (<code>Column formula $N=</code> or <code>Field formula @R$C=</code>) with the stored one filled in, stores it and evaluates it in the current field. Clearing the prompt and pressing <code class="verbatim">Return</code> removes the stored formula, as in Emacs, and the echo area shows <code class="verbatim">Formula removed</code>. You can also delete a formula in the formula editor below or from the <code class="verbatim">#+TBLFM:</code> line.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Org ▸ Set Column Formula</td><td><code>C-c =</code></td><td>Org ▸ Set Column Formula</td><td><code>C-c =</code></td></tr>
+<tr><td>Org ▸ Set Field Formula</td><td>none</td><td>Org ▸ Set Field Formula</td><td>none</td></tr>
+</tbody>
+</table>
+<p>Org's <code>C-u C-c =</code> for field formulas has no equivalent key, because orgstar has no prefix argument; use the menu item or type <code>:=</code> in the field.</p>
+<p><strong>In the formula editor.</strong> <code class="verbatim">C-c '</code> in a table or on its <code class="verbatim">#+TBLFM:</code> line (<code class="verbatim">org-table-edit-formulas</code>) opens the formulas in an editor of their own, one per line, grouped under <code class="verbatim"># Column Formulas</code>, <code class="verbatim"># Field and Range Formulas</code> and <code class="verbatim"># Named Field Formulas</code>. A formula can continue on indented lines. <code class="verbatim">C-c '</code> or <code class="verbatim">⌘Return</code> installs the formulas; <code class="verbatim">Escape</code> or <code class="verbatim">C-c C-k</code> leaves them unchanged. Installing doesn't recalculate. The echo area says so and points to Recalculate Table: <code class="verbatim">C-c C-c</code> on the <code class="verbatim">#+TBLFM:</code> line, or <code class="verbatim">⌃⌘X</code> there in the Mac preset.</p>
+<p>The formulas are stored sorted the way <code class="verbatim">org-table-formula-less-p</code> sorts them.</p>
+<h2 id="recalculating">Recalculating</h2>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Recalculate Table</td><td><code class="verbatim">org-table-recalculate</code> with <code class="verbatim">C-u</code></td><td><code class="verbatim">C-c C-c</code> on <code class="verbatim">#+TBLFM:</code></td><td><code class="verbatim">⌃⌘X</code> on <code class="verbatim">#+TBLFM:</code></td><td><code class="verbatim">SPC m b r</code>, <code class="verbatim">C-c C-c</code> on <code class="verbatim">#+TBLFM:</code></td></tr>
+<tr><td>Recalculate Table Row</td><td><code class="verbatim">org-table-recalculate</code></td><td><code class="verbatim">C-c *</code></td><td><code class="verbatim">⌃⌘*</code> (<code class="verbatim">⌃⇧⌘8</code> on a US keyboard)</td><td><code class="verbatim">C-c *</code></td></tr>
+<tr><td>Iterate Table Formulas</td><td><code class="verbatim">org-table-iterate</code></td><td><code class="verbatim">C-u C-u C-c *</code></td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+<p>In Doom's normal state, <code class="verbatim">RET</code> in a table recalculates it when it has a <code class="verbatim">#+TBLFM:</code> line and aligns it otherwise; on a <code class="verbatim">#+TBLFM:</code> line it recalculates.</p>
+<p>When the table has a rule below its first data row, recalculating the whole table leaves the rows above that rule, the header, alone. With marked rows, the marks decide instead (see <em>Names, parameters and constants</em>). Each command evaluates the column formulas row by row, then the field formulas, then aligns the table. Each formula is evaluated once. Iterate Table Formulas recalculates the whole table again and again until it stops changing, for formulas that depend on each other's results, at most ten times. The echo area says <code class="verbatim">Convergence after 3 iterations</code>, or <code class="verbatim">Table was already stable</code>; after ten passes that still change the table it says <code class="verbatim">No convergence after 10 iterations</code>, and the ten passes stay. <code class="verbatim">C-u C-c *</code> also recalculates the whole table in the Emacs preset.</p>
+<p>A row marked <code class="verbatim">#</code> is recalculated when you press <code class="verbatim">TAB</code>, <code class="verbatim">S-TAB</code> or <code class="verbatim">RET</code> in it, before the caret moves (<code class="verbatim">org-table-maybe-recalculate-line</code>), and with <code class="verbatim">C-c C-c</code> (Mac <code class="verbatim">⌃⌘X</code>). Other rows are recalculated only by the commands above. Emacs skips a second automatic recalculation of the same row by the same command in a row; orgstar recalculates each time, which gives the same result unless a formula depends on its own value.</p>
+<h2 id="when-emacs-is-needed">When Emacs is needed</h2>
+<p>When a formula uses something the native evaluator doesn't have, the command reports what it was and the Mac recalculates the table in Emacs instead. This happens for:</p>
+<ul>
+<li>references to fields holding text in a Calc formula, and symbolic results;</li>
+<li>Calc functions and variables not listed above, precision other than <code class="verbatim">p12</code>, and the <code class="verbatim">S</code> and <code class="verbatim">u</code> flags;</li>
+<li>division by zero, complex results, vector results, and numbers too large for 64-bit integers;</li>
+<li>Lisp functions not listed above.</li>
+</ul>
+<p>The echo area shows <code class="verbatim">Recalculating in Emacs (reason)…</code>, then <code class="verbatim">Recalculated in Emacs</code>. orgstar runs <code class="verbatim">emacs -Q --batch</code> on a copy of the file, so your Emacs init file, packages and customizations are not loaded, then replaces the table with Emacs's result. It looks for Emacs at the path in the <code class="verbatim">ORGSTAR_EMACS</code> environment variable, then <code class="verbatim">/opt/homebrew/bin/emacs</code>, <code class="verbatim">/usr/local/bin/emacs</code>, <code class="verbatim">/Applications/Emacs.app/Contents/MacOS/Emacs</code>, <code class="verbatim">/run/current-system/sw/bin/emacs</code> and <code class="verbatim">/usr/bin/emacs</code>. If none is found, the echo area says Emacs isn't installed and the table is unchanged. Emacs gets your <code class="verbatim">PATH</code> with <code class="verbatim">/opt/homebrew/bin</code>, <code class="verbatim">/usr/local/bin</code>, <code class="verbatim">/Library/TeX/texbin</code>, <code class="verbatim">/usr/bin</code> and <code class="verbatim">/bin</code> added, as code blocks and export do, so programs a formula starts are found when orgstar was opened from the Dock. The run stops after 60 seconds. If you edit the table while Emacs is working, its result is discarded.</p>
+<p>Edit ▸ Cancel Running Task (<code class="verbatim">⌘.</code>) stops the recalculation; the echo area shows <code class="verbatim">Recalculation canceled</code> and the table is unchanged. Starting another recalculation or export in Emacs cancels the one that is running.</p>
+<p>If the table's formulas contain Lisp, orgstar asks first: <code class="verbatim">This table's formulas run Lisp. Run them? (yes, no, always)</code>. <code class="verbatim">always</code> trusts this table's text in this file, so the question isn't asked again until the text changes.</p>
+<p>Entering a formula that needs Emacs with <code>C-c =</code>, Set Field Formula or <code>=</code> in a field is not handed to Emacs. The formula is stored in the <code class="verbatim">#+TBLFM:</code> line and the field is left as it was; the echo area shows <code class="verbatim">The formula was stored; recalculating it needs Emacs</code> and the reason. <code class="verbatim">TAB</code> and <code class="verbatim">RET</code> still move to the next field. Recalculate the table to run the formula in Emacs.</p>
+<p>For how orgstar and Emacs share files, see <a href="15-alongside-emacs.html">Using orgstar alongside Emacs</a>.</p>
+<h2 id="table-el-tables">table.el tables</h2>
+<p>Tables drawn with <code class="verbatim">+</code> corners and <code class="verbatim">-</code> and <code class="verbatim">|</code> borders, as the <code class="verbatim">table.el</code> package makes them, are recognized and kept as written:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup strikethrough org">+-------+</span>-------+
+<span class="markup other table org">| Name  | Value |</span>
+<span class="markup strikethrough org">+-------+</span>-------+
+<span class="markup other table org">| a     | 1     |</span>
+<span class="markup strikethrough org">+-------+</span>-------+</span></code></pre>
+<p>Edit the text in the cells as usual. <code class="verbatim">TAB</code> and <code class="verbatim">S-TAB</code> line the borders up, then move to the next or previous cell, wrapping around at the ends of the table, as table.el's <code class="verbatim">table-forward-cell</code> and <code class="verbatim">table-backward-cell</code> do; the caret goes to the cell's first character. <code class="verbatim">C-c C-c</code> (Mac <code class="verbatim">⌃⌘X</code>) lines the borders up without moving. Lining up makes each column as wide as its widest text, and never narrower than its rules: text typed into a cell uses up the spaces at its end first, as table.el does when you type.</p>
+<p>Org edits table.el tables in table.el's own buffer, with <code class="verbatim">C-c '</code>, and says so for <code class="verbatim">TAB</code> and <code class="verbatim">C-c C-c</code>; orgstar does the editing in place instead. Tables with merged cells, which span rows or columns, can be moved through but not lined up ("Can't align a table.el table with merged cells"). Formulas, sorting and the other table commands don't apply.</p>
+<p>HTML export renders them as tables, with cells that span rows and columns, and Markdown export writes them as a code block. See <a href="12-export.html">Export</a>.</p>
+<h2 id="plotting">Plotting</h2>
+<p>Plot Table (<code class="verbatim">org-plot/gnuplot</code>, <code class="verbatim">C-c " g</code> in the Emacs and Doom presets, and in the command palette; More › Table on iOS) draws the table at the caret, or the first table after it, as the <code class="verbatim">#+PLOT:</code> lines above it say:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+PLOT:</span><span class="string unquoted org"> title:&quot;Sales&quot; ind:1 deps:(2 3) type:2d with:linespoints file:&quot;sales.png&quot;</span>
+<span class="markup other table org">| month | north | south |</span>
+<span class="markup other table org">|-------+-------+-------|</span>
+<span class="markup other table org">|     1 |    20 |    12 |</span>
+<span class="markup other table org">|     2 |    25 |    18 |</span></span></code></pre>
+<table>
+<thead>
+<tr><th>Option</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">type</code></td><td><code class="verbatim">2d</code> (the default), <code class="verbatim">3d</code> or <code class="verbatim">grid</code></td></tr>
+<tr><td><code class="verbatim">ind</code></td><td>The column of x values, counting from 1; 0 (the default) plots against row numbers</td></tr>
+<tr><td><code class="verbatim">deps</code></td><td>The columns to plot, as a list such as <code class="verbatim">(2 3)</code>; all but <code class="verbatim">ind</code> by default</td></tr>
+<tr><td><code class="verbatim">with</code></td><td><code class="verbatim">lines</code> (the default), <code class="verbatim">points</code>, <code class="verbatim">linespoints</code>, <code class="verbatim">impulses</code>, <code class="verbatim">boxes</code>, <code class="verbatim">histograms</code>, <code class="verbatim">steps</code>, <code class="verbatim">fsteps</code></td></tr>
+<tr><td><code class="verbatim">title</code></td><td>The plot's title</td></tr>
+<tr><td><code class="verbatim">file</code></td><td>Where the image goes, relative to the Org file's folder; without it the plot shows in a sheet</td></tr>
+<tr><td><code class="verbatim">labels</code></td><td>Names for the columns, as a list; a header row above a rule names them otherwise</td></tr>
+<tr><td><code class="verbatim">map</code></td><td>With <code class="verbatim">t</code>, a <code class="verbatim">3d</code> plot is seen from above</td></tr>
+<tr><td><code class="verbatim">ymin</code>, <code class="verbatim">ymax</code>, <code class="verbatim">xmin</code>, <code class="verbatim">xmax</code></td><td>The axes' ranges; <code class="verbatim">min</code> and <code class="verbatim">max</code> are <code class="verbatim">ymin</code> and <code class="verbatim">ymax</code></td></tr>
+<tr><td><code class="verbatim">ticks</code></td><td>How many marks the y axis has</td></tr>
+<tr><td><code class="verbatim">transpose</code></td><td>With <code class="verbatim">yes</code>, rows become columns</td></tr>
+<tr><td><code class="verbatim">set</code>, <code class="verbatim">line</code>, <code class="verbatim">script</code>, <code class="verbatim">timefmt</code></td><td>gnuplot commands, a line of gnuplot, a gnuplot script file and the time format, for gnuplot</td></tr>
+</tbody>
+</table>
+<p>Options are read as Org reads them, quirks included: an option's name also matches inside a longer word (<code class="verbatim">timeind:t</code> sets <code class="verbatim">ind</code>), an unquoted value ends at a <code class="verbatim">.</code>, <code class="verbatim">,</code> or <code class="verbatim">;</code>, <code class="verbatim">set:</code> options before the last <code class="verbatim">line:</code> are dropped, and each <code class="verbatim">set:</code> and <code class="verbatim">line:</code> that's kept comes twice, as Org reads the options twice. An ind column of timestamps is plotted as dates, and one of text as labels.</p>
+<p>On the Mac, when gnuplot is installed (orgstar looks on the same <code class="verbatim">PATH</code> as code blocks), the table goes to gnuplot as Emacs sends it: the same data file and script, so every option and gnuplot's own terminals and styles apply. A plot without <code class="verbatim">file:</code> is drawn to an image and shown in a sheet. Without gnuplot, and on iOS, orgstar draws the plot itself with Swift Charts: <code class="verbatim">2d</code> as lines, points or bars by <code class="verbatim">with:</code>, <code class="verbatim">grid</code> as a heat map, <code class="verbatim">3d</code> as a surface (a wireframe in a file). <code class="verbatim">file:</code> then takes <code class="verbatim">.png</code>, <code class="verbatim">.jpg</code> or <code class="verbatim">.pdf</code>, 640 by 480 points as gnuplot's default; the gnuplot-only options are ignored. If inline images are showing, a link to the file shows the new plot.</p>
+<p><code class="verbatim">type:radar</code> needs gnuplot; orgstar reports it.</p>
+<h2 id="on-ios">On iOS</h2>
+<p>The iOS app evaluates formulas natively with the same engine. Tables that need Emacs are not recalculated there; the app reports <code class="verbatim">This table needs Emacs, which runs on the Mac</code> with the reason. Import and export are under More › Table, with Plot Table. Narrow columns work in the editor, as described under <em>Narrow columns</em>. See <a href="14-ios.html">iOS</a>.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

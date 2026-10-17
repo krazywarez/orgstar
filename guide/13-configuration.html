@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration &middot; orgstar</title>
+<meta name="description" content="The Settings window, the files in ~/.config/orgstar, in-file settings, importing from Emacs, themes and fonts.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Configuration</h1>
+<p class="lede">Every setting lives in a text file you can edit, and most of them also appear in the Settings window.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#where-settings-live">Where settings live</a>
+<ul>
+<li><a href="#opening-config-toml">Opening config.toml</a></li>
+<li><a href="#problems-in-the-files">Problems in the files</a></li>
+</ul></li>
+<li><a href="#the-settings-window">The Settings window</a>
+<ul>
+<li><a href="#general">General</a></li>
+<li><a href="#editing">Editing</a></li>
+<li><a href="#language">Language</a></li>
+</ul></li>
+<li><a href="#appearance">Appearance</a>
+<ul>
+<li><a href="#agenda">Agenda</a></li>
+<li><a href="#capture">Capture</a></li>
+<li><a href="#settings-only-in-config-toml">Settings only in config.toml</a></li>
+</ul></li>
+<li><a href="#config-toml-reference">config.toml reference</a>
+<ul>
+<li><a href="#top-level">Top level</a></li>
+<li><a href="#org-agenda-prefix-format">[org-agenda-prefix-format]</a></li>
+<li><a href="#org-agenda-sorting-strategy">[org-agenda-sorting-strategy]</a></li>
+<li><a href="#org-stuck-projects">[org-stuck-projects]</a></li>
+<li><a href="#org-agenda-time-grid">[org-agenda-time-grid]</a></li>
+<li><a href="#org-structure-template-alist">[org-structure-template-alist]</a></li>
+<li><a href="#"></a></li>
+<li><a href="#theme">[theme]</a></li>
+<li><a href="#orgstar">[orgstar]</a></li>
+<li><a href="#an-example">An example</a></li>
+<li><a href="#names-from-earlier-versions">Names from earlier versions</a></li>
+</ul></li>
+<li><a href="#keymap-toml-and-capture-toml">keymap.toml and capture.toml</a></li>
+<li><a href="#in-file-settings">In-file settings</a>
+<ul>
+<li><a href="#keywords-orgstar-reads">Keywords orgstar reads</a></li>
+<li><a href="#startup-options">#+STARTUP options</a></li>
+<li><a href="#setup-files">Setup files</a></li>
+</ul></li>
+<li><a href="#import-from-emacs">Import from Emacs</a>
+<ul>
+<li><a href="#running-it">Running it</a></li>
+<li><a href="#doom-emacs">Doom Emacs</a></li>
+<li><a href="#what-it-reads">What it reads</a></li>
+<li><a href="#how-variables-map">How variables map</a></li>
+<li><a href="#limits-of-the-lisp-reader">Limits of the Lisp reader</a></li>
+</ul></li>
+<li><a href="#themes">Themes</a>
+<ul>
+<li><a href="#theme-files">Theme files</a></li>
+<li><a href="#color-keys">Color keys</a></li>
+</ul></li>
+<li><a href="#appearance">Appearance</a></li>
+<li><a href="#fonts">Fonts</a></li>
+</ul>
+</nav>
+<h2 id="where-settings-live">Where settings live</h2>
+<p>orgstar keeps its settings in a configuration folder:</p>
+<ul>
+<li><code class="verbatim">$XDG_CONFIG_HOME/orgstar</code> when <code class="verbatim">XDG_CONFIG_HOME</code> is set and not empty,</li>
+<li>otherwise <code class="verbatim">~/.config/orgstar</code>.</li>
+</ul>
+<p>The environment variable <code class="verbatim">ORGSTAR_CONFIG_DIR</code> overrides both. If a file is missing from the configuration folder but exists in <code class="verbatim">~/Library/Application Support/Orgstar</code> (where earlier versions kept it), orgstar reads it from there, and reloads it when you edit it there.</p>
+<p>The folder holds these files:</p>
+<table>
+<thead>
+<tr><th>File</th><th>What it holds</th><th>Written by orgstar</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">config.toml</code></td><td>Every setting of the Settings window, the theme, and publishing projects</td><td>Yes, when you change a setting</td></tr>
+<tr><td><code class="verbatim">keymap.toml</code></td><td>Your key bindings, on top of the preset</td><td>Only by Import from Emacs</td></tr>
+<tr><td><code class="verbatim">capture.toml</code></td><td>Capture templates</td><td>Only by Import from Emacs</td></tr>
+<tr><td><code class="verbatim">views.toml</code></td><td>Saved agenda views</td><td>No</td></tr>
+<tr><td><code class="verbatim">default-theme.toml</code></td><td>The default theme's colors, for reference</td><td>Yes, at every launch</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">config.toml</code> is the source of truth. The Settings window writes each change into it, keeping your comments and the order of lines, and edits you make to the file apply while orgstar runs. If the file doesn't exist at launch, orgstar creates it with every setting at its current value and a comment after each one.</p>
+<p>When you add the folder to a dotfiles repository, keep <code class="verbatim">default-theme.toml</code> out of it or ignore its changes: orgstar rewrites it whenever its contents differ from the built-in theme.</p>
+<h3 id="opening-config-toml">Opening config.toml</h3>
+<ul>
+<li>orgstar ▸ Edit Config File (<code class="verbatim">⌥⌘,</code>) opens <code class="verbatim">config.toml</code> as a buffer in the main window. The command palette has the same command as Edit Config File.</li>
+<li>Settings ▸ General has three buttons for the file: Edit in orgstar, Open with Default App, and Show in Finder.</li>
+</ul>
+<p>Saving the buffer applies the file, the same as saving it from another editor.</p>
+<h3 id="problems-in-the-files">Problems in the files</h3>
+<p>If <code class="verbatim">config.toml</code> has a line orgstar can't use, the problem shows in the message line under the editor, with a count when there are more. Each problem names the file and the key:</p>
+<ul>
+<li><code class="verbatim">config.toml: unknown setting editor.foo</code></li>
+<li><code class="verbatim">config.toml: org-log-done must be one of nil, time, note</code></li>
+<li><code class="verbatim">config.toml: org-agenda-start-day must look like "-3d" or "+0d"</code></li>
+<li><code class="verbatim">config.toml: theme.light.background must be a color such as "#1f2328"</code></li>
+</ul>
+<p>A file that isn't valid TOML is reported with its parse error, and none of it applies. <code class="verbatim">keymap.toml</code>, <code class="verbatim">capture.toml</code> and <code class="verbatim">views.toml</code> report their problems the same way when they are read.</p>
+<h2 id="the-settings-window">The Settings window</h2>
+<p>Open it with orgstar ▸ Settings (<code class="verbatim">⌘,</code>). It has five panes. Each control writes the <code class="verbatim">config.toml</code> key named in the tables below; the config.toml reference below gives the type and the Emacs variable.</p>
+<h3 id="general">General</h3>
+<table>
+<thead>
+<tr><th>Control</th><th>Choices</th><th>Default</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>config.toml: Edit in orgstar</td><td>Opens the file in the main window</td><td></td><td></td></tr>
+<tr><td>config.toml: Open with Default App</td><td>Opens the file in the app macOS uses for <code class="verbatim">.toml</code></td><td></td><td></td></tr>
+<tr><td>config.toml: Show in Finder</td><td>Selects the file in Finder</td><td></td><td></td></tr>
+<tr><td>Emacs: Import from Emacs…</td><td>Opens the import sheet; see Import from Emacs below</td><td></td><td></td></tr>
+<tr><td>Save files</td><td>Automatically, when typing stops; Only with File ▸ Save (<code class="verbatim">⌘S</code>)</td><td>Automatically</td><td><code class="verbatim">save</code></td></tr>
+<tr><td>Keys</td><td>Emacs; Mac; Doom (Vim keys)</td><td>Emacs</td><td><code class="verbatim">keymap</code></td></tr>
+<tr><td>Show hidden files and folders</td><td>On or off</td><td>On</td><td><code class="verbatim">show-hidden-files</code></td></tr>
+<tr><td>Option as Meta</td><td>Left Option; Right Option; Both; Neither</td><td>Left Option</td><td><code class="verbatim">option-as-meta</code></td></tr>
+</tbody>
+</table>
+<p>Automatic saving writes a file one second after you stop typing. The keymap presets and <code class="verbatim">keymap.toml</code> are covered in <a href="03-keys.html">Keys and commands</a>.</p>
+<h3 id="editing">Editing</h3>
+<table>
+<thead>
+<tr><th>Control</th><th>Choices or range</th><th>Default</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Tags</td><td>Aligned to end at column 77; One space after the title</td><td>Aligned (<code class="verbatim">-77</code>)</td><td><code class="verbatim">org-tags-column</code></td></tr>
+<tr><td>M-RET adds the new heading after the subtree</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-insert-heading-respect-content</code></td></tr>
+<tr><td>M-RET splits the line at the caret</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-M-RET-may-split-line</code></td></tr>
+<tr><td>Lists can use letters (a. b. c.)</td><td>On or off</td><td>On</td><td><code class="verbatim">org-list-allow-alphabetical</code></td></tr>
+<tr><td>M-q fills to column N</td><td>40 to 200</td><td>80</td><td><code class="verbatim">fill-column</code></td></tr>
+<tr><td>Long lines run off the edge instead of wrapping (org-startup-truncated)</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-startup-truncated</code></td></tr>
+<tr><td>Emacs hides emphasis markers (org-hide-emphasis-markers)</td><td>On or off</td><td>On</td><td><code class="verbatim">org-hide-emphasis-markers</code></td></tr>
+<tr><td>Emacs shows entities as characters (org-pretty-entities)</td><td>On or off</td><td>On</td><td><code class="verbatim">org-pretty-entities</code></td></tr>
+<tr><td>Default TODO keywords</td><td>Text in <code class="verbatim">#+TODO</code> syntax, one sequence per line</td><td>See below</td><td><code class="verbatim">org-todo-keywords</code></td></tr>
+<tr><td>Entries can't be done before their TODO children (org-enforce-todo-dependencies)</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-enforce-todo-dependencies</code></td></tr>
+<tr><td>Entries can't be done with unchecked boxes (org-enforce-todo-checkbox-dependencies)</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-enforce-todo-checkbox-dependencies</code></td></tr>
+<tr><td>When an entry is done (org-log-done)</td><td>Record nothing; Record the time, as CLOSED; Record the time and ask for a note</td><td>Record nothing</td><td><code class="verbatim">org-log-done</code></td></tr>
+<tr><td>State notes go in a LOGBOOK drawer (org-log-into-drawer)</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-log-into-drawer</code></td></tr>
+<tr><td>Speed keys (org-use-speed-commands)</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-use-speed-commands</code></td></tr>
+<tr><td>Check spelling while typing (spell-check)</td><td>On or off</td><td>Off</td><td><code class="verbatim">spell-check</code></td></tr>
+</tbody>
+</table>
+<p>The two "Emacs hides" and "Emacs shows" switches describe your Emacs, not orgstar's display. Tag alignment, table alignment and <code class="verbatim">M-q</code> measure text the way your Emacs displays it, so a file edited in both keeps the same layout. Set them to match your Emacs configuration. They also control whether orgstar hides markers and shows entities when markup is hidden.</p>
+<p>The Tags picker offers two values. <code class="verbatim">config.toml</code> accepts any integer; with a value other than <code class="verbatim">-77</code> or <code class="verbatim">0</code> the picker shows no selection.</p>
+<p>The long-lines switch applies to files as they open; View ▸ Truncate or Wrap Long Lines switches the file in front.</p>
+<p>Default TODO keywords apply to files without a <code class="verbatim">#+TODO</code> line. orgstar reads them at launch, so a change takes effect after you quit and reopen orgstar.</p>
+<p>The two dependency switches are described under Dependencies in <a href="05-todos-and-tags.html">TODOs and tags</a>.</p>
+<p>The LOGBOOK switch writes <code class="verbatim">org-log-into-drawer</code> as <code class="verbatim">"LOGBOOK"</code> or <code class="verbatim">""</code>. A drawer name of your own in <code class="verbatim">config.toml</code> shows the switch on; turning it off and on again replaces the name with <code class="verbatim">LOGBOOK</code>. Logging is described under Logging in <a href="05-todos-and-tags.html">TODOs and tags</a>, speed keys in <a href="03-keys.html">Keys and commands</a> and spell checking in <a href="02-the-editor.html">The editor</a>.</p>
+<h3 id="language">Language</h3>
+<p>orgstar's menus, settings and agenda are in English, German, French, Japanese, Spanish and Brazilian Portuguese, and follow the language chosen in System Settings ▸ General ▸ Language &amp; Region on the Mac and Settings ▸ General ▸ Language &amp; Region on iOS (or the app's own language there). What orgstar writes into your files, such as clock tables, is in the language Org would use: a clock table's <code class="verbatim">:lang</code>, else <code class="verbatim">org-export-default-language</code>. Exports use the file's <code class="verbatim">#+LANGUAGE:</code>; see <a href="12-export.html">Export</a>.</p>
+<h2 id="appearance">Appearance</h2>
+<table>
+<thead>
+<tr><th>Control</th><th>Range</th><th>Default</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Theme: Light</td><td>A built-in light theme</td><td>Default</td><td><code class="verbatim">light-theme</code></td></tr>
+<tr><td>Theme: Dark</td><td>A built-in dark theme</td><td>Default</td><td><code class="verbatim">dark-theme</code></td></tr>
+<tr><td>Theme: Copy to Config Folder</td><td>Writes <code class="verbatim">my-theme.toml</code> and makes it <code class="verbatim">theme-file</code></td><td></td><td></td></tr>
+<tr><td>App Icon</td><td>One of 13 icons, shown in the Dock while orgstar runs</td><td>Default</td><td>(this Mac only)</td></tr>
+<tr><td>Font</td><td>System monospaced, or any installed monospaced family</td><td>System monospaced</td><td><code class="verbatim">font</code></td></tr>
+<tr><td>Body text</td><td>Same as Font, System, or any installed proportional family</td><td>Same as Font</td><td><code class="verbatim">body-font</code></td></tr>
+<tr><td>Size</td><td>8 to 36 pt</td><td>13 pt</td><td><code class="verbatim">font-size</code></td></tr>
+<tr><td>Line spacing</td><td>0 to 16 pt</td><td>2 pt</td><td><code class="verbatim">line-spacing</code></td></tr>
+<tr><td>Text width</td><td>Whole editor, or 60 to 120 columns</td><td>Whole editor</td><td><code class="verbatim">text-width</code></td></tr>
+<tr><td>Headings grow by N pt a level</td><td>0 to 8 pt</td><td>1 pt</td><td><code class="verbatim">heading-size-step</code></td></tr>
+<tr><td>Colors: Edit in config.toml</td><td>Opens <code class="verbatim">config.toml</code></td><td></td><td></td></tr>
+<tr><td>Colors: Show Default Theme</td><td>Opens <code class="verbatim">default-theme.toml</code></td><td></td><td></td></tr>
+</tbody>
+</table>
+<p>See Themes and Fonts below.</p>
+<h3 id="agenda">Agenda</h3>
+<table>
+<thead>
+<tr><th>Control</th><th>Range</th><th>Default</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Agenda shows N days</td><td>1 to 366</td><td>10</td><td><code class="verbatim">org-agenda-span</code></td></tr>
+<tr><td>Agenda starts N days before today</td><td>0 to 14 days before</td><td>3 days</td><td><code class="verbatim">org-agenda-start-day</code></td></tr>
+<tr><td>Include files in subfolders</td><td>On or off</td><td>Off</td><td><code class="verbatim">agenda-include-subfolders</code></td></tr>
+<tr><td>Show days without entries</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-agenda-show-all-dates</code></td></tr>
+<tr><td>Habits only today</td><td>On or off</td><td>On</td><td><code class="verbatim">org-habit-show-habits-only-for-today</code></td></tr>
+<tr><td>Blocked entries</td><td>Dimmed; Hidden; Shown as usual</td><td>Dimmed</td><td><code class="verbatim">org-agenda-dim-blocked-tasks</code></td></tr>
+<tr><td>Show events from Calendar</td><td>On or off</td><td>Off</td><td><code class="verbatim">calendar-events</code></td></tr>
+<tr><td>A checkbox for each calendar</td><td>On or off</td><td>All on</td><td><code class="verbatim">calendar-event-calendars</code></td></tr>
+<tr><td>Show reminders from Reminders</td><td>On or off</td><td>Off</td><td><code class="verbatim">agenda-reminders</code></td></tr>
+<tr><td>A checkbox for each list</td><td>On or off</td><td>All on</td><td><code class="verbatim">agenda-reminder-lists</code></td></tr>
+<tr><td>Notify before timed agenda entries</td><td>On or off</td><td>On</td><td><code class="verbatim">reminders</code></td></tr>
+<tr><td>N minutes before</td><td>0 to 120</td><td>12</td><td><code class="verbatim">appt-message-warning-time</code></td></tr>
+<tr><td>Ask what to do with idle time while clocked in</td><td>On or off</td><td>Off</td><td><code class="verbatim">org-clock-idle-time</code></td></tr>
+<tr><td>After N minutes without keyboard or mouse input</td><td>1 to 240</td><td>15 when turned on</td><td><code class="verbatim">org-clock-idle-time</code></td></tr>
+<tr><td>Remember N recently clocked entries</td><td>1 to 35</td><td>5</td><td><code class="verbatim">org-clock-history-length</code></td></tr>
+</tbody>
+</table>
+<p>An entry's <code class="verbatim">APPT_WARNTIME</code> property overrides the lead time. The agenda is covered in <a href="07-agenda.html">The agenda</a>.</p>
+<p>The calendar checkboxes appear once Show events from Calendar is on and orgstar may read your calendars; turning the switch on asks for that access. While every calendar is checked, <code class="verbatim">calendar-event-calendars</code> is empty, so calendars you add later show too. The last checked calendar can't be unchecked; turn off Show events from Calendar instead. The Reminders list checkboxes work the same way. See <a href="07-agenda.html">The agenda</a>.</p>
+<p>Turning on the idle question sets <code class="verbatim">org-clock-idle-time</code> to 15 minutes; turning it off sets it to <code class="verbatim">0</code>. The minutes stepper is disabled while the question is off. Idle time and the clock history are covered in <a href="06-dates-and-clocking.html">Dates and clocking</a>.</p>
+<h3 id="capture">Capture</h3>
+<table>
+<thead>
+<tr><th>Control</th><th>Default</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>⌃⌥Space opens Capture from any app</td><td>On</td><td><code class="verbatim">global-capture-hotkey</code></td></tr>
+</tbody>
+</table>
+<p>The footer shows the path of <code class="verbatim">capture.toml</code>. Templates are covered in <a href="08-capture.html">Capture</a>.</p>
+<h3 id="settings-only-in-config-toml">Settings only in config.toml</h3>
+<p>These settings have no control in the Settings window. Some are in the View menu.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Also in</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">org-log-reschedule</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-log-redeadline</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-startup-indented</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-hide-leading-stars</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-startup-align-all-tables</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-startup-with-inline-images</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-startup-with-latex-preview</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-display-remote-inline-images</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-cycle-hide-drawer-startup</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-cycle-hide-block-startup</code></td><td></td></tr>
+<tr><td><code class="verbatim">electric-pair-mode</code></td><td></td></tr>
+<tr><td><code class="verbatim">display-line-numbers-type</code></td><td>View ▸ Show Line Numbers (<code class="verbatim">⇧⌘L</code>), View ▸ Line Numbers</td></tr>
+<tr><td><code class="verbatim">pdf-margin</code>, <code class="verbatim">pdf-font</code>, <code class="verbatim">pdf-page-numbers</code></td><td>File ▸ Export ▸ Export… (the dialog's PDF settings)</td></tr>
+<tr><td><code class="verbatim">tab-bar</code></td><td>View ▸ Show Tab Bar</td></tr>
+<tr><td><code class="verbatim">show-markup</code></td><td>View ▸ Show Markup (<code class="verbatim">⇧⌘M</code>)</td></tr>
+<tr><td><code class="verbatim">ignored-folders</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-archive-location</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-export-default-language</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-use-tag-inheritance</code>, <code class="verbatim">org-tags-exclude-from-inheritance</code>, <code class="verbatim">org-tag-alist</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-track-ordered-property-with-tag</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-timer-format</code>, <code class="verbatim">org-timer-default-timer</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-roam-directory</code>, <code class="verbatim">org-roam-dailies-directory</code>, <code class="verbatim">org-roam-dailies-file</code>, <code class="verbatim">org-roam-dailies-head</code>, <code class="verbatim">org-roam-dailies-entry</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-attach-id-dir</code>, <code class="verbatim">org-attach-use-inheritance</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-yank-image-save-method</code>, <code class="verbatim">org-yank-dnd-method</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-crypt-tag-matcher</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-start-on-weekday</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-deadline-warning-days</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-skip-scheduled-if-done</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-skip-deadline-if-done</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-habit-show-habits-only-for-today</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-log-mode-items</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-clock-into-drawer</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-clock-rounding-minutes</code>, <code class="verbatim">org-clock-out-remove-zero-time-clocks</code>, <code class="verbatim">org-clock-in-switch-to-state</code>, <code class="verbatim">org-clock-out-when-done</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-todo-ignore-with-date</code>, <code class="verbatim">org-agenda-todo-ignore-scheduled</code>, <code class="verbatim">org-agenda-todo-ignore-deadlines</code>, <code class="verbatim">org-agenda-todo-ignore-timestamp</code>, <code class="verbatim">org-agenda-tags-todo-honor-ignore-options</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-search-view-always-boolean</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-search-view-force-full-words</code></td><td></td></tr>
+<tr><td><code class="verbatim">[org-agenda-prefix-format]</code></td><td></td></tr>
+<tr><td><code class="verbatim">[org-agenda-sorting-strategy]</code>, <code class="verbatim">org-agenda-sort-notime-is-late</code>, <code class="verbatim">org-agenda-sort-noeffort-is-high</code></td><td></td></tr>
+<tr><td><code class="verbatim">[org-agenda-time-grid]</code>, <code class="verbatim">org-agenda-use-time-grid</code>, <code class="verbatim">org-agenda-show-current-time-in-grid</code></td><td></td></tr>
+<tr><td><code class="verbatim">[org-stuck-projects]</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-agenda-files</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-icalendar-use-deadline</code>, <code class="verbatim">org-icalendar-use-scheduled</code>, <code class="verbatim">org-icalendar-include-todo</code>, <code class="verbatim">org-icalendar-combined-agenda-file</code></td><td></td></tr>
+<tr><td><code class="verbatim">org-refile-targets</code>, <code class="verbatim">org-refile-use-outline-path</code>, <code class="verbatim">org-refile-allow-creating-parent-nodes</code></td><td></td></tr>
+<tr><td><code class="verbatim">theme-file</code></td><td></td></tr>
+</tbody>
+</table>
+<h2 id="config-toml-reference">config.toml reference</h2>
+<p>Settings that mirror an Emacs variable sit at the top of the file under that variable's name. The agenda prefix formats are in <code class="verbatim">[org-agenda-prefix-format]</code>, the sorting strategies in <code class="verbatim">[org-agenda-sorting-strategy]</code>, the time grid in <code class="verbatim">[org-agenda-time-grid]</code>, stuck projects in <code class="verbatim">[org-stuck-projects]</code>, type and theme in <code class="verbatim">[theme]</code>, and the settings Emacs has no variable for in <code class="verbatim">[orgstar]</code>.</p>
+<p>A key you remove from the file goes back to its default. A key that isn't in the table below is reported as unknown.</p>
+<h3 id="top-level">Top level</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">fill-column</code></td><td>integer</td><td><code class="verbatim">80</code></td><td>The column <code class="verbatim">M-q</code> fills to. Mirrors <code class="verbatim">fill-column</code>.</td></tr>
+<tr><td><code class="verbatim">org-tags-column</code></td><td>integer</td><td><code class="verbatim">-77</code></td><td>Negative: tags end at that column. <code class="verbatim">0</code>: one space between title and tags. Mirrors <code class="verbatim">org-tags-column</code>.</td></tr>
+<tr><td><code class="verbatim">org-insert-heading-respect-content</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td><code class="verbatim">M-RET</code> adds the new heading after the current subtree. Mirrors <code class="verbatim">org-insert-heading-respect-content</code>.</td></tr>
+<tr><td><code class="verbatim">org-M-RET-may-split-line</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td><code class="verbatim">M-RET</code> in the middle of a line splits it at the caret. Mirrors the <code class="verbatim">default</code> entry of <code class="verbatim">org-M-RET-may-split-line</code>.</td></tr>
+<tr><td><code class="verbatim">org-list-allow-alphabetical</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td><code class="verbatim">a.</code>, <code class="verbatim">b)</code>, <code class="verbatim">A.</code> are list bullets. Mirrors <code class="verbatim">org-list-allow-alphabetical</code>.</td></tr>
+<tr><td><code class="verbatim">org-hide-emphasis-markers</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Your Emacs hides <code class="verbatim">*bold*</code> and <code>=code=</code> markers; orgstar hides them when markup is hidden and measures text without them. Mirrors <code class="verbatim">org-hide-emphasis-markers</code>.</td></tr>
+<tr><td><code class="verbatim">org-pretty-entities</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Your Emacs shows <code class="verbatim">\alpha</code> as α and lowers <code class="verbatim">x_{1}</code>; orgstar does the same when markup is hidden. Mirrors <code class="verbatim">org-pretty-entities</code>.</td></tr>
+<tr><td><code class="verbatim">org-todo-keywords</code></td><td>string</td><td>see below</td><td>Keywords for files without <code class="verbatim">#+TODO</code>, in <code class="verbatim">#+TODO</code> syntax; separate sequences with <code class="verbatim">\n</code>. Letters in parentheses turn on fast selection. Read at launch. Mirrors <code class="verbatim">org-todo-keywords</code>.</td></tr>
+<tr><td><code class="verbatim">org-log-done</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td><code class="verbatim">nil</code>, <code class="verbatim">time</code> (a <code class="verbatim">CLOSED</code> timestamp) or <code class="verbatim">note</code> (<code class="verbatim">CLOSED</code> and a note). Mirrors <code class="verbatim">org-log-done</code>.</td></tr>
+<tr><td><code class="verbatim">org-log-reschedule</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td><code class="verbatim">nil</code>, <code class="verbatim">time</code> or <code class="verbatim">note</code>: log changing or removing a <code class="verbatim">SCHEDULED</code> date. Mirrors <code class="verbatim">org-log-reschedule</code>.</td></tr>
+<tr><td><code class="verbatim">org-log-redeadline</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td><code class="verbatim">nil</code>, <code class="verbatim">time</code> or <code class="verbatim">note</code>: log changing or removing a <code class="verbatim">DEADLINE</code>. Mirrors <code class="verbatim">org-log-redeadline</code>.</td></tr>
+<tr><td><code class="verbatim">org-log-into-drawer</code></td><td>string</td><td><code class="verbatim">""</code></td><td>The drawer state notes go in. <code class="verbatim">"LOGBOOK"</code> is Emacs's <code class="verbatim">t</code>; <code class="verbatim">""</code> puts them under the heading. Mirrors <code class="verbatim">org-log-into-drawer</code>.</td></tr>
+<tr><td><code class="verbatim">org-enforce-todo-dependencies</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>An entry can't become done while a descendant has an active TODO keyword, or under an <code class="verbatim">ORDERED</code> parent while an earlier sibling has one. Mirrors <code class="verbatim">org-enforce-todo-dependencies</code>.</td></tr>
+<tr><td><code class="verbatim">org-enforce-todo-checkbox-dependencies</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>An entry can't become done while its text has an unchecked checkbox. Mirrors <code class="verbatim">org-enforce-todo-checkbox-dependencies</code>.</td></tr>
+<tr><td><code class="verbatim">org-archive-location</code></td><td>string</td><td><code class="verbatim">"%s_archive::"</code></td><td>Where Archive Subtree moves an entry that has no <code class="verbatim">ARCHIVE</code> property and whose file has no <code class="verbatim">#+ARCHIVE:</code>, as <code class="verbatim">file::heading</code>; <code class="verbatim">%s</code> is the file's name. Mirrors <code class="verbatim">org-archive-location</code>.</td></tr>
+<tr><td><code class="verbatim">org-export-default-language</code></td><td>string</td><td><code class="verbatim">"en"</code></td><td>The language of exports without <code class="verbatim">#+LANGUAGE:</code> and of clock tables without <code class="verbatim">:lang</code>, such as <code class="verbatim">"de"</code>. Mirrors <code class="verbatim">org-export-default-language</code>.</td></tr>
+<tr><td><code class="verbatim">org-use-tag-inheritance</code></td><td>string</td><td><code class="verbatim">"t"</code></td><td>Which tags inherit: <code class="verbatim">"t"</code> all, <code class="verbatim">"nil"</code> none, tag names separated by spaces, or a regular expression in braces such as <code class="verbatim">"{^@}"</code>. Read at launch. Mirrors <code class="verbatim">org-use-tag-inheritance</code>.</td></tr>
+<tr><td><code class="verbatim">org-tags-exclude-from-inheritance</code></td><td>string</td><td><code class="verbatim">""</code></td><td>Tags that never inherit, separated by spaces. Read at launch. Mirrors <code class="verbatim">org-tags-exclude-from-inheritance</code>.</td></tr>
+<tr><td><code class="verbatim">org-tag-alist</code></td><td>string</td><td><code class="verbatim">""</code></td><td>The tags Set Tags offers in files without <code class="verbatim">#+TAGS</code>, in <code class="verbatim">#+TAGS</code> syntax with keys and groups, rows separated by <code class="verbatim">\n</code>. Mirrors <code class="verbatim">org-tag-alist</code>.</td></tr>
+<tr><td><code class="verbatim">org-track-ordered-property-with-tag</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td>A tag that Toggle ORDERED Property adds and removes with the property: <code class="verbatim">"t"</code> for the tag <code class="verbatim">ORDERED</code>, or a tag name. Mirrors <code class="verbatim">org-track-ordered-property-with-tag</code>.</td></tr>
+<tr><td><code class="verbatim">auto-fill-mode</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Typing a space past <code class="verbatim">fill-column</code> breaks the line. View ▸ Turn Auto Fill On or Off changes it for one buffer. Mirrors <code class="verbatim">auto-fill-mode</code> in <code class="verbatim">org-mode-hook</code>.</td></tr>
+<tr><td><code class="verbatim">org-roam-directory</code></td><td>string</td><td><code class="verbatim">""</code></td><td>The folder org-roam notes are in; empty for the first sidebar folder. Mirrors <code class="verbatim">org-roam-directory</code>.</td></tr>
+<tr><td><code class="verbatim">org-roam-dailies-directory</code></td><td>string</td><td><code class="verbatim">"daily/"</code></td><td>The folder daily notes are in, relative to <code class="verbatim">org-roam-directory</code>. Mirrors <code class="verbatim">org-roam-dailies-directory</code>.</td></tr>
+<tr><td><code class="verbatim">org-roam-dailies-file</code></td><td>string</td><td><code class="verbatim">"%&lt;%Y-%m-%d&gt;.org"</code></td><td>A daily note's file name; <code class="verbatim">%&lt;…&gt;</code> formats its date.</td></tr>
+<tr><td><code class="verbatim">org-roam-dailies-head</code></td><td>string</td><td><code class="verbatim">"#+title: %&lt;%Y-%m-%d&gt;\n"</code></td><td>What a new daily note starts with, under its <code class="verbatim">ID</code>.</td></tr>
+<tr><td><code class="verbatim">org-roam-dailies-entry</code></td><td>string</td><td><code class="verbatim">"* %?"</code></td><td>The capture template Capture to Daily Note files. See <a href="09-links.html">Links</a>.</td></tr>
+<tr><td><code class="verbatim">org-timer-format</code></td><td>string</td><td><code class="verbatim">"%s "</code></td><td>What Insert Timer Value writes, with <code class="verbatim">%s</code> for the <code class="verbatim">h:mm:ss</code> value. Mirrors <code class="verbatim">org-timer-format</code>.</td></tr>
+<tr><td><code class="verbatim">org-timer-default-timer</code></td><td>string</td><td><code class="verbatim">"0"</code></td><td>The countdown Set Countdown Timer… offers, in minutes or <code class="verbatim">h:mm:ss</code>; <code class="verbatim">"0"</code> offers none. Mirrors <code class="verbatim">org-timer-default-timer</code>.</td></tr>
+<tr><td><code class="verbatim">org-attach-id-dir</code></td><td>string</td><td><code class="verbatim">"data/"</code></td><td>The folder ID-based attachment folders go in, relative to the org file's folder unless absolute. See <a href="04-outlines.html">Outlines</a>. Mirrors <code class="verbatim">org-attach-id-dir</code>.</td></tr>
+<tr><td><code class="verbatim">org-attach-use-inheritance</code></td><td>string</td><td><code class="verbatim">"selective"</code></td><td>Whether attachment folders come from an ancestor's <code class="verbatim">DIR</code> or <code class="verbatim">ID</code>: <code class="verbatim">selective</code>, <code class="verbatim">"t"</code> or <code class="verbatim">"nil"</code>. Mirrors <code class="verbatim">org-attach-use-inheritance</code>.</td></tr>
+<tr><td><code class="verbatim">org-yank-image-save-method</code></td><td>string</td><td><code class="verbatim">"attach"</code></td><td>Where a pasted image goes: <code class="verbatim">attach</code> for the entry's attachment folder, or a folder, relative to the org file's folder unless absolute. See <a href="09-links.html">Links</a>. Mirrors <code class="verbatim">org-yank-image-save-method</code>.</td></tr>
+<tr><td><code class="verbatim">org-yank-dnd-method</code></td><td>string</td><td><code class="verbatim">"ask"</code></td><td>What dropping files on the editor does: <code class="verbatim">ask</code>, <code class="verbatim">attach</code>, <code class="verbatim">open</code> or <code class="verbatim">file-link</code>. See <a href="09-links.html">Links</a>. Mirrors <code class="verbatim">org-yank-dnd-method</code>.</td></tr>
+<tr><td><code class="verbatim">org-crypt-tag-matcher</code></td><td>string</td><td><code class="verbatim">"crypt"</code></td><td>The tag Encrypt Tagged Entries… encrypts. A single tag. See <a href="04-outlines.html">Outlines</a>. Mirrors <code class="verbatim">org-crypt-tag-matcher</code>.</td></tr>
+<tr><td><code class="verbatim">org-startup-indented</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Indent bodies under their headings, as <code class="verbatim">org-indent-mode</code>. <code class="verbatim">#+STARTUP: indent</code> / <code class="verbatim">noindent</code> override it. Mirrors <code class="verbatim">org-startup-indented</code>.</td></tr>
+<tr><td><code class="verbatim">org-hide-leading-stars</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Show only a heading's last star, without indentation. <code class="verbatim">#+STARTUP: hidestars</code> / <code class="verbatim">showstars</code> override it. Mirrors <code class="verbatim">org-hide-leading-stars</code>.</td></tr>
+<tr><td><code class="verbatim">org-startup-align-all-tables</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Align every table when a file opens. <code class="verbatim">#+STARTUP: align</code> / <code class="verbatim">noalign</code> override it. Mirrors <code class="verbatim">org-startup-align-all-tables</code>.</td></tr>
+<tr><td><code class="verbatim">org-startup-truncated</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Long lines run off the right edge instead of wrapping. Mirrors <code class="verbatim">org-startup-truncated</code>.</td></tr>
+<tr><td><code class="verbatim">spell-check</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Check spelling while typing, outside code, links, dates, tags and keywords.</td></tr>
+<tr><td><code class="verbatim">electric-pair-mode</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Type brackets, <code class="verbatim">&lt;&gt;</code> and quotes in pairs. Mirrors <code class="verbatim">electric-pair-mode</code>.</td></tr>
+<tr><td><code class="verbatim">org-startup-with-inline-images</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Show image links as images when a file opens. <code class="verbatim">#+STARTUP: inlineimages</code> / <code class="verbatim">noinlineimages</code> override it. Mirrors <code class="verbatim">org-startup-with-inline-images</code>.</td></tr>
+<tr><td><code class="verbatim">org-display-remote-inline-images</code></td><td>string</td><td><code class="verbatim">"skip"</code></td><td>Images at http(s) links: <code class="verbatim">skip</code>, <code class="verbatim">download</code> (kept until orgstar quits) or <code class="verbatim">cache</code> (kept on disk). See <a href="09-links.html">Links</a>. Mirrors <code class="verbatim">org-display-remote-inline-images</code>.</td></tr>
+<tr><td><code class="verbatim">org-startup-with-latex-preview</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Show LaTeX fragments as typeset math when a file opens. <code class="verbatim">#+STARTUP: latexpreview</code> / <code class="verbatim">nolatexpreview</code> override it. Mirrors <code class="verbatim">org-startup-with-latex-preview</code>.</td></tr>
+<tr><td><code class="verbatim">org-use-speed-commands</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Single keys at the start of a heading line run commands (<code class="verbatim">n</code>, <code class="verbatim">p</code>, <code class="verbatim">t</code>, <code class="verbatim">c</code>, …). Mirrors <code class="verbatim">org-use-speed-commands</code>.</td></tr>
+<tr><td><code class="verbatim">org-cycle-hide-drawer-startup</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Fold drawers when a file opens. <code class="verbatim">#+STARTUP: hidedrawers</code> / <code class="verbatim">nohidedrawers</code> override it. Mirrors <code class="verbatim">org-cycle-hide-drawer-startup</code>.</td></tr>
+<tr><td><code class="verbatim">org-cycle-hide-block-startup</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Fold blocks when a file opens. <code class="verbatim">#+STARTUP: hideblocks</code> / <code class="verbatim">nohideblocks</code> override it. Mirrors <code class="verbatim">org-cycle-hide-block-startup</code>.</td></tr>
+<tr><td><code class="verbatim">display-line-numbers-type</code></td><td>boolean or string</td><td><code class="verbatim">false</code></td><td>Line numbers in the editor's gutter: <code class="verbatim">true</code>, <code class="verbatim">false</code>, <code class="verbatim">"relative"</code> or <code class="verbatim">"visual"</code>. See <a href="02-the-editor.html">The editor</a>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-span</code></td><td>integer</td><td><code class="verbatim">10</code></td><td>Days the agenda shows. Mirrors <code class="verbatim">org-agenda-span</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-start-day</code></td><td>string</td><td><code class="verbatim">"+0d"</code></td><td>The agenda's first day relative to today, as <code class="verbatim">"-3d"</code> or <code class="verbatim">"+0d"</code>. Only day offsets are accepted. Mirrors <code class="verbatim">org-agenda-start-day</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-start-on-weekday</code></td><td>string</td><td><code class="verbatim">"1"</code></td><td>The day weeks start on, <code class="verbatim">"0"</code> (Sunday) to <code class="verbatim">"6"</code> (Saturday), for the week view and spans of 7 or 14 days. <code class="verbatim">"nil"</code> starts them on the day the view starts from. Mirrors <code class="verbatim">org-agenda-start-on-weekday</code>.</td></tr>
+<tr><td><code class="verbatim">org-deadline-warning-days</code></td><td>integer</td><td><code class="verbatim">14</code></td><td>Days ahead the agenda and the deadline sparse tree warn about a deadline. A <code class="verbatim">-Nd</code> cookie in the timestamp overrides it. Mirrors <code class="verbatim">org-deadline-warning-days</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-show-all-dates</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Show days without entries in the agenda; today always shows. Emacs's default is <code class="verbatim">t</code>. Mirrors <code class="verbatim">org-agenda-show-all-dates</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-skip-scheduled-if-done</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Leave a done entry's scheduled date out of the agenda, even on its own day. Mirrors <code class="verbatim">org-agenda-skip-scheduled-if-done</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-skip-deadline-if-done</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Leave a done entry's deadline out of the agenda, even on its own day. Mirrors <code class="verbatim">org-agenda-skip-deadline-if-done</code>.</td></tr>
+<tr><td><code class="verbatim">org-habit-show-habits-only-for-today</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Show habits only on today's agenda. Off, a habit also shows on the later days it is scheduled for. Mirrors <code class="verbatim">org-habit-show-habits-only-for-today</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-log-mode-items</code></td><td>string</td><td><code class="verbatim">"closed clock"</code></td><td>What log mode shows, separated by spaces: <code class="verbatim">closed</code>, <code class="verbatim">clock</code> and <code class="verbatim">state</code>. Mirrors <code class="verbatim">org-agenda-log-mode-items</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-todo-ignore-with-date</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>The TODO list leaves out entries with an active timestamp anywhere in their text. Mirrors <code class="verbatim">org-agenda-todo-ignore-with-date</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-todo-ignore-scheduled</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td>The TODO list leaves out scheduled entries: <code class="verbatim">"all"</code> (or <code class="verbatim">"t"</code>) all of them, <code class="verbatim">"future"</code> those scheduled after today, <code class="verbatim">"past"</code> today or before, <code class="verbatim">"N"</code> N or more days ahead, <code class="verbatim">"-N"</code> N or more days ago. Mirrors <code class="verbatim">org-agenda-todo-ignore-scheduled</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-todo-ignore-deadlines</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td>As the last, for deadlines: <code class="verbatim">"near"</code> (or <code class="verbatim">"t"</code>) those within their warning period, <code class="verbatim">"far"</code> those beyond it, <code class="verbatim">"all"</code>, <code class="verbatim">"future"</code>, <code class="verbatim">"past"</code>, <code class="verbatim">"N"</code>, <code class="verbatim">"-N"</code>. Mirrors <code class="verbatim">org-agenda-todo-ignore-deadlines</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-todo-ignore-timestamp</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td>As the last, for other active timestamps in the entry: <code class="verbatim">"all"</code> (or <code class="verbatim">"t"</code>), <code class="verbatim">"future"</code>, <code class="verbatim">"past"</code>, <code class="verbatim">"N"</code>, <code class="verbatim">"-N"</code>. Mirrors <code class="verbatim">org-agenda-todo-ignore-timestamp</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-tags-todo-honor-ignore-options</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>The four settings above apply to TODO-only matches (<code class="verbatim">M</code>) too. Mirrors <code class="verbatim">org-agenda-tags-todo-honor-ignore-options</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-search-view-always-boolean</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>The agenda's text search reads every string as <code class="verbatim">+word -word {regexp}</code> snippets, never as a phrase. Mirrors <code class="verbatim">org-agenda-search-view-always-boolean</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-search-view-force-full-words</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Text search snippets match whole words only, as a leading <code class="verbatim">:</code> does. Mirrors <code class="verbatim">org-agenda-search-view-force-full-words</code>.</td></tr>
+<tr><td><code class="verbatim">org-refile-targets</code></td><td>string</td><td><code class="verbatim">""</code></td><td>Refile targets as Lisp, as <code class="verbatim">org-refile-targets</code> takes them: <code class="verbatim">((nil :maxlevel . 3) (org-agenda-files :tag . "project"))</code>. <code class="verbatim">""</code> offers headings to level 3 in every file. See <a href="04-outlines.html">Outlines</a>. Mirrors <code class="verbatim">org-refile-targets</code>.</td></tr>
+<tr><td><code class="verbatim">org-refile-use-outline-path</code></td><td>string</td><td><code class="verbatim">"file"</code></td><td>How refile targets are written: <code class="verbatim">nil</code>, <code class="verbatim">t</code>, <code class="verbatim">file</code>, <code class="verbatim">full-file-path</code>, <code class="verbatim">buffer-name</code> or <code class="verbatim">title</code>. Mirrors <code class="verbatim">org-refile-use-outline-path</code>.</td></tr>
+<tr><td><code class="verbatim">org-refile-allow-creating-parent-nodes</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td><code class="verbatim">t</code> or <code class="verbatim">confirm</code>: a refile target typed as <code class="verbatim">TARGET/New heading</code> adds the heading; <code class="verbatim">confirm</code> asks first. Mirrors <code class="verbatim">org-refile-allow-creating-parent-nodes</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-files</code></td><td>string</td><td><code class="verbatim">""</code></td><td>Files and folders the agenda reads, separated by <code class="verbatim">\n</code>; a file that isn't <code class="verbatim">.org</code> lists more, one per line. <code class="verbatim">""</code> reads the folders' files. See <a href="07-agenda.html">The agenda</a>. Mirrors <code class="verbatim">org-agenda-files</code>.</td></tr>
+<tr><td><code class="verbatim">org-icalendar-use-deadline</code></td><td>string</td><td><code class="verbatim">"event-if-not-todo todo-due"</code></td><td>What a <code class="verbatim">DEADLINE</code> makes in iCalendar export: <code class="verbatim">event-if-not-todo</code>, <code class="verbatim">event-if-todo</code>, <code class="verbatim">event-if-todo-not-done</code>, <code class="verbatim">todo-due</code>. See <a href="12-export.html">Export</a>. Mirrors <code class="verbatim">org-icalendar-use-deadline</code>.</td></tr>
+<tr><td><code class="verbatim">org-icalendar-use-scheduled</code></td><td>string</td><td><code class="verbatim">"todo-start"</code></td><td>As the last, for <code class="verbatim">SCHEDULED</code>, with <code class="verbatim">todo-start</code>. Mirrors <code class="verbatim">org-icalendar-use-scheduled</code>.</td></tr>
+<tr><td><code class="verbatim">org-icalendar-include-todo</code></td><td>string</td><td><code class="verbatim">"nil"</code></td><td>Tasks as <code class="verbatim">VTODO</code>: <code class="verbatim">nil</code>, <code class="verbatim">t</code> (not done), <code class="verbatim">all</code>, <code class="verbatim">unblocked</code>, or TODO keywords separated by spaces. Mirrors <code class="verbatim">org-icalendar-include-todo</code>.</td></tr>
+<tr><td><code class="verbatim">org-icalendar-combined-agenda-file</code></td><td>string</td><td><code class="verbatim">"~/org.ics"</code></td><td>Where Combine Agenda Files into iCalendar writes. Mirrors <code class="verbatim">org-icalendar-combined-agenda-file</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-use-time-grid</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Grid lines at the times in <code class="verbatim">[org-agenda-time-grid]</code>, on the days it names. Mirrors <code class="verbatim">org-agenda-use-time-grid</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-show-current-time-in-grid</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>The now line on today's grid. Mirrors <code class="verbatim">org-agenda-show-current-time-in-grid</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-sort-notime-is-late</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Lines without a time sort after timed ones for <code class="verbatim">time-up</code>, and lines without a date after dated ones for the date keys. Mirrors <code class="verbatim">org-agenda-sort-notime-is-late</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-sort-noeffort-is-high</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Entries without an <code class="verbatim">Effort</code> sort as the longest for <code class="verbatim">effort-up</code>. Mirrors <code class="verbatim">org-agenda-sort-noeffort-is-high</code>.</td></tr>
+<tr><td><code class="verbatim">org-agenda-dim-blocked-tasks</code></td><td>string</td><td><code class="verbatim">"t"</code></td><td><code class="verbatim">t</code> dims entries the two enforce settings block, <code class="verbatim">invisible</code> hides them (entries blocked only by checkboxes are still dimmed), <code class="verbatim">nil</code> shows them as usual. Mirrors <code class="verbatim">org-agenda-dim-blocked-tasks</code>.</td></tr>
+<tr><td><code class="verbatim">appt-message-warning-time</code></td><td>integer</td><td><code class="verbatim">12</code></td><td>Minutes of warning before timed entries. An entry's <code class="verbatim">APPT_WARNTIME</code> property overrides it. Mirrors <code class="verbatim">appt-message-warning-time</code>.</td></tr>
+<tr><td><code class="verbatim">org-clock-idle-time</code></td><td>integer</td><td><code class="verbatim">0</code></td><td>Minutes without keyboard or mouse input, with a clock running, before orgstar asks what to do with the idle time. <code class="verbatim">0</code> never asks (Emacs's <code class="verbatim">nil</code>). Mac only. Mirrors <code class="verbatim">org-clock-idle-time</code>.</td></tr>
+<tr><td><code class="verbatim">org-clock-into-drawer</code></td><td>string</td><td><code class="verbatim">"t"</code></td><td>Where clock lines go: <code class="verbatim">"t"</code> the log drawer (<code class="verbatim">LOGBOOK</code>), <code class="verbatim">"nil"</code> no drawer, <code class="verbatim">"N"</code> a drawer once there are N clock lines, or a drawer's name. An entry's <code class="verbatim">CLOCK_INTO_DRAWER</code> property overrides it. Mirrors <code class="verbatim">org-clock-into-drawer</code>.</td></tr>
+<tr><td><code class="verbatim">org-clock-rounding-minutes</code></td><td>integer</td><td><code class="verbatim">0</code></td><td>Clocks start and end on multiples of this many minutes; <code class="verbatim">0</code> doesn't round. Mirrors <code class="verbatim">org-clock-rounding-minutes</code>.</td></tr>
+<tr><td><code class="verbatim">org-clock-out-remove-zero-time-clocks</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Clocking out removes a clock line of <code class="verbatim">0:00</code>. Mirrors <code class="verbatim">org-clock-out-remove-zero-time-clocks</code>.</td></tr>
+<tr><td><code class="verbatim">org-clock-in-switch-to-state</code></td><td>string</td><td><code class="verbatim">""</code></td><td>The keyword an entry takes when you clock in; <code class="verbatim">""</code> leaves it. Mirrors <code class="verbatim">org-clock-in-switch-to-state</code>.</td></tr>
+<tr><td><code class="verbatim">org-clock-out-when-done</code></td><td>string</td><td><code class="verbatim">"t"</code></td><td><code class="verbatim">"t"</code>: marking the clocked entry done clocks out; <code class="verbatim">"nil"</code>: it doesn't; or the keywords that clock out, separated by spaces. Mirrors <code class="verbatim">org-clock-out-when-done</code>.</td></tr>
+<tr><td><code class="verbatim">org-clock-history-length</code></td><td>integer</td><td><code class="verbatim">5</code></td><td>How many recently clocked entries orgstar remembers. Mirrors <code class="verbatim">org-clock-history-length</code>.</td></tr>
+</tbody>
+</table>
+<p>The default <code class="verbatim">org-todo-keywords</code> is Org's, <code class="verbatim">"TODO | DONE"</code>. Doom Emacs's set, as Import from Emacs writes it from a Doom configuration, is:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">org-todo-keywords</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>The startup settings (<code class="verbatim">org-startup-*</code>, <code class="verbatim">org-hide-leading-stars</code>, <code class="verbatim">org-cycle-hide-*-startup</code>) apply when a file opens. Files already open keep their state until you open them again.</p>
+<h3 id="org-agenda-prefix-format">[org-agenda-prefix-format]</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">agenda</code></td><td>string</td><td><code class="verbatim">" %i %-12:c%?-12t% s"</code></td><td>Prefix of lines in the day view</td></tr>
+<tr><td><code class="verbatim">todo</code></td><td>string</td><td><code class="verbatim">" %i %-12:c"</code></td><td>Prefix of lines in the TODO list</td></tr>
+<tr><td><code class="verbatim">tags</code></td><td>string</td><td><code class="verbatim">" %i %-12:c"</code></td><td>Prefix of tag and property matches</td></tr>
+</tbody>
+</table>
+<p>These mirror the entries of <code class="verbatim">org-agenda-prefix-format</code>. Rows show the category, time and leader in their own places; the rest of the format, such as <code class="verbatim">%e</code> or <code class="verbatim">%b</code>, shows after the category. A time written in heading text leaves the title when the <code class="verbatim">agenda</code> format contains <code class="verbatim">%t</code>. A view in <code class="verbatim">views.toml</code> can set its own with <code class="verbatim">prefix-format</code>. See <a href="07-agenda.html">The agenda</a>.</p>
+<h3 id="org-agenda-sorting-strategy">[org-agenda-sorting-strategy]</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">agenda</code></td><td>string</td><td><code class="verbatim">"habit-down time-up urgency-down category-keep"</code></td><td>Order of lines within a day</td></tr>
+<tr><td><code class="verbatim">todo</code></td><td>string</td><td><code class="verbatim">"urgency-down category-keep"</code></td><td>Order of the TODO list</td></tr>
+<tr><td><code class="verbatim">tags</code></td><td>string</td><td><code class="verbatim">"urgency-down category-keep"</code></td><td>Order of tag and property matches</td></tr>
+<tr><td><code class="verbatim">search</code></td><td>string</td><td><code class="verbatim">"category-keep"</code></td><td>Order of text search results</td></tr>
+</tbody>
+</table>
+<p>These mirror the entries of <code class="verbatim">org-agenda-sorting-strategy</code>, keys separated by spaces. Unknown keys are ignored. A view in <code class="verbatim">views.toml</code> can set its own with <code class="verbatim">sorting-strategy</code>. The keys are listed in <a href="07-agenda.html">The agenda</a>.</p>
+<h3 id="org-stuck-projects">[org-stuck-projects]</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">match</code></td><td>string</td><td><code class="verbatim">"+LEVEL=2/-DONE"</code></td><td>The entries that are projects</td></tr>
+<tr><td><code class="verbatim">todo</code></td><td>string</td><td><code class="verbatim">"TODO NEXT NEXTACTION"</code></td><td>Keywords, separated by spaces, that make a project active; <code class="verbatim">*</code> for any open one</td></tr>
+<tr><td><code class="verbatim">tags</code></td><td>string</td><td><code class="verbatim">""</code></td><td>Tags, separated by spaces, that make a project active; <code class="verbatim">*</code> for any</td></tr>
+<tr><td><code class="verbatim">regexp</code></td><td>string</td><td><code class="verbatim">""</code></td><td>An Emacs regular expression that makes a project active</td></tr>
+</tbody>
+</table>
+<p>These mirror the four elements of <code class="verbatim">org-stuck-projects</code>. See <a href="07-agenda.html">The agenda</a>.</p>
+<h3 id="org-agenda-time-grid">[org-agenda-time-grid]</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">when</code></td><td>string</td><td><code class="verbatim">"daily today require-timed"</code></td><td>Which days get a grid, separated by spaces</td></tr>
+<tr><td><code class="verbatim">times</code></td><td>string</td><td><code class="verbatim">"800 1000 1200 1400 1600 1800 2000"</code></td><td>The grid's times as <code class="verbatim">HHMM</code></td></tr>
+</tbody>
+</table>
+<p>These mirror the first two elements of <code class="verbatim">org-agenda-time-grid</code>. <code class="verbatim">when</code> takes <code class="verbatim">daily</code> (views of one day), <code class="verbatim">today</code>, <code class="verbatim">weekly</code> (every day), <code class="verbatim">require-timed</code> (only days with a timed entry) and <code class="verbatim">remove-match</code> (no line at a time an entry has). orgstar draws the lines itself, so Emacs's third and fourth elements, the strings for the lines, have no equivalent.</p>
+<h3 id="org-structure-template-alist">[org-structure-template-alist]</h3>
+<p>Block templates for Insert Structure Template (<code class="verbatim">C-c C-,</code>) and <code class="verbatim">&lt;</code> completion, each a key and the block type it inserts. They go over Org's default <code class="verbatim">org-structure-template-alist</code>: a key Org has (<code class="verbatim">s</code>, <code class="verbatim">q</code>, …) gets the new type, and other keys are added after Org's.</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">org-structure-template-alist</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">el</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>src emacs-lisp<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">py</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>src python<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>Keys are letters, digits, <code class="verbatim">_</code> and <code class="verbatim">-</code>. Without the table, Org's templates apply. Emacs import adds entries here and so does nothing else in the app; remove one by deleting its line.</p>
+<h3><a href="publish">publish</a></h3>
+<p>Publishing projects, one table each, as <code class="verbatim">org-publish-project-alist</code> has them. They're read when you publish; see <a href="12-export.org::*Publishing">Publishing</a> for the keys. The Settings window leaves them as they are.</p>
+<h3 id="theme">[theme]</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">font</code></td><td>string</td><td><code class="verbatim">""</code></td><td>A font family. <code class="verbatim">""</code> uses the system's monospaced font.</td></tr>
+<tr><td><code class="verbatim">body-font</code></td><td>string</td><td><code class="verbatim">""</code></td><td>A font family for prose, or <code class="verbatim">"system"</code> for the system's proportional font. <code class="verbatim">""</code> uses <code class="verbatim">font</code> throughout.</td></tr>
+<tr><td><code class="verbatim">font-size</code></td><td>integer</td><td><code class="verbatim">13</code></td><td>Points.</td></tr>
+<tr><td><code class="verbatim">line-spacing</code></td><td>integer</td><td><code class="verbatim">2</code></td><td>Points between lines.</td></tr>
+<tr><td><code class="verbatim">text-width</code></td><td>integer</td><td><code class="verbatim">0</code></td><td>The widest the text runs, in columns of <code class="verbatim">font</code>, centred in a wider editor. <code class="verbatim">0</code> uses the whole width.</td></tr>
+<tr><td><code class="verbatim">heading-size-step</code></td><td>integer</td><td><code class="verbatim">1</code></td><td>Points a heading is larger than the level below. Level 4 and deeper are body size.</td></tr>
+<tr><td><code class="verbatim">light-theme</code></td><td>string</td><td><code class="verbatim">"default-light"</code></td><td>The built-in theme for light appearance: <code class="verbatim">default-light</code>, <code class="verbatim">solarized-light</code>, <code class="verbatim">gruvbox-light</code>, <code class="verbatim">modus-operandi</code>, <code class="verbatim">catppuccin-latte</code>, <code class="verbatim">tomorrow</code> or <code class="verbatim">paper</code>.</td></tr>
+<tr><td><code class="verbatim">dark-theme</code></td><td>string</td><td><code class="verbatim">"default-dark"</code></td><td>The built-in theme for dark appearance: <code class="verbatim">default-dark</code>, <code class="verbatim">solarized-dark</code>, <code class="verbatim">gruvbox-dark</code>, <code class="verbatim">modus-vivendi</code>, <code class="verbatim">catppuccin-mocha</code>, <code class="verbatim">nord</code>, <code class="verbatim">dracula</code>, <code class="verbatim">tokyo-night</code> or <code class="verbatim">doom-one</code>.</td></tr>
+<tr><td><code class="verbatim">theme-file</code></td><td>string</td><td><code class="verbatim">""</code></td><td>A theme in its own file in the configuration folder, applied under the colors in <code class="verbatim">config.toml</code>.</td></tr>
+</tbody>
+</table>
+<p>Any other key in <code class="verbatim">[theme]</code> is a color; see Themes below.</p>
+<h3 id="orgstar">[orgstar]</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">save</code></td><td>string</td><td><code class="verbatim">"automatic"</code></td><td><code class="verbatim">automatic</code> (one second after typing stops) or <code class="verbatim">explicit</code> (only with <code class="verbatim">⌘S</code>).</td></tr>
+<tr><td><code class="verbatim">keymap</code></td><td>string</td><td><code class="verbatim">"emacs"</code></td><td><code class="verbatim">emacs</code>, <code class="verbatim">mac</code> or <code class="verbatim">doom</code>. Your own bindings go in <code class="verbatim">keymap.toml</code>.</td></tr>
+<tr><td><code class="verbatim">option-as-meta</code></td><td>string</td><td><code class="verbatim">"left"</code></td><td>Which Option key is Meta: <code class="verbatim">left</code>, <code class="verbatim">right</code>, <code class="verbatim">both</code> or <code class="verbatim">none</code>.</td></tr>
+<tr><td><code class="verbatim">pdf-margin</code></td><td>integer</td><td><code class="verbatim">50</code></td><td>PDF export's page margins, in points.</td></tr>
+<tr><td><code class="verbatim">pdf-font</code></td><td>string</td><td><code class="verbatim">""</code></td><td>A font family for PDF export's text; <code class="verbatim">""</code> keeps the export's own.</td></tr>
+<tr><td><code class="verbatim">pdf-page-numbers</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Number PDF export's pages.</td></tr>
+<tr><td><code class="verbatim">tab-bar</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>A tab for each open buffer above the editor.</td></tr>
+<tr><td><code class="verbatim">show-markup</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Show link brackets and emphasis markers.</td></tr>
+<tr><td><code class="verbatim">show-hidden-files</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>List dotfiles and dot folders in your folders.</td></tr>
+<tr><td><code class="verbatim">ignored-folders</code></td><td>string</td><td>see below</td><td>Folder names never listed or searched, separated by spaces.</td></tr>
+<tr><td><code class="verbatim">agenda-include-subfolders</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>The agenda reads org files in subfolders too.</td></tr>
+<tr><td><code class="verbatim">agenda-exclude-archives</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>The agenda leaves out files that other agenda files archive to.</td></tr>
+<tr><td><code class="verbatim">reminders</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td>Notify before timed entries.</td></tr>
+<tr><td><code class="verbatim">calendar-events</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Show events from Calendar in the agenda.</td></tr>
+<tr><td><code class="verbatim">calendar-event-calendars</code></td><td>string</td><td><code class="verbatim">""</code></td><td>The calendars whose events show, by title or identifier, separated by commas; <code class="verbatim">""</code> for all.</td></tr>
+<tr><td><code class="verbatim">agenda-reminders</code></td><td>boolean</td><td><code class="verbatim">false</code></td><td>Show incomplete reminders with a due date from Reminders in the agenda, read-only.</td></tr>
+<tr><td><code class="verbatim">agenda-reminder-lists</code></td><td>string</td><td><code class="verbatim">""</code></td><td>The Reminders lists shown, by title or identifier, separated by commas; <code class="verbatim">""</code> for all.</td></tr>
+<tr><td><code class="verbatim">global-capture-hotkey</code></td><td>boolean</td><td><code class="verbatim">true</code></td><td><code class="verbatim">⌃⌥Space</code> opens Capture from any app.</td></tr>
+</tbody>
+</table>
+<p>The default <code class="verbatim">ignored-folders</code> is:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">ignored-folders</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>.Spotlight-V100 .Trash .build .bzr .cache .fseventsd .git .gradle .hg .jj .mypy_cache .next .pytest_cache .stfolder .stversions .svn .terraform .tox .venv node_modules<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<h3 id="an-example">An example</h3>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">fill-column</span> <span class="keyword operator assignment toml">=</span> <span class="constant numeric toml">72</span>
+<span class="variable other key toml">org-tags-column</span> <span class="keyword operator assignment toml">=</span> <span class="constant numeric toml">0</span>
+<span class="variable other key toml">org-todo-keywords</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>TODO(t) NEXT(n) WAIT(w@/!) | DONE(d!) CANCELED(c@)<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">org-log-done</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>time<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">org-log-into-drawer</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>LOGBOOK<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">org-startup-truncated</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span>
+<span class="variable other key toml">org-agenda-span</span> <span class="keyword operator assignment toml">=</span> <span class="constant numeric toml">7</span>
+<span class="variable other key toml">org-agenda-start-day</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>+0d<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table toml">[</span><span class="entity name section toml">theme</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">font</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>JetBrains Mono<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">font-size</span> <span class="keyword operator assignment toml">=</span> <span class="constant numeric toml">14</span>
+<span class="variable other key toml">link</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#0a7ea4<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table toml">[</span><span class="entity name section toml">theme.todo</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">WAIT</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#bf8700<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table toml">[</span><span class="entity name section toml">orgstar</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">keymap</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>doom<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">save</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>explicit<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<h3 id="names-from-earlier-versions">Names from earlier versions</h3>
+<p>Earlier versions used keys such as <code class="verbatim">editor.fill-column</code> and <code class="verbatim">agenda.span</code>. orgstar still reads them. At launch, each such key in the file is renamed in place to its current name and moved to its current section; the rest of the file, and the comments on those lines, stay as they are. When a setting is in the file under both names, the current name wins and the old line is removed. A section the move leaves empty is removed. A file that lacks a whole section (such as <code class="verbatim">[theme]</code>) gets that section added at the end.</p>
+<h2 id="keymap-toml-and-capture-toml">keymap.toml and capture.toml</h2>
+<p><code class="verbatim">keymap.toml</code> holds <code class="verbatim">[[bind]]</code> tables with <code class="verbatim">keys</code>, <code class="verbatim">command</code>, and optionally <code class="verbatim">mode</code> and <code class="verbatim">when</code>. They layer over the preset chosen in Keys. orgstar reloads the file when it changes. See <a href="03-keys.html">Keys and commands</a>.</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-c a<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>app.agenda<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p><code class="verbatim">capture.toml</code> holds <code class="verbatim">[[template]]</code> tables. Without the file, orgstar uses two templates: <code class="verbatim">t</code> (Personal todo, under <code class="verbatim">Inbox</code> in <code class="verbatim">todo.org</code>) and <code class="verbatim">n</code> (Personal notes, under <code class="verbatim">Inbox</code> in <code class="verbatim">notes.org</code>). See <a href="08-capture.html">Capture</a>.</p>
+<p><code class="verbatim">views.toml</code> holds <code class="verbatim">[[view]]</code> tables for the agenda; see <a href="07-agenda.html">The agenda</a>.</p>
+<h2 id="in-file-settings">In-file settings</h2>
+<p>Keyword lines in a file set options for that file, as in Emacs. orgstar reads them outside blocks; for <code class="verbatim">#+STARTUP</code> only keyword lines count, so a <code class="verbatim">#+STARTUP</code> line inside a paragraph or a block changes nothing: not folding, logging or inline images.</p>
+<h3 id="keywords-orgstar-reads">Keywords orgstar reads</h3>
+<table>
+<thead>
+<tr><th>Keyword</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">#+TODO</code>, <code class="verbatim">#+SEQ_TODO</code></td><td>A TODO sequence: active keywords, a bar, then done keywords. Without the bar, the last word is the done state. <code class="verbatim">NAME(k)</code> gives a fast-selection key, <code class="verbatim">NAME(k!/@)</code> logging on entering and leaving. Any TODO line replaces the default keywords.</td></tr>
+<tr><td><code class="verbatim">#+TYP_TODO</code></td><td>A type sequence. As in Org, type sequences come first, then <code class="verbatim">#+TODO</code>, then <code class="verbatim">#+SEQ_TODO</code>.</td></tr>
+<tr><td><code class="verbatim">#+PRIORITIES</code></td><td>Three values: highest, lowest, default, as <code class="verbatim">A C B</code> or <code class="verbatim">1 5 3</code>. The default is <code class="verbatim">A C B</code>.</td></tr>
+<tr><td><code class="verbatim">#+STARTUP</code></td><td>Startup options; see below.</td></tr>
+<tr><td><code class="verbatim">#+TAGS</code></td><td>Tags for fast tag selection with <code class="verbatim">C-c C-q</code>, with keys as <code class="verbatim">work(w)</code>, groups in <code class="verbatim">{ }</code> and tag groups in <code class="verbatim">[ ]</code>. Without <code class="verbatim">#+TAGS</code>, <code class="verbatim">C-c C-q</code> offers the tags used in the file.</td></tr>
+<tr><td><code class="verbatim">#+FILETAGS</code></td><td>Tags every heading in the file inherits, as <code class="verbatim">:work:project:</code>.</td></tr>
+<tr><td><code class="verbatim">#+PROPERTY</code></td><td>A file-wide property, as <code class="verbatim">#+PROPERTY: header-args :results output</code>. <code class="verbatim">NAME+</code> appends to the value.</td></tr>
+<tr><td><code class="verbatim">#+CATEGORY</code></td><td>The file's category in the agenda. Without it the category is the file name.</td></tr>
+<tr><td><code class="verbatim">#+ARCHIVE</code></td><td>Where <code class="verbatim">C-c C-x C-a</code> archives to. The default is <code class="verbatim">%s_archive::</code>.</td></tr>
+<tr><td><code class="verbatim">#+COLUMNS</code></td><td>The default column view format.</td></tr>
+<tr><td><code class="verbatim">#+LINK</code></td><td>A link abbreviation, as <code class="verbatim">#+LINK: gh https://github.com/%s</code>.</td></tr>
+<tr><td><code class="verbatim">#+CONSTANTS</code></td><td>Constants for table formulas, as <code class="verbatim">#+CONSTANTS: c=299792458 pi=3.14</code>.</td></tr>
+<tr><td><code class="verbatim">#+SETUPFILE</code></td><td>A file whose keyword lines count as this file's; see below.</td></tr>
+<tr><td><code class="verbatim">#+TITLE</code>, <code class="verbatim">#+AUTHOR</code>, <code class="verbatim">#+DESCRIPTION</code></td><td>Used by export, Quick Look and Spotlight.</td></tr>
+<tr><td><code class="verbatim">#+OPTIONS</code>, <code class="verbatim">#+MACRO</code>, <code class="verbatim">#+INCLUDE</code>, <code class="verbatim">#+EXCLUDE_TAGS</code>, <code class="verbatim">#+SELECT_TAGS</code></td><td>Export settings; see <a href="12-export.html">Export</a>.</td></tr>
+</tbody>
+</table>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+TODO:</span><span class="string unquoted org"> TODO(t) NEXT(n) WAIT(w@/!) | DONE(d!) CANCELED(c@)</span>
+<span class="keyword other keyword org">#+PRIORITIES:</span><span class="string unquoted org"> A E C</span>
+<span class="keyword other keyword org">#+STARTUP:</span><span class="string unquoted org"> content logdrawer</span>
+<span class="keyword other keyword org">#+FILETAGS:</span><span class="string unquoted org"> :work:</span>
+<span class="keyword other keyword org">#+CATEGORY:</span><span class="string unquoted org"> acme</span></span></code></pre>
+<p>After you change a keyword line, press <code class="verbatim">C-c C-c</code> on it to read the file's settings again, as <code class="verbatim">org-mode-restart</code> does in Emacs. Changes to <code class="verbatim">#+TODO</code>, <code class="verbatim">#+SEQ_TODO</code>, <code class="verbatim">#+TYP_TODO</code> and <code class="verbatim">#+PRIORITIES</code> apply as you type.</p>
+<h3 id="startup-options">#+STARTUP options</h3>
+<table>
+<thead>
+<tr><th>Option</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">overview</code>, <code class="verbatim">fold</code></td><td>Only top-level headings show when the file opens.</td></tr>
+<tr><td><code class="verbatim">content</code></td><td>All headings show, no bodies.</td></tr>
+<tr><td><code class="verbatim">showall</code>, <code class="verbatim">nofold</code></td><td>Everything shows.</td></tr>
+<tr><td><code class="verbatim">show2levels</code> … <code class="verbatim">show5levels</code> (any <code class="verbatim">showNlevels</code>)</td><td>Headings down to level N show.</td></tr>
+<tr><td><code class="verbatim">showeverything</code></td><td>Everything shows, including drawers and blocks; <code class="verbatim">VISIBILITY</code> properties are ignored.</td></tr>
+<tr><td><code class="verbatim">hidedrawers</code>, <code class="verbatim">nohidedrawers</code></td><td>Fold or don't fold drawers at startup.</td></tr>
+<tr><td><code class="verbatim">hideblocks</code>, <code class="verbatim">nohideblocks</code></td><td>Fold or don't fold blocks at startup.</td></tr>
+<tr><td><code class="verbatim">indent</code>, <code class="verbatim">noindent</code></td><td>Virtual indentation on or off.</td></tr>
+<tr><td><code class="verbatim">hidestars</code>, <code class="verbatim">showstars</code></td><td>Hide leading stars or show them.</td></tr>
+<tr><td><code class="verbatim">align</code>, <code class="verbatim">noalign</code></td><td>Align every table when the file opens, or don't.</td></tr>
+<tr><td><code class="verbatim">inlineimages</code>, <code class="verbatim">noinlineimages</code></td><td>Show image links as images, or don't.</td></tr>
+<tr><td><code class="verbatim">latexpreview</code>, <code class="verbatim">nolatexpreview</code></td><td>Show LaTeX fragments as typeset math, or don't.</td></tr>
+<tr><td><code class="verbatim">shrink</code></td><td>Shrink table columns that have a width cookie.</td></tr>
+<tr><td><code class="verbatim">logdone</code>, <code class="verbatim">lognotedone</code>, <code class="verbatim">nologdone</code></td><td>Record a time, a note, or nothing when an entry becomes done.</td></tr>
+<tr><td><code class="verbatim">logrepeat</code>, <code class="verbatim">lognoterepeat</code>, <code class="verbatim">nologrepeat</code></td><td>The same, when a repeating entry is completed.</td></tr>
+<tr><td><code class="verbatim">logreschedule</code>, <code class="verbatim">lognotereschedule</code>, <code class="verbatim">nologreschedule</code></td><td>The same, when a scheduled date changes.</td></tr>
+<tr><td><code class="verbatim">logredeadline</code>, <code class="verbatim">lognoteredeadline</code>, <code class="verbatim">nologredeadline</code></td><td>The same, when a deadline changes.</td></tr>
+<tr><td><code class="verbatim">logdrawer</code>, <code class="verbatim">nologdrawer</code></td><td>Notes go in <code class="verbatim">LOGBOOK</code>, or under the heading.</td></tr>
+</tbody>
+</table>
+<p>After the startup visibility, orgstar applies each heading's <code class="verbatim">VISIBILITY</code> property and folds subtrees tagged <code class="verbatim">ARCHIVE</code>, unless <code class="verbatim">showeverything</code> is set.</p>
+<p>Completion offers every option of <code class="verbatim">org-startup-options</code>. Options not in the table above, such as <code class="verbatim">odd</code>, <code class="verbatim">entitiespretty</code>, <code class="verbatim">constSI</code> and the footnote options, are accepted and ignored.</p>
+<h3 id="setup-files">Setup files</h3>
+<p><code class="verbatim">#+SETUPFILE: path</code> reads the keyword lines of another file and treats them as if they were in this file, before its own lines. This follows <code class="verbatim">org--collect-keywords-1</code> in Org:</p>
+<ul>
+<li>A relative path is relative to the folder of the file that names it. <code class="verbatim">~</code> expands to your home folder. Quotes around the path are removed.</li>
+<li>A setup file can name further setup files; each is read once, and a file never reads itself.</li>
+<li>URLs (anything starting with <code class="verbatim">scheme://</code>) aren't fetched.</li>
+<li>A setup file that can't be read, or isn't UTF-8, is skipped without a message.</li>
+</ul>
+<p>Keywords from setup files count for TODO keywords, priorities, <code class="verbatim">#+STARTUP</code>, <code class="verbatim">#+TAGS</code>, <code class="verbatim">#+FILETAGS</code>, <code class="verbatim">#+PROPERTY</code>, <code class="verbatim">#+CATEGORY</code>, <code class="verbatim">#+ARCHIVE</code>, <code class="verbatim">#+COLUMNS</code>, <code class="verbatim">#+LINK</code>, <code class="verbatim">#+CONSTANTS</code> and export. orgstar reads setup files when a file opens, when you press <code class="verbatim">C-c C-c</code> on a keyword line, and when the file changes on disk. If you edit only the setup file, press <code class="verbatim">C-c C-c</code> on a keyword line of each open file that uses it.</p>
+<h2 id="import-from-emacs">Import from Emacs</h2>
+<p>Import from Emacs reads your Emacs or Doom Emacs configuration and offers to carry its org settings, folders, capture templates, key bindings and agenda views over. Nothing changes until you choose Import.</p>
+<h3 id="running-it">Running it</h3>
+<ol>
+<li>Open Settings ▸ General and click Import from Emacs…, or run Import from Emacs… from the command palette (<code class="verbatim">⇧⌘P</code>).</li>
+<li>orgstar looks for a configuration in these places, in order, and reads the first it finds: <code class="verbatim">$DOOMDIR</code>, <code class="verbatim">~/.config/doom</code>, <code class="verbatim">~/.doom.d</code>, <code class="verbatim">~/.config/emacs</code>, <code class="verbatim">~/.emacs.d</code>, <code class="verbatim">~/.emacs</code>. A folder counts when it holds <code class="verbatim">init.el</code>, <code class="verbatim">config.el</code>, <code class="verbatim">config.org</code> or <code class="verbatim">custom.el</code>. Doom's own installation folder (one with <code class="verbatim">lisp/doom.el</code>) is skipped.</li>
+<li>To read another configuration, click Choose… and pick a file or a folder. For a folder, orgstar reads <code class="verbatim">init.el</code>, <code class="verbatim">config.el</code> (or <code class="verbatim">config.org</code> when there is no <code class="verbatim">config.el</code>) and <code class="verbatim">custom.el</code> in it.</li>
+<li>The sheet lists what it found under Settings, Folders, Capture templates, Key bindings, Structure templates and Agenda views, each with the line it came from (<code class="verbatim">config.el:27</code>, or <code class="verbatim">Doom default</code>). Everything is selected; clear what you don't want.</li>
+<li>Click Import. The sheet then summarizes what was imported and any problems.</li>
+</ol>
+<p>What Import does with each kind of item:</p>
+<ul>
+<li>Settings are written to <code class="verbatim">config.toml</code>.</li>
+<li>Folders are added to the sidebar if they exist and aren't there already.</li>
+<li>Capture templates are appended to <code class="verbatim">capture.toml</code>, except those whose key is already in the file.</li>
+<li>Key bindings are appended to <code class="verbatim">keymap.toml</code>, except those already in the file with the same keys, command and state. Running the import again adds no duplicates.</li>
+<li>Agenda views are appended to <code class="verbatim">views.toml</code>, except those whose name is already in the file.</li>
+</ul>
+<p>The Not imported section lists what orgstar read but can't use, with the reason: settings it has no equivalent for, values it can't work out without running Emacs, bindings to code rather than a command, and files it couldn't read. The footer counts variables that aren't about org, which are left alone.</p>
+<p>A literate configuration (<code class="verbatim">config.org</code>) is read as <code class="verbatim">org-babel-load-file</code> and Doom tangle it: its <code class="verbatim">emacs-lisp</code> and <code class="verbatim">elisp</code> blocks, except blocks whose <code class="verbatim">:tangle</code> is <code class="verbatim">no</code> (set on the block, in a <code class="verbatim">#+HEADER:</code> line, in a <code class="verbatim">header-args</code> property or in <code class="verbatim">#+PROPERTY:</code>) and blocks under a COMMENT or <code class="verbatim">:ARCHIVE:</code> heading. Items show the line of <code class="verbatim">config.org</code> they came from. When the folder also has a <code class="verbatim">config.el</code>, it is read instead, as the file <code class="verbatim">config.org</code> tangles to.</p>
+<p>On iOS, Settings ▸ Import from Emacs reads a configuration folder you choose; see <a href="14-ios.html">iOS</a>.</p>
+<h3 id="doom-emacs">Doom Emacs</h3>
+<p>A configuration counts as Doom when it contains <code class="verbatim">(doom!</code>, <code class="verbatim">(map! = or =(after! =. orgstar then also reads Doom's own org defaults, from the Doom installation in =$EMACSDIR</code>, <code class="verbatim">~/.config/emacs</code> or <code class="verbatim">~/.emacs.d</code>: <code class="verbatim">modules/lang/org/config.el</code> and <code class="verbatim">lisp/doom-emacs.el</code>. Your configuration overrides them. Doom defaults orgstar has no use for are counted in the footer rather than listed.</p>
+<p>A Doom configuration, or any configuration that enables <code class="verbatim">evil</code>, adds <code class="verbatim">keymap = "doom"</code>.</p>
+<h3 id="what-it-reads">What it reads</h3>
+<p>orgstar reads the configuration as Lisp data; it never runs it. It looks at these forms:</p>
+<table>
+<thead>
+<tr><th>Form</th><th>What orgstar takes</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">setq</code>, <code class="verbatim">setq-default</code>, <code class="verbatim">setq!</code>, <code class="verbatim">setopt</code>, <code class="verbatim">csetq</code></td><td>Each variable and value</td></tr>
+<tr><td><code class="verbatim">defvar</code>, <code class="verbatim">defcustom</code></td><td>The value, below every other assignment</td></tr>
+<tr><td><code class="verbatim">custom-set-variables</code></td><td>Each quoted <code class="verbatim">(variable value)</code></td></tr>
+<tr><td><code class="verbatim">after!</code>, <code class="verbatim">with-eval-after-load</code>, <code class="verbatim">eval-after-load</code></td><td>The forms inside, ranked above plain assignments</td></tr>
+<tr><td><code class="verbatim">add-to-list</code> on <code class="verbatim">org-structure-template-alist</code></td><td>The entry added</td></tr>
+<tr><td><code class="verbatim">use-package</code>, <code class="verbatim">use-package!</code></td><td>Forms in <code class="verbatim">:config</code> and <code class="verbatim">:init</code>, and pairs in <code class="verbatim">:custom</code></td></tr>
+<tr><td><code class="verbatim">progn</code>, <code class="verbatim">when</code>, <code class="verbatim">unless</code>, <code class="verbatim">if</code>, <code class="verbatim">let</code>, <code class="verbatim">let*</code>, <code class="verbatim">with-no-warnings</code></td><td>The forms inside. Conditions aren't evaluated, so every branch is read.</td></tr>
+<tr><td><code class="verbatim">map!</code> (Doom)</td><td>Bindings, with <code class="verbatim">:leader</code> (<code class="verbatim">SPC</code>), <code class="verbatim">:localleader</code> (<code class="verbatim">SPC m</code>), <code class="verbatim">:prefix</code>, and state keywords such as <code class="verbatim">:n</code>, <code class="verbatim">:i</code>, <code class="verbatim">:v</code>, <code class="verbatim">:nv</code></td></tr>
+<tr><td><code class="verbatim">define-key</code>, <code class="verbatim">keymap-set</code>, <code class="verbatim">global-set-key</code>, <code class="verbatim">keymap-global-set</code></td><td>Bindings</td></tr>
+<tr><td><code class="verbatim">evil-define-key</code>, <code class="verbatim">evil-define-key*</code></td><td>Bindings in the <code class="verbatim">normal</code>, <code class="verbatim">insert</code> or <code class="verbatim">visual</code> state</td></tr>
+</tbody>
+</table>
+<p>When a variable is set more than once, the last assignment wins, with assignments inside <code class="verbatim">after!</code> and similar forms winning over plain ones, and those over Doom's defaults.</p>
+<p>orgstar works out a value when it is a literal, a quoted or backquoted form (with <code class="verbatim">,</code> and <code class="verbatim">,@</code>), a variable set earlier in the configuration, or a call to <code class="verbatim">list</code>, <code class="verbatim">concat</code>, <code class="verbatim">expand-file-name</code>, <code class="verbatim">file-name-concat</code> or <code class="verbatim">file-name-as-directory</code> on such values. Anything else, such as a function call or a value computed from the environment, is listed under Not imported as worked out when Emacs runs.</p>
+<p>Only variables whose names start with <code class="verbatim">org-</code>, <code class="verbatim">appt-</code>, <code class="verbatim">display-line-numbers</code>, <code class="verbatim">fill-column</code>, <code class="verbatim">evil-</code>, <code class="verbatim">doom-font</code>, <code class="verbatim">doom-variable-pitch-font</code>, <code class="verbatim">doom-theme</code> or <code class="verbatim">calendar-week-start-day</code> are considered.</p>
+<h3 id="how-variables-map">How variables map</h3>
+<table>
+<thead>
+<tr><th>Emacs variable</th><th>Becomes</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">fill-column</code>, <code class="verbatim">org-tags-column</code>, <code class="verbatim">appt-message-warning-time</code>, <code class="verbatim">org-deadline-warning-days</code></td><td>The same key, when the value is a number</td></tr>
+<tr><td><code class="verbatim">org-insert-heading-respect-content</code>, <code class="verbatim">org-list-allow-alphabetical</code>, <code class="verbatim">org-hide-emphasis-markers</code>, <code class="verbatim">org-pretty-entities</code>, <code class="verbatim">org-cycle-hide-drawer-startup</code>, <code class="verbatim">org-cycle-hide-block-startup</code>, <code class="verbatim">org-use-speed-commands</code>, <code class="verbatim">org-startup-with-inline-images</code>, <code class="verbatim">org-startup-with-latex-preview</code>, <code class="verbatim">org-startup-indented</code>, <code class="verbatim">org-hide-leading-stars</code>, <code class="verbatim">org-startup-align-all-tables</code>, <code class="verbatim">org-startup-truncated</code></td><td>The same key: <code class="verbatim">nil</code> or an empty list is <code class="verbatim">false</code>, anything else <code class="verbatim">true</code></td></tr>
+<tr><td><code class="verbatim">org-hide-drawer-startup</code>, <code class="verbatim">org-hide-block-startup</code></td><td><code class="verbatim">org-cycle-hide-drawer-startup</code>, <code class="verbatim">org-cycle-hide-block-startup</code></td></tr>
+<tr><td><code class="verbatim">org-M-RET-may-split-line</code></td><td><code class="verbatim">org-M-RET-may-split-line</code>, from the <code class="verbatim">default</code> entry of an alist; other per-context entries aren't supported</td></tr>
+<tr><td><code class="verbatim">org-agenda-prefix-format</code></td><td><code class="verbatim">[org-agenda-prefix-format]</code>: a string sets all three views; an alist sets <code class="verbatim">agenda</code>, <code class="verbatim">todo</code> and <code class="verbatim">tags</code></td></tr>
+<tr><td><code class="verbatim">org-agenda-sorting-strategy</code></td><td><code class="verbatim">[org-agenda-sorting-strategy]</code>: a list sets all four views; an alist sets <code class="verbatim">agenda</code>, <code class="verbatim">todo</code>, <code class="verbatim">tags</code> and <code class="verbatim">search</code>. A list with <code class="verbatim">user-defined-up</code> or <code class="verbatim">user-defined-down</code> isn't imported</td></tr>
+<tr><td><code class="verbatim">org-agenda-sort-notime-is-late</code>, <code class="verbatim">org-agenda-sort-noeffort-is-high</code>, <code class="verbatim">org-agenda-use-time-grid</code>, <code class="verbatim">org-agenda-show-current-time-in-grid</code></td><td>The same key, as booleans</td></tr>
+<tr><td><code class="verbatim">org-agenda-custom-commands</code></td><td>A <code class="verbatim">views.toml</code> view per command, named by its description, and per block a <code class="verbatim">[[view.block]]</code>. Types <code class="verbatim">agenda</code>, <code class="verbatim">alltodo</code>, <code class="verbatim">todo</code>, <code class="verbatim">tags</code>, <code class="verbatim">tags-todo</code>, <code class="verbatim">search</code> and <code class="verbatim">stuck</code>; settings <code class="verbatim">org-agenda-span</code>, <code class="verbatim">org-agenda-start-day</code>, <code class="verbatim">org-agenda-overriding-header</code>, <code class="verbatim">org-agenda-sorting-strategy</code>, <code class="verbatim">org-agenda-prefix-format</code> (a string) and <code class="verbatim">org-agenda-skip-function</code> as <code class="verbatim">org-agenda-skip-entry-if</code> or <code class="verbatim">org-agenda-skip-subtree-if</code>. Entries from <code class="verbatim">(add-to-list 'org-agenda-custom-commands …)</code> too. Other types, other settings and file lists aren't imported</td></tr>
+<tr><td><code class="verbatim">org-refile-targets</code></td><td><code class="verbatim">org-refile-targets</code>, the value written as Lisp, when its files and specs are ones orgstar reads (not functions or variables)</td></tr>
+<tr><td><code class="verbatim">org-refile-use-outline-path</code>, <code class="verbatim">org-refile-allow-creating-parent-nodes</code></td><td>The symbol as a string</td></tr>
+<tr><td><code class="verbatim">org-stuck-projects</code></td><td><code class="verbatim">[org-stuck-projects]</code>: <code class="verbatim">match</code>, <code class="verbatim">todo</code>, <code class="verbatim">tags</code> and <code class="verbatim">regexp</code> from the four elements</td></tr>
+<tr><td><code class="verbatim">org-agenda-time-grid</code></td><td><code class="verbatim">[org-agenda-time-grid]</code>: <code class="verbatim">when</code> from the first element, <code class="verbatim">times</code> from the second; the strings are left out</td></tr>
+<tr><td><code class="verbatim">org-icalendar-use-deadline</code>, <code class="verbatim">org-icalendar-use-scheduled</code></td><td>The list's symbols, separated by spaces</td></tr>
+<tr><td><code class="verbatim">org-icalendar-include-todo</code></td><td><code class="verbatim">nil</code>, <code class="verbatim">t</code>, <code class="verbatim">all</code> or <code class="verbatim">unblocked</code>, or a list of keywords separated by spaces</td></tr>
+<tr><td><code class="verbatim">org-icalendar-combined-agenda-file</code></td><td>The file name, from a string or a simple form</td></tr>
+<tr><td><code class="verbatim">org-display-remote-inline-images</code></td><td>The symbol as a string, when it's <code class="verbatim">skip</code>, <code class="verbatim">download</code> or <code class="verbatim">cache</code></td></tr>
+<tr><td><code class="verbatim">org-publish-project-alist</code></td><td>A <code class="verbatim">[[publish]]</code> table in <code class="verbatim">config.toml</code> per project whose publishing functions are <code class="verbatim">org-html-publish-to-html</code>, <code class="verbatim">org-md-publish-to-md</code> or <code class="verbatim">org-publish-attachment</code>: the directories, <code class="verbatim">:base-extension</code>, <code class="verbatim">:recursive</code>, <code class="verbatim">:exclude</code>, <code class="verbatim">:include</code>, <code class="verbatim">:body-only</code>, the sitemap properties and <code class="verbatim">:components</code>. Other properties are reported as left out</td></tr>
+<tr><td><code class="verbatim">org-log-done</code>, <code class="verbatim">org-log-reschedule</code>, <code class="verbatim">org-log-redeadline</code></td><td>The same key: <code class="verbatim">nil</code>, <code class="verbatim">time</code> (also <code class="verbatim">t</code>) or <code class="verbatim">note</code></td></tr>
+<tr><td><code class="verbatim">org-log-into-drawer</code></td><td>A string as given; <code class="verbatim">t</code> becomes <code class="verbatim">"LOGBOOK"</code>; <code class="verbatim">nil</code> becomes <code class="verbatim">""</code></td></tr>
+<tr><td><code class="verbatim">display-line-numbers-type</code></td><td><code class="verbatim">true</code> unless <code class="verbatim">nil</code>; <code class="verbatim">relative</code> and <code class="verbatim">visual</code> as they are</td></tr>
+<tr><td><code class="verbatim">auto-fill-mode</code></td><td><code class="verbatim">true</code> for <code class="verbatim">(add-hook 'org-mode-hook #'auto-fill-mode)</code> or <code class="verbatim">turn-on-auto-fill</code>, or in <code class="verbatim">text-mode-hook</code></td></tr>
+<tr><td><code class="verbatim">org-agenda-span</code></td><td>A number, or <code class="verbatim">day</code> (1), <code class="verbatim">week</code> (7), <code class="verbatim">fortnight</code> (14), <code class="verbatim">month</code> (30), <code class="verbatim">year</code> (365)</td></tr>
+<tr><td><code class="verbatim">org-clock-idle-time</code></td><td>Minutes; <code class="verbatim">nil</code> becomes <code class="verbatim">0</code> (never)</td></tr>
+<tr><td><code class="verbatim">org-clock-history-length</code></td><td>The same key, when the value is a positive number</td></tr>
+<tr><td><code class="verbatim">org-clock-into-drawer</code></td><td>A drawer name as given, a number as a string, <code class="verbatim">t</code> or <code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">org-clock-rounding-minutes</code>, <code class="verbatim">org-clock-out-remove-zero-time-clocks</code></td><td>The same key</td></tr>
+<tr><td><code class="verbatim">org-clock-in-switch-to-state</code></td><td>A keyword string; a function isn't supported</td></tr>
+<tr><td><code class="verbatim">org-use-tag-inheritance</code></td><td><code class="verbatim">t</code>, <code class="verbatim">nil</code>, a list of tags as names separated by spaces, or a regular expression in braces</td></tr>
+<tr><td><code class="verbatim">org-tags-exclude-from-inheritance</code></td><td>The list's tags separated by spaces</td></tr>
+<tr><td><code class="verbatim">org-tag-alist</code></td><td><code class="verbatim">#+TAGS</code> syntax: <code class="verbatim">("work" . ?w)</code> is <code class="verbatim">work(w)</code>; <code class="verbatim">:startgroup</code>, <code class="verbatim">:endgroup</code>, <code class="verbatim">:startgrouptag</code>, <code class="verbatim">:grouptags</code>, <code class="verbatim">:endgrouptag</code> and <code class="verbatim">:newline</code> become <code class="verbatim">{</code>, <code class="verbatim">}</code>, <code class="verbatim">[</code>, <code class="verbatim">:</code>, <code class="verbatim">]</code> and a new row</td></tr>
+<tr><td><code class="verbatim">org-clock-out-when-done</code></td><td><code class="verbatim">t</code>, <code class="verbatim">nil</code>, or a list of keywords as a string separated by spaces</td></tr>
+<tr><td><code class="verbatim">org-agenda-start-day</code></td><td>A day offset such as <code class="verbatim">"-3d"</code>; <code class="verbatim">nil</code> becomes <code class="verbatim">"+0d"</code>. Other forms aren't supported.</td></tr>
+<tr><td><code class="verbatim">org-agenda-start-on-weekday</code></td><td><code class="verbatim">"0"</code> to <code class="verbatim">"6"</code>, or <code class="verbatim">"nil"</code></td></tr>
+<tr><td><code class="verbatim">org-agenda-log-mode-items</code></td><td>The symbols <code class="verbatim">closed</code>, <code class="verbatim">clock</code> and <code class="verbatim">state</code> of the list, separated by spaces</td></tr>
+<tr><td><code class="verbatim">org-agenda-todo-ignore-scheduled</code>, <code class="verbatim">-deadlines</code>, <code class="verbatim">-timestamp</code></td><td>The symbol or number as a string; <code class="verbatim">org-agenda-todo-ignore-with-date</code> and <code class="verbatim">org-agenda-tags-todo-honor-ignore-options</code> as booleans</td></tr>
+<tr><td><code class="verbatim">org-track-ordered-property-with-tag</code></td><td>A tag name as given; <code class="verbatim">t</code> becomes <code class="verbatim">"t"</code>, <code class="verbatim">nil</code> <code class="verbatim">"nil"</code></td></tr>
+<tr><td><code class="verbatim">org-roam-directory</code>, <code class="verbatim">org-roam-dailies-directory</code></td><td>The same keys, when the value is a string or a form that makes one</td></tr>
+<tr><td><code class="verbatim">org-roam-dailies-capture-templates</code></td><td><code class="verbatim">org-roam-dailies-file</code>, <code class="verbatim">-head</code> and <code class="verbatim">-entry</code>, from the first template's <code class="verbatim">(file+head NAME HEAD)</code> target and template</td></tr>
+<tr><td><code class="verbatim">org-timer-format</code>, <code class="verbatim">org-timer-default-timer</code></td><td>The same keys; a number becomes a string</td></tr>
+<tr><td><code class="verbatim">org-attach-id-dir</code></td><td>The same key, when the value is a string or an <code class="verbatim">expand-file-name</code> form</td></tr>
+<tr><td><code class="verbatim">org-attach-use-inheritance</code></td><td><code class="verbatim">selective</code>, or <code class="verbatim">t</code> / <code class="verbatim">nil</code> as <code class="verbatim">"t"</code> / <code class="verbatim">"nil"</code></td></tr>
+<tr><td><code class="verbatim">org-yank-image-save-method</code></td><td><code class="verbatim">attach</code>, or a folder name</td></tr>
+<tr><td><code class="verbatim">org-yank-dnd-method</code></td><td><code class="verbatim">ask</code>, <code class="verbatim">attach</code>, <code class="verbatim">open</code> or <code class="verbatim">file-link</code></td></tr>
+<tr><td><code class="verbatim">org-crypt-tag-matcher</code></td><td>The same key, when the value is a single tag</td></tr>
+<tr><td><code class="verbatim">org-archive-location</code></td><td>The same key, when the value is a <code class="verbatim">file::heading</code> string</td></tr>
+<tr><td><code class="verbatim">org-structure-template-alist</code></td><td><code class="verbatim">[org-structure-template-alist]</code>: each <code class="verbatim">("key" . "type")</code> entry that isn't one of Org's, from <code class="verbatim">setq</code> or <code class="verbatim">(add-to-list 'org-structure-template-alist …)</code></td></tr>
+<tr><td><code class="verbatim">org-todo-keywords</code></td><td><code class="verbatim">org-todo-keywords</code>, one line per sequence. Keywords with spaces are left out; <code class="verbatim">type</code> sequences are read as sequences.</td></tr>
+<tr><td><code class="verbatim">org-directory</code></td><td>A folder to add</td></tr>
+<tr><td><code class="verbatim">org-agenda-files</code></td><td><code class="verbatim">org-agenda-files</code>, the entries separated by <code class="verbatim">\n</code>; the string form becomes one entry naming the list file. Also a folder to add for each entry; for a <code class="verbatim">.org</code> file, its folder; none for a list file</td></tr>
+<tr><td><code class="verbatim">org-capture-templates</code></td><td>Templates for <code class="verbatim">capture.toml</code>; see below</td></tr>
+<tr><td><code class="verbatim">doom-font</code></td><td><code class="verbatim">font</code> and <code class="verbatim">font-size</code>, from <code class="verbatim">(font-spec :family … :size …)</code> or <code class="verbatim">"Family-14"</code></td></tr>
+<tr><td><code class="verbatim">doom-variable-pitch-font</code></td><td>Not imported: orgstar uses one font</td></tr>
+<tr><td><code class="verbatim">doom-theme</code></td><td>Not imported: set colors under <code class="verbatim">[theme]</code></td></tr>
+<tr><td><code class="verbatim">evil-mode</code> in use, or Doom</td><td><code class="verbatim">keymap = "doom"</code></td></tr>
+</tbody>
+</table>
+<p>Any other <code class="verbatim">org-</code> or <code class="verbatim">appt-</code> variable is listed as having no equivalent.</p>
+<p>Capture templates are imported when their type is <code class="verbatim">entry</code>, <code class="verbatim">item</code>, <code class="verbatim">checkitem</code>, <code class="verbatim">plain</code> or <code class="verbatim">table-line</code>, their template is a string, and their target is <code class="verbatim">file</code>, <code class="verbatim">file+headline</code>, <code class="verbatim">file+olp</code>, <code class="verbatim">file+olp+datetree</code>, <code class="verbatim">file+datetree</code>, <code class="verbatim">file+weektree</code>, <code class="verbatim">id</code> or <code class="verbatim">clock</code>. The properties <code class="verbatim">:prepend</code>, <code class="verbatim">:immediate-finish</code>, <code class="verbatim">:jump-to-captured</code>, <code class="verbatim">:clock-in</code>, <code class="verbatim">:clock-keep</code>, <code class="verbatim">:clock-resume</code>, <code class="verbatim">:empty-lines</code>, <code class="verbatim">:empty-lines-before</code>, <code class="verbatim">:empty-lines-after</code>, <code class="verbatim">:tree-type</code> (<code class="verbatim">day</code>, <code class="verbatim">week</code>, <code class="verbatim">month</code>) and <code class="verbatim">:table-line-pos</code> carry over; others are listed as left out. Template groups (a key and a name only) are skipped.</p>
+<p>Key bindings are imported when the command is one orgstar has a counterpart for, such as <code class="verbatim">org-todo</code>, <code class="verbatim">org-schedule</code>, <code class="verbatim">org-refile</code>, <code class="verbatim">org-capture</code> or <code class="verbatim">save-buffer</code>. The clock commands <code class="verbatim">org-clock-in</code>, <code class="verbatim">org-clock-out</code>, <code class="verbatim">org-clock-cancel</code>, <code class="verbatim">org-clock-goto</code>, <code class="verbatim">org-clock-in-last</code>, <code class="verbatim">org-resolve-clocks</code> and <code class="verbatim">org-clock-mark-default-task</code> map to Clock In, Clock Out, Cancel Clock, Go to Clocked Entry, Clock In to Last Entry, Resolve Open Clocks… and Mark as Default Clock Task. Keys must be a string or <code class="verbatim">(kbd "…")</code>; bindings with key vectors such as <code class="verbatim">[f5]</code> are skipped. In a Doom configuration, bindings without a state go to the <code class="verbatim">normal</code> state.</p>
+<h3 id="limits-of-the-lisp-reader">Limits of the Lisp reader</h3>
+<ul>
+<li>Comments (<code class="verbatim">;</code>) are skipped. Strings understand <code class="verbatim">\n</code>, <code class="verbatim">\t</code>, <code class="verbatim">\"</code> and line continuations; other escapes give the character itself.</li>
+<li><code class="verbatim">#'</code> reads as <code class="verbatim">function</code>. Other <code class="verbatim">#</code> syntax is read as a symbol, so forms using it aren't understood.</li>
+<li>A syntax error anywhere in a file, such as an unclosed parenthesis, stops that file from being read at all. The error and its line show under Not imported.</li>
+<li>Macros other than those in the table above are not expanded, and functions are not called. Settings made by code you wrote (a <code class="verbatim">defun</code> that calls <code class="verbatim">setq</code>, a hook) aren't found.</li>
+</ul>
+<h2 id="themes">Themes</h2>
+<p>The default theme has light and dark colors after GitHub's light and dark themes for text and code. TODO keywords, priorities and the agenda's statuses use the system's red, orange, blue and green, as iOS and macOS show them. It leaves the sidebar, the modeline, the agenda's background and the accent of buttons and toggles to the system.</p>
+<p><code class="verbatim">light-theme</code> and <code class="verbatim">dark-theme</code> choose a built-in theme for each appearance instead (Settings ▸ Appearance ▸ Theme). The light themes are Default, Solarized Light, Gruvbox Light, Modus Operandi, Catppuccin Latte, Tomorrow and Paper; the dark themes are Default, Solarized Dark, Gruvbox Dark, Modus Vivendi, Catppuccin Mocha, Nord, Dracula, Tokyo Night and doom-one. Every one but Default sets every color key, the sidebar, modeline, agenda and accent included. An unknown name, or one of the other appearance, is reported and Default is used.</p>
+<p>You change any of them by setting colors in <code class="verbatim">config.toml</code>, or by keeping a theme in its own file. Copy to Config Folder writes the two chosen themes, every color written out, into <code class="verbatim">my-theme.toml</code> and sets <code class="verbatim">theme-file</code> to it; it leaves an existing <code class="verbatim">my-theme.toml</code> as it is.</p>
+<p>Colors are strings in the form <code class="verbatim">"#rrggbb"</code> or <code class="verbatim">"#rrggbbaa"</code>. They go in these tables:</p>
+<table>
+<thead>
+<tr><th>Table</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">[theme]</code></td><td>Sets a color for both light and dark appearance</td></tr>
+<tr><td><code class="verbatim">[theme.light]</code></td><td>Sets a color for light appearance only</td></tr>
+<tr><td><code class="verbatim">[theme.dark]</code></td><td>Sets a color for dark appearance only</td></tr>
+<tr><td><code class="verbatim">[theme.todo]</code></td><td>Colors TODO keywords by name, in both appearances, as <code class="verbatim">org-todo-keyword-faces</code></td></tr>
+<tr><td><code class="verbatim">[theme.category]</code></td><td>Colors agenda categories by name, in both appearances</td></tr>
+</tbody>
+</table>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">theme</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">heading-1</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#005cc5<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table toml">[</span><span class="entity name section toml">theme.dark</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">background</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#1e1e1e<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">foreground</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#d4d4d4<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table toml">[</span><span class="entity name section toml">theme.todo</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">WAIT</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#bf8700<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">PROJ</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#8250df<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="punctuation definition table toml">[</span><span class="entity name section toml">theme.category</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">work</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>#0a66d8<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>A keyword without its own color takes its class's color. Case doesn't matter in these lists:</p>
+<table>
+<thead>
+<tr><th>Class</th><th>Key</th><th>Keywords</th></tr>
+</thead>
+<tbody>
+<tr><td>Under way</td><td><code class="verbatim">todo-next</code></td><td><code class="verbatim">NEXT</code>, <code class="verbatim">STRT</code>, <code class="verbatim">START</code>, <code class="verbatim">STARTED</code>, <code class="verbatim">DOING</code>, <code class="verbatim">ACTIVE</code>, <code class="verbatim">INPROGRESS</code>, <code class="verbatim">IN-PROGRESS</code></td></tr>
+<tr><td>On hold</td><td><code class="verbatim">todo-waiting</code></td><td><code class="verbatim">WAIT</code>, <code class="verbatim">WAITING</code>, <code class="verbatim">HOLD</code>, <code class="verbatim">ONHOLD</code>, <code class="verbatim">BLOCKED</code>, <code class="verbatim">DEFERRED</code>, <code class="verbatim">SOMEDAY</code>, <code class="verbatim">MAYBE</code></td></tr>
+<tr><td>Cancelled</td><td><code class="verbatim">todo-cancelled</code></td><td>Done keywords <code class="verbatim">KILL</code>, <code class="verbatim">KILLED</code>, <code class="verbatim">CANCELLED</code>, <code class="verbatim">CANCELED</code>, <code class="verbatim">CANCEL</code>, <code class="verbatim">SKIPPED</code>, <code class="verbatim">SKIP</code>, <code class="verbatim">ABORTED</code>, <code class="verbatim">NO</code>, <code class="verbatim">WONTFIX</code></td></tr>
+<tr><td>Other open</td><td><code class="verbatim">todo</code></td><td>Any other keyword that isn't done</td></tr>
+<tr><td>Other done</td><td><code class="verbatim">done</code></td><td>Any other done keyword</td></tr>
+</tbody>
+</table>
+<p>The classes color keywords in the editors, the iOS reader, the agenda and its widgets.</p>
+<p>A category without its own color gets a hue worked out from its name, the same on every run and device, at a lightness that reads on the appearance's background.</p>
+<p><code class="verbatim">default-theme.toml</code> in the configuration folder lists every color key with the default theme's values, light and dark. Settings ▸ Appearance ▸ Show Default Theme opens it. Copy lines from it into <code class="verbatim">config.toml</code>; edits to <code class="verbatim">default-theme.toml</code> itself are overwritten at the next launch.</p>
+<h3 id="theme-files">Theme files</h3>
+<p>To keep a theme in its own file, put it in the configuration folder with the same tables (<code class="verbatim">[theme]</code>, <code class="verbatim">[theme.light]</code>, <code class="verbatim">[theme.dark]</code>, <code class="verbatim">[theme.todo]</code>, <code class="verbatim">[theme.category]</code>) and name it in <code class="verbatim">config.toml</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">theme</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">theme-file</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>solarized.toml<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>The colors stack in this order, each over the one before: the themes chosen with <code class="verbatim">light-theme</code> and <code class="verbatim">dark-theme</code>, the theme file, then the colors in <code class="verbatim">config.toml</code>. The path is relative to the configuration folder and may name a subfolder, as <code class="verbatim">themes/solarized.toml</code>. orgstar reloads the theme file when it changes. Only colors are read from a theme file; <code class="verbatim">font</code> and the other type keys in its <code class="verbatim">[theme]</code> table are ignored.</p>
+<h3 id="color-keys">Color keys</h3>
+<table>
+<thead>
+<tr><th>Key</th><th>Colors</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">background</code></td><td>the editor's background</td></tr>
+<tr><td><code class="verbatim">foreground</code></td><td>body text</td></tr>
+<tr><td><code class="verbatim">cursor</code></td><td>the caret</td></tr>
+<tr><td><code class="verbatim">selection</code></td><td>selected text's background</td></tr>
+<tr><td><code class="verbatim">accent</code></td><td>buttons, toggles and selection in lists; unset: the system's</td></tr>
+<tr><td><code class="verbatim">heading-1</code> … <code class="verbatim">heading-7</code></td><td>headings of that level</td></tr>
+<tr><td><code class="verbatim">heading-8</code></td><td>level 8 and deeper headings</td></tr>
+<tr><td><code class="verbatim">todo</code></td><td>TODO keywords not yet done</td></tr>
+<tr><td><code class="verbatim">todo-next</code></td><td>keywords of work under way: <code class="verbatim">NEXT</code>, <code class="verbatim">STRT</code> and the others above</td></tr>
+<tr><td><code class="verbatim">todo-waiting</code></td><td>keywords of work on hold: <code class="verbatim">WAIT</code>, <code class="verbatim">HOLD</code> and the others above</td></tr>
+<tr><td><code class="verbatim">done</code></td><td>DONE keywords</td></tr>
+<tr><td><code class="verbatim">todo-cancelled</code></td><td>done keywords that cancel: <code class="verbatim">KILL</code>, <code class="verbatim">CANCELLED</code> and the others above</td></tr>
+<tr><td><code class="verbatim">priority</code></td><td><code class="verbatim">[#A]</code> cookies; in the agenda, priorities other than A, B and C</td></tr>
+<tr><td><code class="verbatim">priority-a</code></td><td>agenda: priority A</td></tr>
+<tr><td><code class="verbatim">priority-b</code></td><td>agenda: priority B</td></tr>
+<tr><td><code class="verbatim">priority-c</code></td><td>agenda: priority C</td></tr>
+<tr><td><code class="verbatim">tags</code></td><td><code class="verbatim">:tags:</code></td></tr>
+<tr><td><code class="verbatim">link</code></td><td>links</td></tr>
+<tr><td><code class="verbatim">timestamp</code></td><td>timestamps</td></tr>
+<tr><td><code class="verbatim">code</code></td><td><code class="verbatim">~code~</code> and inline source</td></tr>
+<tr><td><code class="verbatim">verbatim</code></td><td><code>=verbatim=</code></td></tr>
+<tr><td><code class="verbatim">inline-background</code></td><td>behind <code class="verbatim">~code~</code> and <code>=verbatim=</code></td></tr>
+<tr><td><code class="verbatim">markup</code></td><td>link brackets and emphasis markers</td></tr>
+<tr><td><code class="verbatim">comment</code></td><td>comments</td></tr>
+<tr><td><code class="verbatim">keyword</code></td><td><code class="verbatim">#+KEYWORD</code> lines</td></tr>
+<tr><td><code class="verbatim">metadata</code></td><td>planning lines, drawers, properties and clocks</td></tr>
+<tr><td><code class="verbatim">special</code></td><td>footnotes, statistics cookies, targets, macros and LaTeX</td></tr>
+<tr><td><code class="verbatim">block-background</code></td><td>the band behind blocks</td></tr>
+<tr><td><code class="verbatim">block-delimiter</code></td><td><code class="verbatim">#+begin_</code> and <code class="verbatim">#+end_</code> lines</td></tr>
+<tr><td><code class="verbatim">table</code></td><td>tables</td></tr>
+<tr><td><code class="verbatim">line-number</code></td><td>line numbers</td></tr>
+<tr><td><code class="verbatim">line-number-current</code></td><td>the caret's line number</td></tr>
+<tr><td><code class="verbatim">syntax-keyword</code></td><td>code: keywords</td></tr>
+<tr><td><code class="verbatim">syntax-string</code></td><td>code: strings</td></tr>
+<tr><td><code class="verbatim">syntax-comment</code></td><td>code: comments</td></tr>
+<tr><td><code class="verbatim">syntax-function</code></td><td>code: functions</td></tr>
+<tr><td><code class="verbatim">syntax-type</code></td><td>code: types and modules</td></tr>
+<tr><td><code class="verbatim">syntax-number</code></td><td>code: numbers, constants and escapes</td></tr>
+<tr><td><code class="verbatim">syntax-property</code></td><td>code: properties, attributes and tags</td></tr>
+<tr><td><code class="verbatim">syntax-label</code></td><td>code: labels</td></tr>
+<tr><td><code class="verbatim">sidebar-background</code></td><td>the folder sidebar and the outline</td></tr>
+<tr><td><code class="verbatim">sidebar-foreground</code></td><td>file and heading names there</td></tr>
+<tr><td><code class="verbatim">sidebar-header</code></td><td>folder names there</td></tr>
+<tr><td><code class="verbatim">modeline-background</code></td><td>the modeline and message line</td></tr>
+<tr><td><code class="verbatim">modeline-foreground</code></td><td>modeline text</td></tr>
+<tr><td><code class="verbatim">modeline-highlight</code></td><td>the outline path and the clock in the modeline</td></tr>
+<tr><td><code class="verbatim">state-normal</code></td><td>the NORMAL tag (Doom keys)</td></tr>
+<tr><td><code class="verbatim">state-insert</code></td><td>the INSERT tag</td></tr>
+<tr><td><code class="verbatim">state-visual</code></td><td>the VISUAL and V-LINE tags</td></tr>
+<tr><td><code class="verbatim">agenda-background</code></td><td>the agenda and board; the iOS widgets</td></tr>
+<tr><td><code class="verbatim">agenda-date</code></td><td>agenda day headers after today</td></tr>
+<tr><td><code class="verbatim">agenda-today</code></td><td>today's header and the now line</td></tr>
+<tr><td><code class="verbatim">agenda-time</code></td><td>times and statuses of agenda rows with the normal status</td></tr>
+<tr><td><code class="verbatim">agenda-category</code></td><td>categories</td></tr>
+<tr><td><code class="verbatim">agenda-overdue</code></td><td>agenda: the status of entries past their deadline or scheduled date, and the Overdue group</td></tr>
+<tr><td><code class="verbatim">agenda-due-soon</code></td><td>agenda: the status of deadlines due today or coming up</td></tr>
+<tr><td><code class="verbatim">agenda-event</code></td><td>agenda: calendar events whose calendar has no color</td></tr>
+<tr><td><code class="verbatim">habit-clear</code></td><td>habit graph: not due yet</td></tr>
+<tr><td><code class="verbatim">habit-ready</code></td><td>habit graph: due</td></tr>
+<tr><td><code class="verbatim">habit-alert</code></td><td>habit graph: due today, last chance</td></tr>
+<tr><td><code class="verbatim">habit-overdue</code></td><td>habit graph: overdue</td></tr>
+</tbody>
+</table>
+<p>The default theme leaves <code class="verbatim">sidebar-background</code>, <code class="verbatim">sidebar-foreground</code>, <code class="verbatim">sidebar-header</code>, <code class="verbatim">modeline-background</code>, <code class="verbatim">modeline-foreground</code> and <code class="verbatim">agenda-background</code> unset, so those parts keep the standard macOS look. Set them to color those parts too. In the views around the editor (sidebar, modeline, agenda), a color you set for one appearance only leaves the other appearance to the system. In the editor, a color set for one appearance only takes the default theme's color in the other.</p>
+<p>An unknown color key, a value that isn't a color, or an unknown table such as <code class="verbatim">[theme.solarized]</code> is reported as a problem and skipped.</p>
+<h2 id="appearance">Appearance</h2>
+<p>orgstar follows the system's light or dark appearance (System Settings ▸ Appearance). There is no setting to fix one appearance; to use the same colors in both, set them under <code class="verbatim">[theme]</code> rather than <code class="verbatim">[theme.light]</code> or <code class="verbatim">[theme.dark]</code>.</p>
+<h2 id="fonts">Fonts</h2>
+<p>By default the editor uses one font for everything: body text, headings, code and tables. Choose it in Settings ▸ Appearance or with <code class="verbatim">font</code> under <code class="verbatim">[theme]</code>.</p>
+<ul>
+<li>The Font menu lists installed monospaced families. <code class="verbatim">config.toml</code> accepts any family name; a family that isn't installed falls back to the system's monospaced font. Tags and tables line up in columns, so a proportional font there misaligns them.</li>
+<li>Body text (<code class="verbatim">body-font</code>) sets a second font for prose, as Emacs's <code class="verbatim">mixed-pitch-mode</code> does. Paragraphs, list text and headings use it. Tables, source and example blocks, verbatim and code, keyword lines, planning lines, drawers, timestamps and tags keep <code class="verbatim">font</code>, and so do a heading's stars and a line's leading blanks, bullet and checkbox, so text still starts under the indentation. Tags after a heading in the body font no longer line up at <code class="verbatim">org-tags-column</code>; the file is unchanged. A family that isn't installed falls back to <code class="verbatim">font</code>.</li>
+<li><code class="verbatim">font-size</code> is the body size, at least 6 points.</li>
+<li>Headings are bold. Level 1 is <code class="verbatim">font-size</code> plus three times <code class="verbatim">heading-size-step</code>, level 2 plus two times, level 3 plus one time; level 4 and deeper are body size. Set <code class="verbatim">heading-size-step = 0</code> for one size throughout.</li>
+<li><code class="verbatim">line-spacing</code> adds space between lines, in points.</li>
+<li><code class="verbatim">text-width</code> keeps lines of text to that many columns of <code class="verbatim">font</code> in a wider editor, with equal margins either side and the line numbers beside the text, as <code class="verbatim">olivetti-mode</code> does in Emacs. Long lines wrap at it; with lines truncated (View ▸ Truncate or Wrap Long Lines) the text takes the whole width. It changes only the display: <code class="verbatim">M-q</code> still fills to <code class="verbatim">fill-column</code>.</li>
+</ul>
+<p>On iPhone and iPad, the editor and reader use the same theme, read from the synced configuration folder. <code class="verbatim">font</code> and <code class="verbatim">body-font</code> apply when the family is installed on the device, otherwise the system's monospaced font is used, and <code class="verbatim">font-size</code> is the size at the default Dynamic Type setting, scaled with the size chosen on the device. The <code class="verbatim">selection</code> color, the <code class="verbatim">cursor</code> color and the <code class="verbatim">syntax-*</code> colors apply there too. See <a href="14-ios.html">iPhone and iPad</a>.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

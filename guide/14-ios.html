@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iPhone and iPad &middot; orgstar</title>
+<meta name="description" content="The iOS app: folders, reading and editing, search, the agenda, widgets, capture, clocking, reminders, export and settings.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>iPhone and iPad</h1>
+<p class="lede">orgstar for iPhone and iPad reads and edits the same org files as the Mac, with the agenda, capture and search.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#folders-and-file-access">Folders and file access</a></li>
+<li><a href="#the-reader">The reader</a></li>
+<li><a href="#the-editor">The editor</a>
+<ul>
+<li><a href="#panes-and-windows-on-ipad">Panes and windows on iPad</a></li>
+<li><a href="#saving">Saving</a></li>
+<li><a href="#themes-and-display">Themes and display</a></li>
+<li><a href="#the-key-bar">The key bar</a></li>
+<li><a href="#commands">Commands</a></li>
+<li><a href="#hardware-keyboard">Hardware keyboard</a></li>
+</ul></li>
+<li><a href="#search">Search</a></li>
+<li><a href="#the-agenda">The agenda</a></li>
+<li><a href="#widgets-and-the-live-activity">Widgets and the Live Activity</a>
+<ul>
+<li><a href="#widgets">Widgets</a></li>
+<li><a href="#controls">Controls</a></li>
+<li><a href="#the-clock-s-live-activity">The clock&#x27;s Live Activity</a></li>
+<li><a href="#orgstar-links">orgstar:// links</a></li>
+</ul></li>
+<li><a href="#apple-watch">Apple Watch</a>
+<ul>
+<li><a href="#complications">Complications</a></li>
+</ul></li>
+<li><a href="#capture">Capture</a>
+<ul>
+<li><a href="#from-the-share-sheet">From the share sheet</a></li>
+<li><a href="#from-shortcuts">From Shortcuts</a></li>
+</ul></li>
+<li><a href="#clocking">Clocking</a></li>
+<li><a href="#reminders">Reminders</a></li>
+<li><a href="#export">Export</a></li>
+<li><a href="#code-blocks-and-tables">Code blocks and tables</a></li>
+<li><a href="#conflicts-and-versions">Conflicts and versions</a></li>
+<li><a href="#settings">Settings</a></li>
+<li><a href="#spotlight-and-quick-look">Spotlight and Quick Look</a></li>
+<li><a href="#what-the-mac-has-that-ios-doesn-t">What the Mac has that iOS doesn&#x27;t</a></li>
+</ul>
+</nav>
+<h2 id="overview">Overview</h2>
+<p>On first launch, a few screens introduce the app, ask for the folder of org files, and offer notifications, Calendar events and Reminders; each permission is asked for only when you choose it, and every one can be changed later in Settings. The app has three tabs, and opens on Folders until a folder has been added:</p>
+<dl>
+<dt>Agenda</dt>
+<dd>the agenda over your folders, with capture.</dd>
+<dt>Folders</dt>
+<dd>the folders of org files you added. Each shows its subfolders and org files; tap a subfolder to open it.</dd>
+<dt>Settings</dt>
+<dd>where the app's settings come from.</dd>
+</dl>
+<p>The search button (the magnifying glass) at the top right of Agenda and Folders opens Search.</p>
+<p>Files open in a reader first. The Edit button in the reader opens the editor. Both use the same open file, so an edit in the editor shows in the reader when you go back.</p>
+<h2 id="folders-and-file-access">Folders and file access</h2>
+<p>orgstar on iOS works on folders you choose, in iCloud Drive or in another app's storage (for example a folder kept by a Syncthing client).</p>
+<ol>
+<li>Open the Folders tab and tap Add Folder (the folder icon with a plus).</li>
+<li>Choose a folder in the picker.</li>
+</ol>
+<p>orgstar keeps access to the folder across launches. Each folder appears as a section listing its <code class="verbatim">.org</code> files by their path inside the folder. Remove Folder at the end of a section removes it from orgstar; the files stay where they are. An added folder that is empty also has Delete Folder…, which deletes it from disk too.</p>
+<p>Swipe left on a file, or touch and hold it, to delete it. orgstar asks first. A file in iCloud Drive goes to Recently Deleted in the Files app; elsewhere it is removed. New File… and New Folder… under + at the top right make one in the folder shown, or with several added folders, in the one you pick; a file name without an extension gets <code class="verbatim">.org</code>. Empty folders are listed too and delete the same way; a folder with anything in it other than hidden files can't be deleted from orgstar.</p>
+<p>Files that iCloud hasn't downloaded to the device yet appear in grey with a cloud icon. orgstar asks iCloud to download them and lists them as files once they arrive.</p>
+<p>orgstar sees changes made by iCloud and by apps that use the system's file coordination, and reads every folder again each time you return to the app, since not every sync app reports its changes. An open file takes in changes from disk as described in <a href="15-alongside-emacs.html">Working alongside Emacs and other tools</a>.</p>
+<p>There is no way to open a single file from the Files app. Add the folder that contains it.</p>
+<h2 id="the-reader">The reader</h2>
+<p>Tap a file in Folders or Search, or Open in File in an agenda entry's sheet, to read it.</p>
+<ul>
+<li>Tap a heading to fold or unfold it, as <code class="verbatim">TAB</code> cycles it on the Mac. A chevron marks headings with content.</li>
+<li>The file opens with the visibility its <code class="verbatim">#+STARTUP</code> line asks for, then each heading's <code class="verbatim">VISIBILITY</code> property when <code class="verbatim">#+STARTUP</code> sets a visibility. Drawers and blocks are folded as <code class="verbatim">org-cycle-hide-drawer-startup</code> and <code class="verbatim">org-cycle-hide-block-startup</code> say, or as the file's <code class="verbatim">#+STARTUP</code> says (<code class="verbatim">hidedrawers</code>, <code class="verbatim">nohideblocks</code> and the like). Tap a folded drawer's first line or its <code class="verbatim">…</code> to open it, and the first line again to fold it.</li>
+<li>Text is styled as in the editor, in the theme's colours, font, size, line spacing and heading sizes, on the theme's background: TODO keywords, priorities, tags, emphasis, code, timestamps, links, and the code in src blocks. Text can be selected and copied.</li>
+<li>The reader follows the editor's display settings (see Themes and display below): Show Markup, hidden emphasis markers, pretty entities, indentation, leading stars, inline images and truncated lines. Tables show at full width, without narrowed columns.</li>
+<li>Tap a link to follow it. Links to headings and files in your folders open in the reader; web links open in the browser.</li>
+<li>The toolbar has Outline (a list of headings to jump to), Export, and Edit.</li>
+</ul>
+<h2 id="the-editor">The editor</h2>
+<p>Tap Edit in the reader. The title shows the buffer name, with <code class="verbatim">•</code> while there are unsaved changes. The tab bar is hidden while you edit.</p>
+<p>The editor folds headings, drawers and blocks (tap a fold's <code class="verbatim">…</code> to open it, and an open drawer's first line to fold it), styles text with the theme from the configuration folder (see Themes and display below), and runs the same Org commands as the Mac. Autocorrection, smart quotes and smart dashes are off; spell checking follows <code class="verbatim">spell-check</code> in <code class="verbatim">config.toml</code> and is off by default; it leaves out code, links, dates, tags and keywords, as on the Mac. More ▸ Word Count shows the words, characters and reading time of the selection, or of the file.</p>
+<p>The toolbar has:</p>
+<dl>
+<dt>Conflict</dt>
+<dd>shown while the file and your edits conflict; opens the conflict sheet.</dd>
+<dt></dt>
+<dd>Undo</dd>
+<dt>More</dt>
+<dd>Commands, Clock In, Show Markup, Recent Entries, Export, Sync Conflict Copies, and Recovered Versions.</dd>
+</dl>
+<p>Messages from commands show at the top of the editor for a few seconds; tap one to dismiss it.</p>
+<h3 id="panes-and-windows-on-ipad">Panes and windows on iPad</h3>
+<p>On iPad, the editor can show a file in several panes, as a Mac window does (see <a href="01-files-and-folders.html">Files and folders</a>):</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Where</th><th>Emacs keys</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td>Split Pane Right</td><td>More ▸ Panes, Commands, a hardware keyboard</td><td><code class="verbatim">C-x 3</code></td><td>Halves the focused pane side by side; the new pane shows the same file</td></tr>
+<tr><td>Split Pane Below</td><td>More ▸ Panes, Commands, a hardware keyboard</td><td><code class="verbatim">C-x 2</code></td><td>Halves the focused pane one above the other</td></tr>
+<tr><td>Next Pane</td><td>More ▸ Panes, Commands, a hardware keyboard</td><td><code class="verbatim">C-x o</code></td><td>Moves focus to the next pane</td></tr>
+<tr><td>Close Pane</td><td>More ▸ Panes, Commands, a hardware keyboard</td><td><code class="verbatim">C-x 0</code></td><td>Closes the focused pane</td></tr>
+<tr><td>Close Other Panes</td><td>More ▸ Panes, Commands, a hardware keyboard</td><td><code class="verbatim">C-x 1</code></td><td>Closes every pane but the focused one</td></tr>
+</tbody>
+</table>
+<p>The focused pane has a line along its top and the toolbar acts on it; tap in a pane to focus it. Every pane shows the same buffer: text typed in one shows in the others at once, and folds, narrowing and styles are the buffer's. The caret and scroll position are each pane's own, and so is undo: Undo in a pane undoes what was typed or changed in that pane. A link to another file opens it on its own screen, leaving the panes as they are.</p>
+<p>Each iPad window (scene), opened from the app switcher or by dragging the app from the Dock, has its own tabs, screens and panes over the same open files, so a file edited in one window shows the edit in the others. The pane commands aren't offered on iPhone or in a narrow window.</p>
+<h3 id="saving">Saving</h3>
+<p>The iOS app always saves automatically: one second after you stop typing, when you leave the editor, and when the app goes to the background. The <code class="verbatim">save</code> setting doesn't apply on iOS.</p>
+<p>Files that aren't valid UTF-8 open read-only; commands that would change them say so.</p>
+<h3 id="themes-and-display">Themes and display</h3>
+<p>The editor and the reader use the theme set in the configuration folder's <code class="verbatim">config.toml</code>, stacked as on the Mac: the themes chosen with <code class="verbatim">light-theme</code> and <code class="verbatim">dark-theme</code>, then the theme file named by <code class="verbatim">theme-file</code>, then the colours in <code class="verbatim">[theme]</code>, <code class="verbatim">[theme.light]</code>, <code class="verbatim">[theme.dark]</code>, <code class="verbatim">[theme.todo]</code> and <code class="verbatim">[theme.category]</code>. A TODO keyword without a colour in <code class="verbatim">[theme.todo]</code> takes its class's colour: <code class="verbatim">todo-next</code> for <code class="verbatim">NEXT</code> and <code class="verbatim">STRT</code>, <code class="verbatim">todo-waiting</code> for <code class="verbatim">WAIT</code> and <code class="verbatim">HOLD</code>, <code class="verbatim">todo-cancelled</code> for <code class="verbatim">KILL</code> and <code class="verbatim">CANCELLED</code>, and so on (see <a href="13-configuration.html">Configuration</a> for the lists). Colours follow the system's light or dark appearance. Problems in the theme show in the Settings tab with the other problems. A change to <code class="verbatim">config.toml</code> or the theme file applies as it syncs, to open editors too. See <a href="13-configuration.html">Configuration</a> for the colour keys.</p>
+<p>Settings ▸ Light Theme and Dark Theme choose the built-in themes, shown as a few lines of Org in each theme's colours; with a configuration folder the choice is written to its <code class="verbatim">config.toml</code>, so the Mac uses it too. Settings ▸ App Icon chooses the home screen icon from the same thirteen as the Mac; iOS confirms the change. The icon is chosen per device.</p>
+<dl>
+<dt>Font</dt>
+<dd><code class="verbatim">font</code> when that family is installed on the device, otherwise the system's monospaced font. <code class="verbatim">body-font</code>, when set, is used for prose as on the Mac.</dd>
+<dt>Size</dt>
+<dd><code class="verbatim">font-size</code> is the size at the default Dynamic Type setting, 13 pt by default. Text grows and shrinks with the text size chosen in the system Settings app.</dd>
+<dt>Line spacing and headings</dt>
+<dd><code class="verbatim">line-spacing</code> and <code class="verbatim">heading-size-step</code> apply as on the Mac.</dd>
+<dt>Text width</dt>
+<dd><code class="verbatim">text-width</code> keeps the editor's text to that many columns, centred, on an iPad or a wide window.</dd>
+<dt>Caret and selection</dt>
+<dd>the selection highlight takes the theme's <code class="verbatim">selection</code> colour, over block bands too; the caret and the selection handles take <code class="verbatim">cursor</code>.</dd>
+</dl>
+<p>The editor and the reader apply these display settings; only the editor aligns tables when a file opens. The startup settings (<code class="verbatim">org-cycle-hide-*-startup</code>, <code class="verbatim">org-startup-*</code>, <code class="verbatim">org-hide-leading-stars</code>) apply when a file opens, and a <code class="verbatim">#+STARTUP</code> keyword in the file overrides them, as on the Mac.</p>
+<table>
+<thead>
+<tr><th>Setting</th><th>In the iOS editor</th><th><code class="verbatim">#+STARTUP</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">show-markup</code></td><td>Link brackets and targets, and emphasis markers, show</td><td></td></tr>
+<tr><td><code class="verbatim">org-hide-emphasis-markers</code></td><td>Emphasis markers hide while markup is hidden</td><td></td></tr>
+<tr><td><code class="verbatim">org-pretty-entities</code></td><td>Entities and sub- and superscripts show as characters while markup is hidden</td><td></td></tr>
+<tr><td><code class="verbatim">org-cycle-hide-drawer-startup</code></td><td>Drawers start folded</td><td><code class="verbatim">hidedrawers</code>, <code class="verbatim">nohidedrawers</code></td></tr>
+<tr><td><code class="verbatim">org-cycle-hide-block-startup</code></td><td>Blocks start folded</td><td><code class="verbatim">hideblocks</code>, <code class="verbatim">nohideblocks</code></td></tr>
+<tr><td><code class="verbatim">org-startup-indented</code></td><td>Bodies are indented under their headings</td><td><code class="verbatim">indent</code>, <code class="verbatim">noindent</code></td></tr>
+<tr><td><code class="verbatim">org-hide-leading-stars</code></td><td>Without indentation, only a heading's last star shows</td><td><code class="verbatim">hidestars</code>, <code class="verbatim">showstars</code></td></tr>
+<tr><td><code class="verbatim">org-startup-with-inline-images</code></td><td>Image links show as images</td><td><code class="verbatim">inlineimages</code>, <code class="verbatim">noinlineimages</code></td></tr>
+<tr><td><code class="verbatim">org-startup-with-latex-preview</code></td><td>LaTeX fragments show as typeset math; Show or Hide LaTeX Previews in Commands switches them</td><td><code class="verbatim">latexpreview</code>, <code class="verbatim">nolatexpreview</code></td></tr>
+<tr><td><code class="verbatim">org-startup-align-all-tables</code></td><td>Every table is aligned</td><td><code class="verbatim">align</code>, <code class="verbatim">noalign</code></td></tr>
+<tr><td><code class="verbatim">org-startup-truncated</code></td><td>Long lines run off the right edge, and the editor scrolls sideways</td><td></td></tr>
+</tbody>
+</table>
+<p>While markup is hidden, the line with the caret shows its markup, so you can edit it. More ▸ Show Markup, or Show or Hide Markup in Commands, switches markup in every editor and in the reader. The switch lasts until <code class="verbatim">show-markup</code> in <code class="verbatim">config.toml</code> changes; then the file's value applies.</p>
+<p>The visibility from <code class="verbatim">#+STARTUP</code> applies first, then each heading's <code class="verbatim">VISIBILITY</code> property. As on the Mac, <code class="verbatim">VISIBILITY</code> properties apply only when <code class="verbatim">#+STARTUP</code> sets a visibility (<code class="verbatim">overview</code>, <code class="verbatim">content</code>, <code class="verbatim">showall</code> and the like).</p>
+<p>An image line shows its image, and the link text is hidden except on the caret's line. <code class="verbatim">#+ATTR_ORG: :width N</code> sets the width in points; images are never wider than the editor. Show or Hide Inline Images in Commands, or <code class="verbatim">C-c C-x C-v</code> on a hardware keyboard, switches images in the open file. Truncate or Wrap Long Lines in Commands, or <code class="verbatim">C-x x t</code>, switches long lines. See <a href="02-the-editor.html">The editor</a> for which lines show as images.</p>
+<p>Code in src blocks is highlighted in the theme's <code class="verbatim">syntax-*</code> colours, as on the Mac (see <a href="11-code-blocks.html">Code blocks</a>).</p>
+<p>Table columns with width cookies narrow as on the Mac: <code class="verbatim">#+STARTUP: shrink</code> narrows them when the file opens, and Shrink or Expand Table Column (<code class="verbatim">C-c TAB</code>), Shrink Table Columns with Widths and Expand Table Columns are in Commands when the caret is in a table. See <a href="10-tables.html">Tables</a>.</p>
+<h3 id="the-key-bar">The key bar</h3>
+<p>A bar above the on-screen keyboard has buttons for Org's keys. Each does what its Emacs key does at the caret, so the arrows promote and demote headings, indent list items, or move table columns, depending on where the caret is. Scroll the bar sideways for more.</p>
+<table>
+<thead>
+<tr><th>Button</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Commands</td><td>the command list</td></tr>
+<tr><td>Fold</td><td><code class="verbatim">TAB</code></td></tr>
+<tr><td>Overview</td><td><code class="verbatim">S-TAB</code></td></tr>
+<tr><td>Promote</td><td><code class="verbatim">M-&lt;left&gt;</code></td></tr>
+<tr><td>Demote</td><td><code class="verbatim">M-&lt;right&gt;</code></td></tr>
+<tr><td>Move up</td><td><code class="verbatim">M-&lt;up&gt;</code></td></tr>
+<tr><td>Move down</td><td><code class="verbatim">M-&lt;down&gt;</code></td></tr>
+<tr><td>New heading or item</td><td><code class="verbatim">M-RET</code></td></tr>
+<tr><td>TODO</td><td><code class="verbatim">C-c C-t</code></td></tr>
+<tr><td>Act at point</td><td><code class="verbatim">C-c C-c</code></td></tr>
+<tr><td>Schedule</td><td><code class="verbatim">C-c C-s</code></td></tr>
+<tr><td>Deadline</td><td><code class="verbatim">C-c C-d</code></td></tr>
+<tr><td>Tags</td><td><code class="verbatim">C-c C-q</code></td></tr>
+<tr><td>Open link</td><td><code class="verbatim">C-c C-o</code></td></tr>
+<tr><td>Bold, Italic, Code</td><td>Emphasize with <code class="verbatim">*</code>, <code class="verbatim">/</code> or <code class="verbatim">~</code>: the selection, or a pair of markers with the caret between</td></tr>
+<tr><td>Hide keyboard</td><td></td></tr>
+</tbody>
+</table>
+<h3 id="commands">Commands</h3>
+<p>Commands (in the key bar or More) lists every command that applies at the caret, with its Emacs key. Type to narrow the list. The command runs once the list closes.</p>
+<p>When a command asks a question, a sheet opens:</p>
+<ul>
+<li>Text questions have a field, and a list of choices that narrows as you type. For tags, choosing a tag adds it to what you typed.</li>
+<li>Date questions have a calendar as well as the field; Org's date syntax (<code class="verbatim">+2d</code>, <code class="verbatim">fri</code>, <code class="verbatim">14:00</code>) works in the field.</li>
+<li>Fast selection (TODO keywords and tags with keys) lists each option with its key. For tags, tap several and then Done; inherited tags are listed below.</li>
+</ul>
+<p>Cancel answers nothing, as <code class="verbatim">C-g</code> does.</p>
+<p><code class="verbatim">C-c '</code> on a block, and <code class="verbatim">C-c `</code> on a table field, open the text in a sheet of its own; Save puts it back. A src block's code is colored as its language, as in the editor.</p>
+<p>More ▸ Backlinks lists the links to the heading at the caret and to the file; More ▸ Daily Notes, Find Node… and Insert Node Link… work with org-roam-style notes, and the Folders tab's calendar menu opens today's, yesterday's and tomorrow's note. See <a href="09-links.html">Links</a>.</p>
+<p>Incremental Search is in Commands, and on <code class="verbatim">C-s</code> and <code class="verbatim">C-r</code> with a hardware keyboard; see <a href="02-the-editor.html">The editor</a>. <code class="verbatim">auto-fill-mode</code> works as on the Mac.</p>
+<p>The org-timer commands are in Commands; a running timer shows above the text. See <a href="06-dates-and-clocking.html">Dates and clocking</a>.</p>
+<p>More ▸ Attachments has the org-attach commands, Attach Photo or Video… and Take Photo…, which insert the photo's link at the caret; files shared to orgstar can be attached to an entry. Pasting an image and dropping files on the editor attach them and link them at the caret. See <a href="04-outlines.html">Outlines</a> and <a href="09-links.html">Links</a>.</p>
+<p>More ▸ Encryption has the org-crypt commands; see <a href="04-outlines.html">Outlines</a>. A remembered passphrase is used after Face ID, Touch ID or the device passcode.</p>
+<h3 id="hardware-keyboard">Hardware keyboard</h3>
+<p>With a hardware keyboard, the editor uses the preset <code class="verbatim">keymap</code> sets in the folder's <code class="verbatim">config.toml</code> (<code class="verbatim">emacs</code>, <code class="verbatim">mac</code> or <code class="verbatim">doom</code>), with the folder's <code class="verbatim">keymap.toml</code> on it. The Doom preset brings Vim keys; see <a href="03-keys.html">Keys</a>. Bindings with <code class="verbatim">⌘</code> stay with iOS, so the Mac preset adds little.</p>
+<ul>
+<li>Option works as Meta when it begins a binding (<code class="verbatim">M-RET</code>, <code class="verbatim">M-&lt;left&gt;</code>). Otherwise Option types characters as usual.</li>
+<li>Command shortcuts are the system's.</li>
+<li>Keys the keymap leaves to the text system stay with iOS. These include the editing keys <code class="verbatim">C-a</code>, <code class="verbatim">C-e</code>, <code class="verbatim">C-k</code> and similar, which iOS handles itself.</li>
+<li>After a prefix such as <code class="verbatim">C-c</code>, the message line shows <code class="verbatim">C-c-</code> while it waits for the next key. An unbound sequence shows <code class="verbatim">… is undefined</code>.</li>
+<li>A sequence bound to a command that can't run at the caret, or that the iOS app doesn't have, shows why, as on the Mac: the command's own message (such as <code class="verbatim">Not on a heading</code>), or <code class="verbatim">Not available on iOS yet</code>.</li>
+</ul>
+<p>See <a href="03-keys.html">Keys and commands</a> for the Emacs bindings.</p>
+<h2 id="search">Search</h2>
+<p>Search finds:</p>
+<dl>
+<dt>Files</dt>
+<dd>up to eight org files whose path matches what you type, ranked as Quick Open ranks them on the Mac.</dd>
+<dt>Notes</dt>
+<dd>headings whose title or text contains your words, and files whose text before the first heading does, including unsaved edits in the open file. Under each is the passage the words were found in, with them in bold.</dd>
+</dl>
+<p>Tap a result to open it in the reader. A heading result opens at that heading.</p>
+<h2 id="the-agenda">The agenda</h2>
+<p>The Agenda tab shows the agenda over all your folders, with the span and start day from the settings (10 days from 3 days ago by default). Each day lists its entries in rows: the time or a status such as <code class="verbatim">Due today</code> or <code class="verbatim">3d late</code> on the left, the category and the keyword above the title. Days without entries are hidden, except today. Today's overdue entries are in a section of their own above today, and a line marks the current time between timed entries. Pull down to refresh.</p>
+<dl>
+<dt>Views (top left)</dt>
+<dd>the built-in views and those in <code class="verbatim">views.toml</code>, Tags and Properties… (a match such as <code class="verbatim">+work-home</code> or <code>TODO="WAIT"</code>), and Search… (a phrase, or snippets such as <code class="verbatim">+invoice -paid</code>).</dd>
+<dt>Folders (top right, with more than one folder)</dt>
+<dd>shows or hides each folder's files in the agenda, the widgets, the watch and the badge; the shown folders' names appear under the title. A Focus can hide folders too, and mute their reminders (see Hiding folders in <a href="07-agenda.html">The agenda</a>).</dd>
+<dt>The bar at the bottom</dt>
+<dd>Earlier, Filter, Today, Go to Date, the span (Day, Week, Month or the configured span, and Log Mode, which adds closed entries and clocked time) and Later.</dd>
+<dt>Filter</dt>
+<dd>keep or leave out tags and categories of the entries shown, or type a filter as Org's <code class="verbatim">/</code> takes it: <code class="verbatim">+keep</code> and <code class="verbatim">-drop</code> tags or categories, <code class="verbatim">&lt;0:30</code> for effort, <code class="verbatim">/regexp/</code>. The filter in use shows above the bar.</dd>
+<dt>+ on a day's header</dt>
+<dd>captures an entry scheduled on that day (see <a href="08-capture.html">Capture</a>).</dd>
+<dt>Tap</dt>
+<dd>an entry to open it in a sheet: its title, TODO state, priority, scheduled date, deadline, tags and notes. Changes use the same commands as the editor and are written to the file together on Done, or dropped on Cancel; Undo and Redo step through them. More ▸ Open in File saves and shows the entry in the reader.</dd>
+<dt>Swipe left</dt>
+<dd>on a TODO entry for Done, which sets the first done keyword of its sequence, or Next State; on any entry with a heading for Delete, which asks first.</dd>
+<dt>Swipe right</dt>
+<dd>for Tomorrow, Next Week (next Monday) or Pick Date, which move the entry's scheduled date, or its deadline on a deadline row.</dd>
+<dt>Touch and hold</dt>
+<dd>an entry for TODO State…, Reschedule, Schedule…, Deadline…, Tags…, Priority…, Clock In, Add to Calendar…, Refile…, Archive…, and Delete…. Delete… removes the heading and every line under it, after asking. Refile… lists each file and the headings in it down to level 3, as the Mac's prompt does; the entry goes to the end of the file, or under the heading, you choose. Search narrows the list by file and heading path.</dd>
+</dl>
+<p>Commands from the agenda change the file directly when it isn't open, and through the editor when it is. If the heading changed since the agenda was built, nothing runs.</p>
+<p>With <code class="verbatim">calendar-events</code> on, the agenda also shows events from the Calendar app, and with <code class="verbatim">agenda-reminders</code> on, reminders from the Reminders app; see Settings below. Tap an event to edit it; an entry's Add to Calendar… adds it to a calendar. See <a href="07-agenda.html">The agenda</a>.</p>
+<p>See <a href="07-agenda.html">The agenda</a> for the rows, the views and matches, and the differences from the Mac.</p>
+<h2 id="widgets-and-the-live-activity">Widgets and the Live Activity</h2>
+<h3 id="widgets">Widgets</h3>
+<p>orgstar has four widgets. Add them as any widget: touch and hold the Home Screen or the Lock Screen, and choose orgstar in the widget gallery.</p>
+<table>
+<thead>
+<tr><th>Widget</th><th>Sizes</th><th>Shows</th></tr>
+</thead>
+<tbody>
+<tr><td>Today</td><td>Small, medium and large (Home Screen)</td><td>The date, the count of open entries, and what's left of today: 3 rows (small), 4 rows (medium), or 6 rows and tomorrow's entries (large). Medium and large also count overdue entries.</td></tr>
+<tr><td>Up Next</td><td>Rectangular, inline and circular (Lock Screen)</td><td>The next entry's time or status and title (rectangular, inline), or the count of open entries today (circular, and inline when nothing is left)</td></tr>
+<tr><td>Habits</td><td>Small, medium and large (Home Screen)</td><td>Each habit (<code class="verbatim">STYLE: habit</code>) in your agenda files that isn't done, with its consistency graph, as the agenda draws it: the last week (small, 3 habits), or the last three weeks and the next one (medium, 4 habits; large, 9), and how many were done today.</td></tr>
+<tr><td>Capture</td><td>Circular and rectangular (Lock Screen)</td><td>A button that opens the capture sheet with the template you choose when you edit the widget, or the first template.</td></tr>
+</tbody>
+</table>
+<p>What's left of today is today's entries and calendar events that aren't done, without timed ones that have ended (or started, when they have no end), followed by the overdue entries. The open count is today's entries not done, overdue ones included, without calendar events. The widgets use the theme's colours for the status, the keyword, the priority and the category.</p>
+<p>Tapping a row in the medium or large Today widget opens that entry; tapping elsewhere opens the agenda. Tapping Up Next opens the next entry, or the agenda when there is none. Tapping a habit opens it.</p>
+<p>Widgets can't read your folders, so the app writes the next seven days of the agenda (today included) for them to read: while it is open, when files, edits or settings change, when you return to the app, and every hour. Between those times the widgets move on by themselves as timed entries end and at midnight, but they show nothing new until you open orgstar. Until the app has written the agenda once, they say <code class="verbatim">Open orgstar to show your agenda here.</code> The widgets ignore the agenda's filter and show no days without entries. The Habits widget's graphs move on at midnight by themselves.</p>
+<h3 id="controls">Controls</h3>
+<p>orgstar has two controls for Control Center, the Lock Screen and the Action button. Add them as any control: in Control Center, touch and hold an empty space and tap Add a Control, then choose orgstar.</p>
+<dl>
+<dt>Capture</dt>
+<dd>opens the capture sheet. Touch and hold it while editing Control Center to choose a template; without one it uses the first.</dd>
+<dt>Clock</dt>
+<dd>on while a clock runs, showing its entry. Turning it off clocks out; turning it on clocks in to the entry clocked last (Clock In Last). If a clock was left running elsewhere, orgstar asks in the app how to resolve it.</dd>
+</dl>
+<h3 id="the-clock-s-live-activity">The clock's Live Activity</h3>
+<p>While a clock runs, it shows on the Lock Screen and in the Dynamic Island: the heading, the time so far, and a Clock Out button. Clock Out stops the clock as Clock Out does in the app, and saves the file. Tapping the Live Activity opens the clocked entry.</p>
+<p>The Live Activity starts when you clock in in the app and ends when the clock stops, however it stops. It needs Live Activities allowed for orgstar in the Settings app (Settings ▸ orgstar ▸ Live Activities).</p>
+<h3 id="orgstar-links">orgstar:// links</h3>
+<p>The widgets and the Live Activity open the app with these links, which also work from Shortcuts, Safari or a note:</p>
+<table>
+<thead>
+<tr><th>Link</th><th>Opens</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">orgstar://agenda</code></td><td>The Agenda tab</td></tr>
+<tr><td><code class="verbatim">orgstar://clock</code></td><td>The entry of the running clock</td></tr>
+<tr><td><code>orgstar://entry?path=/path/file.org&amp;offset=N</code></td><td>The file in the reader, at offset N</td></tr>
+</tbody>
+</table>
+<h2 id="apple-watch">Apple Watch</h2>
+<p>The watch app shows today's agenda from your iPhone, marks entries done, shows and stops the running clock, and takes dictated captures. It comes with orgstar on iPhone and installs on a paired watch as other watch apps do. It reads nothing itself: your iPhone sends it today's agenda and the clock whenever its widgets update (when files, edits or settings change while orgstar is open, and when you return to it) and whenever the clock starts or stops, and the watch keeps the last one it got. Until it has one, it says <code class="verbatim">Open orgstar on your iPhone to show your agenda here.</code></p>
+<dl>
+<dt>Clocked In</dt>
+<dd>the running clock's heading and its time so far, with Clock Out. Without a running clock, Clock In to <em>heading</em> clocks in to the entry clocked last (<code class="verbatim">org-clock-in-last</code>).</dd>
+<dt>Capture</dt>
+<dd>dictate or scribble text, then Done. It goes to orgstar on iPhone, which opens the capture sheet with it as <code class="verbatim">%i</code>, with the first template, as text from the share sheet does; see Capture below.</dd>
+<dt>Overdue, then today</dt>
+<dd>as the agenda lists them, with the time or status, the title and the keyword. Tap an open TODO entry to mark it done: it takes its sequence's first done keyword, as the agenda's Done does. The entry shows done at once; the iPhone changes the file, unless the heading changed since the agenda was sent.</dd>
+</dl>
+<p>What the watch asks for runs on your iPhone, which iOS wakes for it when orgstar isn't open; while the iPhone is out of reach, the requests wait and run when it is back.</p>
+<h3 id="complications">Complications</h3>
+<table>
+<thead>
+<tr><th>Complication</th><th>Families</th><th>Shows</th></tr>
+</thead>
+<tbody>
+<tr><td>Up Next</td><td>Rectangular, inline, circular and corner</td><td>The next entry's time or status and title (rectangular, inline, corner), or the count of open TODO entries today (circular, and corner)</td></tr>
+<tr><td>Clock</td><td>Rectangular, inline and circular</td><td>The running clock's time so far and heading, or <code class="verbatim">Not clocked in</code></td></tr>
+</tbody>
+</table>
+<p>They read the agenda the watch app last got, and move on by themselves as timed entries end and at midnight.</p>
+<h2 id="capture">Capture</h2>
+<p>Tap Capture (the pencil icon) in the Agenda or Folders tab.</p>
+<ol>
+<li>Choose a template. The first template is selected.</li>
+<li>Answer the template's questions (<code class="verbatim">%^{…}</code>, <code class="verbatim">%^g</code>, <code class="verbatim">%^t</code> and the like), then tap Continue. A template without questions skips this step.</li>
+<li>Edit the text. The caret is where <code class="verbatim">%?</code> was. When the text has a heading, the rows below it set the entry's State (its TODO keyword), Priority, Scheduled and Deadline dates (Today, Tomorrow, In a Week, or Pick Date…, with an optional time; Remove takes the date off) and Tags (the target file's and the workspace's, or new ones). They change the text as the editor's commands would, without logging a reschedule.</li>
+<li>Tap File.</li>
+</ol>
+<p>Templates come from <code class="verbatim">capture.toml</code> in the configuration folder (see Settings below). Without one, the two default templates apply. A template with <code class="verbatim">immediate-finish</code> files as soon as its questions are answered, and one with <code class="verbatim">jump-to-captured</code> opens the captured entry. <code class="verbatim">%^g</code> offers the target file's tags as choices.</p>
+<p><code class="verbatim">org-protocol://store-link</code> links add the URL to the stored links that Insert Link… offers, and copy it. <code class="verbatim">org-protocol://capture</code> links opened on the device open the capture sheet with the link's template, URL, title and text. When the link names a template key that <code class="verbatim">capture.toml</code> doesn't have, the sheet starts on the first template and shows <code class="verbatim">No capture template "x"</code> with the key.</p>
+<h3 id="from-the-share-sheet">From the share sheet</h3>
+<p>orgstar appears in the share sheet of other apps for a web link or text.</p>
+<ol>
+<li>Share a page or text and choose orgstar.</li>
+<li>Choose a template, edit the link's title, and add text.</li>
+<li>Tap Capture.</li>
+</ol>
+<p>The share extension doesn't file the entry itself. It leaves it for the app, which opens its capture sheet with the link and text the next time it becomes active. Several shared items open one after another. If the extension shows "orgstar's shared folder isn't available", the app and its extension can't share data, and Capture is disabled.</p>
+<h3 id="from-shortcuts">From Shortcuts</h3>
+<p>Shortcuts has a Capture to orgstar action, and Siri responds to "Capture to orgstar". The action takes:</p>
+<dl>
+<dt>Text</dt>
+<dd>the text to capture, available to the template as <code class="verbatim">%i</code>.</dd>
+<dt>Template Key</dt>
+<dd>a key from <code class="verbatim">capture.toml</code>; empty uses the first template.</dd>
+</dl>
+<p>The action files the entry without showing the capture sheet, and saves the file at once. Questions in the template take their default answers, and <code class="verbatim">%c</code> (the clipboard) is empty, because reading the clipboard would ask for permission on every run. The action returns "Captured with" and the template's name.</p>
+<p>See <a href="08-capture.html">Capture</a> for the template format.</p>
+<h2 id="clocking">Clocking</h2>
+<p>Clock in from the editor (More ▸ Clock In, or Clock In in Commands) or from an agenda entry's menu. While a clock runs, a bar above the tab bar shows the entry and the time so far as <code class="verbatim">H:MM</code>, updated every 30 seconds, and a Live Activity shows it on the Lock Screen and in the Dynamic Island (see <a href="#widgets-and-the-live-activity">Widgets and the Live Activity</a>). Tap the bar for:</p>
+<ul>
+<li>Clock Out</li>
+<li>Cancel Clock</li>
+<li>Go to Clocked Entry</li>
+<li>Recent Entries</li>
+<li>Clock Report</li>
+</ul>
+<p>Recent Entries, in the bar and in the editor's More menu, lists the recently clocked entries; tap one to clock in to it. It also has Clock In to Recent Entry… and Go to Recent Clocked Entry…, and is disabled until you have clocked in once. Commands has Clock In to Recent Entry…, Clock In to Last Entry, Go to Recent Clocked Entry…, Mark as Default Clock Task and Resolve Open Clocks….</p>
+<p>Clock questions open in a sheet: the task selection and the resolution keys as lists to tap, and minutes or a date and time as a field. Cancel answers nothing, as <code class="verbatim">q</code> does. Clocking in with no clock running first asks about open clocks in your folders, from the editor, an agenda entry's Clock In or a capture template with <code class="verbatim">clock-in</code>; Resolve Open Clocks… asks about every open clock. Both work as on the Mac.</p>
+<p>The iOS app has no idle detection, so <code class="verbatim">org-clock-idle-time</code> doesn't apply. <code class="verbatim">org-clock-history-length</code> does.</p>
+<p>Clock Report shows the time per day and heading for the files you choose. It starts with the files that contain clock lines. Turn on Limit dates to choose a range. The share button sends the report as text.</p>
+<p>See <a href="06-dates-and-clocking.html">Dates and clocking</a>.</p>
+<h2 id="reminders">Reminders</h2>
+<p>With <code class="verbatim">reminders</code> on, orgstar schedules a notification before each timed agenda entry in the next week, <code class="verbatim">appt-message-warning-time</code> minutes ahead (or the entry's <code class="verbatim">APPT_WARNTIME</code>). Tap a notification to open its entry. Notifications show while the app is open too.</p>
+<p>iOS lets an app schedule at most 64 notifications, and orgstar schedules more only while it runs. It updates them when files or settings change, when you return to the app, and every hour while it is open. The agenda's status line says how far ahead reminders are set ("Reminders are set through …"), or that notifications are off for orgstar in the system Settings app.</p>
+<p>The app icon's badge counts the entries in the agenda's Overdue section that aren't done: past their scheduled day or their deadline, habits left out. An entry past both counts once. orgstar sets each of the next six midnights' counts ahead, so the badge stays right while the app is closed. If notifications were allowed before orgstar asked for badges, tap Show Overdue Count on Icon under Badge in orgstar's Settings; it adds Badges to orgstar's notification settings and opens them when they're still off. Turn the badge off there, under Badges.</p>
+<h2 id="export">Export</h2>
+<p>Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text and iCalendar, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.</p>
+<p>PDF export follows <code class="verbatim">pdf-margin</code>, <code class="verbatim">pdf-font</code> and <code class="verbatim">pdf-page-numbers</code> in <code class="verbatim">config.toml</code>, and Word files get heading styles and the file's images, as on the Mac. ODT, LaTeX, ASCII and PDF through LaTeX aren't available on iOS. See <a href="12-export.html">Export</a>.</p>
+<h2 id="code-blocks-and-tables">Code blocks and tables</h2>
+<p><code class="verbatim">C-c C-c</code> on a source block asks whether to run it (yes, no, or always for this block), as on the Mac.</p>
+<p>On iOS, only Emacs Lisp blocks run. orgstar evaluates them with its own Emacs Lisp interpreter, which covers a subset of the language. Other results:</p>
+<ul>
+<li>A block in another language: "<em>language</em> blocks need the Mac to run."</li>
+<li>Emacs Lisp the interpreter doesn't have: "This block uses Emacs Lisp that runs only in Emacs, on the Mac."</li>
+</ul>
+<p>Table formulas that orgstar computes itself work on iOS. A table whose formulas need Emacs reports "This table needs Emacs, which runs on the Mac", with the reason, and isn't changed.</p>
+<p>Tangling (<code class="verbatim">C-c C-v t</code>, in Commands) works on iOS and writes the tangled files next to the org file, or where <code class="verbatim">:tangle</code> says.</p>
+<p>See <a href="11-code-blocks.html">Code blocks</a> and <a href="10-tables.html">Tables</a>.</p>
+<h2 id="conflicts-and-versions">Conflicts and versions</h2>
+<p>When a file changes on disk while you have unsaved edits, orgstar merges the change into your edits. When the changes overlap, the conflict sheet opens. It shows the difference (lines marked - are on disk, + in your version) and offers:</p>
+<dl>
+<dt>Keep Mine</dt>
+<dd>write your version over the disk version.</dd>
+<dt>Use Disk Version</dt>
+<dd>replace your edits with the disk version.</dd>
+<dt>Merge with Markers</dt>
+<dd>put both versions in the editor, with conflicting lines between <code class="verbatim">&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> and <code class="verbatim">&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> markers, to fix and save.</dd>
+<dt>Later</dt>
+<dd>decide later. The Conflict button in the toolbar opens the sheet again. Nothing is saved until you decide.</dd>
+</dl>
+<p>The version you don't keep goes to the recovery folder.</p>
+<p>More ▸ Sync Conflict Copies lists Syncthing's conflict copies of the file (<code class="verbatim">name.sync-conflict-…</code>), each compared with the file, with Keep File, Merge and Use Copy. The copy goes to the recovery folder and is removed. When a file with conflict copies opens in the editor, a message says how many there are.</p>
+<p>More ▸ Recovered Versions lists the versions of the file kept in the recovery folder, newest first, each compared with the editor's text. Restore puts a version's text in the editor as an edit you can undo.</p>
+<p>See <a href="15-alongside-emacs.html">Working alongside Emacs and other tools</a> for how merging and recovery work.</p>
+<h2 id="settings">Settings</h2>
+<p>The iOS app reads its settings from a configuration folder: a folder holding <code class="verbatim">config.toml</code> and <code class="verbatim">capture.toml</code>, such as a copy of the Mac's <code class="verbatim">~/.config/orgstar</code> synced through iCloud Drive or another app.</p>
+<ol>
+<li>Open the Settings tab.</li>
+<li>Tap Choose Folder… and choose the folder. If it has no <code class="verbatim">config.toml</code>, orgstar writes one with every setting at its default, each with a comment, as the Mac does.</li>
+</ol>
+<p>Changes to the files apply as they sync, and again each time you return to the app. Problems in the files show in red under the folder. "No config.toml in <em>folder</em>; the defaults apply" means the folder has no <code class="verbatim">config.toml</code>, for example because it was removed after you chose the folder.</p>
+<p>Edit config.toml opens the folder's <code class="verbatim">config.toml</code> as plain text, with smart quotes and dashes off. Save, or going back, writes it and applies it at once; problems show in red below the text.</p>
+<p>Stop Using This Folder returns every setting to its default.</p>
+<p>Import from Emacs reads an Emacs or Doom configuration folder, such as a synced <code class="verbatim">~/.config/doom</code> or <code class="verbatim">~/.emacs.d</code>, as the Mac's import does (see <a href="13-configuration.html">Configuration</a>):</p>
+<ol>
+<li>Tap Import from Emacs, then Choose Folder…, and choose the folder holding <code class="verbatim">init.el</code>, <code class="verbatim">config.el</code> or <code class="verbatim">config.org</code>.</li>
+<li>The screen lists the settings, capture templates, key bindings, structure templates and agenda views it found, each with the line it came from, all selected. Clear what you don't want.</li>
+<li>Tap Import. The screen then summarizes what was imported and any problems.</li>
+</ol>
+<p>With a configuration folder, settings and structure templates are written to its <code class="verbatim">config.toml</code>, and capture templates, key bindings and agenda views to its <code class="verbatim">capture.toml</code>, <code class="verbatim">keymap.toml</code> and <code class="verbatim">views.toml</code>, so the Mac reads them too. Without one, settings are kept on the device. Folders from <code class="verbatim">org-agenda-files</code> name the Mac's paths and aren't offered.</p>
+<p>The Agenda, TODO Dependencies, Calendar and Reminders sections are the only places the app changes a setting itself, besides Import from Emacs:</p>
+<dl>
+<dt>Show days without entries</dt>
+<dd>turns <code class="verbatim">org-agenda-show-all-dates</code> on or off.</dd>
+<dt>Habits only today</dt>
+<dd>turns <code class="verbatim">org-habit-show-habits-only-for-today</code> on or off.</dd>
+<dt>Exclude archived tasks</dt>
+<dd>turns <code class="verbatim">agenda-exclude-archives</code> on or off: the agenda leaves out the files your agenda files archive to.</dd>
+<dt>Blocked entries</dt>
+<dd>Dimmed, Hidden or Shown as usual (<code class="verbatim">org-agenda-dim-blocked-tasks</code>).</dd>
+<dt>TODO Dependencies</dt>
+<dd>Not done before TODO children (<code class="verbatim">org-enforce-todo-dependencies</code>) and Not done with unchecked boxes (<code class="verbatim">org-enforce-todo-checkbox-dependencies</code>).</dd>
+<dt>Show Calendar Events</dt>
+<dd>turns on <code class="verbatim">calendar-events</code>, and asks for access to your calendars. iOS asks for full access, as Calendar has no read-only level; orgstar changes a calendar only when you edit an event or add an entry. While access is missing the section shows Allow Access to Calendars…; if you declined, allow it in the Settings app under Privacy &amp; Security ▸ Calendars.</dd>
+<dt>The calendars</dt>
+<dd>tap one to show or hide its events (<code class="verbatim">calendar-event-calendars</code>). With every calendar checked the setting is empty, so calendars added later show too.</dd>
+<dt>Show Reminders</dt>
+<dd>turns on <code class="verbatim">agenda-reminders</code> and asks for access to your reminders; Allow Access to Reminders… shows while it is missing. Tap a list to show or hide its reminders (<code class="verbatim">agenda-reminder-lists</code>).</dd>
+</dl>
+<p>These write <code class="verbatim">config.toml</code> in the configuration folder, as the Mac's Settings window does, so the Mac sees the change too. Without a configuration folder they are kept on the device.</p>
+<p>The In use section shows the TODO keywords, the agenda span and start (for example <code class="verbatim">10 days, starting today</code>), the reminder lead time, the capture template keys, the light and dark themes, and the theme file's name when there is one, and the font with its size. When <code class="verbatim">font</code> names a family that isn't installed on the device, Font shows the system's font with a note, as <code class="verbatim">System monospaced, 13 pt (JetBrains Mono isn't installed)</code>.</p>
+<p>About orgstar, at the bottom, shows the version and links to the manual, the release notes, the website, the issue tracker (which needs a gitbay account), support by email at <code class="verbatim">help@krz.sh</code> with the version and device filled in, the App Store review page, the source code, the license, third-party notices and the privacy policy.</p>
+<p>These settings from <code class="verbatim">config.toml</code> apply on iOS:</p>
+<ul>
+<li><code class="verbatim">org-todo-keywords</code>, <code class="verbatim">org-list-allow-alphabetical</code></li>
+<li><code class="verbatim">org-tags-column</code>, <code class="verbatim">org-insert-heading-respect-content</code>, <code class="verbatim">org-M-RET-may-split-line</code>, <code class="verbatim">fill-column</code></li>
+<li><code class="verbatim">org-hide-emphasis-markers</code> and <code class="verbatim">org-pretty-entities</code>, for what hidden markup shows and for how tag and table alignment and filling measure text, as on the Mac</li>
+<li><code class="verbatim">pdf-margin</code>, <code class="verbatim">pdf-font</code>, <code class="verbatim">pdf-page-numbers</code></li>
+<li><code class="verbatim">show-markup</code>, <code class="verbatim">org-startup-indented</code>, <code class="verbatim">org-hide-leading-stars</code>, <code class="verbatim">org-startup-with-inline-images</code>, <code class="verbatim">org-startup-with-latex-preview</code>, <code class="verbatim">org-startup-align-all-tables</code>, <code class="verbatim">org-startup-truncated</code>, <code class="verbatim">org-cycle-hide-drawer-startup</code>, <code class="verbatim">org-cycle-hide-block-startup</code></li>
+<li><code class="verbatim">[theme]</code> (<code class="verbatim">font</code>, <code class="verbatim">body-font</code>, <code class="verbatim">font-size</code>, <code class="verbatim">line-spacing</code>, <code class="verbatim">text-width</code>, <code class="verbatim">heading-size-step</code>, <code class="verbatim">theme-file</code> and colours), <code class="verbatim">[theme.light]</code>, <code class="verbatim">[theme.dark]</code>, <code class="verbatim">[theme.todo]</code>, <code class="verbatim">[theme.category]</code></li>
+<li><code class="verbatim">org-log-done</code>, <code class="verbatim">org-log-reschedule</code>, <code class="verbatim">org-log-redeadline</code>, <code class="verbatim">org-log-into-drawer</code></li>
+<li><code class="verbatim">org-enforce-todo-dependencies</code>, <code class="verbatim">org-enforce-todo-checkbox-dependencies</code>, <code class="verbatim">org-track-ordered-property-with-tag</code>, <code class="verbatim">org-agenda-dim-blocked-tasks</code></li>
+<li><code class="verbatim">org-roam-directory</code>, <code class="verbatim">org-roam-dailies-directory</code>, <code class="verbatim">org-roam-dailies-file</code>, <code class="verbatim">org-roam-dailies-head</code>, <code class="verbatim">org-roam-dailies-entry</code></li>
+<li><code class="verbatim">org-crypt-tag-matcher</code>, <code class="verbatim">org-attach-id-dir</code>, <code class="verbatim">org-attach-use-inheritance</code>, <code class="verbatim">org-yank-image-save-method</code>, <code class="verbatim">org-timer-format</code>, <code class="verbatim">org-timer-default-timer</code></li>
+<li><code class="verbatim">org-archive-location</code>, <code class="verbatim">[org-structure-template-alist]</code></li>
+<li><code class="verbatim">org-use-tag-inheritance</code>, <code class="verbatim">org-tags-exclude-from-inheritance</code>, <code class="verbatim">org-tag-alist</code></li>
+<li><code class="verbatim">org-use-speed-commands</code>, with a hardware keyboard</li>
+<li><code class="verbatim">electric-pair-mode</code>, <code class="verbatim">spell-check</code>, <code class="verbatim">auto-fill-mode</code></li>
+<li><code class="verbatim">org-agenda-span</code>, <code class="verbatim">org-agenda-start-day</code>, <code class="verbatim">org-agenda-start-on-weekday</code>, <code class="verbatim">org-deadline-warning-days</code>, <code class="verbatim">agenda-include-subfolders</code>, <code class="verbatim">agenda-exclude-archives</code>, <code class="verbatim">org-agenda-show-all-dates</code>, <code class="verbatim">org-agenda-skip-scheduled-if-done</code>, <code class="verbatim">org-agenda-skip-deadline-if-done</code>, <code class="verbatim">org-habit-show-habits-only-for-today</code>, <code class="verbatim">org-agenda-search-view-always-boolean</code>, <code class="verbatim">org-agenda-search-view-force-full-words</code>, <code class="verbatim">org-agenda-log-mode-items</code>, the <code class="verbatim">org-agenda-todo-ignore-</code> settings, <code class="verbatim">org-agenda-tags-todo-honor-ignore-options</code></li>
+<li><code class="verbatim">calendar-events</code>, <code class="verbatim">calendar-event-calendars</code>, <code class="verbatim">agenda-reminders</code>, <code class="verbatim">agenda-reminder-lists</code></li>
+<li><code class="verbatim">reminders</code>, <code class="verbatim">appt-message-warning-time</code></li>
+<li><code class="verbatim">org-clock-history-length</code>, <code class="verbatim">org-clock-into-drawer</code>, <code class="verbatim">org-clock-rounding-minutes</code>, <code class="verbatim">org-clock-out-remove-zero-time-clocks</code>, <code class="verbatim">org-clock-in-switch-to-state</code>, <code class="verbatim">org-clock-out-when-done</code></li>
+</ul>
+<p><code class="verbatim">capture.toml</code> and <code class="verbatim">views.toml</code> in the folder apply too. <code class="verbatim">keymap</code> and <code class="verbatim">keymap.toml</code> apply with a hardware keyboard. Other settings, including <code class="verbatim">save</code> and <code class="verbatim">org-clock-idle-time</code>, don't apply on iOS. See <a href="13-configuration.html">Configuration</a>.</p>
+<h2 id="spotlight-and-quick-look">Spotlight and Quick Look</h2>
+<p>orgstar adds the org files in your folders to Spotlight with their title (<code class="verbatim">#+TITLE</code>, else the file name), author, description, tags, headings and text. A file is indexed again when it changes. Tap a Spotlight result to open the file in orgstar's reader.</p>
+<p>Quick Look in the Files app shows org files as the HTML export renders them.</p>
+<h2 id="what-the-mac-has-that-ios-doesn-t">What the Mac has that iOS doesn't</h2>
+<ul>
+<li>Running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond orgstar's interpreter, and tables that need Emacs.</li>
+<li>ODT, LaTeX, ASCII and LaTeX-made PDF export, and publishing.</li>
+<li>Idle detection while a clock runs.</li>
+<li>Import from Emacs of agenda folders.</li>
+<li>The Columns inspector, the buffer list and tab bar, and resizing panes by dragging their divider. The board and column view are there (see <a href="07-agenda.html">The agenda</a> and <a href="04-outlines.html">Outlines</a>).</li>
+<li>The global capture hotkey and the Settings window.</li>
+<li>Explicit saving.</li>
+</ul>
+<p>Commands the iOS app can't carry out show a message instead, such as "Not available on iOS yet" or "<em>Command</em> isn't available on iPhone and iPad." Only tables that need Emacs say that Emacs is needed. Commands that only appear on the Mac aren't listed in Commands. Refile… in Commands (or <code class="verbatim">C-c C-w</code> with a hardware keyboard) refiles the entry at the caret, choosing the target as the agenda's Refile… does.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

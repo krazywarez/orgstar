@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install &middot; orgstar</title>
+<meta name="description" content="Installing orgstar on the Mac with Homebrew or a download, on iPhone and iPad from the App Store, and building it from source.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="syntax.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="index.html">orgstar</a>
+<nav>
+<a href="#">Install</a>
+<a href="quickstart.html">Quick start</a>
+<a href="guide/index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Install</h1>
+<p class="lede">The Mac app comes as a notarized download and a Homebrew cask; the iOS app is on the App Store.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#the-mac-app">The Mac app</a>
+<ul>
+<li><a href="#with-homebrew">With Homebrew</a></li>
+<li><a href="#as-a-download">As a download</a></li>
+<li><a href="#from-source">From source</a></li>
+</ul></li>
+<li><a href="#the-ios-app">The iOS app</a>
+<ul>
+<li><a href="#from-source">From source</a></li>
+</ul></li>
+<li><a href="#updating">Updating</a></li>
+<li><a href="#uninstalling">Uninstalling</a></li>
+</ul>
+</nav>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>macOS 26 or later.</li>
+<li>Xcode 27 (the Swift 6.2 toolchain).</li>
+<li>Optional: GNU Emacs, for the features that hand work to it on the Mac (Emacs Lisp code blocks that need full Emacs, Lisp table formulas the built-in interpreter can't run, and export to PDF, LaTeX, ODT and other formats). See <a href="guide/15-alongside-emacs.html">Working alongside Emacs and other tools</a>.</li>
+</ul>
+<h2 id="the-mac-app">The Mac app</h2>
+<h3 id="with-homebrew">With Homebrew</h3>
+<pre><code class="language-sh highlight"><span class="source shell bash"><span class="meta function-call shell"><span class="variable function shell">brew</span></span><span class="meta function-call arguments shell"> tap krz/tap https://gitbay.org/krz/homebrew-tap.git</span>
+<span class="meta function-call shell"><span class="variable function shell">brew</span></span><span class="meta function-call arguments shell"> install<span class="variable parameter option shell"><span class="punctuation definition parameter shell"> --</span>cask</span> orgstar</span></span></code></pre>
+<h3 id="as-a-download">As a download</h3>
+<p>Download <code class="verbatim">orgstar-&lt;version&gt;.dmg</code> from the <a href="https://gitbay.org/krz/orgstar/releases">releases page</a>, open it, and drag orgstar to Applications. The app is universal (Apple silicon and Intel), signed with a Developer ID and notarized by Apple, so it opens without warnings.</p>
+<h3 id="from-source">From source</h3>
+<pre><code class="language-sh highlight"><span class="source shell bash"><span class="meta function-call shell"><span class="variable function shell">git</span></span><span class="meta function-call arguments shell"> clone https://gitbay.org/krz/orgstar.git</span>
+<span class="meta function-call shell"><span class="support function cd shell">cd</span></span><span class="meta function-call arguments shell"> orgstar</span>
+<span class="meta function-call shell"><span class="variable function shell">scripts/build-app.sh</span></span>
+<span class="meta function-call shell"><span class="variable function shell">open</span></span><span class="meta function-call arguments shell"> .build/app/orgstar.app</span></span></code></pre>
+<p><code class="verbatim">scripts/build-app.sh</code> builds a release binary and assembles <code class="verbatim">.build/app/orgstar.app</code> with its Quick Look and Spotlight extensions, signed ad hoc for use on your own Mac. Move it to <code class="verbatim">/Applications</code> to keep it. Pass a version number as the first argument to stamp the bundle (<code class="verbatim">scripts/build-app.sh 1.0.0</code>); the default is <code class="verbatim">0.1.0</code>.</p>
+<p>Once the app has been launched, Finder opens <code class="verbatim">.org</code> files with it, Quick Look shows them formatted, and Spotlight indexes their headings and text.</p>
+<h2 id="the-ios-app">The iOS app</h2>
+<p>The iPhone and iPad app (iOS 26 or later) is on the <a href="https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018">App Store</a>. The Apple Watch app comes with it. The App Store keeps it up to date.</p>
+<h3 id="from-source">From source</h3>
+<p>The iOS app can also be built with Xcode from <code class="verbatim">ios/Orgstar.xcodeproj</code>:</p>
+<ol>
+<li>Open <code class="verbatim">ios/Orgstar.xcodeproj</code>.</li>
+<li>Select the <strong>Orgstar iOS</strong> target, then Signing &amp; Capabilities, and choose your team. Change the bundle identifiers (<code class="verbatim">sh.krz.orgstar</code> and the three extensions' <code class="verbatim">.share</code>, <code class="verbatim">.quicklook</code> and <code class="verbatim">.widgets</code>) and the App Group (<code class="verbatim">group.sh.krz.orgstar</code>) to ones your team can register.</li>
+<li>Choose your iPhone or iPad (or a Simulator) as the destination and Run (<code class="verbatim">⌘R</code>).</li>
+</ol>
+<p>On a device, Developer Mode must be on (Settings ▸ Privacy &amp; Security ▸ Developer Mode).</p>
+<p>For the Simulator without opening Xcode (this build has no widgets):</p>
+<pre><code class="language-sh highlight"><span class="source shell bash"><span class="meta function-call shell"><span class="variable function shell">scripts/build-ios-app.sh</span></span>
+<span class="meta function-call shell"><span class="variable function shell">xcrun</span></span><span class="meta function-call arguments shell"> simctl install booted .build/ios-app/orgstar.app</span></span></code></pre>
+<p>See <a href="guide/14-ios.html">iPhone and iPad</a> for what it does.</p>
+<h2 id="updating">Updating</h2>
+<p>orgstar checks for a new release once a day, after asking on its second launch whether it may; orgstar ▸ Check for Updates… checks now, and Settings ▸ General has the switch. An update downloads, is checked against the key the releases are signed with, and installs when you agree. With Homebrew, <code class="verbatim">brew upgrade --cask orgstar</code> works too; the cask leaves updating to the app otherwise. From source, pull and build again (a build without a Developer ID never checks):</p>
+<pre><code class="language-sh highlight"><span class="source shell bash"><span class="meta function-call shell"><span class="variable function shell">git</span></span><span class="meta function-call arguments shell"> pull</span>
+<span class="meta function-call shell"><span class="variable function shell">scripts/build-app.sh</span></span></span></code></pre>
+<p>Your settings live in <code class="verbatim">~/.config/orgstar/</code> and survive rebuilds.</p>
+<h2 id="uninstalling">Uninstalling</h2>
+<p>Delete <code class="verbatim">orgstar.app</code>, or run <code class="verbatim">brew uninstall --cask orgstar</code>. To remove your settings as well, delete <code class="verbatim">~/.config/orgstar/</code> (<code class="verbatim">brew uninstall --zap --cask orgstar</code> does both). Your org files are never stored inside the app.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

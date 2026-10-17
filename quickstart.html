@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick start &middot; orgstar</title>
+<meta name="description" content="From a fresh install to editing, scheduling and seeing your agenda.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="syntax.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="index.html">orgstar</a>
+<nav>
+<a href="install.html">Install</a>
+<a href="#">Quick start</a>
+<a href="guide/index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Quick start</h1>
+<p class="lede">Add a folder of org files, open one, and learn the handful of keys you need first.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#add-a-folder">Add a folder</a></li>
+<li><a href="#choose-your-keys">Choose your keys</a></li>
+<li><a href="#open-a-file">Open a file</a></li>
+<li><a href="#write-an-outline">Write an outline</a></li>
+<li><a href="#see-your-agenda">See your agenda</a></li>
+<li><a href="#capture-a-thought">Capture a thought</a></li>
+<li><a href="#search">Search</a></li>
+<li><a href="#next">Next</a></li>
+</ul>
+</nav>
+<h2 id="add-a-folder">Add a folder</h2>
+<p>The first time orgstar opens with no folder, a welcome sheet offers to choose a folder, to make one (<code class="verbatim">org</code> in iCloud Drive, with a <code class="verbatim">notes.org</code> to start on), and the keys to use. Get Started… in the empty window opens it again.</p>
+<p>Otherwise, choose File ▸ Add Folder… (<code class="verbatim">⇧⌘O</code>) and pick the folder that holds your org files. It appears in the sidebar, and orgstar indexes every org file under it for search, the agenda and links. You can add several folders. Nothing is copied or moved.</p>
+<p>If you don't have org files yet, add an empty folder and create <code class="verbatim">notes.org</code> in it from Finder or the sidebar.</p>
+<h2 id="choose-your-keys">Choose your keys</h2>
+<p>Open orgstar ▸ Settings… (<code class="verbatim">⌘,</code>) and pick <strong>Keys</strong> under General:</p>
+<ul>
+<li><strong>Emacs</strong>: Org's own bindings, <code class="verbatim">C-c C-t</code> and friends. The default.</li>
+<li><strong>Mac</strong>: standard Mac editing keys, with Org commands on <code class="verbatim">⌃⌘</code> combinations.</li>
+<li><strong>Doom (Vim keys)</strong>: modal editing as in Doom Emacs, with <code class="verbatim">SPC</code> as the leader.</li>
+</ul>
+<p><a href="guide/03-keys.html">Keys and commands</a> lists every binding in each preset. If you already use Emacs, Settings ▸ General ▸ Import from Emacs… reads your configuration: TODO keywords, agenda files, capture templates and more (see <a href="guide/13-configuration.html">Configuration</a>).</p>
+<h2 id="open-a-file">Open a file</h2>
+<p><code class="verbatim">⌘P</code> (Quick Open) finds a file by name; the sidebar works too. Open files become buffers: the tab bar and Switch to Buffer move between them.</p>
+<h2 id="write-an-outline">Write an outline</h2>
+<p>Type a heading and some text:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Projects
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Write the report
+</span>SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-09 Fri&gt;</span>
+Draft the summary first.
+<span class="markup heading org"><span class="punctuation definition heading org">**</span> Reading list
+</span><span class="punctuation definition list org">- </span><span class="constant language checkbox org">[ ]</span> The Org manual
+<span class="punctuation definition list org">- </span><span class="constant language checkbox org">[ ]</span> This manual</span></code></pre>
+<p>With the Emacs keys:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">TAB</code> on a heading</td><td>Fold or unfold it (cycles through folded, children, everything).</td></tr>
+<tr><td><code class="verbatim">S-TAB</code></td><td>Cycle the whole file the same way.</td></tr>
+<tr><td><code class="verbatim">M-RET</code></td><td>New heading (or list item) at the same level.</td></tr>
+<tr><td><code class="verbatim">M-&lt;left&gt;</code> / <code class="verbatim">M-&lt;right&gt;</code></td><td>Promote or demote the heading.</td></tr>
+<tr><td><code class="verbatim">C-c C-t</code></td><td>Cycle the TODO state.</td></tr>
+<tr><td><code class="verbatim">C-c C-s</code> / <code class="verbatim">C-c C-d</code></td><td>Schedule, or set a deadline, with the date picker.</td></tr>
+<tr><td><code class="verbatim">C-c C-c</code></td><td>Context action: toggle a checkbox, align a table, run a code block.</td></tr>
+</tbody>
+</table>
+<p>With the Mac preset, the Org commands are on <code class="verbatim">⌃⌘</code> keys (<code class="verbatim">⌃⌘T</code> cycles TODO, <code class="verbatim">⌃⌘S</code> schedules, <code class="verbatim">⌃⌘X</code> is the context action); with Doom, they're under <code class="verbatim">SPC m</code> (<code class="verbatim">SPC m t</code>, <code class="verbatim">SPC m d s</code>).</p>
+<p>The <a href="guide/02-the-editor.html">editor chapter</a> covers how Org markup is shown and hidden, and <a href="guide/04-outlines.html">Outlines and structure</a> covers headings and lists.</p>
+<h2 id="see-your-agenda">See your agenda</h2>
+<p>Window ▸ Agenda (<code class="verbatim">⇧⌘A</code>) shows what is scheduled or due across every indexed file, day by day, and the TODO list. Select an item to jump to it. See <a href="guide/07-agenda.html">The agenda</a>.</p>
+<h2 id="capture-a-thought">Capture a thought</h2>
+<p><code class="verbatim">⇧⌘N</code> opens capture from anywhere in the app. Until you define your own templates (in <code class="verbatim">~/.config/orgstar/capture.toml</code>, or imported from Emacs), there are two: <code class="verbatim">t</code> files a TODO and <code class="verbatim">n</code> a note, each under an <code class="verbatim">Inbox</code> heading in <code class="verbatim">todo.org</code> or <code class="verbatim">notes.org</code> in your first folder. See <a href="guide/08-capture.html">Capture</a>.</p>
+<h2 id="search">Search</h2>
+<p><code class="verbatim">⇧⌘F</code> searches the headings and text of every indexed file. Each result shows the passage it matched; click it to open the file there.</p>
+<h2 id="next">Next</h2>
+<ul>
+<li>The command palette (<code class="verbatim">⇧⌘P</code>) lists every command with its key.</li>
+<li>The <a href="index.html">chapter list</a> goes through every feature.</li>
+</ul>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

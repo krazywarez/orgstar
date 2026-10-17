@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dates, scheduling and clocking &middot; orgstar</title>
+<meta name="description" content="Timestamps, the date prompt, SCHEDULED and DEADLINE, repeating tasks, effort, clocking, clock tables, habits and reminders in orgstar.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Dates, scheduling and clocking</h1>
+<p class="lede">Put dates on entries, plan work with scheduled dates and deadlines, and record the time you spend.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#timestamps">Timestamps</a>
+<ul>
+<li><a href="#repeaters-and-warning-periods">Repeaters and warning periods</a></li>
+<li><a href="#diary-sexps">Diary sexps</a></li>
+</ul></li>
+<li><a href="#inserting-timestamps">Inserting timestamps</a></li>
+<li><a href="#the-date-prompt">The date prompt</a></li>
+<li><a href="#changing-dates">Changing dates</a></li>
+<li><a href="#scheduled-and-deadline">SCHEDULED and DEADLINE</a></li>
+<li><a href="#repeating-tasks">Repeating tasks</a></li>
+<li><a href="#effort">Effort</a></li>
+<li><a href="#timers">Timers</a></li>
+<li><a href="#clocking">Clocking</a>
+<ul>
+<li><a href="#clocking-in-and-out">Clocking in and out</a></li>
+<li><a href="#the-clock-drawer">The clock drawer</a></li>
+<li><a href="#the-running-clock">The running clock</a></li>
+<li><a href="#recent-entries">Recent entries</a></li>
+<li><a href="#open-clocks">Open clocks</a></li>
+<li><a href="#idle-time">Idle time</a></li>
+<li><a href="#editing-clock-lines">Editing clock lines</a></li>
+</ul></li>
+<li><a href="#clock-summaries">Clock summaries</a>
+<ul>
+<li><a href="#the-inspector">The inspector</a></li>
+<li><a href="#the-clock-report-window">The clock report window</a></li>
+</ul></li>
+<li><a href="#clock-tables">Clock tables</a>
+<ul>
+<li><a href="#parameters">Parameters</a></li>
+<li><a href="#other-files">Other files</a></li>
+<li><a href="#steps">Steps</a></li>
+</ul></li>
+<li><a href="#habits">Habits</a></li>
+<li><a href="#reminders">Reminders</a></li>
+</ul>
+</nav>
+<h2 id="timestamps">Timestamps</h2>
+<p>A timestamp is a date, optionally with a time, in angle brackets (active) or square brackets (inactive):</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="constant other timestamp org">&lt;2026-10-07 Wed&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-07 Wed 14:30&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-07 Wed 10:00-11:30&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-07 Wed&gt;</span>--<span class="constant other timestamp org">&lt;2026-10-09 Fri&gt;</span>
+<span class="constant other timestamp org">[2026-10-07 Wed 09:12]</span></span></code></pre>
+<ul>
+<li>Active timestamps put the entry on the agenda for that day. Inactive ones are records only.</li>
+<li><code class="verbatim">10:00-11:30</code> is a time range within one day. <code class="verbatim">&lt;…&gt;--&lt;…&gt;</code> is a range of days; both ends must be of the same kind.</li>
+<li>orgstar writes day names in English. When reading, it accepts a day name in any language, as Org does.</li>
+</ul>
+<h3 id="repeaters-and-warning-periods">Repeaters and warning periods</h3>
+<p>After the date and time, a timestamp can carry a repeater and a warning or delay:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="constant other timestamp org">&lt;2026-10-07 Wed +1w&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-07 Wed 08:00 ++1d&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-07 Wed .+2w&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-31 Sat -3d&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-31 Sat +1m -5d&gt;</span>
+<span class="constant other timestamp org">&lt;2026-10-07 Wed .+2d/4d&gt;</span></span></code></pre>
+<table>
+<thead>
+<tr><th>Element</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">+1w</code></td><td>Repeat every week, counted from the date in the timestamp</td></tr>
+<tr><td><code class="verbatim">++1w</code></td><td>Repeat every week, moving the date past today when the task is done</td></tr>
+<tr><td><code class="verbatim">.+1w</code></td><td>Repeat one week after the day the task is done</td></tr>
+<tr><td><code class="verbatim">-3d</code></td><td>On a deadline, start warning 3 days before; on a scheduled date, hide it from the agenda until 3 days after</td></tr>
+<tr><td><code class="verbatim">--3d</code></td><td>As <code class="verbatim">-3d</code>, for the first occurrence only; it is dropped when the task repeats</td></tr>
+<tr><td><code class="verbatim">/4d</code></td><td>After a repeater, the longest interval a habit allows (see "Habits")</td></tr>
+</tbody>
+</table>
+<p>Units are <code class="verbatim">h</code> (hours), <code class="verbatim">d</code>, <code class="verbatim">w</code>, <code class="verbatim">m</code> and <code class="verbatim">y</code>. What happens when a repeating task is done is described under "Repeating tasks".</p>
+<h3 id="diary-sexps">Diary sexps</h3>
+<p>The agenda also reads <code class="verbatim">&lt;%%(…)&gt;</code> timestamps and <code class="verbatim">%%(…)</code> lines with Emacs diary expressions such as <code class="verbatim">diary-float</code>, <code class="verbatim">diary-anniversary</code>, <code class="verbatim">diary-block</code> and <code class="verbatim">diary-cyclic</code>, and their <code class="verbatim">org-</code> counterparts. See <a href="07-agenda.html">The agenda</a> for the functions that are supported. orgstar does not insert or edit these.</p>
+<h2 id="inserting-timestamps">Inserting timestamps</h2>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th><th>Doom leader</th></tr>
+</thead>
+<tbody>
+<tr><td>Insert Timestamp</td><td><code class="verbatim">org-timestamp</code></td><td><code class="verbatim">C-c .</code></td><td>⌃⌘.</td><td><code class="verbatim">SPC m d t</code></td></tr>
+<tr><td>Insert Inactive Timestamp</td><td><code class="verbatim">org-timestamp-inactive</code></td><td><code class="verbatim">C-c !</code></td><td>⌃⌥⌘.</td><td><code class="verbatim">SPC m d T</code></td></tr>
+</tbody>
+</table>
+<p>Both ask for a date in the echo area (see "The date prompt"). With the caret on an existing timestamp, they replace it with the date you give, keep its repeater, and start from its date and time. In a range of days, the caret picks the end: with the caret between the two dashes of <code class="verbatim">--</code> or after them, the second timestamp is replaced and the prompt starts from its date; before that, the first. Run the command again right after inserting a timestamp to add a second one and make a range, <code class="verbatim">&lt;…&gt;--&lt;…&gt;</code>; the second date starts from the timestamp at the caret.</p>
+<p>Org's prefix arguments are not available: to include the current time, type it, or use a relative time such as <code class="verbatim">+0h</code> (see below).</p>
+<h2 id="the-date-prompt">The date prompt</h2>
+<p>Every command that asks for a date shows the same prompt (<code class="verbatim">org-read-date</code>): a text field, the date the text reads as, and a month calendar.</p>
+<ul>
+<li>Type a date in any of the forms below. The line above the field shows the result, such as <code class="verbatim">&lt;2026-10-09 Fri 15:00&gt;</code>, as you type; for an inactive timestamp it is in square brackets, <code class="verbatim">[2026-10-09 Fri 15:00]</code>.</li>
+<li>Click a day in the calendar to answer with that day. A time you typed is kept.</li>
+<li><code class="verbatim">S-&lt;left&gt;</code> and <code class="verbatim">S-&lt;right&gt;</code> in the field move the answer one day; <code class="verbatim">S-&lt;up&gt;</code> and <code class="verbatim">S-&lt;down&gt;</code> move it one week.</li>
+<li><code class="verbatim">RET</code> accepts. An empty answer takes the default: the date of the timestamp being changed, or today.</li>
+<li><code class="verbatim">Esc</code> cancels.</li>
+</ul>
+<p>orgstar reads the answer as Org 9.8 does, with <code class="verbatim">org-read-date-prefer-future</code> <code class="verbatim">t</code>: a date given without a year, or without a month, is taken to be the next such date from today.</p>
+<table>
+<thead>
+<tr><th>You type</th><th>Result</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">.</code></td><td>Today</td></tr>
+<tr><td><code class="verbatim">+0</code></td><td>Today</td></tr>
+<tr><td><code class="verbatim">+1</code>, <code class="verbatim">+2d</code></td><td>Tomorrow, two days from today</td></tr>
+<tr><td><code class="verbatim">-3d</code></td><td>Three days ago</td></tr>
+<tr><td><code class="verbatim">+1w</code>, <code class="verbatim">+2m</code>, <code class="verbatim">-1y</code></td><td>One week, two months from today; one year ago</td></tr>
+<tr><td><code class="verbatim">++3</code></td><td>Three days after the default date, not after today</td></tr>
+<tr><td><code class="verbatim">+3h</code></td><td>Three hours after the default time; sets a time</td></tr>
+<tr><td><code class="verbatim">fri</code>, <code class="verbatim">mon</code></td><td>The next Friday or Monday, the default date included</td></tr>
+<tr><td><code class="verbatim">+fri</code></td><td>The next Friday after today</td></tr>
+<tr><td><code class="verbatim">-fri</code></td><td>The last Friday before today</td></tr>
+<tr><td><code class="verbatim">+2fri</code></td><td>The second Friday from today</td></tr>
+<tr><td><code class="verbatim">today</code>, <code class="verbatim">tomorrow</code>, <code class="verbatim">yesterday</code></td><td>Those days. orgstar's additions; Org's prompt ignores them</td></tr>
+<tr><td><code class="verbatim">next week</code>, <code class="verbatim">last week</code></td><td>Seven days from today, forward or back. orgstar's additions</td></tr>
+<tr><td><code class="verbatim">2026-10-07</code>, <code class="verbatim">2026-10-7</code></td><td>That date</td></tr>
+<tr><td><code class="verbatim">10-7</code></td><td>7 October, the next one</td></tr>
+<tr><td><code class="verbatim">7.10.</code>, <code class="verbatim">7.10.2027</code></td><td>7 October (day first)</td></tr>
+<tr><td><code class="verbatim">10/7</code>, <code class="verbatim">10/7/27</code></td><td>7 October (month first)</td></tr>
+<tr><td><code class="verbatim">15</code></td><td>The 15th, this month or next</td></tr>
+<tr><td><code class="verbatim">sep 15</code>, <code class="verbatim">15 sep</code></td><td>15 September, the next one</td></tr>
+<tr><td><code class="verbatim">dec 25 2027</code></td><td>25 December 2027</td></tr>
+<tr><td><code class="verbatim">w42</code>, <code class="verbatim">2027-w01</code>, <code class="verbatim">w3-5</code></td><td>Monday of ISO week 42; Monday of week 1 of 2027; Friday of week 3</td></tr>
+<tr><td><code class="verbatim">10:00</code>, <code class="verbatim">9:30</code></td><td>The default date at that time</td></tr>
+<tr><td><code class="verbatim">10am</code>, <code class="verbatim">3pm</code>, <code class="verbatim">12:30pm</code></td><td>12-hour times</td></tr>
+<tr><td><code class="verbatim">10h</code>, <code class="verbatim">10h30</code>, <code class="verbatim">h45</code></td><td>10:00, 10:30, 00:45</td></tr>
+<tr><td><code class="verbatim">10:00-11:30</code></td><td>A time range</td></tr>
+<tr><td><code class="verbatim">10:00+1:30</code></td><td>10:00-11:30</td></tr>
+<tr><td><code class="verbatim">fri 10:00</code>, <code class="verbatim">+2d 9:00</code></td><td>A date and a time together</td></tr>
+</tbody>
+</table>
+<p>Forms without a sign, such as <code class="verbatim">fri</code>, <code class="verbatim">15</code> or <code class="verbatim">10:00</code>, fill in what is missing from the default date: the date of the timestamp being changed, or today. Forms with a single sign count from today; <code class="verbatim">++</code> counts from the default date. Two-digit years are read relative to the current year. Other words the prompt does not recognize are ignored and give the default date. <code class="verbatim">today</code>, <code class="verbatim">tomorrow</code>, <code class="verbatim">yesterday</code>, <code class="verbatim">next week</code> and <code class="verbatim">last week</code> are orgstar's additions, read before the rest of the answer; Org's prompt ignores them.</p>
+<h2 id="changing-dates">Changing dates</h2>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th></tr>
+</thead>
+<tbody>
+<tr><td>Increase Timestamp Part</td><td><code class="verbatim">org-timestamp-up</code></td><td><code class="verbatim">S-&lt;up&gt;</code></td><td>⌃⌘↑</td></tr>
+<tr><td>Decrease Timestamp Part</td><td><code class="verbatim">org-timestamp-down</code></td><td><code class="verbatim">S-&lt;down&gt;</code></td><td>⌃⌘↓</td></tr>
+<tr><td>Timestamp One Day Later</td><td><code class="verbatim">org-timestamp-up-day</code></td><td><code class="verbatim">S-&lt;right&gt;</code></td><td>⌃⌘→</td></tr>
+<tr><td>Timestamp One Day Earlier</td><td><code class="verbatim">org-timestamp-down-day</code></td><td><code class="verbatim">S-&lt;left&gt;</code></td><td>⌃⌘←</td></tr>
+<tr><td>Evaluate Time Range</td><td><code class="verbatim">org-evaluate-time-range</code></td><td><code class="verbatim">C-c C-y</code></td><td></td></tr>
+</tbody>
+</table>
+<p>These keys act on the timestamp when the caret is in one. Elsewhere the same keys do other things, such as changing the TODO keyword or priority on a heading line (<a href="05-todos-and-tags.html">TODOs and tags</a>). In the Doom preset they work in normal and insert state, and <code class="verbatim">C-S-h</code>, <code class="verbatim">C-S-j</code>, <code class="verbatim">C-S-k</code> and <code class="verbatim">C-S-l</code> do the same as <code class="verbatim">S-&lt;left&gt;</code>, <code class="verbatim">S-&lt;down&gt;</code>, <code class="verbatim">S-&lt;up&gt;</code> and <code class="verbatim">S-&lt;right&gt;</code>.</p>
+<p><code class="verbatim">S-&lt;up&gt;</code> and <code class="verbatim">S-&lt;down&gt;</code> change the part of the timestamp under the caret:</p>
+<ul>
+<li>the year, month or day (on the day name, the day);</li>
+<li>the hour, or the minute in steps of 5 (<code class="verbatim">org-time-stamp-rounding-minutes</code>), first rounding to a multiple of 5;</li>
+<li>in a time range, the end time; changing the start time moves the end time with it;</li>
+<li>the number or unit of a repeater or warning (the unit cycles <code class="verbatim">d</code>, <code class="verbatim">w</code>, <code class="verbatim">m</code>, <code class="verbatim">y</code>);</li>
+<li>on the opening or closing bracket, the timestamp switches between active and inactive.</li>
+</ul>
+<p><code class="verbatim">S-&lt;left&gt;</code> and <code class="verbatim">S-&lt;right&gt;</code> move the whole timestamp by a day, wherever the caret is in it. The day name is rewritten after every change. In a range of days, each end changes on its own.</p>
+<p><code class="verbatim">C-c C-c</code> on a timestamp rewrites its day name to match its date. <code class="verbatim">C-c C-y</code> shows the length of the range at the caret, or of the first range on the line, such as <code class="verbatim">2 days 3 hours</code>; on a clock line it recomputes the clock's duration.</p>
+<h2 id="scheduled-and-deadline">SCHEDULED and DEADLINE</h2>
+<p>A planning line goes directly under the heading:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Submit the tax return
+</span>DEADLINE: <span class="constant other timestamp org">&lt;2026-10-31 Sat -7d&gt;</span> SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-20 Tue&gt;</span></span></code></pre>
+<ul>
+<li><code class="verbatim">SCHEDULED</code> is the day you plan to start. The agenda shows the entry from that day until it is done.</li>
+<li><code class="verbatim">DEADLINE</code> is the day it is due. The agenda warns about it 14 days ahead (<code class="verbatim">org-deadline-warning-days</code> in <code class="verbatim">config.toml</code>), or as the timestamp's own <code class="verbatim">-Nd</code> says.</li>
+</ul>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th><th>Doom leader</th></tr>
+</thead>
+<tbody>
+<tr><td>Schedule</td><td><code class="verbatim">org-schedule</code></td><td><code class="verbatim">C-c C-s</code></td><td>⌃⌘S</td><td><code class="verbatim">SPC m d s</code></td></tr>
+<tr><td>Set Deadline</td><td><code class="verbatim">org-deadline</code></td><td><code class="verbatim">C-c C-d</code></td><td>⌃⌘E</td><td><code class="verbatim">SPC m d d</code></td></tr>
+<tr><td>Remove Schedule</td><td><code class="verbatim">org-schedule</code> with <code class="verbatim">C-u</code></td><td><code class="verbatim">C-u C-c C-s</code></td><td>⌃⌥⌘S</td><td><code class="verbatim">SPC u SPC m d s</code></td></tr>
+<tr><td>Remove Deadline</td><td><code class="verbatim">org-deadline</code> with <code class="verbatim">C-u</code></td><td><code class="verbatim">C-u C-c C-d</code></td><td>⌃⌥⌘E</td><td><code class="verbatim">SPC u SPC m d d</code></td></tr>
+</tbody>
+</table>
+<p>Schedule and Set Deadline ask for a date, starting from the entry's current one and its time. They replace an existing date, keep its repeater and warning, and remove a <code class="verbatim">CLOSED</code> stamp from the entry. Remove Schedule and Remove Deadline are bound to Org's <code class="verbatim">C-u</code> forms as separate sequences, and are in the Org menu and the command palette (<a href="03-keys.html">Keys</a>).</p>
+<p>With <code class="verbatim">org-log-reschedule</code> or <code class="verbatim">org-log-redeadline</code> set to <code class="verbatim">time</code> or <code class="verbatim">note</code> in <code class="verbatim">config.toml</code>, or the matching <code class="verbatim">#+STARTUP</code> words, orgstar logs each change of an existing date and each removal:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Submit the tax return
+</span>SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-22 Thu&gt;</span>
+<span class="punctuation definition list org">- </span>Rescheduled from &quot;<span class="constant other timestamp org">[2026-10-20 Tue]</span>&quot; on <span class="constant other timestamp org">[2026-10-19 Mon 08:40]</span></span></code></pre>
+<p>Where these notes go, and the <code class="verbatim">#+STARTUP</code> words, are covered in <a href="05-todos-and-tags.html">TODOs and tags</a>.</p>
+<h2 id="repeating-tasks">Repeating tasks</h2>
+<p>When an entry with a repeater in an active timestamp changes from an active TODO keyword to a done one (<code class="verbatim">org-auto-repeat-maybe</code>), orgstar does not leave it done:</p>
+<ol>
+<li>The keyword returns to the first keyword of its sequence. In a <code class="verbatim">#+TYP_TODO</code> sequence it returns to the keyword it had. A <code class="verbatim">REPEAT_TO_STATE</code> property, inherited from ancestors, names another keyword to use.</li>
+<li><code class="verbatim">CLOSED</code> is removed.</li>
+<li>With <code class="verbatim">org-log-repeat</code> on (the default, <code class="verbatim">time</code>), the <code class="verbatim">LAST_REPEAT</code> property is set to the current time and a state note is logged, such as <code class="verbatim">- State "DONE" from "TODO" [2026-10-07 Wed 18:02]</code>.</li>
+<li>A <code class="verbatim">SCHEDULED</code> date without a repeater is removed.</li>
+<li>Every active timestamp with a repeater in the entry moves forward:<ul>
+<li><code class="verbatim">+N</code> moves it by N once, which may leave it in the past.</li>
+<li><code class="verbatim">++N</code> moves it by N until it is after today (for hours, after now).</li>
+<li><code class="verbatim">.+N</code> sets it to today and then moves it by N. With hours, <code class="verbatim">.+Nh</code>, the new time is N hours after the current time, to the minute, and a time range loses its end time.</li>
+</ul>
+</li>
+<li><code class="verbatim">--</code> delays in those timestamps are removed.</li>
+</ol>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Water the plants
+</span>SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-07 Wed .+3d&gt;</span></span></code></pre>
+<p>Marking this done on 7 October gives:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Water the plants
+</span>SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-10 Sat .+3d&gt;</span>
+:PROPERTIES:
+:LAST_REPEAT: <span class="constant other timestamp org">[2026-10-07 Wed 18:02]</span>
+:END:
+<span class="punctuation definition list org">- </span>State &quot;DONE&quot;       from &quot;TODO&quot;       <span class="constant other timestamp org">[2026-10-07 Wed 18:02]</span></span></code></pre>
+<p>A repeater of <code class="verbatim">0</code> (<code class="verbatim">+0d</code>) does not repeat. An hourly repeater needs a time in the timestamp; without one, orgstar reports "Cannot repeat in N hour(s) because no hour has been set". Inactive timestamps never repeat.</p>
+<p>To turn the repeat note off for a file, use <code class="verbatim">#+STARTUP: nologrepeat</code>; <code class="verbatim">lognoterepeat</code> asks for a note instead.</p>
+<h2 id="effort">Effort</h2>
+<p>Effort estimates live in the <code class="verbatim">Effort</code> property.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th><th>Doom leader</th><th>Speed key</th></tr>
+</thead>
+<tbody>
+<tr><td>Set Effort</td><td><code class="verbatim">org-set-effort</code></td><td><code class="verbatim">C-c C-x e</code></td><td><code class="verbatim">⌃⇧⌘E</code></td><td><code class="verbatim">SPC m c E</code></td><td><code class="verbatim">e</code></td></tr>
+</tbody>
+</table>
+<p>Set Effort asks for a value, such as <code class="verbatim">0:30</code> or <code class="verbatim">2:00</code>, starting with the current one. If the entry, an ancestor, or a <code class="verbatim">#+PROPERTY: Effort_ALL</code> line defines <code class="verbatim">Effort_ALL</code>, its values are offered as choices; you can also type another value.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+PROPERTY:</span><span class="string unquoted org"> Effort_ALL 0:15 0:30 1:00 2:00 4:00</span></span></code></pre>
+<p>Effort appears in column view and in clock tables with <code class="verbatim">:properties ("Effort")</code>. The mode line does not show the effort beside the running clock; a notification is posted when the time clocked passes it (see <em>Clocking</em> below).</p>
+<h2 id="timers">Timers</h2>
+<p>orgstar has Org's relative timer, which counts up from when it starts, and its countdown timer (org-timer). One timer runs at a time, for every file; it shows in the mode line as <code class="verbatim">&lt;0:01:23&gt;</code> (above the text on iOS) and stops when orgstar quits.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Start Timer</td><td><code class="verbatim">C-c C-x 0</code></td><td>Starts the relative timer at 0:00:00.</td></tr>
+<tr><td>Start Timer with Offset…</td><td><code class="verbatim">C-u C-c C-x 0</code></td><td>Asks for a value to start from, <code class="verbatim">h:mm:ss</code> or a shorter <code class="verbatim">m:ss</code> or seconds; empty takes the timer value at the caret, or 0:00:00.</td></tr>
+<tr><td>Insert Timer Value</td><td><code class="verbatim">C-c C-x .</code></td><td>Inserts the timer's value, as =0:01:23 =; starts the timer first when none is running.</td></tr>
+<tr><td>Insert Timer Item</td><td><code class="verbatim">C-c C-x -</code></td><td>Inserts a timer item, =- 0:01:23 :: =: a new item in a timer list, or a new list elsewhere.</td></tr>
+<tr><td>Pause or Continue Timer</td><td><code class="verbatim">C-c C-x ,</code></td><td>Pauses the timer, or lets a paused one go on.</td></tr>
+<tr><td>Stop Timer</td><td><code class="verbatim">C-c C-x _</code>, <code class="verbatim">C-u C-c C-x ,</code></td><td>Stops the timer.</td></tr>
+<tr><td>Set Countdown Timer…</td><td><code class="verbatim">C-c C-x ;</code></td><td>Starts a countdown for the entry's <code class="verbatim">Effort</code>, or asks how long: minutes, or <code class="verbatim">h:mm:ss</code>.</td></tr>
+<tr><td>Show Remaining Countdown Time</td><td>—</td><td>Says how long the countdown has left.</td></tr>
+<tr><td>Shift Timer Values in Region…</td><td><code class="verbatim">C-u C-u C-c C-x 0</code></td><td>Adds a difference to every <code class="verbatim">h:mm:ss</code> in the selection; empty makes the first one 0:00:00.</td></tr>
+</tbody>
+</table>
+<p>M-RET in a timer list inserts a timer item, so notes taken in a meeting can be stamped as they're written:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="punctuation definition list org">- </span>0:00:05 :: Introductions
+<span class="punctuation definition list org">- </span>0:04:40 :: Budget</span></code></pre>
+<p>When a countdown ends, orgstar shows <code class="verbatim">Heading: time out</code>, and a notification when it isn't in front. Starting a relative timer during a countdown, or a countdown during a relative timer, is refused until the other is stopped. <code class="verbatim">org-timer-format</code> (<code class="verbatim">"%s "</code>) sets what Insert Timer Value writes, and <code class="verbatim">org-timer-default-timer</code> the countdown Set Countdown Timer… offers; see <a href="13-configuration.html">Configuration</a>.</p>
+<h2 id="clocking">Clocking</h2>
+<p>Clocking records the time you work on an entry as <code class="verbatim">CLOCK:</code> lines in its <code class="verbatim">LOGBOOK</code> drawer.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th><th>Doom leader</th><th>Speed key</th></tr>
+</thead>
+<tbody>
+<tr><td>Clock In</td><td><code class="verbatim">org-clock-in</code></td><td><code class="verbatim">C-c C-x C-i</code></td><td><code class="verbatim">⌃⌘I</code></td><td><code class="verbatim">SPC m c i</code></td><td><code class="verbatim">I</code></td></tr>
+<tr><td>Clock In to Recent Entry…</td><td><code class="verbatim">org-clock-in</code> with <code class="verbatim">C-u</code></td><td></td><td><code class="verbatim">⌃⌥⌘I</code></td><td></td><td></td></tr>
+<tr><td>Clock In to Last Entry</td><td><code class="verbatim">org-clock-in-last</code></td><td><code class="verbatim">C-c C-x C-x</code></td><td></td><td><code class="verbatim">SPC m c I</code></td><td></td></tr>
+<tr><td>Clock Out</td><td><code class="verbatim">org-clock-out</code></td><td><code class="verbatim">C-c C-x C-o</code></td><td><code class="verbatim">⌃⇧⌘I</code></td><td><code class="verbatim">SPC m c o</code></td><td><code class="verbatim">O</code></td></tr>
+<tr><td>Cancel Clock</td><td><code class="verbatim">org-clock-cancel</code></td><td><code class="verbatim">C-c C-x C-q</code></td><td><code class="verbatim">⌃⌘K</code></td><td><code class="verbatim">SPC m c c</code></td><td></td></tr>
+<tr><td>Go to Clocked Entry</td><td><code class="verbatim">org-clock-goto</code></td><td><code class="verbatim">C-c C-x C-j</code></td><td><code class="verbatim">⌃⌘J</code></td><td><code class="verbatim">SPC m c g</code></td><td></td></tr>
+<tr><td>Go to Recent Clocked Entry…</td><td><code class="verbatim">org-clock-goto</code> with <code class="verbatim">C-u</code></td><td></td><td><code class="verbatim">⌃⌥⌘J</code></td><td><code class="verbatim">SPC m c G</code></td><td></td></tr>
+<tr><td>Mark as Default Clock Task</td><td><code class="verbatim">org-clock-mark-default-task</code></td><td></td><td></td><td><code class="verbatim">SPC m c d</code></td><td></td></tr>
+<tr><td>Resolve Open Clocks…</td><td><code class="verbatim">org-resolve-clocks</code></td><td><code class="verbatim">C-c C-x C-z</code></td><td></td><td><code class="verbatim">SPC m c r</code></td><td></td></tr>
+</tbody>
+</table>
+<p>The Emacs keys are Org's own, and work in the Doom preset too, as every <code class="verbatim">C-c</code> key does. Commands without a key in your preset are in the command palette and in Org ▸ Clock, which lists every clock command with its keys, followed by the recent entries. In the agenda, <code class="verbatim">I</code>, <code class="verbatim">O</code> and <code class="verbatim">X</code> clock in, out and cancel for the entry at the line (<a href="07-agenda.html">The agenda</a>). Capture templates can clock in too (<a href="08-capture.html">Capture</a>).</p>
+<p>orgstar has no <code class="verbatim">C-u</code> forms of these commands. Clock In to Recent Entry… and Go to Recent Clocked Entry… stand for <code class="verbatim">C-u C-c C-x C-i</code> and <code class="verbatim">C-u C-c C-x C-j</code>.</p>
+<h3 id="clocking-in-and-out">Clocking in and out</h3>
+<p>Clock In starts a clock on the heading at the caret and inserts a line at the top of its <code class="verbatim">LOGBOOK</code> drawer, creating the drawer after the planning line and property drawer if needed (see "The clock drawer" below for other drawers):</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Write the report
+</span>:LOGBOOK:
+CLOCK: <span class="constant other timestamp org">[2026-10-07 Wed 09:00]</span>
+CLOCK: <span class="constant other timestamp org">[2026-10-06 Tue 14:00]</span>--<span class="constant other timestamp org">[2026-10-06 Tue 15:30]</span> =&gt;  1:30
+:END:</span></code></pre>
+<ul>
+<li>Only one clock runs at a time. Clocking in while another clock runs clocks that one out first, and remembers it as the interrupted task (<code class="verbatim">i</code> in the selection below).</li>
+<li>Clocking in on the entry whose clock is running changes nothing and says <code class="verbatim">Clock continues in "Write the report"</code>.</li>
+<li><code class="verbatim">CLOCK:</code> lines outside a drawer move into the new drawer the first time you clock in on that entry.</li>
+<li>With <code class="verbatim">org-clock-in-switch-to-state</code> set to a keyword in <code class="verbatim">config.toml</code>, Clock In gives the entry that keyword first (unless it has it), logging and checking dependencies as <code class="verbatim">C-c C-t</code> does. A file without the keyword can't be clocked in, as in Org: "State `NEXT' not valid in this file".</li>
+<li>Clock Out completes the line with the end time and the duration in hours and minutes. Clocks of zero minutes are kept, unless <code class="verbatim">org-clock-out-remove-zero-time-clocks</code> is <code class="verbatim">true</code>; then the line goes and the message ends with "LINE REMOVED".</li>
+<li>With <code class="verbatim">org-clock-rounding-minutes</code> set to N, the clock starts at the multiple of N minutes nearest now that isn't later, and stops at the nearest multiple; with 5, clocking in at 14:47 starts at 14:45.</li>
+<li>Marking the clocked entry done clocks out (<code class="verbatim">org-clock-out-when-done</code>, on by default as in Org; set it to <code class="verbatim">"nil"</code> to keep the clock running, or to keywords that clock out). orgstar watches the entry's heading line, so typing a done keyword yourself clocks out too.</li>
+<li>When the entry has an <code class="verbatim">Effort</code>, a notification says "Task `…' should be finished by now. (1:00)" once the time clocked on it and its subtree passes it, counting earlier clocks as <code class="verbatim">org-clock-mode-line-total</code> <code class="verbatim">auto</code> does (since <code class="verbatim">LAST_REPEAT</code> for a repeating task) or as its <code class="verbatim">CLOCK_MODELINE_TOTAL</code> says.</li>
+<li>Cancel Clock removes the running clock's line, and the drawer if it is left empty.</li>
+<li>Go to Clocked Entry opens the file and moves the caret to the running clock's line. With no clock running, it goes to the most recently clocked entry and says "No running clock, this is the most recently clocked task".</li>
+</ul>
+<p>With no clock running, Clock In first asks about open clocks; see Open clocks below. So do the agenda's <code class="verbatim">I</code> and a capture template's <code class="verbatim">clock-in</code>.</p>
+<p>orgstar remembers the running clock and the clock history across restarts, in <code class="verbatim">clock.json</code> in <code class="verbatim">~/Library/Application Support/Orgstar</code>. If the open <code class="verbatim">CLOCK:</code> line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.</p>
+<p>orgstar follows the open <code class="verbatim">CLOCK:</code> lines in the files, so a clock started or stopped in Emacs, or on another device, is the one it shows:</p>
+<ul>
+<li>At launch, and as your folders load, it looks for open clock lines in the agenda files; when a file changes on disk, in that file.</li>
+<li>With no clock running, the most recently started open clock it hasn't seen before becomes the running clock, and the status line says so. Older open clocks stay dangling; Clock In asks about them, as described in Open clocks below.</li>
+<li>When the running clock's line is closed (Emacs clocked out) or removed, the clock stops here too, with the message "The clock in … was stopped elsewhere".</li>
+</ul>
+<p>Clocking out in orgstar closes the line as Org does, so Emacs sees a finished clock when it reverts the file. orgstar does not read Emacs's <code class="verbatim">org-clock-persist</code> file, so Emacs learns of a clock started here only from the line, when it next resolves clocks.</p>
+<p>These parts of Org's clocking are not implemented:</p>
+<ul>
+<li><code class="verbatim">org-clock-in-switch-to-state</code> and <code class="verbatim">org-clock-out-switch-to-state</code> as functions, and <code class="verbatim">org-clock-sound</code>: the notification uses the system's sound.</li>
+</ul>
+<h3 id="the-clock-drawer">The clock drawer</h3>
+<p>Where clock lines go follows <code class="verbatim">org-clock-into-drawer</code> in <code class="verbatim">config.toml</code>, or an entry's <code class="verbatim">CLOCK_INTO_DRAWER</code> property, which its subtree inherits:</p>
+<table>
+<thead>
+<tr><th>Value</th><th>Clock lines go</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">t</code> (default)</td><td>into the drawer <code class="verbatim">org-log-into-drawer</code> (or a <code class="verbatim">LOG_INTO_DRAWER</code> property) names, else <code class="verbatim">LOGBOOK</code></td></tr>
+<tr><td><code class="verbatim">nil</code></td><td>under the heading, newest first, without a drawer</td></tr>
+<tr><td>a number <em>n</em></td><td>under the heading until there would be <em>n</em> of them; then all of them move into the log drawer</td></tr>
+<tr><td>a drawer name</td><td>into that drawer</td></tr>
+</tbody>
+</table>
+<p>An existing drawer of that name always takes the new line.</p>
+<h3 id="the-running-clock">The running clock</h3>
+<p>While a clock runs, orgstar shows it in three places, refreshed every 30 seconds:</p>
+<ul>
+<li>the mode line under the editor: <code class="verbatim">⏱ 0:42 Write the report</code>;</li>
+<li>the window's toolbar;</li>
+<li>the macOS menu bar, with the elapsed time.</li>
+</ul>
+<p>The time shown is the time since you clocked in, not the entry's total. Each of them opens a menu with Clock Out, Cancel Clock and Go to Clocked Entry. The toolbar's menu also has Clock In to Recent Entry…, Go to Recent Clocked Entry… and the recent entries. The menu bar item also has Clock In to Recent Entry…, Clock Report and a Recent Entries section. Choosing a recent entry clocks in to it.</p>
+<h3 id="recent-entries">Recent entries</h3>
+<p>orgstar keeps a clock history, as <code class="verbatim">org-clock-history</code>. Every clock-in, including one from the agenda or a capture template, puts the entry first in the history and removes its other entries there. The history holds <code class="verbatim">org-clock-history-length</code> entries (5 by default); the oldest go first.</p>
+<p>Entries are found again after edits by their <code class="verbatim">ID</code> property, else by the heading's position among the file's headings together with its title, else by the title alone. An entry that can't be found is dropped from the history the next time an entry is added, and left out of the selection.</p>
+<p>Clock In to Recent Entry… and Go to Recent Clocked Entry… ask for an entry in the echo area, as <code class="verbatim">org-clock-select-task</code> does. Each line shows its key, the entry's category padded to 12 characters, and the heading with its TODO keyword and priority, under these sections:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Section</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">d</code></td><td>Default Task: the entry marked with Mark as Default Clock Task</td></tr>
+<tr><td><code class="verbatim">i</code></td><td>The task interrupted by starting the last one</td></tr>
+<tr><td><code class="verbatim">c</code></td><td>Current Clocking Task</td></tr>
+<tr><td><code class="verbatim">1</code> … <code class="verbatim">9</code>, <code class="verbatim">A</code>, <code class="verbatim">B</code>, …</td><td>Recent Tasks, most recent first</td></tr>
+</tbody>
+</table>
+<p>Type a key to choose. <code class="verbatim">q</code>, <code class="verbatim">x</code> or <code class="verbatim">Esc</code> leave the question. With an empty history the commands say "No recent clock"; a key that isn't listed says "Invalid task choice X".</p>
+<p>Clock In to Last Entry clocks in to the first entry of the history, the same as <code class="verbatim">1</code>. With no clock running it says "Clocking back: Write the report (in work.org)"; with an empty history, "No last clock".</p>
+<p>Mark as Default Clock Task makes the heading at the caret the <code class="verbatim">d</code> entry and says "Default clock task: Write the report"; Org sets it without a message. As in Org, the default task lasts until you quit orgstar.</p>
+<h3 id="open-clocks">Open clocks</h3>
+<p>An open clock is a <code class="verbatim">CLOCK:</code> line with a start and no end. Org calls one that isn't the running clock dangling, for example after orgstar or Emacs quit while it ran, or a line synced from another machine.</p>
+<p>When you clock in with no clock running, orgstar first looks for open clocks in the org files of your folders and in the open buffers (<code class="verbatim">org-clock-auto-clock-resolution</code> set to <code class="verbatim">when-no-clock-is-running</code>), and asks about each one:</p>
+<pre>Dangling clock started 95 mins ago [jkKtTgGSscCiq]?</pre>
+<p>Clocking in from the agenda (<code class="verbatim">I</code>) or from a capture template with <code class="verbatim">clock-in</code> asks too, as <code class="verbatim">org-clock-in</code> does in Org. A capture template resolves open clocks as of when the capture began, which is when its clock starts. On the Mac, the questions for an agenda or capture clock-in are asked in the main window's echo area.</p>
+<p>Resolve Open Clocks… asks the same about every open clock, the running one included, and says "No open clocks" when there are none.</p>
+<p>Unlike Org, orgstar doesn't show the clock's line while it asks; <code class="verbatim">j</code> opens it afterwards, except while clocking in.</p>
+<p>The answer is a key, as in <code class="verbatim">org-clock-resolve</code>. The idle time is the time since the clock started, for an open clock, or since you stopped using the Mac, for an idle one (see Idle time below).</p>
+<table>
+<thead>
+<tr><th>Key</th><th>What happens to the <code class="verbatim">CLOCK:</code> line</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">j</code></td><td>Nothing; the line opens in the editor to adjust by hand (after the clock-in, when you were clocking in).</td></tr>
+<tr><td><code class="verbatim">J</code></td><td>Ends the line now, then opens it in the editor.</td></tr>
+<tr><td><code class="verbatim">k</code></td><td>Asks how many minutes of the idle time to keep, all of them by default. With all, the clock keeps running. With fewer, the line ends that many minutes after the idle time began, and a new clock starts now.</td></tr>
+<tr><td><code class="verbatim">K</code></td><td>Asks the same, then ends the line after the minutes kept and leaves you clocked out.</td></tr>
+<tr><td><code class="verbatim">t</code></td><td>Like <code class="verbatim">k</code>, but asks for the date and time you got distracted; the line ends then.</td></tr>
+<tr><td><code class="verbatim">T</code></td><td>Like <code class="verbatim">t</code>, then leaves you clocked out.</td></tr>
+<tr><td><code class="verbatim">g</code></td><td>Asks how many minutes ago you got back, all of the idle time by default. The line ends when the idle time began, and a new clock starts that many minutes ago.</td></tr>
+<tr><td><code class="verbatim">G</code></td><td>Like <code class="verbatim">g</code>, but leaves you clocked out: the line ends when the idle time began.</td></tr>
+<tr><td><code class="verbatim">s</code></td><td>Subtracts the idle time: the line ends when the idle time began, and a new clock starts now.</td></tr>
+<tr><td><code class="verbatim">S</code></td><td>Subtracts the idle time and leaves you clocked out.</td></tr>
+<tr><td><code class="verbatim">C</code></td><td>Removes the line, as though you never clocked in.</td></tr>
+<tr><td><code class="verbatim">i</code>, <code class="verbatim">q</code>, <code class="verbatim">Esc</code></td><td>Leaves the line as it is, keeping all the idle time.</td></tr>
+</tbody>
+</table>
+<ul>
+<li><code class="verbatim">k</code>, <code class="verbatim">K</code>, <code class="verbatim">g</code> and <code class="verbatim">G</code> ask for minutes with the default in the question, as <code class="verbatim">Keep how many minutes (default 95):</code>; Return with an empty field takes the default.</li>
+<li><code class="verbatim">t</code> and <code class="verbatim">T</code> ask <code class="verbatim">Date+time:</code> with Org's date syntax, as <code class="verbatim">14:00</code> or <code class="verbatim">-1h</code>.</li>
+<li>If the clock ran less than 45 seconds before the idle time began, <code class="verbatim">s</code> removes the line and starts a new clock now, and <code class="verbatim">S</code> removes it. For an open clock all its time is idle time, so <code class="verbatim">s</code> and <code class="verbatim">S</code> remove its line.</li>
+<li>Any other key asks again.</li>
+</ul>
+<p>While clocking in, an answer never restarts the clock it resolves: where a key would start a new clock or keep one running, the line ends instead, and the clock you asked for starts. Resolving an open clock that isn't running with <code class="verbatim">k</code> and all the minutes, outside a clock-in, makes it the running clock.</p>
+<p>When <code class="verbatim">K</code>, <code class="verbatim">T</code> or <code class="verbatim">S</code> ends a clock outside a clock-in, the next clock-in, from the agenda or a capture template too, asks:</p>
+<pre>You stopped another clock 12 mins ago; start this one from then? (y or n)</pre>
+<p><code class="verbatim">y</code> starts the new clock when the old one ended.</p>
+<h3 id="idle-time">Idle time</h3>
+<p>On the Mac, set <code class="verbatim">org-clock-idle-time</code> to a number of minutes, or turn on Settings ▸ Agenda ▸ "Ask what to do with idle time while clocked in", to be asked about time away from the Mac. The default, <code class="verbatim">0</code>, never asks, as <code class="verbatim">nil</code> does in Emacs.</p>
+<p>While a clock runs, orgstar checks every minute how long the Mac has had no keyboard or mouse input, in any app. Past the limit, it requests your attention, which bounces its Dock icon while another app is active, and asks in the echo area:</p>
+<pre>Clocked in &amp; idle for 17.3 mins [jkKtTgGSscCiq]?</pre>
+<p>The keys are those in the table above, with the idle time starting when input stopped. The iOS app has no idle detection.</p>
+<h3 id="editing-clock-lines">Editing clock lines</h3>
+<p>You can edit clock lines by hand. <code class="verbatim">S-&lt;up&gt;</code>, <code class="verbatim">S-&lt;down&gt;</code>, <code class="verbatim">S-&lt;left&gt;</code> and <code class="verbatim">S-&lt;right&gt;</code> change their timestamps as anywhere else, and then write the duration after <code>=&gt;</code> again, as <code class="verbatim">H:MM</code>. After typing changes yourself, press <code class="verbatim">C-c C-c</code> (or <code class="verbatim">C-c C-y</code>) on the line: orgstar fixes both day names and writes the duration again (<code class="verbatim">org-clock-update-time-maybe</code>).</p>
+<p><code class="verbatim">C-c .</code> on a clock line's range replaces one of its timestamps, as in any range of days (see "Inserting timestamps").</p>
+<p>A line of the form <code>CLOCK: =&gt; 1:15</code>, with only a duration, counts towards clock tables.</p>
+<h2 id="clock-summaries">Clock summaries</h2>
+<h3 id="the-inspector">The inspector</h3>
+<p>View ▸ Show or Hide Columns and Clock opens the inspector beside the editor. Its Clock tab lists the clocked time per heading in the open file for Today, This Week (weeks start on Monday) or All, with a total. Clicking a heading moves to it. Only finished clocks count.</p>
+<h3 id="the-clock-report-window">The clock report window</h3>
+<p>Clock Report (<code class="verbatim">SPC m c R</code> and <code class="verbatim">SPC z t</code> in Doom, the command palette, or the clock menus) opens a window that totals time across files. Choose files on the left; files with clock lines are selected when the window opens. Turn on From to limit the report to a range of dates. The report is an Org table of time per date and heading, with a total after each ISO week:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+title:</span><span class="string unquoted org"> Time Report</span>
+
+<span class="markup other table org">| Date         | Code                                          | Hours |</span>
+<span class="markup other table org">|--------------+-----------------------------------------------+-------|</span>
+<span class="markup other table org">| 2026-10-05   | Write the report                              |  2:15 |</span>
+<span class="markup other table org">| 2026-10-06   | Write the report                              |  1:30 |</span>
+<span class="markup other table org">|--------------+-----------------------------------------------+-------|</span>
+<span class="markup other table org">| 2026-W41     | WEEK TOTAL                                    |  3:45 |</span></span></code></pre>
+<p>Copy puts it on the clipboard; Save writes it to a file.</p>
+<h2 id="clock-tables">Clock tables</h2>
+<p>A clock table is a dynamic block that orgstar fills with a summary of clocked time (<code class="verbatim">org-clocktable-write-default</code>).</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Insert or Update Clock Table</td><td><code class="verbatim">org-clock-report</code></td><td><code class="verbatim">C-c C-x C-r</code></td></tr>
+<tr><td>Update Dynamic Block</td><td><code class="verbatim">org-update-dblock</code></td><td><code class="verbatim">C-c C-x C-u</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">C-c C-c</code> on the <code class="verbatim">#+BEGIN:</code> line also updates the block; in the Mac preset, <code class="verbatim">⌃⌘X</code> does.</p>
+<p>Insert or Update Clock Table updates the clock table at the caret. Elsewhere it inserts a new one, with <code class="verbatim">:scope subtree</code> inside an entry or <code class="verbatim">:scope file</code> before the first heading, and fills it:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+BEGIN:</span><span class="string unquoted org"> clocktable :scope file :maxlevel 2 :block thisweek</span>
+<span class="keyword other keyword org">#+CAPTION:</span><span class="string unquoted org"> Clock summary at [2026-10-07 Wed 17:00], for week 2026-W41.</span>
+<span class="markup other table org">| Headline         | Time   |      |</span>
+<span class="markup other table org">|------------------+--------+------|</span>
+<span class="markup other table org">| *Total time*     | *5:15* |      |</span>
+<span class="markup other table org">|------------------+--------+------|</span>
+<span class="markup other table org">| Project Alpha    | 5:15   |      |</span>
+<span class="markup other table org">| \_  Design       |        | 3:00 |</span>
+<span class="markup other table org">| \_  Write code   |        | 2:15 |</span>
+<span class="keyword other keyword org">#+END:</span></span></code></pre>
+<p>Times are written as <code class="verbatim">H:MM</code>, with a day count such as <code class="verbatim">2d</code> before them for a day or more. A heading's time includes its subtree's. Only finished clock lines and <code>CLOCK: =&gt; H:MM</code> lines count; a running clock does not. A <code class="verbatim">COMMENT</code> prefix is left out of headlines.</p>
+<h3 id="parameters">Parameters</h3>
+<table>
+<thead>
+<tr><th>Parameter</th><th>Values</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:scope</code></td><td><code class="verbatim">file</code> (or <code class="verbatim">nil</code>), <code class="verbatim">subtree</code>, <code class="verbatim">tree</code>, <code class="verbatim">treeN</code>, <code class="verbatim">agenda</code>, <code class="verbatim">agenda-with-archives</code>, <code class="verbatim">file-with-archives</code>, or a list of files such as <code class="verbatim">("work.org" "~/notes/")</code></td><td><code class="verbatim">file</code></td></tr>
+<tr><td><code class="verbatim">:maxlevel</code></td><td>Deepest heading level listed</td><td><code class="verbatim">2</code></td></tr>
+<tr><td><code class="verbatim">:block</code></td><td>A time block (see below)</td><td>none</td></tr>
+<tr><td><code class="verbatim">:tstart</code>, <code class="verbatim">:tend</code></td><td>Start and end, such as <code class="verbatim">"&lt;2026-09-01&gt;"</code>, <code class="verbatim">"&lt;today&gt;"</code>, <code class="verbatim">"&lt;-1w&gt;"</code></td><td>none</td></tr>
+<tr><td><code class="verbatim">:wstart</code></td><td>First day of the week for <code class="verbatim">:block</code> weeks, <code class="verbatim">1</code> is Monday</td><td><code class="verbatim">1</code></td></tr>
+<tr><td><code class="verbatim">:mstart</code></td><td>First day of the month for <code class="verbatim">:block</code> months</td><td><code class="verbatim">1</code></td></tr>
+<tr><td><code class="verbatim">:link</code></td><td><code class="verbatim">t</code>: headlines link to their headings</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:narrow</code></td><td><code class="verbatim">N</code> adds a <code class="verbatim">&lt;N&gt;</code> width cookie; <code class="verbatim">N!</code> cuts headlines to N characters</td><td><code class="verbatim">40!</code></td></tr>
+<tr><td><code class="verbatim">:indent</code></td><td><code class="verbatim">t</code>: indent sublevels with <code class="verbatim">\_</code></td><td><code class="verbatim">t</code></td></tr>
+<tr><td><code class="verbatim">:compact</code></td><td><code class="verbatim">t</code>: one time column, indented, cut to 40 characters</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:emphasize</code></td><td><code class="verbatim">t</code>: level 1 bold, level 2 italic</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:lang</code></td><td>The language of the caption and column titles: <code class="verbatim">en</code>, <code class="verbatim">de</code>, <code class="verbatim">es</code>, <code class="verbatim">fr</code>, <code class="verbatim">nl</code>, <code class="verbatim">nn</code>, <code class="verbatim">pl</code>, <code class="verbatim">pt-BR</code> or <code class="verbatim">sk</code> (<code class="verbatim">org-clock-clocktable-language-setup</code>); others are English</td><td><code class="verbatim">org-export-default-language</code></td></tr>
+<tr><td><code class="verbatim">:level</code></td><td><code class="verbatim">t</code>: a column with the level</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:tags</code></td><td><code class="verbatim">t</code>: a column with the tags, inherited ones first</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:properties</code></td><td>A list of property names, such as <code class="verbatim">("Effort")</code>, one column each</td><td>none</td></tr>
+<tr><td><code class="verbatim">:tcolumns</code></td><td>Number of time columns</td><td>up to <code class="verbatim">:maxlevel</code></td></tr>
+<tr><td><code class="verbatim">:formula</code></td><td><code class="verbatim">%</code> adds a percentage column; a string becomes the table's <code class="verbatim">#+TBLFM</code></td><td>none</td></tr>
+<tr><td><code class="verbatim">:match</code></td><td>A tag and property match, as for the agenda; only matching headings' own time counts</td><td>none</td></tr>
+<tr><td><code class="verbatim">:step</code></td><td><code class="verbatim">day</code>, <code class="verbatim">week</code>, <code class="verbatim">semimonth</code>, <code class="verbatim">month</code>, <code class="verbatim">quarter</code> or <code class="verbatim">year</code>: a table per step of <code class="verbatim">:block</code> or <code class="verbatim">:tstart</code> to <code class="verbatim">:tend</code></td><td>none</td></tr>
+<tr><td><code class="verbatim">:stepskip0</code></td><td><code class="verbatim">t</code>: leave out steps without time</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:fileskip0</code></td><td><code class="verbatim">t</code>: leave out files without time</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:hidefiles</code></td><td><code class="verbatim">t</code>: no File column over several files</td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:filetitle</code></td><td><code class="verbatim">t</code>: name files by their <code class="verbatim">#+TITLE</code></td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">:header</code></td><td>Text written in place of the <code class="verbatim">#+CAPTION</code> line</td><td>none</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">:scope tree</code> covers the top-level tree around the block; <code class="verbatim">tree2</code> the tree from its level-2 ancestor, and so on. <code class="verbatim">:block</code> takes precedence over <code class="verbatim">:tstart</code> and <code class="verbatim">:tend</code>. Clocks that cross the start or end of the range count only the part inside it.</p>
+<p><code class="verbatim">:block</code> values:</p>
+<table>
+<thead>
+<tr><th>Value</th><th>Range</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">today</code>, <code class="verbatim">yesterday</code>, <code class="verbatim">today-N</code></td><td>One day</td></tr>
+<tr><td><code class="verbatim">thisweek</code>, <code class="verbatim">lastweek</code>, <code class="verbatim">thisweek-N</code></td><td>One week, from <code class="verbatim">:wstart</code></td></tr>
+<tr><td><code class="verbatim">thismonth</code>, <code class="verbatim">lastmonth</code>, <code class="verbatim">thismonth-N</code></td><td>One month, from <code class="verbatim">:mstart</code></td></tr>
+<tr><td><code class="verbatim">thisyear</code>, <code class="verbatim">lastyear</code>, <code class="verbatim">thisyear-N</code></td><td>One year</td></tr>
+<tr><td><code class="verbatim">2026</code>, <code class="verbatim">2026-10</code>, <code class="verbatim">2026-W41</code>, <code class="verbatim">2026-10-07</code></td><td>That year, month, ISO week or day</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">week</code>, <code class="verbatim">month</code> and <code class="verbatim">year</code> are the same as <code class="verbatim">thisweek</code>, <code class="verbatim">thismonth</code> and <code class="verbatim">thisyear</code>, and a <code class="verbatim">+N</code> suffix moves forward.</p>
+<p>A <code class="verbatim">#+TBLFM</code> line already under the table is kept when the table is updated, unless <code class="verbatim">:formula</code> gives one.</p>
+<h3 id="other-files">Other files</h3>
+<p><code class="verbatim">:scope agenda</code> sums the agenda files (see <a href="07-agenda.html">The agenda</a>), and <code class="verbatim">agenda-with-archives</code> adds each one's archive files: the one its <code class="verbatim">#+ARCHIVE:</code> or <code class="verbatim">org-archive-location</code> names, and those its <code class="verbatim">ARCHIVE</code> properties name, where they exist. <code class="verbatim">file-with-archives</code> is this file with its archives, summed as one file. A list names files, relative to this file's folder; a folder in the list gives its <code class="verbatim">.org</code> files, which Org doesn't do. Over several files the table gets a File column and a row with each file's total before its headings:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup other table org">| File     | Headline         | Time   |      |</span>
+<span class="markup other table org">|----------+------------------+--------+------|</span>
+<span class="markup other table org">|          | ALL *Total time* | *3:30* |      |</span>
+<span class="markup other table org">|----------+------------------+--------+------|</span>
+<span class="markup other table org">| work.org | *File time*      | *1:30* |      |</span>
+<span class="markup other table org">|          | Project Alpha    | 1:30   |      |</span>
+<span class="markup other table org">|          | \_  Design       |        | 0:30 |</span></span></code></pre>
+<p>Other files are read from disk, so unsaved edits in another open file don't count; this file's buffer does. With <code class="verbatim">:link t</code>, headlines link to <code class="verbatim">file:PATH::*Heading</code>.</p>
+<h3 id="steps">Steps</h3>
+<p><code class="verbatim">:step</code> writes a table for each day, week (from <code class="verbatim">:wstart</code>), half month, month (from <code class="verbatim">:mstart</code>), quarter or year of the range, each after a line such as <code class="verbatim">Daily report: [2026-10-05 Mon]</code> or <code class="verbatim">Weekly report starting on: [2026-10-05 Mon]</code>, without captions. It needs <code class="verbatim">:block</code>, or both <code class="verbatim">:tstart</code> and <code class="verbatim">:tend</code>.</p>
+<p><code class="verbatim">:match</code> takes a match such as <code class="verbatim">"work"</code>, <code class="verbatim">"-home"</code> or <code>"TODO=\"DONE\""</code>. Headings that don't match add none of their own time, but the headings above a matching one are still listed with its time.</p>
+<p>Not supported: <code class="verbatim">:formatter</code>, which is ignored along with other unknown parameters, and scopes given as functions. Labels are in English only.</p>
+<h2 id="habits">Habits</h2>
+<p>A habit is a repeating task whose history the agenda shows as a consistency graph (<code class="verbatim">org-habit</code>). Define one with the <code class="verbatim">STYLE</code> property and a <code class="verbatim">SCHEDULED</code> date with a repeater:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Go for a run
+</span>SCHEDULED: <span class="constant other timestamp org">&lt;2026-10-07 Wed .+2d/4d&gt;</span>
+:PROPERTIES:
+:STYLE:    habit
+:END:
+:LOGBOOK:
+<span class="punctuation definition list org">- </span>State &quot;DONE&quot;       from &quot;TODO&quot;       <span class="constant other timestamp org">[2026-10-05 Mon 07:30]</span>
+<span class="punctuation definition list org">- </span>State &quot;DONE&quot;       from &quot;TODO&quot;       <span class="constant other timestamp org">[2026-10-03 Sat 07:10]</span>
+:END:</span></code></pre>
+<ul>
+<li>The repeater sets the interval you aim for. Use <code class="verbatim">.+</code> for most habits, so the next date counts from when you last did it.</li>
+<li>The optional <code class="verbatim">/4d</code> sets the longest acceptable interval. It must be longer than the repeater.</li>
+<li>The repeater's unit must be <code class="verbatim">d</code>, <code class="verbatim">w</code>, <code class="verbatim">m</code> or <code class="verbatim">y</code>. A month counts as 30.4 days and a year as 365.25.</li>
+<li>The history comes from the entry's state notes for done keywords and its <code class="verbatim">CLOSING NOTE</code> lines, up to 28 of them. Those are written when the task repeats, as long as <code class="verbatim">org-log-repeat</code> is on (the default), or when <code class="verbatim">org-log-done</code> is <code class="verbatim">note</code>.</li>
+</ul>
+<p>How habits appear in the agenda, with the graph covering 21 days back and 7 ahead, is described in <a href="07-agenda.html">The agenda</a>.</p>
+<h2 id="reminders">Reminders</h2>
+<p>orgstar can post a macOS notification before entries that have a time of day, as Emacs's <code class="verbatim">appt</code> does with <code class="verbatim">org-agenda-to-appt</code>.</p>
+<ul>
+<li>It covers the agenda's files and the next 7 days: scheduled items, deadlines, plain active timestamps and date ranges with a time, that are not done.</li>
+<li>Each reminder comes the lead time before the entry's time: 12 minutes by default (<code class="verbatim">appt-message-warning-time</code>). An <code class="verbatim">APPT_WARNTIME</code> property on the entry, in minutes, overrides it.</li>
+<li>If the warning time has already passed when orgstar sets a reminder but the entry has not started, the notification comes at once.</li>
+<li>At most 64 reminders are pending at a time, the earliest first.</li>
+<li>The notification shows the entry's text, its time, and its category. Clicking it opens the entry. Notifications also show while orgstar is the active app.</li>
+</ul>
+<p>orgstar updates the reminders a couple of seconds after you stop editing, when files change, and every hour. The agenda window shows how far ahead reminders are set. Reminders already set still arrive after you quit orgstar; changes to your files are taken into account the next time it runs.</p>
+<p>Turn reminders on or off, and set the lead time from 0 to 120 minutes, in Settings ▸ Agenda; in <code class="verbatim">config.toml</code> the keys are <code class="verbatim">reminders</code> under <code class="verbatim">[orgstar]</code> (default <code class="verbatim">true</code>) and <code class="verbatim">appt-message-warning-time</code>. The first time, macOS asks whether orgstar may post notifications; if you decline, the agenda says so, and you can change it in System Settings ▸ Notifications. The iOS app's reminders are described in <a href="14-ios.html">iOS</a>.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

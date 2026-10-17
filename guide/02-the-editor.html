@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The editor &middot; orgstar</title>
+<meta name="description" content="How the editor displays org text, folds it, reports state in the modeline and echo area, completes, checks spelling, pairs brackets, wraps lines and…">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>The editor</h1>
+<p class="lede">The editor shows an org file as plain text with its markup styled or hidden, folds headings, drawers and blocks the way Org does, and reports position and state in a modeline and echo area below the text.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#what-the-editor-shows">What the editor shows</a>
+<ul>
+<li><a href="#markup">Markup</a></li>
+<li><a href="#styling">Styling</a></li>
+<li><a href="#adding-emphasis">Adding emphasis</a></li>
+<li><a href="#indentation-and-stars">Indentation and stars</a></li>
+<li><a href="#entities">Entities</a></li>
+<li><a href="#inline-images">Inline images</a></li>
+<li><a href="#latex-previews">LaTeX previews</a></li>
+<li><a href="#what-isn-t-rendered">What isn&#x27;t rendered</a></li>
+</ul></li>
+<li><a href="#folding">Folding</a>
+<ul>
+<li><a href="#cycling">Cycling</a></li>
+<li><a href="#folding-when-a-file-opens">Folding when a file opens</a></li>
+</ul></li>
+<li><a href="#panes-and-windows">Panes and windows</a></li>
+<li><a href="#the-modeline">The modeline</a></li>
+<li><a href="#the-echo-area">The echo area</a>
+<ul>
+<li><a href="#prompts">Prompts</a></li>
+</ul></li>
+<li><a href="#completion">Completion</a></li>
+<li><a href="#electric-pairs">Electric pairs</a></li>
+<li><a href="#spell-checking">Spell checking</a></li>
+<li><a href="#wrapping-and-filling">Wrapping and filling</a></li>
+<li><a href="#view-toggles">View toggles</a>
+<ul>
+<li><a href="#line-numbers">Line numbers</a></li>
+</ul></li>
+<li><a href="#themes">Themes</a></li>
+<li><a href="#undo">Undo</a></li>
+<li><a href="#finding-text-in-a-file">Finding text in a file</a></li>
+<li><a href="#accessibility">Accessibility</a></li>
+</ul>
+</nav>
+<h2 id="what-the-editor-shows">What the editor shows</h2>
+<p>The editor holds the file's text exactly as it is on disk. Styling, hidden markup, indentation and images are display only; none of them change the file.</p>
+<p>Org files open with the caret at the start of the file, as in Emacs. Buffers you had open when you quit reopen with the caret where you left it.</p>
+<h3 id="markup">Markup</h3>
+<p>View ▸ Show Markup (<code class="verbatim">⇧⌘M</code>; palette: Show or Hide Markup) is off by default. While it is off:</p>
+<ul>
+<li>Link brackets and targets are hidden, so <code class="verbatim">[[https://orgmode.org][Org]]</code> shows as an underlined <code class="verbatim">Org</code>, as with <code class="verbatim">org-link-descriptive</code>.</li>
+<li>Emphasis markers (the <code class="verbatim">*</code> of bold, the <code class="verbatim">=</code> of verbatim and so on) are hidden when <code class="verbatim">org-hide-emphasis-markers</code> is on, which is the default.</li>
+<li>Entities and sub- and superscripts are drawn as characters when <code class="verbatim">org-pretty-entities</code> is on, which is the default (see <em>Entities</em> below).</li>
+</ul>
+<p>The line with the caret always shows its markup, so you can edit it. Moving to another line hides it again. Turn Show Markup on to see all markup everywhere. The <code class="verbatim">config.toml</code> setting is <code class="verbatim">show-markup</code> in <code class="verbatim">[orgstar]</code>.</p>
+<p>The two Org options are in Settings ▸ Editing as "Emacs hides emphasis markers (org-hide-emphasis-markers)" and "Emacs shows entities as characters (org-pretty-entities)", and in <code class="verbatim">config.toml</code> as <code class="verbatim">org-hide-emphasis-markers</code> and <code class="verbatim">org-pretty-entities</code>. They also tell orgstar how wide your Emacs displays text, so tag alignment, table alignment and <code class="verbatim">M-q</code> produce the same file Emacs would. Set them to match your Emacs.</p>
+<h3 id="styling">Styling</h3>
+<ul>
+<li>Headings are bold and coloured by level (eight colours, as <code class="verbatim">org-level-1</code> to <code class="verbatim">org-level-8</code>). Levels 1 to 3 are larger than body text: each level is a step larger than the one below it, and level 4 and deeper are body size. The step is Settings ▸ Appearance ▸ "Headings grow by N pt a level" (1 pt by default, 0 to 8).</li>
+<li>TODO and DONE keywords are bold, in the TODO or DONE colour, or a colour you set for that keyword.</li>
+<li>Priorities, tags, timestamps, comments, keywords (<code class="verbatim">#+TITLE:</code> and the like), planning lines and drawers, block delimiters and tables each have a colour; footnotes, targets, macros and LaTeX share one.</li>
+<li>Bold, italic, underline and strike-through are drawn as such; verbatim and code get their own colour and background.</li>
+<li>Links are underlined.</li>
+<li>Blocks (<code class="verbatim">#+BEGIN_…</code> to <code class="verbatim">#+END_…</code>), dynamic blocks and fixed-width lines are drawn on a shaded band across the whole width of the editor, as Emacs extends the <code class="verbatim">org-block</code> face. Code in src blocks is highlighted for its language (see <a href="11-code-blocks.html">Code blocks</a>).</li>
+<li>A folded heading shows an ellipsis after its line.</li>
+</ul>
+<p>Colours come from the theme and follow the system's light or dark appearance. The font, size, line spacing and text width are in Settings ▸ Appearance; colours are set in <code class="verbatim">config.toml</code>. See <a href="13-configuration.html">Configuration</a>. The font should be monospaced, since tags and tables line up by columns. A body font for prose can be set beside it, as <code class="verbatim">mixed-pitch-mode</code> does in Emacs: prose and headings use it, and tables, code, dates, tags, drawers and the start of each line keep the monospaced font.</p>
+<h3 id="adding-emphasis">Adding emphasis</h3>
+<p>Emphasize… (<code class="verbatim">C-c C-x C-f</code> in the Emacs and Doom presets, <code class="verbatim">org-emphasize</code>) asks for a marker: <code class="verbatim">*</code> bold, <code class="verbatim">/</code> italic, <code class="verbatim">_</code> underline, <code class="verbatim">=</code> verbatim, <code class="verbatim">~</code> code, <code class="verbatim">+</code> strike-through, or <code class="verbatim">SPC</code> to remove emphasis. With a selection it wraps the selection in the marker, replacing one the selection already has. Without one it inserts a pair of markers with the caret between them. A space goes before or after the markers where the text next to them couldn't border emphasis, as Org adds it.</p>
+<p>The Mac preset binds <code class="verbatim">⌘B</code>, <code class="verbatim">⌘I</code> and <code class="verbatim">⌘U</code> to bold, italic and underline. Each marker is also a command of its own in the palette (Bold, Italic, Underline, Verbatim, Code, Strike-Through), for binding in <code class="verbatim">keymap.toml</code>; see <a href="03-keys.html">Keys and commands</a>. On iOS the key bar has Bold, Italic and Code.</p>
+<h3 id="indentation-and-stars">Indentation and stars</h3>
+<p>Org files display as <code class="verbatim">org-indent-mode</code> shows them, by default: each heading's body is indented to start one column past its stars, all stars but the last are hidden, and a wrapped heading title continues under the title. The indentation is display only; the file keeps its text at the left margin.</p>
+<p>Body lines that wrap continue under their own text: past leading spaces, and past a list item's bullet and checkbox, as <code class="verbatim">adaptive-wrap</code> does.</p>
+<table>
+<thead>
+<tr><th>Setting</th><th>Default</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">org-startup-indented</code></td><td>on</td><td>Indent bodies under their headings. <code class="verbatim">#+STARTUP: indent</code> or <code class="verbatim">noindent</code> overrides it per file.</td></tr>
+<tr><td><code class="verbatim">org-hide-leading-stars</code></td><td>off</td><td>Without indentation, show only a heading's last star. <code class="verbatim">#+STARTUP: hidestars</code> or <code class="verbatim">showstars</code> overrides it.</td></tr>
+</tbody>
+</table>
+<p>With both off, headings show all their stars and bodies start at the left margin. Both settings are in <code class="verbatim">config.toml</code> only, and are read when a file opens.</p>
+<h3 id="entities">Entities</h3>
+<p>When <code class="verbatim">org-pretty-entities</code> is on and Show Markup is off:</p>
+<ul>
+<li>An entity such as <code class="verbatim">\alpha</code> or <code class="verbatim">\to</code> is drawn as its character (<code class="verbatim">α</code>, <code class="verbatim">→</code>), taking one column.</li>
+<li><code class="verbatim">x_{1}</code> and <code class="verbatim">x^{2}</code> are drawn lowered and raised, without their markers. Braces are required: <code class="verbatim">x_1</code> is left as typed.</li>
+</ul>
+<p>Entities are left as typed on the caret's line, in comment lines and inside blocks. Sub- and superscripts are left as typed inside emphasis, links and keywords.</p>
+<h3 id="inline-images">Inline images</h3>
+<p>Org ▸ Show or Hide Inline Images (<code class="verbatim">C-c C-x C-v</code> in the Emacs and Doom presets), as <code class="verbatim">org-toggle-inline-images</code> does, draws images in place of their links. The echo area reports how many images it displayed.</p>
+<p>A line shows as an image when it holds nothing but a <code class="verbatim">file:</code> or <code class="verbatim">attachment:</code> link to an image file with no description:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+ATTR_ORG:</span><span class="string unquoted org"> :width 400</span>
+<span class="punctuation definition link org">[[</span><span class="markup underline link org">file:images/diagram.png</span><span class="punctuation definition link org">]</span><span class="punctuation definition link org">]</span></span></code></pre>
+<ul>
+<li>Recognised extensions: <code class="verbatim">png</code>, <code class="verbatim">jpg</code>, <code class="verbatim">jpeg</code>, <code class="verbatim">gif</code>, <code class="verbatim">svg</code>, <code class="verbatim">webp</code>, <code class="verbatim">tif</code>, <code class="verbatim">tiff</code>, <code class="verbatim">bmp</code>, <code class="verbatim">heic</code>, <code class="verbatim">avif</code>.</li>
+<li>Paths are relative to the file's folder; <code class="verbatim">~</code> is expanded. Images at http(s) links show when <code class="verbatim">org-display-remote-inline-images</code> is <code class="verbatim">download</code> or <code class="verbatim">cache</code>; see <a href="09-links.org::*Remote images">Remote images</a>.</li>
+<li><code class="verbatim">attachment:</code> links, such as <code class="verbatim">[[attachment:photo.jpg]]</code>, show the file from the entry's attachment folder, found as following the link finds it: the <code class="verbatim">DIR</code> property, else the <code class="verbatim">ID</code> folder under <code class="verbatim">org-attach-id-dir</code>. See <a href="04-outlines.html">Outlines</a> for attachments.</li>
+<li><code class="verbatim">#+ATTR_ORG: :width N</code> sets the width in points. Images are never wider than the editor.</li>
+<li>The link text is hidden while its image shows, except on the caret's line.</li>
+</ul>
+<p>To show images when a file opens, add <code class="verbatim">#+STARTUP: inlineimages</code> to the file, or set <code class="verbatim">org-startup-with-inline-images = true</code> in <code class="verbatim">config.toml</code>. <code class="verbatim">#+STARTUP: noinlineimages</code> turns it off for one file.</p>
+<h3 id="latex-previews">LaTeX previews</h3>
+<p>Show or Hide LaTeX Previews (<code class="verbatim">C-c C-x C-l</code> in the Emacs and Doom presets, and in the command palette) draws LaTeX fragments and environments as typeset math, as <code class="verbatim">org-latex-preview</code> does. The echo area reports how many fragments it previewed.</p>
+<pre><code class="language-org highlight"><span class="text org">The area is $\pi r^2$, and \(\sqrt{2}\) is irrational.
+\begin{equation}
+\int_0^1 x\,dx = \frac{1}{2}
+\end{equation}</span></code></pre>
+<ul>
+<li><code class="verbatim">$…$</code> and <code class="verbatim">\(…\)</code> are typeset as inline math, <code class="verbatim">$$…$$</code>, <code class="verbatim">\[…\]</code> and environments as display math. <code class="verbatim">equation</code>, <code class="verbatim">align</code>, <code class="verbatim">gather</code> and their starred forms are typeset as their bodies, aligned or gathered.</li>
+<li>The math is typeset by orgstar itself, with the Latin Modern Math font, in the editor's text color and size; it needs no TeX installation and works on iOS. It reads the math commands LaTeX's <code class="verbatim">amsmath</code> has for formulas, not packages a file loads with <code class="verbatim">#+LATEX_HEADER</code>. A fragment it can't read stays as text.</li>
+<li>The caret's line shows the source, so you can edit it.</li>
+<li>Fragments in source and example blocks aren't previewed.</li>
+</ul>
+<p>The command switches previews for the whole buffer; Org's <code class="verbatim">C-u</code> forms, which act on the section at point, aren't there. To preview when a file opens, add <code class="verbatim">#+STARTUP: latexpreview</code> to the file, or set <code class="verbatim">org-startup-with-latex-preview = true</code> in <code class="verbatim">config.toml</code>. <code class="verbatim">#+STARTUP: nolatexpreview</code> turns it off for one file. After switching between light and dark appearance, switch previews off and on to redraw them in the new color.</p>
+<h3 id="what-isn-t-rendered">What isn't rendered</h3>
+<p>Images in links that have a description, and images on lines with other text, show as links.</p>
+<h2 id="folding">Folding</h2>
+<p>Headings, drawers and blocks fold as in Org. Folding is display only and isn't saved in the file.</p>
+<h3 id="cycling">Cycling</h3>
+<table>
+<thead>
+<tr><th>Action</th><th>Emacs and Mac presets</th><th>Doom</th><th>Org command</th></tr>
+</thead>
+<tbody>
+<tr><td>Cycle the heading or element at the caret</td><td><code class="verbatim">TAB</code></td><td><code class="verbatim">TAB</code> in normal and visual state</td><td><code class="verbatim">org-cycle</code></td></tr>
+<tr><td>Cycle the whole file</td><td><code class="verbatim">S-TAB</code></td><td><code class="verbatim">S-TAB</code>, <code class="verbatim">z A</code> in normal state; <code class="verbatim">S-TAB</code> in visual state</td><td><code class="verbatim">org-global-cycle</code></td></tr>
+<tr><td>Open or fold the heading</td><td></td><td><code class="verbatim">z a</code> in normal state</td><td><code class="verbatim">+org/toggle-fold</code></td></tr>
+<tr><td>Open the heading one level</td><td></td><td><code class="verbatim">z o</code> in normal state</td><td><code class="verbatim">+org/open-fold</code></td></tr>
+<tr><td>Fold the subtree the caret is in</td><td></td><td><code class="verbatim">z c</code> in normal state</td><td><code class="verbatim">outline-hide-subtree</code></td></tr>
+</tbody>
+</table>
+<p>The titles in the palette and the Org menu are Cycle Visibility, Cycle Global Visibility, Toggle Fold, Open Fold and Close Fold.</p>
+<p>Toggle Fold and Open Fold act on a heading line: a folded heading opens one level, showing its body and its child headings, each folded. On an open heading, Toggle Fold folds it and Open Fold does nothing. Close Fold folds the subtree of the heading the caret is under, from anywhere in it.</p>
+<p><code class="verbatim">TAB</code> on a heading line cycles that heading: folded, then its children, then the whole subtree, then folded again. A heading without children goes straight from folded to open. <code class="verbatim">TAB</code> on the first or last line of a drawer or block folds or opens it; drawer and block folds are kept apart from heading folds, so cycling a heading leaves them as they are. Elsewhere <code class="verbatim">TAB</code> does what it otherwise would: in a table it moves to the next field, and in plain text it inserts a tab.</p>
+<p>In Doom's insert state, <code class="verbatim">TAB</code> and <code class="verbatim">S-TAB</code> on a heading demote and promote it, and on a list item indent and outdent it, as Doom's <code class="verbatim">+org-indent-maybe-h</code> does. Use normal state to fold.</p>
+<p><code class="verbatim">S-TAB</code> cycles the whole file through three states, starting at the first:</p>
+<ol>
+<li>Overview: top-level headings only.</li>
+<li>Contents: every heading, no bodies.</li>
+<li>Show all: everything, with blocks opened. Drawers stay folded.</li>
+</ol>
+<p>Overview and contents also fold drawers before the first heading.</p>
+<p>Clicking a heading's stars cycles that heading, as <code class="verbatim">TAB</code> does on it.</p>
+<p>The caret can't rest in folded text: moving forward into a fold jumps past it, and moving back into one goes to the end of the heading line. Going to a location from the outline pane, search, a link or the agenda opens whatever folds hide it.</p>
+<h3 id="folding-when-a-file-opens">Folding when a file opens</h3>
+<p>With no <code class="verbatim">#+STARTUP</code> visibility option, a file opens with every heading shown. Drawers start folded (<code class="verbatim">org-cycle-hide-drawer-startup</code>, on by default); blocks start open (<code class="verbatim">org-cycle-hide-block-startup</code>, off by default). Both settings are in <code class="verbatim">config.toml</code>.</p>
+<p><code class="verbatim">#+STARTUP</code> options a file can set:</p>
+<table>
+<thead>
+<tr><th>Option</th><th>Effect when the file opens</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">overview</code>, <code class="verbatim">fold</code></td><td>Top-level headings only</td></tr>
+<tr><td><code class="verbatim">content</code></td><td>Every heading, no bodies</td></tr>
+<tr><td><code class="verbatim">showall</code>, <code class="verbatim">nofold</code></td><td>Everything</td></tr>
+<tr><td><code class="verbatim">show2levels</code>, <code class="verbatim">show3levels</code>, …</td><td>Headings down to that level, no bodies</td></tr>
+<tr><td><code class="verbatim">showeverything</code></td><td>Everything, including drawers and blocks; <code class="verbatim">VISIBILITY</code> properties are ignored</td></tr>
+<tr><td><code class="verbatim">hidedrawers</code>, <code class="verbatim">nohidedrawers</code></td><td>Fold or open drawers</td></tr>
+<tr><td><code class="verbatim">hideblocks</code>, <code class="verbatim">nohideblocks</code></td><td>Fold or open blocks</td></tr>
+<tr><td><code class="verbatim">indent</code>, <code class="verbatim">noindent</code></td><td>Indent bodies under headings, or not</td></tr>
+<tr><td><code class="verbatim">hidestars</code>, <code class="verbatim">showstars</code></td><td>Hide all stars but the last, or not</td></tr>
+<tr><td><code class="verbatim">inlineimages</code>, <code class="verbatim">noinlineimages</code></td><td>Show image links as images, or not</td></tr>
+<tr><td><code class="verbatim">latexpreview</code>, <code class="verbatim">nolatexpreview</code></td><td>Show LaTeX fragments as typeset math, or not</td></tr>
+<tr><td><code class="verbatim">align</code>, <code class="verbatim">noalign</code></td><td>Align every table, or not (<code class="verbatim">org-startup-align-all-tables</code>)</td></tr>
+<tr><td><code class="verbatim">shrink</code></td><td>Narrow table columns that have width cookies</td></tr>
+</tbody>
+</table>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+STARTUP:</span><span class="string unquoted org"> content hideblocks</span></span></code></pre>
+<p>When the file sets a visibility (<code class="verbatim">overview</code>, <code class="verbatim">content</code>, <code class="verbatim">showall</code>, <code class="verbatim">showNlevels</code> and the like, but not <code class="verbatim">showeverything</code>), orgstar then applies each heading's <code class="verbatim">VISIBILITY</code> property and folds subtrees tagged <code class="verbatim">ARCHIVE</code>, as <code class="verbatim">org-cycle-set-visibility-according-to-property</code> and <code class="verbatim">org-cycle-hide-archived-subtrees</code> do. <code class="verbatim">VISIBILITY</code> takes <code class="verbatim">folded</code>, <code class="verbatim">children</code>, <code class="verbatim">content</code> or <code class="verbatim">all</code>:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Reference
+</span>:PROPERTIES:
+:VISIBILITY: folded
+:END:</span></code></pre>
+<p><code class="verbatim">#+STARTUP</code> options are read from the file and from any <code class="verbatim">#+SETUPFILE</code> it names, and take effect when the file opens. To apply changed options to an open file, close its buffer and open it again.</p>
+<p>Narrowing to a subtree or block, and sparse trees, also hide text; see <a href="04-outlines.html">Outlines</a>.</p>
+<h2 id="panes-and-windows">Panes and windows</h2>
+<p>A window can show more than one buffer at once, or one buffer in more than one place, as Emacs windows do. Split Pane Below (<code class="verbatim">C-x 2</code>) and Split Pane Right (<code class="verbatim">C-x 3</code>) divide the pane with the focus in two; the new pane shows the same buffer, and the focus stays where it was. Drag the line between two panes to resize them. Close Pane (<code class="verbatim">C-x 0</code>) removes the focused pane, Close Other Panes (<code class="verbatim">C-x 1</code>) leaves only it, and Next Pane (<code class="verbatim">C-x o</code>) moves the focus through the panes in reading order. With several panes, a bar along the top marks the one with the focus. The sidebar, the outline and the title follow the focused pane. In the Doom preset these are <code class="verbatim">SPC w s</code>, <code class="verbatim">SPC w v</code>, <code class="verbatim">SPC w d</code>, <code class="verbatim">SPC w o</code> and <code class="verbatim">SPC w w</code>, and <code class="verbatim">C-w</code> with the same letters in normal state; the Mac preset and the View menu use <code class="verbatim">⌃⌘2</code>, <code class="verbatim">⌃⌘3</code>, <code class="verbatim">⌃⌘0</code>, <code class="verbatim">⌃⌘1</code> and <code class="verbatim">⌥⌘`</code>.</p>
+<p>Each pane has its own caret, selection and scroll position, and its own tabs (see <a href="01-files-and-folders.html">Files and folders</a>): the buffers it has shown. Everything else about a buffer is the buffer's, as in Emacs: its text and undo, its folds, narrowing and sparse tree, its evil state and mark, shrunk table columns and inline images. Two panes on one buffer therefore show the same folds, and a fold made in one shows in the other. Closing a pane leaves its buffers open; closing a buffer (<code class="verbatim">C-x k</code>) takes it out of every pane, which falls back to the buffer it showed before.</p>
+<p>New Window (<code class="verbatim">C-x 5 2</code>, <code class="verbatim">⌥⌘N</code>, File ▸ New Window) opens a window of panes alone, without the sidebar or search, on the buffer the focused pane shows, as a second Emacs frame. Commands act on the pane with the focus whichever window it is in; Quick Open, the palette and search open from the main window and show their result in the focused pane. Closing the window closes its panes and leaves the buffers open.</p>
+<h2 id="the-modeline">The modeline</h2>
+<p>The line under the editor shows, from the left:</p>
+<table>
+<thead>
+<tr><th>Item</th><th>Shown when</th><th>What it shows</th></tr>
+</thead>
+<tbody>
+<tr><td>Evil state</td><td>Doom preset</td><td><code class="verbatim">NORMAL</code>, <code class="verbatim">INSERT</code>, <code class="verbatim">VISUAL</code>, <code class="verbatim">V-LINE</code> or <code class="verbatim">V-BLOCK</code>, on a coloured tag</td></tr>
+<tr><td>Unsaved dot</td><td>the buffer has unsaved edits</td><td>a small dot</td></tr>
+<tr><td>Outline path</td><td>the caret is under a heading</td><td>the headings containing the caret, outermost first, as <code class="verbatim">Projects › House › Roof</code></td></tr>
+<tr><td>Running clock</td><td>a clock is running</td><td>elapsed time and the clocked heading; click for Clock Out, Cancel Clock and Go to Clocked Entry</td></tr>
+<tr><td>Selection counts</td><td>text is selected</td><td>lines, words and characters in the selection, as <code class="verbatim">count-words-region</code></td></tr>
+<tr><td>Line and column</td><td>always</td><td><code class="verbatim">LINE:COLUMN</code> of the caret (the end of the selection)</td></tr>
+<tr><td>Word count</td><td>always</td><td>words in the whole file, as <code class="verbatim">count-words</code>; click for the characters and reading time of the file and the selection</td></tr>
+<tr><td>Encoding notes</td><td>the file differs from UTF-8 with LF</td><td><code class="verbatim">Read-only</code>, <code class="verbatim">BOM</code> and <code class="verbatim">CRLF</code>, in orange</td></tr>
+<tr><td>Git branch</td><td>the file is in a Git repository</td><td>the checked-out branch, or the first 7 characters of the commit when detached</td></tr>
+</tbody>
+</table>
+<p>Lines count from 1. Columns count from 0, as Emacs's <code class="verbatim">column-number-mode</code> does: a tab advances to the next multiple of 8, and wide characters such as CJK count as two columns. Hover over an item for a description.</p>
+<p>The word count follows edits after a pause. Reading time is at 230 words a minute, rounded up. The Git branch is read from the repository's <code class="verbatim">HEAD</code> file without running <code class="verbatim">git</code>, and checked again every 5 seconds; worktrees and submodules are followed.</p>
+<p>The running clock is covered in <a href="06-dates-and-clocking.html">Dates and clocking</a>; the evil states in <a href="03-keys.html">Keys and commands</a>.</p>
+<h2 id="the-echo-area">The echo area</h2>
+<p>The line under the modeline is the echo area, as Emacs's minibuffer. It shows:</p>
+<ul>
+<li><strong>Messages</strong> from commands, such as <code class="verbatim">Stored: …</code> or <code class="verbatim">Not an org file</code>. A message stays for 4 seconds.</li>
+<li><strong>A pending key prefix</strong>. After <code class="verbatim">C-c</code> it shows <code class="verbatim">C-c-</code>. If you pause for about 0.6 seconds, a grid of the keys that can follow appears, each with the command it would run at the caret, or <code class="verbatim">+prefix</code> for a further prefix, as <code class="verbatim">which-key</code> shows them. <code class="verbatim">C-g</code> cancels the prefix and shows <code class="verbatim">Quit</code>. A sequence that isn't bound shows, for example, <code class="verbatim">C-c z is undefined</code>, and does nothing; in the Doom preset this includes sequences after <code class="verbatim">SPC</code>.</li>
+<li><strong>Prompts</strong>, when a command asks a question.</li>
+</ul>
+<h3 id="prompts">Prompts</h3>
+<p>A prompt shows its question and a text field, which takes the keyboard.</p>
+<ul>
+<li>Type an answer and press <code class="verbatim">Return</code>.</li>
+<li>When the prompt has choices (buffers, refile targets, tags), up to 12 of them list above the field, filtered as you type: characters match in order, and the best match is listed first. <code class="verbatim">Tab</code> completes the field to the first match. <code class="verbatim">Return</code> accepts the first match when the prompt requires one of its choices, and the typed text otherwise. Clicking a choice accepts it.</li>
+<li>Prompts that take several values, such as tags separated by colons, complete only the part after the last separator.</li>
+<li><code class="verbatim">Escape</code> cancels the prompt; the command reports <code class="verbatim">Quit</code>.</li>
+</ul>
+<p>Date prompts also show a date picker, and <code class="verbatim">S-&lt;left&gt;</code>, <code class="verbatim">S-&lt;right&gt;</code>, <code class="verbatim">S-&lt;up&gt;</code> and <code class="verbatim">S-&lt;down&gt;</code> move the date by a day or a week; see <a href="06-dates-and-clocking.html">Dates and clocking</a>. TODO keywords and tags with fast-selection keys show a key menu instead of a text field; see <a href="05-todos-and-tags.html">TODOs and tags</a>.</p>
+<p>When a prompt closes, the keyboard goes back to the editor.</p>
+<h2 id="completion">Completion</h2>
+<p>Complete at Point (<code class="verbatim">completion-at-point</code>) completes the word before the caret from what Org knows at that position.</p>
+<table>
+<thead>
+<tr><th>Preset</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Emacs</td><td><code class="verbatim">C-M-i</code></td></tr>
+<tr><td>Doom</td><td><code class="verbatim">C-SPC</code> or <code class="verbatim">C-@</code> in insert state; the list also opens by itself after you type two characters and pause for 0.4 seconds, as Doom's corfu does</td></tr>
+<tr><td>Mac</td><td>no key; run Complete at Point from the palette, or bind one in <code class="verbatim">keymap.toml</code></td></tr>
+</tbody>
+</table>
+<p>With one candidate, it is inserted. With several, a list opens under the caret, showing up to 16 rows. Nothing is selected until you pick a row.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>In the list</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">C-n</code>, <code class="verbatim">&lt;down&gt;</code>, <code class="verbatim">C-j</code></td><td>Next candidate; past the last one the selection goes back to what you typed</td></tr>
+<tr><td><code class="verbatim">C-p</code>, <code class="verbatim">&lt;up&gt;</code>, <code class="verbatim">C-k</code></td><td>Previous candidate</td></tr>
+<tr><td><code class="verbatim">TAB</code></td><td>Insert the selected candidate; with none selected, insert the part all candidates share</td></tr>
+<tr><td><code class="verbatim">RET</code></td><td>Insert the selected candidate; with none selected, close the list and insert a newline</td></tr>
+<tr><td><code class="verbatim">ESC</code></td><td>Close the list; the key then does what it otherwise would</td></tr>
+<tr><td><code class="verbatim">C-g</code></td><td>Close the list</td></tr>
+</tbody>
+</table>
+<p>The list follows what you type and closes when nothing matches. Candidates are those that start with what you typed.</p>
+<p>What is completed, by position:</p>
+<table>
+<thead>
+<tr><th>Where</th><th>Candidates</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">#+</code> at the start of a line</td><td>keyword names (<code class="verbatim">TITLE</code>, <code class="verbatim">STARTUP</code>, <code class="verbatim">OPTIONS</code>, …), in upper and lower case</td></tr>
+<tr><td>After <code class="verbatim">#+STARTUP:</code></td><td>startup options</td></tr>
+<tr><td>After <code class="verbatim">#+OPTIONS:</code></td><td>export options</td></tr>
+<tr><td>After <code class="verbatim">#+DATE:</code></td><td>today's date as a timestamp</td></tr>
+<tr><td>After <code class="verbatim">#+EXCLUDE_TAGS:</code>, <code class="verbatim">#+SELECT_TAGS:</code>, <code class="verbatim">#+LANGUAGE:</code>, <code class="verbatim">#+PRIORITIES:</code></td><td>the usual values</td></tr>
+<tr><td><code class="verbatim">&lt;</code> and a letter at the start of a line</td><td>structure templates (<code class="verbatim">&lt;s</code> for a src block and so on); see <a href="11-code-blocks.html">Code blocks</a></td></tr>
+<tr><td>After <code class="verbatim">#+BEGIN_SRC</code></td><td>languages, then header arguments</td></tr>
+<tr><td>After <code class="verbatim">#+BEGIN: clocktable</code></td><td>clock table options</td></tr>
+<tr><td>After <code class="verbatim">[[</code></td><td>link types and the file's link abbreviations</td></tr>
+<tr><td>After <code class="verbatim">[[*</code></td><td>heading titles in the file</td></tr>
+<tr><td>After <code class="verbatim">\</code></td><td>entity names</td></tr>
+<tr><td>After <code class="verbatim">:</code> at the end of a heading</td><td>tags: those in <code class="verbatim">#+TAGS</code>, or else tags used in the file and across your folders</td></tr>
+<tr><td>After the stars of an empty heading</td><td>TODO keywords</td></tr>
+<tr><td><code class="verbatim">:</code> at the start of a line in a property drawer</td><td>property names the entry doesn't have yet</td></tr>
+<tr><td><code class="verbatim">:</code> at the start of a line elsewhere</td><td>drawer names</td></tr>
+</tbody>
+</table>
+<p>Elsewhere, Complete at Point reports <code class="verbatim">No match</code>. Completion is for org files only.</p>
+<h2 id="electric-pairs">Electric pairs</h2>
+<p>Typing an opening bracket inserts its closing partner, as <code class="verbatim">electric-pair-mode</code> does. The pairs are <code class="verbatim">()</code>, <code class="verbatim">[]</code>, <code class="verbatim">{}</code>, <code class="verbatim">&lt;&gt;</code> and a pair of double quotes.</p>
+<ul>
+<li>Typing a closing character in front of the same closer moves over it instead of inserting another, skipping whitespace before it.</li>
+<li><code class="verbatim">DEL</code> between an empty pair deletes both.</li>
+<li><code class="verbatim">RET</code> between a pair opens a blank line between them.</li>
+<li>With text selected, typing an opening or closing character, or a double quote, wraps the selection.</li>
+<li>No pair is inserted where it would leave the brackets unbalanced (<code class="verbatim">electric-pair-preserve-balance</code>).</li>
+</ul>
+<p>Electric pairs are on by default and work in org files only. Set <code class="verbatim">electric-pair-mode = false</code> in <code class="verbatim">config.toml</code> to turn them off. Plain Emacs has them off; Doom pairs with smartparens.</p>
+<h2 id="spell-checking">Spell checking</h2>
+<p>Spell checking is off by default. Turn it on for the current buffer with View ▸ Check Spelling While Typing (also in the palette; <code class="verbatim">SPC t s</code> in Doom normal state); the echo area says whether it is now on or off. To have it on in every file, turn on Settings ▸ Editing ▸ Check spelling while typing, or set <code class="verbatim">spell-check = true</code> in <code class="verbatim">config.toml</code>.</p>
+<p>Misspelt words are underlined, using the macOS spelling dictionary. In org files, orgstar doesn't mark words where spell-fu skips them: code, verbatim, links, timestamps, tags, TODO keywords, priorities, list bullets, checkboxes, keywords and affiliated keywords, planning and clock lines, property drawers, the first and last lines of drawers and blocks, the whole of src, example, export and comment blocks, LaTeX, entities, macros, targets, footnote references, citations, table formulas and fixed-width lines.</p>
+<p>orgstar never corrects spelling on its own; automatic spelling correction, text replacement and smart quotes and dashes are off.</p>
+<p>On iOS, spell checking follows <code class="verbatim">spell-check</code> in the synced <code class="verbatim">config.toml</code>, and is off by default. It leaves out the same text as on the Mac: misspelt words get a dotted red underline, and selecting one, or tapping it to show the edit menu, offers guesses and Learn Spelling. The word being typed is checked once the caret leaves it.</p>
+<h2 id="wrapping-and-filling">Wrapping and filling</h2>
+<p>Long lines wrap at the edge of the editor by default. View ▸ Truncate or Wrap Long Lines (<code class="verbatim">toggle-truncate-lines</code>) switches the current buffer to long lines that run off the right edge, with a horizontal scroll bar, and back. The echo area says which is now in effect.</p>
+<table>
+<thead>
+<tr><th>Preset</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Emacs</td><td><code class="verbatim">C-x x t</code></td></tr>
+<tr><td>Doom</td><td><code class="verbatim">SPC t w</code> in normal state</td></tr>
+<tr><td>Mac</td><td>menu or palette only</td></tr>
+</tbody>
+</table>
+<p>To truncate lines in every file, turn on Settings ▸ Editing ▸ "Long lines run off the edge instead of wrapping", or set <code class="verbatim">org-startup-truncated = true</code> in <code class="verbatim">config.toml</code>. The default is to wrap, as Doom does; Emacs's own default is to truncate.</p>
+<p>Wrapping is display only. To rewrap the text of a paragraph, use Org ▸ Fill Paragraph (<code class="verbatim">org-fill-paragraph</code>), which breaks the paragraph's lines at the fill column: <code class="verbatim">M-q</code> in the Emacs preset and in every Doom state, <code class="verbatim">⌃⌘P</code> in the Mac preset. With a selection, it fills every paragraph the selection touches. In Doom's normal and visual states, <code class="verbatim">gq</code> and <code class="verbatim">gw</code> with a motion fill the paragraphs in the lines it covers (<code class="verbatim">gqq</code> and <code class="verbatim">gww</code> for the current lines); <code class="verbatim">gq</code> leaves the caret on the last line, <code class="verbatim">gw</code> where it was. Unlike Fill Paragraph, <code class="verbatim">gq</code> and <code class="verbatim">gw</code> keep extra spaces between words and at the ends of lines, as Doom does. See <a href="03-keys.html">Keys and commands</a>. The fill column is Settings ▸ Editing ▸ "M-q fills to column N" (80 by default, 40 to 200), or <code class="verbatim">fill-column</code> in <code class="verbatim">config.toml</code>.</p>
+<p><code class="verbatim">auto-fill-mode</code> breaks lines as you type: typing a space past the fill column breaks the line at the last space before the column, as often as it takes, and the new line starts with the line's fill prefix, as <code class="verbatim">org-auto-fill-function</code> has it: a list item's text lines up under the item, a comment line starts with <code class="verbatim">#</code>, and headings, tables and code aren't broken. Turn it on for every file with <code class="verbatim">auto-fill-mode = true</code> in <code class="verbatim">config.toml</code>, or for the current buffer with View ▸ Turn Auto Fill On or Off (<code class="verbatim">auto-fill-mode</code>, in the palette too); the echo area says <code class="verbatim">Auto-Fill mode enabled in current buffer</code> or <code class="verbatim">disabled</code>. Only a typed space fills, not <code class="verbatim">RET</code>.</p>
+<h2 id="view-toggles">View toggles</h2>
+<table>
+<thead>
+<tr><th>Toggle</th><th>Menu</th><th>Keys</th><th>Default</th><th><code class="verbatim">config.toml</code></th><th>Scope</th></tr>
+</thead>
+<tbody>
+<tr><td>Show Markup</td><td>View ▸ Show Markup</td><td><code class="verbatim">⇧⌘M</code></td><td>off</td><td><code class="verbatim">show-markup</code></td><td>every buffer</td></tr>
+<tr><td>Show Line Numbers</td><td>View ▸ Show Line Numbers</td><td><code class="verbatim">⇧⌘L</code></td><td>off</td><td><code class="verbatim">display-line-numbers-type</code></td><td>every buffer</td></tr>
+<tr><td>Auto fill</td><td>View ▸ Turn Auto Fill On or Off</td><td>palette</td><td>off</td><td><code class="verbatim">auto-fill-mode</code></td><td>current buffer</td></tr>
+<tr><td>Inline images</td><td>Org ▸ Show or Hide Inline Images</td><td><code class="verbatim">C-c C-x C-v</code> (Emacs, Doom)</td><td>off</td><td><code class="verbatim">org-startup-with-inline-images</code></td><td>current buffer</td></tr>
+<tr><td>LaTeX previews</td><td>palette</td><td><code class="verbatim">C-c C-x C-l</code> (Emacs, Doom)</td><td>off</td><td><code class="verbatim">org-startup-with-latex-preview</code></td><td>current buffer</td></tr>
+<tr><td>Spell checking</td><td>View ▸ Check Spelling While Typing</td><td><code class="verbatim">SPC t s</code> (Doom)</td><td>off</td><td><code class="verbatim">spell-check</code></td><td>current buffer</td></tr>
+<tr><td>Truncate long lines</td><td>View ▸ Truncate or Wrap Long Lines</td><td><code class="verbatim">C-x x t</code> (Emacs), <code class="verbatim">SPC t w</code> (Doom)</td><td>off</td><td><code class="verbatim">org-startup-truncated</code></td><td>current buffer</td></tr>
+</tbody>
+</table>
+<p>Toggles that apply to the current buffer last until it closes; the <code class="verbatim">config.toml</code> setting decides how each file starts. Changing those settings, and <code class="verbatim">org-startup-indented</code> and <code class="verbatim">org-hide-leading-stars</code>, affects files opened afterwards, not buffers already open.</p>
+<h3 id="line-numbers">Line numbers</h3>
+<p>Line numbers show in a margin left of the text, as <code class="verbatim">display-line-numbers-mode</code> shows them: one number per line of the file, so wrapped lines are numbered once and folded lines are skipped. The caret's line number is brighter. Line numbers are off by default, as in Emacs.</p>
+<p>View ▸ Line Numbers chooses how they count, as <code class="verbatim">display-line-numbers-type</code> does in <code class="verbatim">config.toml</code>:</p>
+<table>
+<thead>
+<tr><th>View ▸ Line Numbers</th><th><code class="verbatim">display-line-numbers-type</code></th><th>Numbers</th></tr>
+</thead>
+<tbody>
+<tr><td>Absolute</td><td><code class="verbatim">true</code></td><td>The line's number in the file.</td></tr>
+<tr><td>Relative</td><td><code class="verbatim">"relative"</code></td><td>How many lines of the file away from the caret's line.</td></tr>
+<tr><td>Visual</td><td><code class="verbatim">"visual"</code></td><td>How many lines on the screen away from the caret's, counting each wrapped line.</td></tr>
+</tbody>
+</table>
+<p>In the relative and visual kinds the caret's line shows its own number, as <code class="verbatim">display-line-numbers-current-absolute</code> does. <code class="verbatim">display-line-numbers-type = false</code> turns the numbers off. The iOS editor has no line numbers.</p>
+<h2 id="themes">Themes</h2>
+<p>The editor's font, size, line spacing and heading sizes are in Settings ▸ Appearance. Settings ▸ Appearance ▸ Theme chooses a built-in theme for the light appearance and one for the dark: Default, Solarized Light, Gruvbox Light, Modus Operandi, Catppuccin Latte, Tomorrow or Paper; and Default, Solarized Dark, Gruvbox Dark, Modus Vivendi, Catppuccin Mocha, Nord, Dracula, Tokyo Night or doom-one. They are <code class="verbatim">light-theme</code> and <code class="verbatim">dark-theme</code> under <code class="verbatim">[theme]</code> in <code class="verbatim">config.toml</code>. Colours set in <code class="verbatim">config.toml</code>, under <code class="verbatim">[theme]</code> for both appearances, <code class="verbatim">[theme.light]</code> and <code class="verbatim">[theme.dark]</code> for one and <code class="verbatim">[theme.todo]</code> for TODO keywords, apply on top, as do those of a theme file named by <code class="verbatim">theme-file</code>. Copy to Config Folder writes the two chosen themes, every colour, into <code class="verbatim">my-theme.toml</code> and makes it the theme file, to start a theme of your own. Show Default Theme opens <code class="verbatim">default-theme.toml</code>, which lists every colour with its default value. Changes apply while orgstar runs. See <a href="13-configuration.html">Configuration</a>.</p>
+<p>Settings ▸ Appearance ▸ App Icon chooses the icon the Dock shows while orgstar runs. Finder, and the Dock once orgstar has quit, show the default icon, in the system's icon style (Default, Dark or Tinted).</p>
+<p>The iOS editor uses the same theme and display settings, read from the synced <code class="verbatim">config.toml</code>; see <a href="14-ios.html">iPhone and iPad</a>.</p>
+<h2 id="undo">Undo</h2>
+<p>Each buffer has its own undo history, kept while other buffers show.</p>
+<table>
+<thead>
+<tr><th>Action</th><th>Menu</th><th>Mac</th><th>Emacs preset</th><th>Doom (normal state)</th></tr>
+</thead>
+<tbody>
+<tr><td>Undo</td><td>Edit ▸ Undo</td><td><code class="verbatim">⌘Z</code></td><td><code class="verbatim">⌘Z</code>, <code class="verbatim">C-/</code>, <code class="verbatim">C-_</code>, <code class="verbatim">C-x u</code></td><td><code class="verbatim">u</code></td></tr>
+<tr><td>Redo</td><td>Edit ▸ Redo</td><td><code class="verbatim">⇧⌘Z</code></td><td><code class="verbatim">⇧⌘Z</code></td><td><code class="verbatim">C-r</code></td></tr>
+</tbody>
+</table>
+<p>A command's whole change undoes in one step, separately from the typing around it. Restoring a recovery version and resolving a Syncthing conflict copy can be undone too.</p>
+<p>The undo history is cleared when the buffer reloads or merges changes from disk, and when you take the disk version or merge with markers to settle a conflict; see <a href="01-files-and-folders.html">Files, folders and buffers</a>. The Emacs preset has no redo key other than <code class="verbatim">⇧⌘Z</code>, and undo is linear, not Emacs's undo tree.</p>
+<h2 id="finding-text-in-a-file">Finding text in a file</h2>
+<p><code class="verbatim">C-s</code> and <code class="verbatim">C-r</code> in the Emacs preset search as you type (<code class="verbatim">isearch-forward</code>, <code class="verbatim">isearch-backward</code>): the echo area shows <code class="verbatim">I-search:</code> and what you have typed, the next match is selected as each character goes in, and the other matches are highlighted. While searching:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>characters</td><td>Add to the search string.</td></tr>
+<tr><td><code class="verbatim">C-s</code>, <code class="verbatim">C-r</code></td><td>The next or previous match; with nothing typed yet, the last search again. After <code class="verbatim">Failing I-search</code>, the search wraps around the file (<code class="verbatim">Wrapped I-search</code>).</td></tr>
+<tr><td><code class="verbatim">DEL</code></td><td>Undo the last key: a character, or a move to another match.</td></tr>
+<tr><td><code class="verbatim">RET</code></td><td>Stop, with the caret after the match (before it going backward).</td></tr>
+<tr><td><code class="verbatim">C-g</code></td><td>With a failing search, take off the part that fails; otherwise stop and go back to where the search began.</td></tr>
+<tr><td>other keys</td><td>Stop where the search is, then run as usual.</td></tr>
+</tbody>
+</table>
+<p>A space matches any run of spaces and tabs, and an upper-case letter makes the search case-sensitive, as Emacs's defaults have it. <code class="verbatim">C-M-s</code> and <code class="verbatim">C-M-r</code> search with a regular expression (<code class="verbatim">isearch-forward-regexp</code>); patterns are ICU regular expressions. Folded text opens around a match. In Doom, <code class="verbatim">/</code> and <code class="verbatim">?</code> search the same way with a regular expression, the echo area showing <code class="verbatim">/</code> or <code class="verbatim">?</code> and the pattern; <code class="verbatim">RET</code> ends it as Vim's search does, so <code class="verbatim">n</code> and <code class="verbatim">N</code> repeat it, and <code class="verbatim">Esc</code> or <code class="verbatim">C-g</code> go back. On iOS, <code class="verbatim">C-s</code> and <code class="verbatim">C-r</code> work with a hardware keyboard, and Incremental Search is in Commands; typing on the on-screen keyboard adds to the search. iOS doesn't highlight the other matches.</p>
+<p>Edit ▸ Find opens the find bar above the text.</p>
+<table>
+<thead>
+<tr><th>Menu item</th><th>Shortcut</th><th>Emacs preset</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Edit ▸ Find ▸ Find…</td><td><code class="verbatim">⌘F</code></td><td></td><td><code class="verbatim">SPC s s</code></td></tr>
+<tr><td>Edit ▸ Find ▸ Find and Replace…</td><td><code class="verbatim">⌥⌘F</code></td><td><code class="verbatim">M-%</code></td><td></td></tr>
+<tr><td>Edit ▸ Find ▸ Find Next</td><td><code class="verbatim">⌘G</code></td><td></td><td></td></tr>
+<tr><td>Edit ▸ Find ▸ Find Previous</td><td><code class="verbatim">⇧⌘G</code></td><td></td><td></td></tr>
+<tr><td>Edit ▸ Find ▸ Use Selection for Find</td><td><code class="verbatim">⌘E</code></td><td></td><td></td></tr>
+</tbody>
+</table>
+<p>In Doom, <code class="verbatim">:s/PATTERN/REPLACEMENT/</code> and <code class="verbatim">:%s/…/…/</code> with the <code class="verbatim">g</code> and <code class="verbatim">i</code> flags substitute with regular expressions on the current line or in the whole file.</p>
+<p>To search all your files, use the toolbar's search field; see <a href="01-files-and-folders.html">Files, folders and buffers</a>.</p>
+<h2 id="accessibility">Accessibility</h2>
+<p>The editor works with VoiceOver. VoiceOver reads the text as it is shown rather than as stored: hidden link brackets and targets, hidden emphasis markers and hidden stars are skipped, entities are read as the characters drawn for them, and narrowed table columns are read as drawn. Folded text is still read, so the whole file is available. Lines, the caret position and the selection are reported in terms of the shown text.</p>
+<p>Other parts of the window are labelled: tabs in the tab bar are buttons, with the current one marked selected, and each close button names its buffer and says whether it is unsaved; the modeline's unsaved dot reads "Unsaved changes", and the Doom state tag reads, for example, "Normal state".</p>
+<p>The editor keeps the system's keyboard navigation and text editing; the presets only add bindings. See <a href="03-keys.html">Keys and commands</a>.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

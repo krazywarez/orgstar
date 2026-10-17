@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>orgstar &middot; orgstar</title>
+<meta name="description" content="A native macOS and iOS editor for org-mode files.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="syntax.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="index.html">orgstar</a>
+<nav>
+<a href="install.html">Install</a>
+<a href="quickstart.html">Quick start</a>
+<a href="guide/index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>orgstar</h1>
+<p class="lede">orgstar edits org files in place, alongside Emacs and the sync tools you already use.</p>
+<p>orgstar is an editor for <a href="https://orgmode.org">Org mode</a> files on the Mac, with an app for iPhone and iPad. It reads and writes the same plain-text files Emacs does, behaves the way Org does where the two overlap, and leaves every byte you didn't change as it was.</p>
+<p>On the Mac you get the editor with Emacs, Mac or Doom (Vim) keys, the agenda and a board view, capture templates, clocking, tables with formulas, code blocks and tangling, and export to HTML and Markdown (and to other formats through Emacs, if it is installed). The iOS app has the editor, agenda, capture, search, clocking, reminders, export and tangling.</p>
+<h2 id="start-here">Start here</h2>
+<ul>
+<li><a href="install.html">Install</a>: the Mac app with Homebrew or a download, the iOS app from the App Store, or either from source.</li>
+<li><a href="quickstart.html">Quick start</a>: add a folder, open a file, and the first keys to learn.</li>
+<li>The manual, below: every feature, chapter by chapter.</li>
+</ul>
+<h2 id="the-manual">The manual</h2>
+<ol>
+<li><a href="guide/01-files-and-folders.html">Files, folders and buffers</a></li>
+<li><a href="guide/02-the-editor.html">The editor</a></li>
+<li><a href="guide/03-keys.html">Keys and commands</a></li>
+<li><a href="guide/04-outlines.html">Outlines and structure</a></li>
+<li><a href="guide/05-todos-and-tags.html">TODOs and tags</a></li>
+<li><a href="guide/06-dates-and-clocking.html">Dates, scheduling and clocking</a></li>
+<li><a href="guide/07-agenda.html">The agenda</a></li>
+<li><a href="guide/08-capture.html">Capture</a></li>
+<li><a href="guide/09-links.html">Links</a></li>
+<li><a href="guide/10-tables.html">Tables</a></li>
+<li><a href="guide/11-code-blocks.html">Code blocks</a></li>
+<li><a href="guide/12-export.html">Export</a></li>
+<li><a href="guide/13-configuration.html">Configuration</a></li>
+<li><a href="guide/14-ios.html">iPhone and iPad</a></li>
+<li><a href="guide/15-alongside-emacs.html">Working alongside Emacs and other tools</a></li>
+</ol>
+<h2 id="principles">Principles</h2>
+<ul>
+<li><strong>The files are the source of truth.</strong> There is no database of your notes. orgstar keeps an index for search and the agenda, rebuilt from the files whenever they change.</li>
+<li><strong>Only your edits are written.</strong> Saving rewrites the bytes you changed and nothing else: indentation, line endings, encoding marks and unusual spacing elsewhere stay.</li>
+<li><strong>Org's behaviour, not a lookalike.</strong> Commands follow what Org 9.8 does, and are checked against Emacs in the test suite. Where orgstar can't do something the way Org would, it says so and leaves the file alone rather than guessing.</li>
+</ul>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>
