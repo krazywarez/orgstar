@@ -50,6 +50,8 @@ struct AgendaScreen: View, Equatable {
     @State private var bulkArchiving = false
     @State private var bulkPlanning: BulkPlanning?
     @State private var showingBoard = false
+    /// The entry open in its sheet.
+    @State private var editing: AgendaItem?
 
     /// A marked entry: its heading line, to find it again.
     private struct Mark: Hashable {
@@ -110,6 +112,7 @@ struct AgendaScreen: View, Equatable {
             } else if case .agenda = agenda.mode {
                 let _ = model.settingsVersion
                 ForEach(Perf.measure("agenda.groups") { agenda.groups(showAllDates: OrgPreferences.agendaShowAllDates(), filter: filter) }) { group in
+                    overdue(group)
                     Section {
                         day(group)
                     } header: {
@@ -122,6 +125,7 @@ struct AgendaScreen: View, Equatable {
                     if block.isAgenda {
                         Section { } header: { Text(block.header).font(.headline) }
                         ForEach(agenda.groups(block, showAllDates: OrgPreferences.agendaShowAllDates(), filter: filter)) { group in
+                            overdue(group)
                             Section {
                                 day(group)
                             } header: {
@@ -272,6 +276,13 @@ struct AgendaScreen: View, Equatable {
                 .navigationBarTitleDisplayMode(.inline)
             }
         }
+        .sheet(item: $editing) { item in
+            EntrySheet(item: item, workspace: workspace, session: session) { saved, open in
+                editing = nil
+                if saved { tick += 1 }
+                if let open { model.openRequest = .offset(open.path, open.offset) }
+            }
+        }
         .sheet(item: $refiling) { item in
             RefileSheet(targets: workspace.refileTargets(openPath: session.path, document: session.document)) { target in
                 refiling = nil
@@ -401,29 +412,39 @@ struct AgendaScreen: View, Equatable {
 
     // MARK: - Days
 
-    private func day(_ group: AgendaDayGroup) -> some View {
-        Group {
-            if group.isToday, !group.overdue.isEmpty {
+    /// Today's entries from earlier days, in a section of their own above today's.
+    @ViewBuilder
+    private func overdue(_ group: AgendaDayGroup) -> some View {
+        if group.isToday, !group.overdue.isEmpty {
+            Section {
+                if overdueExpanded {
+                    ForEach(group.overdue) { item in Deferred { row(item, day: group.day) } }
+                }
+            } header: {
                 Button {
                     withAnimation { overdueExpanded.toggle() }
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .rotationEffect(.degrees(overdueExpanded ? 90 : 0))
                         Text("Overdue").font(.subheadline.weight(.semibold))
                         Text("\(group.overdue.count)").font(.subheadline.monospacedDigit())
                         Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .rotationEffect(.degrees(overdueExpanded ? 90 : 0))
                     }
                     .foregroundStyle(themed(theme.statusColor(.overdue, dark: isDark), .red))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                if overdueExpanded {
-                    ForEach(group.overdue) { item in Deferred { row(item, day: group.day) } }
-                }
+                .textCase(nil)
+                .accessibilityValue(overdueExpanded ? "Expanded" : "Collapsed")
             }
-            if group.isEmpty {
+        }
+    }
+
+    private func day(_ group: AgendaDayGroup) -> some View {
+        Group {
+            if group.rows.isEmpty {
                 Text("Nothing scheduled").font(.subheadline).foregroundStyle(.secondary)
             }
             // One view per element, so the list counts its rows without building them.
@@ -658,6 +679,9 @@ struct AgendaScreen: View, Equatable {
                 } else {
                     AgendaRowView(row: row, day: day, theme: theme, dark: isDark).opacity(0.5)
                 }
+            } else if let item = row.item, item.path != nil, item.headingLine != nil, item.headingOffset != nil {
+                Button { editing = item } label: { AgendaRowView(row: row, day: day, theme: theme, dark: isDark) }
+                    .tint(.primary)
             } else if let item = row.item, let path = item.path, let offset = item.headingOffset ?? item.markerOffset {
                 NavigationLink(value: ReaderRoute.offset(path, offset)) { AgendaRowView(row: row, day: day, theme: theme, dark: isDark) }
             } else if let event = row.event {

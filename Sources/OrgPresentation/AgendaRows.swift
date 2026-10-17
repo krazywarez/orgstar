@@ -46,7 +46,7 @@ public struct AgendaEvent: Sendable, Equatable, Identifiable {
 ///
 /// The gutter holds the time (`08:00`, `13:50–14:30`) or, untimed, a short status:
 /// deadlines `Due today`, `Due in 2d`, `3d late`, `Due` (on a day other than today);
-/// scheduled `Scheduled`, `4d ago`; habits `Habit`; timestamps, diary sexps and
+/// scheduled `Scheduled`, `4d ago`; habits `Habit`, `1d ago` when missed; timestamps, diary sexps and
 /// calendar events `All day`; ranges `Day 2/5`; log mode `Closed`, `Clocked`, `State`; TODO
 /// and match lists nothing. Ages use `AgendaAge.compact`.
 public struct AgendaRow: Sendable, Equatable, Identifiable {
@@ -102,9 +102,11 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
     /// Nil for the time grid and the current-time line.
     public init?(item: AgendaItem, day: Int, today: Int) {
         if item.kind == .timeGrid || item.kind == .currentTime { return nil }
-        let timed = item.timeOfDay.map { start in (start, Self.endTime(item.time)) }
         let planning = item.planningDay
         let late = planning.map { $0 < today } ?? false
+        // Carried to today from an earlier day, where its time no longer applies.
+        let carried = late && day == today
+        let timed = carried ? nil : item.timeOfDay.map { start in (start, Self.endTime(item.time)) }
         var icon: Icon?
         var status: Status = .normal
         var untimed = ""
@@ -121,13 +123,14 @@ public struct AgendaRow: Sendable, Equatable, Identifiable {
             }
             status = late ? .overdue : day == today ? .dueSoon : .normal
         case .scheduled, .pastScheduled:
+            let on = planning ?? day
+            let ago = String(localized: "\(AgendaAge.compact(day - on)) ago", bundle: .main)
             if item.habit != nil {
                 icon = .habit
-                untimed = String(localized: "Habit", bundle: .main)
+                untimed = carried ? ago : String(localized: "Habit", bundle: .main)
             } else {
                 icon = .scheduled
-                let on = planning ?? day
-                untimed = on < day ? String(localized: "\(AgendaAge.compact(day - on)) ago", bundle: .main) : String(localized: "Scheduled", bundle: .main)
+                untimed = on < day ? ago : String(localized: "Scheduled", bundle: .main)
             }
             status = late ? .overdue : .normal
         case .timestamp, .sexp:
@@ -325,8 +328,8 @@ public enum AgendaRows {
     ///
     /// - Days with no rows are left out unless `showAllDates` (`org-agenda-show-all-dates`);
     ///   today always stays.
-    /// - Today's past-scheduled entries and past deadlines (not habits) go in `overdue`,
-    ///   oldest date first, Org's order among the same date.
+    /// - Today's past-scheduled entries, habits and past deadlines go in `overdue`, oldest
+    ///   date first, Org's order among the same date.
     /// - Other rows keep the agenda's order (timed by time, then untimed by urgency, habits
     ///   after other entries at the same time).
     ///   All-day events come first, timed events go among the timed entries by start time,
@@ -349,7 +352,7 @@ public enum AgendaRows {
                 if item.kind == .timeGrid, let time = item.timeOfDay { grid.append((rows.count, time)) }
                 if item.kind == .currentTime { showsNow = true }
                 guard keep(item), let row = AgendaRow(item: item, day: day.day, today: today) else { continue }
-                if day.day == today, item.habit == nil, let planning = row.planningDay, planning < today {
+                if day.day == today, let planning = row.planningDay, planning < today {
                     overdue.append(row)
                 } else {
                     rows.append(row)

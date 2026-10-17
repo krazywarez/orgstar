@@ -361,7 +361,7 @@ private struct EntryFields: View {
 }
 
 /// A date and, when switched on, a time; the answer as a date prompt takes it.
-private struct DateTimeSheet: View {
+struct DateTimeSheet: View {
     let title: String
     let initial: Date
     let done: (String?) -> Void
@@ -393,7 +393,7 @@ private struct DateTimeSheet: View {
 }
 
 /// Tags to toggle, from the file and the workspace, and new ones typed in.
-private struct TagsSheet: View {
+struct TagsSheet: View {
     let choices: [String]
     let done: ([String]?) -> Void
     @State private var selected: [String]

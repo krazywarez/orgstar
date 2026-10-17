@@ -116,7 +116,7 @@ The entries follow =org-agenda-get-day-entries= with Org's default entry types. 
 | Repeating timestamp =<… +1w>=           | On each occurrence within the span                                                                    | =All day=                      |
 | Date range =<…>--<…>=                   | On every day of the range                                                                             | =Day 2/5= (day 2 of 5)         |
 | Diary sexp =%%(…)= line or =<%%(…)>=    | On each day the sexp applies; see [[*Diary sexps][Diary sexps]]                                       | =All day=                      |
-| Habit (=STYLE: habit=)                  | On today only, while not done, unless habits only today is off; see [[*Habits][Habits]]               | =Habit=, with a consistency graph |
+| Habit (=STYLE: habit=)                  | On today only, while not done, unless habits only today is off; see [[*Habits][Habits]]; in the Overdue group when scheduled on an earlier day | =Habit=, or =2d ago= when overdue, with a consistency graph |
 
 An entry with a time of day shows the time instead of the status: =08:00=, or =13:50–14:30= with an end time.
 
@@ -139,7 +139,7 @@ Days without entries are left out. Today always shows, with =Nothing scheduled= 
 org-agenda-show-all-dates = true
 #+END_SRC
 
-Today's past deadlines and entries scheduled on earlier days, habits excepted, go in a group headed =Overdue= with their count, above today's other entries. The oldest date comes first; entries with the same date keep Org's order. Click or tap the header to collapse or expand the group; it stays as you left it.
+Today's past deadlines and entries and habits scheduled on earlier days go in a group headed =Overdue= with their count, above today's other entries; on iOS it is a section of its own above today. Their left column shows how late they are, not the time of day they had. The oldest date comes first; entries with the same date keep Org's order. Click or tap the header to collapse or expand the group; it stays as you left it.
 
 Days with a time grid show dotted lines at the grid's times among the timed entries, as =org-agenda-time-grid= does: by default at 8:00, 10:00 and every two hours to 20:00, on today and in one-day views, when the day has a timed entry. An entry at a grid line's time comes before the line. On today, a line marked with the current time sits among them: before the first entry that starts later, or after the last one when all have started. The grid's days and times are set in =[org-agenda-time-grid]= in =config.toml=, =org-agenda-use-time-grid= turns the grid off, and =org-agenda-show-current-time-in-grid= the now line (see [[file:13-configuration.org][Configuration]]). With the grid off there is no now line, as in Org.
 

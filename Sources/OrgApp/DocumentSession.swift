@@ -198,6 +198,15 @@ public final class DocumentSession {
         return state.isEditable ? state.text : nil
     }
 
+    /// A copy of `path`'s text and tree, its buffer's when it's open, for changes made apart
+    /// and written back with `ReplaceChangedText`.
+    public func copy(of path: String) -> DocumentState? {
+        if let entry = entry(path) { return entry.buffer.document }
+        guard let bytes = try? fileSystem.read(URL(fileURLWithPath: path)) else { return nil }
+        let state = loaded(bytes, path: path)
+        return state.isEditable ? state : nil
+    }
+
     /// The buffer's name as uniquify writes it (`post-forward-angle-brackets`): the file name,
     /// with as many of its folders as tell it apart from other open files of the same name.
     public func bufferName(_ path: String) -> String {

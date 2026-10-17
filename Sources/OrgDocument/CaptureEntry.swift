@@ -24,14 +24,17 @@ public struct CaptureEntry: Sendable, Equatable {
         scheduled = heading.scheduled
         deadline = heading.deadline
         keywords = tree.settings.todoSequences.flatMap { $0.active.map(\.name) + $0.done.map(\.name) }
-        let range = tree.settings.priorities
+        priorities = Self.priorities(tree.settings.priorities)
+    }
+
+    /// The priorities from `range.highest` to `range.lowest`: `A`, `B`, `C`, or numbers.
+    public static func priorities(_ range: Priorities) -> [String] {
         if let high = Int(range.highest), let low = Int(range.lowest), high <= low {
-            priorities = (high...low).map(String.init)
+            return (high...low).map(String.init)
         } else if let high = range.highest.unicodeScalars.first?.value, let low = range.lowest.unicodeScalars.first?.value, high <= low {
-            priorities = (high...low).compactMap(Unicode.Scalar.init).map { String(Character($0)) }
-        } else {
-            priorities = []
+            return (high...low).compactMap(Unicode.Scalar.init).map { String(Character($0)) }
         }
+        return []
     }
 
     /// `text` after `command` runs on its first heading with `answers`, or nil when the command

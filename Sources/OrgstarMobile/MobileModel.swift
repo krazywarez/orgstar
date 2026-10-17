@@ -321,7 +321,8 @@ final class MobileModel {
     /// that only changes the badge.
     private func updateBadge(_ counts: [Int]) async {
         let center = UNUserNotificationCenter.current()
-        guard await badgesEnabled(asking: true) else { return }
+        // Onboarding asks first.
+        guard await badgesEnabled(asking: UserDefaults.standard.bool(forKey: OnboardingScreen.doneKey)) else { return }
         try? await center.setBadgeCount(counts.first ?? 0)
         center.removePendingNotificationRequests(withIdentifiers: (1..<AgendaSnapshot.dayCount).map(Self.badgeID))
         let today = Calendar.current.startOfDay(for: Date())

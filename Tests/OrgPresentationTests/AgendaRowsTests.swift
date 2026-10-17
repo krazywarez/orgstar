@@ -31,6 +31,11 @@ struct AgendaRowsTests {
         :PROPERTIES:
         :STYLE: habit
         :END:
+        * TODO Walk dog
+        SCHEDULED: <2026-10-03 Sat 18:00 .+1d>
+        :PROPERTIES:
+        :STYLE: habit
+        :END:
         * Far off
         <2026-10-11 Sun>
         """
@@ -79,7 +84,10 @@ struct AgendaRowsTests {
         check("Dentist", "13:50–14:30", .normal, .timestamp)
         check("Birthday", "All day", .normal, .timestamp)
         check("Conference", "Day 2/3", .normal, .timestamp)
-        check("Stretch", "Habit", .overdue, .habit)
+        check("Stretch", "1d ago", .overdue, .habit)
+        // An earlier day's time says nothing about today.
+        check("Walk dog", "2d ago", .overdue, .habit)
+        #expect(rows["Walk dog"]?.start == nil)
         #expect(rows["Dentist"]?.start == 1350 && rows["Dentist"]?.end == 1430)
         let rent = rows["Pay rent"]!
         #expect(rent.category == "life" && rent.tags == ["home"] && rent.todo == "TODO" && rent.priority == "B" && rent.progress == "0/2")
@@ -125,9 +133,8 @@ struct AgendaRowsTests {
 
     @Test func overdueEntriesGroupAboveTodayOldestFirst() {
         let today = AgendaRows.groups(Self.days(), today: Self.today)[0]
-        #expect(today.overdue.map(\.title) == ["Ancient chore", "Pay rent", "Send forms"])
-        #expect(!today.rows.contains { $0.status == .overdue && $0.icon != .habit })
-        #expect(today.rows.contains { $0.title == "Stretch" })
+        #expect(today.overdue.map(\.title) == ["Ancient chore", "Pay rent", "Send forms", "Walk dog", "Stretch"])
+        #expect(!today.rows.contains { $0.status == .overdue })
         #expect(Set(today.rows.map(\.id)).count == today.rows.count)
     }
 

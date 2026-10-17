@@ -119,6 +119,8 @@ struct RootView: View {
     @State private var showingClockReport = false
     @State private var message: String?
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(OnboardingScreen.doneKey) private var onboarded = false
+    @State private var onboarding = false
 
     private var session: DocumentSession { model.session }
 
@@ -129,6 +131,8 @@ struct RootView: View {
         let workspace: WorkspaceModel
         let agenda: AgendaModel
         let active: Bool
+        /// Notifications and badges ask for permission, which onboarding asks for first.
+        let onboarded: Bool
         let hour: Int
 
         private var session: DocumentSession { model.session }
@@ -137,8 +141,8 @@ struct RootView: View {
             Color.clear
                 // Reminders follow the files, the settings, coming back to the app and the hour.
                 .task(id: ReminderKey(hidden: HiddenFolders.shared.all, files: workspace.files.count, changed: workspace.changedFile?.version, edits: session.editVersion,
-                                      settings: model.settingsVersion, active: active, hour: hour)) {
-                    guard active else { return }
+                                      settings: model.settingsVersion, active: active, onboarded: onboarded, hour: hour)) {
+                    guard active, onboarded else { return }
                     try? await Task.sleep(for: .seconds(1))
                     // After the agenda's refresh, whose parsed files these share.
                     while agenda.isComputing, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(100)) }
@@ -167,6 +171,7 @@ struct RootView: View {
         var edits: Int
         var settings: Int
         var active: Bool
+        var onboarded: Bool
         var hour: Int
     }
 
@@ -194,7 +199,26 @@ struct RootView: View {
         .clockAccessory(model.clock, perform: clock)
         .tint(model.theme.accentColor)
         // Until a folder is added there is nothing for the agenda to show.
-        .onAppear { if workspace.rootPaths.isEmpty { tab = .folders } }
+        .onAppear {
+            if workspace.rootPaths.isEmpty { tab = .folders }
+            // First launch only; a workspace from before onboarding existed skips it.
+            guard !onboarded else { return }
+            if workspace.rootPaths.isEmpty, ProcessInfo.processInfo.environment["ORGSTAR_ROOT"] == nil {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { onboarding = true }
+            } else {
+                onboarded = true
+            }
+        }
+        .fullScreenCover(isPresented: $onboarding) {
+            OnboardingScreen(model: model, workspace: workspace) {
+                onboarding = false
+                onboarded = true
+                if !workspace.rootPaths.isEmpty { tab = .agenda }
+            }
+            .interactiveDismissDisabled()
+        }
         .sheet(item: Binding(get: { model.clockPrompts.pending }, set: { if $0 == nil { model.clockPrompts.answer(nil) } })) { pending in
             ClockPromptSheet(prompt: pending.prompt) { model.clockPrompts.answer($0) }
         }
@@ -282,7 +306,7 @@ struct RootView: View {
                 hour += 1
             }
         }
-        .background { BackgroundWork(model: model, workspace: workspace, agenda: agenda, active: scenePhase == .active, hour: hour) }
+        .background { BackgroundWork(model: model, workspace: workspace, agenda: agenda, active: scenePhase == .active, onboarded: onboarded, hour: hour) }
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
             if let path = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String { model.openRequest = .file(path) }
         }
