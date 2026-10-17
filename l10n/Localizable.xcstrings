@@ -24,7 +24,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@\n\nLe titre et toutes les lignes situées dessous sont supprimés du fichier."
+            "value": "%@\n\nLe titre et toutes les lignes situées en dessous sont supprimés du fichier."
           }
         },
         "ja": {
@@ -137,13 +137,13 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "État %@"
+            "value": "Mode %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@の状態"
+            "value": "%@ステート"
           }
         },
         "pt-BR": {
@@ -418,7 +418,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld atrasados"
+            "value": "Atrasados: %lld"
           }
         }
       }
@@ -438,9 +438,21 @@
           }
         },
         "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld sélectionnés"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld sélectionnée"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld sélectionnées"
+                }
+              }
+            }
           }
         },
         "ja": {
@@ -452,7 +464,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld selecionados"
+            "value": "Selecionados: %lld"
           }
         }
       }
@@ -763,7 +775,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Absoluto"
+            "value": "Absolutos"
           }
         },
         "fr": {
@@ -1177,7 +1189,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajouter à Calendrier"
+            "value": "Ajouter au calendrier"
           }
         },
         "ja": {
@@ -1211,7 +1223,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajouter à Calendrier…"
+            "value": "Ajouter au calendrier…"
           }
         },
         "ja": {
@@ -1443,7 +1455,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alineado para terminar en la columna 77"
+            "value": "Alineadas para terminar en la columna 77"
           }
         },
         "fr": {
@@ -1517,7 +1529,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toute la journée"
+            "value": "Journée entière"
           }
         },
         "ja": {
@@ -1857,7 +1869,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "S'applique aux fichiers à leur ouverture. Présentation ▸ Tronquer ou renvoyer à la ligne les lignes longues bascule le fichier actuel."
+            "value": "S'applique aux fichiers à leur ouverture. Présentation ▸ Tronquer ou renvoyer à la ligne les lignes longues modifie le réglage du fichier actuel."
           }
         },
         "ja": {
@@ -2571,7 +2583,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ambos"
+            "value": "Ambas"
           }
         },
         "fr": {
@@ -2589,7 +2601,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ambos"
+            "value": "Ambas"
           }
         }
       }
@@ -4255,7 +4267,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@でクロックイン中"
+            "value": "%@にクロックイン中"
           }
         },
         "pt-BR": {
@@ -5411,7 +5423,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "締切：%@"
+            "value": "締め切り：%@"
           }
         },
         "pt-BR": {
@@ -5649,7 +5661,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@日目"
+            "value": "期間 %@"
           }
         },
         "pt-BR": {
@@ -6283,13 +6295,13 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atenuado"
+            "value": "Atenuadas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estompé"
+            "value": "Estompées"
           }
         },
         "ja": {
@@ -6301,7 +6313,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esmaecido"
+            "value": "Esmaecidas"
           }
         }
       }
@@ -6459,13 +6471,13 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hecho %1$lld de %2$lld días"
+            "value": "Hecho en %1$lld de %2$lld días"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Effectué %1$lld jours sur %2$lld"
+            "value": "Effectuée %1$lld fois sur %2$lld jours"
           }
         },
         "ja": {
@@ -6499,7 +6511,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hecho %1$lld de los últimos %2$lld días"
+            "value": "Hecho en %1$lld de los últimos %2$lld días"
           }
         },
         "fr": {
@@ -6681,7 +6693,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "以前"
+            "value": "前へ"
           }
         },
         "pt-BR": {
@@ -7574,7 +7586,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Excluir tarefas arquivadas"
+            "value": "Não incluir tarefas arquivadas"
           }
         }
       }
@@ -8951,13 +8963,13 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Oculto"
+            "value": "Ocultas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Masqué"
+            "value": "Masquées"
           }
         },
         "ja": {
@@ -8969,7 +8981,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Oculto"
+            "value": "Ocultas"
           }
         }
       }
@@ -9365,7 +9377,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Utilisé"
+            "value": "En vigueur"
           }
         },
         "ja": {
@@ -9649,7 +9661,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Manter o Meu"
+            "value": "Manter a Minha"
           }
         }
       }
@@ -9773,7 +9785,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Omettre"
+            "value": "Exclure"
           }
         },
         "ja": {
@@ -10567,7 +10579,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "M-qで%lld列で折り返す"
+            "value": "M-qで%lld列目まで詰めて折り返す"
           }
         },
         "pt-BR": {
@@ -11015,7 +11027,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mover Para"
+            "value": "Mover para"
           }
         }
       }
@@ -11167,7 +11179,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ninguno"
+            "value": "Ninguna"
           }
         },
         "fr": {
@@ -11185,7 +11197,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nenhum"
+            "value": "Nenhuma"
           }
         }
       }
@@ -12704,13 +12716,13 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No importado"
+            "value": "No importados"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Non importé"
+            "value": "Non importés"
           }
         },
         "ja": {
@@ -13711,7 +13723,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atalhos do próprio Org: C-c C-t alterna TODO, C-c C-s agenda, M-RET cria um cabeçalho."
+            "value": "Atalhos do próprio Org: C-c C-t alterna TODO, C-c C-s define o agendamento, M-RET cria um cabeçalho."
           }
         }
       }
@@ -13761,7 +13773,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vencido"
+            "value": "Vencidas"
           }
         },
         "fr": {
@@ -13801,7 +13813,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nombre en retard sur l'icône"
+            "value": "Nombre d'entrées en retard sur l'icône"
           }
         },
         "ja": {
@@ -14212,7 +14224,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Graphique du tableau"
+            "value": "Tracer le tableau"
           }
         },
         "ja": {
@@ -15056,7 +15068,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Relativo"
+            "value": "Relativos"
           }
         },
         "fr": {
@@ -15328,7 +15340,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Eliminar"
+            "value": "Quitar"
           }
         },
         "fr": {
@@ -17272,7 +17284,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Afficher le nombre en retard sur l'icône…"
+            "value": "Afficher le nombre d'entrées en retard sur l'icône…"
           }
         },
         "ja": {
@@ -17986,7 +17998,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Affiché normalement"
+            "value": "Affichées normalement"
           }
         },
         "ja": {
@@ -17998,7 +18010,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mostrado normalmente"
+            "value": "Mostradas normalmente"
           }
         }
       }
@@ -18156,7 +18168,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La vérification orthographique s'applique aux fichiers à leur ouverture ; Vérifier l'orthographe lors de la frappe bascule le fichier actuel. Le code, les liens, les dates, les tags et les mots-clés ne sont pas vérifiés."
+            "value": "La vérification orthographique s'applique aux fichiers à leur ouverture ; Vérifier l'orthographe lors de la frappe modifie le réglage du fichier actuel. Le code, les liens, les dates, les tags et les mots-clés ne sont pas vérifiés."
           }
         },
         "ja": {
@@ -18270,7 +18282,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Teclas de edição padrão do Mac, com os comandos do Org em ⌃⌘: ⌃⌘T alterna TODO, ⌃⌘S agenda."
+            "value": "Teclas de edição padrão do Mac, com os comandos do Org em ⌃⌘: ⌃⌘T alterna TODO, ⌃⌘S define o agendamento."
           }
         }
       }
@@ -18298,7 +18310,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "開始点"
+            "value": "カスタマイズ用"
           }
         },
         "pt-BR": {
@@ -18836,7 +18848,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Monoespaciada del sistema"
+            "value": "Monoespaciado del sistema"
           }
         },
         "fr": {
@@ -19164,7 +19176,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Etiquetas e tabelas se alinham em colunas, então uma fonte monoespaçada as mantém retas."
+            "value": "Etiquetas e tabelas se alinham em colunas, então uma fonte monoespaçada as mantém alinhadas."
           }
         }
       }
@@ -19622,7 +19634,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La propia de la exportación"
+            "value": "El de la exportación"
           }
         },
         "fr": {
@@ -20036,13 +20048,13 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Temps"
+            "value": "Heure"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "時間"
+            "value": "時刻"
           }
         },
         "pt-BR": {
@@ -20370,7 +20382,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bajo una entrada padre con la propiedad ORDERED (Alternar propiedad ORDERED, C-c C-x o), las hijas TODO también se completan en orden."
+            "value": "Bajo una entrada padre con la propiedad ORDERED (Toggle ORDERED Property, C-c C-x o), las hijas TODO también se completan en orden."
           }
         },
         "fr": {
@@ -20514,7 +20526,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Licorne nuit"
+            "value": "Licorne nocturne"
           }
         },
         "ja": {
@@ -21446,7 +21458,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Você pode recuperá-lo da Lixeira no Finder."
+            "value": "Você pode recuperar o item da Lixeira no Finder."
           }
         }
       }
@@ -21672,7 +21684,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "pendiente"
+            "value": "pendientes"
           }
         },
         "fr": {
@@ -21981,7 +21993,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "a"
+            "value": "hasta"
           }
         },
         "fr": {
