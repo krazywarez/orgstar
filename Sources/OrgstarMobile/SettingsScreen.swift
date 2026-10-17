@@ -126,6 +126,13 @@ struct SettingsScreen: View {
                 LabeledContent("Theme", value: themeInUse)
                 LabeledContent("Font", value: font)
             }
+            Section {
+                NavigationLink {
+                    AboutScreen(appIcon: appIcon)
+                } label: {
+                    Label("About orgstar", systemImage: "info.circle")
+                }
+            }
         }
         .navigationTitle("Settings")
         // Read again on return from the Settings app.

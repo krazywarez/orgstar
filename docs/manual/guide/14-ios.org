@@ -401,6 +401,8 @@ These write =config.toml= in the configuration folder, as the Mac's Settings win
 
 The In use section shows the TODO keywords, the agenda span and start (for example =10 days, starting today=), the reminder lead time, the capture template keys, the light and dark themes, and the theme file's name when there is one, and the font with its size. When =font= names a family that isn't installed on the device, Font shows the system's font with a note, as =System monospaced, 13 pt (JetBrains Mono isn't installed)=.
 
+About orgstar, at the bottom, shows the version and links to the manual, the release notes, the website, the issue tracker (which needs a gitbay account), support by email at =help@krz.sh= with the version and device filled in, the App Store review page, the source code, the license, third-party notices and the privacy policy.
+
 These settings from =config.toml= apply on iOS:
 
 - =org-todo-keywords=, =org-list-allow-alphabetical=
