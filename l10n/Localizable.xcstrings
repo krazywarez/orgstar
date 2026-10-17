@@ -252,6 +252,26 @@
         }
       }
     },
+    "About": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Über"
+          }
+        }
+      }
+    },
+    "About orgstar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Über orgstar"
+          }
+        }
+      }
+    },
     "Absolute": {
       "localizations": {
         "de": {
@@ -2129,6 +2149,16 @@
         }
       }
     },
+    "Email Support": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support per E-Mail"
+          }
+        }
+      }
+    },
     "Empty takes the default.": {
       "localizations": {
         "de": {
@@ -2950,6 +2980,16 @@
         }
       }
     },
+    "License": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lizenz"
+          }
+        }
+      }
+    },
     "Light": {
       "localizations": {
         "de": {
@@ -3152,6 +3192,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Legt org/notes.org in iCloud Drive an und fügt den Ordner hinzu"
+          }
+        }
+      }
+    },
+    "Manual": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handbuch"
           }
         }
       }
@@ -4299,6 +4349,16 @@
         }
       }
     },
+    "Privacy Policy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutzerklärung"
+          }
+        }
+      }
+    },
     "Property columns": {
       "localizations": {
         "de": {
@@ -4345,6 +4405,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Regenbogen"
+          }
+        }
+      }
+    },
+    "Rate on the App Store": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im App Store bewerten"
           }
         }
       }
@@ -4455,6 +4525,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Relativer Timer"
+          }
+        }
+      }
+    },
+    "Release Notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versionshinweise"
           }
         }
       }
@@ -4615,6 +4695,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bericht"
+          }
+        }
+      }
+    },
+    "Report an Issue": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problem melden"
+          }
+        }
+      }
+    },
+    "Reporting an issue needs a gitbay account. Without one, email %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Melden eines Problems brauchst du ein gitbay-Konto. Ohne eins schreib an %@."
           }
         }
       }
@@ -5289,6 +5389,16 @@
         }
       }
     },
+    "Source Code": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quellcode"
+          }
+        }
+      }
+    },
     "Span": {
       "localizations": {
         "de": {
@@ -5859,6 +5969,16 @@
         }
       }
     },
+    "Third-Party Notices": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinweise zu Drittanbietern"
+          }
+        }
+      }
+    },
     "Time": {
       "localizations": {
         "de": {
@@ -6112,6 +6232,16 @@
         }
       }
     },
+    "Version %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        }
+      }
+    },
     "View": {
       "localizations": {
         "de": {
@@ -6138,6 +6268,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visuell"
+          }
+        }
+      }
+    },
+    "Website": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Website"
           }
         }
       }
@@ -6437,6 +6577,16 @@
     },
     "y": {
       "shouldTranslate": false
+    },
+    "© 2026 Christian Cleberg. Free software under the 0BSD license.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "© 2026 Christian Cleberg. Freie Software unter der 0BSD-Lizenz."
+          }
+        }
+      }
     },
     "·": {
       "shouldTranslate": false
