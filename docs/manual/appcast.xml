@@ -4,6 +4,22 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.9.0</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.9.0</link>
+      <sparkle:version>554</sparkle:version>
+      <sparkle:shortVersionString>0.9.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Sat, 17 Oct 2026 15:57:22 -0500</pubDate>
+      <description><![CDATA[<p>French, Japanese, Spanish and Brazilian Portuguese.</p>
+<ul>
+<li><b>Languages.</b> Menus, settings, the agenda, widgets and the watch app are in French, Japanese, Spanish and Brazilian Portuguese, alongside English and German, and follow the system language.</li>
+<li><b>Plurals.</b> Counts such as selected entries, minutes and days use the right singular or plural form in every language.</li>
+<li><b>Archive and mode line.</b> The archive prompt and the mode line's line and word count are translated.</li>
+</ul>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.9.0/orgstar-0.9.0.dmg" type="application/octet-stream" sparkle:edSignature="dslitE37pa5fStMYht1G9kSZGye+1zAWvo/hY0u7yGMMvHImWTM98a7zyUJmaaIyApqP7pl/0cwoog1gMVW9BA==" length="56745704"/>
+    </item>
+    <item>
       <title>orgstar 0.8.0</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.8.0</link>
       <sparkle:version>549</sparkle:version>
