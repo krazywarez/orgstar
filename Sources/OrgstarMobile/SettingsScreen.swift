@@ -26,7 +26,7 @@ struct SettingsScreen: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent("Folder", value: model.configFolder?.lastPathComponent ?? "None")
+                LabeledContent("Folder", value: model.configFolder?.lastPathComponent ?? String(localized: "none.folder", defaultValue: "None", comment: "No configuration folder chosen"))
                 Button(model.configFolder == nil ? "Choose Folder…" : "Choose Another Folder…") { choosing = true }
                 if model.configFolder != nil {
                     NavigationLink("Edit config.toml") { ConfigFileEditor(model: model) }

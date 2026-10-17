@@ -304,12 +304,12 @@ private struct EntryFields: View {
     var body: some View {
         Section {
             Picker("State", selection: Binding { entry.todo ?? "" } set: { change(SetTodo(keyword: $0.isEmpty ? nil : $0), [:]) }) {
-                Text("None").tag("")
+                Text(String(localized: "none.state", defaultValue: "None", comment: "No TODO state")).tag("")
                 ForEach(entry.keywords, id: \.self) { Text($0).tag($0) }
             }
             if !entry.priorities.isEmpty {
                 Picker("Priority", selection: Binding { entry.priority ?? "" } set: { change(SetPriority(), ["priority": $0.isEmpty ? " " : $0]) }) {
-                    Text("None").tag("")
+                    Text(String(localized: "none.priority", defaultValue: "None", comment: "No priority")).tag("")
                     ForEach(entry.priorities, id: \.self) { Text($0).tag($0) }
                 }
             }
@@ -318,7 +318,7 @@ private struct EntryFields: View {
             Button {
                 choosingTags = true
             } label: {
-                LabeledContent("Tags", value: entry.tags.isEmpty ? "None" : entry.tags.joined(separator: " "))
+                LabeledContent("Tags", value: entry.tags.isEmpty ? String(localized: "none.tags", defaultValue: "None", comment: "No tags") : entry.tags.joined(separator: " "))
             }
             .tint(.primary)
         }
@@ -334,7 +334,7 @@ private struct EntryFields: View {
                 Button("Remove", role: .destructive) { change(RemovePlanning(deadline: which == .deadline), [:]) }
             }
         } label: {
-            LabeledContent(which.rawValue, value: stamp.map(Self.text) ?? "None")
+            LabeledContent(which.rawValue, value: stamp.map(Self.text) ?? String(localized: "none.date", defaultValue: "None", comment: "No scheduled or deadline date"))
         }
         .tint(.primary)
     }

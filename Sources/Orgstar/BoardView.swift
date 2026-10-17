@@ -118,7 +118,7 @@ struct BoardView: View {
                 Menu("Set TODO") {
                     ForEach(keywords, id: \.self) { keyword in Button(keyword) { setTodo(entry, keyword) } }
                     Divider()
-                    Button("None") { setTodo(entry, nil) }
+                    Button(String(localized: "none.state", defaultValue: "None", comment: "No TODO state")) { setTodo(entry, nil) }
                 }
                 Button("Set Property…") { askProperty(entry) }
                 Button("Open") { jump(entry) }

@@ -162,7 +162,7 @@ struct EntrySheet: View {
             ForEach(keywords, id: \.self) { keyword in
                 Button(keyword) { run(SetTodo(keyword: keyword)) }
             }
-            Button("None") { run(SetTodo(keyword: nil)) }
+            Button(String(localized: "none.state", defaultValue: "None", comment: "No TODO state")) { run(SetTodo(keyword: nil)) }
         } label: {
             chip(fields.todo ?? String(localized: "No State"), color: color)
         }
@@ -177,7 +177,7 @@ struct EntrySheet: View {
                 ForEach(priorities, id: \.self) { priority in
                     Button("Priority \(priority)") { run(SetPriority(), ["priority": priority]) }
                 }
-                Button("None") { run(SetPriority(), ["priority": " "]) }
+                Button(String(localized: "none.priority", defaultValue: "None", comment: "No priority")) { run(SetPriority(), ["priority": " "]) }
             } label: {
                 chip(fields.priority.map { "#" + $0 } ?? "#", color: color)
             }

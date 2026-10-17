@@ -44,7 +44,7 @@ extension AgendaView {
                         .help("Previous days (b)")
                     Button("Today") { goToday() }
                         .help("Back to today (.)")
-                    Button("Later", systemImage: "chevron.right") { move(forward: true) }
+                    Button(String(localized: "agenda.later", defaultValue: "Later", comment: "Shows the next days in the agenda"), systemImage: "chevron.right") { move(forward: true) }
                         .help("Next days (f)")
                 }
                 Button("Go to Date", systemImage: "calendar") {

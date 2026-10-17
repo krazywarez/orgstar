@@ -208,7 +208,7 @@ struct BoardScreen: View {
             ForEach(keywords.filter { $0 != entry.todo }, id: \.self) { keyword in Button(keyword) { setTodo(entry, keyword) } }
             if entry.todo != nil {
                 Divider()
-                Button("None") { setTodo(entry, nil) }
+                Button(String(localized: "none.state", defaultValue: "None", comment: "No TODO state")) { setTodo(entry, nil) }
             }
         }
         Button("Set Property…", systemImage: "list.bullet.rectangle") { askProperty(entry) }

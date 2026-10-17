@@ -65,7 +65,7 @@ struct ModeLine: View {
                 .help(timer.isCountdown ? "Countdown timer" : "Relative timer")
             }
             if selection.length > 0, let region = region(text, selection) {
-                Text("\(region.lines) \(region.lines == 1 ? "line" : "lines"), \(region.words) \(region.words == 1 ? "word" : "words"), \(region.characters) chars")
+                Text("\(region.lines) lines, \(region.words) words, \(region.characters) chars")
                     .help("Selection (count-words-region)")
             }
             let position = TextStats.position(in: text, at: selection.location + selection.length)

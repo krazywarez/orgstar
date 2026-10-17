@@ -201,7 +201,7 @@ struct AgendaScreen: View, Equatable {
                 bulk { perform(SetPlanning(deadline: kind == .deadline), $0, $1, answers: ["date": answer]) }
             }
         }
-        .confirmationDialog("Archive \(marked.count) \(marked.count == 1 ? "entry" : "entries")?", isPresented: $bulkArchiving, titleVisibility: .visible) {
+        .confirmationDialog("Archive \(marked.count) entries?", isPresented: $bulkArchiving, titleVisibility: .visible) {
             Button("Archive", role: .destructive) { bulk { session.archive(from: ($0, $1)) } }
         }
         .toolbar {
@@ -638,7 +638,7 @@ struct AgendaScreen: View, Equatable {
                             .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Span")
-                    barButton("Later", "chevron.right") { step(forward: true) }
+                    barButton(LocalizedStringResource("agenda.later", defaultValue: "Later", comment: "Shows the next days in the agenda"), "chevron.right") { step(forward: true) }
                 } else {
                     barButton("Agenda", "calendar") { show(nil, around: agenda.today) }
                 }
@@ -650,8 +650,8 @@ struct AgendaScreen: View, Equatable {
         .frame(maxWidth: .infinity)
     }
 
-    private func barButton(_ title: String, _ image: String, action: @escaping () -> Void) -> some View {
-        Button(title, systemImage: image, action: action)
+    private func barButton(_ title: LocalizedStringResource, _ image: String, action: @escaping () -> Void) -> some View {
+        Button(String(localized: title), systemImage: image, action: action)
             .labelStyle(.iconOnly)
             .font(.body.weight(.medium))
             .frame(width: 44, height: 44)
@@ -702,7 +702,7 @@ struct AgendaScreen: View, Equatable {
         }
         .swipeActions(edge: .trailing) {
             if let item = row.item, item.todo != nil, !item.isDone, item.doneKeyword != nil {
-                Button("Done", systemImage: "checkmark") { markDone(item) }.tint(.green)
+                Button(String(localized: "agenda.mark-done", defaultValue: "Done", comment: "Swipe action that marks the entry done"), systemImage: "checkmark") { markDone(item) }.tint(.green)
                 Button("Next State", systemImage: "arrow.right.circle") { run("org.todo.next", on: item) }.tint(.blue)
             }
             // Last, so a full swipe doesn't reach it; it asks first.
