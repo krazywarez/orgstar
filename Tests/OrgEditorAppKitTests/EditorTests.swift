@@ -347,6 +347,19 @@ struct BufferTests {
         h.checkInSync()
     }
 
+    /// Shorter text, as archiving a subtree leaves it: reloading puts the caret at the new
+    /// end, inside the old range of the fold after the removed subtree.
+    @Test func updateRemovingTextBeforeAFold() {
+        let h = Harness("* a\n* b\n* c\nlong body\n")
+        h.editor.setFolds(FoldState(folds: [h.offset(of: "* c")]))
+        h.caret(at: h.offset(of: "* b"))
+        h.editor.update { $0 = DocumentState(bytes: Array("* a\n* c\nlong body\n".utf8)) }
+        #expect(h.string == "* a\n* c\nlong body\n")
+        #expect(h.caret == h.offset(of: "* c"))
+        #expect(h.editor.foldState.folds == [h.offset(of: "* c")])
+        h.checkInSync()
+    }
+
     /// Each buffer's editor reports its own changes: a background buffer's edit saves its
     /// file, not the shown one's.
     @Test func backgroundEditorsSaveTheirOwnFiles() async throws {

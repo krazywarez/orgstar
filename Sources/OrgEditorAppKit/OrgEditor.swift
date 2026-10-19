@@ -865,6 +865,9 @@ public final class OrgEditor: NSObject {
     /// Keeps the caret out of folded text: moving forward into a fold jumps past it, moving
     /// back jumps to the end of the heading line.
     func selectionChanged() {
+        // Replacing the text moves the caret while the folds are still the old text's; the
+        // loader sets the caret afterwards.
+        guard !isLoading else { return }
         let selection = textView.selectedRange()
         defer { previousSelection = selection.location }
         redrawShadedSelection(selection)
