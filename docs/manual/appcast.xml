@@ -4,6 +4,17 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 0.9.2</title>
+      <link>https://gitbay.org/krz/orgstar/releases/tag/v0.9.2</link>
+      <sparkle:version>560</sparkle:version>
+      <sparkle:shortVersionString>0.9.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 19 Oct 2026 15:13:39 -0500</pubDate>
+      <description><![CDATA[<p>Fixes a crash in the Mac app when archiving a subtree (Archive Subtree, <code>org-archive-subtree</code>) in a file with folded headings, such as one with <code>#+STARTUP: overview</code>.</p>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://gitbay.org/krz/orgstar/releases/download/v0.9.2/orgstar-0.9.2.dmg" type="application/octet-stream" sparkle:edSignature="oTGE4ZzrIIHp0F9gsBafLR/AkgHS0pHqPYeJPeSYUeSA1foFvUxZGMNqiypJ80YepW4GmWAOL62Rdx2k6ISJAA==" length="56752788"/>
+    </item>
+    <item>
       <title>orgstar 0.9.1</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.9.1</link>
       <sparkle:version>557</sparkle:version>
