@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TODOs and tags &middot; orgstar</title>
+<meta name="description" content="TODO keywords, state logging, priorities, tags and progress cookies in orgstar.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>TODOs and tags</h1>
+<p class="lede">Mark headings as tasks, record when their state changes, rank them, and label them with tags.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#keywords">keywords</a>
+<ul>
+<li><a href="#the-default-keywords">The default keywords</a></li>
+<li><a href="#keywords-in-the-file">Keywords in the file</a></li>
+<li><a href="#keyword-options">Keyword options</a></li>
+</ul></li>
+<li><a href="#changing-the-state">Changing the state</a>
+<ul>
+<li><a href="#cycling">Cycling</a></li>
+<li><a href="#fast-selection">Fast selection</a></li>
+<li><a href="#inserting-a-todo-heading">Inserting a TODO heading</a></li>
+<li><a href="#dependencies">Dependencies</a></li>
+</ul></li>
+<li><a href="#logging-state-changes">Logging state changes</a>
+<ul>
+<li><a href="#closed">CLOSED</a></li>
+<li><a href="#state-notes">State notes</a></li>
+<li><a href="#the-logbook-drawer">The LOGBOOK drawer</a></li>
+<li><a href="#where-the-settings-come-from">Where the settings come from</a></li>
+</ul></li>
+<li><a href="#priorities">Priorities</a></li>
+<li><a href="#tags">Tags</a>
+<ul>
+<li><a href="#setting-tags">Setting tags</a></li>
+<li><a href="#fast-tag-selection">Fast tag selection</a></li>
+<li><a href="#inheritance">Inheritance</a></li>
+<li><a href="#alignment">Alignment</a></li>
+</ul></li>
+<li><a href="#progress-on-child-tasks">Progress on child tasks</a></li>
+<li><a href="#related-settings">Related settings</a></li>
+</ul>
+</nav>
+<h2 id="keywords"><span class="todo TODO">TODO</span> keywords</h2>
+<p>A heading becomes a task when its first word after the stars is a TODO keyword:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Write the quarterly report
+</span><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">DONE</span> Book the venue</span></span></code></pre>
+<p>Keywords come in sequences. Each sequence has active keywords, a <code class="verbatim">|</code>, and done keywords. A keyword after the <code class="verbatim">|</code> counts as done for logging, statistics cookies, repeating tasks and the agenda.</p>
+<h3 id="the-default-keywords">The default keywords</h3>
+<p>Files without a <code class="verbatim">#+TODO</code> line use the keywords in Settings ▸ Editing ▸ Default TODO keywords, which is the <code class="verbatim">org-todo-keywords</code> key in <code class="verbatim">config.toml</code>. The default is Org's, <code class="verbatim">TODO | DONE</code>. Doom Emacs's set, which Import from Emacs carries over from a Doom configuration, is:</p>
+<pre><code class="language-org highlight"><span class="text org">TODO(t) PROJ(p) LOOP(r) STRT(s) WAIT(w) HOLD(h) IDEA(i) | DONE(d) KILL(k)</span></code></pre>
+<p>A <code class="verbatim">config.toml</code> written by an earlier version keeps the keywords it has. The value uses <code class="verbatim">#+TODO</code> syntax. To define more than one sequence, put one per line (<code class="verbatim">\n</code> in <code class="verbatim">config.toml</code>). orgstar reads this setting at launch, so a change takes effect after you restart the app. See <a href="13-configuration.html">Configuration</a> for the file itself and for keyword colors under <code class="verbatim">[theme.todo]</code>.</p>
+<h3 id="keywords-in-the-file">Keywords in the file</h3>
+<p>A file can set its own keywords, which replace the default ones for that file:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+TODO:</span><span class="string unquoted org"> TODO NEXT WAIT | DONE CANCELED</span>
+<span class="keyword other keyword org">#+TODO:</span><span class="string unquoted org"> BUG(b) | FIXED(f)</span>
+<span class="keyword other keyword org">#+SEQ_TODO:</span><span class="string unquoted org"> DRAFT REVIEW | PUBLISHED</span>
+<span class="keyword other keyword org">#+TYP_TODO:</span><span class="string unquoted org"> ALICE BOB | DONE</span></span></code></pre>
+<ul>
+<li>Each line is one sequence. <code class="verbatim">#+SEQ_TODO</code> means the same as <code class="verbatim">#+TODO</code>.</li>
+<li>Without a <code class="verbatim">|</code>, the last word is the done keyword.</li>
+<li><code class="verbatim">#+TYP_TODO</code> marks a sequence of types (<code class="verbatim">org-todo-interpretation</code> <code class="verbatim">type</code>). Cycling with <code class="verbatim">C-c C-t</code> from a type keyword goes to the sequence's first done keyword (see <em>Cycling</em>), and a repeating entry returns to the keyword it had before it was done, instead of to the first keyword of the sequence.</li>
+<li>The order of sequences is the order Org uses: <code class="verbatim">#+TYP_TODO</code> lines first, then <code class="verbatim">#+TODO</code>, then <code class="verbatim">#+SEQ_TODO</code>.</li>
+<li>Lines inside blocks are ignored. Lines from a <code class="verbatim">#+SETUPFILE</code> count as if they came first in the file.</li>
+</ul>
+<p>Edits to these lines take effect as you type. If the keywords come from a setup file you changed, press <code class="verbatim">C-c C-c</code> on any <code class="verbatim">#+</code> keyword line to read the setup files again (<code class="verbatim">org-mode-restart</code>).</p>
+<h3 id="keyword-options">Keyword options</h3>
+<p>The parentheses after a keyword hold a fast-selection key and logging flags, as in Org:</p>
+<table>
+<thead>
+<tr><th>Form</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">WAIT(w)</code></td><td>Fast-selection key <code class="verbatim">w</code></td></tr>
+<tr><td><code class="verbatim">WAIT(w!)</code></td><td>Key <code class="verbatim">w</code>, record the time when entering the state</td></tr>
+<tr><td><code class="verbatim">WAIT(w@)</code></td><td>Key <code class="verbatim">w</code>, ask for a note when entering the state</td></tr>
+<tr><td><code class="verbatim">WAIT(w@/!)</code></td><td>Note when entering, time when leaving to a state that logs nothing</td></tr>
+<tr><td><code class="verbatim">WAIT(@/!)</code></td><td>No key, same logging</td></tr>
+</tbody>
+</table>
+<p>Logging is described under "Logging state changes" below.</p>
+<h2 id="changing-the-state">Changing the state</h2>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th><th>Doom leader</th></tr>
+</thead>
+<tbody>
+<tr><td>Cycle TODO State</td><td><code class="verbatim">org-todo</code></td><td><code class="verbatim">C-c C-t</code></td><td>⌃⌘T</td><td><code class="verbatim">SPC m t</code></td></tr>
+<tr><td>Next TODO Keyword</td><td><code class="verbatim">org-shiftright</code></td><td><code class="verbatim">S-&lt;right&gt;</code></td><td>⌃⇧⌘→</td><td></td></tr>
+<tr><td>Previous TODO Keyword</td><td><code class="verbatim">org-shiftleft</code></td><td><code class="verbatim">S-&lt;left&gt;</code></td><td>⌃⇧⌘←</td><td></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">S-&lt;right&gt;</code> and <code class="verbatim">S-&lt;left&gt;</code> act on the TODO keyword when the caret is on a heading line and not on a timestamp. In the Doom preset they also work in normal and insert state, and <code class="verbatim">C-S-l</code> and <code class="verbatim">C-S-h</code> do the same. The Mac preset's <code class="verbatim">⌃⇧⌘→</code> and <code class="verbatim">⌃⇧⌘←</code> act on the keyword when the caret is on a heading line.</p>
+<p>With speed commands on (<code class="verbatim">org-use-speed-commands</code>), <code class="verbatim">t</code> at the start of a heading line runs Cycle TODO State.</p>
+<h3 id="cycling">Cycling</h3>
+<p><code class="verbatim">C-c C-t</code> behaves in one of two ways:</p>
+<ul>
+<li>If any keyword in the file has a fast-selection key, it opens fast selection (<code class="verbatim">org-use-fast-todo-selection</code> <code class="verbatim">auto</code>). The default keywords have no keys, so <code class="verbatim">C-c C-t</code> cycles until you define keywords with keys, as Doom's set has them.</li>
+<li>Otherwise it cycles: no keyword, then each keyword of the first sequence in order, then no keyword again. From a keyword in another sequence it moves through that sequence and then to no keyword. From a <code class="verbatim">#+TYP_TODO</code> keyword it goes straight to the sequence's first done keyword, as Org does; pressing <code class="verbatim">C-c C-t</code> again right away moves to the next type keyword instead. In the iOS app and the agenda, each press on a type keyword goes to the done keyword.</li>
+</ul>
+<p><code class="verbatim">S-&lt;right&gt;</code> and <code class="verbatim">S-&lt;left&gt;</code> never use fast selection. They step through every keyword of every sequence in order, then to no keyword, and wrap around.</p>
+<h3 id="fast-selection">Fast selection</h3>
+<p>Fast selection appears in the echo area under the editor. Each sequence is shown on its own row in braces, with the key in brackets before each keyword.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>a keyword's key</td><td>Set that keyword</td></tr>
+<tr><td><code class="verbatim">SPC</code></td><td>Remove the keyword</td></tr>
+<tr><td><code class="verbatim">Esc</code>, <code class="verbatim">C-g</code>, any other key</td><td>Quit without changing anything</td></tr>
+</tbody>
+</table>
+<p>Keywords without a key in parentheses get one: the first letter of the keyword not already taken (a leading <code class="verbatim">@</code> is skipped), and failing that a digit counting up from <code class="verbatim">0</code>. When two sequences use the same key, the key picks the keyword from the current keyword's sequence.</p>
+<h3 id="inserting-a-todo-heading">Inserting a TODO heading</h3>
+<p>Insert TODO Heading (<code class="verbatim">org-insert-todo-heading</code>, <code class="verbatim">M-S-RET</code> in Emacs and Doom, ⌘⇧↩ on Mac) adds a heading with the current entry's keyword when that keyword is active, and with the first keyword otherwise. See <a href="04-outlines.html">Outlines</a>.</p>
+<h3 id="dependencies">Dependencies</h3>
+<p>With <code class="verbatim">org-enforce-todo-dependencies</code> on, an entry can't move to a done keyword while one of its descendants has an active keyword. Descendants without a keyword don't count. orgstar refuses the change with Org's message:</p>
+<pre>TODO state change from TODO to DONE blocked (by "TODO Pack the kitchen")</pre>
+<p>The <code class="verbatim">ORDERED</code> property adds an order. Under a parent with <code class="verbatim">:ORDERED: t</code>, an entry can't be done while any heading between the parent and the entry has an active keyword: an earlier sibling, or an open child of one. The order also reaches down. When an entry with an active keyword is held back this way, its descendants can't be done either, as long as every heading between them has an active keyword too. <code class="verbatim">ORDERED</code> counts only on the direct parent, not inherited from higher up or from <code class="verbatim">#+PROPERTY</code>. Any value but <code class="verbatim">nil</code> turns it on, including an empty one.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Move house
+</span>:PROPERTIES:
+:ORDERED:  t
+:END:
+<span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Hire a van
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Pack the kitchen</span></span></code></pre>
+<p>Here Pack the kitchen can't be done until Hire a van is. Toggle ORDERED Property (<code class="verbatim">org-toggle-ordered-property</code>, <code class="verbatim">C-c C-x o</code> in Emacs and Doom) adds <code class="verbatim">:ORDERED: t</code> to the entry's property drawer, or removes the property when it is set. With <code class="verbatim">org-track-ordered-property-with-tag</code> set in <code class="verbatim">config.toml</code>, it adds or removes that tag too (<code class="verbatim">ORDERED</code> for <code class="verbatim">"t"</code>), so ordered entries show in the heading line.</p>
+<p>With <code class="verbatim">org-enforce-todo-checkbox-dependencies</code> on, an entry can't be done while its own text has an unchecked (<code class="verbatim">[ ]</code>) or partly checked (<code class="verbatim">[-]</code>) checkbox. Checkboxes in child entries and in src, example, export and verse blocks don't count. The message ends in <code class="verbatim">(by contained checkboxes)</code>; when both settings would refuse the change, it names the checkboxes.</p>
+<p>The check applies to every change to a done keyword: <code class="verbatim">C-c C-t</code>, fast selection, <code class="verbatim">S-&lt;right&gt;</code> and <code class="verbatim">S-&lt;left&gt;</code>, Doom's <code class="verbatim">RET</code> and the agenda's TODO actions on both platforms. A blocked repeating entry doesn't repeat. Changes from a done keyword, and changes to an active keyword or to none, are never refused. An entry with a <code class="verbatim">NOBLOCKING</code> property (any value but <code class="verbatim">nil</code>) is never blocked.</p>
+<p>Both settings are off by default, as in Org. They are under Settings ▸ Editing and in <code class="verbatim">config.toml</code>. The agenda dims blocked entries; see <a href="07-agenda.html">The agenda</a>.</p>
+<h2 id="logging-state-changes">Logging state changes</h2>
+<p>orgstar logs state changes as <code class="verbatim">org-todo</code> does in Org 9.8.</p>
+<h3 id="closed">CLOSED</h3>
+<p>When <code class="verbatim">org-log-done</code> is <code class="verbatim">time</code> and an entry moves from an active keyword to a done one, orgstar adds a <code class="verbatim">CLOSED</code> stamp to its planning line:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">DONE</span> Book the venue
+</span>CLOSED: <span class="constant other timestamp org">[2026-10-07 Wed 14:32]</span></span></code></pre>
+<p>With <code class="verbatim">note</code>, it also asks for a closing note. Moving the entry back to an active keyword, or removing the keyword, removes <code class="verbatim">CLOSED</code>. This happens only while some logging is on (<code class="verbatim">org-log-done</code> or a keyword with <code class="verbatim">!</code> or <code class="verbatim">@</code>); with no logging at all, an existing <code class="verbatim">CLOSED</code> stamp stays.</p>
+<h3 id="state-notes">State notes</h3>
+<p>A keyword with <code class="verbatim">!</code> or <code class="verbatim">@</code> records a note when the entry enters it, and the part after <code class="verbatim">/</code> records one when the entry leaves it for a state that logs nothing on entry. <code class="verbatim">!</code> records the time; <code class="verbatim">@</code> asks for a note in the echo area:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+TODO:</span><span class="string unquoted org"> TODO(t) WAIT(w@/!) | DONE(d!) CANCELED(c@)</span>
+
+<span class="markup heading org"><span class="punctuation definition heading org">*</span> WAIT Call the supplier
+</span><span class="punctuation definition list org">- </span>State &quot;WAIT&quot;       from &quot;TODO&quot;       <span class="constant other timestamp org">[2026-10-07 Wed 09:15]</span> \\
+  Left a message, waiting for a reply.</span></code></pre>
+<p>Notes go first in the entry, after the planning line and property drawer, newest first (<code class="verbatim">org-log-states-order-reversed</code> <code class="verbatim">t</code>). The note text is indented under the item; lines starting with <code class="verbatim">#</code> and a space are dropped. If the keyword's own flag and <code class="verbatim">org-log-done</code> both apply, the keyword's flag wins.</p>
+<p>The headings are Org's default <code class="verbatim">org-log-note-headings</code>:</p>
+<table>
+<thead>
+<tr><th>Event</th><th>Note heading</th></tr>
+</thead>
+<tbody>
+<tr><td>State change</td><td><code class="verbatim">State "DONE"       from "TODO"       [timestamp]</code></td></tr>
+<tr><td>Closing note</td><td><code class="verbatim">CLOSING NOTE [timestamp]</code></td></tr>
+<tr><td>Rescheduled</td><td><code class="verbatim">Rescheduled from "[old date]" on [timestamp]</code></td></tr>
+<tr><td>Schedule removed</td><td><code class="verbatim">Not scheduled, was "[old date]" on [timestamp]</code></td></tr>
+<tr><td>New deadline</td><td><code class="verbatim">New deadline from "[old date]" on [timestamp]</code></td></tr>
+<tr><td>Deadline removed</td><td><code class="verbatim">Removed deadline, was "[old date]" on [timestamp]</code></td></tr>
+</tbody>
+</table>
+<p>Rescheduling and deadline notes are covered in <a href="06-dates-and-clocking.html">Dates, scheduling and clocking</a>. orgstar has no command to add a free note to an entry (<code class="verbatim">org-add-note</code>).</p>
+<h3 id="the-logbook-drawer">The LOGBOOK drawer</h3>
+<p>With <code class="verbatim">org-log-into-drawer</code> set to a drawer name, notes go at the top of that drawer, which orgstar creates when it is missing:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">DONE</span> Book the venue
+</span>CLOSED: <span class="constant other timestamp org">[2026-10-07 Wed 14:32]</span>
+:LOGBOOK:
+<span class="punctuation definition list org">- </span>State &quot;DONE&quot;       from &quot;TODO&quot;       <span class="constant other timestamp org">[2026-10-07 Wed 14:32]</span>
+:END:</span></code></pre>
+<p>In <code class="verbatim">config.toml</code>, <code class="verbatim">"LOGBOOK"</code> is the equivalent of Emacs's <code class="verbatim">t</code>, and <code class="verbatim">""</code> (the default) means no drawer. Clock lines always go into a <code class="verbatim">LOGBOOK</code> drawer, whatever this setting says.</p>
+<h3 id="where-the-settings-come-from">Where the settings come from</h3>
+<p>Later sources override earlier ones:</p>
+<ol>
+<li><code class="verbatim">config.toml</code>: <code class="verbatim">org-log-done</code>, <code class="verbatim">org-log-reschedule</code>, <code class="verbatim">org-log-redeadline</code> (each <code class="verbatim">nil</code>, <code class="verbatim">time</code> or <code class="verbatim">note</code>, default <code class="verbatim">nil</code>) and <code class="verbatim">org-log-into-drawer</code> (default <code class="verbatim">""</code>). <code class="verbatim">org-log-done</code> and <code class="verbatim">org-log-into-drawer</code> are also in Settings ▸ Editing; the other two are in the file only. <code class="verbatim">org-log-repeat</code> is always <code class="verbatim">time</code> unless the file changes it.</li>
+<li>Keyword flags such as <code class="verbatim">DONE(d!)</code>.</li>
+<li><code class="verbatim">#+STARTUP</code> words in the file or its setup files.</li>
+<li>The <code class="verbatim">LOGGING</code> property, inherited from ancestors.</li>
+<li>The <code class="verbatim">LOG_INTO_DRAWER</code> property, inherited from ancestors: <code class="verbatim">t</code> for <code class="verbatim">LOGBOOK</code>, <code class="verbatim">nil</code> for none, or a drawer name.</li>
+</ol>
+<table>
+<thead>
+<tr><th><code class="verbatim">#+STARTUP</code> word</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">logdone</code>, <code class="verbatim">lognotedone</code>, <code class="verbatim">nologdone</code></td><td><code class="verbatim">org-log-done</code> <code class="verbatim">time</code>, <code class="verbatim">note</code>, <code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">logrepeat</code>, <code class="verbatim">lognoterepeat</code>, <code class="verbatim">nologrepeat</code></td><td><code class="verbatim">org-log-repeat</code> <code class="verbatim">time</code>, <code class="verbatim">note</code>, <code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">logreschedule</code>, <code class="verbatim">lognotereschedule</code>, <code class="verbatim">nologreschedule</code></td><td><code class="verbatim">org-log-reschedule</code></td></tr>
+<tr><td><code class="verbatim">logredeadline</code>, <code class="verbatim">lognoteredeadline</code>, <code class="verbatim">nologredeadline</code></td><td><code class="verbatim">org-log-redeadline</code></td></tr>
+<tr><td><code class="verbatim">logdrawer</code>, <code class="verbatim">nologdrawer</code></td><td><code class="verbatim">org-log-into-drawer</code> <code class="verbatim">LOGBOOK</code> or none</td></tr>
+</tbody>
+</table>
+<p>A <code class="verbatim">LOGGING</code> property (<code class="verbatim">org-local-logging</code>) replaces the done, repeat and per-keyword settings for its subtree. It takes the <code class="verbatim">logdone</code> and <code class="verbatim">logrepeat</code> words above and keyword specifications such as <code class="verbatim">WAIT(@)</code>; <code class="verbatim">nil</code> turns them all off:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Errands
+</span>:PROPERTIES:
+:LOGGING:  DONE(!) WAIT(@) logrepeat
+:LOG<span class="markup underline org">_INTO_</span>DRAWER: NOTES
+:END:</span></code></pre>
+<h2 id="priorities">Priorities</h2>
+<p>A priority cookie goes after the keyword:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> <span class="constant other priority org">[#A]</span> Renew the passport</span></span></code></pre>
+<p>The range is <code class="verbatim">A</code> (highest) to <code class="verbatim">C</code> (lowest), with <code class="verbatim">B</code> as the default. A file can change it with <code class="verbatim">#+PRIORITIES: highest lowest default</code>, using letters or numbers:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+PRIORITIES:</span><span class="string unquoted org"> A E C</span>
+<span class="keyword other keyword org">#+PRIORITIES:</span><span class="string unquoted org"> 1 10 5</span></span></code></pre>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th><th>Doom leader</th></tr>
+</thead>
+<tbody>
+<tr><td>Set Priority…</td><td><code class="verbatim">org-priority</code></td><td><code class="verbatim">C-c ,</code></td><td>⌃⌘,</td><td><code class="verbatim">SPC m p p</code></td></tr>
+<tr><td>Raise Priority</td><td><code class="verbatim">org-priority-up</code></td><td><code class="verbatim">S-&lt;up&gt;</code></td><td>⌃⌘↑</td><td><code class="verbatim">SPC m p u</code></td></tr>
+<tr><td>Lower Priority</td><td><code class="verbatim">org-priority-down</code></td><td><code class="verbatim">S-&lt;down&gt;</code></td><td>⌃⌘↓</td><td><code class="verbatim">SPC m p d</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">S-&lt;up&gt;</code> and <code class="verbatim">S-&lt;down&gt;</code> act on the priority when the caret is on a heading line and not on a timestamp; Doom also binds <code class="verbatim">C-S-k</code> and <code class="verbatim">C-S-j</code>.</p>
+<ul>
+<li>Set Priority shows the priorities with their keys (lowercase letters, or the digits of a numeric range) and <code class="verbatim">SPC</code> to remove the cookie. When the lowest numeric priority is 10 or more, it asks you to type the number instead.</li>
+<li>Raise and Lower start at the default priority when the heading has none (<code class="verbatim">org-priority-start-cycle-with-default</code>). Going past the highest or lowest priority removes the cookie.</li>
+<li>With speed commands on, <code class="verbatim">,</code> runs Set Priority, <code class="verbatim">1</code>, <code class="verbatim">2</code> and <code class="verbatim">3</code> set <code class="verbatim">A</code>, <code class="verbatim">B</code> and <code class="verbatim">C</code>, and <code class="verbatim">0</code> removes the priority.</li>
+</ul>
+<p>The agenda sorts by priority; see <a href="07-agenda.html">The agenda</a>.</p>
+<h2 id="tags">Tags</h2>
+<p>Tags go at the end of a heading, between colons:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> <span class="keyword other todo org">TODO</span> Order parts                                             <span class="entity name tag org">:work:urgent:</span></span></span></code></pre>
+<p>A tag consists of letters, digits, <code class="verbatim">_</code>, <code class="verbatim">@</code>, <code class="verbatim">#</code> and <code class="verbatim">%</code>.</p>
+<h3 id="setting-tags">Setting tags</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs, Doom</th><th>Mac</th><th>Doom leader</th></tr>
+</thead>
+<tbody>
+<tr><td>Set Tags</td><td><code class="verbatim">org-set-tags-command</code></td><td><code class="verbatim">C-c C-q</code></td><td>⌃⌘G</td><td><code class="verbatim">SPC m q</code></td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">C-c C-c</code> (Mac <code class="verbatim">⌃⌘X</code>) on a heading line also runs Set Tags, and so does <code class="verbatim">:</code> as a speed command.</p>
+<p>Without fast selection (see below), Set Tags asks for the tags in the echo area, starting with the current ones. Completion offers the tags in the file's <code class="verbatim">#+TAGS</code> lines, or, without those, every tag used in the file and its <code class="verbatim">#+FILETAGS</code>, and in both cases the tags used across your folders. You can type tags that are not offered. Spaces, commas and colons all separate tags; an empty answer removes all tags.</p>
+<p>Setting tags on the text before the first heading (file tags) is not supported; edit the <code class="verbatim">#+FILETAGS</code> line directly.</p>
+<p>Typing <code class="verbatim">:</code> at the end of a heading line also completes tags: from the <code class="verbatim">#+TAGS</code> lines when the file has any, and otherwise from the file's tags and those used across your folders. Tags the heading already has are left out. See <a href="02-the-editor.html">The editor</a> for how completion works.</p>
+<h3 id="fast-tag-selection">Fast tag selection</h3>
+<p>A file without <code class="verbatim">#+TAGS</code> lines uses <code class="verbatim">org-tag-alist</code> from <code class="verbatim">config.toml</code> instead, written as a <code class="verbatim">#+TAGS</code> line; separate rows with <code class="verbatim">\n</code>: <code class="verbatim">org-tag-alist = "work(w) home(h)\n{ @office(o) @home(H) }"</code>.</p>
+<p>When a <code class="verbatim">#+TAGS</code> line gives at least one tag a key, Set Tags opens fast selection (<code class="verbatim">org-fast-tag-selection</code>):</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+TAGS:</span><span class="string unquoted org"> { @office(o) @home(h) @errand(e) } laptop(l) phone(p)</span>
+<span class="keyword other keyword org">#+TAGS:</span><span class="string unquoted org"> [ Project : alpha beta ]</span></span></code></pre>
+<table>
+<thead>
+<tr><th>Key</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>a tag's key</td><td>Toggle that tag</td></tr>
+<tr><td><code class="verbatim">SPC</code></td><td>Remove all tags</td></tr>
+<tr><td><code class="verbatim">TAB</code></td><td>Type a tag by name, then <code class="verbatim">RET</code></td></tr>
+<tr><td><code class="verbatim">RET</code></td><td>Apply the selection</td></tr>
+<tr><td><code class="verbatim">q</code></td><td>Quit, unless a tag uses <code class="verbatim">q</code> as its key</td></tr>
+<tr><td><code class="verbatim">Esc</code>, <code class="verbatim">C-g</code></td><td>Quit</td></tr>
+</tbody>
+</table>
+<p>The view shows the inherited tags, the current selection, and each tag with its key, in the rows and groups of the <code class="verbatim">#+TAGS</code> lines.</p>
+<ul>
+<li>Tags between <code class="verbatim">{</code> and <code class="verbatim">}</code> exclude each other: selecting one removes the others in the group.</li>
+<li>Tags between <code class="verbatim">[</code> and <code class="verbatim">]</code>, with <code class="verbatim">:</code> after the first, form a group tag. The selection shows them as written; they do not change how keys act. Searching by group tag is part of <a href="07-agenda.html">The agenda</a>.</li>
+<li>Tags without a key get one: their first letter if it is free, otherwise the next free character from <code class="verbatim">a–z</code>, <code class="verbatim">A–Z</code> and <code class="verbatim">{|}~</code>.</li>
+<li>The selected tags are written in the order of the <code class="verbatim">#+TAGS</code> lines, followed by any others.</li>
+</ul>
+<p><code class="verbatim">#+TAGS</code> lines come from the file and its setup files, and <code class="verbatim">org-tag-alist</code> in <code class="verbatim">config.toml</code> stands in when there are none. Tags used across your folders are offered for completion only.</p>
+<h3 id="inheritance">Inheritance</h3>
+<p>An entry inherits the tags of its ancestors and the file's <code class="verbatim">#+FILETAGS</code> (<code class="verbatim">org-use-tag-inheritance</code> <code class="verbatim">t</code>). Fast selection lists inherited tags separately. Agenda matches, column view's <code class="verbatim">ALLTAGS</code>, archiving and clock tables with <code class="verbatim">:tags t</code> use the inherited tags too.</p>
+<p><code class="verbatim">org-use-tag-inheritance</code> in <code class="verbatim">config.toml</code> limits which tags inherit: <code class="verbatim">"nil"</code> none, tag names separated by spaces only those, or a regular expression in braces, <code class="verbatim">"{^@}"</code>, the tags it matches. <code class="verbatim">org-tags-exclude-from-inheritance</code> names tags that never inherit, such as <code class="verbatim">crypt</code>; as in Org, it applies when inheritance is <code class="verbatim">t</code> or a regular expression, not with a list of names. Both are read at launch.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+FILETAGS:</span><span class="string unquoted org"> :home:</span>
+
+<span class="markup heading org"><span class="punctuation definition heading org">*</span> Garden                                                          <span class="entity name tag org">:outdoor:
+</span></span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Prune the roses</span></span></code></pre>
+<p>Here "Prune the roses" has the tags <code class="verbatim">home</code> and <code class="verbatim">outdoor</code> through inheritance.</p>
+<h3 id="alignment">Alignment</h3>
+<p>orgstar aligns tags whenever it changes a heading line: setting tags, changing the TODO keyword or the priority, and updating a statistics cookie. The column is <code class="verbatim">org-tags-column</code>, under Settings ▸ Editing ▸ Tags:</p>
+<table>
+<thead>
+<tr><th>Value</th><th>Placement</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">-77</code></td><td>Tags end at column 77 (the default)</td></tr>
+<tr><td><code class="verbatim">0</code></td><td>One space after the title</td></tr>
+<tr><td>negative N</td><td>Tags end at column N</td></tr>
+<tr><td>positive N</td><td>Tags start at column N</td></tr>
+</tbody>
+</table>
+<p>The Settings window offers <code class="verbatim">-77</code> and <code class="verbatim">0</code>; other values go in <code class="verbatim">config.toml</code>. Columns are counted as Emacs displays the line, so links count as their description and, when <code class="verbatim">org-hide-emphasis-markers</code> is on, emphasis markers do not count. A heading always keeps at least one space before its tags.</p>
+<h2 id="progress-on-child-tasks">Progress on child tasks</h2>
+<p>A <code class="verbatim">[/]</code> or <code class="verbatim">[%]</code> cookie in a heading shows how many of its children are done:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Move house [1/3]
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">DONE</span> Hire a van
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Pack the kitchen
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Forward the mail</span></span></code></pre>
+<p>orgstar updates the cookie whenever a child's TODO keyword changes (<code class="verbatim">org-update-parent-todo-statistics</code>, with <code class="verbatim">org-hierarchical-todo-statistics</code> <code class="verbatim">t</code>). Only direct children with a TODO keyword count; children without one are ignored. <code class="verbatim">C-c C-c</code> on a cookie updates it by hand.</p>
+<p>The <code class="verbatim">COOKIE_DATA</code> property changes what the parent's cookie counts:</p>
+<ul>
+<li><code class="verbatim">recursive</code> counts every descendant with a keyword, and a change updates the cookies of every ancestor up to the heading that sets the property. Without it, only the direct parent's cookie is updated.</li>
+<li><code class="verbatim">checkbox</code> makes the cookie count checkboxes in the entry's lists instead of child tasks. Checkbox cookies are described in <a href="04-outlines.html">Outlines</a>.</li>
+</ul>
+<h2 id="related-settings">Related settings</h2>
+<table>
+<thead>
+<tr><th>Setting</th><th>Where</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">org-todo-keywords</code></td><td>Settings ▸ Editing, <code class="verbatim">config.toml</code></td><td>See "The default keywords" above</td></tr>
+<tr><td><code class="verbatim">org-log-done</code></td><td>Settings ▸ Editing, <code class="verbatim">config.toml</code></td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">org-log-into-drawer</code></td><td>Settings ▸ Editing, <code class="verbatim">config.toml</code></td><td><code class="verbatim">""</code> (no drawer)</td></tr>
+<tr><td><code class="verbatim">org-enforce-todo-dependencies</code></td><td>Settings ▸ Editing (iOS: Settings ▸ TODO Dependencies), <code class="verbatim">config.toml</code></td><td><code class="verbatim">false</code></td></tr>
+<tr><td><code class="verbatim">org-enforce-todo-checkbox-dependencies</code></td><td>Settings ▸ Editing (iOS: Settings ▸ TODO Dependencies), <code class="verbatim">config.toml</code></td><td><code class="verbatim">false</code></td></tr>
+<tr><td><code class="verbatim">org-tags-column</code></td><td>Settings ▸ Editing, <code class="verbatim">config.toml</code></td><td><code class="verbatim">-77</code></td></tr>
+<tr><td><code class="verbatim">org-use-speed-commands</code></td><td>Settings ▸ Editing, <code class="verbatim">config.toml</code></td><td><code class="verbatim">false</code></td></tr>
+</tbody>
+</table>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

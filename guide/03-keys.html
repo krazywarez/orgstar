@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keys and commands &middot; orgstar</title>
+<meta name="description" content="The three key presets, prefix keys and key hints, the echo area, the command palette, Option as Meta, keymap.toml, Vim editing in the Doom preset,…">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Keys and commands</h1>
+<p class="lede">Every action in orgstar is a named command; a keymap preset decides which keys run which commands, and keymap.toml lets you change that.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#commands-and-keymaps">Commands and keymaps</a></li>
+<li><a href="#choosing-a-preset">Choosing a preset</a></li>
+<li><a href="#option-as-meta">Option as Meta</a></li>
+<li><a href="#how-keys-reach-commands">How keys reach commands</a>
+<ul>
+<li><a href="#contexts">Contexts</a></li>
+<li><a href="#prefix-keys-and-key-hints">Prefix keys and key hints</a></li>
+</ul></li>
+<li><a href="#the-echo-area">The echo area</a></li>
+<li><a href="#the-command-palette">The command palette</a></li>
+<li><a href="#menu-shortcuts">Menu shortcuts</a></li>
+<li><a href="#speed-keys">Speed keys</a></li>
+<li><a href="#customizing-keys-keymap-toml">Customizing keys: keymap.toml</a>
+<ul>
+<li><a href="#format">Format</a></li>
+<li><a href="#key-notation">Key notation</a></li>
+<li><a href="#priority">Priority</a></li>
+<li><a href="#unbinding">Unbinding</a></li>
+<li><a href="#doom-states">Doom states</a></li>
+<li><a href="#more-examples">More examples</a></li>
+<li><a href="#reloading-and-errors">Reloading and errors</a></li>
+<li><a href="#importing-from-emacs">Importing from Emacs</a></li>
+</ul></li>
+<li><a href="#vim-editing-doom-preset">Vim editing (Doom preset)</a>
+<ul>
+<li><a href="#how-keys-are-handled">How keys are handled</a></li>
+<li><a href="#states">States</a></li>
+<li><a href="#motions">Motions</a></li>
+<li><a href="#operators">Operators</a></li>
+<li><a href="#text-objects">Text objects</a></li>
+<li><a href="#counts-and-registers">Counts and registers</a></li>
+<li><a href="#repeat">Repeat</a></li>
+<li><a href="#macros">Macros</a></li>
+<li><a href="#marks-and-jumps">Marks and jumps</a></li>
+<li><a href="#visual-states">Visual states</a></li>
+<li><a href="#surround">Surround</a></li>
+<li><a href="#commenting">Commenting</a></li>
+<li><a href="#org-keys-in-normal-state">Org keys in normal state</a></li>
+<li><a href="#the-leader">The leader</a></li>
+<li><a href="#ex-commands">Ex commands</a></li>
+<li><a href="#not-available">Not available</a></li>
+</ul></li>
+<li><a href="#keys-in-other-windows">Keys in other windows</a></li>
+<li><a href="#ios-and-ipados">iOS and iPadOS</a></li>
+<li><a href="#key-reference">Key reference</a>
+<ul>
+<li><a href="#movement-and-the-region">Movement and the region</a></li>
+<li><a href="#editing">Editing</a></li>
+<li><a href="#outline-visibility-and-narrowing">Outline: visibility and narrowing</a></li>
+<li><a href="#outline-headings-and-subtrees">Outline: headings and subtrees</a></li>
+<li><a href="#lists-and-checkboxes">Lists and checkboxes</a></li>
+<li><a href="#todo-priority-and-tags">TODO, priority and tags</a></li>
+<li><a href="#properties-and-column-view">Properties and column view</a></li>
+<li><a href="#dates-and-clocking">Dates and clocking</a></li>
+<li><a href="#tables">Tables</a></li>
+<li><a href="#links-and-footnotes">Links and footnotes</a></li>
+<li><a href="#code-blocks-and-c-c-c-c">Code blocks and C-c C-c</a></li>
+<li><a href="#agenda-and-capture">Agenda and capture</a></li>
+<li><a href="#export">Export</a></li>
+<li><a href="#files-buffers-and-the-app">Files, buffers and the app</a></li>
+<li><a href="#attachments">Attachments</a></li>
+<li><a href="#notes-and-daily-notes">Notes and daily notes</a></li>
+<li><a href="#unbound-commands">Unbound commands</a></li>
+<li><a href="#speed-keys-reference">Speed keys reference</a></li>
+</ul></li>
+</ul>
+</nav>
+<h2 id="commands-and-keymaps">Commands and keymaps</h2>
+<p>Each action has a command id such as <code class="verbatim">org.todo.cycle</code> and a title such as <em>Cycle TODO State</em>. Keys, the Org menu, the command palette and the iOS key bar all run commands by id. A keymap maps key sequences to command ids. orgstar ships three keymaps, called presets, and reads your own bindings from <code class="verbatim">keymap.toml</code> on top of the one you choose.</p>
+<p>Ids starting with <code class="verbatim">org.</code> are Org commands and run only in Org files. Ids starting with <code class="verbatim">edit.</code> are text-system actions (movement, killing, find). Ids starting with <code class="verbatim">app.</code> are carried out by the app: saving, buffers, windows, export. <code class="verbatim">editor.</code> ids change how the editor behaves. The <a href="#key-reference">key reference</a> at the end of this chapter lists every bound command with its keys in each preset.</p>
+<h2 id="choosing-a-preset">Choosing a preset</h2>
+<p>Choose a preset in Settings ▸ General ▸ Keys, or with <code class="verbatim">keymap</code> in the <code class="verbatim">[orgstar]</code> table of <code class="verbatim">config.toml</code> (see <a href="13-configuration.html">Configuration</a>). The change applies at once.</p>
+<table>
+<thead>
+<tr><th>Preset</th><th><code class="verbatim">config.toml</code> value</th><th>What it is</th></tr>
+</thead>
+<tbody>
+<tr><td>Emacs</td><td><code class="verbatim">"emacs"</code></td><td>Emacs and Org keys: <code class="verbatim">C-f</code>, <code class="verbatim">C-k</code>, <code class="verbatim">C-x C-s</code>, <code class="verbatim">C-c C-t</code>, <code class="verbatim">M-RET</code>, <code class="verbatim">M-&lt;left&gt;</code>. The default.</td></tr>
+<tr><td>Mac</td><td><code class="verbatim">"mac"</code></td><td>Standard macOS text keys stay as they are. Org commands use Control-Command chords (<code class="verbatim">⌃⌘T</code>, <code class="verbatim">⌃⌘←</code>), which macOS text editing leaves free.</td></tr>
+<tr><td>Doom (Vim keys)</td><td><code class="verbatim">"doom"</code></td><td>Modal editing as in Doom Emacs with evil and evil-org: normal, insert and visual states, the <code class="verbatim">SPC</code> leader and <code class="verbatim">SPC m</code> local leader, plus the Emacs preset's Org keys in every state.</td></tr>
+</tbody>
+</table>
+<p>The Mac preset binds fewer commands than the others. <code class="verbatim">⌃⌘X</code> is its <code class="verbatim">C-c C-c</code>, <code class="verbatim">⌘K</code> inserts a link and <code class="verbatim">⇧⌘E</code> opens the export sheet; the <a href="#key-reference">key reference</a> lists the rest. It has no keys for agenda, capture or the single export formats. Run those from the Org menu, from the command palette (<code class="verbatim">⇧⌘P</code>), from a menu shortcut (Agenda <code class="verbatim">⇧⌘A</code>, Capture <code class="verbatim">⇧⌘N</code>), or bind them yourself in <code class="verbatim">keymap.toml</code>.</p>
+<p>In the Emacs and Mac presets, and in Doom's insert state, macOS's own text keys keep working where the preset does not bind the key: <code class="verbatim">⌥←</code>, <code class="verbatim">⌘←</code>, <code class="verbatim">⇧</code> with arrows to select, and the Control keys the macOS text system provides (<code class="verbatim">⌃A</code>, <code class="verbatim">⌃E</code>, <code class="verbatim">⌃K</code> and so on). Menu shortcuts such as <code class="verbatim">⌘S</code> and <code class="verbatim">⌘F</code> work in every preset; see <a href="#menu-shortcuts">Menu shortcuts</a>.</p>
+<h2 id="option-as-meta">Option as Meta</h2>
+<p>Emacs notation writes Meta as <code class="verbatim">M-</code>. On a Mac keyboard Meta is the Option key, but Option also types characters such as <code class="verbatim">é</code> and <code class="verbatim">ø</code>. Settings ▸ General ▸ Option as Meta picks which Option keys act as Meta:</p>
+<table>
+<thead>
+<tr><th>Choice</th><th><code class="verbatim">config.toml</code> (<code class="verbatim">option-as-meta</code> in <code class="verbatim">[orgstar]</code>)</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>Left Option</td><td><code class="verbatim">"left"</code></td><td>The left Option key is Meta; the right one types characters. The default.</td></tr>
+<tr><td>Right Option</td><td><code class="verbatim">"right"</code></td><td>The right Option key is Meta.</td></tr>
+<tr><td>Both</td><td><code class="verbatim">"both"</code></td><td>Both are Meta; Option no longer types special characters in the editor.</td></tr>
+<tr><td>Neither</td><td><code class="verbatim">"none"</code></td><td>Option always types characters. Plain <code class="verbatim">M-</code> keys such as <code class="verbatim">M-f</code> cannot be typed; chords that also use Control or Command still work.</td></tr>
+</tbody>
+</table>
+<p>Option pressed together with Control or Command always counts as Meta, whatever this setting says, so chords such as <code class="verbatim">C-M-i</code> (<code class="verbatim">⌃⌥I</code>) and the Mac preset's <code class="verbatim">⌃⌥⌘←</code> always work.</p>
+<h2 id="how-keys-reach-commands">How keys reach commands</h2>
+<h3 id="contexts">Contexts</h3>
+<p>One key can run different commands depending on where the caret is. In the Emacs preset <code class="verbatim">M-&lt;right&gt;</code> demotes a heading, indents a list item and moves a table column right. Each binding can name a context, and orgstar tries the bindings for a key from the highest priority down. The first one whose context holds and whose command can run at the caret wins.</p>
+<table>
+<thead>
+<tr><th>Context</th><th>Holds when</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">heading</code></td><td>The caret is on a heading line.</td></tr>
+<tr><td><code class="verbatim">item</code></td><td>The caret is inside a list item.</td></tr>
+<tr><td><code class="verbatim">table</code></td><td>The caret is inside a table.</td></tr>
+<tr><td><code class="verbatim">tblfm</code></td><td>The caret is on a <code class="verbatim">#+TBLFM:</code> line.</td></tr>
+<tr><td><code class="verbatim">timestamp</code></td><td>The caret is on a timestamp.</td></tr>
+<tr><td><code class="verbatim">property</code></td><td>The caret is on a property line in a property drawer.</td></tr>
+<tr><td><code class="verbatim">src</code></td><td>The caret is inside a src block.</td></tr>
+<tr><td><code class="verbatim">dblock</code></td><td>The caret is on the <code class="verbatim">#+BEGIN:</code> line of a dynamic block.</td></tr>
+<tr><td><code class="verbatim">fold-line</code></td><td>The caret is on the first or last line of a drawer or block, where <code class="verbatim">TAB</code> folds it.</td></tr>
+<tr><td><code class="verbatim">region</code></td><td>Text is selected.</td></tr>
+<tr><td><code class="verbatim">speed</code></td><td>Speed keys are on, nothing is selected, and the caret is at the very start of a heading line. See <a href="04-outlines.html#speed-keys">Speed keys</a>.</td></tr>
+</tbody>
+</table>
+<p>When no binding for a key applies:</p>
+<ul>
+<li>In the Emacs and Mac presets, a single key goes to the text system and does what it normally does. <code class="verbatim">TAB</code> outside a heading, drawer edge or table types a tab; <code class="verbatim">S-&lt;right&gt;</code> on plain text extends the selection.</li>
+<li>A key sequence of two or more keys runs its highest-priority command anyway, so you see that command's message (for example "Not on a heading").</li>
+<li>In the Doom preset the keys go on to the Vim engine (see <a href="#vim-editing-doom-preset">Vim editing</a>).</li>
+</ul>
+<p>In a file that is not an Org file, <code class="verbatim">org.</code> commands never apply, so their keys fall through as above.</p>
+<h3 id="prefix-keys-and-key-hints">Prefix keys and key hints</h3>
+<p>A prefix is a key that starts longer sequences, such as <code class="verbatim">C-c</code>, <code class="verbatim">C-c C-x</code>, <code class="verbatim">C-x n</code> or, in the Doom preset, <code class="verbatim">SPC</code> and <code class="verbatim">SPC m</code>. After a prefix, orgstar waits for the next key and shows the keys typed so far in the echo area, followed by a dash: <code class="verbatim">C-c C-x-</code>.</p>
+<p>If you pause on a prefix for 0.6 seconds, a panel of key hints opens above the echo area. It lists each key that can follow, sorted by key, with the title of the command it runs, or <code class="verbatim">+prefix</code> when it leads to a longer sequence. This is orgstar's version of <code class="verbatim">which-key</code>. The hints follow the current keymap, including your <code class="verbatim">keymap.toml</code>, and in the Doom preset the current evil state. When a key has several contexts (<code class="verbatim">C-c C-c</code> is the common case), the hint shows the command that would run at the caret; where none of them applies, it shows the highest-priority one.</p>
+<p><code class="verbatim">C-g</code> during a prefix cancels it; in the Emacs and Mac presets the echo area shows <code class="verbatim">Quit</code>. A sequence that nothing binds shows, for example, <code class="verbatim">C-c z is undefined</code> and does nothing. In the Doom preset this holds for sequences that start with <code class="verbatim">SPC</code> or with a Control or Meta key; see <a href="#how-keys-are-handled">How keys are handled</a> for the others.</p>
+<p>A key bound by itself cannot also be a prefix. When a keymap binds both <code class="verbatim">C-c</code> and <code class="verbatim">C-c C-t</code>, <code class="verbatim">C-c</code> always waits for the next key, so the binding for <code class="verbatim">C-c</code> alone never runs.</p>
+<h2 id="the-echo-area">The echo area</h2>
+<p>The echo area is the line at the bottom of the window, below the modeline. It shows, in order of priority:</p>
+<ul>
+<li>A question a command is asking, with a text field: a refile target, a date, a property value, a sparse-tree match, a Vim search or ex command. <code class="verbatim">Return</code> answers, <code class="verbatim">Esc</code> cancels. When the question has choices, they are listed above the field and filtered as you type with fuzzy matching; <code class="verbatim">Tab</code> completes the best match. Date questions show a calendar, and <code class="verbatim">S-&lt;left&gt;</code>, <code class="verbatim">S-&lt;right&gt;</code>, <code class="verbatim">S-&lt;up&gt;</code> and <code class="verbatim">S-&lt;down&gt;</code> move the date by a day or a week, as in <code class="verbatim">org-read-date</code>.</li>
+<li>Fast selection for TODO keywords and tags when the file defines keys for them (see <a href="05-todos-and-tags.html">TODOs and tags</a>).</li>
+<li>The pending prefix, such as <code class="verbatim">C-c C-x-</code>.</li>
+<li>The last message from a command or from the keymap, for four seconds.</li>
+</ul>
+<p>In the Doom preset the modeline shows the evil state as a tag: <code class="verbatim">NORMAL</code>, <code class="verbatim">INSERT</code>, <code class="verbatim">VISUAL</code>, <code class="verbatim">V-LINE</code> or <code class="verbatim">V-BLOCK</code>. See <a href="02-the-editor.html">The editor</a> for the rest of the modeline.</p>
+<h2 id="the-command-palette">The command palette</h2>
+<p>The palette lists every command by title with its keys in the current keymap. Open it with:</p>
+<ul>
+<li><code class="verbatim">⇧⌘P</code> or File ▸ Command Palette… in every preset,</li>
+<li><code class="verbatim">M-x</code> in the Emacs and Doom presets (<code class="verbatim">execute-extended-command</code>),</li>
+<li><code class="verbatim">SPC :</code> in Doom normal state.</li>
+</ul>
+<p>Type part of a title; matching is fuzzy and the best matches come first. <code class="verbatim">Return</code> runs the top match, a click runs any row, and <code class="verbatim">Esc</code> closes the palette. Each row shows up to two key sequences; in the Doom preset these are normal-state keys first, then insert-state keys.</p>
+<p>The palette leaves out text-system movement and editing commands (Forward Character, Kill Line, Set Mark and the like), which only make sense from keys. Every other command is in it, including the ones no preset binds, such as Show or Hide Backlinks, Import Table from File…, Recovery Versions… and Delete Property…. Commands that cannot run at the caret show a message instead.</p>
+<p>The Org menu in the menu bar lists every <code class="verbatim">org.</code> command with its keys in the current keymap, and is a way to find a key without the palette. Its Clock submenu lists the clock commands the same way, followed by the recently clocked entries.</p>
+<h2 id="menu-shortcuts">Menu shortcuts</h2>
+<p>These come from the menu bar and work in every preset. In the Doom preset, keys with <code class="verbatim">⌘</code> always go to the menus.</p>
+<table>
+<thead>
+<tr><th>Menu</th><th>Item</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>orgstar</td><td>Settings…</td><td><code class="verbatim">⌘,</code></td></tr>
+<tr><td>orgstar</td><td>Edit Config File</td><td><code class="verbatim">⌥⌘,</code></td></tr>
+<tr><td>File</td><td>Add Folder…</td><td><code class="verbatim">⇧⌘O</code></td></tr>
+<tr><td>File</td><td>Quick Open…</td><td><code class="verbatim">⌘P</code></td></tr>
+<tr><td>File</td><td>Command Palette…</td><td><code class="verbatim">⇧⌘P</code></td></tr>
+<tr><td>File</td><td>Capture…</td><td><code class="verbatim">⇧⌘N</code></td></tr>
+<tr><td>File</td><td>Close Buffer (closes other windows themselves)</td><td><code class="verbatim">⌘W</code></td></tr>
+<tr><td>File</td><td>Close Window</td><td><code class="verbatim">⇧⌘W</code></td></tr>
+<tr><td>File</td><td>Save</td><td><code class="verbatim">⌘S</code></td></tr>
+<tr><td>File</td><td>Save All</td><td><code class="verbatim">⌥⌘S</code></td></tr>
+<tr><td>Edit ▸ Find</td><td>Find…</td><td><code class="verbatim">⌘F</code></td></tr>
+<tr><td>Edit ▸ Find</td><td>Find and Replace…</td><td><code class="verbatim">⌥⌘F</code></td></tr>
+<tr><td>Edit ▸ Find</td><td>Find Next</td><td><code class="verbatim">⌘G</code></td></tr>
+<tr><td>Edit ▸ Find</td><td>Find Previous</td><td><code class="verbatim">⇧⌘G</code></td></tr>
+<tr><td>Edit ▸ Find</td><td>Use Selection for Find</td><td><code class="verbatim">⌘E</code></td></tr>
+<tr><td>Edit</td><td>Cancel Running Task</td><td><code class="verbatim">⌘.</code></td></tr>
+<tr><td>Edit</td><td>Search Notes</td><td><code class="verbatim">⇧⌘F</code></td></tr>
+<tr><td>View</td><td>Show Markup</td><td><code class="verbatim">⇧⌘M</code></td></tr>
+<tr><td>View</td><td>Show Line Numbers</td><td><code class="verbatim">⇧⌘L</code></td></tr>
+<tr><td>View</td><td>Split Pane Below</td><td><code class="verbatim">⌃⌘2</code></td></tr>
+<tr><td>View</td><td>Split Pane Right</td><td><code class="verbatim">⌃⌘3</code></td></tr>
+<tr><td>View</td><td>Close Pane</td><td><code class="verbatim">⌃⌘0</code></td></tr>
+<tr><td>View</td><td>Close Other Panes</td><td><code class="verbatim">⌃⌘1</code></td></tr>
+<tr><td>View</td><td>Next Pane</td><td><code class="verbatim">⌥⌘`</code></td></tr>
+<tr><td>View</td><td>Show or Hide Outline</td><td><code class="verbatim">⌥⌘O</code></td></tr>
+<tr><td>View</td><td>Show or Hide Columns and Clock</td><td><code class="verbatim">⌥⌘I</code></td></tr>
+<tr><td>Window</td><td>Agenda</td><td><code class="verbatim">⇧⌘A</code></td></tr>
+<tr><td>Window</td><td>Board</td><td><code class="verbatim">⇧⌘B</code></td></tr>
+<tr><td>Window</td><td>Next Buffer</td><td><code class="verbatim">⇧⌘]</code></td></tr>
+<tr><td>Window</td><td>Previous Buffer</td><td><code class="verbatim">⇧⌘[</code></td></tr>
+<tr><td>File</td><td>New Window</td><td><code class="verbatim">⌥⌘N</code></td></tr>
+</tbody>
+</table>
+<p>View ▸ Show or Hide Backlinks and Show Tab Bar, Window ▸ Switch to Buffer…, and the items of File ▸ Export have no shortcut.</p>
+<p>With Settings ▸ Capture ▸ "⌃⌥Space opens Capture from any app" on (the default), <code class="verbatim">⌃⌥Space</code> opens the Capture window from any application (see <a href="08-capture.html">Capture</a>).</p>
+<h2 id="speed-keys">Speed keys</h2>
+<p>With Settings ▸ Editing ▸ Speed keys on (<code class="verbatim">org-use-speed-commands</code> in <code class="verbatim">config.toml</code>), single letters typed at the very start of a heading line, before the stars, run commands instead of inserting text (<code class="verbatim">org-speed-commands</code>). Anywhere else the letters type as usual. The setting is off by default.</p>
+<p>Speed keys work in the Emacs and Mac presets, and in the Doom preset in insert state. The full list is in the <a href="#speed-keys-reference">speed keys reference</a>.</p>
+<h2 id="customizing-keys-keymap-toml">Customizing keys: keymap.toml</h2>
+<p>Your own bindings go in <code class="verbatim">keymap.toml</code> in the configuration folder: <code class="verbatim">$XDG_CONFIG_HOME/orgstar/keymap.toml</code> when <code class="verbatim">XDG_CONFIG_HOME</code> is set, otherwise <code class="verbatim">~/.config/orgstar/keymap.toml</code>. Settings ▸ General shows the path under the Keys picker. The file does not exist until you create it. If you used an earlier version that kept it in <code class="verbatim">~/Library/Application Support/Orgstar/</code>, that copy is read, and reloaded when you save it, until one exists in the configuration folder.</p>
+<p>The bindings in the file are layered on top of the chosen preset. They apply to whichever preset is chosen, so a file written for the Emacs preset does nothing useful under Doom unless its bindings name a <code class="verbatim">mode</code>.</p>
+<h3 id="format">Format</h3>
+<p>The file is a list of <code class="verbatim">[[bind]]</code> tables, one per binding:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="comment line number-sign toml"><span class="punctuation definition comment toml">#</span> C-c t cycles the TODO keyword.
+</span><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-c t<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>org.todo.cycle<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<table>
+<thead>
+<tr><th>Field</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">keys</code></td><td>yes</td><td>The key sequence, in Emacs notation, chords separated by spaces.</td></tr>
+<tr><td><code class="verbatim">command</code></td><td>yes</td><td>A command id, or <code class="verbatim">"none"</code> to unbind.</td></tr>
+<tr><td><code class="verbatim">when</code></td><td>no</td><td>A context from the table in <a href="#contexts">Contexts</a>. Without it the binding holds everywhere.</td></tr>
+<tr><td><code class="verbatim">mode</code></td><td>no</td><td>An evil state for the Doom preset: <code class="verbatim">"normal"</code>, <code class="verbatim">"insert"</code> or <code class="verbatim">"visual"</code>.</td></tr>
+</tbody>
+</table>
+<p>The <a href="#key-reference">key reference</a> gives each command's id after its title. Commands no preset binds are listed under <a href="#unbound-commands">Unbound commands</a>. A binding whose command id orgstar does not know is skipped and reported when the file loads (see <a href="#reloading-and-errors">Reloading and errors</a>).</p>
+<p>orgstar reads a subset of TOML: <code class="verbatim">[[bind]]</code> headers, <code class="verbatim">key = value</code> lines, basic <code class="verbatim">"..."</code> and literal <code class="verbatim">'...'</code> strings, <code class="verbatim">true</code> and <code class="verbatim">false</code>, integers, and <code class="verbatim">#</code> comments. Arrays, inline tables and multi-line strings are not supported.</p>
+<h3 id="key-notation">Key notation</h3>
+<table>
+<thead>
+<tr><th>Notation</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">C-</code></td><td>Control (<code class="verbatim">⌃</code>)</td></tr>
+<tr><td><code class="verbatim">M-</code></td><td>Meta: Option (<code class="verbatim">⌥</code>), as set in <a href="#option-as-meta">Option as Meta</a></td></tr>
+<tr><td><code class="verbatim">S-</code></td><td>Shift (<code class="verbatim">⇧</code>)</td></tr>
+<tr><td><code class="verbatim">s-</code></td><td>Command (<code class="verbatim">⌘</code>)</td></tr>
+<tr><td><code class="verbatim">a</code>, <code class="verbatim">%</code>, <code class="verbatim">/</code></td><td>A single character</td></tr>
+<tr><td><code class="verbatim">TAB</code>, <code class="verbatim">RET</code>, <code class="verbatim">SPC</code>, <code class="verbatim">ESC</code>, <code class="verbatim">DEL</code></td><td>Tab, Return, Space, Escape, Delete (backspace)</td></tr>
+<tr><td><code class="verbatim">&lt;left&gt;</code>, <code class="verbatim">&lt;right&gt;</code>, <code class="verbatim">&lt;up&gt;</code>, <code class="verbatim">&lt;down&gt;</code></td><td>Arrow keys</td></tr>
+<tr><td><code class="verbatim">&lt;home&gt;</code>, <code class="verbatim">&lt;end&gt;</code>, <code class="verbatim">&lt;prior&gt;</code>, <code class="verbatim">&lt;next&gt;</code></td><td>Home, End, Page Up, Page Down</td></tr>
+<tr><td><code class="verbatim">&lt;delete&gt;</code></td><td>Forward delete (<code class="verbatim">⌦</code>)</td></tr>
+<tr><td><code class="verbatim">&lt;f1&gt;</code> to <code class="verbatim">&lt;f12&gt;</code></td><td>Function keys</td></tr>
+</tbody>
+</table>
+<p>Modifiers combine: <code class="verbatim">C-M-s-&lt;left&gt;</code> is <code class="verbatim">⌃⌥⌘←</code>. <code class="verbatim">&lt;tab&gt;</code>, <code class="verbatim">&lt;return&gt;</code>, <code class="verbatim">&lt;escape&gt;</code> and <code class="verbatim">&lt;backspace&gt;</code> are accepted as other names for <code class="verbatim">TAB</code>, <code class="verbatim">RET</code>, <code class="verbatim">ESC</code> and <code class="verbatim">DEL</code>, and <code class="verbatim">&lt;backtab&gt;</code> for <code class="verbatim">S-TAB</code>.</p>
+<p>Shift with a letter is written as the capital letter: <code class="verbatim">S-a</code> and <code class="verbatim">A</code> are the same key, and so are <code class="verbatim">C-S-h</code> and <code class="verbatim">C-H</code>. With other keys Shift stays a modifier: <code class="verbatim">S-TAB</code>, <code class="verbatim">S-&lt;up&gt;</code>, <code class="verbatim">M-S-RET</code>.</p>
+<p>A backslash in a basic string must be doubled. These two lines are the same key, <code class="verbatim">⌃⌘\</code>:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-s-<span class="constant character escape toml">\\</span><span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted single toml"><span class="punctuation definition string begin toml">&#39;</span>C-s-\<span class="punctuation definition string end toml">&#39;</span></span></span></code></pre>
+<h3 id="priority">Priority</h3>
+<p>Bindings are read in order: the preset first, then your file from top to bottom. When several bindings have the same keys, later ones are tried first. A binding in your file without <code class="verbatim">when</code> therefore takes its keys everywhere, hiding every context-specific preset binding for them. A binding with <code class="verbatim">when</code> is tried first only in its context; elsewhere the preset's bindings still apply.</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="comment line number-sign toml"><span class="punctuation definition comment toml">#</span> M-RET in a table inserts a row; on headings and items it does what the preset says.
+</span><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>M-RET<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>org.table.insert-row<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">when</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>table<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<h3 id="unbinding">Unbinding</h3>
+<p>Set <code class="verbatim">command</code> to <code class="verbatim">"none"</code> to remove a key. A <code class="verbatim">"none"</code> binding without <code class="verbatim">when</code> hides every earlier binding of exactly those keys, so the key goes to the text system (or, in the Doom preset, to Vim):</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="comment line number-sign toml"><span class="punctuation definition comment toml">#</span> Leave C-t to macOS&#39;s transpose and C-k to its kill.
+</span><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-t<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>none<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-k<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>none<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>Limitations:</p>
+<ul>
+<li>A <code class="verbatim">"none"</code> binding with <code class="verbatim">when</code> has no effect. You cannot unbind a key in one context only; bind it to another command in that context instead.</li>
+<li>Unbinding a prefix does not remove the longer sequences under it. Unbinding <code class="verbatim">C-c C-x</code> leaves <code class="verbatim">C-c C-x C-i</code> and the rest working. Unbind each sequence you want gone.</li>
+</ul>
+<h3 id="doom-states">Doom states</h3>
+<p>In the Doom preset every binding belongs to a state. A binding without <code class="verbatim">mode</code> never runs in the Doom preset, and a binding with <code class="verbatim">mode</code> never runs in the Emacs or Mac preset. <code class="verbatim">mode = "visual"</code> covers visual, visual-line and visual-block. To bind a key in more than one state, write one table per state:</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="comment line number-sign toml"><span class="punctuation definition comment toml">#</span> SPC n a opens the agenda.
+</span><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>SPC n a<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>app.agenda<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">mode</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>normal<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="comment line number-sign toml"><span class="punctuation definition comment toml">#</span> C-c n inserts a heading in normal and insert state.
+</span><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-c n<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>org.heading.insert<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">mode</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>normal<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-c n<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>org.heading.insert<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">mode</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>insert<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>A <code class="verbatim">mode</code> other than <code class="verbatim">normal</code>, <code class="verbatim">insert</code> or <code class="verbatim">visual</code> (including <code class="verbatim">visual-line</code>) is reported when the file loads, and the binding is skipped.</p>
+<h3 id="more-examples">More examples</h3>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="comment line number-sign toml"><span class="punctuation definition comment toml">#</span> Mac preset: ⌃⌘U goes up to the parent heading, ⌃⌘R opens column view, ⌃⌘; toggles COMMENT.
+</span><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-s-u<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>org.heading.up<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-s-r<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>org.columns<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-s-;<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>org.heading.toggle-comment<span class="punctuation definition string end toml">&quot;</span></span>
+
+<span class="comment line number-sign toml"><span class="punctuation definition comment toml">#</span> Emacs preset: C-c b opens the board, C-c r reloads this file.
+</span><span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-c b<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>app.board<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="punctuation definition table array toml">[[</span><span class="entity name section toml">bind</span><span class="punctuation definition table array toml">]]</span>
+<span class="variable other key toml">keys</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>C-c r<span class="punctuation definition string end toml">&quot;</span></span>
+<span class="variable other key toml">command</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>app.reload-keymap<span class="punctuation definition string end toml">&quot;</span></span>
+</span></code></pre>
+<h3 id="reloading-and-errors">Reloading and errors</h3>
+<p>orgstar watches the configuration folder and reloads <code class="verbatim">keymap.toml</code> when you save it. It also reloads when you change the preset, and when you run Reload Keymap (<code class="verbatim">app.reload-keymap</code>, in the palette, and <code class="verbatim">SPC h r r</code> in Doom normal state), which shows <code class="verbatim">Keymap reloaded</code>.</p>
+<p>Problems are reported in the echo area with the line number, for example <code class="verbatim">keymap.toml: line 12: unknown context tabel (and 1 more)</code>. A binding with bad or missing <code class="verbatim">keys</code>, a missing <code class="verbatim">command</code>, a command id orgstar does not know, an unknown <code class="verbatim">when</code> or <code class="verbatim">mode</code>, or a table other than <code class="verbatim">[[bind]]</code> is skipped; the rest of the file still applies. A file that is not valid TOML is ignored as a whole and the error is shown; the preset alone applies until you fix it.</p>
+<h3 id="importing-from-emacs">Importing from Emacs</h3>
+<p>Settings ▸ General ▸ Import from Emacs… reads your Emacs or Doom configuration and offers, among other things, the key bindings it finds: <code class="verbatim">global-set-key</code>, <code class="verbatim">keymap-global-set</code>, <code class="verbatim">define-key</code>, <code class="verbatim">keymap-set</code>, <code class="verbatim">evil-define-key</code> and Doom's <code class="verbatim">map!</code> with <code class="verbatim">:leader</code>, <code class="verbatim">:localleader</code>, state keywords and <code class="verbatim">:prefix</code>. Bindings to commands orgstar has are appended to <code class="verbatim">keymap.toml</code> under a <code class="verbatim"># Imported from Emacs.</code> comment, leaving out bindings the file already has. Keys written as vectors, such as <code class="verbatim">[f5]</code>, are skipped. See <a href="15-alongside-emacs.html">Alongside Emacs</a>.</p>
+<h2 id="vim-editing-doom-preset">Vim editing (Doom preset)</h2>
+<p>The Doom preset edits modally, as Doom Emacs does with <code class="verbatim">evil</code>, <code class="verbatim">evil-org</code>, <code class="verbatim">evil-surround</code>, <code class="verbatim">evil-snipe</code> and <code class="verbatim">evil-nerd-commenter</code>. orgstar implements these itself; none of them are Emacs packages running inside it. The caret is a block in normal and visual states and a bar in insert state, and the modeline shows the state.</p>
+<h3 id="how-keys-are-handled">How keys are handled</h3>
+<p>Each key goes first to the keymap for the current state, then to the Vim engine:</p>
+<ol>
+<li>Keys with <code class="verbatim">⌘</code> go to the menus.</li>
+<li>If a Vim command is half typed (after <code class="verbatim">d</code>, <code class="verbatim">"a</code>, <code class="verbatim">3</code> and so on), the key goes to Vim.</li>
+<li>Otherwise the keymap gets the key. A prefix such as <code class="verbatim">SPC</code>, <code class="verbatim">g</code>, <code class="verbatim">z</code>, <code class="verbatim">[</code>, <code class="verbatim">]</code>, <code class="verbatim">C-c</code> or <code class="verbatim">C-x</code> waits for the next key, with key hints as described above. A complete sequence runs its command if the binding's context holds and the command can run at the caret.</li>
+<li>Anything the keymap does not take goes to Vim, as typed. In insert state, keys Vim does not handle are typed as text.</li>
+</ol>
+<p>Two consequences:</p>
+<ul>
+<li>Keymap commands do not take counts or registers. Once you type a count or a register, the following keys go straight to Vim.</li>
+<li>A sequence the keymap does not complete after <code class="verbatim">SPC</code>, <code class="verbatim">C-c</code>, <code class="verbatim">C-x</code> or another Control or Meta prefix is undefined: the echo area shows, for example, <code class="verbatim">SPC j is undefined</code>, and nothing runs. After <code class="verbatim">g</code>, <code class="verbatim">z</code>, <code class="verbatim">[</code> or <code class="verbatim">]</code>, which are Vim prefixes too, the keys are replayed into Vim, so <code class="verbatim">gu</code> and <code class="verbatim">gq</code> reach the Vim engine although the keymap binds other <code class="verbatim">g</code> keys.</li>
+</ul>
+<h3 id="states">States</h3>
+<table>
+<thead>
+<tr><th>State</th><th>Enter with</th><th>Leave with</th></tr>
+</thead>
+<tbody>
+<tr><td>Normal</td><td><code class="verbatim">ESC</code>, <code class="verbatim">C-[</code> or <code class="verbatim">C-g</code> from insert state; <code class="verbatim">ESC</code> from visual</td><td>—</td></tr>
+<tr><td>Insert</td><td><code class="verbatim">i</code>, <code class="verbatim">a</code>, <code class="verbatim">I</code>, <code class="verbatim">A</code>, <code class="verbatim">o</code>, <code class="verbatim">O</code>, <code class="verbatim">c</code> commands, <code class="verbatim">cc</code>, <code class="verbatim">C</code>, block <code class="verbatim">I</code>, <code class="verbatim">A</code>, <code class="verbatim">c</code></td><td><code class="verbatim">ESC</code>, <code class="verbatim">C-[</code>, <code class="verbatim">C-g</code></td></tr>
+<tr><td>Visual</td><td><code class="verbatim">v</code></td><td><code class="verbatim">v</code>, <code class="verbatim">ESC</code></td></tr>
+<tr><td>Visual line</td><td><code class="verbatim">V</code></td><td><code class="verbatim">V</code>, <code class="verbatim">ESC</code></td></tr>
+<tr><td>Visual block</td><td><code class="verbatim">C-v</code></td><td><code class="verbatim">C-v</code>, <code class="verbatim">ESC</code></td></tr>
+</tbody>
+</table>
+<p>Leaving insert state moves the caret back one character, as in Vim. A mouse click leaves visual state. In the keymap, <code class="verbatim">"visual"</code> is the state name for all three visual states.</p>
+<p>In insert state, <code class="verbatim">C-w</code> deletes the word before the caret and <code class="verbatim">C-u</code> deletes back to the line's indentation (or to the start of the line when the caret is already there). The rest of insert state is the Emacs preset's Org keys, the Doom insert-state keys in the reference (<code class="verbatim">TAB</code> and <code class="verbatim">S-TAB</code> on headings, items and tables, <code class="verbatim">C-t</code> and <code class="verbatim">C-d</code>, <code class="verbatim">C-S-h/j/k/l</code>, <code class="verbatim">C-SPC</code> for completion) and ordinary typing.</p>
+<h3 id="motions">Motions</h3>
+<p>Motions move the caret in normal state, extend the selection in visual states, and give the range for an operator. A count before a motion repeats it.</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Moves</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">h</code>, <code class="verbatim">l</code>, <code class="verbatim">&lt;left&gt;</code>, <code class="verbatim">&lt;right&gt;</code>, <code class="verbatim">DEL</code></td><td>Left, right; <code class="verbatim">DEL</code> is <code class="verbatim">h</code>. Stays on the line.</td></tr>
+<tr><td><code class="verbatim">j</code>, <code class="verbatim">k</code>, <code class="verbatim">&lt;down&gt;</code>, <code class="verbatim">&lt;up&gt;</code></td><td>Down, up, keeping the column.</td></tr>
+<tr><td><code class="verbatim">gj</code>, <code class="verbatim">gk</code></td><td>In Org files, to the next or previous Org element (<code class="verbatim">org-forward-element</code>, <code class="verbatim">org-backward-element</code>, as evil-org binds them); counts are ignored. On a heading, <code class="verbatim">gj</code> goes to the next heading after the subtree and <code class="verbatim">gk</code> to the previous heading at the same level or higher. In other files, down and up by screen lines in wrapped text.</td></tr>
+<tr><td><code class="verbatim">+</code>, <code class="verbatim">-</code>, <code class="verbatim">RET</code></td><td>First non-blank of the next or previous line. In Org files <code class="verbatim">RET</code> runs Act at Point instead.</td></tr>
+<tr><td><code class="verbatim">w</code>, <code class="verbatim">b</code>, <code class="verbatim">e</code>, <code class="verbatim">ge</code></td><td>Next word start, previous word start, word end, previous word end.</td></tr>
+<tr><td><code class="verbatim">W</code>, <code class="verbatim">B</code>, <code class="verbatim">E</code>, <code class="verbatim">gE</code></td><td>The same for blank-separated WORDs.</td></tr>
+<tr><td><code class="verbatim">0</code>, <code class="verbatim">&lt;home&gt;</code></td><td>Start of the line.</td></tr>
+<tr><td><code class="verbatim">$</code>, <code class="verbatim">&lt;end&gt;</code></td><td>End of the line; with a count, of the line count − 1 lines down.</td></tr>
+<tr><td><code class="verbatim">g_</code></td><td>Last non-blank of the line.</td></tr>
+<tr><td><code class="verbatim">gg</code>, <code class="verbatim">G</code></td><td>First line, last line; with a count, that line. The column is kept (<code class="verbatim">evil-start-of-line</code> nil).</td></tr>
+<tr><td><code class="verbatim">f</code> <em>x</em>, <code class="verbatim">F</code> <em>x</em>, <code class="verbatim">t</code> <em>x</em>, <code class="verbatim">T</code> <em>x</em></td><td>To, or to just before, the next or previous <em>x</em> on the line. These are one-character snipes, as Doom's <code class="verbatim">evil-snipe-override-mode</code> makes them. <em>x</em> also matches its accented and other variants, as Doom's <code class="verbatim">evil-snipe-char-fold</code> makes it: <code class="verbatim">a</code> matches <code class="verbatim">à</code>, <code class="verbatim">À</code>, <code class="verbatim">ª</code> and <code class="verbatim">ａ</code>. A lowercase <em>x</em> matches either case, a capital only capitals; <code class="verbatim">t</code> and <code class="verbatim">T</code> skip a match right next to the caret; <code class="verbatim">f SPC</code> and <code class="verbatim">t SPC</code> skip a run of blanks after the caret and stop at the last blank before the next word, or just before it.</td></tr>
+<tr><td><code class="verbatim">;</code>, <code class="verbatim">,</code></td><td>Repeats the last snipe (<code class="verbatim">s</code>, <code class="verbatim">S</code>, <code class="verbatim">f</code>, <code class="verbatim">F</code>, <code class="verbatim">t</code> or <code class="verbatim">T</code>), forward or reversed. A repeat searches all the text the window shows, so it can go past the caret's line (<code class="verbatim">evil-snipe-repeat-scope</code>, as Doom sets it). Right after a snipe, its own key repeats it: <code class="verbatim">f</code> goes on in the same direction and <code class="verbatim">F</code> reverses, and the same for <code class="verbatim">t</code> and <code class="verbatim">T</code> and for <code class="verbatim">s</code> and <code class="verbatim">S</code>. A count typed right after a snipe ends this: the key after the count starts a new snipe with that count, so <code class="verbatim">f a 2 f a</code> goes to the next <em>a</em>, then to the second <em>a</em> after it.</td></tr>
+<tr><td><code class="verbatim">s</code> <em>xy</em>, <code class="verbatim">S</code> <em>xy</em></td><td>evil-snipe: to the next or previous <em>xy</em> on the line. Each character matches its variants as for <code class="verbatim">f</code>, and <em>xy</em> without a capital matches case-insensitively. <code class="verbatim">SPC</code> and <code class="verbatim">TAB</code> are read as a space and a tab. Not available after an operator.</td></tr>
+<tr><td><code class="verbatim">%</code></td><td>The bracket matching the next <code class="verbatim">()</code>, <code class="verbatim">[]</code> or <code class="verbatim">{}</code> on the line.</td></tr>
+<tr><td><code class="verbatim">{</code>, <code class="verbatim">}</code></td><td>Previous, next blank line.</td></tr>
+<tr><td><code class="verbatim">/</code>, <code class="verbatim">?</code></td><td>Searches forward or backward as you type a regular expression, the match selected and the others highlighted; <code class="verbatim">RET</code> goes there, wrapping around the file, and <code class="verbatim">Esc</code> goes back. On iOS, asks in the echo area instead.</td></tr>
+<tr><td><code class="verbatim">n</code>, <code class="verbatim">N</code></td><td>Repeats the last search in the same or the opposite direction.</td></tr>
+<tr><td><code class="verbatim">*</code>, <code class="verbatim">#</code></td><td>Searches forward or backward for the whole word under the caret.</td></tr>
+<tr><td><code class="verbatim">C-d</code>, <code class="verbatim">C-u</code></td><td>Down, up half the window's height; with a count, that many lines.</td></tr>
+<tr><td><code class="verbatim">H</code>, <code class="verbatim">M</code>, <code class="verbatim">L</code></td><td>First non-blank of the top, middle or bottom line the window shows. With a count, <code class="verbatim">H</code> goes to that line from the top and <code class="verbatim">L</code> from the bottom. Lines are text lines, not wrapped screen lines. Linewise after an operator.</td></tr>
+<tr><td><code class="verbatim">'</code> <em>a</em>, <code class="verbatim">`</code> <em>a</em></td><td>To mark <em>a</em>: its line's first non-blank, or its exact position. See <a href="#marks-and-jumps">Marks and jumps</a>.</td></tr>
+</tbody>
+</table>
+<p>Search patterns are ICU regular expressions as macOS uses them, close to PCRE; Emacs and Vim regexp syntax such as <code class="verbatim">\(...\)</code> or <code class="verbatim">\&lt;</code> does not work. <code class="verbatim">:noh</code> is accepted and does nothing; matches are highlighted only while <code class="verbatim">/</code> or <code class="verbatim">?</code> is being typed.</p>
+<h3 id="operators">Operators</h3>
+<table>
+<thead>
+<tr><th>Keys</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">d</code> <em>motion</em></td><td>Deletes. <code class="verbatim">dd</code> deletes lines.</td></tr>
+<tr><td><code class="verbatim">c</code> <em>motion</em></td><td>Deletes and enters insert state. <code class="verbatim">cc</code> keeps the line's indentation; <code class="verbatim">cw</code> changes to the end of the word, as <code class="verbatim">ce</code>.</td></tr>
+<tr><td><code class="verbatim">y</code> <em>motion</em></td><td>Yanks (copies). <code class="verbatim">yy</code> yanks lines.</td></tr>
+<tr><td><code class="verbatim">&gt;</code> <em>motion</em>, <code class="verbatim">&lt;</code> <em>motion</em></td><td>Indents or outdents lines by 8 spaces (<code class="verbatim">evil-shift-width</code>, which Doom sets to Org's <code class="verbatim">tab-width</code>). <code class="verbatim">&gt;&gt;</code> and <code class="verbatim">&lt;&lt;</code> act on lines.</td></tr>
+<tr><td><code class="verbatim">g~</code> <em>motion</em>, <code class="verbatim">gu</code> <em>motion</em>, <code class="verbatim">gU</code> <em>motion</em></td><td>Toggles case, lowercases, uppercases. <code class="verbatim">g~~</code>, <code class="verbatim">guu</code>, <code class="verbatim">gUU</code> act on lines.</td></tr>
+<tr><td><code class="verbatim">gc</code> <em>motion</em></td><td>Comments or uncomments lines with <code class="verbatim">#</code> (<code class="verbatim">evilnc-comment-operator</code>). <code class="verbatim">gcc</code> acts on lines. See <a href="#commenting">Commenting</a>.</td></tr>
+<tr><td><code class="verbatim">gq</code> <em>motion</em>, <code class="verbatim">gw</code> <em>motion</em></td><td>Fills the paragraphs in the motion's lines to the fill column, as Fill Paragraph does; other elements in the lines are left alone. <code class="verbatim">gq</code> leaves the caret on the first non-blank of the last line, <code class="verbatim">gw</code> where it was. Extra spaces between words and at the ends of lines are kept, as Doom fills without squeezing them. <code class="verbatim">gqq</code> and <code class="verbatim">gww</code> act on lines.</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">M-q</code> runs Fill Paragraph in normal, insert and visual state. In visual and visual-line state it fills every paragraph the selection touches and leaves the caret where it was. In visual-block state it fills the paragraph at the caret, as evil does with <code class="verbatim">transient-mark-mode</code> off. In each, if the text changed, the editor returns to normal state, otherwise the selection stays.</p>
+<p>Counts multiply: <code class="verbatim">2d3w</code> deletes six words. Doubling an operator with a count acts on that many lines: <code class="verbatim">3dd</code>.</p>
+<p>Single-key changes:</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">x</code>, <code class="verbatim">&lt;delete&gt;</code></td><td>Deletes the character under the caret (count: that many, within the line).</td></tr>
+<tr><td><code class="verbatim">X</code></td><td>Deletes the character before the caret.</td></tr>
+<tr><td><code class="verbatim">D</code>, <code class="verbatim">C</code></td><td>Deletes, or changes, to the end of the line.</td></tr>
+<tr><td><code class="verbatim">Y</code></td><td>Yanks to the end of the line (<code class="verbatim">evil-want-Y-yank-to-eol</code>, as Doom sets it).</td></tr>
+<tr><td><code class="verbatim">p</code>, <code class="verbatim">P</code></td><td>Pastes after or before the caret; whole lines go below or above the current line. A count pastes that many times.</td></tr>
+<tr><td><code class="verbatim">J</code></td><td>Joins the next line (count: that many lines) with one space.</td></tr>
+<tr><td><code class="verbatim">~</code></td><td>Toggles the case of the character under the caret and moves right.</td></tr>
+<tr><td><code class="verbatim">r</code> <em>x</em></td><td>Replaces the character under the caret (count: that many) with <em>x</em>; <code class="verbatim">r RET</code> splits the line.</td></tr>
+<tr><td><code class="verbatim">R</code></td><td>Replace state: what you type overwrites the line's characters, and past the line's end adds to it. <code class="verbatim">RET</code> breaks the line, <code class="verbatim">DEL</code> gives back what was overwritten, <code class="verbatim">ESC</code> returns to normal state. A count types the text that many times.</td></tr>
+<tr><td><code class="verbatim">g=</code>, <code class="verbatim">g-</code>, <code class="verbatim">C-a</code></td><td>Adds the count (1) to the number at or after the caret on its line, or with <code class="verbatim">g-</code> takes it away, as evil-numbers does on Doom's <code class="verbatim">g=</code> and <code class="verbatim">g-</code>: decimal, <code class="verbatim">0x</code> hex and <code class="verbatim">0b</code> binary numbers, keeping leading zeros and the hex digits' case. In visual state <code class="verbatim">g=</code> and <code class="verbatim">g-</code> change every number in the selection, the nth by n times the count; <code class="verbatim">g+</code> and <code class="verbatim">C-a</code> by the count. <code class="verbatim">C-x</code> stays the Emacs prefix, as in Doom.</td></tr>
+<tr><td><code class="verbatim">zz</code>, <code class="verbatim">zt</code>, <code class="verbatim">zb</code></td><td>Scrolls the caret's line to the middle, top or bottom of the window. <code class="verbatim">z.</code>, <code class="verbatim">z RET</code> and <code class="verbatim">z-</code> do the same and go to its first non-blank. A count names the line.</td></tr>
+<tr><td><code class="verbatim">u</code>, <code class="verbatim">C-r</code></td><td>Undo, redo, with counts.</td></tr>
+<tr><td><code class="verbatim">.</code></td><td>Repeats the last change.</td></tr>
+<tr><td><code class="verbatim">ZZ</code></td><td>Saves the file and closes the window, as <code class="verbatim">:wq</code>.</td></tr>
+<tr><td><code class="verbatim">ZQ</code></td><td>Closes the window, as <code class="verbatim">:q!</code>.</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">o</code> and <code class="verbatim">O</code> open a line below or above with Org's indentation: under a list item, aligned with the item's text; under a heading, none; otherwise the line's own indentation.</p>
+<h3 id="text-objects">Text objects</h3>
+<p>After an operator, or in visual state to select, <code class="verbatim">i</code> takes the inner object and <code class="verbatim">a</code> the object with its surrounding space or delimiters.</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Object</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">iw</code>, <code class="verbatim">aw</code>, <code class="verbatim">iW</code>, <code class="verbatim">aW</code></td><td>Word, WORD.</td></tr>
+<tr><td><code class="verbatim">i"</code>, <code class="verbatim">a"</code>, <code class="verbatim">i'</code>, <code class="verbatim">a'</code>, <code class="verbatim">i`</code>, <code class="verbatim">a`</code></td><td>Quoted text on the line.</td></tr>
+<tr><td><code class="verbatim">i(</code>, <code class="verbatim">a(</code>, <code class="verbatim">i)</code>, <code class="verbatim">a)</code>, <code class="verbatim">ib</code>, <code class="verbatim">ab</code></td><td>Parentheses.</td></tr>
+<tr><td><code class="verbatim">i[</code>, <code class="verbatim">a[</code>, <code class="verbatim">i]</code>, <code class="verbatim">a]</code></td><td>Square brackets.</td></tr>
+<tr><td><code class="verbatim">i{</code>, <code class="verbatim">a{</code>, <code class="verbatim">i}</code>, <code class="verbatim">a}</code>, <code class="verbatim">iB</code>, <code class="verbatim">aB</code></td><td>Braces.</td></tr>
+<tr><td><code class="verbatim">i&lt;</code>, <code class="verbatim">a&lt;</code>, <code class="verbatim">i&gt;</code>, <code class="verbatim">a&gt;</code></td><td>Angle brackets.</td></tr>
+<tr><td><code class="verbatim">ip</code>, <code class="verbatim">ap</code></td><td>Paragraph: lines up to a blank line.</td></tr>
+<tr><td><code class="verbatim">ie</code>, <code class="verbatim">ae</code></td><td>Org object at the caret: emphasis, a link, a timestamp, a footnote reference, an entity, a macro and the like (<code class="verbatim">evil-org-inner-object</code>, <code class="verbatim">evil-org-an-object</code>). <code class="verbatim">ie</code> on emphasis takes the text inside the markers, on a link its description. With no object at the caret, the element.</td></tr>
+<tr><td><code class="verbatim">iE</code>, <code class="verbatim">aE</code></td><td>Org element: a paragraph, a list, a table, a block, a drawer (<code class="verbatim">evil-org-inner-element</code>, <code class="verbatim">evil-org-an-element</code>).</td></tr>
+<tr><td><code class="verbatim">ir</code>, <code class="verbatim">ar</code></td><td>Org greater element: the list, table, drawer, block or section that contains the element (<code class="verbatim">evil-org-inner-greater-element</code>, <code class="verbatim">evil-org-a-greater-element</code>).</td></tr>
+<tr><td><code class="verbatim">iR</code>, <code class="verbatim">aR</code></td><td>Org subtree: <code class="verbatim">aR</code> is the heading and its subtree, <code class="verbatim">iR</code> its contents without the heading line (<code class="verbatim">evil-org-inner-subtree</code>, <code class="verbatim">evil-org-a-subtree</code>).</td></tr>
+</tbody>
+</table>
+<p>Tag objects (<code class="verbatim">it</code>, <code class="verbatim">at</code>) and sentence objects (<code class="verbatim">is</code>, <code class="verbatim">as</code>) are not available.</p>
+<h3 id="counts-and-registers">Counts and registers</h3>
+<p>A count is digits before a command; <code class="verbatim">0</code> only counts after another digit. A register is <code class="verbatim">"</code> and a name before the count and command: <code class="verbatim">"ayy</code>, <code class="verbatim">"a3dd</code>, <code class="verbatim">"ap</code>.</p>
+<table>
+<thead>
+<tr><th>Register</th><th>Holds</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">"a</code> to <code class="verbatim">"z</code></td><td>Named registers. Yanking or deleting into <code class="verbatim">A</code> to <code class="verbatim">Z</code> appends to the lowercase one. Writing to a named register leaves the clipboard alone.</td></tr>
+<tr><td><code class="verbatim">"0</code></td><td>The last yank.</td></tr>
+<tr><td><code class="verbatim">""</code>, <code class="verbatim">"+</code>, <code class="verbatim">"*</code></td><td>The system clipboard. This is the unnamed register: every yank, delete and change without a register goes to the clipboard, and <code class="verbatim">p</code> without a register pastes from it.</td></tr>
+<tr><td><code class="verbatim">"_</code></td><td>The black hole: deletes without saving the text.</td></tr>
+</tbody>
+</table>
+<p>Pasting from the clipboard is linewise when its text is what the last linewise yank or delete put there; text copied in another app pastes as characters. Numbered registers <code class="verbatim">"1</code> to <code class="verbatim">"9</code>, and the read-only registers such as <code class="verbatim">"%</code>, are not available.</p>
+<p>Registers and macros are shared by every buffer, as in evil: a yank into <code class="verbatim">"a</code> in one file pastes with <code class="verbatim">"ap</code> in another. Lowercase marks and the jump list belong to the buffer and are gone when it closes. Nothing is kept when orgstar quits.</p>
+<h3 id="repeat">Repeat</h3>
+<p><code class="verbatim">.</code> repeats the last change made in normal state, including text typed in insert state that the change began: <code class="verbatim">ciwfoo ESC</code> then <code class="verbatim">.</code> changes the next word to <code class="verbatim">foo</code>. A count before <code class="verbatim">.</code> replaces the original count.</p>
+<p>Changes made from visual or visual-block state, visual <code class="verbatim">S</code> surrounds, and keymap commands (such as <code class="verbatim">M-l</code> or <code class="verbatim">SPC m t</code>) are not repeated by <code class="verbatim">.</code>.</p>
+<h3 id="macros">Macros</h3>
+<table>
+<thead>
+<tr><th>Keys</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">q</code> <em>a</em></td><td>Starts recording keys into macro register <em>a</em> (a letter or digit). The echo area shows <code class="verbatim">Defining keyboard macro…</code>.</td></tr>
+<tr><td><code class="verbatim">q</code></td><td>Stops recording: <code class="verbatim">Keyboard macro defined</code>.</td></tr>
+<tr><td><code class="verbatim">@</code> <em>a</em></td><td>Plays macro <em>a</em>. A count plays it that many times.</td></tr>
+<tr><td><code class="verbatim">@@</code></td><td>Plays the last macro played.</td></tr>
+</tbody>
+</table>
+<p>A macro replays the keys you typed, including keymap commands, leader keys and insert-state typing. Keys with <code class="verbatim">⌘</code> are not recorded. Macros are kept apart from text registers: <code class="verbatim">"ap</code> does not paste a macro, and <code class="verbatim">"ay</code> does not change one. Macros can call macros up to 20 deep.</p>
+<h3 id="marks-and-jumps">Marks and jumps</h3>
+<p><code class="verbatim">m</code> <em>a</em> sets mark <em>a</em> (any letter) at the caret. Marks move with the text as you edit. <code class="verbatim">'</code> <em>a</em> goes to the first non-blank of the mark's line, <code class="verbatim">`</code> <em>a</em> to its exact position. <code class="verbatim">''</code> and <code class="verbatim">``</code> go back to where the last jump started.</p>
+<p>Jumps are <code class="verbatim">G</code>, <code class="verbatim">gg</code>, <code class="verbatim">%</code>, <code class="verbatim">{</code>, <code class="verbatim">}</code>, <code class="verbatim">n</code>, <code class="verbatim">N</code>, <code class="verbatim">*</code>, <code class="verbatim">#</code>, <code class="verbatim">'</code>, <code class="verbatim">`</code>, <code class="verbatim">H</code>, <code class="verbatim">M</code>, <code class="verbatim">L</code>, the snipes <code class="verbatim">s</code>, <code class="verbatim">S</code>, <code class="verbatim">f</code>, <code class="verbatim">F</code>, <code class="verbatim">t</code> and <code class="verbatim">T</code>, and searches with <code class="verbatim">/</code> and <code class="verbatim">?</code>. Each jump adds its starting point to the jump list, which keeps the last 100. <code class="verbatim">C-o</code> goes back through the list and <code class="verbatim">C-i</code> forward again. A new jump after <code class="verbatim">C-o</code> drops the places you went back past.</p>
+<p>Lowercase marks belong to the buffer, and so do <code class="verbatim">C-o</code> and <code class="verbatim">C-i</code>. Uppercase marks (<code class="verbatim">mA</code> to <code class="verbatim">mZ</code>) are file marks, shared by every buffer: <code class="verbatim">'A</code> or <code class="verbatim">`A</code> in another buffer shows the buffer the mark was set in, at the mark. A file mark goes away when its buffer closes.</p>
+<h3 id="visual-states">Visual states</h3>
+<p><code class="verbatim">v</code> selects characters, <code class="verbatim">V</code> whole lines, <code class="verbatim">C-v</code> a rectangular block. Motions and text objects extend the selection; <code class="verbatim">o</code> moves the caret to the other end. <code class="verbatim">gv</code> in normal state selects the last visual selection again.</p>
+<p>In visual and visual-line state:</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">d</code>, <code class="verbatim">x</code></td><td>Deletes the selection.</td></tr>
+<tr><td><code class="verbatim">c</code></td><td>Deletes it and enters insert state.</td></tr>
+<tr><td><code class="verbatim">y</code></td><td>Yanks it.</td></tr>
+<tr><td><code class="verbatim">&gt;</code>, <code class="verbatim">&lt;</code></td><td>Indents or outdents its lines.</td></tr>
+<tr><td><code class="verbatim">~</code>, <code class="verbatim">u</code>, <code class="verbatim">U</code>, <code class="verbatim">g~</code>, <code class="verbatim">gu</code>, <code class="verbatim">gU</code></td><td>Toggles case, lowercases, uppercases.</td></tr>
+<tr><td><code class="verbatim">gc</code></td><td>Comments or uncomments its lines.</td></tr>
+<tr><td><code class="verbatim">gq</code>, <code class="verbatim">gw</code></td><td>Fills the paragraphs in its lines.</td></tr>
+<tr><td><code class="verbatim">J</code></td><td>Joins its lines.</td></tr>
+<tr><td><code class="verbatim">p</code>, <code class="verbatim">P</code></td><td>Replaces it with the clipboard or a register; the replaced text goes to the clipboard.</td></tr>
+<tr><td><code class="verbatim">S</code> <em>x</em></td><td>Surrounds it with <em>x</em> (see below). Linewise selections get the delimiters on lines of their own.</td></tr>
+<tr><td><code class="verbatim">v</code>, <code class="verbatim">V</code>, <code class="verbatim">C-v</code></td><td>Switches to another visual state, or leaves when it is the current one.</td></tr>
+<tr><td><code class="verbatim">TAB</code>, <code class="verbatim">S-TAB</code></td><td>Cycles visibility, as in normal state.</td></tr>
+</tbody>
+</table>
+<p>The Emacs preset's Org keys (<code class="verbatim">C-c ...</code>, <code class="verbatim">M-h/j/k/l</code>, <code class="verbatim">M-&lt;left&gt;</code> and so on) also work in visual state.</p>
+<p>In visual-block state:</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td>Motions, <code class="verbatim">o</code>, <code class="verbatim">O</code></td><td>Change the block; <code class="verbatim">o</code> and <code class="verbatim">O</code> move the caret to the opposite corner.</td></tr>
+<tr><td><code class="verbatim">d</code>, <code class="verbatim">x</code></td><td>Deletes the block.</td></tr>
+<tr><td><code class="verbatim">y</code></td><td>Yanks the block's lines, joined by newlines.</td></tr>
+<tr><td><code class="verbatim">c</code></td><td>Deletes the block and enters insert state; what you type is copied to every line when you press <code class="verbatim">ESC</code>.</td></tr>
+<tr><td><code class="verbatim">I</code>, <code class="verbatim">A</code></td><td>Inserts before or after the block on every line. <code class="verbatim">A</code> pads short lines with spaces; after <code class="verbatim">$</code>, it appends at each line's end.</td></tr>
+<tr><td><code class="verbatim">r</code> <em>x</em></td><td>Replaces every character of the block with <em>x</em>.</td></tr>
+<tr><td><code class="verbatim">~</code>, <code class="verbatim">u</code>, <code class="verbatim">U</code></td><td>Toggles case, lowercases, uppercases the block.</td></tr>
+<tr><td><code class="verbatim">&gt;</code>, <code class="verbatim">&lt;</code></td><td>Indents or outdents the block's lines.</td></tr>
+<tr><td><code class="verbatim">v</code>, <code class="verbatim">V</code></td><td>Switches to visual or visual-line state.</td></tr>
+</tbody>
+</table>
+<p>Block <code class="verbatim">I</code>, <code class="verbatim">A</code> and <code class="verbatim">c</code> copy the typed text to the other lines only when it contains no newline. A yanked block pastes as ordinary lines, not as a block.</p>
+<h3 id="surround">Surround</h3>
+<p>As <code class="verbatim">evil-surround</code>:</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">ys</code> <em>motion</em> <em>x</em></td><td>Surrounds the motion's text with <em>x</em>: <code class="verbatim">ys$*</code> makes the rest of the line bold. Trailing blanks stay outside.</td></tr>
+<tr><td><code class="verbatim">ys</code> <code class="verbatim">i</code> <em>obj</em> <em>x</em>, <code class="verbatim">ys</code> <code class="verbatim">a</code> <em>obj</em> <em>x</em></td><td>Surrounds a text object: <code>ysiw=</code> wraps the word in <code>=</code> for verbatim.</td></tr>
+<tr><td><code class="verbatim">yss</code> <em>x</em></td><td>Surrounds the line, from its first non-blank.</td></tr>
+<tr><td><code class="verbatim">ds</code> <em>x</em></td><td>Deletes the surrounding <em>x</em>. With an opening bracket, the blanks inside go too.</td></tr>
+<tr><td><code class="verbatim">cs</code> <em>x</em> <em>y</em></td><td>Changes the surrounding <em>x</em> to <em>y</em>.</td></tr>
+<tr><td><code class="verbatim">S</code> <em>x</em> (visual)</td><td>Surrounds the selection.</td></tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr><th><em>x</em></th><th>Delimiters</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">(</code>, <code class="verbatim">[</code>, <code class="verbatim">{</code>, <code class="verbatim">&lt;</code></td><td>The pair with a space inside each: <code class="verbatim">( text )</code>.</td></tr>
+<tr><td><code class="verbatim">)</code>, <code class="verbatim">b</code></td><td><code class="verbatim">(text)</code></td></tr>
+<tr><td><code class="verbatim">]</code>, <code class="verbatim">r</code></td><td><code class="verbatim">[text]</code></td></tr>
+<tr><td><code class="verbatim">}</code>, <code class="verbatim">B</code></td><td><code class="verbatim">{text}</code></td></tr>
+<tr><td><code class="verbatim">&gt;</code>, <code class="verbatim">a</code></td><td><code class="verbatim">&lt;text&gt;</code></td></tr>
+<tr><td><code class="verbatim">SPC</code></td><td>A space on each side.</td></tr>
+<tr><td>Any other character</td><td>That character on both sides: <code class="verbatim">*</code>, <code class="verbatim">/</code>, <code class="verbatim">_</code>, <code class="verbatim">+</code>, <code>=</code>, <code class="verbatim">~</code>, <code class="verbatim">"</code>, <code class="verbatim">'</code>.</td></tr>
+</tbody>
+</table>
+<p>For <code class="verbatim">ds</code> and <code class="verbatim">cs</code>, brackets are found across lines; any other character is matched on the caret's line. Tags (<code class="verbatim">t</code>) and functions (<code class="verbatim">f</code>) are not supported.</p>
+<h3 id="commenting">Commenting</h3>
+<p><code class="verbatim">gc</code> with a motion or text object, <code class="verbatim">gcc</code> for lines, and <code class="verbatim">gc</code> in visual state toggle Org comments. Lines get <code class="verbatim">#</code> followed by a space at the shallowest indentation among them; blank lines are left alone. When every non-blank line is already a comment, the comments are removed instead. This is <code class="verbatim">comment-or-uncomment-region</code> in Org, as <code class="verbatim">evilnc-comment-operator</code> runs it.</p>
+<h3 id="org-keys-in-normal-state">Org keys in normal state</h3>
+<p>Besides the leader, the preset binds these evil-org and Doom keys in normal state. <code class="verbatim">TAB</code>, <code class="verbatim">S-TAB</code> and <code class="verbatim">RET</code> in normal state, and the Emacs preset's Org keys in every state, are listed in the <a href="#key-reference">key reference</a>. <code class="verbatim">gj</code> and <code class="verbatim">gk</code> move by Org element; see <a href="#motions">Motions</a>.</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">TAB</code></td><td>Cycle Visibility (<code class="verbatim">org-cycle</code>). Also in visual state.</td></tr>
+<tr><td><code class="verbatim">S-TAB</code></td><td>Cycle Global Visibility. Also in visual and insert state.</td></tr>
+<tr><td><code class="verbatim">RET</code></td><td>Act at Point (<code class="verbatim">+org/dwim-at-point</code>).</td></tr>
+<tr><td><code class="verbatim">z a</code></td><td>Toggle Fold (<code class="verbatim">+org/toggle-fold</code>). On a heading line: a folded heading opens one level, showing its body and its child headings folded; an open one folds.</td></tr>
+<tr><td><code class="verbatim">z o</code></td><td>Open Fold (<code class="verbatim">+org/open-fold</code>). On a heading line, a folded heading opens one level; an open one stays as it is.</td></tr>
+<tr><td><code class="verbatim">z c</code></td><td>Close Fold (<code class="verbatim">outline-hide-subtree</code>). Folds the subtree the caret is in, from anywhere inside it.</td></tr>
+<tr><td><code class="verbatim">z A</code></td><td>Cycle Global Visibility.</td></tr>
+<tr><td><code class="verbatim">g h</code></td><td>Up to Parent Heading.</td></tr>
+<tr><td><code class="verbatim">] h</code>, <code class="verbatim">[ h</code></td><td>Next or previous heading at the same level.</td></tr>
+<tr><td><code class="verbatim">] b</code>, <code class="verbatim">[ b</code></td><td>Next or previous buffer.</td></tr>
+<tr><td><code class="verbatim">M-h</code>, <code class="verbatim">M-j</code>, <code class="verbatim">M-k</code>, <code class="verbatim">M-l</code></td><td><code class="verbatim">M-&lt;left&gt;</code>, <code class="verbatim">M-&lt;down&gt;</code>, <code class="verbatim">M-&lt;up&gt;</code>, <code class="verbatim">M-&lt;right&gt;</code>: promote, move down, move up, demote on headings; the same for items; move columns and rows in tables. Also in insert and visual state.</td></tr>
+<tr><td><code class="verbatim">M-H</code>, <code class="verbatim">M-J</code>, <code class="verbatim">M-K</code>, <code class="verbatim">M-L</code></td><td>The <code class="verbatim">M-S-</code> arrow forms: subtree promote and demote, table row and column insert and delete. Also in insert and visual state.</td></tr>
+<tr><td><code class="verbatim">C-S-h</code>, <code class="verbatim">C-S-j</code>, <code class="verbatim">C-S-k</code>, <code class="verbatim">C-S-l</code></td><td>The <code class="verbatim">S-</code> arrow forms: TODO keyword, priority, timestamp, property value and list bullet changes. Also in insert state.</td></tr>
+</tbody>
+</table>
+<h3 id="the-leader">The leader</h3>
+<p><code class="verbatim">SPC</code> in normal state is Doom's leader and <code class="verbatim">SPC m</code> its local leader for Org. Pause after <code class="verbatim">SPC</code> to see the key hints.</p>
+<table>
+<thead>
+<tr><th>Keys</th><th>Command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">SPC ,</code></td><td>Switch to Buffer… (<code class="verbatim">app.buffer.switch</code>)</td></tr>
+<tr><td><code class="verbatim">SPC .</code></td><td>Quick Open… (<code class="verbatim">app.quick-open</code>)</td></tr>
+<tr><td><code class="verbatim">SPC /</code></td><td>Search Notes (<code class="verbatim">app.search</code>)</td></tr>
+<tr><td><code class="verbatim">SPC :</code></td><td>Command Palette… (<code class="verbatim">app.palette</code>)</td></tr>
+<tr><td><code class="verbatim">SPC `</code></td><td>Last Buffer (<code class="verbatim">app.buffer.last</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b B</code></td><td>Switch to Buffer… (<code class="verbatim">app.buffer.switch</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b K</code></td><td>Close All Buffers (<code class="verbatim">app.buffer.kill-all</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b O</code></td><td>Close Other Buffers (<code class="verbatim">app.buffer.kill-others</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b S</code></td><td>Save All Buffers (<code class="verbatim">app.save-all</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b [</code></td><td>Previous Buffer (<code class="verbatim">app.buffer.previous</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b ]</code></td><td>Next Buffer (<code class="verbatim">app.buffer.next</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b b</code></td><td>Switch to Buffer… (<code class="verbatim">app.buffer.switch</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b d</code></td><td>Close Buffer (<code class="verbatim">app.buffer.kill</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b k</code></td><td>Close Buffer (<code class="verbatim">app.buffer.kill</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b n</code></td><td>Next Buffer (<code class="verbatim">app.buffer.next</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b p</code></td><td>Previous Buffer (<code class="verbatim">app.buffer.previous</code>)</td></tr>
+<tr><td><code class="verbatim">SPC b s</code></td><td>Save (<code class="verbatim">app.save</code>)</td></tr>
+<tr><td><code class="verbatim">SPC f f</code></td><td>Quick Open… (<code class="verbatim">app.quick-open</code>)</td></tr>
+<tr><td><code class="verbatim">SPC f s</code></td><td>Save (<code class="verbatim">app.save</code>)</td></tr>
+<tr><td><code class="verbatim">SPC h r r</code></td><td>Reload Keymap (<code class="verbatim">app.reload-keymap</code>)</td></tr>
+<tr><td><code class="verbatim">SPC n l</code></td><td>Store Link (<code class="verbatim">org.link.store</code>)</td></tr>
+<tr><td><code class="verbatim">SPC o a</code></td><td>Agenda (<code class="verbatim">app.agenda</code>)</td></tr>
+<tr><td><code class="verbatim">SPC w c</code></td><td>Close Pane (<code class="verbatim">app.pane-close</code>)</td></tr>
+<tr><td><code class="verbatim">SPC w d</code></td><td>Close Pane (<code class="verbatim">app.pane-close</code>)</td></tr>
+<tr><td><code class="verbatim">SPC w n</code></td><td>New Window (<code class="verbatim">app.window-new</code>)</td></tr>
+<tr><td><code class="verbatim">SPC w o</code></td><td>Close Other Panes (<code class="verbatim">app.pane-only</code>)</td></tr>
+<tr><td><code class="verbatim">SPC w s</code></td><td>Split Pane Below (<code class="verbatim">app.split-below</code>)</td></tr>
+<tr><td><code class="verbatim">SPC w v</code></td><td>Split Pane Right (<code class="verbatim">app.split-right</code>)</td></tr>
+<tr><td><code class="verbatim">SPC w w</code></td><td>Next Pane (<code class="verbatim">app.pane-next</code>)</td></tr>
+<tr><td><code class="verbatim">SPC q q</code></td><td>Quit orgstar (<code class="verbatim">app.quit</code>)</td></tr>
+<tr><td><code class="verbatim">SPC s p</code></td><td>Search Notes (<code class="verbatim">app.search</code>)</td></tr>
+<tr><td><code class="verbatim">SPC s s</code></td><td>Find (<code class="verbatim">edit.find</code>)</td></tr>
+<tr><td><code class="verbatim">SPC SPC</code></td><td>Quick Open… (<code class="verbatim">app.quick-open</code>)</td></tr>
+<tr><td><code class="verbatim">SPC t s</code></td><td>Check Spelling While Typing (<code class="verbatim">editor.toggle-spell-check</code>)</td></tr>
+<tr><td><code class="verbatim">SPC t w</code></td><td>Truncate or Wrap Long Lines (<code class="verbatim">editor.toggle-truncate-lines</code>)</td></tr>
+<tr><td><code class="verbatim">SPC X</code></td><td>Capture… (<code class="verbatim">app.capture</code>)</td></tr>
+<tr><td><code class="verbatim">SPC z t</code></td><td>Clock Report (<code class="verbatim">app.clock.report</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m '</code></td><td>Edit Block (<code class="verbatim">org.edit-special</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m .</code></td><td>Go to Heading… (<code class="verbatim">org.goto</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m A</code></td><td>Archive Subtree (<code class="verbatim">app.archive</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b -</code></td><td>Insert Table Rule (<code class="verbatim">org.table.insert-hline</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b a</code></td><td>Align Table (<code class="verbatim">org.table.align</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b d c</code></td><td>Delete Table Column (<code class="verbatim">org.table.delete-column</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b d r</code></td><td>Delete Table Row (<code class="verbatim">org.table.kill-row</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b i c</code></td><td>Insert Table Column (<code class="verbatim">org.table.insert-column</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b i h</code></td><td>Insert Table Rule (<code class="verbatim">org.table.insert-hline</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b i r</code></td><td>Insert Table Row (<code class="verbatim">org.table.insert-row</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m b r</code></td><td>Recalculate Table (<code class="verbatim">org.table.recalc-all</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c E</code></td><td>Set Effort (<code class="verbatim">org.effort.set</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c G</code></td><td>Go to Recent Clocked Entry… (<code class="verbatim">app.clock.goto-recent</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c I</code></td><td>Clock In to Last Entry (<code class="verbatim">app.clock.in-last</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c R</code></td><td>Clock Report (<code class="verbatim">app.clock.report</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c c</code></td><td>Cancel Clock (<code class="verbatim">app.clock.cancel</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c d</code></td><td>Mark as Default Clock Task (<code class="verbatim">app.clock.default</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c g</code></td><td>Go to Clocked Entry (<code class="verbatim">app.clock.goto</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c i</code></td><td>Clock In (<code class="verbatim">app.clock.in</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c o</code></td><td>Clock Out (<code class="verbatim">app.clock.out</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m c r</code></td><td>Resolve Open Clocks… (<code class="verbatim">app.clock.resolve</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m d T</code></td><td>Insert Inactive Timestamp (<code class="verbatim">org.timestamp.inactive</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m d d</code></td><td>Set Deadline (<code class="verbatim">org.deadline</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m d s</code></td><td>Schedule (<code class="verbatim">org.schedule</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m d t</code></td><td>Insert Timestamp (<code class="verbatim">org.timestamp.active</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m e h h</code></td><td>Export to HTML (<code class="verbatim">app.export.html</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m e h o</code></td><td>Export to HTML and Open (<code class="verbatim">app.export.html-open</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m e l p</code></td><td>Export to PDF with Emacs (<code class="verbatim">app.export.pdf</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m e m m</code></td><td>Export to Markdown (<code class="verbatim">app.export.markdown</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m h</code></td><td>Toggle Heading (<code class="verbatim">org.heading.toggle</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m i</code></td><td>Toggle Item (<code class="verbatim">org.item.toggle</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m l i</code></td><td>Store ID Link (<code class="verbatim">org.id.store-link</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m l l</code></td><td>Insert Link… (<code class="verbatim">org.link.insert</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m l s</code></td><td>Store Link (<code class="verbatim">org.link.store</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m o</code></td><td>Set Property… (<code class="verbatim">org.property.read-and-set</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m p d</code></td><td>Lower Priority (<code class="verbatim">org.priority.down</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m p p</code></td><td>Set Priority… (<code class="verbatim">org.priority.set</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m p u</code></td><td>Raise Priority (<code class="verbatim">org.priority.up</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m q</code></td><td>Set Tags (<code class="verbatim">org.tags.set</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m r r</code></td><td>Refile… (<code class="verbatim">app.refile</code>)</td></tr>
+<tr><td><code class="verbatim">SPC u SPC m r r</code></td><td>Go to Refile Target… (<code class="verbatim">app.refile.goto</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s A</code></td><td>Archive Subtree (<code class="verbatim">app.archive</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s N</code></td><td>Widen (<code class="verbatim">org.widen</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s S</code></td><td>Sort Entries (<code class="verbatim">org.sort</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s a</code></td><td>Toggle ARCHIVE Tag (<code class="verbatim">org.archive.toggle-tag</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s c</code></td><td>Clone Subtree with Time Shift (<code class="verbatim">org.subtree.clone</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s d</code></td><td>Cut Subtree (<code class="verbatim">org.subtree.cut</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s h</code></td><td>Promote Subtree (<code class="verbatim">org.subtree.promote</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s j</code></td><td>Move Subtree Down (<code class="verbatim">org.subtree.down</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s k</code></td><td>Move Subtree Up (<code class="verbatim">org.subtree.up</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s l</code></td><td>Demote Subtree (<code class="verbatim">org.subtree.demote</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s n</code></td><td>Narrow to Subtree (<code class="verbatim">org.narrow.subtree</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s r</code></td><td>Refile… (<code class="verbatim">app.refile</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m s s</code></td><td>Sparse Tree… (<code class="verbatim">org.sparse-tree</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m t</code></td><td>Cycle TODO State (<code class="verbatim">org.todo.cycle</code>)</td></tr>
+<tr><td><code class="verbatim">SPC m x</code></td><td>Toggle Checkbox (<code class="verbatim">org.checkbox.toggle</code>)</td></tr>
+</tbody>
+</table>
+<h3 id="ex-commands">Ex commands</h3>
+<p><code class="verbatim">:</code> opens a prompt in the echo area. orgstar understands these:</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:w</code>, <code class="verbatim">:write</code></td><td>Saves the file.</td></tr>
+<tr><td><code class="verbatim">:q</code>, <code class="verbatim">:quit</code>, <code class="verbatim">:q!</code></td><td>Closes the window. Closing the last window quits orgstar, which asks about unsaved changes as usual.</td></tr>
+<tr><td><code class="verbatim">:wq</code>, <code class="verbatim">:wq!</code>, <code class="verbatim">:x</code></td><td>Saves, then closes the window.</td></tr>
+<tr><td><code class="verbatim">:e</code> <em>file</em>, <code class="verbatim">:edit</code> <em>file</em></td><td>Opens <em>file</em>, relative to the current file's folder; <code class="verbatim">~</code> is expanded.</td></tr>
+<tr><td><code class="verbatim">:e</code>, <code class="verbatim">:e!</code>, <code class="verbatim">:edit</code>, <code class="verbatim">:edit!</code></td><td>Reloads the file from disk; unsaved changes go to the recovery versions.</td></tr>
+<tr><td><code class="verbatim">:bn</code>, <code class="verbatim">:bnext</code></td><td>Next buffer.</td></tr>
+<tr><td><code class="verbatim">:bp</code>, <code class="verbatim">:bprevious</code>, <code class="verbatim">:bN</code>, <code class="verbatim">:bNext</code></td><td>Previous buffer.</td></tr>
+<tr><td><code class="verbatim">:bd</code>, <code class="verbatim">:bdelete</code>, <code class="verbatim">:bd!</code>, <code class="verbatim">:bw</code>, <code class="verbatim">:bwipeout</code></td><td>Closes the buffer.</td></tr>
+<tr><td><code class="verbatim">:b</code>, <code class="verbatim">:buffer</code>, <code class="verbatim">:ls</code>, <code class="verbatim">:buffers</code>, <code class="verbatim">:files</code></td><td>Asks for a buffer to switch to.</td></tr>
+<tr><td><code class="verbatim">:</code> <em>N</em></td><td>Goes to line <em>N</em>.</td></tr>
+<tr><td><code class="verbatim">:s/</code> <em>pattern</em> <code class="verbatim">/</code> <em>replacement</em> <code class="verbatim">/</code> <em>flags</em></td><td>Replaces on the current line. Flags: <code class="verbatim">g</code> for every match on the line, <code class="verbatim">i</code> to ignore case. <code class="verbatim">\1</code> in the replacement is the first group.</td></tr>
+<tr><td><code class="verbatim">:%s/</code> <em>pattern</em> <code class="verbatim">/</code> <em>replacement</em> <code class="verbatim">/</code> <em>flags</em></td><td>The same on every line.</td></tr>
+<tr><td><code class="verbatim">:noh</code>, <code class="verbatim">:nohlsearch</code></td><td>Accepted; does nothing.</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">q:</code> opens the ex prompt with your earlier commands listed, most recent first, to pick and edit; <code class="verbatim">q/</code> and <code class="verbatim">q?</code> do the same for searches.</p>
+<p>Anything else shows <code class="verbatim">Not an editor command</code>. Ranges other than <code class="verbatim">%</code>, the <code class="verbatim">c</code> flag, <code class="verbatim">:g</code>, <code class="verbatim">:normal</code> and <code class="verbatim">:set</code> are not available, and <code class="verbatim">:</code> does not work in visual state.</p>
+<h3 id="not-available">Not available</h3>
+<p>Things evil users may reach for that orgstar does not have: the fold <code class="verbatim">z</code> commands other than <code class="verbatim">za</code>, <code class="verbatim">zc</code>, <code class="verbatim">zo</code> and <code class="verbatim">zA</code>, and scrolling by lines (<code class="verbatim">zh</code>, <code class="verbatim">zl</code>, <code class="verbatim">C-e</code>, <code class="verbatim">C-y</code>); <code class="verbatim">gi</code>, <code class="verbatim">g;</code>, <code class="verbatim">gJ</code>; <code class="verbatim">&amp;</code>; the numbered and read-only registers; tag and sentence text objects.</p>
+<h2 id="keys-in-other-windows">Keys in other windows</h2>
+<p>The block editor, opened by Edit Block (<code class="verbatim">C-c '</code>) or Edit Table Field (<code class="verbatim">C-c `</code>), is a plain editor with its own two bindings in every preset: <code class="verbatim">C-c '</code> or <code class="verbatim">⌘↩</code> saves and returns, <code class="verbatim">Esc</code> or <code class="verbatim">C-c C-k</code> leaves without saving. It does not use the Doom preset's Vim editing or your <code class="verbatim">keymap.toml</code>. See <a href="11-code-blocks.html">Code blocks</a>.</p>
+<p>The Agenda window has its own keys, modelled on <code class="verbatim">org-agenda-mode</code>, which <code class="verbatim">keymap.toml</code> does not change:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">n</code>, <code class="verbatim">p</code>, <code class="verbatim">C-n</code>, <code class="verbatim">C-p</code>, <code class="verbatim">↓</code>, <code class="verbatim">↑</code></td><td>Next or previous line.</td></tr>
+<tr><td><code class="verbatim">RET</code>, <code class="verbatim">TAB</code></td><td>Opens the selected entry, or a calendar event in Calendar.</td></tr>
+<tr><td><code class="verbatim">SPC</code></td><td>Shows the selected entry in the main window, keeping the agenda in front.</td></tr>
+<tr><td><code class="verbatim">f</code>, <code class="verbatim">b</code></td><td>Next or previous span (agenda views).</td></tr>
+<tr><td><code class="verbatim">.</code></td><td>Back to today (agenda views).</td></tr>
+<tr><td><code class="verbatim">j</code></td><td>Go to a date (agenda views).</td></tr>
+<tr><td><code class="verbatim">v d</code>, <code class="verbatim">v w</code>, <code class="verbatim">v m</code></td><td>Day, week or month view (agenda views).</td></tr>
+<tr><td><code class="verbatim">d</code>, <code class="verbatim">w</code></td><td>Day or week view (agenda views).</td></tr>
+<tr><td><code class="verbatim">k</code></td><td>Capture an entry scheduled on the selected line's day (agenda views).</td></tr>
+<tr><td><code class="verbatim">s</code></td><td>Save every file.</td></tr>
+<tr><td><code class="verbatim">\</code></td><td>Tag filter (<code class="verbatim">+tag-tag</code>).</td></tr>
+<tr><td><code>=</code></td><td>Regexp filter (<code class="verbatim">-re</code> drops matches).</td></tr>
+<tr><td><code class="verbatim">&lt;</code></td><td>Filter to the selected entry's category, or clear the category filter.</td></tr>
+<tr><td>&vert;</td><td>Removes every filter.</td></tr>
+<tr><td><code class="verbatim">l</code></td><td>Log mode on or off (agenda views).</td></tr>
+<tr><td><code class="verbatim">g</code>, <code class="verbatim">r</code></td><td>Rebuilds the views.</td></tr>
+<tr><td><code class="verbatim">t</code></td><td>Cycle TODO State.</td></tr>
+<tr><td><code class="verbatim">+</code>, <code class="verbatim">-</code></td><td>Raise or lower priority.</td></tr>
+<tr><td><code class="verbatim">,</code></td><td>Set priority.</td></tr>
+<tr><td><code class="verbatim">:</code></td><td>Set tags.</td></tr>
+<tr><td><code class="verbatim">S-&lt;right&gt;</code>, <code class="verbatim">S-&lt;left&gt;</code></td><td>Moves the entry's timestamp a day later or earlier.</td></tr>
+<tr><td><code class="verbatim">I</code>, <code class="verbatim">O</code>, <code class="verbatim">X</code></td><td>Clock in, clock out, cancel the clock.</td></tr>
+<tr><td><code class="verbatim">m</code>, <code class="verbatim">u</code>, <code class="verbatim">U</code></td><td>Marks, unmarks, unmarks all entries for bulk actions.</td></tr>
+<tr><td><code class="verbatim">B</code></td><td>Bulk action on the marked entries.</td></tr>
+<tr><td><code class="verbatim">C-c C-t</code></td><td>Cycle TODO State.</td></tr>
+<tr><td><code class="verbatim">C-c C-s</code>, <code class="verbatim">C-c C-d</code></td><td>Schedule, set deadline.</td></tr>
+<tr><td><code class="verbatim">C-c C-q</code></td><td>Set tags.</td></tr>
+<tr><td><code class="verbatim">C-c C-w</code></td><td>Refile.</td></tr>
+<tr><td><code class="verbatim">C-c $</code>, <code class="verbatim">C-c C-x C-s</code></td><td>Archive.</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">s</code> saves, as in <code class="verbatim">org-agenda-mode</code>. The text search that <code class="verbatim">s</code> starts from Org's agenda dispatcher is Search… in the view menu, and <code class="verbatim">S</code> is TODO Search….</p>
+<p>See <a href="07-agenda.html">Agenda</a> for what these do. In the Capture window, typing a template's key picks it, <code class="verbatim">⌘↩</code> files the entry and <code class="verbatim">Esc</code> cancels; see <a href="08-capture.html">Capture</a>.</p>
+<h2 id="ios-and-ipados">iOS and iPadOS</h2>
+<p>With a hardware keyboard, the iOS app runs the preset <code class="verbatim">keymap</code> names in the folder's <code class="verbatim">config.toml</code>, with the folder's <code class="verbatim">keymap.toml</code> on it, as the Mac does. With <code class="verbatim">doom</code>, Vim keys work as on the Mac: normal, insert, visual and replace states, operators, motions, text objects, counts, registers, <code class="verbatim">.</code>, macros, marks, <code class="verbatim">/</code>, <code class="verbatim">?</code> and the ex commands <code class="verbatim">:w</code>, <code class="verbatim">:N</code> and <code class="verbatim">:s</code>, with a block cursor outside insert state. Typing on the on-screen keyboard in normal state goes in as insert state. Block selections show as one selection, and the clipboard is read only when <code class="verbatim">p</code> or <code class="verbatim">P</code> pastes, so iOS doesn't ask for it on every key.</p>
+<ul>
+<li>Option acts as Meta when the key starts a binding (<code class="verbatim">M-RET</code>, <code class="verbatim">M-&lt;left&gt;</code>); otherwise Option types characters as usual.</li>
+<li>Keys with <code class="verbatim">⌘</code> are left to iOS.</li>
+<li>Movement and editing keys bound to <code class="verbatim">edit.</code> commands (<code class="verbatim">C-a</code>, <code class="verbatim">C-e</code>, <code class="verbatim">C-k</code> and so on) are left to the iOS text system, except undo.</li>
+<li>Of the <code class="verbatim">app.</code> commands only the clock commands run from keys: <code class="verbatim">C-c C-x C-i</code>, <code class="verbatim">C-c C-x C-o</code>, <code class="verbatim">C-c C-x C-q</code>, <code class="verbatim">C-c C-x C-j</code>, <code class="verbatim">C-c C-x C-x</code> and <code class="verbatim">C-c C-x C-z</code>. Other <code class="verbatim">app.</code> keys, and editor commands such as narrowing, show <code class="verbatim">Not available on iOS yet</code>.</li>
+<li>A sequence of two or more keys whose command cannot run at the caret runs it anyway and shows its message, as on the Mac (for example <code class="verbatim">Not on a heading</code>).</li>
+<li>A pending prefix shows as a message, without key hints.</li>
+</ul>
+<p>The on-screen key bar's buttons run what their Emacs keys run at the caret (Fold is <code class="verbatim">TAB</code>, Promote is <code class="verbatim">M-&lt;left&gt;</code>, TODO is <code class="verbatim">C-c C-t</code>). See <a href="14-ios.html">iOS</a>.</p>
+<h2 id="key-reference">Key reference</h2>
+<p>Every binding in the three presets, generated from the presets themselves. Each command's id, for <code class="verbatim">keymap.toml</code>, follows its title.</p>
+<ul>
+<li><strong>Emacs</strong> lists the Emacs preset's keys.</li>
+<li><strong>Mac</strong> lists the Mac preset's keys, with macOS symbols. <code class="verbatim">⇥</code> is Tab and <code class="verbatim">↩</code> Return.</li>
+<li><strong>Doom</strong> lists the keys the Doom preset adds. Every Emacs-preset key that starts with <code class="verbatim">C-c</code> or <code class="verbatim">C-x</code>, the <code class="verbatim">M-</code> and <code class="verbatim">S-</code> arrow keys, <code class="verbatim">M-RET</code>, <code class="verbatim">M-S-RET</code>, <code class="verbatim">C-RET</code>, <code class="verbatim">M-x</code> and <code class="verbatim">M-q</code> also work in the Doom preset, in normal, insert and visual states, so they are not repeated in the Doom column. Doom keys marked (N), (I) or (V) work only in normal, insert or visual state; unmarked ones work in all three.</li>
+</ul>
+<p>When a key appears in several rows, it runs the command whose condition holds at the caret: for example <code class="verbatim">M-&lt;right&gt;</code> demotes a heading, indents a list item and moves a table column. The descriptions say where each one applies. Movement and text editing in the Doom preset are the Vim keys above, so the Doom column is empty for those rows.</p>
+<h3 id="movement-and-the-region">Movement and the region</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Forward Character (<code class="verbatim">edit.forward-char</code>)</td><td><code class="verbatim">C-f</code></td><td>—</td><td>—</td><td>Moves forward one character (<code class="verbatim">forward-char</code>).</td></tr>
+<tr><td>Backward Character (<code class="verbatim">edit.backward-char</code>)</td><td><code class="verbatim">C-b</code></td><td>—</td><td>—</td><td>Moves back one character (<code class="verbatim">backward-char</code>).</td></tr>
+<tr><td>Next Line (<code class="verbatim">edit.next-line</code>)</td><td><code class="verbatim">C-n</code></td><td>—</td><td>—</td><td>Moves down one line (<code class="verbatim">next-line</code>).</td></tr>
+<tr><td>Previous Line (<code class="verbatim">edit.previous-line</code>)</td><td><code class="verbatim">C-p</code></td><td>—</td><td>—</td><td>Moves up one line (<code class="verbatim">previous-line</code>).</td></tr>
+<tr><td>Beginning of Line (<code class="verbatim">edit.beginning-of-line</code>)</td><td><code class="verbatim">C-a</code></td><td>—</td><td>—</td><td>Moves to the start of the line (<code class="verbatim">move-beginning-of-line</code>).</td></tr>
+<tr><td>End of Line (<code class="verbatim">edit.end-of-line</code>)</td><td><code class="verbatim">C-e</code></td><td>—</td><td>—</td><td>Moves to the end of the line (<code class="verbatim">move-end-of-line</code>).</td></tr>
+<tr><td>Forward Word (<code class="verbatim">edit.forward-word</code>)</td><td><code class="verbatim">M-f</code></td><td>—</td><td>—</td><td>Moves forward one word (<code class="verbatim">forward-word</code>).</td></tr>
+<tr><td>Backward Word (<code class="verbatim">edit.backward-word</code>)</td><td><code class="verbatim">M-b</code></td><td>—</td><td>—</td><td>Moves back one word (<code class="verbatim">backward-word</code>).</td></tr>
+<tr><td>Beginning of Buffer (<code class="verbatim">edit.beginning-of-buffer</code>)</td><td><code class="verbatim">M-&lt;</code></td><td>—</td><td>—</td><td>Moves to the start of the file (<code class="verbatim">beginning-of-buffer</code>).</td></tr>
+<tr><td>End of Buffer (<code class="verbatim">edit.end-of-buffer</code>)</td><td><code class="verbatim">M-&gt;</code></td><td>—</td><td>—</td><td>Moves to the end of the file (<code class="verbatim">end-of-buffer</code>).</td></tr>
+<tr><td>Scroll Up (<code class="verbatim">edit.scroll-up</code>)</td><td><code class="verbatim">C-v</code></td><td>—</td><td>—</td><td>Scrolls down one screen (<code class="verbatim">scroll-up-command</code>).</td></tr>
+<tr><td>Scroll Down (<code class="verbatim">edit.scroll-down</code>)</td><td><code class="verbatim">M-v</code></td><td>—</td><td>—</td><td>Scrolls up one screen (<code class="verbatim">scroll-down-command</code>).</td></tr>
+<tr><td>Recenter (<code class="verbatim">edit.recenter</code>)</td><td><code class="verbatim">C-l</code></td><td>—</td><td>—</td><td>Scrolls so the caret's line is in the middle of the window (<code class="verbatim">recenter-top-bottom</code>, without the cycling).</td></tr>
+<tr><td>Set Mark (<code class="verbatim">edit.set-mark</code>)</td><td><code class="verbatim">C-SPC</code></td><td>—</td><td>—</td><td>Sets the mark at the caret. Until the next command that is not a movement, movement keys extend the selection (<code class="verbatim">set-mark-command</code>).</td></tr>
+<tr><td>Quit (<code class="verbatim">edit.keyboard-quit</code>)</td><td><code class="verbatim">C-g</code></td><td>—</td><td>—</td><td>Drops the mark and the selection, and shows <code class="verbatim">Quit</code> (<code class="verbatim">keyboard-quit</code>).</td></tr>
+<tr><td>Select All (<code class="verbatim">edit.select-all</code>)</td><td><code class="verbatim">C-x h</code></td><td>—</td><td>—</td><td>Selects the whole file (<code class="verbatim">mark-whole-buffer</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="editing">Editing</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Delete Character (<code class="verbatim">edit.delete-char</code>)</td><td><code class="verbatim">C-d</code></td><td>—</td><td>—</td><td>Deletes the character after the caret (<code class="verbatim">delete-char</code>).</td></tr>
+<tr><td>Kill Word (<code class="verbatim">edit.kill-word</code>)</td><td><code class="verbatim">M-d</code></td><td>—</td><td>—</td><td>Deletes to the end of the word (<code class="verbatim">kill-word</code>).</td></tr>
+<tr><td>Kill Word Backward (<code class="verbatim">edit.backward-kill-word</code>)</td><td><code class="verbatim">M-DEL</code></td><td>—</td><td>—</td><td>Deletes to the start of the word (<code class="verbatim">backward-kill-word</code>).</td></tr>
+<tr><td>Kill Line (<code class="verbatim">edit.kill-line</code>)</td><td><code class="verbatim">C-k</code></td><td>—</td><td>—</td><td>Deletes to the end of the line, or the newline at its end, into the macOS kill buffer (<code class="verbatim">kill-line</code>).</td></tr>
+<tr><td>Kill Region (<code class="verbatim">edit.kill-region</code>)</td><td><code class="verbatim">C-w</code></td><td>—</td><td>—</td><td>Cuts the selection to the clipboard (<code class="verbatim">kill-region</code>).</td></tr>
+<tr><td>Copy Region (<code class="verbatim">edit.copy-region</code>)</td><td><code class="verbatim">M-w</code></td><td>—</td><td>—</td><td>Copies the selection to the clipboard (<code class="verbatim">kill-ring-save</code>).</td></tr>
+<tr><td>Yank (<code class="verbatim">edit.yank</code>)</td><td><code class="verbatim">C-y</code></td><td>—</td><td>—</td><td>Inserts the text last deleted with Kill Line, from the macOS kill buffer, not the clipboard (<code class="verbatim">yank</code>). There is no kill ring.</td></tr>
+<tr><td>Undo (<code class="verbatim">edit.undo</code>)</td><td><code class="verbatim">C-/</code>, <code class="verbatim">C-_</code>, <code class="verbatim">C-x u</code></td><td>—</td><td>—</td><td>Undoes the last change (<code class="verbatim">undo</code>).</td></tr>
+<tr><td>Transpose Characters (<code class="verbatim">edit.transpose-chars</code>)</td><td><code class="verbatim">C-t</code></td><td>—</td><td>—</td><td>Swaps the characters around the caret (<code class="verbatim">transpose-chars</code>).</td></tr>
+<tr><td>Find (<code class="verbatim">edit.find</code>)</td><td>—</td><td><code class="verbatim">⌘F</code></td><td><code class="verbatim">SPC s s</code> (N)</td><td>Opens the find bar.</td></tr>
+<tr><td>Incremental Search (<code class="verbatim">edit.isearch-forward</code>)</td><td><code class="verbatim">C-s</code></td><td>—</td><td>—</td><td>Searches forward as you type (<code class="verbatim">isearch-forward</code>). See <a href="02-the-editor.html">The editor</a>.</td></tr>
+<tr><td>Incremental Search Backward (<code class="verbatim">edit.isearch-backward</code>)</td><td><code class="verbatim">C-r</code></td><td>—</td><td>—</td><td>Searches backward as you type (<code class="verbatim">isearch-backward</code>).</td></tr>
+<tr><td>Incremental Regexp Search (<code class="verbatim">edit.isearch-forward-regexp</code>)</td><td><code class="verbatim">C-M-s</code></td><td>—</td><td>—</td><td>The same with a regular expression (<code class="verbatim">isearch-forward-regexp</code>).</td></tr>
+<tr><td>Incremental Regexp Search Backward (<code class="verbatim">edit.isearch-backward-regexp</code>)</td><td><code class="verbatim">C-M-r</code></td><td>—</td><td>—</td><td>The same backward (<code class="verbatim">isearch-backward-regexp</code>).</td></tr>
+<tr><td>Turn Auto Fill On or Off (<code class="verbatim">editor.toggle-auto-fill</code>)</td><td>—</td><td>—</td><td>—</td><td>Turns <code class="verbatim">auto-fill-mode</code> on or off in the current buffer.</td></tr>
+<tr><td>Find and Replace (<code class="verbatim">edit.replace</code>)</td><td><code class="verbatim">M-%</code></td><td>—</td><td>—</td><td>Opens the find bar with replace (<code class="verbatim">query-replace</code>).</td></tr>
+<tr><td>Find Next (<code class="verbatim">edit.find-next</code>)</td><td>—</td><td>—</td><td>—</td><td>Goes to the next match of the find bar's text.</td></tr>
+<tr><td>Find Previous (<code class="verbatim">edit.find-previous</code>)</td><td>—</td><td>—</td><td>—</td><td>Goes to the previous match.</td></tr>
+<tr><td>Use Selection for Find (<code class="verbatim">edit.use-selection-for-find</code>)</td><td>—</td><td>—</td><td>—</td><td>Puts the selection in the find bar.</td></tr>
+<tr><td>Complete at Point (<code class="verbatim">editor.complete</code>)</td><td><code class="verbatim">C-M-i</code></td><td>—</td><td><code class="verbatim">C-SPC</code> (I), <code class="verbatim">C-@</code> (I)</td><td>Completes what is typed at the caret: <code class="verbatim">#+</code> keywords and their values, link types, entities, tags, TODO keywords, headings, drawers, properties, src languages and header arguments, and <code class="verbatim">&lt;s</code>-style templates (<code class="verbatim">completion-at-point</code>). One candidate is inserted; several open a list.</td></tr>
+<tr><td>Fill Paragraph (<code class="verbatim">org.fill-paragraph</code>)</td><td><code class="verbatim">M-q</code></td><td><code class="verbatim">⌃⌘P</code></td><td>—</td><td>Refills the paragraph or list item to the fill column (<code class="verbatim">org-fill-paragraph</code>); with a selection, every paragraph it touches. In the Doom preset, <code class="verbatim">gq</code> and <code class="verbatim">gw</code> fill the lines a motion covers; see <a href="#operators">Operators</a>.</td></tr>
+</tbody>
+</table>
+<h3 id="outline-visibility-and-narrowing">Outline: visibility and narrowing</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Cycle Visibility (<code class="verbatim">org.cycle</code>)</td><td><code class="verbatim">TAB</code></td><td><code class="verbatim">⇥</code></td><td><code class="verbatim">TAB</code> (N, V)</td><td>On a heading, cycles its subtree through folded, children and everything; on the first or last line of a drawer or block, folds or unfolds it (<code class="verbatim">org-cycle</code>). Elsewhere, <code class="verbatim">TAB</code> types a tab in the Emacs and Mac presets.</td></tr>
+<tr><td>Toggle Fold (<code class="verbatim">org.fold.toggle</code>)</td><td>—</td><td>—</td><td><code class="verbatim">z a</code> (N)</td><td>On a heading line, opens a folded heading one level or folds an open one (<code class="verbatim">+org/toggle-fold</code>).</td></tr>
+<tr><td>Open Fold (<code class="verbatim">org.fold.open</code>)</td><td>—</td><td>—</td><td><code class="verbatim">z o</code> (N)</td><td>On a heading line, opens a folded heading one level (<code class="verbatim">+org/open-fold</code>).</td></tr>
+<tr><td>Close Fold (<code class="verbatim">org.fold.close</code>)</td><td>—</td><td>—</td><td><code class="verbatim">z c</code> (N)</td><td>Folds the subtree the caret is in (<code class="verbatim">outline-hide-subtree</code>).</td></tr>
+<tr><td>Cycle Global Visibility (<code class="verbatim">org.cycle-global</code>)</td><td><code class="verbatim">S-TAB</code></td><td><code class="verbatim">⇧⇥</code></td><td><code class="verbatim">S-TAB</code>, <code class="verbatim">z A</code> (N)</td><td>Cycles the whole file through overview, contents and everything (<code class="verbatim">org-global-cycle</code>).</td></tr>
+<tr><td>Narrow to Subtree (<code class="verbatim">org.narrow.subtree</code>)</td><td><code class="verbatim">C-x n s</code></td><td>—</td><td><code class="verbatim">SPC m s n</code> (N)</td><td>Shows only the current subtree (<code class="verbatim">org-narrow-to-subtree</code>).</td></tr>
+<tr><td>Narrow to Block (<code class="verbatim">org.narrow.block</code>)</td><td><code class="verbatim">C-x n b</code></td><td>—</td><td>—</td><td>Shows only the current block (<code class="verbatim">org-narrow-to-block</code>).</td></tr>
+<tr><td>Widen (<code class="verbatim">org.widen</code>)</td><td><code class="verbatim">C-x n w</code></td><td>—</td><td><code class="verbatim">SPC m s N</code> (N)</td><td>Shows the whole file again (<code class="verbatim">widen</code>).</td></tr>
+<tr><td>Narrow to Subtree or Widen (<code class="verbatim">org.narrow.toggle</code>)</td><td>—</td><td><code class="verbatim">⌃⌘N</code></td><td>—</td><td>Narrows to the subtree, or widens when already narrowed (<code class="verbatim">org-toggle-narrow-to-subtree</code>).</td></tr>
+<tr><td>Sparse Tree… (<code class="verbatim">org.sparse-tree</code>)</td><td><code class="verbatim">C-c /</code></td><td>—</td><td><code class="verbatim">SPC m s s</code> (N)</td><td>Asks for a match and shows only the matching entries and their context (<code class="verbatim">org-sparse-tree</code>). <code class="verbatim">C-c C-c</code> clears the highlights.</td></tr>
+<tr><td>Show or Hide Inline Images (<code class="verbatim">org.toggle-inline-images</code>)</td><td><code class="verbatim">C-c C-x C-v</code></td><td>—</td><td>—</td><td>Shows or hides image links as images (<code class="verbatim">org-toggle-inline-images</code>).</td></tr>
+<tr><td>Show or Hide LaTeX Previews (<code class="verbatim">org.latex-preview</code>)</td><td><code class="verbatim">C-c C-x C-l</code></td><td>—</td><td>—</td><td>Shows or hides LaTeX fragments as typeset math (<code class="verbatim">org-latex-preview</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="outline-headings-and-subtrees">Outline: headings and subtrees</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Next Heading (<code class="verbatim">org.heading.next</code>)</td><td><code class="verbatim">C-c C-n</code></td><td><code class="verbatim">⌥⌘↓</code></td><td>—</td><td>Moves to the next heading (<code class="verbatim">org-next-visible-heading</code>).</td></tr>
+<tr><td>Previous Heading (<code class="verbatim">org.heading.previous</code>)</td><td><code class="verbatim">C-c C-p</code></td><td><code class="verbatim">⌥⌘↑</code></td><td>—</td><td>Moves to the previous heading (<code class="verbatim">org-previous-visible-heading</code>).</td></tr>
+<tr><td>Next Heading at Same Level (<code class="verbatim">org.heading.forward-same-level</code>)</td><td><code class="verbatim">C-c C-f</code></td><td><code class="verbatim">⌥⇧⌘↓</code></td><td><code class="verbatim">] h</code> (N)</td><td>Moves to the next heading at the same level (<code class="verbatim">org-forward-heading-same-level</code>).</td></tr>
+<tr><td>Previous Heading at Same Level (<code class="verbatim">org.heading.backward-same-level</code>)</td><td><code class="verbatim">C-c C-b</code></td><td><code class="verbatim">⌥⇧⌘↑</code></td><td><code class="verbatim">[ h</code> (N)</td><td>Moves to the previous heading at the same level (<code class="verbatim">org-backward-heading-same-level</code>).</td></tr>
+<tr><td>Up to Parent Heading (<code class="verbatim">org.heading.up</code>)</td><td><code class="verbatim">C-c C-u</code></td><td>—</td><td><code class="verbatim">g h</code> (N)</td><td>Moves to the parent heading (<code class="verbatim">outline-up-heading</code>).</td></tr>
+<tr><td>Go to Heading… (<code class="verbatim">org.goto</code>)</td><td><code class="verbatim">C-c C-j</code></td><td>—</td><td><code class="verbatim">SPC m .</code> (N)</td><td>Asks for a heading of this file by its outline path and jumps to it (<code class="verbatim">org-goto</code>).</td></tr>
+<tr><td>Insert Heading (<code class="verbatim">org.heading.insert</code>)</td><td><code class="verbatim">M-RET</code></td><td><code class="verbatim">⌘↩</code></td><td>—</td><td>Inserts a heading at the current level; on a list item, see Insert Item (<code class="verbatim">org-meta-return</code>, <code class="verbatim">org-insert-heading</code>).</td></tr>
+<tr><td>Insert Heading After Subtree (<code class="verbatim">org.heading.insert-after-subtree</code>)</td><td><code class="verbatim">C-RET</code></td><td><code class="verbatim">⌃⌘↩</code></td><td>—</td><td>Inserts a heading after the current subtree (<code class="verbatim">org-insert-heading-respect-content</code>).</td></tr>
+<tr><td>Insert TODO Heading (<code class="verbatim">org.heading.insert-todo</code>)</td><td><code class="verbatim">M-S-RET</code></td><td><code class="verbatim">⇧⌘↩</code></td><td>—</td><td>Inserts a heading with the first TODO keyword (<code class="verbatim">org-insert-todo-heading</code>).</td></tr>
+<tr><td>Promote Heading (<code class="verbatim">org.heading.promote</code>)</td><td><code class="verbatim">M-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌘←</code></td><td><code class="verbatim">M-h</code>, <code class="verbatim">C-d</code> (I), <code class="verbatim">S-TAB</code> (I)</td><td>On a heading, raises it one level (<code class="verbatim">org-do-promote</code>).</td></tr>
+<tr><td>Demote Heading (<code class="verbatim">org.heading.demote</code>)</td><td><code class="verbatim">M-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌘→</code></td><td><code class="verbatim">M-l</code>, <code class="verbatim">C-t</code> (I), <code class="verbatim">TAB</code> (I)</td><td>On a heading, lowers it one level (<code class="verbatim">org-do-demote</code>).</td></tr>
+<tr><td>Promote Subtree (<code class="verbatim">org.subtree.promote</code>)</td><td><code class="verbatim">M-S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌥⌘←</code></td><td><code class="verbatim">M-H</code>, <code class="verbatim">SPC m s h</code> (N)</td><td>On a heading, raises it and its subtree (<code class="verbatim">org-promote-subtree</code>).</td></tr>
+<tr><td>Demote Subtree (<code class="verbatim">org.subtree.demote</code>)</td><td><code class="verbatim">M-S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌥⌘→</code></td><td><code class="verbatim">M-L</code>, <code class="verbatim">SPC m s l</code> (N)</td><td>On a heading, lowers it and its subtree (<code class="verbatim">org-demote-subtree</code>).</td></tr>
+<tr><td>Move Subtree Up (<code class="verbatim">org.subtree.up</code>)</td><td><code class="verbatim">M-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌥⌘↑</code></td><td><code class="verbatim">M-k</code>, <code class="verbatim">SPC m s k</code> (N)</td><td>On a heading, swaps the subtree with the one above (<code class="verbatim">org-move-subtree-up</code>).</td></tr>
+<tr><td>Move Subtree Down (<code class="verbatim">org.subtree.down</code>)</td><td><code class="verbatim">M-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌥⌘↓</code></td><td><code class="verbatim">M-j</code>, <code class="verbatim">SPC m s j</code> (N)</td><td>On a heading, swaps the subtree with the one below (<code class="verbatim">org-move-subtree-down</code>).</td></tr>
+<tr><td>Mark Subtree (<code class="verbatim">org.subtree.mark</code>)</td><td><code class="verbatim">C-c @</code></td><td>—</td><td>—</td><td>Selects the current subtree (<code class="verbatim">org-mark-subtree</code>).</td></tr>
+<tr><td>Cut Subtree (<code class="verbatim">org.subtree.cut</code>)</td><td><code class="verbatim">C-c C-x C-w</code></td><td>—</td><td><code class="verbatim">SPC m s d</code> (N)</td><td>Cuts the subtree to the clipboard (<code class="verbatim">org-cut-subtree</code>).</td></tr>
+<tr><td>Copy Subtree (<code class="verbatim">org.subtree.copy</code>)</td><td><code class="verbatim">C-c C-x M-w</code></td><td>—</td><td>—</td><td>Copies the subtree to the clipboard (<code class="verbatim">org-copy-subtree</code>).</td></tr>
+<tr><td>Paste Subtree (<code class="verbatim">org.subtree.paste</code>)</td><td><code class="verbatim">C-c C-x C-y</code></td><td>—</td><td>—</td><td>Pastes a subtree from the clipboard, its levels adjusted to fit (<code class="verbatim">org-paste-subtree</code>).</td></tr>
+<tr><td>Clone Subtree with Time Shift (<code class="verbatim">org.subtree.clone</code>)</td><td><code class="verbatim">C-c C-x c</code></td><td>—</td><td><code class="verbatim">SPC m s c</code> (N)</td><td>Asks for a count and a time shift, then inserts shifted copies of the subtree (<code class="verbatim">org-clone-subtree-with-time-shift</code>).</td></tr>
+<tr><td>Sort Entries (<code class="verbatim">org.sort</code>)</td><td><code class="verbatim">C-c ^</code></td><td><code class="verbatim">⌃⇧⌘S</code></td><td><code class="verbatim">SPC m s S</code> (N)</td><td>Sorts by a key you pick: the lines of a table in a table, the list on an item, otherwise the children of the current heading (<code class="verbatim">org-sort</code>).</td></tr>
+<tr><td>Toggle Heading (<code class="verbatim">org.heading.toggle</code>)</td><td><code class="verbatim">C-c *</code></td><td>—</td><td><code class="verbatim">SPC m h</code> (N)</td><td>Outside a table, turns headings into text and lines or items into headings (<code class="verbatim">org-toggle-heading</code>).</td></tr>
+<tr><td>Toggle COMMENT (<code class="verbatim">org.heading.toggle-comment</code>)</td><td><code class="verbatim">C-c ;</code></td><td>—</td><td>—</td><td>Adds or removes the <code class="verbatim">COMMENT</code> keyword (<code class="verbatim">org-toggle-comment</code>).</td></tr>
+<tr><td>Refile… (<code class="verbatim">app.refile</code>)</td><td><code class="verbatim">C-c C-w</code></td><td><code class="verbatim">⌃⌘W</code></td><td><code class="verbatim">SPC m r r</code> (N), <code class="verbatim">SPC m s r</code> (N)</td><td>Asks for a target heading in your folders and moves the subtree there (<code class="verbatim">org-refile</code>).</td></tr>
+<tr><td>Copy to Refile Target… (<code class="verbatim">app.refile.copy</code>)</td><td><code class="verbatim">C-c M-w</code></td><td>—</td><td><code class="verbatim">C-c M-w</code></td><td>Asks for a target and copies the subtree there (<code class="verbatim">org-copy</code>).</td></tr>
+<tr><td>Go to Refile Target… (<code class="verbatim">app.refile.goto</code>)</td><td><code class="verbatim">C-u C-c C-w</code></td><td>—</td><td><code class="verbatim">SPC u SPC m r r</code> (N)</td><td>Asks for a target and jumps to it (<code class="verbatim">org-refile</code> with a prefix).</td></tr>
+<tr><td>Drag Element Backward (<code class="verbatim">org.element.drag-backward</code>)</td><td><code class="verbatim">M-&lt;up&gt;</code></td><td>—</td><td><code class="verbatim">M-k</code></td><td>Away from headings, items and tables, swaps the element with the one before it (<code class="verbatim">org-drag-element-backward</code>).</td></tr>
+<tr><td>Drag Element Forward (<code class="verbatim">org.element.drag-forward</code>)</td><td><code class="verbatim">M-&lt;down&gt;</code></td><td>—</td><td><code class="verbatim">M-j</code></td><td>Away from headings, items and tables, swaps the element with the one after it (<code class="verbatim">org-drag-element-forward</code>).</td></tr>
+<tr><td>Insert Drawer (<code class="verbatim">org.drawer.insert</code>)</td><td><code class="verbatim">C-c C-x d</code></td><td>—</td><td><code class="verbatim">C-c C-x d</code></td><td>Asks for a name and inserts a drawer, or puts the selected lines in one (<code class="verbatim">org-insert-drawer</code>).</td></tr>
+<tr><td>Archive Subtree (<code class="verbatim">app.archive</code>)</td><td><code class="verbatim">C-c C-x C-s</code>, <code class="verbatim">C-c $</code></td><td><code class="verbatim">⌃⌘A</code></td><td><code class="verbatim">SPC m A</code> (N), <code class="verbatim">SPC m s A</code> (N)</td><td>Moves the subtree to the archive file (<code class="verbatim">org-archive-subtree</code>).</td></tr>
+<tr><td>Toggle ARCHIVE Tag (<code class="verbatim">org.archive.toggle-tag</code>)</td><td><code class="verbatim">C-c C-x a</code></td><td>—</td><td><code class="verbatim">SPC m s a</code> (N)</td><td>Adds or removes the <code class="verbatim">ARCHIVE</code> tag (<code class="verbatim">org-toggle-archive-tag</code>).</td></tr>
+<tr><td>Archive to Archive Sibling (<code class="verbatim">org.archive.to-sibling</code>)</td><td><code class="verbatim">C-c C-x A</code></td><td>—</td><td>—</td><td>Moves the subtree under an <code class="verbatim">Archive</code> sibling heading (<code class="verbatim">org-archive-to-archive-sibling</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="lists-and-checkboxes">Lists and checkboxes</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Insert Item (<code class="verbatim">org.item.insert</code>)</td><td><code class="verbatim">M-RET</code></td><td><code class="verbatim">⌘↩</code></td><td>—</td><td>In a list, inserts a new item (<code class="verbatim">org-insert-item</code>).</td></tr>
+<tr><td>Insert Checkbox Item (<code class="verbatim">org.item.insert-checkbox</code>)</td><td><code class="verbatim">M-S-RET</code></td><td><code class="verbatim">⇧⌘↩</code></td><td>—</td><td>In a list, inserts a new item with a checkbox.</td></tr>
+<tr><td>Indent Item (<code class="verbatim">org.item.indent</code>)</td><td><code class="verbatim">M-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌘→</code></td><td><code class="verbatim">M-l</code>, <code class="verbatim">C-t</code> (I)</td><td>In a list, indents the item (<code class="verbatim">org-indent-item</code>).</td></tr>
+<tr><td>Outdent Item (<code class="verbatim">org.item.outdent</code>)</td><td><code class="verbatim">M-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌘←</code></td><td><code class="verbatim">M-h</code>, <code class="verbatim">C-d</code> (I)</td><td>In a list, outdents the item (<code class="verbatim">org-outdent-item</code>).</td></tr>
+<tr><td>Indent Item and Children (<code class="verbatim">org.item.indent-tree</code>)</td><td><code class="verbatim">M-S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌥⌘→</code></td><td><code class="verbatim">M-L</code>, <code class="verbatim">TAB</code> (I)</td><td>In a list, indents the item and its children (<code class="verbatim">org-indent-item-tree</code>).</td></tr>
+<tr><td>Outdent Item and Children (<code class="verbatim">org.item.outdent-tree</code>)</td><td><code class="verbatim">M-S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌥⌘←</code></td><td><code class="verbatim">M-H</code>, <code class="verbatim">S-TAB</code> (I)</td><td>In a list, outdents the item and its children (<code class="verbatim">org-outdent-item-tree</code>).</td></tr>
+<tr><td>Move Item Up (<code class="verbatim">org.item.up</code>)</td><td><code class="verbatim">M-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌥⌘↑</code></td><td><code class="verbatim">M-k</code></td><td>In a list, swaps the item with the one above (<code class="verbatim">org-move-item-up</code>).</td></tr>
+<tr><td>Move Item Down (<code class="verbatim">org.item.down</code>)</td><td><code class="verbatim">M-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌥⌘↓</code></td><td><code class="verbatim">M-j</code></td><td>In a list, swaps the item with the one below (<code class="verbatim">org-move-item-down</code>).</td></tr>
+<tr><td>Toggle Checkbox (<code class="verbatim">org.checkbox.toggle</code>)</td><td><code class="verbatim">C-c C-x C-b</code></td><td><code class="verbatim">⌃⌘C</code></td><td><code class="verbatim">SPC m x</code> (N)</td><td>Checks or unchecks the item's checkbox (<code class="verbatim">org-toggle-checkbox</code>).</td></tr>
+<tr><td>Next Bullet Type (<code class="verbatim">org.item.bullet-next</code>)</td><td><code class="verbatim">S-&lt;right&gt;</code></td><td>—</td><td><code class="verbatim">C-S-l</code> (N, I)</td><td>On an item, gives the list the next bullet type (<code class="verbatim">org-cycle-list-bullet</code>).</td></tr>
+<tr><td>Previous Bullet Type (<code class="verbatim">org.item.bullet-previous</code>)</td><td><code class="verbatim">S-&lt;left&gt;</code></td><td>—</td><td><code class="verbatim">C-S-h</code> (N, I)</td><td>On an item, gives the list the previous bullet type (<code class="verbatim">org-cycle-list-bullet</code> with <code class="verbatim">previous</code>).</td></tr>
+<tr><td>Toggle Item (<code class="verbatim">org.item.toggle</code>)</td><td><code class="verbatim">C-c -</code></td><td>—</td><td><code class="verbatim">SPC m i</code> (N)</td><td>Outside a table: on an item, cycles the list's bullet style; elsewhere turns lines into items and items into text (<code class="verbatim">org-ctrl-c-minus</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="todo-priority-and-tags">TODO, priority and tags</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Cycle TODO State (<code class="verbatim">org.todo.cycle</code>)</td><td><code class="verbatim">C-c C-t</code></td><td><code class="verbatim">⌃⌘T</code></td><td><code class="verbatim">SPC m t</code> (N)</td><td>Cycles the TODO keyword; with fast-selection keys in <code class="verbatim">#+TODO</code>, asks for one (<code class="verbatim">org-todo</code>).</td></tr>
+<tr><td>Next TODO Keyword (<code class="verbatim">org.todo.next</code>)</td><td><code class="verbatim">S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⇧⌘→</code></td><td><code class="verbatim">C-S-l</code> (N, I)</td><td>On a heading, sets the next keyword across all sequences (<code class="verbatim">org-shiftright</code>).</td></tr>
+<tr><td>Previous TODO Keyword (<code class="verbatim">org.todo.previous</code>)</td><td><code class="verbatim">S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⇧⌘←</code></td><td><code class="verbatim">C-S-h</code> (N, I)</td><td>On a heading, sets the previous keyword (<code class="verbatim">org-shiftleft</code>).</td></tr>
+<tr><td>Toggle ORDERED Property (<code class="verbatim">org.property.toggle-ordered</code>)</td><td><code class="verbatim">C-c C-x o</code></td><td>—</td><td>—</td><td>Sets or removes <code class="verbatim">:ORDERED: t</code>, which makes the entry's TODO children be done in order (<code class="verbatim">org-toggle-ordered-property</code>).</td></tr>
+<tr><td>Raise Priority (<code class="verbatim">org.priority.up</code>)</td><td><code class="verbatim">S-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌘↑</code></td><td><code class="verbatim">C-S-k</code> (N, I), <code class="verbatim">SPC m p u</code> (N)</td><td>On a heading, raises the priority (<code class="verbatim">org-priority-up</code>).</td></tr>
+<tr><td>Lower Priority (<code class="verbatim">org.priority.down</code>)</td><td><code class="verbatim">S-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌘↓</code></td><td><code class="verbatim">C-S-j</code> (N, I), <code class="verbatim">SPC m p d</code> (N)</td><td>On a heading, lowers the priority (<code class="verbatim">org-priority-down</code>).</td></tr>
+<tr><td>Set Priority… (<code class="verbatim">org.priority.set</code>)</td><td><code class="verbatim">C-c ,</code></td><td><code class="verbatim">⌃⌘,</code></td><td><code class="verbatim">SPC m p p</code> (N)</td><td>Asks for a priority; <code class="verbatim">SPC</code> removes it (<code class="verbatim">org-priority</code>).</td></tr>
+<tr><td>Set Priority A (<code class="verbatim">org.priority.set-a</code>)</td><td>—</td><td>—</td><td>—</td><td>Sets priority A. Bound only as a speed key.</td></tr>
+<tr><td>Set Priority B (<code class="verbatim">org.priority.set-b</code>)</td><td>—</td><td>—</td><td>—</td><td>Sets priority B. Bound only as a speed key.</td></tr>
+<tr><td>Set Priority C (<code class="verbatim">org.priority.set-c</code>)</td><td>—</td><td>—</td><td>—</td><td>Sets priority C. Bound only as a speed key.</td></tr>
+<tr><td>Remove Priority (<code class="verbatim">org.priority.remove</code>)</td><td>—</td><td>—</td><td>—</td><td>Removes the priority. Bound only as a speed key.</td></tr>
+<tr><td>Set Tags (<code class="verbatim">org.tags.set</code>)</td><td><code class="verbatim">C-c C-q</code></td><td><code class="verbatim">⌃⌘G</code></td><td><code class="verbatim">SPC m q</code> (N)</td><td>Sets the heading's tags, with fast selection when <code class="verbatim">#+TAGS</code> has keys (<code class="verbatim">org-set-tags-command</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="properties-and-column-view">Properties and column view</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Set Property… (<code class="verbatim">org.property.read-and-set</code>)</td><td><code class="verbatim">C-c C-x p</code></td><td><code class="verbatim">⌃⇧⌘P</code></td><td><code class="verbatim">SPC m o</code> (N)</td><td>Asks for a property and a value and sets it (<code class="verbatim">org-set-property</code>).</td></tr>
+<tr><td>Next Allowed Value (<code class="verbatim">org.property.next-value</code>)</td><td><code class="verbatim">S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⇧⌘→</code></td><td><code class="verbatim">C-S-l</code> (N, I)</td><td>On a property line, sets the next allowed value (<code class="verbatim">org-property-next-allowed-value</code>).</td></tr>
+<tr><td>Previous Allowed Value (<code class="verbatim">org.property.previous-value</code>)</td><td><code class="verbatim">S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⇧⌘←</code></td><td><code class="verbatim">C-S-h</code> (N, I)</td><td>On a property line, sets the previous allowed value (<code class="verbatim">org-property-previous-allowed-value</code>).</td></tr>
+<tr><td>Set Effort (<code class="verbatim">org.effort.set</code>)</td><td><code class="verbatim">C-c C-x e</code></td><td><code class="verbatim">⌃⇧⌘E</code></td><td><code class="verbatim">SPC m c E</code> (N)</td><td>Sets the <code class="verbatim">Effort</code> property, offering <code class="verbatim">Effort_ALL</code> values (<code class="verbatim">org-set-effort</code>).</td></tr>
+<tr><td>Column View (<code class="verbatim">org.columns</code>)</td><td><code class="verbatim">C-c C-x C-c</code></td><td>—</td><td>—</td><td>Shows the column view of the entries, where values can be edited (<code class="verbatim">org-columns</code>).</td></tr>
+<tr><td>Insert Column View Table (<code class="verbatim">org.columns.insert-dblock</code>)</td><td><code class="verbatim">C-c C-x i</code></td><td>—</td><td>—</td><td>Inserts a <code class="verbatim">columnview</code> dynamic block (<code class="verbatim">org-columns-insert-dblock</code>).</td></tr>
+<tr><td>Update Dynamic Block (<code class="verbatim">org.dblock.update</code>)</td><td><code class="verbatim">C-c C-x C-u</code>, <code class="verbatim">C-c C-c</code></td><td><code class="verbatim">⌃⌘X</code></td><td>—</td><td>Updates the dynamic block at point, such as a clock table; <code class="verbatim">C-c C-c</code> and <code class="verbatim">⌃⌘X</code> do it on the block's <code class="verbatim">#+BEGIN</code> line (<code class="verbatim">org-update-dblock</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="dates-and-clocking">Dates and clocking</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Insert Timestamp (<code class="verbatim">org.timestamp.active</code>)</td><td><code class="verbatim">C-c .</code></td><td><code class="verbatim">⌃⌘.</code></td><td><code class="verbatim">SPC m d t</code> (N)</td><td>Asks for a date and inserts an active timestamp, or changes the one at point (<code class="verbatim">org-timestamp</code>).</td></tr>
+<tr><td>Insert Inactive Timestamp (<code class="verbatim">org.timestamp.inactive</code>)</td><td><code class="verbatim">C-c !</code></td><td><code class="verbatim">⌃⌥⌘.</code></td><td><code class="verbatim">SPC m d T</code> (N)</td><td>Same, inactive (<code class="verbatim">org-timestamp-inactive</code>).</td></tr>
+<tr><td>Schedule (<code class="verbatim">org.schedule</code>)</td><td><code class="verbatim">C-c C-s</code></td><td><code class="verbatim">⌃⌘S</code></td><td><code class="verbatim">SPC m d s</code> (N)</td><td>Asks for a date and sets <code class="verbatim">SCHEDULED</code> (<code class="verbatim">org-schedule</code>).</td></tr>
+<tr><td>Set Deadline (<code class="verbatim">org.deadline</code>)</td><td><code class="verbatim">C-c C-d</code></td><td><code class="verbatim">⌃⌘E</code></td><td><code class="verbatim">SPC m d d</code> (N)</td><td>Asks for a date and sets <code class="verbatim">DEADLINE</code> (<code class="verbatim">org-deadline</code>).</td></tr>
+<tr><td>Remove Schedule (<code class="verbatim">org.schedule.remove</code>)</td><td><code class="verbatim">C-u C-c C-s</code></td><td><code class="verbatim">⌃⌥⌘S</code></td><td><code class="verbatim">SPC u SPC m d s</code> (N)</td><td>Removes <code class="verbatim">SCHEDULED</code> (<code class="verbatim">org-schedule</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Remove Deadline (<code class="verbatim">org.deadline.remove</code>)</td><td><code class="verbatim">C-u C-c C-d</code></td><td><code class="verbatim">⌃⌥⌘E</code></td><td><code class="verbatim">SPC u SPC m d d</code> (N)</td><td>Removes <code class="verbatim">DEADLINE</code> (<code class="verbatim">org-deadline</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Increase Timestamp Part (<code class="verbatim">org.timestamp.up</code>)</td><td><code class="verbatim">S-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌘↑</code></td><td><code class="verbatim">C-S-k</code> (N, I)</td><td>On a timestamp, increases the part under the caret: year, month, day, hour or minute (<code class="verbatim">org-timestamp-up</code>).</td></tr>
+<tr><td>Decrease Timestamp Part (<code class="verbatim">org.timestamp.down</code>)</td><td><code class="verbatim">S-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌘↓</code></td><td><code class="verbatim">C-S-j</code> (N, I)</td><td>On a timestamp, decreases the part under the caret (<code class="verbatim">org-timestamp-down</code>).</td></tr>
+<tr><td>Timestamp One Day Later (<code class="verbatim">org.timestamp.day-later</code>)</td><td><code class="verbatim">S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌘→</code></td><td><code class="verbatim">C-S-l</code> (N, I)</td><td>On a timestamp, moves it one day later (<code class="verbatim">org-timestamp-up-day</code>).</td></tr>
+<tr><td>Timestamp One Day Earlier (<code class="verbatim">org.timestamp.day-earlier</code>)</td><td><code class="verbatim">S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌘←</code></td><td><code class="verbatim">C-S-h</code> (N, I)</td><td>On a timestamp, moves it one day earlier (<code class="verbatim">org-timestamp-down-day</code>).</td></tr>
+<tr><td>Evaluate Time Range (<code class="verbatim">org.timestamp.evaluate-range</code>)</td><td><code class="verbatim">C-c C-y</code></td><td>—</td><td>—</td><td>Shows how long the time range lasts, or updates a clock line (<code class="verbatim">org-evaluate-time-range</code>).</td></tr>
+<tr><td>Clock In (<code class="verbatim">app.clock.in</code>)</td><td><code class="verbatim">C-c C-x C-i</code></td><td><code class="verbatim">⌃⌘I</code></td><td><code class="verbatim">SPC m c i</code> (N)</td><td>Starts the clock on the current entry (<code class="verbatim">org-clock-in</code>).</td></tr>
+<tr><td>Clock In to Recent Entry… (<code class="verbatim">app.clock.in-recent</code>)</td><td>—</td><td><code class="verbatim">⌃⌥⌘I</code></td><td>—</td><td>Asks for an entry from the clock history and clocks in to it (<code class="verbatim">org-clock-in</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Clock In to Last Entry (<code class="verbatim">app.clock.in-last</code>)</td><td><code class="verbatim">C-c C-x C-x</code></td><td>—</td><td><code class="verbatim">SPC m c I</code> (N)</td><td>Clocks in to the most recently clocked entry (<code class="verbatim">org-clock-in-last</code>).</td></tr>
+<tr><td>Clock Out (<code class="verbatim">app.clock.out</code>)</td><td><code class="verbatim">C-c C-x C-o</code></td><td><code class="verbatim">⌃⇧⌘I</code></td><td><code class="verbatim">SPC m c o</code> (N)</td><td>Stops the clock (<code class="verbatim">org-clock-out</code>).</td></tr>
+<tr><td>Cancel Clock (<code class="verbatim">app.clock.cancel</code>)</td><td><code class="verbatim">C-c C-x C-q</code></td><td><code class="verbatim">⌃⌘K</code></td><td><code class="verbatim">SPC m c c</code> (N)</td><td>Stops the clock and removes the running clock line (<code class="verbatim">org-clock-cancel</code>).</td></tr>
+<tr><td>Go to Clocked Entry (<code class="verbatim">app.clock.goto</code>)</td><td><code class="verbatim">C-c C-x C-j</code></td><td><code class="verbatim">⌃⌘J</code></td><td><code class="verbatim">SPC m c g</code> (N)</td><td>Opens the entry the clock is running on, or the most recently clocked one (<code class="verbatim">org-clock-goto</code>).</td></tr>
+<tr><td>Go to Recent Clocked Entry… (<code class="verbatim">app.clock.goto-recent</code>)</td><td>—</td><td><code class="verbatim">⌃⌥⌘J</code></td><td><code class="verbatim">SPC m c G</code> (N)</td><td>Asks for an entry from the clock history and opens it (<code class="verbatim">org-clock-goto</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Mark as Default Clock Task (<code class="verbatim">app.clock.default</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC m c d</code> (N)</td><td>Makes the current entry the default task, <code class="verbatim">d</code> in the clock selection (<code class="verbatim">org-clock-mark-default-task</code>).</td></tr>
+<tr><td>Resolve Open Clocks… (<code class="verbatim">app.clock.resolve</code>)</td><td><code class="verbatim">C-c C-x C-z</code></td><td>—</td><td><code class="verbatim">SPC m c r</code> (N)</td><td>Asks what to do with each open <code class="verbatim">CLOCK:</code> line in your folders (<code class="verbatim">org-resolve-clocks</code>).</td></tr>
+<tr><td>Clock Report (<code class="verbatim">app.clock.report</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC z t</code> (N), <code class="verbatim">SPC m c R</code> (N)</td><td>Opens the Clock Report window.</td></tr>
+<tr><td>Insert or Update Clock Table (<code class="verbatim">org.clock.report</code>)</td><td><code class="verbatim">C-c C-x C-r</code></td><td>—</td><td>—</td><td>Inserts a clock table, or updates the one at point (<code class="verbatim">org-clock-report</code>).</td></tr>
+<tr><td>Start Timer (<code class="verbatim">org.timer.start</code>)</td><td><code class="verbatim">C-c C-x 0</code></td><td>—</td><td>—</td><td>Starts the relative timer (<code class="verbatim">org-timer-start</code>). See <a href="06-dates-and-clocking.html">Dates and clocking</a>.</td></tr>
+<tr><td>Start Timer with Offset… (<code class="verbatim">org.timer.start-offset</code>)</td><td><code class="verbatim">C-u C-c C-x 0</code></td><td>—</td><td>—</td><td>Starts the timer from a value asked for (<code class="verbatim">org-timer-start</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Shift Timer Values in Region… (<code class="verbatim">org.timer.change-times</code>)</td><td><code class="verbatim">C-u C-u C-c C-x 0</code></td><td>—</td><td>—</td><td>Moves every timer value in the selection by a difference (<code class="verbatim">org-timer-change-times-in-region</code>).</td></tr>
+<tr><td>Insert Timer Value (<code class="verbatim">org.timer.insert</code>)</td><td><code class="verbatim">C-c C-x .</code></td><td>—</td><td>—</td><td>Inserts the timer's value, starting the timer if needed (<code class="verbatim">org-timer</code>).</td></tr>
+<tr><td>Insert Timer Item (<code class="verbatim">org.timer.item</code>)</td><td><code class="verbatim">C-c C-x -</code></td><td>—</td><td>—</td><td>Inserts a timer list item (<code class="verbatim">org-timer-item</code>).</td></tr>
+<tr><td>Pause or Continue Timer (<code class="verbatim">org.timer.pause</code>)</td><td><code class="verbatim">C-c C-x ,</code></td><td>—</td><td>—</td><td>Pauses or continues the timer (<code class="verbatim">org-timer-pause-or-continue</code>).</td></tr>
+<tr><td>Stop Timer (<code class="verbatim">org.timer.stop</code>)</td><td><code class="verbatim">C-c C-x _</code>, <code class="verbatim">C-u C-c C-x ,</code></td><td>—</td><td>—</td><td>Stops the timer (<code class="verbatim">org-timer-stop</code>).</td></tr>
+<tr><td>Set Countdown Timer… (<code class="verbatim">org.timer.set</code>)</td><td><code class="verbatim">C-c C-x ;</code></td><td>—</td><td>—</td><td>Starts a countdown (<code class="verbatim">org-timer-set-timer</code>).</td></tr>
+<tr><td>Show Remaining Countdown Time (<code class="verbatim">org.timer.show-remaining</code>)</td><td>—</td><td>—</td><td>—</td><td>Says how long the countdown has left (<code class="verbatim">org-timer-show-remaining-time</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="tables">Tables</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Create Table (<code class="verbatim">org.table.create</code>)</td><td><code class="verbatim">C-c</code> &vert;</td><td><code class="verbatim">⌃⌘\</code></td><td>—</td><td>Asks for a size and inserts an empty table (<code class="verbatim">org-table-create</code>).</td></tr>
+<tr><td>Next Table Field (<code class="verbatim">org.table.next-field</code>)</td><td><code class="verbatim">TAB</code></td><td><code class="verbatim">⇥</code></td><td><code class="verbatim">TAB</code> (I)</td><td>In a table, aligns it and moves to the next field, adding a row at the end (<code class="verbatim">org-table-next-field</code>).</td></tr>
+<tr><td>Previous Table Field (<code class="verbatim">org.table.previous-field</code>)</td><td><code class="verbatim">S-TAB</code></td><td><code class="verbatim">⇧⇥</code></td><td><code class="verbatim">S-TAB</code> (I)</td><td>In a table, moves to the previous field (<code class="verbatim">org-table-previous-field</code>).</td></tr>
+<tr><td>Next Table Row (<code class="verbatim">org.table.next-row</code>)</td><td><code class="verbatim">RET</code></td><td><code class="verbatim">↩</code></td><td><code class="verbatim">RET</code> (I)</td><td>In a table, moves to the same field in the next row, adding a row at the end (<code class="verbatim">org-table-next-row</code>).</td></tr>
+<tr><td>Align Table (<code class="verbatim">org.table.align</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC m b a</code> (N)</td><td>In a table, aligns it (<code class="verbatim">org-table-align</code>). <code class="verbatim">C-c C-c</code> in a table also aligns it; see Act at Point.</td></tr>
+<tr><td>Move Table Row Up (<code class="verbatim">org.table.row-up</code>)</td><td><code class="verbatim">M-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌘↑</code></td><td><code class="verbatim">M-k</code></td><td>In a table, moves the row up (<code class="verbatim">org-table-move-row-up</code>).</td></tr>
+<tr><td>Move Table Row Down (<code class="verbatim">org.table.row-down</code>)</td><td><code class="verbatim">M-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌘↓</code></td><td><code class="verbatim">M-j</code></td><td>In a table, moves the row down (<code class="verbatim">org-table-move-row-down</code>).</td></tr>
+<tr><td>Move Table Column Left (<code class="verbatim">org.table.column-left</code>)</td><td><code class="verbatim">M-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌘←</code></td><td><code class="verbatim">M-h</code>, <code class="verbatim">C-d</code> (I)</td><td>In a table, moves the column left (<code class="verbatim">org-table-move-column-left</code>).</td></tr>
+<tr><td>Move Table Column Right (<code class="verbatim">org.table.column-right</code>)</td><td><code class="verbatim">M-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌘→</code></td><td><code class="verbatim">M-l</code>, <code class="verbatim">C-t</code> (I)</td><td>In a table, moves the column right (<code class="verbatim">org-table-move-column-right</code>).</td></tr>
+<tr><td>Insert Table Column (<code class="verbatim">org.table.insert-column</code>)</td><td><code class="verbatim">M-S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌥⌘→</code></td><td><code class="verbatim">M-L</code>, <code class="verbatim">SPC m b i c</code> (N)</td><td>In a table, inserts a column (<code class="verbatim">org-table-insert-column</code>).</td></tr>
+<tr><td>Delete Table Column (<code class="verbatim">org.table.delete-column</code>)</td><td><code class="verbatim">M-S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌥⌘←</code></td><td><code class="verbatim">M-H</code>, <code class="verbatim">SPC m b d c</code> (N)</td><td>In a table, deletes the column (<code class="verbatim">org-table-delete-column</code>).</td></tr>
+<tr><td>Insert Table Row (<code class="verbatim">org.table.insert-row</code>)</td><td><code class="verbatim">M-S-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌥⌘↓</code></td><td><code class="verbatim">M-J</code>, <code class="verbatim">SPC m b i r</code> (N)</td><td>In a table, inserts a row (<code class="verbatim">org-table-insert-row</code>).</td></tr>
+<tr><td>Delete Table Row (<code class="verbatim">org.table.kill-row</code>)</td><td><code class="verbatim">M-S-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌥⌘↑</code></td><td><code class="verbatim">M-K</code>, <code class="verbatim">SPC m b d r</code> (N)</td><td>In a table, deletes the row (<code class="verbatim">org-table-kill-row</code>).</td></tr>
+<tr><td>Insert Table Rule (<code class="verbatim">org.table.insert-hline</code>)</td><td><code class="verbatim">C-c -</code></td><td><code class="verbatim">⌃⌘-</code></td><td><code class="verbatim">SPC m b -</code> (N), <code class="verbatim">SPC m b i h</code> (N)</td><td>In a table, inserts a horizontal rule (<code class="verbatim">org-table-insert-hline</code>).</td></tr>
+<tr><td>Recalculate Table Row (<code class="verbatim">org.table.recalc</code>)</td><td><code class="verbatim">C-c *</code></td><td><code class="verbatim">⌃⌘*</code></td><td>—</td><td>In a table, recalculates the current row (<code class="verbatim">org-table-recalculate</code>). On a US keyboard, <code class="verbatim">⌃⌘*</code> is typed <code class="verbatim">⌃⇧⌘8</code>.</td></tr>
+<tr><td>Recalculate Table (<code class="verbatim">org.table.recalc-all</code>)</td><td><code class="verbatim">C-c C-c</code>, <code class="verbatim">C-u C-c *</code></td><td><code class="verbatim">⌃⌘X</code></td><td><code class="verbatim">SPC m b r</code> (N)</td><td>Recalculates the whole table; <code class="verbatim">C-c C-c</code> and <code class="verbatim">⌃⌘X</code> run it on a <code class="verbatim">#+TBLFM</code> line (<code class="verbatim">org-table-recalculate</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Iterate Table Formulas (<code class="verbatim">org.table.iterate</code>)</td><td><code class="verbatim">C-u C-u C-c *</code></td><td>—</td><td>—</td><td>Recalculates the whole table until it stops changing, at most ten times (<code class="verbatim">org-table-iterate</code>).</td></tr>
+<tr><td>Next table.el Cell (<code class="verbatim">org.table-el.next-cell</code>)</td><td><code class="verbatim">TAB</code></td><td><code class="verbatim">⇥</code></td><td><code class="verbatim">TAB</code></td><td>In a table.el table, lines up its borders and moves to the next cell (<code class="verbatim">table-forward-cell</code>).</td></tr>
+<tr><td>Previous table.el Cell (<code class="verbatim">org.table-el.previous-cell</code>)</td><td><code class="verbatim">S-TAB</code></td><td><code class="verbatim">⇧⇥</code></td><td><code class="verbatim">S-TAB</code></td><td>The same, to the previous cell (<code class="verbatim">table-backward-cell</code>).</td></tr>
+<tr><td>Align table.el Table (<code class="verbatim">org.table-el.align</code>)</td><td><code class="verbatim">C-c C-c</code></td><td><code class="verbatim">⌃⌘X</code></td><td><code class="verbatim">C-c C-c</code></td><td>In a table.el table, lines up its borders.</td></tr>
+<tr><td>Set Column Formula (<code class="verbatim">org.table.column-formula</code>)</td><td><code>C-c =</code></td><td>—</td><td>—</td><td>Asks for the column's formula, offering the stored one (<code class="verbatim">org-table-eval-formula</code>).</td></tr>
+<tr><td>Edit Table Field (<code class="verbatim">org.table.edit-field</code>)</td><td><code class="verbatim">C-c `</code></td><td>—</td><td>—</td><td>In a table, edits the field in a separate editor (<code class="verbatim">org-table-edit-field</code>).</td></tr>
+<tr><td>Shrink or Expand Table Column (<code class="verbatim">org.table.toggle-column-width</code>)</td><td><code class="verbatim">C-c TAB</code></td><td>—</td><td>—</td><td>In a table, shrinks or expands the column (<code class="verbatim">org-table-toggle-column-width</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="links-and-footnotes">Links and footnotes</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Open Link (<code class="verbatim">org.link.open</code>)</td><td><code class="verbatim">C-c C-o</code></td><td><code class="verbatim">⌃⌘O</code></td><td>—</td><td>Follows the link or timestamp at the caret (<code class="verbatim">org-open-at-point</code>).</td></tr>
+<tr><td>Emphasize… (<code class="verbatim">org.emphasize</code>)</td><td><code class="verbatim">C-c C-x C-f</code></td><td>—</td><td>—</td><td>Asks for a marker and wraps the selection in it, or inserts a pair with the caret between (<code class="verbatim">org-emphasize</code>).</td></tr>
+<tr><td>Bold (<code class="verbatim">org.emphasize.bold</code>)</td><td>—</td><td><code class="verbatim">⌘B</code></td><td>—</td><td><code class="verbatim">org-emphasize</code> with <code class="verbatim">*</code>.</td></tr>
+<tr><td>Italic (<code class="verbatim">org.emphasize.italic</code>)</td><td>—</td><td><code class="verbatim">⌘I</code></td><td>—</td><td><code class="verbatim">org-emphasize</code> with <code class="verbatim">/</code>.</td></tr>
+<tr><td>Underline (<code class="verbatim">org.emphasize.underline</code>)</td><td>—</td><td><code class="verbatim">⌘U</code></td><td>—</td><td><code class="verbatim">org-emphasize</code> with <code class="verbatim">_</code>.</td></tr>
+<tr><td>Insert Link… (<code class="verbatim">org.link.insert</code>)</td><td><code class="verbatim">C-c C-l</code></td><td><code class="verbatim">⌘K</code></td><td><code class="verbatim">SPC m l l</code> (N)</td><td>Asks for a link and description and inserts it, offering stored links (<code class="verbatim">org-insert-link</code>).</td></tr>
+<tr><td>Store Link (<code class="verbatim">org.link.store</code>)</td><td><code class="verbatim">C-c l</code></td><td><code class="verbatim">⌃⌘L</code></td><td><code class="verbatim">SPC m l s</code> (N), <code class="verbatim">SPC n l</code> (N)</td><td>Stores a link to the current entry for a later Insert Link (<code class="verbatim">org-store-link</code>).</td></tr>
+<tr><td>Store ID Link (<code class="verbatim">org.id.store-link</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC m l i</code> (N)</td><td>Gives the entry an <code class="verbatim">ID</code> if needed and stores an <code class="verbatim">id:</code> link to it (<code class="verbatim">org-id-store-link</code>).</td></tr>
+<tr><td>Footnote Action (<code class="verbatim">org.footnote.action</code>)</td><td><code class="verbatim">C-c C-x f</code></td><td><code class="verbatim">⌃⇧⌘F</code></td><td>—</td><td>On a reference, goes to its definition; on a definition, back to a reference; elsewhere inserts a footnote (<code class="verbatim">org-footnote-action</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="code-blocks-and-c-c-c-c">Code blocks and C-c C-c</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Act at Point (C-c C-c) (<code class="verbatim">org.ctrl-c-ctrl-c</code>)</td><td><code class="verbatim">C-c C-c</code></td><td><code class="verbatim">⌃⌘X</code></td><td>—</td><td>Does what fits the context: sets tags on a heading, toggles an item's checkbox, follows a footnote, offers the property menu in a property drawer, updates a clock line, statistics cookie or timestamp, runs a <code class="verbatim">#+CALL:</code> line, inline <code class="verbatim">call_</code> or inline <code class="verbatim">src_</code> block, and refreshes the setup on a <code class="verbatim">#+</code> keyword line (<code class="verbatim">org-ctrl-c-ctrl-c</code>). In a table it evaluates a formula typed in the field (starting with <code>=</code> or <code>:=</code>), then recalculates the row when it is marked <code class="verbatim">#</code> and otherwise aligns the table; at the table's first character it recalculates the whole table. After a sparse tree, the first <code class="verbatim">C-c C-c</code> only clears the highlights. More specific bindings take <code class="verbatim">C-c C-c</code> and <code class="verbatim">⌃⌘X</code> in src blocks, <code class="verbatim">#+TBLFM</code> lines and dynamic blocks.</td></tr>
+<tr><td>Act at Point (<code class="verbatim">org.dwim</code>)</td><td>—</td><td>—</td><td><code class="verbatim">RET</code> (N)</td><td>Doom's <code class="verbatim">+org/dwim-at-point</code>: follows a link, runs a src block, recalculates or aligns a table, toggles a checkbox, or switches a heading between TODO and done.</td></tr>
+<tr><td>Run Source Block (<code class="verbatim">org.babel.execute</code>)</td><td><code class="verbatim">C-c C-c</code></td><td><code class="verbatim">⌃⌘X</code></td><td>—</td><td>In a src block, runs it and inserts the results (<code class="verbatim">org-babel-execute-src-block</code>).</td></tr>
+<tr><td>Tangle File (<code class="verbatim">org.babel.tangle</code>)</td><td><code class="verbatim">C-c C-v t</code>, <code class="verbatim">C-c C-v C-t</code></td><td><code class="verbatim">⌃⌘V</code></td><td>—</td><td>Writes the file's src blocks to their tangle targets (<code class="verbatim">org-babel-tangle</code>).</td></tr>
+<tr><td>Tangle Block (<code class="verbatim">org.babel.tangle-block</code>)</td><td>—</td><td><code class="verbatim">⌃⇧⌘V</code></td><td>—</td><td>Tangles only the src block at point (<code class="verbatim">org-babel-tangle</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Tangle Block's Target (<code class="verbatim">org.babel.tangle-target</code>)</td><td>—</td><td><code class="verbatim">⌃⌥⌘V</code></td><td>—</td><td>Tangles every block that writes to the same file as the block at point (<code class="verbatim">org-babel-tangle</code> with <code class="verbatim">C-u C-u</code>).</td></tr>
+<tr><td>Insert Structure Template (<code class="verbatim">org.structure-template</code>)</td><td><code class="verbatim">C-c C-,</code></td><td>—</td><td>—</td><td>Asks for a block type and inserts the block, or wraps the selection (<code class="verbatim">org-insert-structure-template</code>).</td></tr>
+<tr><td>Edit Block (<code class="verbatim">org.edit-special</code>)</td><td><code class="verbatim">C-c '</code></td><td><code class="verbatim">⌃⌘'</code></td><td><code class="verbatim">SPC m '</code> (N)</td><td>Edits the src, example or export block at point in a separate editor (<code class="verbatim">org-edit-special</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="agenda-and-capture">Agenda and capture</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Agenda (<code class="verbatim">app.agenda</code>)</td><td><code class="verbatim">C-c a</code></td><td>—</td><td><code class="verbatim">SPC o a</code> (N)</td><td>Opens the Agenda window (<code class="verbatim">org-agenda</code>).</td></tr>
+<tr><td>Capture… (<code class="verbatim">app.capture</code>)</td><td><code class="verbatim">C-c c</code></td><td>—</td><td><code class="verbatim">SPC X</code> (N)</td><td>Opens the Capture window (<code class="verbatim">org-capture</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="export">Export</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Export… (<code class="verbatim">app.export-dialog</code>)</td><td>—</td><td><code class="verbatim">⇧⌘E</code></td><td>—</td><td>Opens the export sheet. In the Emacs and Doom presets <code class="verbatim">C-c C-e</code> is a prefix for the export keys only; pausing after it lists them in the key hints.</td></tr>
+<tr><td>Export to HTML (<code class="verbatim">app.export.html</code>)</td><td><code class="verbatim">C-c C-e h h</code></td><td>—</td><td><code class="verbatim">SPC m e h h</code> (N)</td><td>Exports to HTML (<code class="verbatim">org-html-export-to-html</code>).</td></tr>
+<tr><td>Export to HTML and Open (<code class="verbatim">app.export.html-open</code>)</td><td><code class="verbatim">C-c C-e h o</code></td><td>—</td><td><code class="verbatim">SPC m e h o</code> (N)</td><td>Exports to HTML and opens the result.</td></tr>
+<tr><td>Export to Markdown (<code class="verbatim">app.export.markdown</code>)</td><td><code class="verbatim">C-c C-e m m</code></td><td>—</td><td><code class="verbatim">SPC m e m m</code> (N)</td><td>Exports to Markdown (<code class="verbatim">org-md-export-to-markdown</code>).</td></tr>
+<tr><td>Export to PDF (<code class="verbatim">app.export.print-pdf</code>)</td><td>—</td><td>—</td><td>—</td><td>Exports to PDF without Emacs, laid out as the HTML export.</td></tr>
+<tr><td>Export to Word (<code class="verbatim">app.export.docx</code>)</td><td>—</td><td>—</td><td>—</td><td>Exports to a Word document (<code class="verbatim">.docx</code>).</td></tr>
+<tr><td>Export to RTF (<code class="verbatim">app.export.rtf</code>)</td><td>—</td><td>—</td><td>—</td><td>Exports to Rich Text Format.</td></tr>
+<tr><td>Export to Plain Text (<code class="verbatim">app.export.plain-text</code>)</td><td>—</td><td>—</td><td>—</td><td>Exports the text without styles, without Emacs.</td></tr>
+<tr><td>Copy as Rich Text (<code class="verbatim">app.copy-rich-text</code>)</td><td>—</td><td>—</td><td>—</td><td>Copies the selection, or the file, as HTML, RTF and plain text.</td></tr>
+<tr><td>Export to PDF with Emacs (<code class="verbatim">app.export.pdf</code>)</td><td><code class="verbatim">C-c C-e l p</code></td><td>—</td><td><code class="verbatim">SPC m e l p</code> (N)</td><td>Exports to PDF through Emacs (<code class="verbatim">org-latex-export-to-pdf</code>).</td></tr>
+<tr><td>Export to LaTeX with Emacs (<code class="verbatim">app.export.latex</code>)</td><td><code class="verbatim">C-c C-e l l</code></td><td>—</td><td>—</td><td>Exports to LaTeX through Emacs (<code class="verbatim">org-latex-export-to-latex</code>).</td></tr>
+<tr><td>Export to ODT with Emacs (<code class="verbatim">app.export.odt</code>)</td><td><code class="verbatim">C-c C-e o o</code></td><td>—</td><td>—</td><td>Exports to ODT through Emacs (<code class="verbatim">org-odt-export-to-odt</code>).</td></tr>
+<tr><td>Export to Plain Text with Emacs (<code class="verbatim">app.export.text</code>)</td><td><code class="verbatim">C-c C-e t u</code></td><td>—</td><td>—</td><td>Exports to plain text through Emacs (<code class="verbatim">org-ascii-export-to-ascii</code>).</td></tr>
+<tr><td>Export to iCalendar (<code class="verbatim">app.export.icalendar</code>)</td><td><code class="verbatim">C-c C-e c f</code></td><td>—</td><td>—</td><td>Exports to an <code class="verbatim">.ics</code> calendar (<code class="verbatim">org-icalendar-export-to-ics</code>).</td></tr>
+<tr><td>Export Agenda Files to iCalendar (<code class="verbatim">app.export.icalendar-agenda</code>)</td><td><code class="verbatim">C-c C-e c a</code></td><td>—</td><td>—</td><td>Writes an <code class="verbatim">.ics</code> beside each agenda file (<code class="verbatim">org-icalendar-export-agenda-files</code>).</td></tr>
+<tr><td>Combine Agenda Files into iCalendar (<code class="verbatim">app.export.icalendar-combined</code>)</td><td><code class="verbatim">C-c C-e c c</code></td><td>—</td><td>—</td><td>Writes the agenda files' entries to one calendar (<code class="verbatim">org-icalendar-combine-agenda-files</code>).</td></tr>
+<tr><td>Publish Project… (<code class="verbatim">app.publish</code>)</td><td><code class="verbatim">C-c C-e P x</code></td><td>—</td><td>—</td><td>Publishes a project from <code class="verbatim">config.toml</code> (<code class="verbatim">org-publish</code>).</td></tr>
+<tr><td>Publish All Projects (<code class="verbatim">app.publish.all</code>)</td><td><code class="verbatim">C-c C-e P a</code></td><td>—</td><td>—</td><td>Publishes every project (<code class="verbatim">org-publish-all</code>).</td></tr>
+<tr><td>Publish Current File (<code class="verbatim">app.publish.current-file</code>)</td><td><code class="verbatim">C-c C-e P f</code></td><td>—</td><td>—</td><td>Publishes the current file (<code class="verbatim">org-publish-current-file</code>).</td></tr>
+<tr><td>Publish Current Project (<code class="verbatim">app.publish.current-project</code>)</td><td><code class="verbatim">C-c C-e P p</code></td><td>—</td><td>—</td><td>Publishes the current file's project (<code class="verbatim">org-publish-current-project</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="files-buffers-and-the-app">Files, buffers and the app</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Save (<code class="verbatim">app.save</code>)</td><td><code class="verbatim">C-x C-s</code></td><td>—</td><td><code class="verbatim">SPC f s</code> (N), <code class="verbatim">SPC b s</code> (N)</td><td>Saves the file (<code class="verbatim">save-buffer</code>).</td></tr>
+<tr><td>Save All Buffers (<code class="verbatim">app.save-all</code>)</td><td><code class="verbatim">C-x s</code></td><td>—</td><td><code class="verbatim">SPC b S</code> (N)</td><td>Saves every open buffer (<code class="verbatim">save-some-buffers</code>).</td></tr>
+<tr><td>Quick Open… (<code class="verbatim">app.quick-open</code>)</td><td><code class="verbatim">C-x C-f</code></td><td>—</td><td><code class="verbatim">SPC SPC</code> (N), <code class="verbatim">SPC .</code> (N), <code class="verbatim">SPC f f</code> (N)</td><td>Opens a file of your folders by name (<code class="verbatim">find-file</code>).</td></tr>
+<tr><td>Switch to Buffer… (<code class="verbatim">app.buffer.switch</code>)</td><td><code class="verbatim">C-x b</code>, <code class="verbatim">C-x C-b</code></td><td>—</td><td><code class="verbatim">SPC b b</code> (N), <code class="verbatim">SPC b B</code> (N), <code class="verbatim">SPC ,</code> (N)</td><td>Asks for an open buffer and shows it (<code class="verbatim">switch-to-buffer</code>).</td></tr>
+<tr><td>Next Buffer (<code class="verbatim">app.buffer.next</code>)</td><td><code class="verbatim">C-x &lt;right&gt;</code></td><td><code class="verbatim">⌃⇥</code></td><td><code class="verbatim">SPC b n</code> (N), <code class="verbatim">SPC b ]</code> (N), <code class="verbatim">] b</code> (N)</td><td>Shows the next open buffer (<code class="verbatim">next-buffer</code>).</td></tr>
+<tr><td>Previous Buffer (<code class="verbatim">app.buffer.previous</code>)</td><td><code class="verbatim">C-x &lt;left&gt;</code></td><td><code class="verbatim">⌃⇧⇥</code></td><td><code class="verbatim">SPC b p</code> (N), <code class="verbatim">SPC b [</code> (N), <code class="verbatim">[ b</code> (N)</td><td>Shows the previous open buffer (<code class="verbatim">previous-buffer</code>).</td></tr>
+<tr><td>Last Buffer (<code class="verbatim">app.buffer.last</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC `</code> (N)</td><td>Shows the buffer you were in before this one.</td></tr>
+<tr><td>Close Buffer (<code class="verbatim">app.buffer.kill</code>)</td><td><code class="verbatim">C-x k</code></td><td>—</td><td><code class="verbatim">SPC b k</code> (N), <code class="verbatim">SPC b d</code> (N)</td><td>Closes the buffer, asking about unsaved changes in explicit save mode (<code class="verbatim">kill-buffer</code>).</td></tr>
+<tr><td>Close Other Buffers (<code class="verbatim">app.buffer.kill-others</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC b O</code> (N)</td><td>Closes every other buffer.</td></tr>
+<tr><td>Split Pane Below (<code class="verbatim">app.split-below</code>)</td><td><code class="verbatim">C-x 2</code></td><td><code class="verbatim">⌃⌘2</code></td><td><code class="verbatim">SPC w s</code> (N), <code class="verbatim">C-w s</code> (N)</td><td>Divides the focused pane in two, one above the other, both showing its buffer (<code class="verbatim">split-window-below</code>).</td></tr>
+<tr><td>Split Pane Right (<code class="verbatim">app.split-right</code>)</td><td><code class="verbatim">C-x 3</code></td><td><code class="verbatim">⌃⌘3</code></td><td><code class="verbatim">SPC w v</code> (N), <code class="verbatim">C-w v</code> (N)</td><td>Divides the focused pane in two, side by side (<code class="verbatim">split-window-right</code>).</td></tr>
+<tr><td>Close Pane (<code class="verbatim">app.pane-close</code>)</td><td><code class="verbatim">C-x 0</code></td><td><code class="verbatim">⌃⌘0</code></td><td><code class="verbatim">SPC w d</code> (N), <code class="verbatim">SPC w c</code> (N), <code class="verbatim">C-w c</code> (N)</td><td>Removes the focused pane; its buffers stay open (<code class="verbatim">delete-window</code>).</td></tr>
+<tr><td>Close Other Panes (<code class="verbatim">app.pane-only</code>)</td><td><code class="verbatim">C-x 1</code></td><td><code class="verbatim">⌃⌘1</code></td><td><code class="verbatim">SPC w o</code> (N), <code class="verbatim">C-w o</code> (N)</td><td>Leaves only the focused pane (<code class="verbatim">delete-other-windows</code>).</td></tr>
+<tr><td>Next Pane (<code class="verbatim">app.pane-next</code>)</td><td><code class="verbatim">C-x o</code></td><td><code class="verbatim">⌥⌘`</code></td><td><code class="verbatim">SPC w w</code> (N), <code class="verbatim">C-w w</code> (N)</td><td>Moves the focus to the next pane in reading order (<code class="verbatim">other-window</code>).</td></tr>
+<tr><td>New Window (<code class="verbatim">app.window-new</code>)</td><td><code class="verbatim">C-x 5 2</code></td><td><code class="verbatim">⌥⌘N</code></td><td><code class="verbatim">SPC w n</code> (N)</td><td>Opens a window of panes on the focused buffer, without the sidebar (<code class="verbatim">make-frame-command</code>).</td></tr>
+<tr><td>Close All Buffers (<code class="verbatim">app.buffer.kill-all</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC b K</code> (N)</td><td>Closes every buffer.</td></tr>
+<tr><td>Command Palette… (<code class="verbatim">app.palette</code>)</td><td><code class="verbatim">M-x</code></td><td>—</td><td><code class="verbatim">SPC :</code> (N)</td><td>Opens the command palette (<code class="verbatim">execute-extended-command</code>).</td></tr>
+<tr><td>Search Notes (<code class="verbatim">app.search</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC /</code> (N), <code class="verbatim">SPC s p</code> (N)</td><td>Moves to the search field for searching your notes.</td></tr>
+<tr><td>Reload Keymap (<code class="verbatim">app.reload-keymap</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC h r r</code> (N)</td><td>Reads <code class="verbatim">keymap.toml</code> again.</td></tr>
+<tr><td>Check Spelling While Typing (<code class="verbatim">editor.toggle-spell-check</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC t s</code> (N)</td><td>Turns spell checking while typing on or off.</td></tr>
+<tr><td>Truncate or Wrap Long Lines (<code class="verbatim">editor.toggle-truncate-lines</code>)</td><td><code class="verbatim">C-x x t</code></td><td>—</td><td><code class="verbatim">SPC t w</code> (N)</td><td>Switches between wrapping and truncating long lines (<code class="verbatim">toggle-truncate-lines</code>).</td></tr>
+<tr><td>Quit orgstar (<code class="verbatim">app.quit</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC q q</code> (N)</td><td>Quits orgstar (<code class="verbatim">save-buffers-kill-terminal</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="attachments">Attachments</h3>
+<p>The Emacs keys also work with Control on the last key (<code class="verbatim">C-c C-a C-a</code>), as in Org's dispatcher. See <a href="04-outlines.html">Outlines</a>.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Attach File… (<code class="verbatim">app.attach.attach</code>)</td><td><code class="verbatim">C-c C-a a</code>, <code class="verbatim">C-c C-a c</code></td><td>—</td><td><code class="verbatim">SPC m a a</code> (N)</td><td>Asks for files and copies them into the entry's attachment folder (<code class="verbatim">org-attach-attach</code>).</td></tr>
+<tr><td>Attach File by Moving… (<code class="verbatim">app.attach.move</code>)</td><td><code class="verbatim">C-c C-a m</code></td><td>—</td><td>—</td><td>Moves the files there (<code class="verbatim">org-attach-attach-mv</code>).</td></tr>
+<tr><td>Attach File as Hard Link… (<code class="verbatim">app.attach.link</code>)</td><td><code class="verbatim">C-c C-a l</code></td><td>—</td><td>—</td><td>Makes hard links to the files there (<code class="verbatim">org-attach-attach-ln</code>).</td></tr>
+<tr><td>Attach File as Symbolic Link… (<code class="verbatim">app.attach.symlink</code>)</td><td><code class="verbatim">C-c C-a y</code></td><td>—</td><td>—</td><td>Makes symbolic links to the files there (<code class="verbatim">org-attach-attach-lns</code>).</td></tr>
+<tr><td>Attach File from URL… (<code class="verbatim">app.attach.url</code>)</td><td><code class="verbatim">C-c C-a u</code></td><td>—</td><td><code class="verbatim">SPC m a u</code> (N)</td><td>Downloads a URL into the folder (<code class="verbatim">org-attach-url</code>).</td></tr>
+<tr><td>New Attachment… (<code class="verbatim">app.attach.new</code>)</td><td><code class="verbatim">C-c C-a n</code></td><td>—</td><td><code class="verbatim">SPC m a n</code> (N)</td><td>Makes an empty file of that name in the folder and opens it (<code class="verbatim">org-attach-new</code>).</td></tr>
+<tr><td>Open Attachment… (<code class="verbatim">app.attach.open</code>)</td><td><code class="verbatim">C-c C-a o</code></td><td>—</td><td><code class="verbatim">SPC m a o</code> (N)</td><td>Opens the attachment, asking which when there are several (<code class="verbatim">org-attach-open</code>).</td></tr>
+<tr><td>Show Attachment Folder (<code class="verbatim">app.attach.reveal</code>)</td><td><code class="verbatim">C-c C-a f</code></td><td>—</td><td><code class="verbatim">SPC m a r</code> (N)</td><td>Shows the folder in the Finder, or the Files app on iOS, making it if missing (<code class="verbatim">org-attach-reveal</code>).</td></tr>
+<tr><td>Delete Attachment… (<code class="verbatim">app.attach.delete</code>)</td><td><code class="verbatim">C-c C-a d</code></td><td>—</td><td><code class="verbatim">SPC m a d</code> (N)</td><td>Deletes one attachment (<code class="verbatim">org-attach-delete-one</code>).</td></tr>
+<tr><td>Delete All Attachments… (<code class="verbatim">app.attach.delete-all</code>)</td><td><code class="verbatim">C-c C-a D</code></td><td>—</td><td><code class="verbatim">SPC m a D</code> (N)</td><td>Deletes the folder and removes the <code class="verbatim">ATTACH</code> tag (<code class="verbatim">org-attach-delete-all</code>).</td></tr>
+<tr><td>Sync Attachments (<code class="verbatim">app.attach.sync</code>)</td><td><code class="verbatim">C-c C-a z</code></td><td>—</td><td><code class="verbatim">SPC m a S</code> (N)</td><td>Sets or removes the <code class="verbatim">ATTACH</code> tag as the folder has files, and offers to delete an empty folder (<code class="verbatim">org-attach-sync</code>).</td></tr>
+<tr><td>Set Attachment Folder… (<code class="verbatim">app.attach.set-directory</code>)</td><td><code class="verbatim">C-c C-a s</code></td><td>—</td><td><code class="verbatim">SPC m a s</code> (N)</td><td>Sets the entry's <code class="verbatim">DIR</code> property (<code class="verbatim">org-attach-set-directory</code>).</td></tr>
+<tr><td>Unset Attachment Folder (<code class="verbatim">app.attach.unset-directory</code>)</td><td><code class="verbatim">C-c C-a S</code></td><td>—</td><td>—</td><td>Removes <code class="verbatim">DIR</code> (<code class="verbatim">org-attach-unset-directory</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="notes-and-daily-notes">Notes and daily notes</h3>
+<p>See <a href="09-links.html">Links</a>.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>Mac</th><th>Doom</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Find Node… (<code class="verbatim">app.node.find</code>)</td><td><code class="verbatim">C-c n f</code></td><td>—</td><td><code class="verbatim">SPC n r f</code> (N)</td><td>Opens a heading or file with an ID, chosen by title (<code class="verbatim">org-roam-node-find</code>).</td></tr>
+<tr><td>Insert Node Link… (<code class="verbatim">app.node.insert</code>)</td><td><code class="verbatim">C-c n i</code></td><td>—</td><td><code class="verbatim">SPC n r i</code> (N)</td><td>Inserts an <code class="verbatim">id:</code> link to a node (<code class="verbatim">org-roam-node-insert</code>).</td></tr>
+<tr><td>Go to Today's Daily Note (<code class="verbatim">app.dailies.today</code>)</td><td><code class="verbatim">C-c n d d</code></td><td>—</td><td><code class="verbatim">SPC n r d t</code> (N)</td><td><code class="verbatim">org-roam-dailies-goto-today</code>.</td></tr>
+<tr><td>Go to Yesterday's Daily Note (<code class="verbatim">app.dailies.yesterday</code>)</td><td><code class="verbatim">C-c n d y</code></td><td>—</td><td><code class="verbatim">SPC n r d y</code> (N)</td><td><code class="verbatim">org-roam-dailies-goto-yesterday</code>.</td></tr>
+<tr><td>Go to Tomorrow's Daily Note (<code class="verbatim">app.dailies.tomorrow</code>)</td><td><code class="verbatim">C-c n d t</code></td><td>—</td><td><code class="verbatim">SPC n r d m</code> (N)</td><td><code class="verbatim">org-roam-dailies-goto-tomorrow</code>.</td></tr>
+<tr><td>Go to Daily Note for Date… (<code class="verbatim">app.dailies.date</code>)</td><td><code class="verbatim">C-c n d c</code></td><td>—</td><td><code class="verbatim">SPC n r d d</code> (N)</td><td><code class="verbatim">org-roam-dailies-goto-date</code>.</td></tr>
+<tr><td>Capture to Today's Daily Note (<code class="verbatim">app.dailies.capture-today</code>)</td><td><code class="verbatim">C-c n j</code>, <code class="verbatim">C-c n d n</code></td><td>—</td><td><code class="verbatim">SPC n r d n</code>, <code class="verbatim">SPC n r d T</code> (N)</td><td><code class="verbatim">org-roam-dailies-capture-today</code>.</td></tr>
+<tr><td>Capture to Yesterday's Daily Note (<code class="verbatim">app.dailies.capture-yesterday</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC n r d Y</code> (N)</td><td><code class="verbatim">org-roam-dailies-capture-yesterday</code>.</td></tr>
+<tr><td>Capture to Tomorrow's Daily Note (<code class="verbatim">app.dailies.capture-tomorrow</code>)</td><td>—</td><td>—</td><td><code class="verbatim">SPC n r d M</code> (N)</td><td><code class="verbatim">org-roam-dailies-capture-tomorrow</code>.</td></tr>
+<tr><td>Capture to Daily Note for Date… (<code class="verbatim">app.dailies.capture-date</code>)</td><td><code class="verbatim">C-c n d v</code></td><td>—</td><td><code class="verbatim">SPC n r d D</code> (N)</td><td><code class="verbatim">org-roam-dailies-capture-date</code>.</td></tr>
+<tr><td>Next Daily Note (<code class="verbatim">app.dailies.next</code>)</td><td><code class="verbatim">C-c n d f</code></td><td>—</td><td><code class="verbatim">SPC n r d f</code> (N)</td><td><code class="verbatim">org-roam-dailies-goto-next-note</code>.</td></tr>
+<tr><td>Previous Daily Note (<code class="verbatim">app.dailies.previous</code>)</td><td><code class="verbatim">C-c n d b</code></td><td>—</td><td><code class="verbatim">SPC n r d b</code> (N)</td><td><code class="verbatim">org-roam-dailies-goto-previous-note</code>.</td></tr>
+</tbody>
+</table>
+<h3 id="unbound-commands">Unbound commands</h3>
+<p>No preset binds these. Run them from the palette or a menu, or bind them in <code class="verbatim">keymap.toml</code>.</p>
+<table>
+<thead>
+<tr><th>Command</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Board (<code class="verbatim">app.board</code>)</td><td>Opens the Board window. Window ▸ Board, <code class="verbatim">⇧⌘B</code>.</td></tr>
+<tr><td>Verbatim, Code, Strike-Through (<code class="verbatim">org.emphasize.verbatim</code>, <code class="verbatim">org.emphasize.code</code>, <code class="verbatim">org.emphasize.strike-through</code>)</td><td><code class="verbatim">org-emphasize</code> with <code class="verbatim">=</code>, <code class="verbatim">~</code> or <code class="verbatim">+</code>.</td></tr>
+<tr><td>Cancel Running Task (<code class="verbatim">app.babel.cancel</code>)</td><td>Stops the src block that is running, or an export or table recalculation running in Emacs. Edit ▸ Cancel Running Task, <code class="verbatim">⌘.</code>.</td></tr>
+<tr><td>Edit Config File (<code class="verbatim">app.edit-config</code>)</td><td>Opens <code class="verbatim">config.toml</code> in the editor. <code class="verbatim">⌥⌘,</code>.</td></tr>
+<tr><td>Import from Emacs… (<code class="verbatim">app.import-emacs</code>)</td><td>Opens Import from Emacs….</td></tr>
+<tr><td>Revert to File on Disk (<code class="verbatim">app.revert</code>)</td><td>Replaces the buffer with the file on disk; unsaved changes go to recovery (<code class="verbatim">revert-buffer</code>).</td></tr>
+<tr><td>Recovery Versions… (<code class="verbatim">app.recovery</code>)</td><td>Shows the recovery versions of the file.</td></tr>
+<tr><td>Resolve Sync Conflicts… (<code class="verbatim">app.sync-conflicts</code>)</td><td>Shows the file's sync conflict copies to resolve them.</td></tr>
+<tr><td>Import Table from File… (<code class="verbatim">app.table-import</code>)</td><td>Asks for a CSV, TSV or space-separated file and inserts it as a table (<code class="verbatim">org-table-import</code>).</td></tr>
+<tr><td>Export Table to File… (<code class="verbatim">app.table-export</code>)</td><td>Writes the table at point to a CSV or TSV file (<code class="verbatim">org-table-export</code>).</td></tr>
+<tr><td>Plot Table (<code class="verbatim">app.plot</code>)</td><td>Plots the table at point as its <code class="verbatim">#+PLOT:</code> lines say (<code class="verbatim">org-plot/gnuplot</code>, <code class="verbatim">C-c " g</code> in the Emacs and Doom presets).</td></tr>
+<tr><td>Encrypt Entry… (<code class="verbatim">app.crypt.encrypt-entry</code>)</td><td>Encrypts the entry at point with a passphrase (<code class="verbatim">org-encrypt-entry</code>). See <a href="04-outlines.html">Outlines</a>.</td></tr>
+<tr><td>Decrypt Entry… (<code class="verbatim">app.crypt.open-entry</code>)</td><td>Shows the entry's decrypted text in a sheet, to read or change.</td></tr>
+<tr><td>Decrypt Entry in File… (<code class="verbatim">app.crypt.decrypt-entry</code>)</td><td>Puts the decrypted text in the file (<code class="verbatim">org-decrypt-entry</code>).</td></tr>
+<tr><td>Encrypt Tagged Entries… (<code class="verbatim">app.crypt.encrypt-entries</code>)</td><td>Encrypts every entry with the <code class="verbatim">crypt</code> tag (<code class="verbatim">org-encrypt-entries</code>).</td></tr>
+<tr><td>Forget Encryption Passphrase (<code class="verbatim">app.crypt.forget-passphrase</code>)</td><td>Removes the file's passphrase from the Keychain.</td></tr>
+<tr><td>Show or Hide Outline (<code class="verbatim">app.toggle-outline</code>)</td><td>Shows or hides the outline pane. View ▸ Show or Hide Outline, <code class="verbatim">⌥⌘O</code>.</td></tr>
+<tr><td>Show or Hide Backlinks (<code class="verbatim">app.toggle-backlinks</code>)</td><td>Shows or hides the backlinks pane. View ▸ Show or Hide Backlinks.</td></tr>
+<tr><td>Show or Hide Columns and Clock (<code class="verbatim">app.toggle-inspector</code>)</td><td>Shows or hides the columns and clock inspector. View ▸ Show or Hide Columns and Clock, <code class="verbatim">⌥⌘I</code>.</td></tr>
+<tr><td>Show or Hide Markup (<code class="verbatim">app.toggle-markup</code>)</td><td>Shows or hides link brackets and emphasis markers. View ▸ Show Markup, <code class="verbatim">⇧⌘M</code>.</td></tr>
+<tr><td>Show or Hide Line Numbers (<code class="verbatim">app.toggle-line-numbers</code>)</td><td>Shows or hides line numbers. View ▸ Show Line Numbers, <code class="verbatim">⇧⌘L</code>.</td></tr>
+<tr><td>Show or Hide Tab Bar (<code class="verbatim">app.toggle-tab-bar</code>)</td><td>Shows or hides the tab bar. View ▸ Show Tab Bar.</td></tr>
+<tr><td>Column View of File (<code class="verbatim">org.columns.global</code>)</td><td>Shows the column view of the whole file (<code class="verbatim">org-columns</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Create ID (<code class="verbatim">org.id.create</code>)</td><td>Gives the entry an <code class="verbatim">ID</code> property, a lowercase UUID, unless it has one (<code class="verbatim">org-id-get-create</code>).</td></tr>
+<tr><td>Delete Property… (<code class="verbatim">org.property.delete</code>)</td><td>Asks for a property of the entry and deletes it (<code class="verbatim">org-delete-property</code>).</td></tr>
+<tr><td>Delete Property Everywhere… (<code class="verbatim">org.property.delete-globally</code>)</td><td>Asks for a property and deletes it from every entry in the file (<code class="verbatim">org-delete-property-globally</code>).</td></tr>
+<tr><td>Property Action… (<code class="verbatim">org.property.action</code>)</td><td>Offers set, delete and delete globally for the property at point (<code class="verbatim">org-property-action</code>). <code class="verbatim">C-c C-c</code> in a property drawer runs it.</td></tr>
+<tr><td>Footnote Menu (<code class="verbatim">org.footnote.menu</code>)</td><td>Offers the footnote commands as a menu (<code class="verbatim">org-footnote-action</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Set Field Formula (<code class="verbatim">org.table.field-formula</code>)</td><td>Asks for the current field's formula (<code class="verbatim">org-table-eval-formula</code> with <code class="verbatim">C-u</code>).</td></tr>
+<tr><td>Sort Table Lines (<code class="verbatim">org.table.sort</code>)</td><td>Asks for alphabetic, numeric or time order, or their reverse, and sorts the table's lines by the current column (<code class="verbatim">org-table-sort-lines</code>). Sort Entries does the same in a table.</td></tr>
+<tr><td>Transpose Table (<code class="verbatim">org.table.transpose</code>)</td><td>Swaps the table's rows and columns (<code class="verbatim">org-table-transpose-table-at-point</code>).</td></tr>
+<tr><td>Shrink Table Columns with Widths (<code class="verbatim">org.table.shrink</code>)</td><td>Shrinks the table's columns that have a width cookie (<code class="verbatim">org-table-shrink</code>).</td></tr>
+<tr><td>Expand Table Columns (<code class="verbatim">org.table.expand</code>)</td><td>Expands the table's shrunk columns (<code class="verbatim">org-table-expand</code>).</td></tr>
+</tbody>
+</table>
+<h3 id="speed-keys-reference">Speed keys reference</h3>
+<p>At the very start of a heading line, with <code class="verbatim">org-use-speed-commands</code> on. The same in every preset (Doom: insert state).</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">n</code></td><td>Next Heading (<code class="verbatim">org.heading.next</code>)</td></tr>
+<tr><td><code class="verbatim">p</code></td><td>Previous Heading (<code class="verbatim">org.heading.previous</code>)</td></tr>
+<tr><td><code class="verbatim">f</code></td><td>Next Heading at Same Level (<code class="verbatim">org.heading.forward-same-level</code>)</td></tr>
+<tr><td><code class="verbatim">b</code></td><td>Previous Heading at Same Level (<code class="verbatim">org.heading.backward-same-level</code>)</td></tr>
+<tr><td><code class="verbatim">u</code></td><td>Up to Parent Heading (<code class="verbatim">org.heading.up</code>)</td></tr>
+<tr><td><code class="verbatim">j</code></td><td>Go to Heading… (<code class="verbatim">org.goto</code>)</td></tr>
+<tr><td><code class="verbatim">c</code></td><td>Cycle Visibility (<code class="verbatim">org.cycle</code>)</td></tr>
+<tr><td><code class="verbatim">C</code></td><td>Cycle Global Visibility (<code class="verbatim">org.cycle-global</code>)</td></tr>
+<tr><td><code class="verbatim">s</code></td><td>Narrow to Subtree or Widen (<code class="verbatim">org.narrow.toggle</code>)</td></tr>
+<tr><td><code class="verbatim">k</code></td><td>Cut Subtree (<code class="verbatim">org.subtree.cut</code>)</td></tr>
+<tr><td><code class="verbatim">U</code></td><td>Move Subtree Up (<code class="verbatim">org.subtree.up</code>)</td></tr>
+<tr><td><code class="verbatim">D</code></td><td>Move Subtree Down (<code class="verbatim">org.subtree.down</code>)</td></tr>
+<tr><td><code class="verbatim">r</code></td><td>Demote Heading (<code class="verbatim">org.heading.demote</code>)</td></tr>
+<tr><td><code class="verbatim">l</code></td><td>Promote Heading (<code class="verbatim">org.heading.promote</code>)</td></tr>
+<tr><td><code class="verbatim">R</code></td><td>Demote Subtree (<code class="verbatim">org.subtree.demote</code>)</td></tr>
+<tr><td><code class="verbatim">L</code></td><td>Promote Subtree (<code class="verbatim">org.subtree.promote</code>)</td></tr>
+<tr><td><code class="verbatim">i</code></td><td>Insert Heading After Subtree (<code class="verbatim">org.heading.insert-after-subtree</code>)</td></tr>
+<tr><td><code class="verbatim">w</code></td><td>Refile… (<code class="verbatim">app.refile</code>)</td></tr>
+<tr><td><code class="verbatim">a</code></td><td>Archive Subtree (<code class="verbatim">app.archive</code>)</td></tr>
+<tr><td><code class="verbatim">@</code></td><td>Mark Subtree (<code class="verbatim">org.subtree.mark</code>)</td></tr>
+<tr><td><code class="verbatim">#</code></td><td>Toggle COMMENT (<code class="verbatim">org.heading.toggle-comment</code>)</td></tr>
+<tr><td><code class="verbatim">I</code></td><td>Clock In (<code class="verbatim">app.clock.in</code>)</td></tr>
+<tr><td><code class="verbatim">O</code></td><td>Clock Out (<code class="verbatim">app.clock.out</code>)</td></tr>
+<tr><td><code class="verbatim">t</code></td><td>Cycle TODO State (<code class="verbatim">org.todo.cycle</code>)</td></tr>
+<tr><td><code class="verbatim">,</code></td><td>Set Priority… (<code class="verbatim">org.priority.set</code>)</td></tr>
+<tr><td><code class="verbatim">0</code></td><td>Remove Priority (<code class="verbatim">org.priority.remove</code>)</td></tr>
+<tr><td><code class="verbatim">1</code></td><td>Set Priority A (<code class="verbatim">org.priority.set-a</code>)</td></tr>
+<tr><td><code class="verbatim">2</code></td><td>Set Priority B (<code class="verbatim">org.priority.set-b</code>)</td></tr>
+<tr><td><code class="verbatim">3</code></td><td>Set Priority C (<code class="verbatim">org.priority.set-c</code>)</td></tr>
+<tr><td><code class="verbatim">:</code></td><td>Set Tags (<code class="verbatim">org.tags.set</code>)</td></tr>
+<tr><td><code class="verbatim">e</code></td><td>Set Effort (<code class="verbatim">org.effort.set</code>)</td></tr>
+<tr><td><code class="verbatim">v</code></td><td>Agenda (<code class="verbatim">app.agenda</code>)</td></tr>
+<tr><td><code class="verbatim">o</code></td><td>Open Link (<code class="verbatim">org.link.open</code>)</td></tr>
+</tbody>
+</table>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

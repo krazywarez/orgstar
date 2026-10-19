@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Files, folders and buffers &middot; orgstar</title>
+<meta name="description" content="Adding folders, opening files, working with buffers, searching, saving, and how orgstar handles changes made outside it.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Files, folders and buffers</h1>
+<p class="lede">orgstar works on folders of files you add to its sidebar, keeps each open file in a buffer, saves on its own, and merges changes other programs make to the same files.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#the-window">The window</a>
+<ul>
+<li><a href="#menus-and-the-command-palette">Menus and the command palette</a></li>
+<li><a href="#showing-and-hiding-panes">Showing and hiding panes</a></li>
+</ul></li>
+<li><a href="#folders">Folders</a>
+<ul>
+<li><a href="#adding-a-folder">Adding a folder</a></li>
+<li><a href="#removing-a-folder">Removing a folder</a></li>
+<li><a href="#what-the-sidebar-lists">What the sidebar lists</a></li>
+<li><a href="#creating-renaming-and-trashing-files">Creating, renaming and trashing files</a></li>
+</ul></li>
+<li><a href="#opening-files">Opening files</a>
+<ul>
+<li><a href="#files-that-aren-t-org">Files that aren&#x27;t org</a></li>
+</ul></li>
+<li><a href="#buffers">Buffers</a>
+<ul>
+<li><a href="#buffer-commands">Buffer commands</a></li>
+<li><a href="#buffer-names">Buffer names</a></li>
+<li><a href="#the-tab-bar">The tab bar</a></li>
+</ul></li>
+<li><a href="#searching-your-notes">Searching your notes</a></li>
+<li><a href="#the-outline-pane">The outline pane</a>
+<ul>
+<li><a href="#backlinks">Backlinks</a></li>
+<li><a href="#inspector">Inspector</a></li>
+</ul></li>
+<li><a href="#saving">Saving</a>
+<ul>
+<li><a href="#how-a-save-works">How a save works</a></li>
+</ul></li>
+<li><a href="#external-changes">External changes</a>
+<ul>
+<li><a href="#conflicts">Conflicts</a></li>
+<li><a href="#syncthing-conflict-copies">Syncthing conflict copies</a></li>
+<li><a href="#recovery-versions">Recovery versions</a></li>
+<li><a href="#icloud">iCloud</a></li>
+</ul></li>
+<li><a href="#encodings-and-line-endings">Encodings and line endings</a></li>
+<li><a href="#on-ios">On iOS</a></li>
+</ul>
+</nav>
+<h2 id="the-window">The window</h2>
+<p>orgstar has one main window, titled with the name of the buffer it shows. From left to right it holds:</p>
+<ul>
+<li>the <strong>sidebar</strong>, listing the folders you added and the files in them;</li>
+<li>the <strong>outline pane</strong>, listing the headings of the open file, with the <strong>backlinks pane</strong> under it;</li>
+<li>the <strong>editor</strong>, with the optional tab bar above it and the modeline and echo area below it;</li>
+<li>the <strong>inspector</strong>, hidden by default, showing column view and clocked time.</li>
+</ul>
+<p>The toolbar holds a button that shows or hides the outline pane, a progress indicator while orgstar indexes your folders, the running clock (see <a href="06-dates-and-clocking.html">Dates and clocking</a>), a <code class="verbatim">Conflict</code> button when the open file has a conflict (see <em>Conflicts</em> below), and the search field.</p>
+<p>The window title is the buffer name (see <em>Buffer names</em> below). When the open file is not UTF-8, the subtitle reads <code class="verbatim">Read-only: not UTF-8</code>. The close button shows the unsaved-changes dot while any open buffer has unsaved edits.</p>
+<p>With no folders added, the editor area reads "Add a folder of org files". With folders but no open file, it reads "Choose a file" and suggests <code class="verbatim">⌘P</code>.</p>
+<p>The Agenda, Board, Clock Report and Capture windows are separate; they are covered in <a href="07-agenda.html">Agenda</a>, <a href="06-dates-and-clocking.html">Dates and clocking</a> and <a href="08-capture.html">Capture</a>. Closing the main window quits orgstar when no other window is open.</p>
+<h3 id="menus-and-the-command-palette">Menus and the command palette</h3>
+<p>Most commands are in the menu bar. The <code class="verbatim">Org</code> menu lists every org command, each with the keys that run it in the current keymap; it is disabled when no file is open.</p>
+<p>File ▸ Command Palette… (<code class="verbatim">⇧⌘P</code>; <code class="verbatim">M-x</code> in the Emacs and Doom presets; <code class="verbatim">SPC :</code> in Doom normal state) lists every command by title with its keys. Type to filter (characters match in order, as in Quick Open), then press <code class="verbatim">Return</code> to run the top match or click one. <code class="verbatim">Escape</code> closes it. Text movement and editing commands (forward character, kill line and so on) are not listed; they are only on keys.</p>
+<p>Several commands in this chapter are only in the palette, not in a menu: Close Other Buffers, Close All Buffers, Last Buffer and Show or Hide Tab Bar.</p>
+<h3 id="showing-and-hiding-panes">Showing and hiding panes</h3>
+<table>
+<thead>
+<tr><th>Menu item</th><th>Shortcut</th><th>Palette title</th></tr>
+</thead>
+<tbody>
+<tr><td>View ▸ Show or Hide Outline</td><td><code class="verbatim">⌥⌘O</code></td><td>Show or Hide Outline</td></tr>
+<tr><td>View ▸ Show or Hide Backlinks</td><td></td><td>Show or Hide Backlinks</td></tr>
+<tr><td>View ▸ Show or Hide Columns and Clock</td><td><code class="verbatim">⌥⌘I</code></td><td>Show or Hide Columns and Clock</td></tr>
+<tr><td>View ▸ Show Tab Bar</td><td></td><td>Show or Hide Tab Bar</td></tr>
+</tbody>
+</table>
+<p>The toolbar's outline button does the same as View ▸ Show or Hide Outline. The sidebar is shown and hidden with the standard View menu command.</p>
+<p>orgstar remembers whether the outline, backlinks and inspector are shown. The outline pane's visibility is remembered for org files only: for other files it starts hidden each time you open one. Drag the divider on the outline pane's right edge to resize it (160 to 400 points; 220 by default).</p>
+<h2 id="folders">Folders</h2>
+<p>orgstar does not open a single folder like a project. You add any number of folders, called roots, and each appears as a section of the sidebar. orgstar indexes every org file in them for search, the agenda, refiling, backlinks and IDs.</p>
+<h3 id="adding-a-folder">Adding a folder</h3>
+<p>Choose File ▸ Add Folder… (<code class="verbatim">⇧⌘O</code>), or click <code class="verbatim">+</code> at the bottom of the sidebar, and pick a folder. The first time orgstar opens with no folder, a welcome sheet offers the same, or a new <code class="verbatim">org</code> folder in iCloud Drive with a <code class="verbatim">notes.org</code> in it, and the choice of keys; Get Started… in the empty window opens the sheet again. orgstar indexes it in the background; the toolbar shows a progress indicator while it works.</p>
+<p>orgstar keeps a bookmark to each folder, so a folder you move or rename in Finder is followed. If a folder can't be found at launch, orgstar reports <code class="verbatim">Can't find the folder PATH.</code> Adding a folder that is already in the sidebar does nothing.</p>
+<p>orgstar keeps the list of folders, the index and recovery versions in <code class="verbatim">~/Library/Application Support/Orgstar</code>.</p>
+<h3 id="removing-a-folder">Removing a folder</h3>
+<p>Click <code class="verbatim">−</code> at the bottom of the sidebar and choose the folder, or right-click the folder's header and choose Remove from Sidebar…. Confirm with <code class="verbatim">Remove</code>. The folder and its files stay on disk; only orgstar's index entries for them are removed.</p>
+<h3 id="what-the-sidebar-lists">What the sidebar lists</h3>
+<p>Each root is a collapsible section headed by the folder's name; hover over the name to see its full path. Roots are sorted by path. Inside a root, subfolders come first, then files, each sorted by name the way Finder sorts them. orgstar remembers which roots you collapsed.</p>
+<p>The sidebar lists every file in the folder, not only org files, with an icon for its kind:</p>
+<table>
+<thead>
+<tr><th>Icon</th><th>File</th></tr>
+</thead>
+<tbody>
+<tr><td>document</td><td><code class="verbatim">.org</code></td></tr>
+<tr><td>archive box</td><td><code class="verbatim">.org_archive</code></td></tr>
+<tr><td>orange warning sign</td><td>a Syncthing conflict copy (see <em>Syncthing conflict copies</em> below)</td></tr>
+<tr><td>photo</td><td>an image</td></tr>
+<tr><td>rich document</td><td>a PDF</td></tr>
+<tr><td>play button</td><td>audio or video</td></tr>
+<tr><td><code class="verbatim">&lt;/&gt;</code></td><td>source code or a script</td></tr>
+<tr><td>plain document</td><td>other text</td></tr>
+<tr><td>cloud with arrow</td><td>an iCloud file still downloading (see <em>iCloud</em> below)</td></tr>
+</tbody>
+</table>
+<p>Some files are never listed or indexed:</p>
+<ul>
+<li>Emacs backups (names ending in <code class="verbatim">~</code>), auto-save files (names starting with <code class="verbatim">#</code>) and lock files (<code class="verbatim">.#name</code>);</li>
+<li>Syncthing's temporary files (<code class="verbatim">.syncthing.*</code>);</li>
+<li>orgstar's own temporary files (names containing <code class="verbatim">.orgstar-</code>);</li>
+<li><code class="verbatim">.DS_Store</code> and <code class="verbatim">.localized</code>;</li>
+<li>anything inside these folders: <code class="verbatim">.git</code>, <code class="verbatim">.hg</code>, <code class="verbatim">.svn</code>, <code class="verbatim">.jj</code>, <code class="verbatim">.bzr</code>, <code class="verbatim">.stfolder</code>, <code class="verbatim">.stversions</code>, <code class="verbatim">.Trash</code>, <code class="verbatim">.Spotlight-V100</code>, <code class="verbatim">.fseventsd</code>, <code class="verbatim">.build</code>, <code class="verbatim">.venv</code>, <code class="verbatim">.cache</code>, <code class="verbatim">.tox</code>, <code class="verbatim">.mypy_cache</code>, <code class="verbatim">.pytest_cache</code>, <code class="verbatim">.gradle</code>, <code class="verbatim">.next</code>, <code class="verbatim">.terraform</code> and <code class="verbatim">node_modules</code>.</li>
+</ul>
+<p>Other dotfiles and dot folders are listed unless you turn off Settings ▸ General ▸ Show hidden files and folders (on by default). To change the list of ignored folders, set <code class="verbatim">ignored-folders</code> in <code class="verbatim">config.toml</code> to folder names separated by spaces; there is no control for it in Settings. See <a href="13-configuration.html">Configuration</a>.</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="punctuation definition table toml">[</span><span class="entity name section toml">orgstar</span><span class="punctuation definition table toml">]</span>
+<span class="variable other key toml">show-hidden-files</span> <span class="keyword operator assignment toml">=</span> <span class="constant language toml">true</span>
+<span class="variable other key toml">ignored-folders</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>.git .hg node_modules build<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>Only org files (<code class="verbatim">.org</code> and <code class="verbatim">.org_archive</code>) are read by the index. Other files are listed and can be opened, but their contents are not searched.</p>
+<h3 id="creating-renaming-and-trashing-files">Creating, renaming and trashing files</h3>
+<p>Right-click a file or folder in the sidebar for:</p>
+<ul>
+<li>New File… — creates a file in that folder (for a file, in the folder holding it). A name without an extension gets <code class="verbatim">.org</code>. A name like <code class="verbatim">projects/house</code> creates the <code class="verbatim">projects</code> folder too. Names can't start with <code class="verbatim">/</code> or contain <code class="verbatim">..</code>. The new file opens.</li>
+<li>Rename… — renames the file or folder in place. The new name can't contain <code class="verbatim">/</code>. Open buffers of the file, or of files inside the folder, are saved first (in explicit save mode you are asked) and reopened under the new path.</li>
+<li>Show in Finder.</li>
+<li>Move to Trash… — moves the file or folder to the Trash after you confirm. Open buffers of it close without saving; the confirmation warns you when the file, or an open file inside the folder, has unsaved changes. You can put it back from the Trash in Finder.</li>
+</ul>
+<p>Right-click a root's header for New File…, Expand or Collapse, Show in Finder and Remove from Sidebar….</p>
+<h2 id="opening-files">Opening files</h2>
+<p>Click a file in the sidebar to open it. Other ways:</p>
+<ul>
+<li><strong>Quick Open</strong>: File ▸ Quick Open… (<code class="verbatim">⌘P</code>; <code class="verbatim">C-x C-f</code> in the Emacs and Doom presets; <code class="verbatim">SPC SPC</code>, <code class="verbatim">SPC .</code> or <code class="verbatim">SPC f f</code> in Doom normal state). Type part of a file's path below its root. Characters match in order, not necessarily next to each other; matches at the start of a word and runs of consecutive characters rank higher, and shorter paths win ties. Up to 50 matches show, with each file's name and path. The top match is selected; <code class="verbatim">↑</code> and <code class="verbatim">↓</code>, or <code class="verbatim">C-p</code> and <code class="verbatim">C-n</code>, move the selection. Press <code class="verbatim">Return</code> to open the selected match or click any match; <code class="verbatim">Escape</code> closes the list. Syncthing conflict copies are left out.</li>
+<li><strong>Finder</strong>: open an org file from Finder, with <code class="verbatim">open file.org</code> in Terminal, or by dropping it on orgstar's Dock icon. orgstar registers as the default app for org files and as an alternative editor for plain text. Each file opens as a buffer.</li>
+<li><strong>Links</strong>: following a <code class="verbatim">file:</code> link or an ID link opens the target file; see <a href="09-links.html">Links</a>.</li>
+<li><strong>Doom ex command</strong>: <code class="verbatim">:e FILE</code> opens <code class="verbatim">FILE</code>, relative to the current file's folder; <code class="verbatim">~</code> is expanded. A file that doesn't exist is reported as <code class="verbatim">No file FILE</code>.</li>
+</ul>
+<p>A file opened from Finder or by a link does not have to be inside one of your folders. Such a file is edited and saved normally, but it isn't listed in the sidebar, isn't indexed for search or the agenda, and isn't watched for outside changes (orgstar still merges outside changes when it saves; see <em>Saving</em> below).</p>
+<p>orgstar has no Open Recent menu. Instead, it reopens the buffers that were open when you quit, in the same order, with the same file showing and each caret where you left it. Files that no longer exist are skipped.</p>
+<h3 id="files-that-aren-t-org">Files that aren't org</h3>
+<p>How a file opens depends on what it is:</p>
+<ul>
+<li><strong>Org files</strong> (<code class="verbatim">.org</code>, <code class="verbatim">.org_archive</code>) open in the editor with org editing.</li>
+<li><strong>Text files</strong> open in the same editor as plain text. A file counts as text when macOS knows its type as text, or, for unknown types, when its first 8 KB are valid UTF-8 with no NUL bytes. Org commands report <code class="verbatim">Not an org file</code>, and the outline pane shows "No outline" when you turn it on. Files in these languages get syntax highlighting: shell (<code class="verbatim">.sh</code>, <code class="verbatim">.bash</code>, <code class="verbatim">.zsh</code>, <code class="verbatim">.zshrc</code>, <code class="verbatim">.bashrc</code>, <code class="verbatim">.profile</code>), Python, Emacs Lisp, C, C++, R, JavaScript, Java, Scheme, Clojure, Haskell, Rust, Go, Ruby, JSON, YAML, TOML and Lua.</li>
+<li><strong>Everything else</strong> (images, PDFs, audio, video, archives, binary files) shows a Quick Look preview in place of the editor, with <code class="verbatim">Open with Default App</code> and <code class="verbatim">Show in Finder</code> buttons below it. The preview is not a buffer.</li>
+</ul>
+<p>Text files from Finder use orgstar only if you choose it with Open With, since orgstar is not their default app.</p>
+<h2 id="buffers">Buffers</h2>
+<p>Each open file is a buffer, as in Emacs. A buffer keeps its text, caret, folds, undo history and unsaved edits while another buffer is showing. Opening a file that already has a buffer shows that buffer. Two paths to the same file (through a symbolic link, for example) share one buffer, as <code class="verbatim">find-buffer-visiting</code> does.</p>
+<p>A new buffer is placed after the current one in the buffer order. Next and Previous Buffer follow that order and wrap around. Switch to Buffer and Last Buffer follow the order in which you last showed buffers.</p>
+<h3 id="buffer-commands">Buffer commands</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Menu, or palette</th><th>Mac</th><th>Emacs preset</th><th>Doom (normal state)</th></tr>
+</thead>
+<tbody>
+<tr><td>Switch to Buffer…</td><td>Window ▸ Switch to Buffer…</td><td></td><td><code class="verbatim">C-x b</code>, <code class="verbatim">C-x C-b</code></td><td><code class="verbatim">SPC b b</code>, <code class="verbatim">SPC b B</code>, <code class="verbatim">SPC ,</code>, <code class="verbatim">:b</code>, <code class="verbatim">:ls</code></td></tr>
+<tr><td>Next Buffer</td><td>Window ▸ Next Buffer</td><td><code class="verbatim">⇧⌘]</code>, <code class="verbatim">⌃Tab</code></td><td><code class="verbatim">⇧⌘]</code>, <code class="verbatim">C-x &lt;right&gt;</code></td><td><code class="verbatim">SPC b n</code>, <code class="verbatim">SPC b ]</code>, <code class="verbatim">] b</code>, <code class="verbatim">:bn</code></td></tr>
+<tr><td>Previous Buffer</td><td>Window ▸ Previous Buffer</td><td><code class="verbatim">⇧⌘[</code>, <code class="verbatim">⌃⇧Tab</code></td><td><code class="verbatim">⇧⌘[</code>, <code class="verbatim">C-x &lt;left&gt;</code></td><td><code class="verbatim">SPC b p</code>, <code class="verbatim">SPC b [</code>, <code class="verbatim">[ b</code>, <code class="verbatim">:bp</code></td></tr>
+<tr><td>Last Buffer</td><td>palette</td><td></td><td></td><td><code class="verbatim">SPC `</code></td></tr>
+<tr><td>Close Buffer</td><td>File ▸ Close Buffer</td><td><code class="verbatim">⌘W</code></td><td><code class="verbatim">⌘W</code>, <code class="verbatim">C-x k</code></td><td><code class="verbatim">SPC b k</code>, <code class="verbatim">SPC b d</code>, <code class="verbatim">:bd</code></td></tr>
+<tr><td>Close Other Buffers</td><td>palette</td><td></td><td></td><td><code class="verbatim">SPC b O</code></td></tr>
+<tr><td>Close All Buffers</td><td>palette</td><td></td><td></td><td><code class="verbatim">SPC b K</code></td></tr>
+</tbody>
+</table>
+<p>Menu shortcuts (<code class="verbatim">⇧⌘]</code>, <code class="verbatim">⌘W</code> and the others) work in every preset. The Doom preset also has the Emacs preset's <code class="verbatim">C-x</code> keys in every state. The Mac preset's <code class="verbatim">⌃Tab</code> and <code class="verbatim">⌃⇧Tab</code> are in addition to the menu shortcuts.</p>
+<p>Switch to Buffer asks in the echo area. The choices are the open buffers, most recently shown first, with the current buffer last. Type to narrow them, <code class="verbatim">Tab</code> to complete the top choice, <code class="verbatim">Return</code> to switch, <code class="verbatim">Escape</code> to cancel.</p>
+<p>Close Buffer closes the current buffer and shows the buffer you showed before it. With no buffer open, <code class="verbatim">⌘W</code> closes the window. In a window split into panes, closing the last tab of a pane closes the pane; its buffer stays open when another pane shows it. In other windows (Agenda, Board and so on) <code class="verbatim">⌘W</code> closes that window. File ▸ Close Window (<code class="verbatim">⇧⌘W</code>) closes the window in front.</p>
+<p>When you close buffers with unsaved edits, what happens depends on the save mode (see <em>Saving</em> below): in automatic mode they are saved first; in explicit mode orgstar asks <code class="verbatim">Save</code>, <code class="verbatim">Don't Save</code> or <code class="verbatim">Cancel</code> (<code class="verbatim">Save All</code> for several files). A buffer whose save fails or conflicts stays open.</p>
+<h3 id="buffer-names">Buffer names</h3>
+<p>A buffer is named after its file. When two open files have the same name, each name gets as many of its folders as it takes to tell them apart, in angle brackets, as Emacs's uniquify does with <code class="verbatim">post-forward-angle-brackets</code>:</p>
+<pre><code class="language-text">notes.org&lt;work&gt;
+notes.org&lt;home&gt;
+notes.org&lt;archive/2024&gt;</code></pre>
+<p>These names show in the window title, the tab bar and Switch to Buffer.</p>
+<h3 id="the-tab-bar">The tab bar</h3>
+<p>View ▸ Show Tab Bar shows a row of tabs above each pane, one per buffer that pane has shown, in the order it first showed them. It is off by default; the setting is <code class="verbatim">tab-bar</code> in <code class="verbatim">config.toml</code>.</p>
+<ul>
+<li>Click a tab to show its buffer. Hover to see the file's full path.</li>
+<li>Click <code class="verbatim">×</code> to close a buffer, in every pane. On a pane's last tab, with other panes in the window, it closes the pane as well, as Close Buffer does. A dot replaces the <code class="verbatim">×</code> while the buffer has unsaved edits; clicking it also closes the buffer, with the same unsaved-changes handling as Close Buffer.</li>
+</ul>
+<h2 id="searching-your-notes">Searching your notes</h2>
+<p>The search field in the toolbar searches every org file in your folders. Click it or choose Edit ▸ Search Notes (<code class="verbatim">⇧⌘F</code>; <code class="verbatim">SPC /</code> or <code class="verbatim">SPC s p</code> in Doom normal state) and type.</p>
+<p>While the field holds text, the outline pane shows the results in place of the outline. Each result is a heading, or a file when the match is in the text before its first heading, titled by its <code class="verbatim">#+TITLE</code> or its name. Under the title is the passage the words were found in, with them in bold, then the file's name. Click a result to open the file at that heading. Clear the field to get the outline back.</p>
+<p>How matching works:</p>
+<ul>
+<li>orgstar searches heading titles, the text under each heading and the text before a file's first heading, in <code class="verbatim">.org</code> and <code class="verbatim">.org_archive</code> files. Files that aren't org are not searched. Syncthing conflict copies are not searched.</li>
+<li>Each word you type matches words that start with it, ignoring case and accents: <code class="verbatim">proj</code> finds <code class="verbatim">project</code> and <code class="verbatim">projection</code>.</li>
+<li>Every word must match within the same heading, or within the text before the first heading.</li>
+<li>Up to 50 results show, best matches first.</li>
+<li>Open buffers with unsaved edits are searched as they are in the buffer, not as they are on disk.</li>
+</ul>
+<p>To find text inside the open file, use Edit ▸ Find (see <a href="02-the-editor.html">The editor</a>).</p>
+<h2 id="the-outline-pane">The outline pane</h2>
+<p>The outline pane lists the headings of the open org file, indented by level. Headings without a title show as <code class="verbatim">(untitled)</code>. Click a heading to move the caret to it; folded headings around it unfold. A file without headings shows "No headings"; a file that isn't org shows "No outline".</p>
+<p>The outline follows your edits after a short pause in typing.</p>
+<h3 id="backlinks">Backlinks</h3>
+<p>Under the outline, the backlinks pane lists headings in your folders that link to the current file (a link before a file's first heading is listed under the file's name) (<code class="verbatim">Links to this file</code>) and to the heading at the caret (<code class="verbatim">Links to</code> followed by the heading's title). It updates as you move the caret. Click an entry to open it. Turn the pane off with View ▸ Show or Hide Backlinks. Which links count is covered in <a href="09-links.html">Links</a>.</p>
+<h3 id="inspector">Inspector</h3>
+<p>View ▸ Show or Hide Columns and Clock (<code class="verbatim">⌥⌘I</code>) opens a pane on the right with column view and clocked time for the file or the current subtree. See <a href="04-outlines.html">Outlines</a> and <a href="06-dates-and-clocking.html">Dates and clocking</a>.</p>
+<h2 id="saving">Saving</h2>
+<p>Settings ▸ General ▸ Save files has two modes; the <code class="verbatim">config.toml</code> setting is <code class="verbatim">save</code> in <code class="verbatim">[orgstar]</code>.</p>
+<ul>
+<li><strong>Automatically, when typing stops</strong> (<code class="verbatim">automatic</code>, the default). Each buffer saves one second after its last change, including buffers that are not showing. Quitting and closing buffers save without asking.</li>
+<li><strong>Only with File ▸ Save (⌘S)</strong> (<code class="verbatim">explicit</code>). Nothing is written until you save. Closing a buffer or quitting with unsaved edits asks first.</li>
+</ul>
+<table>
+<thead>
+<tr><th>Command</th><th>Menu</th><th>Shortcut</th><th>Emacs preset</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Save</td><td>File ▸ Save</td><td><code class="verbatim">⌘S</code></td><td><code class="verbatim">C-x C-s</code></td><td><code class="verbatim">SPC f s</code>, <code class="verbatim">SPC b s</code>, <code class="verbatim">:w</code>; <code class="verbatim">:wq</code> and <code class="verbatim">:x</code> save and close the window</td></tr>
+<tr><td>Save All</td><td>File ▸ Save All</td><td><code class="verbatim">⌥⌘S</code></td><td><code class="verbatim">C-x s</code></td><td><code class="verbatim">SPC b S</code></td></tr>
+</tbody>
+</table>
+<p>Save is disabled for a read-only file. Save All is disabled when nothing is unsaved.</p>
+<p>The modeline shows a dot while the current buffer has unsaved edits. Buffers with unsaved edits show a dot in the tab bar.</p>
+<h3 id="how-a-save-works">How a save works</h3>
+<p>orgstar does not assume it is the only program writing your files. Emacs, Syncthing, iCloud and Git may change them too. Each save:</p>
+<ol>
+<li>Reads the file on disk. If it has changed since orgstar last read or wrote it, orgstar merges those changes into the buffer first (see <em>External changes</em> below). If they conflict with yours, nothing is written and the buffer has a conflict.</li>
+<li>Checks the file again, then writes the buffer to a temporary file in the same folder and replaces the original with it, so the file is never half-written.</li>
+<li>Reads the file back. If another program wrote it at the same moment, the version that lost goes to recovery and the other program's changes are merged where possible.</li>
+</ol>
+<p>Every version a save displaces goes to recovery first (see <em>Recovery versions</em> below). Reads and writes go through macOS file coordination, so iCloud and other coordinating programs see a consistent file.</p>
+<p>A save keeps the file's encoding details: a UTF-8 byte order mark stays, and text you didn't change keeps its exact bytes, including CRLF line endings. Lines you add end in LF.</p>
+<h2 id="external-changes">External changes</h2>
+<p>orgstar watches the files in your folders. When a file with an open buffer changes on disk:</p>
+<ul>
+<li>If the buffer has no unsaved edits, it reloads. The caret and folds stay where they were, mapped through the change.</li>
+<li>If the buffer has unsaved edits, orgstar merges the change into the buffer line by line, against the version both started from. Lines changed on one side take that side; lines changed the same way on both sides are taken once. The merged buffer still has unsaved edits and saves as usual.</li>
+<li>If both sides changed the same lines differently, the buffer has a conflict.</li>
+</ul>
+<p>Reloading or merging clears the buffer's undo history.</p>
+<p>If an open file is deleted on disk, its buffer stays open with its text. Saving it writes the file again.</p>
+<p>To throw away your unsaved edits and load the file as it is on disk, choose File ▸ Revert to File on Disk (also in the palette; <code class="verbatim">:e</code> in Doom). Your edits go to recovery.</p>
+<h3 id="conflicts">Conflicts</h3>
+<p>When a buffer conflicts with its file, automatic saving stops for that buffer, the <code class="verbatim">Conflict</code> button appears in the toolbar, and the conflict sheet opens. The sheet shows the differences: lines marked <code class="verbatim">-</code> are on disk, lines marked <code class="verbatim">+</code> are in your version, with three lines of context around each change. Choose:</p>
+<table>
+<thead>
+<tr><th>Button</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Keep Mine</td><td>Writes your version over the file. The disk version goes to recovery. This is the default button.</td></tr>
+<tr><td>Use Disk Version</td><td>Loads the file as it is on disk. Your version goes to recovery.</td></tr>
+<tr><td>Merge with Markers</td><td>Puts both sets of changes in the buffer, as <code class="verbatim">git merge</code> leaves a conflict: non-conflicting changes merged, conflicting lines between markers. Your version as it was goes to recovery.</td></tr>
+<tr><td>Decide Later</td><td>Closes the sheet. The conflict stays; click <code class="verbatim">Conflict</code> in the toolbar to reopen it.</td></tr>
+</tbody>
+</table>
+<p>After Merge with Markers the buffer holds blocks like this, which you edit and save:</p>
+<pre><code class="language-text">&lt;&lt;&lt;&lt;&lt;&lt;&lt; yours
+- [ ] Call the plumber on Monday
+=======
+- [X] Call the plumber
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; disk</code></pre>
+<p>While a conflict is unresolved, saving that buffer does nothing except reopen the sheet.</p>
+<h3 id="syncthing-conflict-copies">Syncthing conflict copies</h3>
+<p>When two devices change a file before Syncthing syncs them, Syncthing keeps one version as a conflict copy beside the file, named like <code class="verbatim">notes.sync-conflict-20260301-142233-ABCDEF7.org</code>. orgstar lists these in the sidebar in orange with a warning icon, and leaves them out of search, the agenda, ID lookup and Quick Open.</p>
+<p>When you open a file that has conflict copies, the echo area says how many there are. Choose File ▸ Resolve Sync Conflicts… to compare them. Pick a copy from the menu at the top; lines marked <code class="verbatim">-</code> are in the file (as the buffer holds it) and lines marked <code class="verbatim">+</code> are in the copy. Then choose:</p>
+<table>
+<thead>
+<tr><th>Button</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Keep File</td><td>Leaves the buffer as it is.</td></tr>
+<tr><td>Use Copy</td><td>Replaces the buffer's text with the copy's.</td></tr>
+<tr><td>Merge with Markers</td><td>Puts every difference between the buffer and the copy between conflict markers, labelled with the two file names. There is no common base to merge against, so every difference is marked.</td></tr>
+</tbody>
+</table>
+<p>Each choice moves the copy to recovery and deletes it from the folder. The buffer changes as an edit you can undo, and is saved according to your save mode. When no copies are left the sheet closes.</p>
+<h3 id="recovery-versions">Recovery versions</h3>
+<p>Whenever orgstar replaces a version of a file, it keeps a copy: your buffer when you take the disk version, the disk version when you keep yours, a version another program wrote while orgstar saved, and resolved Syncthing copies. It also keeps a snapshot of the file as it was before a save, at most once an hour, so there is a version of your own writing to go back to. orgstar keeps the last 20 replaced versions and the last 10 snapshots per file in <code class="verbatim">~/Library/Application Support/Orgstar/Recovery</code>.</p>
+<p>Choose File ▸ Recovery Versions… to see the open file's versions, newest first, each with its date and why it was kept:</p>
+<table>
+<thead>
+<tr><th>Label</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>Your version, replaced</td><td>Your buffer, before it was replaced</td></tr>
+<tr><td>Disk version, replaced</td><td>The file on disk, before orgstar wrote over it</td></tr>
+<tr><td>Sync conflict copy</td><td>A Syncthing conflict copy you resolved</td></tr>
+</tbody>
+</table>
+<p>Select a version to see how it differs from the buffer (<code class="verbatim">-</code> in the buffer, <code class="verbatim">+</code> in the kept version). <code class="verbatim">Restore</code> puts the kept version's text in the buffer as one edit, which undo reverses; the buffer as it was goes to recovery first. <code class="verbatim">Show in Finder</code> reveals the kept file.</p>
+<h3 id="icloud">iCloud</h3>
+<p>Files in iCloud Drive that aren't downloaded to the Mac show in the sidebar with a cloud icon and grey text, with the tooltip "Downloading from iCloud". orgstar asks iCloud to download them, and indexes them and lets you open them when they arrive. Files iCloud removes from the Mac to save space keep their index entries until they are back, so search and the agenda still find them.</p>
+<h2 id="encodings-and-line-endings">Encodings and line endings</h2>
+<p>orgstar edits UTF-8 files, with or without a byte order mark.</p>
+<ul>
+<li>A file that is not valid UTF-8 opens read-only. Its text shows with replacement characters where bytes don't decode, the window subtitle reads <code class="verbatim">Read-only: not UTF-8</code>, the modeline shows <code class="verbatim">Read-only</code>, and commands that would change it report <code class="verbatim">This file is read-only.</code> orgstar never writes such a file, and refiling or archiving into it is refused.</li>
+<li>A file with a UTF-8 byte order mark keeps it when saved; the modeline shows <code class="verbatim">BOM</code>.</li>
+<li>A file containing CRLF line endings shows <code class="verbatim">CRLF</code> in the modeline. Existing line endings are kept.</li>
+</ul>
+<p>orgstar does not convert between encodings or line endings.</p>
+<h2 id="on-ios">On iOS</h2>
+<p>The iOS app adds folders from its Folders screen and lists only org files there. Conflicts, Syncthing copies and recovery versions are in the editor's menu. Files are watched through file presenters rather than FSEvents. See <a href="14-ios.html">iOS</a>.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

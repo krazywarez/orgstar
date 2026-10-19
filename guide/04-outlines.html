@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outlines and structure &middot; orgstar</title>
+<meta name="description" content="Headings, subtrees, plain lists, checkboxes, blocks, drawers, properties, column view, footnotes, refiling and archiving.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Outlines and structure</h1>
+<p class="lede">An org file is an outline of headings with text, lists and drawers under them; this chapter covers the commands that build and rearrange it.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#headings">Headings</a>
+<ul>
+<li><a href="#inserting-headings">Inserting headings</a></li>
+<li><a href="#promoting-and-demoting">Promoting and demoting</a></li>
+<li><a href="#moving-subtrees">Moving subtrees</a></li>
+<li><a href="#moving-between-headings">Moving between headings</a></li>
+<li><a href="#toggling-headings-items-and-comments">Toggling headings, items and comments</a></li>
+<li><a href="#selecting-a-subtree">Selecting a subtree</a></li>
+</ul></li>
+<li><a href="#subtrees-as-text">Subtrees as text</a>
+<ul>
+<li><a href="#cut-copy-and-paste">Cut, copy and paste</a></li>
+<li><a href="#cloning-with-a-time-shift">Cloning with a time shift</a></li>
+<li><a href="#sorting">Sorting</a></li>
+</ul></li>
+<li><a href="#narrowing">Narrowing</a></li>
+<li><a href="#sparse-trees">Sparse trees</a></li>
+<li><a href="#plain-lists">Plain lists</a>
+<ul>
+<li><a href="#list-commands">List commands</a></li>
+<li><a href="#bullets-and-numbering">Bullets and numbering</a></li>
+</ul></li>
+<li><a href="#checkboxes-and-statistics">Checkboxes and statistics</a>
+<ul>
+<li><a href="#checkboxes">Checkboxes</a></li>
+<li><a href="#radio-lists">Radio lists</a></li>
+<li><a href="#statistics-cookies">Statistics cookies</a></li>
+</ul></li>
+<li><a href="#blocks">Blocks</a>
+<ul>
+<li><a href="#structure-templates">Structure templates</a></li>
+<li><a href="#org-tempo-templates">org-tempo templates</a></li>
+<li><a href="#folding-and-editing-blocks">Folding and editing blocks</a></li>
+</ul></li>
+<li><a href="#drawers">Drawers</a></li>
+<li><a href="#properties">Properties</a>
+<ul>
+<li><a href="#setting-and-deleting">Setting and deleting</a></li>
+<li><a href="#allowed-values">Allowed values</a></li>
+<li><a href="#inheritance">Inheritance</a></li>
+<li><a href="#special-properties">Special properties</a></li>
+</ul></li>
+<li><a href="#column-view">Column view</a>
+<ul>
+<li><a href="#the-column-view-sheet">The column view sheet</a></li>
+<li><a href="#the-columns-inspector">The Columns inspector</a></li>
+<li><a href="#column-view-tables">Column view tables</a></li>
+</ul></li>
+<li><a href="#footnotes">Footnotes</a></li>
+<li><a href="#refiling">Refiling</a></li>
+<li><a href="#archiving">Archiving</a>
+<ul>
+<li><a href="#archive-subtree">Archive Subtree</a></li>
+<li><a href="#the-archive-tag">The ARCHIVE tag</a></li>
+<li><a href="#archive-sibling">Archive sibling</a></li>
+</ul></li>
+<li><a href="#attachments">Attachments</a></li>
+<li><a href="#encrypted-entries">Encrypted entries</a></li>
+<li><a href="#the-outline-pane">The outline pane</a></li>
+<li><a href="#c-c-c-c">C-c C-c</a></li>
+<li><a href="#speed-keys">Speed keys</a></li>
+<li><a href="#not-supported">Not supported</a></li>
+</ul>
+</nav>
+<p>Every command in this chapter is in the Org menu and the command palette (<code class="verbatim">⇧⌘P</code>), under the title given in the tables, whatever keymap you use. The Org menu shows the keys that run each command in your current keymap.</p>
+<p>Keys are listed for the three presets. The Emacs and Doom presets use Emacs notation (<code class="verbatim">M-RET</code> is Meta-Return, <code class="verbatim">C-c C-w</code> is Control-c then Control-w). The Mac preset uses macOS symbols. The Doom preset has every Emacs-preset key that starts with <code class="verbatim">C-c</code> or <code class="verbatim">C-x</code>, and the <code class="verbatim">M-</code>, <code class="verbatim">S-</code> arrow and <code class="verbatim">RET</code> chords, in normal, insert and visual state, plus the Doom keys listed. Where the Mac column says "menu", the Mac preset has no key for the command; run it from the Org menu or the palette, or bind one in <code class="verbatim">keymap.toml</code> (see <a href="03-keys.html">Keys</a>).</p>
+<h2 id="headings">Headings</h2>
+<p>A heading is a line that starts with one or more stars and a space. The number of stars is its level. A heading and everything under it, down to the next heading at the same or a higher level, is a subtree.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Project
+</span>Notes about the project.
+<span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Write the plan
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> Meetings
+</span><span class="markup heading org"><span class="punctuation definition heading org">***</span> Kickoff</span></span></code></pre>
+<h3 id="inserting-headings">Inserting headings</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Insert Heading</td><td><code class="verbatim">org-insert-heading</code></td><td><code class="verbatim">M-RET</code></td><td><code class="verbatim">⌘↩</code></td><td><code class="verbatim">M-RET</code></td></tr>
+<tr><td>Insert Heading After Subtree</td><td><code class="verbatim">org-insert-heading-respect-content</code></td><td><code class="verbatim">C-RET</code></td><td><code class="verbatim">⌃⌘↩</code></td><td><code class="verbatim">C-RET</code></td></tr>
+<tr><td>Insert TODO Heading</td><td><code class="verbatim">org-insert-todo-heading</code></td><td><code class="verbatim">M-S-RET</code></td><td><code class="verbatim">⇧⌘↩</code></td><td><code class="verbatim">M-S-RET</code></td></tr>
+</tbody>
+</table>
+<p>The new heading has the level of the heading the caret is under, or level 1 before the first heading. In a plain list the same keys insert an item instead (see <a href="#plain-lists">Plain lists</a>).</p>
+<p>Insert TODO Heading gives the new heading the keyword of the previous heading at the same level when that keyword is not a done state, and otherwise the first keyword of the file's TODO sequence. If the parent has a statistics cookie, it is updated.</p>
+<p>Two settings change where Insert Heading puts the heading. Both are in Settings ▸ Editing and in <code class="verbatim">config.toml</code> under the Emacs variable names:</p>
+<table>
+<thead>
+<tr><th>Setting (<code class="verbatim">config.toml</code>)</th><th>Settings ▸ Editing</th><th>orgstar default</th><th>Org default</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">org-insert-heading-respect-content</code></td><td>M-RET adds the new heading after the subtree</td><td><code class="verbatim">false</code></td><td><code class="verbatim">nil</code></td></tr>
+<tr><td><code class="verbatim">org-M-RET-may-split-line</code></td><td>M-RET splits the line at the caret</td><td><code class="verbatim">false</code></td><td><code class="verbatim">t</code></td></tr>
+</tbody>
+</table>
+<p>With <code class="verbatim">org-insert-heading-respect-content</code> on, Insert Heading behaves as Insert Heading After Subtree: the new heading goes after the end of the current subtree, at the current level. Insert Heading also does this when the caret is in folded text.</p>
+<p>With it off, Insert Heading works where the caret is:</p>
+<ul>
+<li>At the start of a heading line, the new heading is inserted above it.</li>
+<li>Elsewhere on a heading line, the new heading goes below that line. With <code class="verbatim">org-M-RET-may-split-line</code> on and the caret inside the title, the text after the caret moves to the new heading. Tags stay on the original line and are realigned.</li>
+<li>In body text, a new heading line is started below. With <code class="verbatim">org-M-RET-may-split-line</code> on, the line is split at the caret first.</li>
+</ul>
+<p>orgstar follows Org's <code class="verbatim">org-blank-before-new-entry</code> default of <code class="verbatim">auto</code> for headings: if the heading the caret is in is preceded by a blank line, the new heading is too.</p>
+<p>Insert Heading After Subtree always inserts after the subtree:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> a
+</span>body
+<span class="markup heading org"><span class="punctuation definition heading org">**</span> b
+</span><span class="markup heading org"><span class="punctuation definition heading org">*</span> c</span></span></code></pre>
+<p>With the caret on <code class="verbatim">* a</code>, <code class="verbatim">C-RET</code> gives:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> a
+</span>body
+<span class="markup heading org"><span class="punctuation definition heading org">**</span> b
+</span><span class="markup heading org"><span class="punctuation definition heading org">*</span>
+</span><span class="markup heading org"><span class="punctuation definition heading org">*</span> c</span></span></code></pre>
+<h3 id="promoting-and-demoting">Promoting and demoting</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Promote Heading</td><td><code class="verbatim">org-promote</code></td><td><code class="verbatim">M-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌘←</code></td><td><code class="verbatim">M-h</code>; in insert state <code class="verbatim">S-TAB</code> or <code class="verbatim">C-d</code></td></tr>
+<tr><td>Demote Heading</td><td><code class="verbatim">org-demote</code></td><td><code class="verbatim">M-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌘→</code></td><td><code class="verbatim">M-l</code>; in insert state <code class="verbatim">TAB</code> or <code class="verbatim">C-t</code></td></tr>
+<tr><td>Promote Subtree</td><td><code class="verbatim">org-promote-subtree</code></td><td><code class="verbatim">M-S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌥⌘←</code></td><td><code class="verbatim">M-H</code>, <code class="verbatim">SPC m s h</code></td></tr>
+<tr><td>Demote Subtree</td><td><code class="verbatim">org-demote-subtree</code></td><td><code class="verbatim">M-S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌥⌘→</code></td><td><code class="verbatim">M-L</code>, <code class="verbatim">SPC m s l</code></td></tr>
+</tbody>
+</table>
+<p>These run with the caret on a heading line. Promote and Demote Heading change only that line's stars; its children keep their level. The subtree commands change the heading and every heading under it. Tags are realigned after each change. A level 1 heading can't be promoted ("Cannot promote to level 0").</p>
+<p>On a list item the same keys indent and outdent the item instead.</p>
+<h3 id="moving-subtrees">Moving subtrees</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Move Subtree Up</td><td><code class="verbatim">org-move-subtree-up</code></td><td><code class="verbatim">M-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌥⌘↑</code></td><td><code class="verbatim">M-k</code>, <code class="verbatim">SPC m s k</code></td></tr>
+<tr><td>Move Subtree Down</td><td><code class="verbatim">org-move-subtree-down</code></td><td><code class="verbatim">M-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌥⌘↓</code></td><td><code class="verbatim">M-j</code>, <code class="verbatim">SPC m s j</code></td></tr>
+</tbody>
+</table>
+<p>The subtree at the caret swaps places with the previous or next sibling subtree. It can't move past its parent or the start or end of the file. The caret keeps its column.</p>
+<p>On a list item the same keys move the item; in a table they move the row. On other elements (paragraphs, blocks, drawers, keywords) they drag the element past the one before or after it in the same section, drawer or greater block, as <code class="verbatim">org-drag-element-backward</code> and <code class="verbatim">org-drag-element-forward</code> do. The blank lines between the two stay where they were.</p>
+<h3 id="moving-between-headings">Moving between headings</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Next Heading</td><td><code class="verbatim">org-next-visible-heading</code></td><td><code class="verbatim">C-c C-n</code></td><td><code class="verbatim">⌥⌘↓</code></td><td><code class="verbatim">C-c C-n</code></td></tr>
+<tr><td>Previous Heading</td><td><code class="verbatim">org-previous-visible-heading</code></td><td><code class="verbatim">C-c C-p</code></td><td><code class="verbatim">⌥⌘↑</code></td><td><code class="verbatim">C-c C-p</code></td></tr>
+<tr><td>Next Heading at Same Level</td><td><code class="verbatim">org-forward-heading-same-level</code></td><td><code class="verbatim">C-c C-f</code></td><td><code class="verbatim">⌥⇧⌘↓</code></td><td><code class="verbatim">] h</code></td></tr>
+<tr><td>Previous Heading at Same Level</td><td><code class="verbatim">org-backward-heading-same-level</code></td><td><code class="verbatim">C-c C-b</code></td><td><code class="verbatim">⌥⇧⌘↑</code></td><td><code class="verbatim">[ h</code></td></tr>
+<tr><td>Up to Parent Heading</td><td><code class="verbatim">outline-up-heading</code></td><td><code class="verbatim">C-c C-u</code></td><td>menu</td><td><code class="verbatim">g h</code></td></tr>
+<tr><td>Go to Heading…</td><td><code class="verbatim">org-goto</code></td><td><code class="verbatim">C-c C-j</code></td><td>menu</td><td><code class="verbatim">SPC m .</code></td></tr>
+</tbody>
+</table>
+<p>Next and Previous Heading skip headings that are folded out of sight. The same-level commands stop at the parent's boundary. In Doom's normal state, <code class="verbatim">gj</code> and <code class="verbatim">gk</code> move by Org element, as evil-org's <code class="verbatim">org-forward-element</code> and <code class="verbatim">org-backward-element</code>: on a heading line, to the next heading after its subtree, or to the previous heading at the same level or higher (see <a href="03-keys.html">Keys and commands</a>). Go to Heading asks for a heading by its outline path (<code class="verbatim">Project/Meetings/Kickoff</code>) with completion, as <code class="verbatim">org-goto</code> does with <code class="verbatim">outline-path-completion</code>.</p>
+<h3 id="toggling-headings-items-and-comments">Toggling headings, items and comments</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Toggle Heading</td><td><code class="verbatim">org-toggle-heading</code></td><td><code class="verbatim">C-c *</code></td><td>menu</td><td><code class="verbatim">SPC m h</code></td></tr>
+<tr><td>Toggle Item</td><td><code class="verbatim">org-ctrl-c-minus</code>, <code class="verbatim">org-toggle-item</code></td><td><code class="verbatim">C-c -</code></td><td>menu</td><td><code class="verbatim">SPC m i</code></td></tr>
+<tr><td>Toggle COMMENT</td><td><code class="verbatim">org-toggle-comment</code></td><td><code class="verbatim">C-c ;</code></td><td>menu</td><td><code class="verbatim">C-c ;</code></td></tr>
+</tbody>
+</table>
+<p>These work on the caret's line, or on every line of the selection.</p>
+<p>Toggle Heading:</p>
+<ul>
+<li>On headings, removes their stars, so they become text.</li>
+<li>On list items, turns them into headings one level below the entry they are in. A checkbox becomes a keyword: <code class="verbatim">[ ]</code> the first TODO keyword, <code class="verbatim">[X]</code> the first done keyword. Nested items become deeper headings.</li>
+<li>On other lines, makes each non-blank line a heading one level below the current entry. Comment lines are skipped.</li>
+</ul>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Shopping
+</span><span class="punctuation definition list org">- </span><span class="constant language checkbox org">[ ]</span> milk
+<span class="punctuation definition list org">- </span><span class="constant language checkbox org">[X]</span> bread</span></code></pre>
+<p>Selecting both items and pressing <code class="verbatim">C-c *</code> gives:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Shopping
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> milk
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">DONE</span> bread</span></span></code></pre>
+<p>Toggle Item:</p>
+<ul>
+<li>On a list item, with no selection, cycles the list's bullets (see <a href="#bullets-and-numbering">Bullets and numbering</a>).</li>
+<li>On items in a selection, removes their bullets.</li>
+<li>On headings, turns them into items. The tags, planning line and property drawer are removed. A TODO keyword becomes a checkbox, <code class="verbatim">[X]</code> for a done state and <code class="verbatim">[ ]</code> otherwise. The section's text is indented under the item.</li>
+<li>On other lines, puts a <code class="verbatim">-</code> bullet and a space in front of each non-blank line.</li>
+</ul>
+<p>In a table, <code class="verbatim">C-c *</code> recalculates and <code class="verbatim">C-c -</code> inserts a horizontal line instead (see <a href="10-tables.html">Tables</a>).</p>
+<p>Toggle COMMENT adds or removes the <code class="verbatim">COMMENT</code> keyword after the stars and TODO keyword. Commented subtrees are left out of export and column view.</p>
+<h3 id="selecting-a-subtree">Selecting a subtree</h3>
+<p>Mark Subtree (<code class="verbatim">org-mark-subtree</code>, <code class="verbatim">C-c @</code> in the Emacs and Doom presets) selects the subtree at the caret, from its heading line to the end of its last line.</p>
+<h2 id="subtrees-as-text">Subtrees as text</h2>
+<h3 id="cut-copy-and-paste">Cut, copy and paste</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Cut Subtree</td><td><code class="verbatim">org-cut-subtree</code></td><td><code class="verbatim">C-c C-x C-w</code></td><td>menu</td><td><code class="verbatim">C-c C-x C-w</code>, <code class="verbatim">SPC m s d</code></td></tr>
+<tr><td>Copy Subtree</td><td><code class="verbatim">org-copy-subtree</code></td><td><code class="verbatim">C-c C-x M-w</code></td><td>menu</td><td><code class="verbatim">C-c C-x M-w</code></td></tr>
+<tr><td>Paste Subtree</td><td><code class="verbatim">org-paste-subtree</code></td><td><code class="verbatim">C-c C-x C-y</code></td><td>menu</td><td><code class="verbatim">C-c C-x C-y</code></td></tr>
+</tbody>
+</table>
+<p>The kill ring is the system clipboard. Cut Subtree and Copy Subtree put the subtree at the caret, with the blank lines after it, on the clipboard and report its length.</p>
+<p>Paste Subtree takes the clipboard's text and adjusts its levels to fit where it lands. The text has to start with a heading and contain no heading above its first one's level; otherwise the command refuses. The level comes from:</p>
+<ul>
+<li>an empty heading line, such as <code class="verbatim">***</code> followed by a space, at the caret: that level, and the empty line is replaced;</li>
+<li>the caret at the start of a heading: that heading's level, pasted before it;</li>
+<li>otherwise the deeper of the heading above the caret and the heading below it, pasted before the next heading.</li>
+</ul>
+<h3 id="cloning-with-a-time-shift">Cloning with a time shift</h3>
+<p>Clone Subtree with Time Shift (<code class="verbatim">org-clone-subtree-with-time-shift</code>, <code class="verbatim">C-c C-x c</code>, Doom <code class="verbatim">SPC m s c</code>) asks for a number of clones, then, if the subtree has timestamps, for a shift per clone such as <code class="verbatim">+1d</code>, <code class="verbatim">+1w</code>, <code class="verbatim">+2m</code> or <code class="verbatim">+1y</code> (units <code class="verbatim">h</code>, <code class="verbatim">d</code>, <code class="verbatim">w</code>, <code class="verbatim">m</code>, <code class="verbatim">y</code>). Leave the shift empty to copy the dates unchanged.</p>
+<p>The clones are inserted after the subtree. The nth clone has its dates moved by n times the shift. Clones lose their <code class="verbatim">CLOCK:</code> lines, and drawers left empty by that are removed. An entry with an <code class="verbatim">:ID:</code> property gets a new ID in each clone. When the subtree has a repeating timestamp and a shift is given, the repeater is removed from the clones, and the original, with its repeater, moves after them with its dates shifted past the last clone, as Org does.</p>
+<h3 id="sorting">Sorting</h3>
+<p>Sort Entries (<code class="verbatim">org-sort</code>, <code class="verbatim">C-c ^</code>, Mac <code class="verbatim">⌃⇧⌘S</code>, Doom <code class="verbatim">SPC m s S</code>) sorts what the caret is in:</p>
+<ul>
+<li>In a table, the table's lines (<code class="verbatim">org-table-sort-lines</code>, see <a href="10-tables.html">Tables</a>).</li>
+<li>On a list item, the items of that list (<code class="verbatim">org-sort-list</code>).</li>
+<li>Otherwise headings (<code class="verbatim">org-sort-entries</code>): with a selection, the headings in it; on a heading, its children; before the first heading, the top-level headings.</li>
+</ul>
+<p>It then asks for a sort key, one keystroke. A capital letter sorts in reverse.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Headings</th><th>List items</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">a</code></td><td>alphabetically by title</td><td>alphabetically by text</td></tr>
+<tr><td><code class="verbatim">n</code></td><td>numerically by the title's leading number</td><td>numerically by the text</td></tr>
+<tr><td><code class="verbatim">p</code></td><td>priority</td><td></td></tr>
+<tr><td><code class="verbatim">r</code></td><td>a property's value (asks which property)</td><td></td></tr>
+<tr><td><code class="verbatim">o</code></td><td>TODO keyword, in sequence order</td><td></td></tr>
+<tr><td><code class="verbatim">t</code></td><td>first active timestamp, else first timestamp</td><td>first timestamp, or a timer</td></tr>
+<tr><td><code class="verbatim">s</code></td><td><code class="verbatim">SCHEDULED</code> date</td><td></td></tr>
+<tr><td><code class="verbatim">d</code></td><td><code class="verbatim">DEADLINE</code> date</td><td></td></tr>
+<tr><td><code class="verbatim">c</code></td><td>creation time: the first inactive timestamp at the start of a line</td><td></td></tr>
+<tr><td><code class="verbatim">k</code></td><td>clocked time in the subtree</td><td></td></tr>
+<tr><td><code class="verbatim">x</code></td><td></td><td>checkbox state</td></tr>
+</tbody>
+</table>
+<p>Alphabetical and numeric sorts ignore a leading <code class="verbatim">COMMENT</code>, link brackets and emphasis markers. Sorting is stable, so entries with equal keys keep their order. Entries without a date sort as if dated now. After sorting a list, its numbering is repaired. Org's <code class="verbatim">f</code> (custom function) key is not available.</p>
+<h2 id="narrowing">Narrowing</h2>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Narrow to Subtree</td><td><code class="verbatim">org-narrow-to-subtree</code></td><td><code class="verbatim">C-x n s</code></td><td>menu</td><td><code class="verbatim">SPC m s n</code></td></tr>
+<tr><td>Narrow to Block</td><td><code class="verbatim">org-narrow-to-block</code></td><td><code class="verbatim">C-x n b</code></td><td>menu</td><td><code class="verbatim">C-x n b</code></td></tr>
+<tr><td>Widen</td><td><code class="verbatim">widen</code></td><td><code class="verbatim">C-x n w</code></td><td>menu</td><td><code class="verbatim">SPC m s N</code></td></tr>
+<tr><td>Narrow to Subtree or Widen</td><td><code class="verbatim">org-toggle-narrow-to-subtree</code></td><td>speed key <code class="verbatim">s</code></td><td><code class="verbatim">⌃⌘N</code>, speed key <code class="verbatim">s</code></td><td>speed key <code class="verbatim">s</code></td></tr>
+</tbody>
+</table>
+<p>Narrowing hides everything outside the current subtree or block, so the editor shows only that part of the file. Narrow to Block works on src, example, export, comment and verse blocks (with the blank lines after them) and, for other blocks, on the lines between the opening and closing lines. Edits inside the narrowed text move its bounds as you type. Jumping to a position outside it, from a link, search or the outline pane, widens first.</p>
+<p>Narrowing is a view. Commands still see the whole file: for example, a new footnote's definition still goes into the <code class="verbatim">Footnotes</code> section at the end of the file, and a sparse tree searches the whole file.</p>
+<h2 id="sparse-trees">Sparse trees</h2>
+<p>Sparse Tree… (<code class="verbatim">org-sparse-tree</code>, <code class="verbatim">C-c /</code>, Doom <code class="verbatim">SPC m s s</code>) folds the file to an overview and then shows only the matches and the headings above them. It asks what to match, one keystroke:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Shows</th><th>Org function</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">r</code></td><td>text matching a regular expression (asks for it); case-insensitive</td><td><code class="verbatim">org-occur</code></td></tr>
+<tr><td><code class="verbatim">t</code></td><td>headings with a TODO keyword that is not a done state</td><td><code class="verbatim">org-show-todo-tree</code></td></tr>
+<tr><td><code class="verbatim">T</code></td><td>headings with the keywords you give (several separated by a vertical bar)</td><td><code class="verbatim">org-show-todo-tree</code></td></tr>
+<tr><td><code class="verbatim">m</code></td><td>headings matching a tags and properties match</td><td><code class="verbatim">org-match-sparse-tree</code></td></tr>
+<tr><td><code class="verbatim">p</code></td><td>headings where a property has a value (asks for both, with completion)</td><td><code class="verbatim">org-match-sparse-tree</code></td></tr>
+<tr><td><code class="verbatim">d</code></td><td>deadlines past due or due within <code class="verbatim">org-deadline-warning-days</code> (14), in entries not done</td><td><code class="verbatim">org-check-deadlines</code></td></tr>
+<tr><td><code class="verbatim">b</code></td><td>entries with a <code class="verbatim">SCHEDULED</code> or <code class="verbatim">DEADLINE</code> before a date</td><td><code class="verbatim">org-check-before-date</code></td></tr>
+<tr><td><code class="verbatim">a</code></td><td>entries with a <code class="verbatim">SCHEDULED</code> or <code class="verbatim">DEADLINE</code> on or after a date</td><td><code class="verbatim">org-check-after-date</code></td></tr>
+<tr><td><code class="verbatim">D</code></td><td>entries with a <code class="verbatim">SCHEDULED</code> or <code class="verbatim">DEADLINE</code> in a date range</td><td><code class="verbatim">org-check-dates-range</code></td></tr>
+</tbody>
+</table>
+<p>The regular expression uses Emacs syntax. The match syntax for <code class="verbatim">m</code> is the one the agenda's tags search uses (see <a href="07-agenda.html">Agenda</a>). Dates are read as Org reads them (see <a href="06-dates-and-clocking.html">Dates and clocking</a>).</p>
+<p>For a text match, the whole entry around each match is shown; for heading matches, the heading line. The matched text is highlighted, and the echo area reports the number of matches. Subtrees tagged <code class="verbatim">ARCHIVE</code> stay folded. The highlights go away at the next edit or with <code class="verbatim">C-c C-c</code>. <code class="verbatim">TAB</code> and <code class="verbatim">S-TAB</code> work as usual afterwards; cycling leaves the sparse view.</p>
+<h2 id="plain-lists">Plain lists</h2>
+<p>orgstar's list commands are ports of <code class="verbatim">org-list.el</code>. A list item starts with a bullet: <code class="verbatim">-</code>, <code class="verbatim">+</code>, <code class="verbatim">*</code> (not at the left margin, where it would be a heading), or a number followed by <code class="verbatim">.</code> or <code class="verbatim">)</code>. With alphabetical lists on, <code class="verbatim">a.</code>, <code class="verbatim">A.</code>, <code class="verbatim">a)</code> and <code class="verbatim">A)</code> are bullets too. A description item has <code class="verbatim">::</code> after its term:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="punctuation definition list org">- </span>milk
+<span class="punctuation definition list org">- </span>eggs
+<span class="punctuation definition list org">  1. </span>free range
+<span class="punctuation definition list org">  2. </span>brown
+<span class="punctuation definition list org">- </span>orgstar :: an org editor for macOS and iOS</span></code></pre>
+<table>
+<thead>
+<tr><th>Setting (<code class="verbatim">config.toml</code>)</th><th>Settings ▸ Editing</th><th>orgstar default</th><th>Org default</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">org-list-allow-alphabetical</code></td><td>Lists can use letters (a. b. c.)</td><td><code class="verbatim">true</code></td><td><code class="verbatim">nil</code></td></tr>
+</tbody>
+</table>
+<h3 id="list-commands">List commands</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Insert Item</td><td><code class="verbatim">org-insert-item</code></td><td><code class="verbatim">M-RET</code></td><td><code class="verbatim">⌘↩</code></td><td><code class="verbatim">M-RET</code></td></tr>
+<tr><td>Insert Checkbox Item</td><td><code class="verbatim">org-insert-item</code> with a checkbox</td><td><code class="verbatim">M-S-RET</code></td><td><code class="verbatim">⇧⌘↩</code></td><td><code class="verbatim">M-S-RET</code></td></tr>
+<tr><td>Indent Item</td><td><code class="verbatim">org-indent-item</code></td><td><code class="verbatim">M-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌘→</code></td><td><code class="verbatim">M-l</code>; <code class="verbatim">C-t</code> in insert state</td></tr>
+<tr><td>Outdent Item</td><td><code class="verbatim">org-outdent-item</code></td><td><code class="verbatim">M-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌘←</code></td><td><code class="verbatim">M-h</code>; <code class="verbatim">C-d</code> in insert state</td></tr>
+<tr><td>Indent Item and Children</td><td><code class="verbatim">org-indent-item-tree</code></td><td><code class="verbatim">M-S-&lt;right&gt;</code></td><td><code class="verbatim">⌃⌥⌘→</code></td><td><code class="verbatim">M-L</code>; <code class="verbatim">TAB</code> in insert state</td></tr>
+<tr><td>Outdent Item and Children</td><td><code class="verbatim">org-outdent-item-tree</code></td><td><code class="verbatim">M-S-&lt;left&gt;</code></td><td><code class="verbatim">⌃⌥⌘←</code></td><td><code class="verbatim">M-H</code>; <code class="verbatim">S-TAB</code> in insert state</td></tr>
+<tr><td>Move Item Up</td><td><code class="verbatim">org-move-item-up</code></td><td><code class="verbatim">M-&lt;up&gt;</code></td><td><code class="verbatim">⌃⌥⌘↑</code></td><td><code class="verbatim">M-k</code></td></tr>
+<tr><td>Move Item Down</td><td><code class="verbatim">org-move-item-down</code></td><td><code class="verbatim">M-&lt;down&gt;</code></td><td><code class="verbatim">⌃⌥⌘↓</code></td><td><code class="verbatim">M-j</code></td></tr>
+<tr><td>Toggle Checkbox</td><td><code class="verbatim">org-toggle-checkbox</code></td><td><code class="verbatim">C-c C-x C-b</code></td><td><code class="verbatim">⌃⌘C</code></td><td><code class="verbatim">SPC m x</code>, <code class="verbatim">RET</code> in normal state</td></tr>
+<tr><td>Toggle Item</td><td><code class="verbatim">org-ctrl-c-minus</code></td><td><code class="verbatim">C-c -</code></td><td>menu</td><td><code class="verbatim">SPC m i</code></td></tr>
+</tbody>
+</table>
+<p>Insert Item works anywhere inside an item. The new item gets the next bullet: the same symbol, the next number or the next letter. In a description list the new item has an empty term followed by <code class="verbatim">::</code>, with the caret on the term. With <code class="verbatim">org-M-RET-may-split-line</code> on, text after the caret moves to the new item; with it off (the orgstar default), the new item goes after the current one. At the start of an item, the new item is inserted before it. If the list's items are separated by blank lines, so is the new one.</p>
+<p>The indent, outdent and move commands need the caret on an item's first line.</p>
+<ul>
+<li>Indent Item and Outdent Item move one item; its children stay where they are, and an item with children can't be outdented alone ("Cannot outdent an item without its children").</li>
+<li>The "and Children" variants move the item with its sub-items.</li>
+<li>On the first item of a list, Indent Item refuses; Indent Item and Children and Outdent Item and Children move the whole list. A list moved to the left margin changes <code class="verbatim">*</code> bullets to <code class="verbatim">-</code>.</li>
+<li>Move Item Up and Down swap the item, with its children, with the previous or next item at the same level.</li>
+</ul>
+<p>After every list command the list is repaired as Org repairs it: bullets are renumbered, indentation is fixed and checkboxes of parent items are updated.</p>
+<h3 id="bullets-and-numbering">Bullets and numbering</h3>
+<p>Toggle Item (<code class="verbatim">C-c -</code>) on an item, with no selection, cycles the bullet of the whole list (<code class="verbatim">org-cycle-list-bullet</code>) through:</p>
+<p><code class="verbatim">-</code>, <code class="verbatim">+</code>, <code class="verbatim">*</code>, <code class="verbatim">1.</code>, <code class="verbatim">1)</code>, then with alphabetical lists <code class="verbatim">a.</code>, <code class="verbatim">A.</code>, <code class="verbatim">a)</code>, <code class="verbatim">A)</code>.</p>
+<p><code class="verbatim">*</code> is skipped for a list at the left margin. Description lists skip the numbered and lettered bullets. Lettered bullets are offered only when the list has 26 items or fewer. <code class="verbatim">S-&lt;right&gt;</code> and <code class="verbatim">S-&lt;left&gt;</code> on an item (Doom <code class="verbatim">C-S-l</code> and <code class="verbatim">C-S-h</code>) cycle forward and backward.</p>
+<p>Numbered and lettered lists are renumbered whenever a list command changes them, and by <code class="verbatim">C-c C-c</code> on any item. To start a list at a given number, put a counter after the bullet, as in Org:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="punctuation definition list org">5. </span>[@5] fifth
+<span class="punctuation definition list org">6. </span>sixth</span></code></pre>
+<h2 id="checkboxes-and-statistics">Checkboxes and statistics</h2>
+<h3 id="checkboxes">Checkboxes</h3>
+<p>An item with <code class="verbatim">[ ]</code> after its bullet has a checkbox. <code class="verbatim">[X]</code> is checked, and <code class="verbatim">[-]</code> marks a parent item whose children are partly checked.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="punctuation definition list org">- </span><span class="constant language checkbox org">[-]</span> packing
+<span class="punctuation definition list org">  - </span><span class="constant language checkbox org">[X]</span> passport
+<span class="punctuation definition list org">  - </span><span class="constant language checkbox org">[ ]</span> charger</span></code></pre>
+<p>Toggle Checkbox (<code class="verbatim">C-c C-x C-b</code>) checks or unchecks the item on the caret's line, or every item in the selection. <code class="verbatim">C-c C-c</code> on an item toggles its checkbox too, and on an item without one, repairs the list. A parent item's checkbox follows its children: it can't be checked while children are unchecked ("Cannot toggle this checkbox: unchecked subitems").</p>
+<p>Toggle Checkbox works only on item lines. Org's behaviour on a heading, toggling the checkboxes of the region or subtree, is not available.</p>
+<h3 id="radio-lists">Radio lists</h3>
+<p>A list with <code class="verbatim">:radio</code> in its <code class="verbatim">#+ATTR_ORG:</code> line, other than <code class="verbatim">:radio nil</code>, is a radio list: checking one item unchecks the others. Toggle Checkbox and <code class="verbatim">C-c C-c</code> on an item check it and uncheck the rest of its list (<code class="verbatim">org-toggle-radio-button</code>); items without a checkbox get one.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+ATTR_ORG:</span><span class="string unquoted org"> :radio t</span>
+<span class="punctuation definition list org">- </span><span class="constant language checkbox org">[ ]</span> tea
+<span class="punctuation definition list org">- </span><span class="constant language checkbox org">[X]</span> coffee
+<span class="punctuation definition list org">- </span><span class="constant language checkbox org">[ ]</span> water</span></code></pre>
+<p><code class="verbatim">C-c C-c</code> on an <code class="verbatim">#+ATTR_ORG:</code> or other affiliated keyword line of a list repairs the list, as on an item without a checkbox. Org's <code class="verbatim">org-list-checkbox-radio-mode</code>, which makes every list in a buffer a radio list, isn't available.</p>
+<h3 id="statistics-cookies">Statistics cookies</h3>
+<p>A cookie <code class="verbatim">[/]</code> or <code class="verbatim">[%]</code> on a heading or an item shows progress:</p>
+<ul>
+<li>On an item, it counts that item's direct child checkboxes.</li>
+<li>On a heading, it counts the checkboxes of the top-level items in the heading's own section. If the section has none, it counts the TODO children: direct child headings with a keyword, and how many of them are in a done state.</li>
+</ul>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Groceries [1/3]
+</span><span class="punctuation definition list org">- </span><span class="constant language checkbox org">[X]</span> milk
+<span class="punctuation definition list org">- </span><span class="constant language checkbox org">[ ]</span> eggs
+<span class="punctuation definition list org">- </span><span class="constant language checkbox org">[ ]</span> bread
+
+<span class="markup heading org"><span class="punctuation definition heading org">*</span> Release [50%]
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">DONE</span> Tag the build
+</span><span class="markup heading org"><span class="punctuation definition heading org">**</span> <span class="keyword other todo org">TODO</span> Write the notes</span></span></code></pre>
+<p>Cookies update when you toggle or insert a checkbox, when a child heading's TODO state changes, when you archive an entry, and when you press <code class="verbatim">C-c C-c</code> with the caret on the cookie. A cookie with nothing to count shows <code class="verbatim">[0/0]</code> or <code class="verbatim">[100%]</code>. Tags are realigned when the cookie's width changes.</p>
+<p>The <code class="verbatim">COOKIE_DATA</code> property changes what a heading's cookie counts, as in Org:</p>
+<table>
+<thead>
+<tr><th>Value</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">todo</code></td><td>count TODO children, not checkboxes</td></tr>
+<tr><td><code class="verbatim">checkbox</code></td><td>count checkboxes, not TODO children</td></tr>
+<tr><td><code class="verbatim">recursive</code></td><td>count all descendants, not only direct children</td></tr>
+</tbody>
+</table>
+<p>For TODO statistics, <code class="verbatim">COOKIE_DATA</code> is read with inheritance, from the parent or an ancestor. orgstar counts TODO children hierarchically, as Org does with <code class="verbatim">org-hierarchical-todo-statistics</code> at its default.</p>
+<h2 id="blocks">Blocks</h2>
+<p>Blocks are lines between <code class="verbatim">#+BEGIN_name</code> and <code class="verbatim">#+END_name</code>:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+BEGIN_QUOTE</span>
+Text to quote.
+<span class="keyword control block end org">#+END_QUOTE</span></span></span></code></pre>
+<h3 id="structure-templates">Structure templates</h3>
+<p>Insert Structure Template (<code class="verbatim">org-insert-structure-template</code>, <code class="verbatim">C-c C-,</code> in the Emacs and Doom presets) asks for a block type by key. Org's default keys are:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Block</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">a</code></td><td><code class="verbatim">export ascii</code></td></tr>
+<tr><td><code class="verbatim">c</code></td><td><code class="verbatim">center</code></td></tr>
+<tr><td><code class="verbatim">C</code></td><td><code class="verbatim">comment</code></td></tr>
+<tr><td><code class="verbatim">e</code></td><td><code class="verbatim">example</code></td></tr>
+<tr><td><code class="verbatim">E</code></td><td><code class="verbatim">export</code></td></tr>
+<tr><td><code class="verbatim">h</code></td><td><code class="verbatim">export html</code></td></tr>
+<tr><td><code class="verbatim">l</code></td><td><code class="verbatim">export latex</code></td></tr>
+<tr><td><code class="verbatim">q</code></td><td><code class="verbatim">quote</code></td></tr>
+<tr><td><code class="verbatim">s</code></td><td><code class="verbatim">src</code></td></tr>
+<tr><td><code class="verbatim">v</code></td><td><code class="verbatim">verse</code></td></tr>
+</tbody>
+</table>
+<p>Press <code class="verbatim">TAB</code> to type any other type. <code class="verbatim">[org-structure-template-alist]</code> in <code class="verbatim">config.toml</code> adds templates or changes these (see <a href="13-configuration.html">Configuration</a>). As in Org, keys of two letters take two keystrokes: when several keys start with the same letter, that letter opens a second choice, where <code class="verbatim">TAB</code> picks the one-letter key, so with <code class="verbatim">el</code> for <code class="verbatim">src emacs-lisp</code>, <code class="verbatim">e TAB</code> inserts an example block and <code class="verbatim">e l</code> the Emacs Lisp block. The block is inserted at the caret's indentation. With a selection, the block wraps the selected lines, and for <code class="verbatim">src</code>, <code class="verbatim">example</code>, <code class="verbatim">export</code> and <code class="verbatim">comment</code> blocks, lines that would read as headings or keywords are protected with a leading comma. For <code class="verbatim">src</code> and <code class="verbatim">export</code>, the caret ends on the opening line after a space, ready for the language; otherwise it ends inside the block. The case of <code class="verbatim">BEGIN</code> and <code class="verbatim">END</code> follows the case of the type you typed.</p>
+<h3 id="org-tempo-templates">org-tempo templates</h3>
+<p>Typing <code class="verbatim">&lt;</code> and a key at the start of a line (after blanks only) and then completing expands it as <code class="verbatim">org-tempo</code> does. <code class="verbatim">&lt;s</code> becomes:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span>
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<p>with the caret after <code class="verbatim">begin_src</code>. The keys are those of the structure templates above, Org's and any in <code class="verbatim">config.toml</code>, plus <code class="verbatim">&lt;L</code>, <code class="verbatim">&lt;H</code>, <code class="verbatim">&lt;A</code> and <code class="verbatim">&lt;i</code>, which insert <code class="verbatim">#+latex:</code>, <code class="verbatim">#+html:</code>, <code class="verbatim">#+ascii:</code> and <code class="verbatim">#+index:</code> keyword lines.</p>
+<p>Completion runs with Complete at Point (<code class="verbatim">C-M-i</code> in the Emacs preset, <code class="verbatim">C-SPC</code> in Doom's insert state; in the Mac preset, from the palette). In the Doom preset the completion list also opens by itself after a short pause once you have typed <code class="verbatim">&lt;</code> and a letter, and <code class="verbatim">TAB</code> or <code class="verbatim">RET</code> takes the selected candidate. <code class="verbatim">TAB</code> alone does not expand <code class="verbatim">&lt;s</code> in the Emacs or Mac preset.</p>
+<h3 id="folding-and-editing-blocks">Folding and editing blocks</h3>
+<p><code class="verbatim">TAB</code> on a block's first or last line folds or unfolds it. Blocks are open when a file opens unless <code class="verbatim">org-cycle-hide-block-startup</code> is on in <code class="verbatim">config.toml</code> or the file has <code class="verbatim">#+STARTUP: hideblocks</code> (<code class="verbatim">nohideblocks</code> overrides the setting the other way). See <a href="02-the-editor.html">The editor</a> for folding in general.</p>
+<p>Edit Block (<code class="verbatim">org-edit-special</code>, <code class="verbatim">C-c '</code>, Mac <code class="verbatim">⌃⌘'</code>) edits a src, example or export block in a separate editor. See <a href="11-code-blocks.html">Code blocks</a>.</p>
+<h2 id="drawers">Drawers</h2>
+<p>A drawer is a named group of lines between <code class="verbatim">:NAME:</code> and <code class="verbatim">:END:</code>. orgstar writes the <code class="verbatim">PROPERTIES</code> drawer for properties and, depending on <code class="verbatim">org-log-into-drawer</code>, a <code class="verbatim">LOGBOOK</code> drawer for state notes and clock lines (see <a href="05-todos-and-tags.html">TODOs and tags</a> and <a href="06-dates-and-clocking.html">Dates and clocking</a>). You can write any other drawer by hand:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Meeting
+</span>:NOTES:
+Private notes, folded away.
+:END:</span></code></pre>
+<p><code class="verbatim">TAB</code> on a drawer's first or last line folds or unfolds it. Drawers are folded when a file opens, as with Org's <code class="verbatim">org-cycle-hide-drawer-startup</code> (<code class="verbatim">true</code> by default in <code class="verbatim">config.toml</code>). <code class="verbatim">#+STARTUP: nohidedrawers</code> keeps them open in one file, and <code class="verbatim">#+STARTUP: hidedrawers</code> folds them when the setting is off.</p>
+<p>Insert Drawer (<code class="verbatim">org-insert-drawer</code>, <code class="verbatim">C-c C-x d</code>) asks for a name. With no selection it inserts an empty drawer on a new line; with a selection it puts the selected lines in the drawer. A selection containing a heading is refused.</p>
+<h2 id="properties">Properties</h2>
+<p>Properties are key-value pairs in an entry's <code class="verbatim">PROPERTIES</code> drawer, right after the heading and its planning line:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Laptop
+</span>:PROPERTIES:
+:VENDOR:   Apple
+:Effort:   1:00
+:END:</span></code></pre>
+<p>File-wide properties come from <code class="verbatim">#+PROPERTY:</code> lines and from a <code class="verbatim">PROPERTIES</code> drawer before the first heading. A key written <code class="verbatim">KEY+</code> appends its value to the inherited one with a space between.</p>
+<h3 id="setting-and-deleting">Setting and deleting</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Set Property…</td><td><code class="verbatim">org-set-property</code></td><td><code class="verbatim">C-c C-x p</code></td><td><code class="verbatim">⌃⇧⌘P</code></td><td><code class="verbatim">SPC m o</code></td></tr>
+<tr><td>Delete Property…</td><td><code class="verbatim">org-delete-property</code></td><td>none</td><td>menu</td><td>none</td></tr>
+<tr><td>Delete Property Everywhere…</td><td><code class="verbatim">org-delete-property-globally</code></td><td>none</td><td>menu</td><td>none</td></tr>
+<tr><td>Property Action…</td><td><code class="verbatim">org-property-action</code></td><td><code class="verbatim">C-c C-c</code> in a property drawer</td><td><code class="verbatim">⌃⌘X</code> in a property drawer</td><td><code class="verbatim">C-c C-c</code></td></tr>
+<tr><td>Next Allowed Value</td><td><code class="verbatim">org-property-next-allowed-value</code></td><td><code class="verbatim">S-&lt;right&gt;</code> on a property line</td><td><code class="verbatim">⌃⇧⌘→</code> on a property line</td><td><code class="verbatim">S-&lt;right&gt;</code>, <code class="verbatim">C-S-l</code></td></tr>
+<tr><td>Previous Allowed Value</td><td><code class="verbatim">org-property-previous-allowed-value</code></td><td><code class="verbatim">S-&lt;left&gt;</code> on a property line</td><td><code class="verbatim">⌃⇧⌘←</code> on a property line</td><td><code class="verbatim">S-&lt;left&gt;</code>, <code class="verbatim">C-S-h</code></td></tr>
+</tbody>
+</table>
+<p>Set Property asks for the key, offering the keys used in the file, Org's standard keys and the properties named in <code class="verbatim">COLUMNS</code> formats; on a property line, Return takes that line's key. It then asks for the value. If the key has allowed values, those are offered and required unless the list includes <code class="verbatim">:ETC</code>; otherwise the values the key has elsewhere in the file are offered. An empty answer keeps the current value. The drawer is created if the entry has none, and lines are aligned as Org's <code class="verbatim">org-property-format</code> (<code class="verbatim">"%-10s %s"</code>) aligns them. Setting <code class="verbatim">TODO</code> sets the entry's TODO keyword instead.</p>
+<p>Delete Property asks which of the entry's properties to remove, when it has more than one, and removes the drawer if it becomes empty. Delete Property Everywhere removes a key from every entry in the file and reports how many it changed. Property Action, run by <code class="verbatim">C-c C-c</code> in a property drawer, asks <code class="verbatim">s</code> (set), <code class="verbatim">d</code> (delete) or <code class="verbatim">D</code> (delete everywhere).</p>
+<h3 id="allowed-values">Allowed values</h3>
+<p>A property <code class="verbatim">KEY_ALL</code> lists the values <code class="verbatim">KEY</code> may take, separated by spaces, with quotes around values that contain spaces. orgstar looks for it on the entry, then its ancestors, then the file:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+PROPERTY:</span><span class="string unquoted org"> Status_ALL open blocked done</span></span></code></pre>
+<p>Next and Previous Allowed Value step through the list on a property line. <code class="verbatim">TODO</code> and <code class="verbatim">PRIORITY</code> take their values from the file's keywords and priority range. A property whose value is <code class="verbatim">[ ]</code> or <code class="verbatim">[X]</code> toggles between them.</p>
+<h3 id="inheritance">Inheritance</h3>
+<p>orgstar inherits properties as Org does with <code class="verbatim">org-use-property-inheritance</code>, set in <code class="verbatim">config.toml</code>: <code class="verbatim">nil</code> (the default), <code class="verbatim">t</code> for all properties, or property names separated by spaces, such as <code class="verbatim">"STYLE TEAM"</code>. An inherited property comes from the nearest ancestor that has it, or from a <code class="verbatim">#+PROPERTY:</code> line. At <code class="verbatim">nil</code>, a property applies only to the entry that has it, with these exceptions:</p>
+<ul>
+<li><code class="verbatim">CATEGORY</code>, <code class="verbatim">ARCHIVE</code>, <code class="verbatim">COLUMNS</code>, <code class="verbatim">LOGGING</code> and the <code class="verbatim">header-args</code> properties are always inherited from ancestors and <code class="verbatim">#+PROPERTY:</code> lines.</li>
+<li><code class="verbatim">ID</code> and <code class="verbatim">CUSTOM_ID</code> are never inherited.</li>
+<li><code class="verbatim">KEY_ALL</code> allowed values and <code class="verbatim">COOKIE_DATA</code> for TODO statistics are looked up through the ancestors.</li>
+</ul>
+<p>The setting applies to property lookups, agenda matches and habits (<code class="verbatim">STYLE</code>), as Org's <code class="verbatim">selective</code> inheritance does.</p>
+<h3 id="special-properties">Special properties</h3>
+<p>Org computes some properties instead of reading them from a drawer. orgstar treats these as special and doesn't offer them as allowed-value lists: <code class="verbatim">ALLTAGS</code>, <code class="verbatim">BLOCKED</code>, <code class="verbatim">CLOCKSUM</code>, <code class="verbatim">CLOCKSUM_T</code>, <code class="verbatim">CLOSED</code>, <code class="verbatim">DEADLINE</code>, <code class="verbatim">FILE</code>, <code class="verbatim">ITEM</code>, <code class="verbatim">PRIORITY</code>, <code class="verbatim">SCHEDULED</code>, <code class="verbatim">TAGS</code>, <code class="verbatim">TIMESTAMP</code>, <code class="verbatim">TIMESTAMP_IA</code> and <code class="verbatim">TODO</code>. Column view computes <code class="verbatim">ITEM</code>, <code class="verbatim">TODO</code>, <code class="verbatim">PRIORITY</code>, <code class="verbatim">TAGS</code>, <code class="verbatim">ALLTAGS</code>, <code class="verbatim">DEADLINE</code>, <code class="verbatim">SCHEDULED</code>, <code class="verbatim">CLOSED</code> and <code class="verbatim">CLOCKSUM</code>; the others show as empty there.</p>
+<h2 id="column-view">Column view</h2>
+<p>Column view shows entries as rows and properties as columns. The columns come from a <code class="verbatim">COLUMNS</code> format, found in this order:</p>
+<ol>
+<li>a <code class="verbatim">COLUMNS</code> property on the entry at the caret or one of its ancestors (the nearest one wins, and that entry becomes the top of the view);</li>
+<li>a <code class="verbatim">#+COLUMNS:</code> line in the file;</li>
+<li>Org's default, <code class="verbatim">%25ITEM %TODO %3PRIORITY %TAGS</code>.</li>
+</ol>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+COLUMNS:</span><span class="string unquoted org"> %40ITEM %TODO %Effort(Estimate){:} %CLOCKSUM</span></span></code></pre>
+<p>Each column is <code class="verbatim">%[width]PROPERTY[(title)][{summary}]</code>, as in Org. The width limits the column, the title replaces the property name in the header, and the summary is computed for parent entries from their children. The summary operators are <code class="verbatim">+</code>, <code class="verbatim">$</code>, <code class="verbatim">min</code>, <code class="verbatim">max</code>, <code class="verbatim">mean</code>, <code class="verbatim">X</code>, <code class="verbatim">X/</code>, <code class="verbatim">X%</code>, <code class="verbatim">:</code>, <code class="verbatim">:min</code>, <code class="verbatim">:max</code>, <code class="verbatim">:mean</code>, <code class="verbatim">est+</code>, <code class="verbatim">@min</code>, <code class="verbatim">@max</code> and <code class="verbatim">@mean</code>. The age operators take an active timestamp, as its age now, or a duration, and show the youngest, oldest or mean age in days, hours and minutes (<code class="verbatim">3d 2h 15min</code>); any other value stops the view with "Invalid age". The numeric operators take a format after a semicolon, as in <code class="verbatim">{+;%.1f}</code>.</p>
+<p>Subtrees tagged <code class="verbatim">ARCHIVE</code> and commented subtrees are left out.</p>
+<h3 id="the-column-view-sheet">The column view sheet</h3>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Column View</td><td><code class="verbatim">org-columns</code></td><td><code class="verbatim">C-c C-x C-c</code></td><td>menu</td><td><code class="verbatim">C-c C-x C-c</code></td></tr>
+<tr><td>Column View of File</td><td><code class="verbatim">org-columns</code> with a prefix</td><td>none</td><td>menu</td><td>none</td></tr>
+</tbody>
+</table>
+<p>Column View opens a sheet with the entries from the view's top (the entry with the <code class="verbatim">COLUMNS</code> property, or the entry at the caret; the whole file before the first heading). Column View of File shows every entry in the file. Done (or Escape) closes the sheet.</p>
+<p>Click a cell to select it; the arrow keys move the selection. Go to Entry shows the selected entry's heading in the editor.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Does</th><th>Org command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">e</code>, Return, double-click</td><td>Edits the value: type it, or pick an allowed value from the menu beside the field; Return sets it, Escape cancels</td><td><code class="verbatim">org-columns-edit-value</code></td></tr>
+<tr><td><code class="verbatim">n</code></td><td>The next allowed value</td><td><code class="verbatim">org-columns-next-allowed-value</code></td></tr>
+<tr><td><code class="verbatim">p</code></td><td>The previous allowed value</td><td><code class="verbatim">org-columns-previous-allowed-value</code></td></tr>
+</tbody>
+</table>
+<p>Editing goes through the commands Org uses: <code class="verbatim">ITEM</code> changes the headline, keeping its keyword, priority and tags (<code class="verbatim">org-edit-headline</code>); <code class="verbatim">TODO</code> sets the keyword, with logging and state notes (a note is asked for at the bottom of the sheet); <code class="verbatim">PRIORITY</code>, <code class="verbatim">TAGS</code> (tags separated by spaces or colons), <code class="verbatim">SCHEDULED</code> and <code class="verbatim">DEADLINE</code> set those, an empty value removing them; other columns set the property in the entry's drawer, under the column's name in upper case, as Org writes it. <code class="verbatim">CLOCKSUM</code>, <code class="verbatim">ALLTAGS</code>, <code class="verbatim">CLOSED</code> and the other computed columns can't be edited.</p>
+<p>The allowed values are the property's <code class="verbatim">_ALL</code> values from the entry, an ancestor or a <code class="verbatim">#+PROPERTY:</code> line, the TODO keywords (and none) for <code class="verbatim">TODO</code>, the priorities for <code class="verbatim">PRIORITY</code>, and <code class="verbatim">[ ]</code> and <code class="verbatim">[X]</code> for a column with an <code class="verbatim">X</code> summary. Without allowed values, <code class="verbatim">n</code> and <code class="verbatim">p</code> say so. On <code class="verbatim">SCHEDULED</code> and <code class="verbatim">DEADLINE</code> they move the date a day later or earlier; Org 9.8.7 signals an error there instead. After each change the sheet captures the view again, so summaries follow. Parent summaries are not written into the file.</p>
+<p>On iOS, choose Column View or Column View of File from the editor's More menu. The view scrolls both ways; tap a cell to select it. The bar at the bottom has Edit, which asks for the value with the allowed values listed, Previous Value and Next Value (<code class="verbatim">p</code> and <code class="verbatim">n</code>), and Go to Entry. Done closes it.</p>
+<h3 id="the-columns-inspector">The Columns inspector</h3>
+<p>View ▸ Show or Hide Columns and Clock opens an inspector beside the editor. Its Columns tab shows the same table for the open file, kept current as you type. Choose File for every entry or Subtree for the entry at the caret. The row of the heading at the caret is shown in bold, and clicking a row goes to it. The Clock tab is described in <a href="06-dates-and-clocking.html">Dates and clocking</a>.</p>
+<h3 id="column-view-tables">Column view tables</h3>
+<p>Insert Column View Table (<code class="verbatim">org-columns-insert-dblock</code>, <code class="verbatim">C-c C-x i</code>) asks what to capture: <code class="verbatim">local</code> (the default, the entry at the caret), <code class="verbatim">global</code> (the whole file) or an <code class="verbatim">ID</code> of an entry. It inserts a <code class="verbatim">columnview</code> dynamic block and fills it:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+BEGIN:</span><span class="string unquoted org"> columnview :hlines 1 :id local</span>
+<span class="markup other table org">| ITEM | TODO | PRIORITY | TAGS |</span>
+<span class="markup other table org">|------+------+----------+------|</span>
+<span class="markup other table org">| ...  |      |          |      |</span>
+<span class="keyword other keyword org">#+END:</span></span></code></pre>
+<p><code class="verbatim">C-c C-c</code> (Mac <code class="verbatim">⌃⌘X</code>) on the <code class="verbatim">#+BEGIN:</code> line, or <code class="verbatim">C-c C-x C-u</code> anywhere in the block, updates it. Updating writes summary values into the parents' properties, as Org does. The block takes these parameters:</p>
+<table>
+<thead>
+<tr><th>Parameter</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:id</code></td><td><code class="verbatim">local</code>, <code class="verbatim">global</code>, <code class="verbatim">file:PATH</code> (another file, all of it), or an entry's <code class="verbatim">ID</code></td></tr>
+<tr><td><code class="verbatim">:match</code></td><td>keep entries matching a tag and property match, such as <code class="verbatim">"+work-home"</code></td></tr>
+<tr><td><code class="verbatim">:format</code></td><td>a column format to use instead of the entry's or file's</td></tr>
+<tr><td><code class="verbatim">:hlines</code></td><td><code class="verbatim">t</code> for a line between all rows, or N for one before each level N or higher row</td></tr>
+<tr><td><code class="verbatim">:maxlevel</code></td><td>leave out deeper headings</td></tr>
+<tr><td><code class="verbatim">:skip-empty-rows</code></td><td>leave out rows whose columns other than <code class="verbatim">ITEM</code> are empty</td></tr>
+<tr><td><code class="verbatim">:exclude-tags</code></td><td>leave out entries with these tags, as a list</td></tr>
+<tr><td><code class="verbatim">:indent</code></td><td>indent <code class="verbatim">ITEM</code> by level</td></tr>
+</tbody>
+</table>
+<p>Existing <code class="verbatim">#+TBLFM:</code> lines after the table are kept. A <code class="verbatim">file:</code> path counts from this file's folder. An <code class="verbatim">ID</code> is looked for in this file, then in the agenda files, as <code class="verbatim">org-id-find</code> does. For another file the table is built from the file on disk, and the summaries are not written into it; Org writes them into that file's buffer.</p>
+<h2 id="footnotes">Footnotes</h2>
+<table>
+<thead>
+<tr><th>Command</th><th>Org command</th><th>Emacs</th><th>Mac</th><th>Doom</th></tr>
+</thead>
+<tbody>
+<tr><td>Footnote Action</td><td><code class="verbatim">org-footnote-action</code></td><td><code class="verbatim">C-c C-x f</code></td><td><code class="verbatim">⌃⇧⌘F</code></td><td><code class="verbatim">C-c C-x f</code></td></tr>
+<tr><td>Footnote Menu</td><td><code class="verbatim">org-footnote-action</code> with a prefix</td><td>none</td><td>menu</td><td>none</td></tr>
+</tbody>
+</table>
+<p>Footnote Action depends on where the caret is:</p>
+<ul>
+<li>On a reference such as <code class="verbatim">[fn:1]</code>, it goes to the definition. If there is none, it asks whether to create one.</li>
+<li>On a definition's label, it goes back to a reference.</li>
+<li>Elsewhere, where a footnote is allowed, it inserts a new reference with the next free number and creates its definition.</li>
+<li>Where a footnote can't go, it shows the footnote menu.</li>
+</ul>
+<p><code class="verbatim">C-c C-c</code> on a reference or a definition's label does the same jumps. After a jump to a definition, the echo area says how to get back: <code class="verbatim">Edit definition and go back with `C-c C-c' or `C-c C-x f' on its label.</code></p>
+<p>New definitions go in a level 1 heading named <code class="verbatim">Footnotes</code> at the end of the file, which is created when needed (Org's <code class="verbatim">org-footnote-section</code>):</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup heading org"><span class="punctuation definition heading org">*</span> Notes
+</span>orgstar reads org files.<span class="markup other footnote org">[fn:1]</span>
+
+<span class="markup heading org"><span class="punctuation definition heading org">*</span> Footnotes
+</span>
+<span class="markup other footnote org">[fn:1]</span> And writes them.</span></code></pre>
+<p>The footnote menu asks, one keystroke:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Action</th><th>Org function</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">s</code></td><td>sort definitions into the order of their first reference</td><td><code class="verbatim">org-footnote-sort</code></td></tr>
+<tr><td><code class="verbatim">r</code></td><td>renumber numeric labels <code class="verbatim">fn:N</code> in order of appearance</td><td><code class="verbatim">org-footnote-renumber-fn:N</code></td></tr>
+<tr><td><code class="verbatim">S</code></td><td>renumber, then sort</td><td></td></tr>
+<tr><td><code class="verbatim">n</code></td><td>normalize: number every footnote, labeled, anonymous and inline, and collect all definitions in the footnote section</td><td><code class="verbatim">org-footnote-normalize</code></td></tr>
+<tr><td><code class="verbatim">d</code></td><td>delete the footnote at the caret: its references and definition</td><td><code class="verbatim">org-footnote-delete</code></td></tr>
+</tbody>
+</table>
+<p>A reference with no definition gets the text <code class="verbatim">DEFINITION NOT FOUND.</code> when sorted or normalized.</p>
+<h2 id="refiling">Refiling</h2>
+<p>Refile… (<code class="verbatim">org-refile</code>, <code class="verbatim">C-c C-w</code>, Mac <code class="verbatim">⌃⌘W</code>, Doom <code class="verbatim">SPC m r r</code> or <code class="verbatim">SPC m s r</code>) moves the subtree at the caret under another heading, in this file or another one.</p>
+<p>It asks for the target with completion. By default the targets are every org file in your folders and every heading down to level 3 in those files, written as the file's path relative to its folder followed by the outline path:</p>
+<pre>projects.org
+projects.org/Work
+projects.org/Work/Website
+notes/inbox.org/Someday</pre>
+<p>Choosing a heading makes the subtree its last child, at one level below it. Choosing a file adds the subtree at the end of that file as a level 1 heading. Levels inside the subtree are shifted to match, and tags are realigned. A subtree can't be refiled into itself.</p>
+<p>For the open file, targets come from the buffer, including unsaved edits. When the target is another file, orgstar writes that file first, into its open buffer if it has one, otherwise through the normal save path, and removes the subtree from the source only after that succeeds. If the target file changed on disk in the meantime, nothing is refiled.</p>
+<p>Three settings in <code class="verbatim">config.toml</code> change the targets, as in Org (see <a href="13-configuration.html">Configuration</a>):</p>
+<ul>
+<li><p><code class="verbatim">org-refile-targets</code>, written as Lisp: a list of <code class="verbatim">(FILES . SPEC)</code>. <code class="verbatim">FILES</code> is <code class="verbatim">nil</code> (the file you refile from), <code class="verbatim">org-agenda-files</code>, a file name, or a list of file names (relative to the current file's folder). <code class="verbatim">SPEC</code> is <code class="verbatim">(:maxlevel . N)</code>, <code class="verbatim">(:level . N)</code>, <code class="verbatim">(:tag . "TAG")</code>, <code class="verbatim">(:todo . "KEYWORD")</code>, <code class="verbatim">(:regexp . "RE")</code> or <code class="verbatim">t</code> for every heading; <code class="verbatim">(nil :maxlevel . 3)</code> is read the same way. The tag, keyword and regexp tests look at heading lines, case-sensitively.</p>
+<pre><code class="language-toml highlight"><span class="source toml"><span class="variable other key toml">org-refile-targets</span> <span class="keyword operator assignment toml">=</span> <span class="string quoted double toml"><span class="punctuation definition string begin toml">&quot;</span>((nil :maxlevel . 3) (org-agenda-files :tag . <span class="constant character escape toml">\&quot;</span>project<span class="constant character escape toml">\&quot;</span>))<span class="punctuation definition string end toml">&quot;</span></span></span></code></pre>
+<p>Empty (the default) is the list above: every file, to level 3.</p>
+</li>
+<li><code class="verbatim">org-refile-use-outline-path</code>: how targets are written. <code class="verbatim">file</code> (the default) is the file then the outline path; <code class="verbatim">t</code> the outline path alone; <code class="verbatim">nil</code> the heading alone; <code class="verbatim">full-file-path</code> the file's full path then the outline path; <code class="verbatim">title</code> the file's <code class="verbatim">#+TITLE</code> (or its name) then the outline path; <code class="verbatim">buffer-name</code> as <code class="verbatim">file</code>. With <code class="verbatim">nil</code>, <code class="verbatim">t</code> and <code class="verbatim">buffer-name</code>, targets in other files end with the file's name in parentheses, and files are targets only with <code class="verbatim">file</code>, <code class="verbatim">full-file-path</code>, <code class="verbatim">title</code> and <code class="verbatim">buffer-name</code>. A <code class="verbatim">/</code> in a heading is written <code class="verbatim">\/</code>.</li>
+<li><code class="verbatim">org-refile-allow-creating-parent-nodes</code>: with <code class="verbatim">t</code>, typing <code class="verbatim">TARGET/New heading</code>, where <code class="verbatim">TARGET</code> is one of the targets, adds <code class="verbatim">New heading</code> at the end of <code class="verbatim">TARGET</code> one level below it (or at the end of the file for a file) and refiles there; <code class="verbatim">confirm</code> asks first. On iOS the Refile sheet offers the new heading when the search field holds such a path.</li>
+</ul>
+<p>Otherwise this matches Org with <code class="verbatim">org-reverse-note-order</code> <code class="verbatim">nil</code> (new entries go last), <code class="verbatim">org-log-refile</code> <code class="verbatim">nil</code> and <code class="verbatim">org-refile-keep</code> <code class="verbatim">nil</code>. Refiling from the agenda is covered in <a href="07-agenda.html">Agenda</a>.</p>
+<p>Copy to Refile Target… (<code class="verbatim">org-copy</code>, <code class="verbatim">C-c M-w</code>) asks the same way and copies the subtree there, leaving it in place. Go to Refile Target… (<code class="verbatim">C-u C-c C-w</code>, Doom <code class="verbatim">SPC u SPC m r r</code>) asks the same way and jumps to the heading, or to the end of a file.</p>
+<h2 id="archiving">Archiving</h2>
+<h3 id="archive-subtree">Archive Subtree</h3>
+<p>Archive Subtree (<code class="verbatim">org-archive-subtree</code>, <code class="verbatim">C-c C-x C-s</code> or <code class="verbatim">C-c $</code>, Mac <code class="verbatim">⌃⌘A</code>, Doom <code class="verbatim">SPC m A</code> or <code class="verbatim">SPC m s A</code>) moves the subtree at the caret to an archive.</p>
+<p>The archive location is read from, in order: the <code class="verbatim">ARCHIVE</code> property of the entry or an ancestor, a <code class="verbatim">#+ARCHIVE:</code> line in the file, and <code class="verbatim">org-archive-location</code> in <code class="verbatim">config.toml</code> (Org's default <code class="verbatim">%s_archive::</code>). A location is <code class="verbatim">file::heading</code>, where <code class="verbatim">%s</code> stands for the current file's name:</p>
+<table>
+<thead>
+<tr><th>Location</th><th>Where the subtree goes</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">%s_archive::</code></td><td>the end of <code class="verbatim">notes.org_archive</code> next to <code class="verbatim">notes.org</code>, at level 1</td></tr>
+<tr><td><code class="verbatim">archive.org::* Old</code></td><td>under the heading <code class="verbatim">* Old</code> in <code class="verbatim">archive.org</code>, created if missing</td></tr>
+<tr><td><code class="verbatim">::* Archived</code></td><td>under <code class="verbatim">* Archived</code> in the same file</td></tr>
+<tr><td><code class="verbatim">%s_archive::datetree/</code></td><td>under year, month and day headings in the archive file, for the entry's <code class="verbatim">CLOSED</code> date or today</td></tr>
+</tbody>
+</table>
+<p>Relative paths are relative to the current file's folder, and <code class="verbatim">~</code> is your home folder. A new archive file starts with a line <code class="verbatim">Archived entries from file</code> followed by the source's path.</p>
+<p>The archived entry gets these properties, as with Org's default <code class="verbatim">org-archive-save-context-info</code>: <code class="verbatim">ARCHIVE_TIME</code>, <code class="verbatim">ARCHIVE_FILE</code>, <code class="verbatim">ARCHIVE_OLPATH</code>, <code class="verbatim">ARCHIVE_CATEGORY</code>, <code class="verbatim">ARCHIVE_TODO</code> and <code class="verbatim">ARCHIVE_ITAGS</code> (empty ones are left out). Within the same file, tags it inherited are added to its heading. After the subtree leaves, the parent's statistics cookies are updated. The entry's TODO state is not changed.</p>
+<p>If the archive file is open, the subtree goes into its buffer. Otherwise orgstar writes the archive file first and removes the subtree from the source only after that succeeds. Archiving from the agenda is covered in <a href="07-agenda.html">Agenda</a>.</p>
+<h3 id="the-archive-tag">The ARCHIVE tag</h3>
+<p>Toggle ARCHIVE Tag (<code class="verbatim">org-toggle-archive-tag</code>, <code class="verbatim">C-c C-x a</code>, Doom <code class="verbatim">SPC m s a</code>) adds or removes the <code class="verbatim">ARCHIVE</code> tag on the entry at the caret. Adding it folds the subtree.</p>
+<p>Subtrees tagged <code class="verbatim">ARCHIVE</code> stay where they are, but are folded when a file opens and in sparse trees, and are left out of column view. <code class="verbatim">TAB</code> opens an archived subtree like any other; Org's <code class="verbatim">org-cycle-open-archived-trees</code> behaviour, which keeps them closed, is not reproduced. See <a href="05-todos-and-tags.html">TODOs and tags</a> for tags in general.</p>
+<h3 id="archive-sibling">Archive sibling</h3>
+<p>Archive to Archive Sibling (<code class="verbatim">org-archive-to-archive-sibling</code>, <code class="verbatim">C-c C-x A</code>) moves the subtree at the caret under a sibling heading named <code class="verbatim">Archive</code> with the <code class="verbatim">ARCHIVE</code> tag, creating it at the end of the parent's children if needed. The moved entry gets an <code class="verbatim">ARCHIVE_TIME</code> property, and the <code class="verbatim">Archive</code> sibling is folded.</p>
+<h2 id="attachments">Attachments</h2>
+<p>An entry's attachments are files in a folder that belongs to it, as with org-attach. The folder is the entry's <code class="verbatim">DIR</code> property when it has one, relative to the file's folder unless absolute. Otherwise it comes from the entry's <code class="verbatim">ID</code>: <code class="verbatim">data/ab/cdef…</code> for the ID <code class="verbatim">abcdef…</code>, under the org file's folder. The first attachment gives an entry without either an <code class="verbatim">ID</code> property, and it gets the <code class="verbatim">ATTACH</code> tag. <code class="verbatim">attachment:</code> links open files in the folder (see <a href="09-links.html">Links</a>).</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Attach File…</td><td><code class="verbatim">C-c C-a a</code></td><td>Asks for files or folders and copies them into the folder.</td></tr>
+<tr><td>Attach File by Moving…, as Hard Link…, as Symbolic Link…</td><td><code class="verbatim">C-c C-a m</code>, <code class="verbatim">l</code>, <code class="verbatim">y</code></td><td>The same, moving the files or linking to them.</td></tr>
+<tr><td>Attach File from URL…</td><td><code class="verbatim">C-c C-a u</code></td><td>Downloads the URL as the name after its last <code class="verbatim">/</code>.</td></tr>
+<tr><td>New Attachment…</td><td><code class="verbatim">C-c C-a n</code></td><td>Makes an empty file in the folder and opens it.</td></tr>
+<tr><td>Open Attachment…</td><td><code class="verbatim">C-c C-a o</code></td><td>Opens the attachment, or asks which. Org files open in orgstar; others open in their app, or in Quick Look on iOS.</td></tr>
+<tr><td>Show Attachment Folder</td><td><code class="verbatim">C-c C-a f</code></td><td>Shows the folder in the Finder (the Files app on iOS), making it if missing.</td></tr>
+<tr><td>Delete Attachment…</td><td><code class="verbatim">C-c C-a d</code></td><td>Asks for an attachment and deletes it.</td></tr>
+<tr><td>Delete All Attachments…</td><td><code class="verbatim">C-c C-a D</code></td><td>Asks, then deletes the folder and everything in it, and removes the <code class="verbatim">ATTACH</code> tag.</td></tr>
+<tr><td>Sync Attachments</td><td><code class="verbatim">C-c C-a z</code></td><td>Adds <code class="verbatim">ATTACH</code> when the folder has files, removes it when it hasn't, and offers to delete an empty folder.</td></tr>
+<tr><td>Set Attachment Folder…</td><td><code class="verbatim">C-c C-a s</code></td><td>Asks for a folder and sets <code class="verbatim">DIR</code> to its full path. When the entry had a folder already, offers to copy its files over and to delete it.</td></tr>
+<tr><td>Unset Attachment Folder</td><td><code class="verbatim">C-c C-a S</code></td><td>Removes <code class="verbatim">DIR</code>, with the same offers when the folder changes.</td></tr>
+</tbody>
+</table>
+<p>The Doom keys are under <code class="verbatim">SPC m a</code>; see <a href="03-keys.html">Keys</a>. Attaching a file stores an <code class="verbatim">attachment:</code> link to it, for Insert Link (<code class="verbatim">C-c C-l</code>). Deleting removes files for good, without the Trash.</p>
+<p>On iOS the commands are under More ▸ Attachments, with Attach Photo or Video… for the photo library. Moving and linking aren't offered there. Files, photos and videos shared to orgstar from another app are attached too: the share sheet offers Attach, and orgstar asks for the entry when it next opens.</p>
+<table>
+<thead>
+<tr><th>Setting</th><th>Default</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">org-attach-id-dir</code></td><td><code class="verbatim">"data/"</code></td><td>The folder ID-based folders go in, relative to the org file's folder unless absolute. Folders under <code class="verbatim">data/</code> are still found when it's something else.</td></tr>
+<tr><td><code class="verbatim">org-attach-use-inheritance</code></td><td><code class="verbatim">"selective"</code></td><td>Whether <code class="verbatim">DIR</code> and <code class="verbatim">ID</code> come from an ancestor: <code class="verbatim">selective</code> follows <code class="verbatim">org-use-property-inheritance</code>, <code class="verbatim">"t"</code> always, <code class="verbatim">"nil"</code> never. Doom sets <code class="verbatim">t</code>.</td></tr>
+</tbody>
+</table>
+<h2 id="encrypted-entries">Encrypted entries</h2>
+<p>orgstar reads and writes entries encrypted by org-crypt with a passphrase (<code class="verbatim">org-crypt-key</code> nil, symmetric encryption). The text after the entry's planning line, property drawer and logbook, through the end of its subtree, is replaced by an OpenPGP message under the heading:</p>
+<pre>* Secret :crypt:
+-----BEGIN PGP MESSAGE-----
+
+ww0ECQMI…
+-----END PGP MESSAGE-----</pre>
+<table>
+<thead>
+<tr><th>Command</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td>Encrypt Entry… (<code class="verbatim">app.crypt.encrypt-entry</code>)</td><td>Asks for a passphrase twice and encrypts the entry at the caret (<code class="verbatim">org-encrypt-entry</code>).</td></tr>
+<tr><td>Decrypt Entry… (<code class="verbatim">app.crypt.open-entry</code>)</td><td>Asks for the passphrase and shows the decrypted text in a sheet. Save encrypts the edited text again in the message's place; the file never holds the plaintext. Decrypt in File puts the text in the file instead.</td></tr>
+<tr><td>Decrypt Entry in File… (<code class="verbatim">app.crypt.decrypt-entry</code>)</td><td>Replaces the message with the decrypted text (<code class="verbatim">org-decrypt-entry</code>). Headings in it are moved below the entry's level when they aren't.</td></tr>
+<tr><td>Encrypt Tagged Entries… (<code class="verbatim">app.crypt.encrypt-entries</code>)</td><td>Encrypts every entry with the <code class="verbatim">crypt</code> tag, its own or inherited, that isn't encrypted yet (<code class="verbatim">org-encrypt-entries</code>). A tagged entry's tagged children go inside its message.</td></tr>
+<tr><td>Forget Encryption Passphrase (<code class="verbatim">app.crypt.forget-passphrase</code>)</td><td>Removes the current file's passphrase from the Keychain.</td></tr>
+</tbody>
+</table>
+<p>The commands have no keys, as in Org; run them from the command palette, or bind them in <code class="verbatim">keymap.toml</code>. On iOS they are under More ▸ Encryption.</p>
+<p>Remember in the Keychain stores the passphrase for the file. The next command on that file uses it after Touch ID, Face ID or the device password, without asking. <code class="verbatim">org-crypt-tag-matcher</code> in <code class="verbatim">config.toml</code> sets the tag; it must be a single tag, not a match expression.</p>
+<p>Messages are written with AES-256 and an iterated and salted SHA-256 key, which GnuPG and Emacs read. Messages using AES-128, AES-192 or AES-256 are read, compressed or not. Messages encrypted to a public key, other ciphers, and AEAD (OpenPGP version 5 and 6) packets are not supported. Saving doesn't encrypt tagged entries, as <code class="verbatim">org-crypt-use-before-save-magic</code> does in Emacs; run Encrypt Tagged Entries….</p>
+<h2 id="the-outline-pane">The outline pane</h2>
+<p>The outline pane, to the left of the editor, lists the headings of the open org file, indented by level. Click a heading to go to it; folded text around it opens. A heading with no title is shown as <code class="verbatim">(untitled)</code>.</p>
+<p>Show or hide it with the toolbar button or View ▸ Show or Hide Outline. orgstar remembers the choice for org files; for other files the pane starts hidden and shows "Only org files have an outline." Drag the divider to resize it. While the search field has text, the pane shows search results instead. The backlinks pane, when shown, sits below the outline (see <a href="09-links.html">Links</a>).</p>
+<h2 id="c-c-c-c">C-c C-c</h2>
+<p><code class="verbatim">C-c C-c</code> (<code class="verbatim">org-ctrl-c-ctrl-c</code>) does what fits the caret's position. In the Emacs and Doom presets it is <code class="verbatim">C-c C-c</code>; in the Mac preset it is <code class="verbatim">⌃⌘X</code>. In order, it:</p>
+<table>
+<thead>
+<tr><th>Caret on</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td>anywhere, while sparse tree highlights show</td><td>removes the highlights, and nothing else (not in a table or src block)</td></tr>
+<tr><td>a src block, a <code class="verbatim">#+CALL</code> line or inline code</td><td>runs it (see <a href="11-code-blocks.html">Code blocks</a>)</td></tr>
+<tr><td>a table or <code class="verbatim">#+TBLFM</code> line</td><td>aligns the table, or recalculates it (see <a href="10-tables.html">Tables</a>)</td></tr>
+<tr><td>a footnote reference or definition label</td><td>jumps between them</td></tr>
+<tr><td>a blank line</td><td>nothing</td></tr>
+<tr><td>a <code class="verbatim">CLOCK:</code> line</td><td>fixes the weekdays and writes the duration again</td></tr>
+<tr><td>a dynamic block's <code class="verbatim">#+BEGIN:</code> line</td><td>updates the block</td></tr>
+<tr><td>a statistics cookie</td><td>updates it</td></tr>
+<tr><td>a timestamp</td><td>fixes its weekday</td></tr>
+<tr><td>a heading</td><td>sets tags (see <a href="05-todos-and-tags.html">TODOs and tags</a>)</td></tr>
+<tr><td>a list item</td><td>toggles its checkbox, repairs the list and updates cookies</td></tr>
+<tr><td>a <code class="verbatim">#+KEYWORD:</code> line</td><td>rereads the file's settings and <code class="verbatim">#+SETUPFILE</code></td></tr>
+<tr><td>a property drawer</td><td>runs Property Action</td></tr>
+</tbody>
+</table>
+<p>Elsewhere it reports that it can do nothing useful.</p>
+<p>In the Doom preset, <code class="verbatim">RET</code> in normal state runs Doom's <code class="verbatim">+org/dwim-at-point</code> instead. It follows a link, recalculates a table with formulas or aligns one without, runs a src block, toggles an item's checkbox, or on a heading switches between the first TODO and first done keyword of its sequence.</p>
+<h2 id="speed-keys">Speed keys</h2>
+<p>With <code class="verbatim">org-use-speed-commands</code> set to <code class="verbatim">true</code> in <code class="verbatim">config.toml</code>, single keys run commands when the caret is at the very start of a heading line, before the stars. These are Org's <code class="verbatim">org-speed-commands</code>; the structure ones are:</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Command</th><th>Key</th><th>Command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">n</code></td><td>Next Heading</td><td><code class="verbatim">U</code></td><td>Move Subtree Up</td></tr>
+<tr><td><code class="verbatim">p</code></td><td>Previous Heading</td><td><code class="verbatim">D</code></td><td>Move Subtree Down</td></tr>
+<tr><td><code class="verbatim">f</code></td><td>Next Heading at Same Level</td><td><code class="verbatim">r</code></td><td>Demote Heading</td></tr>
+<tr><td><code class="verbatim">b</code></td><td>Previous Heading at Same Level</td><td><code class="verbatim">l</code></td><td>Promote Heading</td></tr>
+<tr><td><code class="verbatim">u</code></td><td>Up to Parent Heading</td><td><code class="verbatim">R</code></td><td>Demote Subtree</td></tr>
+<tr><td><code class="verbatim">j</code></td><td>Go to Heading…</td><td><code class="verbatim">L</code></td><td>Promote Subtree</td></tr>
+<tr><td><code class="verbatim">s</code></td><td>Narrow to Subtree or Widen</td><td><code class="verbatim">i</code></td><td>Insert Heading After Subtree</td></tr>
+<tr><td><code class="verbatim">k</code></td><td>Cut Subtree</td><td><code class="verbatim">^</code></td><td>Sort Entries</td></tr>
+<tr><td><code class="verbatim">@</code></td><td>Mark Subtree</td><td><code class="verbatim">w</code></td><td>Refile…</td></tr>
+<tr><td><code class="verbatim">#</code></td><td>Toggle COMMENT</td><td><code class="verbatim">a</code></td><td>Archive Subtree</td></tr>
+</tbody>
+</table>
+<p>The full list is in <a href="03-keys.html">Keys</a>.</p>
+<h2 id="not-supported">Not supported</h2>
+<p>These Org structure features are not in orgstar:</p>
+<ul>
+<li>Writing summaries from the column view sheet into the file; the <code class="verbatim">columnview</code> dynamic block does write summaries.</li>
+<li>The <code class="verbatim">ORDERED</code> property in the list commands.</li>
+</ul>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>

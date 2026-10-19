@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code blocks &middot; orgstar</title>
+<meta name="description" content="Source blocks in orgstar: highlighting, editing, running with Babel, results, header arguments, noweb and tangling.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="../syntax.css">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="../index.html">orgstar</a>
+<nav>
+<a href="../install.html">Install</a>
+<a href="../quickstart.html">Quick start</a>
+<a href="index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Code blocks</h1>
+<p class="lede">orgstar runs and tangles source blocks the way Org Babel does, and refuses anything it would run differently.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#source-blocks">Source blocks</a>
+<ul>
+<li><a href="#syntax-highlighting">Syntax highlighting</a></li>
+</ul></li>
+<li><a href="#editing-a-block-apart">Editing a block apart</a></li>
+<li><a href="#running-a-block">Running a block</a>
+<ul>
+<li><a href="#languages-that-run">Languages that run</a></li>
+<li><a href="#compiled-languages">Compiled languages</a></li>
+<li><a href="#the-trust-prompt">The trust prompt</a></li>
+<li><a href="#eval">:eval</a></li>
+<li><a href="#cancelling-a-run">Cancelling a run</a></li>
+</ul></li>
+<li><a href="#results">Results</a>
+<ul>
+<li><a href="#value-or-output">Value or output</a></li>
+<li><a href="#result-types">Result types</a></li>
+<li><a href="#result-formats">Result formats</a></li>
+<li><a href="#inserting">Inserting</a></li>
+<li><a href="#wrap">:wrap</a></li>
+<li><a href="#results-in-files">Results in files</a></li>
+</ul></li>
+<li><a href="#header-arguments">Header arguments</a>
+<ul>
+<li><a href="#where-they-come-from">Where they come from</a></li>
+<li><a href="#lisp-in-header-values">Lisp in header values</a></li>
+<li><a href="#header-argument-reference">Header argument reference</a></li>
+<li><a href="#arguments-that-are-refused">Arguments that are refused</a></li>
+</ul></li>
+<li><a href="#variables">Variables</a>
+<ul>
+<li><a href="#tables-in-variables">Tables in variables</a></li>
+<li><a href="#standard-input-and-arguments">Standard input and arguments</a></li>
+</ul></li>
+<li><a href="#sessions">Sessions</a></li>
+<li><a href="#caching">Caching</a></li>
+<li><a href="#noweb">Noweb</a></li>
+<li><a href="#calls">Calls</a>
+<ul>
+<li><a href="#call-lines">#+CALL: lines</a></li>
+<li><a href="#inline-calls-and-blocks">Inline calls and blocks</a></li>
+</ul></li>
+<li><a href="#emacs-lisp-blocks">Emacs Lisp blocks</a></li>
+<li><a href="#graphics">Graphics</a></li>
+<li><a href="#tangling">Tangling</a>
+<ul>
+<li><a href="#tangle-and-file-names">:tangle and file names</a></li>
+<li><a href="#tangling-arguments">Tangling arguments</a></li>
+<li><a href="#comments">Comments</a></li>
+<li><a href="#writing-the-files">Writing the files</a></li>
+<li><a href="#what-tangling-refuses">What tangling refuses</a></li>
+</ul></li>
+<li><a href="#on-ios">On iOS</a></li>
+</ul>
+</nav>
+<h2 id="source-blocks">Source blocks</h2>
+<p>A source block holds code in a named language:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> python</span>
+return 6 * 7
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<p>orgstar reads the same syntax Org does: the language after <code class="verbatim">#+begin_src</code>, then any switches such as <code class="verbatim">-i</code> or <code class="verbatim">-r</code>, then header arguments. A <code class="verbatim">#+NAME:</code> line above a block names it, so other blocks, <code class="verbatim">#+CALL:</code> lines and <code class="verbatim">:var</code> references can refer to it.</p>
+<p>Lines inside a block that start with <code class="verbatim">*</code> or <code class="verbatim">#+</code> are protected with a leading comma, as Org does (<code class="verbatim">org-escape-code-in-region</code>). The comma is removed when the block runs, tangles or exports, and when you edit the block apart.</p>
+<h3 id="syntax-highlighting">Syntax highlighting</h3>
+<p>The code in a block is highlighted in the editor on the Mac and on iOS, in the iOS reader, and in the Mac's block editor, in the theme's <code class="verbatim">syntax-*</code> colours. Highlighting uses tree-sitter grammars for these language names:</p>
+<table>
+<thead>
+<tr><th>Language names</th><th>Grammar</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">sh</code>, <code class="verbatim">bash</code>, <code class="verbatim">shell</code>, <code class="verbatim">zsh</code></td><td>Bash</td></tr>
+<tr><td><code class="verbatim">python</code>, <code class="verbatim">python3</code>, <code class="verbatim">py</code></td><td>Python</td></tr>
+<tr><td><code class="verbatim">emacs-lisp</code>, <code class="verbatim">elisp</code></td><td>Emacs Lisp</td></tr>
+<tr><td><code class="verbatim">c</code></td><td>C</td></tr>
+<tr><td><code class="verbatim">c++</code>, <code class="verbatim">cpp</code></td><td>C++</td></tr>
+<tr><td><code class="verbatim">r</code></td><td>R</td></tr>
+<tr><td><code class="verbatim">js</code>, <code class="verbatim">javascript</code>, <code class="verbatim">node</code></td><td>JavaScript</td></tr>
+<tr><td><code class="verbatim">java</code></td><td>Java</td></tr>
+<tr><td><code class="verbatim">scheme</code></td><td>Scheme</td></tr>
+<tr><td><code class="verbatim">clojure</code>, <code class="verbatim">clj</code></td><td>Clojure</td></tr>
+<tr><td><code class="verbatim">haskell</code></td><td>Haskell</td></tr>
+<tr><td><code class="verbatim">rust</code></td><td>Rust</td></tr>
+<tr><td><code class="verbatim">go</code></td><td>Go</td></tr>
+<tr><td><code class="verbatim">ruby</code></td><td>Ruby</td></tr>
+<tr><td><code class="verbatim">json</code></td><td>JSON</td></tr>
+<tr><td><code class="verbatim">yaml</code>, <code class="verbatim">yml</code></td><td>YAML</td></tr>
+<tr><td><code class="verbatim">toml</code>, <code class="verbatim">conf-toml</code></td><td>TOML</td></tr>
+<tr><td><code class="verbatim">lua</code></td><td>Lua</td></tr>
+</tbody>
+</table>
+<p>Names are matched without regard to case. Blocks in any other language show as plain monospaced text.</p>
+<h2 id="editing-a-block-apart">Editing a block apart</h2>
+<p><code class="verbatim">org-edit-special</code> edits a block's contents in a separate editor. Put the caret in a <code class="verbatim">src</code>, <code class="verbatim">example</code> or <code class="verbatim">export</code> block (or on a <code class="verbatim">#+TBLFM:</code> line; see <a href="10-tables.html">Tables</a>) and run <strong>Edit Block</strong>.</p>
+<table>
+<thead>
+<tr><th>Preset</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Emacs</td><td><code class="verbatim">C-c '</code></td></tr>
+<tr><td>Doom</td><td><code class="verbatim">C-c '</code>, or <code class="verbatim">SPC m '</code> in normal state</td></tr>
+<tr><td>Mac</td><td><code class="verbatim">⌃⌘'</code></td></tr>
+</tbody>
+</table>
+<p>On the Mac the block opens in a sheet titled with the block's kind and language, with the same highlighting as the main editor. The protecting commas are removed while you edit and added back when you save.</p>
+<table>
+<thead>
+<tr><th>Action</th><th>Keys</th></tr>
+</thead>
+<tbody>
+<tr><td>Save</td><td><code class="verbatim">C-c '</code> or ⌘Return, or <strong>Save Block</strong></td></tr>
+<tr><td>Leave</td><td><code class="verbatim">C-c C-k</code> or Escape, or <strong>Cancel</strong></td></tr>
+</tbody>
+</table>
+<p>If the block changed in the main editor while you edited it, the edit is not saved and the message area says so.</p>
+<p>On iOS the block opens in a plain text sheet with Cancel and Save buttons.</p>
+<h2 id="running-a-block">Running a block</h2>
+<p><code class="verbatim">C-c C-c</code> in a source block runs it (<code class="verbatim">org-babel-execute-src-block</code>) and writes its result under it. The same command runs a <code class="verbatim">#+CALL:</code> line or an inline <code class="verbatim">src_</code> block when the caret is on one.</p>
+<table>
+<thead>
+<tr><th>Preset</th><th>Key</th></tr>
+</thead>
+<tbody>
+<tr><td>Emacs</td><td><code class="verbatim">C-c C-c</code></td></tr>
+<tr><td>Doom</td><td><code class="verbatim">C-c C-c</code> in normal, insert and visual state</td></tr>
+<tr><td>Mac</td><td><code class="verbatim">⌃⌘X</code></td></tr>
+</tbody>
+</table>
+<p>The program runs in the folder of the file, or in <code class="verbatim">:dir</code>. It reads the code on standard input. While it runs, the message area shows "Running <em>language</em> block…"; when it ends, it shows "Code block evaluation complete." or the problem.</p>
+<p>If the program writes to standard error or exits with a non-zero status, the message area shows the exit status and the first line of standard error. The result is still inserted, as Emacs does.</p>
+<p>The block's text is remembered when the run starts. If you edit the block while it runs, so it can no longer be found, the result is not written.</p>
+<h3 id="languages-that-run">Languages that run</h3>
+<p>On the Mac, orgstar starts each interpreter through <code class="verbatim">/usr/bin/env</code>. Because an app opened from the Dock does not see your shell's <code class="verbatim">PATH</code>, orgstar adds <code class="verbatim">/opt/homebrew/bin</code>, <code class="verbatim">/usr/local/bin</code>, <code class="verbatim">/Library/TeX/texbin</code>, <code class="verbatim">/usr/bin</code> and <code class="verbatim">/bin</code> to the end of it.</p>
+<table>
+<thead>
+<tr><th>Language</th><th>Program run</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">sh</code>, <code class="verbatim">bash</code>, <code class="verbatim">zsh</code>, <code class="verbatim">fish</code>, <code class="verbatim">ksh</code>, <code class="verbatim">dash</code>, <code class="verbatim">ash</code>, <code class="verbatim">csh</code>, <code class="verbatim">mksh</code>, <code class="verbatim">posh</code></td><td>The shell of that name</td></tr>
+<tr><td><code class="verbatim">shell</code></td><td>The shell in <code class="verbatim">SHELL</code>, or <code class="verbatim">/bin/sh</code></td></tr>
+<tr><td><code class="verbatim">python</code></td><td><code class="verbatim">python3</code>, or the program in <code class="verbatim">:python</code></td></tr>
+<tr><td><code class="verbatim">emacs-lisp</code>, <code class="verbatim">elisp</code></td><td><code class="verbatim">emacs -Q --batch</code>; see Emacs Lisp blocks below</td></tr>
+<tr><td><code class="verbatim">ruby</code></td><td><code class="verbatim">ruby</code>, or the program in <code class="verbatim">:ruby</code></td></tr>
+<tr><td><code class="verbatim">js</code>, <code class="verbatim">javascript</code></td><td><code class="verbatim">node</code></td></tr>
+<tr><td><code class="verbatim">R</code></td><td><code class="verbatim">Rscript -</code></td></tr>
+<tr><td><code class="verbatim">awk</code></td><td><code class="verbatim">awk -f</code>, the program written to a file</td></tr>
+<tr><td><code class="verbatim">dot</code>, <code class="verbatim">plantuml</code>, <code class="verbatim">mermaid</code></td><td><code class="verbatim">dot</code>, <code class="verbatim">plantuml</code>, <code class="verbatim">mmdc</code>; see Graphics below</td></tr>
+<tr><td><code class="verbatim">C</code>, <code class="verbatim">C++</code>, <code class="verbatim">cpp</code>, <code class="verbatim">D</code>, <code class="verbatim">java</code>, <code class="verbatim">fortran</code>, <code class="verbatim">clojure</code></td><td>A compiler, or <code class="verbatim">bb</code> or <code class="verbatim">clojure</code>; see Compiled languages below</td></tr>
+</tbody>
+</table>
+<p>For <code class="verbatim">js</code>, <code class="verbatim">javascript</code> and <code class="verbatim">R</code>, <code class="verbatim">:cmd</code> names a different program. <code class="verbatim">awk</code> takes <code class="verbatim">:cmd-line</code> arguments after its program, and <code class="verbatim">:in-file</code> as the file it reads.</p>
+<p>Any other language is refused with "No way to run <em>language</em> blocks yet."</p>
+<p>A run that takes longer than five minutes is stopped. Runs in a <code class="verbatim">:session</code> have no time limit.</p>
+<h3 id="compiled-languages">Compiled languages</h3>
+<p>On the Mac, <code class="verbatim">C</code>, <code class="verbatim">C++</code>, <code class="verbatim">cpp</code>, <code class="verbatim">D</code>, <code class="verbatim">java</code>, <code class="verbatim">fortran</code> and <code class="verbatim">clojure</code> blocks run as Org's <code class="verbatim">ob-C</code>, <code class="verbatim">ob-java</code>, <code class="verbatim">ob-fortran</code> and <code class="verbatim">ob-clojure</code> run them. orgstar writes the body, expanded as tangling writes it (see Tangling below), to a source file in a temporary folder, compiles it and runs the program in the file's folder or <code class="verbatim">:dir</code>, with a newline on standard input. What the compiler prints is dropped.</p>
+<table>
+<thead>
+<tr><th>Language</th><th>Commands</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">C</code></td><td><code class="verbatim">gcc -o bin FLAGS src LIBS</code>, then <code class="verbatim">bin CMDLINE</code></td></tr>
+<tr><td><code class="verbatim">C++</code>, <code class="verbatim">cpp</code></td><td><code class="verbatim">g++ -o bin FLAGS src LIBS</code>, then <code class="verbatim">bin CMDLINE</code></td></tr>
+<tr><td><code class="verbatim">D</code></td><td><code class="verbatim">rdmd FLAGS src CMDLINE</code>, which compiles and runs</td></tr>
+<tr><td><code class="verbatim">fortran</code></td><td><code class="verbatim">gfortran -o bin FLAGS src</code>, then <code class="verbatim">bin CMDLINE</code></td></tr>
+<tr><td><code class="verbatim">java</code></td><td><code class="verbatim">javac CMPFLAG Class.java</code>, then <code class="verbatim">java -cp dir CMDLINE Class CMDARGS</code></td></tr>
+<tr><td><code class="verbatim">clojure</code></td><td><code class="verbatim">bb src</code> (babashka) when <code class="verbatim">bb</code> is installed, otherwise <code class="verbatim">clojure -M src</code></td></tr>
+</tbody>
+</table>
+<p>FLAGS is <code class="verbatim">:flags</code>, LIBS is <code class="verbatim">:libs</code> or the inherited <code class="verbatim">LIBS</code> property, and CMDLINE is <code class="verbatim">:cmdline</code>. A Lisp list works for <code class="verbatim">:flags</code> and <code class="verbatim">:libs</code>; its items are joined with spaces.</p>
+<table>
+<thead>
+<tr><th>Argument</th><th>Languages</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:flags</code></td><td>C, C++, D, Fortran</td><td>Compiler options.</td></tr>
+<tr><td><code class="verbatim">:libs</code></td><td>C, C++</td><td>Libraries, after the source file, such as <code class="verbatim">-lm</code>.</td></tr>
+<tr><td><code class="verbatim">:cmdline</code></td><td>C, C++, D, Fortran</td><td>The program's arguments.</td></tr>
+<tr><td><code class="verbatim">:cmdline</code></td><td>Java</td><td>Options for <code class="verbatim">java</code>, before the class name.</td></tr>
+<tr><td><code class="verbatim">:cmdargs</code></td><td>Java</td><td>The program's arguments.</td></tr>
+<tr><td><code class="verbatim">:cmpflag</code></td><td>Java</td><td>Options for <code class="verbatim">javac</code>.</td></tr>
+<tr><td><code class="verbatim">:javac</code>, <code class="verbatim">:java</code></td><td>Java</td><td>The compiler and runtime commands, with options; <code class="verbatim">javac</code> and <code class="verbatim">java</code> by default.</td></tr>
+<tr><td><code class="verbatim">:classname</code></td><td>Java</td><td>The class to run; a dotted name gives its package.</td></tr>
+<tr><td><code class="verbatim">:backend</code></td><td>Clojure</td><td><code class="verbatim">babashka</code> runs <code class="verbatim">bb</code>, <code class="verbatim">clojure-cli</code> runs <code class="verbatim">clojure -M</code>.</td></tr>
+<tr><td><code class="verbatim">:includes</code>, <code class="verbatim">:defines</code>, <code class="verbatim">:namespaces</code>, <code class="verbatim">:imports</code>, <code class="verbatim">:main</code>, <code class="verbatim">:prologue</code>, <code class="verbatim">:epilogue</code>, <code class="verbatim">:ns</code>, <code class="verbatim">:var</code></td><td>as for tangling</td><td>What the expansion writes; see Tangling below.</td></tr>
+</tbody>
+</table>
+<p>When <code class="verbatim">:imports</code> is absent, a D block reads the <code class="verbatim">IMPORTS</code> property where it is, and a Fortran block without <code class="verbatim">:includes</code> or <code class="verbatim">:defines</code> reads the <code class="verbatim">INCLUDES</code> and <code class="verbatim">DEFINES</code> properties, as Org does when it runs them. <code class="verbatim">:session</code> is ignored for these languages, as in Org.</p>
+<p>Java's defaults are <code class="verbatim">:results output</code> and <code class="verbatim">:dir .</code> (<code class="verbatim">org-babel-default-header-args:java</code>). The <code class="verbatim">.java</code> and <code class="verbatim">.class</code> files are written in the folder the block runs in, under folders for the class's package (<code class="verbatim">org/ex/Hello.java</code> for <code class="verbatim">:classname org.ex.Hello</code>), and are left there. The class is <code class="verbatim">:classname</code>, the body's own class with its <code class="verbatim">package</code>, or <code class="verbatim">Main</code>.</p>
+<p>Any other Clojure backend is refused: "The cider backend for clojure needs Emacs; orgstar runs babashka or clojure-cli."</p>
+<p>Before a run, orgstar checks that each program it needs is on the <code class="verbatim">PATH</code> described above. If not, the block fails with "gcc isn't installed, so C blocks can't run." (<code class="verbatim">g++</code> for C++, <code class="verbatim">rdmd</code>, <code class="verbatim">gfortran</code>, or the commands <code class="verbatim">:javac</code> and <code class="verbatim">:java</code> name). For Clojure without a <code class="verbatim">:backend</code>, the message is "Neither bb nor clojure is installed, so clojure blocks can't run."</p>
+<h3 id="the-trust-prompt">The trust prompt</h3>
+<p>Before a block runs, orgstar asks "Run this <em>language</em> block? (yes, no, always)", as <code class="verbatim">org-confirm-babel-evaluate</code> does.</p>
+<ul>
+<li><code class="verbatim">yes</code> runs it this once.</li>
+<li><code class="verbatim">no</code> does not run it.</li>
+<li><code class="verbatim">always</code> runs it and remembers the block, so it runs without asking next time.</li>
+</ul>
+<p>A remembered block is identified by the file's path and the exact text of the block. Any change to the block, or moving the file, makes orgstar ask again. The remembered hashes are kept in <code class="verbatim">trusted.json</code> in orgstar's Application Support folder (<code class="verbatim">~/Library/Application Support/Orgstar</code> on the Mac). The same file records table formulas you allowed to run Lisp. To forget every choice, delete the file while orgstar is not running.</p>
+<p>When a block's <code class="verbatim">:var</code> or <code class="verbatim">:stdin</code> refers to other blocks that have to run first, you are asked once for all of them. The prompt covers the block you ran and every block its references reach. If any of those blocks changes while the chain runs, orgstar stops with "The blocks changed while running; nothing more was run."</p>
+<h3 id="eval"><code class="verbatim">:eval</code></h3>
+<table>
+<thead>
+<tr><th>Value</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">never</code>, <code class="verbatim">no</code></td><td>The block does not run: "Evaluation of this <em>language</em> code block is disabled."</td></tr>
+<tr><td><code class="verbatim">query</code></td><td>Asks every time, with only <code class="verbatim">yes</code> and <code class="verbatim">no</code>. A block reached through <code class="verbatim">:var</code> with <code class="verbatim">:eval query</code> makes the whole chain ask every time.</td></tr>
+<tr><td>anything else, or absent</td><td>Runs after the trust prompt.</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">never-export</code> and <code class="verbatim">no-export</code> only stop evaluation during export in Org. orgstar does not run blocks during export, so with these values the block runs from <code class="verbatim">C-c C-c</code> like any other.</p>
+<h3 id="cancelling-a-run">Cancelling a run</h3>
+<p>On the Mac, Edit ▸ Cancel Running Task (⌘.) stops the running block. Its result is not inserted, and the message area shows "Code block canceled." The same command stops an export or table recalculation running in Emacs (see <a href="12-export.html">Export</a> and <a href="10-tables.html">Tables</a>). With nothing running it shows "Nothing is running". The command is also in the command palette.</p>
+<p>Only one block runs at a time. Starting another block cancels the one that is running.</p>
+<p>Cancelling a block that runs in a <code class="verbatim">:session</code> stops the session's interpreter, so the session's state is lost. The next block in that session starts a new one.</p>
+<p>The iOS app has no cancel command.</p>
+<h2 id="results">Results</h2>
+<p>The result is written after a <code class="verbatim">#+RESULTS:</code> line below the block (<code class="verbatim">org-babel-insert-result</code>). Running again replaces it. A named block's result goes under <code class="verbatim">#+RESULTS: name</code>, wherever that line is in the file. An unnamed block's result is the <code class="verbatim">#+RESULTS:</code> line right after it, past blank lines. The result keeps the block's indentation, so a block inside a list item keeps its result inside the item.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh</span>
+echo hello
+<span class="keyword control block end org">#+end_src</span>
+</span>
+<span class="keyword other keyword org">#+RESULTS:</span>
+: hello</span></code></pre>
+<p>By default a result is shaped like this:</p>
+<ul>
+<li>Text of fewer than ten lines gets a =: = prefix on each line.</li>
+<li>Text of ten lines or more goes in an <code class="verbatim">#+begin_example</code> block.</li>
+<li>A table becomes an aligned Org table.</li>
+</ul>
+<h3 id="value-or-output">Value or output</h3>
+<table>
+<thead>
+<tr><th>Word</th><th>Result</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">value</code></td><td>The value of the block. This is the default.</td></tr>
+<tr><td><code class="verbatim">output</code></td><td>Everything the program printed on standard output.</td></tr>
+</tbody>
+</table>
+<p>What "value" means depends on the language:</p>
+<table>
+<thead>
+<tr><th>Language</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Shells, by default</td><td>Standard output, read as a table: tab-separated columns, then comma-separated, then space-separated; a single field is a plain value.</td></tr>
+<tr><td>Shells, <code class="verbatim">:results value</code> written out</td><td>The exit status of the last command.</td></tr>
+<tr><td>Python</td><td>What the block returns. The body runs as a function, so it needs <code class="verbatim">return</code>. <code class="verbatim">:return expr</code> adds a final <code class="verbatim">return expr</code>.</td></tr>
+<tr><td>Python in a <code class="verbatim">:session</code></td><td>The value of the last expression.</td></tr>
+<tr><td><code class="verbatim">ruby</code>, <code class="verbatim">js</code> in a <code class="verbatim">:session</code></td><td>The value of the last expression, read as without a session.</td></tr>
+<tr><td>Emacs Lisp</td><td>The value of the last form.</td></tr>
+<tr><td><code class="verbatim">ruby</code></td><td>The value of the body, run as a lambda; strings as they are, other values as <code class="verbatim">inspect</code> prints them, arrays read as tables with <code class="verbatim">nil</code> rows as rules. <code class="verbatim">:results pp</code> prints it with <code class="verbatim">pp</code>.</td></tr>
+<tr><td><code class="verbatim">js</code>, <code class="verbatim">javascript</code></td><td>What the body returns, as <code class="verbatim">util.inspect</code> prints it, arrays read as tables; it runs as a function, so it needs <code class="verbatim">return</code>.</td></tr>
+<tr><td><code class="verbatim">awk</code></td><td>Standard output, read as a table as for shells.</td></tr>
+<tr><td><code class="verbatim">R</code></td><td>Standard output, always.</td></tr>
+<tr><td>C, C++, D</td><td>Standard output without its common indentation, read as a table as for shells.</td></tr>
+<tr><td>Fortran</td><td>The same, with blank space around the output trimmed.</td></tr>
+<tr><td>Java</td><td>With <code class="verbatim">:results value</code>, what the body returns; it runs as <code class="verbatim">main</code>, so it needs <code class="verbatim">return</code>. Lists and arrays become tables, with <code class="verbatim">null</code> rows as rules, and a returned string is written without its quotes. Java's default is <code class="verbatim">:results output</code>.</td></tr>
+<tr><td>Clojure</td><td>The value of the last form as Clojure prints it. A number, or a string without its quotes, is written as that; vectors, lists and maps are written as printed, not as tables.</td></tr>
+</tbody>
+</table>
+<p>Python lists of lists become tables, with <code class="verbatim">None</code> rows as rules. A flat list becomes a one-row table. Emacs Lisp lists become tables the same way, with <code class="verbatim">hline</code> for rules. Numbers are written the way Emacs prints them.</p>
+<h3 id="result-types">Result types</h3>
+<table>
+<thead>
+<tr><th>Word</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">table</code>, <code class="verbatim">vector</code></td><td>Read the result as a table. This is the default for values.</td></tr>
+<tr><td><code class="verbatim">list</code></td><td>Write a plain list, one =- = item per line or per element.</td></tr>
+<tr><td><code class="verbatim">scalar</code>, <code class="verbatim">verbatim</code></td><td>Write the result as text without reading it as a table.</td></tr>
+<tr><td><code class="verbatim">file</code></td><td>Write a link to a file (see Results in files below).</td></tr>
+</tbody>
+</table>
+<p><code class="verbatim">:results verbatim</code> on an Emacs Lisp value writes it as <code class="verbatim">prin1</code> would, with quotes around strings.</p>
+<p>With <code class="verbatim">:results output list</code>, the list made from the output is written as an example, in lines such as <code class="verbatim">: - a</code>, as Org writes it:</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh :results output list</span>
+printf &#39;a\nb\n&#39;
+<span class="keyword control block end org">#+end_src</span>
+</span>
+<span class="keyword other keyword org">#+RESULTS:</span>
+: - a
+: - b</span></code></pre>
+<h3 id="result-formats">Result formats</h3>
+<table>
+<thead>
+<tr><th>Word</th><th>Written as</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">raw</code></td><td>The text as it is, so Org markup in it takes effect.</td></tr>
+<tr><td><code class="verbatim">drawer</code></td><td>Between <code class="verbatim">:results:</code> and <code class="verbatim">:end:</code>.</td></tr>
+<tr><td><code class="verbatim">code</code></td><td>In a <code class="verbatim">#+begin_src</code> block of the block's language.</td></tr>
+<tr><td><code class="verbatim">org</code></td><td>In a <code class="verbatim">#+begin_src org</code> block.</td></tr>
+<tr><td><code class="verbatim">html</code></td><td>In a <code class="verbatim">#+begin_export html</code> block.</td></tr>
+<tr><td><code class="verbatim">latex</code></td><td>In a <code class="verbatim">#+begin_export latex</code> block.</td></tr>
+<tr><td><code class="verbatim">pp</code></td><td>Python: formatted with <code class="verbatim">pprint</code>; written as text.</td></tr>
+</tbody>
+</table>
+<p>Lines that start with <code class="verbatim">*</code> or <code class="verbatim">#+</code> inside <code class="verbatim">code</code>, <code class="verbatim">org</code>, <code class="verbatim">html</code> and <code class="verbatim">latex</code> results are comma-protected.</p>
+<h3 id="inserting">Inserting</h3>
+<table>
+<thead>
+<tr><th>Word</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">replace</code></td><td>Replace the previous result. This is the default.</td></tr>
+<tr><td><code class="verbatim">append</code></td><td>Add after the previous result.</td></tr>
+<tr><td><code class="verbatim">prepend</code></td><td>Add before the previous result.</td></tr>
+<tr><td><code class="verbatim">silent</code></td><td>Show the output in the message area and write nothing.</td></tr>
+<tr><td><code class="verbatim">none</code>, <code class="verbatim">discard</code></td><td>Write nothing.</td></tr>
+</tbody>
+</table>
+<p>Words from different groups combine: <code class="verbatim">:results output list append</code>. A later word replaces an earlier one from the same group.</p>
+<h3 id="wrap"><code class="verbatim">:wrap</code></h3>
+<p><code class="verbatim">:wrap</code> puts the result in a block, ahead of any format word.</p>
+<table>
+<thead>
+<tr><th>Value</th><th>Wrapped in</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:wrap</code> alone</td><td><code class="verbatim">#+begin_results</code> … <code class="verbatim">#+end_results</code></td></tr>
+<tr><td><code class="verbatim">:wrap example</code></td><td><code class="verbatim">#+begin_example</code> … <code class="verbatim">#+end_example</code></td></tr>
+<tr><td><code class="verbatim">:wrap src python</code></td><td><code class="verbatim">#+begin_src python</code> … <code class="verbatim">#+end_src</code></td></tr>
+<tr><td><code class="verbatim">:wrap export html</code></td><td><code class="verbatim">#+begin_export html</code> … <code class="verbatim">#+end_export</code></td></tr>
+<tr><td><code class="verbatim">:wrap no</code>, <code class="verbatim">:wrap nil</code></td><td>No wrapping</td></tr>
+</tbody>
+</table>
+<p>Inside <code class="verbatim">example</code>, <code class="verbatim">src</code> and <code class="verbatim">export</code> wrappers, lines starting with <code class="verbatim">*</code> or <code class="verbatim">#+</code> are comma-protected.</p>
+<h3 id="results-in-files">Results in files</h3>
+<p>With <code class="verbatim">:results file</code>, the result is a link instead of text.</p>
+<table>
+<thead>
+<tr><th>Header</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:file name</code></td><td>Write the result into <code class="verbatim">name</code> and link to it. Without <code class="verbatim">:results file</code>, <code class="verbatim">:file</code> has no effect, except in graphics blocks.</td></tr>
+<tr><td><code class="verbatim">:output-dir dir</code></td><td>Put <code class="verbatim">:file</code> under <code class="verbatim">dir</code>. The folder must exist.</td></tr>
+<tr><td><code class="verbatim">:file-desc text</code></td><td>Give the link a description: <code class="verbatim">[[file:name][text]]</code>. An empty <code class="verbatim">:file-desc</code> uses the file name.</td></tr>
+</tbody>
+</table>
+<p>A relative <code class="verbatim">:file</code> is written in the folder the block ran in: the file's folder, or <code class="verbatim">:dir</code>. Without <code class="verbatim">:file</code>, <code class="verbatim">:results file</code> takes the result itself as the path to link to.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh :results file :file out.txt :file-desc Output</span>
+echo hello
+<span class="keyword control block end org">#+end_src</span>
+</span>
+<span class="keyword other keyword org">#+RESULTS:</span>
+<span class="punctuation definition link org">[[</span><span class="markup underline link org">file:out.txt</span><span class="punctuation definition link org">]</span><span class="punctuation definition link org">[</span><span class="string other link title org">Output</span><span class="punctuation definition link org">]]</span></span></code></pre>
+<h2 id="header-arguments">Header arguments</h2>
+<h3 id="where-they-come-from">Where they come from</h3>
+<p>orgstar merges header arguments in this order, each layer overriding the ones before it (<code class="verbatim">org-babel-get-src-block-info</code>):</p>
+<ol>
+<li><code class="verbatim">#+PROPERTY: header-args …</code> in the file, then <code class="verbatim">header-args</code> properties of the block's headings, from the outermost heading inwards.</li>
+<li><code class="verbatim">header-args:LANG</code> the same way, for blocks in language <code class="verbatim">LANG</code>.</li>
+<li>The arguments on the <code class="verbatim">#+begin_src</code> line.</li>
+<li><code class="verbatim">#+HEADER:</code> lines above the block.</li>
+<li>For a call, the call's arguments (see Calls below).</li>
+</ol>
+<p>A property written with a <code class="verbatim">+</code>, such as <code class="verbatim">header-args+</code>, adds to the value inherited from above instead of replacing it. In a property drawer, <code class="verbatim">:header-args:sh:</code> is one property name, so its value applies only to <code class="verbatim">sh</code> blocks.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+PROPERTY:</span><span class="string unquoted org"> header-args :results output</span>
+
+<span class="markup heading org"><span class="punctuation definition heading org">*</span> Scripts
+</span>:PROPERTIES:
+:header-args:sh: :dir /tmp
+:END:
+
+<span class="keyword other keyword org">#+HEADER:</span><span class="string unquoted org"> :results verbatim</span>
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh :var name=&quot;world&quot;</span>
+echo &quot;hello $name&quot;
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<p>Without any of these, a block has <code class="verbatim">:results replace</code>, <code class="verbatim">:exports code</code>, <code class="verbatim">:session none</code>, <code class="verbatim">:cache no</code>, <code class="verbatim">:noweb no</code>, <code class="verbatim">:hlines no</code> and <code class="verbatim">:tangle no</code>. An inline <code class="verbatim">src_</code> block defaults to <code class="verbatim">:exports results</code> and <code class="verbatim">:hlines yes</code>.</p>
+<h3 id="lisp-in-header-values">Lisp in header values</h3>
+<p>A header value that starts with <code class="verbatim">(</code>, <code class="verbatim">'</code>, <code class="verbatim">`</code> or <code class="verbatim">[</code> and is not in quotes is Lisp, as in <code class="verbatim">org-babel-read</code>. orgstar evaluates it with its own Emacs Lisp interpreter, which also knows <code class="verbatim">buffer-file-name</code>, <code class="verbatim">default-directory</code>, <code class="verbatim">system-type</code> and the functions <code class="verbatim">expand-file-name</code>, <code class="verbatim">file-name-directory</code>, <code class="verbatim">file-name-nondirectory</code>, <code class="verbatim">file-name-sans-extension</code> and <code class="verbatim">file-name-as-directory</code>.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh :dir (concat &quot;/&quot; &quot;usr&quot;) :results output</span>
+pwd
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<p>A string or number takes the place of the form. Lisp that the interpreter cannot evaluate is refused where it matters: for <code class="verbatim">:var</code> ("is Lisp that only Emacs can evaluate"), <code class="verbatim">:colnames</code> and <code class="verbatim">:rownames</code>, and any header of a <code class="verbatim">:cache yes</code> block.</p>
+<h3 id="header-argument-reference">Header argument reference</h3>
+<table>
+<thead>
+<tr><th>Argument</th><th>Values</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:results</code></td><td>see Results above</td><td>How the result is collected, shaped and inserted.</td></tr>
+<tr><td><code class="verbatim">:wrap</code></td><td>block type and parameters</td><td>Wraps the result in a block.</td></tr>
+<tr><td><code class="verbatim">:file</code></td><td>file name</td><td>Where a file result goes; required for graphics.</td></tr>
+<tr><td><code class="verbatim">:output-dir</code></td><td>folder</td><td>Folder for <code class="verbatim">:file</code>.</td></tr>
+<tr><td><code class="verbatim">:file-desc</code></td><td>text</td><td>Description of a file result's link.</td></tr>
+<tr><td><code class="verbatim">:var</code></td><td><code class="verbatim">name=value</code></td><td>Passes a value in (see Variables below).</td></tr>
+<tr><td><code class="verbatim">:colnames</code></td><td><code class="verbatim">yes</code>, <code class="verbatim">no</code>, Lisp list</td><td>Header row of table variables (see Tables in variables below).</td></tr>
+<tr><td><code class="verbatim">:rownames</code></td><td><code class="verbatim">yes</code>, <code class="verbatim">no</code>, Lisp list</td><td>First column of table variables.</td></tr>
+<tr><td><code class="verbatim">:hlines</code></td><td><code class="verbatim">yes</code>, <code class="verbatim">no</code></td><td>Keep rules in table variables.</td></tr>
+<tr><td><code class="verbatim">:separator</code></td><td>text</td><td>Column separator for tables in shell variables; a tab by default.</td></tr>
+<tr><td><code class="verbatim">:hline-string</code></td><td>text</td><td>What a rule becomes in a shell variable with <code class="verbatim">:hlines yes</code>; <code class="verbatim">hline</code> by default.</td></tr>
+<tr><td><code class="verbatim">:dir</code></td><td>folder</td><td>Folder to run in, relative to the file's folder. It must exist.</td></tr>
+<tr><td><code class="verbatim">:session</code></td><td>name, <code class="verbatim">none</code></td><td>Runs in a long-lived interpreter (see Sessions below). Shells, Python, <code class="verbatim">ruby</code>, <code class="verbatim">js</code> and <code class="verbatim">R</code>; ignored for the compiled languages.</td></tr>
+<tr><td><code class="verbatim">:stdin</code></td><td>name of a table, list or block</td><td>Feeds the value to standard input. Shells only.</td></tr>
+<tr><td><code class="verbatim">:cmdline</code></td><td>arguments</td><td>Command-line arguments. Shells, <code class="verbatim">dot</code>, <code class="verbatim">plantuml</code>, <code class="verbatim">mermaid</code> and the compiled languages only.</td></tr>
+<tr><td><code class="verbatim">:shebang</code></td><td><code class="verbatim">#!…</code> line</td><td>Runs the block as a script with this first line. Shells only; also used by tangling.</td></tr>
+<tr><td><code class="verbatim">:padline</code></td><td><code class="verbatim">no</code></td><td>No blank line after the shebang of a script, or between tangled blocks.</td></tr>
+<tr><td><code class="verbatim">:python</code></td><td>program</td><td>Python interpreter to use.</td></tr>
+<tr><td><code class="verbatim">:cmd</code></td><td>program</td><td>Interpreter for <code class="verbatim">js</code>, <code class="verbatim">javascript</code> and <code class="verbatim">R</code>; <code class="verbatim">:ruby</code> for <code class="verbatim">ruby</code>.</td></tr>
+<tr><td><code class="verbatim">:cmd-line</code>, <code class="verbatim">:in-file</code></td><td>arguments, file</td><td><code class="verbatim">awk</code>: arguments after the program, and the file it reads.</td></tr>
+<tr><td><code class="verbatim">:return</code></td><td>expression</td><td>Python: the value to return.</td></tr>
+<tr><td><code class="verbatim">:cache</code></td><td><code class="verbatim">yes</code>, <code class="verbatim">no</code></td><td>Skip the run when the result is current (see Caching below).</td></tr>
+<tr><td><code class="verbatim">:eval</code></td><td><code class="verbatim">never</code>, <code class="verbatim">no</code>, <code class="verbatim">query</code>, …</td><td>Whether and how to ask before running (see <code class="verbatim">:eval</code> above).</td></tr>
+<tr><td><code class="verbatim">:noweb</code></td><td>see Noweb below</td><td>Expands <code class="verbatim">&lt;&lt;name&gt;&gt;</code> references.</td></tr>
+<tr><td><code class="verbatim">:noweb-ref</code></td><td>name</td><td>Makes the block part of <code class="verbatim">&lt;&lt;name&gt;&gt;</code>.</td></tr>
+<tr><td><code class="verbatim">:noweb-sep</code></td><td>text</td><td>Separator between blocks joined under one <code class="verbatim">:noweb-ref</code>; a newline by default.</td></tr>
+<tr><td><code class="verbatim">:noweb-prefix</code></td><td><code class="verbatim">no</code></td><td>Do not repeat the text before <code class="verbatim">&lt;&lt;name&gt;&gt;</code> on each expanded line.</td></tr>
+<tr><td><code class="verbatim">:exports</code></td><td><code class="verbatim">code</code>, <code class="verbatim">results</code>, <code class="verbatim">both</code>, <code class="verbatim">none</code></td><td>What export shows (see <a href="12-export.html">Export</a>).</td></tr>
+<tr><td><code class="verbatim">:tangle</code></td><td>see Tangling below</td><td>Where tangling writes the block.</td></tr>
+</tbody>
+</table>
+<h3 id="arguments-that-are-refused">Arguments that are refused</h3>
+<p>orgstar does not run a block whose arguments it would handle differently from Emacs. Instead it says why and runs nothing.</p>
+<table>
+<thead>
+<tr><th>Argument</th><th>Refused for</th><th>Message</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:prologue</code>, <code class="verbatim">:epilogue</code></td><td>graphics (<code class="verbatim">dot</code>, <code class="verbatim">plantuml</code>, <code class="verbatim">mermaid</code>)</td><td>"<code class="verbatim">:prologue</code> isn't supported yet; nothing was run."</td></tr>
+<tr><td><code class="verbatim">:post</code></td><td>every language</td><td>"<code class="verbatim">:post</code> isn't supported yet; nothing was run."</td></tr>
+<tr><td><code class="verbatim">:stdin</code>, <code class="verbatim">:shebang</code></td><td>languages other than shells</td><td>"<code class="verbatim">:stdin</code> isn't supported yet; nothing was run."</td></tr>
+<tr><td><code class="verbatim">:cmdline</code></td><td>languages other than shells, graphics and the compiled languages</td><td>"<code class="verbatim">:cmdline</code> isn't supported for <em>language</em> yet; nothing was run."</td></tr>
+<tr><td><code class="verbatim">:session</code></td><td><code class="verbatim">awk</code>, graphics and Emacs Lisp; the compiled languages ignore it</td><td>"<code class="verbatim">:session</code> isn't supported for <em>language</em> yet; nothing was run."</td></tr>
+</tbody>
+</table>
+<h2 id="variables">Variables</h2>
+<p><code class="verbatim">:var name=value</code> passes a value into the block (<code class="verbatim">org-babel-ref-resolve</code>). One <code class="verbatim">:var</code> can hold several assignments separated by spaces, and you can repeat <code class="verbatim">:var</code>. A later assignment to the same name replaces an earlier one.</p>
+<table>
+<thead>
+<tr><th>Value</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">5</code>, <code class="verbatim">2.5</code></td><td>A number.</td></tr>
+<tr><td><code class="verbatim">"two words"</code></td><td>A string. <code class="verbatim">\n</code> and <code class="verbatim">\t</code> in it are a newline and a tab.</td></tr>
+<tr><td><code class="verbatim">'(1 2)</code>, <code class="verbatim">(+ 1 2)</code>, <code class="verbatim">'((1 2) hline (3 4))</code></td><td>Lisp: evaluated to a string, number, list or table.</td></tr>
+<tr><td><code class="verbatim">tbl</code></td><td>The table or plain list under <code class="verbatim">#+NAME: tbl</code> in the same file.</td></tr>
+<tr><td><code class="verbatim">gen</code></td><td>The result of the source block named <code class="verbatim">gen</code>, which runs first.</td></tr>
+<tr><td><code class="verbatim">double(n=4)</code></td><td>The result of the block named <code class="verbatim">double</code>, run with <code class="verbatim">n</code> set to 4.</td></tr>
+</tbody>
+</table>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+NAME:</span><span class="string unquoted org"> nums</span>
+<span class="markup other table org">| 1 | 2 |</span>
+<span class="markup other table org">| 3 | 4 |</span>
+
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> python :var t=nums :var scale=10</span>
+return [[c * scale for c in row] for row in t]
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<p>A referenced block runs before the block that refers to it, after the one trust prompt that covers them all. A block with <code class="verbatim">:cache yes</code> and a current result gives that result without running. A chain that leads back to itself is refused with "<em>name</em> refers to itself through :var".</p>
+<p>These are not supported and are refused:</p>
+<ul>
+<li>Indexing into a table, such as <code class="verbatim">tbl[1,2]</code>: "References like … aren't supported yet."</li>
+<li>A name that matches nothing in the file: "Can't find … for :var."</li>
+<li>References to other files.</li>
+</ul>
+<p>How a value reaches the code depends on the language:</p>
+<table>
+<thead>
+<tr><th>Language</th><th>Scalars</th><th>Lists</th><th>Tables</th></tr>
+</thead>
+<tbody>
+<tr><td>bash</td><td>quoted string</td><td>indexed array (<code class="verbatim">declare -a</code>)</td><td>two or more columns: associative array keyed by the first column (<code class="verbatim">declare -A</code>); one column: indexed array</td></tr>
+<tr><td>other shells</td><td>quoted string</td><td>one item per line</td><td>rows on lines, cells separated by a tab or <code class="verbatim">:separator</code></td></tr>
+<tr><td>fish</td><td><code class="verbatim">set name 'value'</code></td><td>as other shells</td><td>as other shells</td></tr>
+<tr><td>Python</td><td>literal</td><td>list</td><td>list of lists, <code class="verbatim">None</code> for rules</td></tr>
+<tr><td>Emacs Lisp</td><td><code class="verbatim">let</code>-bound value</td><td>list</td><td>list of lists, <code class="verbatim">hline</code> for rules</td></tr>
+<tr><td>Ruby</td><td><code class="verbatim">name=value</code> literal</td><td>array</td><td>array of arrays, <code class="verbatim">nil</code> for rules</td></tr>
+<tr><td>JavaScript</td><td><code class="verbatim">var name=value;</code></td><td>array</td><td>array of arrays, <code class="verbatim">hline</code> for rules</td></tr>
+<tr><td>R</td><td><code class="verbatim">name &lt;- value</code>, integers with <code class="verbatim">L</code></td><td>one-column data frame</td><td>data frame read from tab-separated text, a header when the table has one</td></tr>
+<tr><td>awk</td><td><code class="verbatim">-v name</code>'value'=</td><td>one item per line</td><td>rows on lines, cells separated by a tab</td></tr>
+</tbody>
+</table>
+<p>For <code class="verbatim">shell</code> blocks, the bash forms are used when <code class="verbatim">SHELL</code> is bash. <code class="verbatim">:prologue</code> and <code class="verbatim">:epilogue</code> add a line before the variables and one after the body, in every language that runs; in Emacs Lisp only when the block has variables, as <code class="verbatim">org-babel-expand-body:emacs-lisp</code> does. C, C++, D, Java, Fortran and Clojure blocks get declarations as their expansion writes them; see Tangling below.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+NAME:</span><span class="string unquoted org"> kv</span>
+<span class="markup other table org">| a | 1 |</span>
+<span class="markup other table org">| b | 2 |</span>
+
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> bash :var t=kv :results output</span>
+echo ${t[a]} ${t[b]}
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<h3 id="tables-in-variables">Tables in variables</h3>
+<p>A table passed as a variable loses some of its structure first (<code class="verbatim">org-babel-disassemble-tables</code>):</p>
+<ul>
+<li>Rules are removed, unless <code class="verbatim">:hlines yes</code>.</li>
+<li>The first row is taken off as column names when <code class="verbatim">:colnames yes</code>, or when the table's only rule is under the first row. <code class="verbatim">:colnames no</code> keeps it as data.</li>
+<li>The first column is taken off as row names when <code class="verbatim">:rownames yes</code>.</li>
+</ul>
+<p>If the result is a table of the same width (for columns) or height (for rows), the names are put back on it (<code class="verbatim">org-babel-reassemble-table</code>). Clojure results don't get them back, as in Org. <code class="verbatim">:colnames</code> and <code class="verbatim">:rownames</code> can also be Lisp lists of names to put on the result, such as <code class="verbatim">:colnames '("x" "y")</code>.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+NAME:</span><span class="string unquoted org"> tbl</span>
+<span class="markup other table org">| a | b |</span>
+<span class="markup other table org">|---+---|</span>
+<span class="markup other table org">| 1 | x |</span>
+<span class="markup other table org">| 2 | y |</span>
+
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> python :var t=tbl</span>
+return [r + [&quot;!&quot;] for r in t]
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<h3 id="standard-input-and-arguments">Standard input and arguments</h3>
+<p>For shell blocks, <code class="verbatim">:stdin name</code> sends a table, list or block result to standard input, a table as tab-separated lines. <code class="verbatim">:cmdline</code> gives the script arguments, and <code class="verbatim">:shebang</code> its first line. With any of the three, the block is written to an executable script and run by the shell (<code class="verbatim">org-babel-sh-evaluate</code>); without <code class="verbatim">:shebang</code>, the first line is <code class="verbatim">#!/usr/bin/env</code> and the shell's name. A block with <code class="verbatim">:stdin</code> or <code class="verbatim">:cmdline</code> runs as a script even with a <code class="verbatim">:session</code>, and leaves the session untouched; <code class="verbatim">:shebang</code> alone runs in the session.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh :cmdline one &quot;two words&quot; :results output</span>
+for a in &quot;$@&quot;; do echo &quot;[$a]&quot;; done
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<h2 id="sessions">Sessions</h2>
+<p><code class="verbatim">:session name</code> runs the block in an interpreter that stays running, so variables, functions and the working folder carry over to the next block in the same session. Sessions work for shells, Python, Ruby, JavaScript (Node) and R on the Mac.</p>
+<ul>
+<li><code class="verbatim">:session</code> with no name uses <code class="verbatim">*language*</code>, such as <code class="verbatim">*sh*</code>. <code class="verbatim">:session none</code> runs without one.</li>
+<li>A session belongs to one folder, one interpreter and one name. Blocks in different folders, or with different names, do not share state.</li>
+<li>A session starts in the block's <code class="verbatim">:dir</code>, or the file's folder, the first time it is used.</li>
+<li>A shell session's output is what the block prints. <code class="verbatim">:results value</code> gives the exit status of the last command.</li>
+<li>A Python session runs the block at top level. Its value is the value of the last expression, so <code class="verbatim">return</code> is not used.</li>
+<li>A Ruby session runs each block in the same binding, and a JavaScript session in Node's global context, so local variables and <code class="verbatim">var</code> and <code class="verbatim">let</code> declarations carry over. Their value is the value of the last expression, written as without a session (<code class="verbatim">inspect</code>, <code class="verbatim">util.inspect</code>); <code class="verbatim">return</code> is not used. Errors go to the block's error output and leave the session running.</li>
+<li>An R session runs each block with <code class="verbatim">source(…, print.eval = TRUE)</code> in one <code class="verbatim">R --slave</code> process; its result is the output, as without a session.</li>
+</ul>
+<p>Emacs runs these with packages beyond Org: inf-ruby for Ruby, ESS for R, and js-comint or skewer for JavaScript; with plain <code class="verbatim">node</code>, ob-js refuses sessions. orgstar's sessions don't need them, and their results can differ in detail from those packages' echoed output.</p>
+<ul>
+<li>Sessions stop when you quit orgstar, or when you cancel a block running in one.</li>
+</ul>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> python :session py :results output</span>
+a = 2
+print(&quot;set&quot;)
+<span class="keyword control block end org">#+end_src</span>
+</span>
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> python :session py</span>
+a * 3
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<h2 id="caching">Caching</h2>
+<p>With <code class="verbatim">:cache yes</code>, orgstar computes a SHA-1 hash of the block's header arguments and expanded body, as <code class="verbatim">org-babel-sha1-hash</code> does, and writes it on the results line: <code class="verbatim">#+RESULTS[hash]:</code>. When you run the block again and the hash matches, nothing runs and the message area shows the cached value ("Cached: …").</p>
+<p>Change the block or its arguments and it runs again. Results inserted with <code class="verbatim">append</code> or <code class="verbatim">prepend</code> carry no hash. Inline blocks are not cached. A cached block that has Lisp in its header arguments the interpreter cannot evaluate is refused.</p>
+<p>The hash of a C, C++, D, Java, Fortran or Clojure block is taken over the body as the language expands it (see Tangling below), with the <code class="verbatim">IMPORTS</code>, <code class="verbatim">INCLUDES</code> and <code class="verbatim">DEFINES</code> properties where the block is, and Java's default header arguments, as Emacs does. A result Emacs wrote for such a block with <code class="verbatim">:cache yes</code> is recognised as current, and <code class="verbatim">C-c C-c</code> shows it.</p>
+<h2 id="noweb">Noweb</h2>
+<p>A noweb reference <code class="verbatim">&lt;&lt;name&gt;&gt;</code> in a block's body stands for other code. Whether references expand depends on <code class="verbatim">:noweb</code> and on what is happening:</p>
+<table>
+<thead>
+<tr><th><code class="verbatim">:noweb</code></th><th>Running</th><th>Tangling</th><th>Exporting</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">no</code> (default)</td><td>no</td><td>no</td><td>no</td></tr>
+<tr><td><code class="verbatim">yes</code></td><td>expands</td><td>expands</td><td>no</td></tr>
+<tr><td><code class="verbatim">tangle</code></td><td>no</td><td>expands</td><td>no</td></tr>
+<tr><td><code class="verbatim">eval</code></td><td>expands</td><td>no</td><td>no</td></tr>
+<tr><td><code class="verbatim">no-export</code></td><td>expands</td><td>expands</td><td>no</td></tr>
+<tr><td><code class="verbatim">strip-export</code></td><td>expands</td><td>expands</td><td>no</td></tr>
+<tr><td><code class="verbatim">strip-tangle</code></td><td>expands</td><td>removes the references</td><td>no</td></tr>
+</tbody>
+</table>
+<p>Exported code always shows the references as written; see <a href="12-export.html">Export</a>.</p>
+<p><code class="verbatim">&lt;&lt;name&gt;&gt;</code> expands to the first of these that exists:</p>
+<ol>
+<li>The contents of the heading whose <code class="verbatim">ID</code> property is <code class="verbatim">name</code>, or whose <code class="verbatim">CUSTOM_ID</code> is <code class="verbatim">name</code> without its leading <code class="verbatim">#</code>.</li>
+<li>The body of the source block named <code class="verbatim">name</code>.</li>
+<li>The bodies of all blocks with <code class="verbatim">:noweb-ref name</code>, joined by each block's <code class="verbatim">:noweb-sep</code> (a newline by default).</li>
+</ol>
+<p>Blocks under a <code class="verbatim">COMMENT</code> heading are skipped. A referenced block expands its own references according to its own <code class="verbatim">:noweb</code>, up to 32 levels deep.</p>
+<p>Text before the reference on its line is repeated before each line the reference brings in, so references inside comments or indented code keep their prefix. <code class="verbatim">:noweb-prefix no</code> turns this off.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+NAME:</span><span class="string unquoted org"> greeting</span>
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh</span>
+echo hello
+<span class="keyword control block end org">#+end_src</span>
+</span>
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh :noweb yes</span>
+&lt;&lt;greeting&gt;&gt;
+echo world
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<p>A reference that runs a block, <code class="verbatim">&lt;&lt;name()&gt;&gt;</code>, is refused: "Noweb references that run a block (…) aren't supported yet; nothing was run."</p>
+<h2 id="calls">Calls</h2>
+<h3 id="call-lines"><code class="verbatim">#+CALL:</code> lines</h3>
+<p><code class="verbatim">#+CALL:</code> runs a named block with other arguments, as Org's library of Babel calls do (<code class="verbatim">org-babel-lob-get-info</code>). Run it with <code class="verbatim">C-c C-c</code> on the line.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+NAME:</span><span class="string unquoted org"> double</span>
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh :var n=2</span>
+echo $((n*2))
+<span class="keyword control block end org">#+end_src</span>
+</span>
+<span class="keyword other keyword org">#+CALL:</span><span class="string unquoted org"> double(n=5)</span>
+
+<span class="keyword other keyword org">#+RESULTS:</span>
+: 10</span></code></pre>
+<p>The full form is <code class="verbatim">#+CALL: name[inside](arguments) end</code>:</p>
+<ul>
+<li><code class="verbatim">name</code> is the block to run. It must be in the same file.</li>
+<li><code class="verbatim">[inside]</code> holds header arguments applied to the block, such as <code class="verbatim">[:results raw]</code>.</li>
+<li><code class="verbatim">(arguments)</code> are <code class="verbatim">:var</code> assignments, separated by commas.</li>
+<li><code class="verbatim">end</code> holds header arguments for the call's result, such as <code class="verbatim">:results verbatim</code>.</li>
+</ul>
+<p>The call also takes the <code class="verbatim">header-args</code> and <code class="verbatim">header-args:LANG</code> properties, and <code class="verbatim">#+PROPERTY:</code> lines, where the call is, with <code class="verbatim">LANG</code> the called block's language. They apply after the called block's own header arguments and before <code class="verbatim">[inside]</code>, as in Org.</p>
+<p>The result goes under the call. A <code class="verbatim">#+NAME:</code> line above the <code class="verbatim">#+CALL:</code> names the result.</p>
+<h3 id="inline-calls-and-blocks">Inline calls and blocks</h3>
+<p>An inline source block, <code class="verbatim">src_sh{echo hi}</code>, runs with <code class="verbatim">C-c C-c</code> on it. Header arguments go in brackets: <code class="verbatim">src_sh[:var x=3]{echo $x}</code>. The result is written right after the block as a <code class="verbatim">results</code> macro:</p>
+<pre><code class="language-org highlight"><span class="text org">Text src_sh{echo hi} {{{results(<span class="markup raw inline org">=hi=</span>)}}} end.</span></code></pre>
+<p>Running again replaces the macro. With <code class="verbatim">:results raw</code> the result goes in as it is, without the macro. An inline result must be one line, and a table result must be a single cell.</p>
+<p>An inline call, <code class="verbatim">call_double(n=6)</code>, has the same parts as a <code class="verbatim">#+CALL:</code> line: <code class="verbatim">call_name[inside](arguments)[end]</code>. <code class="verbatim">C-c C-c</code> on an inline call runs it, and its result is written after it as a <code class="verbatim">results</code> macro, as for inline blocks. It takes the properties where it is as a <code class="verbatim">#+CALL:</code> line does.</p>
+<h2 id="emacs-lisp-blocks">Emacs Lisp blocks</h2>
+<p>On the Mac, an <code class="verbatim">emacs-lisp</code> or <code class="verbatim">elisp</code> block runs in a new <code class="verbatim">emacs -Q --batch</code> for each run, with lexical binding on. <code class="verbatim">-Q</code> means your init file and packages are not loaded, and nothing carries over between runs. orgstar looks for Emacs at <code class="verbatim">ORGSTAR_EMACS</code>, then <code class="verbatim">/opt/homebrew/bin/emacs</code>, <code class="verbatim">/usr/local/bin/emacs</code>, <code class="verbatim">/Applications/Emacs.app/Contents/MacOS/Emacs</code>, <code class="verbatim">/run/current-system/sw/bin/emacs</code> and <code class="verbatim">/usr/bin/emacs</code>. Without Emacs, the block fails with "Emacs isn't installed, so Emacs Lisp blocks can't run."</p>
+<p>On iOS, Emacs Lisp blocks run in orgstar's own Emacs Lisp interpreter. It covers ordinary list, string, number and control forms, <code class="verbatim">princ</code> and <code class="verbatim">message</code>. A block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, on the Mac." A Lisp error fails the run, as it does in Emacs.</p>
+<p>Variables are bound with <code class="verbatim">let</code> around the body. <code class="verbatim">:results output</code> collects what the block prints with <code class="verbatim">princ</code>, <code class="verbatim">prin1</code>, <code class="verbatim">print</code> and <code class="verbatim">terpri</code>.</p>
+<h2 id="graphics">Graphics</h2>
+<p><code class="verbatim">dot</code> (Graphviz), <code class="verbatim">plantuml</code> and <code class="verbatim">mermaid</code> blocks draw a picture into <code class="verbatim">:file</code>, and the result is a link to it. <code class="verbatim">:file</code> is required: "<em>language</em> code blocks need a :file header argument". The file's extension picks the output format; with none, <code class="verbatim">png</code> is used.</p>
+<table>
+<thead>
+<tr><th>Language</th><th>Command</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">dot</code></td><td><code class="verbatim">dot -T/ext/ -o file</code></td></tr>
+<tr><td><code class="verbatim">plantuml</code></td><td><code class="verbatim">plantuml -p -t/ext/</code>, output to the file</td></tr>
+<tr><td><code class="verbatim">mermaid</code></td><td><code class="verbatim">mmdc -i input -o file</code></td></tr>
+</tbody>
+</table>
+<p>A <code class="verbatim">plantuml</code> body without an <code class="verbatim">@start…</code> line is wrapped in <code class="verbatim">@startuml</code> and <code class="verbatim">@enduml</code>. <code class="verbatim">:cmdline</code> adds options to the command. The program must be installed and on the <code class="verbatim">PATH</code> described under Languages that run.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> dot :file graph.svg</span>
+digraph { a -&gt; b }
+<span class="keyword control block end org">#+end_src</span>
+</span>
+<span class="keyword other keyword org">#+RESULTS:</span>
+<span class="punctuation definition link org">[[</span><span class="markup underline link org">file:graph.svg</span><span class="punctuation definition link org">]</span><span class="punctuation definition link org">]</span></span></code></pre>
+<h2 id="tangling">Tangling</h2>
+<p>Tangling writes source blocks to the files their <code class="verbatim">:tangle</code> argument names (<code class="verbatim">org-babel-tangle</code>).</p>
+<table>
+<thead>
+<tr><th>Command</th><th>Emacs and Doom</th><th>Mac</th><th>What it tangles</th></tr>
+</thead>
+<tbody>
+<tr><td>Tangle File</td><td><code class="verbatim">C-c C-v t</code>, <code class="verbatim">C-c C-v C-t</code></td><td><code class="verbatim">⌃⌘V</code></td><td>Every block in the file</td></tr>
+<tr><td>Tangle Block</td><td>none</td><td><code class="verbatim">⌃⇧⌘V</code></td><td>The block at the caret (Emacs: <code class="verbatim">C-u C-c C-v t</code>)</td></tr>
+<tr><td>Tangle Block's Target</td><td>none</td><td><code class="verbatim">⌃⌥⌘V</code></td><td>Every block going to the same file as the one at the caret (Emacs: <code class="verbatim">C-u C-u C-c C-v t</code>)</td></tr>
+</tbody>
+</table>
+<p>All three are in the Org menu and the command palette. Tangling uses the text in the editor, saved or not, and the message area reports "Tangled <em>N</em> code blocks from <em>file</em>".</p>
+<h3 id="tangle-and-file-names"><code class="verbatim">:tangle</code> and file names</h3>
+<table>
+<thead>
+<tr><th><code class="verbatim">:tangle</code></th><th>Target</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">no</code> (default)</td><td>Not tangled.</td></tr>
+<tr><td><code class="verbatim">yes</code></td><td>The Org file's name with the language's extension, as Org's language files define it (<code class="verbatim">org-babel-tangle-lang-exts</code>): <code class="verbatim">py</code> for <code class="verbatim">python</code>, <code class="verbatim">rb</code> for <code class="verbatim">ruby</code>, <code class="verbatim">pl</code> for <code class="verbatim">perl</code>, <code class="verbatim">cpp</code> for <code class="verbatim">C++</code>, <code class="verbatim">d</code> for <code class="verbatim">D</code>, <code class="verbatim">awk</code>, <code class="verbatim">sed</code>, <code class="verbatim">lua</code>, <code class="verbatim">hs</code> for <code class="verbatim">haskell</code>, <code class="verbatim">java</code>, <code class="verbatim">tex</code> for <code class="verbatim">latex</code>, <code class="verbatim">ly</code> for <code class="verbatim">LilyPond</code>, <code class="verbatim">F90</code> for <code class="verbatim">fortran</code>, <code class="verbatim">clj</code> for <code class="verbatim">clojure</code>, <code class="verbatim">cljs</code> for <code class="verbatim">clojurescript</code>, <code class="verbatim">cs</code> for <code class="verbatim">csharp</code>, <code class="verbatim">groovy</code>, <code class="verbatim">jl</code> for <code class="verbatim">julia</code>, <code class="verbatim">lisp</code>, <code class="verbatim">max</code> for <code class="verbatim">maxima</code>, <code class="verbatim">ml</code> for <code class="verbatim">ocaml</code>, <code class="verbatim">pde</code> for <code class="verbatim">processing</code>, <code class="verbatim">el</code> for <code class="verbatim">emacs-lisp</code> and <code class="verbatim">elisp</code>, and <code class="verbatim">bib</code> for <code class="verbatim">bibtex</code>. Any other language is its own extension (<code class="verbatim">notes.sh</code> for <code class="verbatim">sh</code>).</td></tr>
+<tr><td>a path</td><td>That file, relative to the Org file's folder. <code class="verbatim">~</code> is expanded.</td></tr>
+<tr><td>Lisp</td><td>Evaluated as described under Lisp in header values, with <code class="verbatim">buffer-file-name</code> set to the Org file.</td></tr>
+</tbody>
+</table>
+<p>Blocks under a <code class="verbatim">COMMENT</code> heading, or a heading tagged <code class="verbatim">ARCHIVE</code>, are skipped. Blocks going to the same file are written in the order they appear.</p>
+<pre><code class="language-org highlight"><span class="text org"><span class="keyword other keyword org">#+PROPERTY:</span><span class="string unquoted org"> header-args:python :tangle script.py</span>
+
+<span class="markup heading org"><span class="punctuation definition heading org">*</span> Tool
+</span>:PROPERTIES:
+:header-args: :tangle bin<span class="markup italic org">/tool.sh :mkdirp yes :shebang &quot;#!/</span>bin/sh&quot;
+:END:
+
+<span class="markup raw block org"><span class="keyword control block begin org">#+begin_src</span><span class="variable parameter org"> sh</span>
+echo tool
+<span class="keyword control block end org">#+end_src</span></span></span></code></pre>
+<h3 id="tangling-arguments">Tangling arguments</h3>
+<table>
+<thead>
+<tr><th>Argument</th><th>Values</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">:mkdirp</code></td><td><code class="verbatim">yes</code></td><td>Create the target's folder if it is missing.</td></tr>
+<tr><td><code class="verbatim">:tangle-mode</code></td><td><code class="verbatim">(identity #o755)</code>, <code class="verbatim">#o755</code>, <code class="verbatim">o755</code>, <code class="verbatim">rwxr-xr-x</code>, <code class="verbatim">u+x,g-r</code></td><td>Set the file's mode. A symbolic mode starts from <code class="verbatim">644</code>. When several blocks give a mode, the first one counts.</td></tr>
+<tr><td><code class="verbatim">:shebang</code></td><td><code class="verbatim">#!…</code> line</td><td>First line of the file, written once. Makes the file mode <code class="verbatim">755</code> unless <code class="verbatim">:tangle-mode</code> says otherwise.</td></tr>
+<tr><td><code class="verbatim">:padline</code></td><td><code class="verbatim">no</code></td><td>No blank line between this block and the one before it.</td></tr>
+<tr><td><code class="verbatim">:comments</code></td><td><code class="verbatim">no</code>, <code class="verbatim">link</code>, <code class="verbatim">yes</code>, <code class="verbatim">org</code>, <code class="verbatim">both</code>, <code class="verbatim">noweb</code></td><td>Comments around each block (below).</td></tr>
+<tr><td><code class="verbatim">:noweb</code></td><td>see Noweb above</td><td>Expand or strip <code class="verbatim">&lt;&lt;name&gt;&gt;</code> references.</td></tr>
+<tr><td><code class="verbatim">:prologue</code>, <code class="verbatim">:epilogue</code></td><td>text</td><td>A line before and after the block's code.</td></tr>
+<tr><td><code class="verbatim">:var</code></td><td>as for running</td><td>Shell scalars become assignments, Python values become assignments, Emacs Lisp values are <code class="verbatim">let</code>-bound. For the languages below, as their Org language files write them.</td></tr>
+<tr><td><code class="verbatim">:no-expand</code></td><td>any</td><td>Write the body without <code class="verbatim">:var</code>, <code class="verbatim">:prologue</code>, <code class="verbatim">:epilogue</code> or the language's wrapping.</td></tr>
+</tbody>
+</table>
+<p>A table in <code class="verbatim">:var</code> loses its first row when its only rule is under that row, or with <code class="verbatim">:colnames yes</code>, and its rules unless <code class="verbatim">:hlines yes</code>, as when the block runs. This holds for every language.</p>
+<p><code class="verbatim">C</code>, <code class="verbatim">C++</code>, <code class="verbatim">cpp</code>, <code class="verbatim">D</code>, <code class="verbatim">java</code>, <code class="verbatim">fortran</code> and <code class="verbatim">clojure</code> blocks are written as Org's <code class="verbatim">org-babel-expand-body:LANG</code> writes them:</p>
+<table>
+<thead>
+<tr><th>Language</th><th>Written</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">C</code>, <code class="verbatim">C++</code>, <code class="verbatim">cpp</code></td><td><code class="verbatim">#include</code> lines from <code class="verbatim">:includes</code>, <code class="verbatim">#define</code> lines from <code class="verbatim">:defines</code>, <code class="verbatim">using namespace</code> lines from <code class="verbatim">:namespaces</code>, the <code class="verbatim">:var</code> declarations with table sizes and column-name helpers, then the body between <code class="verbatim">:prologue</code> and <code class="verbatim">:epilogue</code>, wrapped in <code class="verbatim">int main()</code> unless it has a <code class="verbatim">main</code> or <code class="verbatim">:main no</code> is given.</td></tr>
+<tr><td><code class="verbatim">D</code></td><td><code class="verbatim">module mmm;</code>, <code class="verbatim">import</code> lines from <code class="verbatim">:imports</code> (or the <code class="verbatim">IMPORTS</code> property, except when tangling) plus <code class="verbatim">std.stdio</code> and <code class="verbatim">std.conv</code>, the <code class="verbatim">:var</code> declarations, and the body wrapped in <code class="verbatim">int main()</code> as for C.</td></tr>
+<tr><td><code class="verbatim">java</code></td><td>The body between <code class="verbatim">:prologue</code> and <code class="verbatim">:epilogue</code>, wrapped in a <code class="verbatim">main</code> method when it has no method and in a class when it has none. The class is named by <code class="verbatim">:classname</code> or the body's own class; a dotted <code class="verbatim">:classname</code> adds a <code class="verbatim">package</code> line. <code class="verbatim">:imports</code> adds <code class="verbatim">import</code> lines, and <code class="verbatim">:var</code> values become static fields.</td></tr>
+<tr><td><code class="verbatim">fortran</code></td><td><code class="verbatim">#include</code> and <code class="verbatim">#define</code> lines from <code class="verbatim">:includes</code> and <code class="verbatim">:defines</code> (or the <code class="verbatim">INCLUDES</code> and <code class="verbatim">DEFINES</code> properties, except when tangling), then the <code class="verbatim">:var</code> declarations and the body in <code class="verbatim">program main</code>, unless the body has its own <code class="verbatim">program</code> statement (then <code class="verbatim">:var</code> is refused) or <code class="verbatim">:main no</code> is given.</td></tr>
+<tr><td><code class="verbatim">clojure</code></td><td><code class="verbatim">(ns …)</code> from <code class="verbatim">:ns</code>, the body in a <code class="verbatim">let</code> of the <code class="verbatim">:var</code> values, and a printer around it unless <code class="verbatim">:results output</code>.</td></tr>
+</tbody>
+</table>
+<p>With <code class="verbatim">:hlines yes</code>, a table that keeps rules is refused for C, C++, D and Fortran; Java writes <code class="verbatim">null</code> for each rule.</p>
+<p>Block switches also apply. <code class="verbatim">-r</code> removes coderef labels such as <code class="verbatim">(ref:name)</code>, using the format from <code class="verbatim">-l</code> if given. <code class="verbatim">-i</code> keeps the block's indentation. Otherwise common indentation and surrounding blank lines are removed.</p>
+<h3 id="comments">Comments</h3>
+<table>
+<thead>
+<tr><th><code class="verbatim">:comments</code></th><th>Written</th></tr>
+</thead>
+<tbody>
+<tr><td><code class="verbatim">no</code></td><td>The code only.</td></tr>
+<tr><td><code class="verbatim">link</code>, <code class="verbatim">yes</code></td><td>A comment with a link back to the block before the code, and "<em>name</em> ends here" after it.</td></tr>
+<tr><td><code class="verbatim">org</code></td><td>The Org text between the heading (or the previous block) and this block, as a comment.</td></tr>
+<tr><td><code class="verbatim">both</code></td><td>The Org text and the link comments.</td></tr>
+<tr><td><code class="verbatim">noweb</code></td><td>Link comments, plus link comments around each expanded noweb reference.</td></tr>
+</tbody>
+</table>
+<p>The link is relative to the tangled file's folder. <em>name</em> is the block's <code class="verbatim">#+NAME</code>, or the heading's title and the block's number under that heading, such as <code class="verbatim">Setup:2</code>.</p>
+<p>Comments need the language's comment syntax. orgstar knows it for: <code class="verbatim">emacs-lisp</code>, <code class="verbatim">elisp</code>, <code class="verbatim">lisp</code>, <code class="verbatim">scheme</code>, <code class="verbatim">asm</code> (<code class="verbatim">;;</code>); <code class="verbatim">python</code>, <code class="verbatim">ruby</code>, <code class="verbatim">perl</code>, <code class="verbatim">conf</code>, <code class="verbatim">toml</code>, <code class="verbatim">makefile</code>, <code class="verbatim">awk</code>, <code class="verbatim">tcl</code>, <code class="verbatim">m4</code>, <code class="verbatim">icon</code>, <code class="verbatim">desktop</code> and the shells except <code class="verbatim">fish</code> (<code class="verbatim">#</code>); <code class="verbatim">js</code>, <code class="verbatim">javascript</code>, <code class="verbatim">java</code>, <code class="verbatim">cpp</code>, <code class="verbatim">C++</code>, <code class="verbatim">objc</code>, <code class="verbatim">csharp</code>, <code class="verbatim">idl</code>, <code class="verbatim">pike</code>, <code class="verbatim">antlr</code>, <code class="verbatim">verilog</code> (<code class="verbatim">//</code>); <code class="verbatim">c</code>, <code class="verbatim">C</code>, <code class="verbatim">css</code> (<code class="verbatim">/* */</code>); <code class="verbatim">lua</code>, <code class="verbatim">sql</code>, <code class="verbatim">sqlite</code>, <code class="verbatim">vhdl</code> (<code class="verbatim">--</code>); <code class="verbatim">latex</code>, <code class="verbatim">tex</code>, <code class="verbatim">prolog</code> (<code class="verbatim">%%</code>); <code class="verbatim">ps</code>, <code class="verbatim">metapost</code> (<code class="verbatim">%</code>); <code class="verbatim">f90</code>, <code class="verbatim">dcl</code> (<code class="verbatim">!</code>); <code class="verbatim">html</code>, <code class="verbatim">xml</code>, <code class="verbatim">nxml</code>, <code class="verbatim">mhtml</code>, <code class="verbatim">sgml</code> (<code class="verbatim">&lt;!-- --&gt;</code>); <code class="verbatim">octave</code> (<code class="verbatim">##</code>); <code class="verbatim">pascal</code> (<code class="verbatim">{ }</code>); <code class="verbatim">texinfo</code> (<code class="verbatim">@c</code>); <code class="verbatim">bibtex</code> (<code class="verbatim">@Comment</code>); <code class="verbatim">nroff</code> (<code class="verbatim">\"</code>); <code class="verbatim">bat</code> (<code class="verbatim">rem</code>). For any other language, <code class="verbatim">:comments</code> other than <code class="verbatim">no</code> stops tangling with a message.</p>
+<h3 id="writing-the-files">Writing the files</h3>
+<ul>
+<li>A file whose contents would not change is left alone, so its modification time stays the same.</li>
+<li>A read-only file is replaced.</li>
+<li>Tangling into the Org file itself is refused: "Not allowed to tangle into the same file as self".</li>
+</ul>
+<h3 id="what-tangling-refuses">What tangling refuses</h3>
+<p>Tangling stops, writes nothing and says why when:</p>
+<ul>
+<li><code class="verbatim">:var</code> refers to a source block, which would have to run: "would run a block while tangling".</li>
+<li>A shell block's <code class="verbatim">:var</code> is a table or list.</li>
+<li><code class="verbatim">:var</code> is used in a language other than shells, Python, Emacs Lisp, C, C++, D, Java, Fortran and Clojure.</li>
+<li>A C, C++, D or Fortran block's <code class="verbatim">:var</code> table keeps rules (with <code class="verbatim">:hlines yes</code>), or a value has no type the language takes.</li>
+<li>A Lisp header value cannot be evaluated: "is Lisp tangling can't evaluate yet; nothing was tangled."</li>
+<li><code class="verbatim">:tangle-mode</code> is in a form it does not read.</li>
+<li><code class="verbatim">:comments</code> needs a comment syntax it does not know.</li>
+</ul>
+<h2 id="on-ios">On iOS</h2>
+<ul>
+<li>Only Emacs Lisp blocks run, in orgstar's own interpreter. Any other language, compiled languages included, fails with "<em>language</em> blocks need the Mac to run." (for example "C blocks need the Mac to run."), and so does an Emacs Lisp block whose <code class="verbatim">:var</code> refers to a block in another language.</li>
+<li>There are no sessions and no graphics.</li>
+<li>The trust prompt works the same way, with its own <code class="verbatim">trusted.json</code> on the device.</li>
+<li>There is no cancel command.</li>
+<li>Tangling works, for files in folders orgstar can write to.</li>
+<li>Edit Block opens a plain text sheet without highlighting.</li>
+</ul>
+<p>See <a href="14-ios.html">iOS</a> for the rest of the iOS app.</p>
+</main>
+<footer class="site">
+orgstar is 0BSD-licensed. Source: <a href="https://gitbay.org/krz/orgstar">gitbay.org/krz/orgstar</a>.
+</footer>
+</body>
+</html>
