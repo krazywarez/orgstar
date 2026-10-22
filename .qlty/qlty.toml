@@ -1,0 +1,45 @@
+config_version = "0"
+
+exclude_patterns = [
+  "**/.build/**",
+  ".claude/**",
+]
+
+test_patterns = [
+  "Tests/**",
+]
+
+[smells]
+mode = "comment"
+
+[[source]]
+name = "default"
+default = true
+
+[[plugin]]
+name = "swiftlint"
+
+[[plugin]]
+name = "shellcheck"
+
+[[plugin]]
+name = "trufflehog"
+
+# Style rules that flag most of the codebase without finding defects.
+[[triage]]
+match.plugins = ["swiftlint"]
+match.rules = [
+  "swiftlint:line_length",
+  "swiftlint:identifier_name",
+  "swiftlint:trailing_comma",
+  "swiftlint:todo",
+]
+match.file_patterns = ["**"]
+set.ignored = true
+
+# Tests use try! to fail fast.
+[[triage]]
+match.plugins = ["swiftlint"]
+match.rules = ["swiftlint:force_try"]
+match.file_patterns = ["Tests/**"]
+set.ignored = true
