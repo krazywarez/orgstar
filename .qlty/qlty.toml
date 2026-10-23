@@ -3,6 +3,10 @@ config_version = "0"
 exclude_patterns = [
   "**/.build/**",
   ".claude/**",
+  # Vendored tree-sitter grammars and scanners (THIRD_PARTY.org).
+  "Sources/TreeSitterClojure/**",
+  "Sources/TreeSitterElisp/**",
+  "Sources/TreeSitterScanners/**",
 ]
 
 test_patterns = [
@@ -11,6 +15,17 @@ test_patterns = [
 
 [smells]
 mode = "comment"
+
+# Early returns are guard clauses, which keep the happy path unindented.
+[smells.return_statements]
+enabled = false
+
+# Function and file complexity are left to review rather than counted.
+[smells.function_complexity]
+enabled = false
+
+[smells.file_complexity]
+enabled = false
 
 [[source]]
 name = "default"
