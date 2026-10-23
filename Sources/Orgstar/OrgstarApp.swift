@@ -844,20 +844,7 @@ struct SettingsView: View {
             Section {
                 Toggle("Show events from Calendar", isOn: $calendarEvents)
                 if calendarEvents {
-                    if calendars.isEmpty {
-                        Text(CalendarEvents.isAuthorized ? "No calendars." : "Allow orgstar to read your calendars in System Settings ▸ Privacy & Security ▸ Calendars.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(calendars, id: \.id) { calendar in
-                        Toggle(isOn: chosen(calendar, among: calendars, setting: $calendarEventCalendars)) {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(calendar.color.map { Color(.sRGB, red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) } ?? .secondary)
-                                    .frame(width: 8, height: 8)
-                                Text(calendar.title)
-                            }
-                        }
-                    }
+                    choices(calendars, empty: CalendarEvents.isAuthorized ? "No calendars." : "Allow orgstar to read your calendars in System Settings ▸ Privacy & Security ▸ Calendars.", setting: $calendarEventCalendars)
                 }
             } footer: {
                 Text("Events show in the agenda; double-click one to open it in Calendar, or choose Edit Event… in its context menu. New calendars show while every calendar is checked.")
@@ -870,20 +857,7 @@ struct SettingsView: View {
             Section {
                 Toggle("Show reminders from Reminders", isOn: $agendaReminders)
                 if agendaReminders {
-                    if reminderLists.isEmpty {
-                        Text(ReminderLists.isAuthorized ? "No lists." : "Allow orgstar to read your reminders in System Settings ▸ Privacy & Security ▸ Reminders.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(reminderLists, id: \.id) { list in
-                        Toggle(isOn: chosen(list, among: reminderLists, setting: $agendaReminderLists)) {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(list.color.map { Color(.sRGB, red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) } ?? .secondary)
-                                    .frame(width: 8, height: 8)
-                                Text(list.title)
-                            }
-                        }
-                    }
+                    choices(reminderLists, empty: ReminderLists.isAuthorized ? "No lists." : "Allow orgstar to read your reminders in System Settings ▸ Privacy & Security ▸ Reminders.", setting: $agendaReminderLists)
                 }
             } footer: {
                 Text("Incomplete reminders with a due date show in the agenda read-only, overdue ones under today; double-click one to open it in Reminders.")
@@ -917,6 +891,25 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(height: 560)
+    }
+
+    /// A toggle per calendar or reminder list, with its color; `empty` when there are none.
+    @ViewBuilder
+    private func choices(_ calendars: [(id: String, title: String, color: RGBA?)], empty: LocalizedStringKey, setting: Binding<String>) -> some View {
+        if calendars.isEmpty {
+            Text(empty)
+                .foregroundStyle(.secondary)
+        }
+        ForEach(calendars, id: \.id) { calendar in
+            Toggle(isOn: chosen(calendar, among: calendars, setting: setting)) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(calendar.color.map { Color(.sRGB, red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) } ?? .secondary)
+                        .frame(width: 8, height: 8)
+                    Text(calendar.title)
+                }
+            }
+        }
     }
 
     /// `calendar-event-calendars` and `agenda-reminder-lists`: empty for every calendar or

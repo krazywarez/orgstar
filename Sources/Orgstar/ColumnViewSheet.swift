@@ -1,3 +1,4 @@
+import OrgApp
 import OrgCore
 import SwiftUI
 
@@ -37,19 +38,7 @@ struct ColumnViewSheet: View {
             .padding(10)
             Divider()
             ScrollView([.horizontal, .vertical]) {
-                Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
-                    GridRow {
-                        ForEach(view.specs.indices, id: \.self) { i in
-                            Text(view.specs[i].title).bold().foregroundStyle(.secondary)
-                        }
-                    }
-                    Divider()
-                    ForEach(view.rows.indices, id: \.self) { r in
-                        GridRow {
-                            ForEach(view.specs.indices, id: \.self) { c in cellView(r, c) }
-                        }
-                    }
-                }
+                ColumnViewGrid(view: view, verticalSpacing: 4) { r, c in cellView(r, c) }
                 .font(.system(.body, design: .monospaced))
                 .padding(10)
             }

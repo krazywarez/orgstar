@@ -270,32 +270,44 @@ public enum Publish {
                 let relative = String(file.dropFirst(base.count))
                 let outputDirectory = directory(p.publishingDirectory) + ((relative as NSString).deletingLastPathComponent.isEmpty ? "" : (relative as NSString).deletingLastPathComponent + "/")
                 for function in p.publishingFunctions {
-                    let output: String
-                    if function == "org-publish-attachment" {
-                        output = outputDirectory + (file as NSString).lastPathComponent
-                        if directory((file as NSString).deletingLastPathComponent) == outputDirectory { continue }
-                    } else {
-                        let ext = function == "org-md-publish-to-md" ? "md" : "html"
-                        guard let text = read(file) else { throw Failure(description: "Can't read \(file)") }
-                        output = ExportScope.output(for: URL(fileURLWithPath: outputDirectory + (file as NSString).lastPathComponent),
-                                                    name: ExportScope.fileName(text), extension: ext).path
-                    }
+                    guard let output = try outputPath(file, function: function, in: outputDirectory, read: read) else { continue }
                     if !force, upToDate(output, source: file) {
                         report.skipped.append(file)
                         continue
                     }
                     try fm.createDirectory(atPath: (output as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
-                    if function == "org-publish-attachment" {
-                        if fm.fileExists(atPath: output) { try fm.removeItem(atPath: output) }
-                        try fm.copyItem(atPath: file, toPath: output)
-                    } else {
-                        try export(function, read(file) ?? "", file, p.bodyOnly).write(toFile: output, atomically: true, encoding: .utf8)
-                    }
+                    try write(file, to: output, function: function, bodyOnly: p.bodyOnly, read: read, export: export)
                     report.published.append(file)
                 }
             }
         }
         return report
+    }
+
+    /// Where `function` publishes `file` in `outputDirectory`; nil for an attachment already there.
+    private static func outputPath(_ file: String, function: String, in outputDirectory: String, read: (String) -> String?) throws -> String? {
+        guard function != "org-publish-attachment" else {
+            if directory((file as NSString).deletingLastPathComponent) == outputDirectory { return nil }
+            return outputDirectory + (file as NSString).lastPathComponent
+        }
+        let ext = function == "org-md-publish-to-md" ? "md" : "html"
+        guard let text = read(file) else { throw Failure(description: "Can't read \(file)") }
+        return ExportScope.output(for: URL(fileURLWithPath: outputDirectory + (file as NSString).lastPathComponent),
+                                  name: ExportScope.fileName(text), extension: ext).path
+    }
+
+    /// Copies an attachment to `output`, or writes what `function` exports from `file`.
+    private static func write(
+        _ file: String, to output: String, function: String, bodyOnly: Bool,
+        read: (String) -> String?, export: (_ function: String, _ text: String, _ path: String, _ bodyOnly: Bool) -> String
+    ) throws {
+        let fm = FileManager.default
+        if function == "org-publish-attachment" {
+            if fm.fileExists(atPath: output) { try fm.removeItem(atPath: output) }
+            try fm.copyItem(atPath: file, toPath: output)
+        } else {
+            try export(function, read(file) ?? "", file, bodyOnly).write(toFile: output, atomically: true, encoding: .utf8)
+        }
     }
 
     static func upToDate(_ output: String, source: String) -> Bool {

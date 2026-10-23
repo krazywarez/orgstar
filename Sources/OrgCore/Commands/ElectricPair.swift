@@ -277,38 +277,44 @@ private final class PairBuffer {
         return (innermost!, outermost!)
     }
 
-    /// `electric-pair-inhibit-if-helps-balance`, with the typed character before point.
-    func inhibit(_ c: unichar) -> Bool {
+    /// Runs `check` with the typed character taken out from before point, as electric-pair's
+    /// balance checks do, and puts it back.
+    private func withoutTyped(_ c: unichar, _ check: (Info) -> Bool) -> Bool {
         guard let info = info(c) else { return false }
         let at = point - 1
         delete(at..<point)
         defer { insert(String(utf16CodeUnits: [c], count: 1), at: at) }
-        switch info.syntax {
-        case .open:
-            let outermost = balance(forward: true, stringStart: info.stringStart).outermost
-            return outermost.matched ? false : outermost.pair == info.pair
-        case .string:
-            return ppss(length).stringChar == c
-        case .close:
-            return false
+        return check(info)
+    }
+
+    /// `electric-pair-inhibit-if-helps-balance`, with the typed character before point.
+    func inhibit(_ c: unichar) -> Bool {
+        withoutTyped(c) { info in
+            switch info.syntax {
+            case .open:
+                let outermost = balance(forward: true, stringStart: info.stringStart).outermost
+                return outermost.matched ? false : outermost.pair == info.pair
+            case .string:
+                return ppss(length).stringChar == c
+            case .close:
+                return false
+            }
         }
     }
 
     /// `electric-pair-skip-if-helps-balance`, with the typed character before point.
     func skip(_ c: unichar) -> Bool {
-        guard let info = info(c) else { return false }
-        let at = point - 1
-        delete(at..<point)
-        defer { insert(String(utf16CodeUnits: [c], count: 1), at: at) }
-        switch info.syntax {
-        case .close:
-            let (innermost, outermost) = balance(forward: false, stringStart: info.stringStart)
-            if outermost.matched { return innermost.matched }
-            return innermost.matched && outermost.pair != info.pair
-        case .string:
-            return ppss(point).stringChar == c
-        case .open:
-            return false
+        withoutTyped(c) { info in
+            switch info.syntax {
+            case .close:
+                let (innermost, outermost) = balance(forward: false, stringStart: info.stringStart)
+                if outermost.matched { return innermost.matched }
+                return innermost.matched && outermost.pair != info.pair
+            case .string:
+                return ppss(point).stringChar == c
+            case .open:
+                return false
+            }
         }
     }
 

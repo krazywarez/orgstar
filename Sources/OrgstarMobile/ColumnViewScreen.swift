@@ -19,19 +19,7 @@ struct ColumnViewScreen: View {
     var body: some View {
         NavigationStack {
             ScrollView([.horizontal, .vertical]) {
-                Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 6) {
-                    GridRow {
-                        ForEach(view.specs.indices, id: \.self) { i in
-                            Text(view.specs[i].title).bold().foregroundStyle(.secondary)
-                        }
-                    }
-                    Divider()
-                    ForEach(view.rows.indices, id: \.self) { r in
-                        GridRow {
-                            ForEach(view.specs.indices, id: \.self) { c in cellView(r, c) }
-                        }
-                    }
-                }
+                ColumnViewGrid(view: view, verticalSpacing: 6) { r, c in cellView(r, c) }
                 .font(.system(.callout, design: .monospaced))
                 .padding(12)
             }

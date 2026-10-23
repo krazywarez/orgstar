@@ -27,33 +27,8 @@ struct EmacsImportScreen: View {
             if let summary {
                 Section { Text(summary) }
             } else if let result {
-                ForEach(groups(result), id: \.0) { title, items in
-                    Section(title) {
-                        ForEach(items) { item in
-                            Toggle(isOn: Binding { selected.contains(item.id) } set: { on in
-                                if on { selected.insert(item.id) } else { selected.remove(item.id) }
-                            }) {
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(item.summary).font(.system(.callout, design: .monospaced))
-                                    Text([item.name == item.summary ? nil : item.name, item.source.isEmpty ? nil : item.source].compactMap { $0 }.joined(separator: " · "))
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-                let notes = result.unsupported.map { ($0.id, $0.name, $0.reason, $0.source) } + result.unreadable.map { ($0.id, $0.name, $0.reason, $0.source) }
-                if !notes.isEmpty || !result.problems.isEmpty {
-                    Section("Not imported") {
-                        ForEach(result.problems, id: \.self) { Text($0).foregroundStyle(.red) }
-                        ForEach(notes, id: \.0) { note in
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(note.1).font(.system(.callout, design: .monospaced))
-                                Text("\(note.2) · \(note.3)").font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
+                EmacsImportSections(result: result, groups: result.groups(folders: false), selected: $selected,
+                                    font: .system(.callout, design: .monospaced))
             }
         }
         .navigationTitle("Import from Emacs")
@@ -67,23 +42,13 @@ struct EmacsImportScreen: View {
         }
     }
 
-    private func groups(_ result: EmacsImport) -> [(String, [EmacsImport.Item])] {
-        [
-            ("Settings", result.items.filter { if case .setting = $0.change { true } else { false } }),
-            ("Capture templates", result.items.filter { if case .capture = $0.change { true } else { false } }),
-            ("Key bindings", result.items.filter { if case .binding = $0.change { true } else { false } }),
-            ("Structure templates", result.items.filter { if case .structureTemplate = $0.change { true } else { false } }),
-            ("Agenda views", result.items.filter { if case .view = $0.change { true } else { false } }),
-        ].filter { !$0.1.isEmpty }
-    }
-
     private func read(_ url: URL) {
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         location = url
         let scanned = EmacsImport.scan(EmacsImport.files(in: url))
         result = scanned
-        selected = Set(groups(scanned).flatMap(\.1).map(\.id))
+        selected = Set(scanned.groups(folders: false).flatMap(\.1).map(\.id))
         summary = nil
     }
 
