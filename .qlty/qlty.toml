@@ -60,8 +60,16 @@ match.file_patterns = ["Tests/**"]
 set.ignored = true
 
 # Exhaustive switch-over-enum lookup tables and the light and dark color tables share shape but not content.
+# FolderEntity is declared in each app target because App Intents reads its metadata from the target
+# that declares it; prettify draws through UIKit on iOS and AppKit on the Mac.
 [language.swift.smells.duplication]
-filter_patterns = ["(import_declaration _)", "(switch_statement _)", "(dictionary_literal _)"]
+filter_patterns = [
+  "(import_declaration _)",
+  "(switch_statement _)",
+  "(dictionary_literal _)",
+  "(class_declaration name: (type_identifier) @_n (#eq? @_n \"FolderEntity\"))",
+  "(function_declaration name: (simple_identifier) @_n (#eq? @_n \"prettify\"))",
+]
 
 # tree-sitter-swift nests each `else if` inside the previous branch, so a one-line `if` in the
 # fourth branch of a flat chain reports level 5.
