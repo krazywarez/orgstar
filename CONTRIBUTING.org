@@ -75,8 +75,10 @@ team's distribution certificate through the Apple ID signed in to Xcode (Xcode â
 Accounts), so it needs no key of its own. The version is the project's =MARKETING_VERSION=;
 the build number is the commit count, as the Mac's is, so each upload needs a new commit.
 =ORGSTAR_PUBLISH=0= archives and exports the =.ipa= to =.build/ios-release= without uploading.
+The script sources =release-ios.sh= from appstore-kit, checked out beside this repository or
+at =$APPSTORE_KIT=.
 
 * App Store header
 
-=ios/AppStore/header.html= renders the product page headers; the commands are in the
-comment at the top of the file.
+=ios/AppStore/header.conf= sets the product page header's background and screenshots;
+appstore-kit's =render-header.sh ios/AppStore= renders it.
