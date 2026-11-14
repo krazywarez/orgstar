@@ -1,0 +1,8 @@
+# Secrets for `npx wrangler dev --env sandbox`: copy to .dev.vars (ignored by git) and fill in.
+# Deployed Workers take them from `npx wrangler secret put NAME [--env sandbox]` instead.
+# Client-side token: test_… (sandbox) or live_…, from Paddle > Developer tools > Authentication.
+PADDLE_CLIENT_TOKEN=test_
+# API key with transaction.read and customer.read: pdl_sdbx_apikey_… (sandbox) or pdl_live_apikey_….
+PADDLE_API_KEY=
+# PKCS#8 PEM from keygen.sh, on one line with \n for line breaks.
+LICENSE_PRIVATE_KEY=
