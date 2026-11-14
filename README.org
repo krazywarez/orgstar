@@ -3,6 +3,8 @@
 #+ATTR_HTML: :alt orgstar on iPad, Mac and iPhone
 [[file:ios/AppStore/header-21x9.png]]
 
+Support orgstar through [[https://github.com/sponsors/ccleberg][GitHub Sponsors]].
+
 orgstar is an editor for [[https://orgmode.org][Org mode]] files on the Mac, iPhone and
 iPad. It reads and writes the same plain-text =.org= files Emacs does, and leaves every
 byte you didn't change as it was, so Emacs, the Mac app, the iOS app and your sync tool
