@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// Features that need orgstar Pro.
+/// Features that need orgstar+.
 public enum ProFeature: String, CaseIterable, Sendable, Identifiable {
     case babel, export, encryption, roam
     case widgets, watch, liveActivity, calendar, shortcuts

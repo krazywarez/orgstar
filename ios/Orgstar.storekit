@@ -18,13 +18,13 @@
       "internalID": "6700000003",
       "localizations": [
         {
-          "description": "orgstar Pro, once, for good",
-          "displayName": "Pro Lifetime",
+          "description": "orgstar+, once, for good",
+          "displayName": "orgstar+ Lifetime",
           "locale": "en_US"
         }
       ],
       "productID": "sh.krz.orgstar.pro.lifetime",
-      "referenceName": "Pro Lifetime",
+      "referenceName": "orgstar+ Lifetime",
       "type": "NonConsumable"
     }
   ],
@@ -44,7 +44,7 @@
     {
       "id": "21600001",
       "localizations": [],
-      "name": "orgstar Pro",
+      "name": "orgstar+",
       "subscriptions": [
         {
           "adHocOffers": [],
@@ -57,13 +57,13 @@
           "localizations": [
             {
               "description": "Power features and Apple integrations",
-              "displayName": "Pro Yearly",
+              "displayName": "orgstar+ Yearly",
               "locale": "en_US"
             }
           ],
           "productID": "sh.krz.orgstar.pro.yearly",
           "recurringSubscriptionPeriod": "P1Y",
-          "referenceName": "Pro Yearly",
+          "referenceName": "orgstar+ Yearly",
           "subscriptionGroupID": "21600001",
           "type": "RecurringSubscription",
           "winbackOffers": []
@@ -79,13 +79,13 @@
           "localizations": [
             {
               "description": "Power features and Apple integrations",
-              "displayName": "Pro Monthly",
+              "displayName": "orgstar+ Monthly",
               "locale": "en_US"
             }
           ],
           "productID": "sh.krz.orgstar.pro.monthly",
           "recurringSubscriptionPeriod": "P1M",
-          "referenceName": "Pro Monthly",
+          "referenceName": "orgstar+ Monthly",
           "subscriptionGroupID": "21600001",
           "type": "RecurringSubscription",
           "winbackOffers": []

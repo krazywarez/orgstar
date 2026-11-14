@@ -59,18 +59,18 @@ or download the notarized DMG from the
 [[https://gitbay.org/krz/orgstar/releases][releases page]]. The iPhone and iPad app (iOS 26
 or later), with its Apple Watch app, is on the [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store]].
 
-** orgstar Pro
+** orgstar+
 Editing, the agenda, capture, clocking, tables, search, and HTML and Markdown export are
-free. Pro adds running and tangling source blocks; PDF, LaTeX, ODT, Word and rich-text export
+free. orgstar+ adds running and tangling source blocks; PDF, LaTeX, ODT, Word and rich-text export
 and publishing; encrypting entries (decrypting stays free); org-roam nodes, daily notes and
 backlinks; widgets, the Apple Watch app and the clock Live Activity; Calendar and Reminders in
 the agenda; and Shortcuts actions.
 
 - iPhone and iPad: in-app, $1.99 a month, $19.99 a year or $39.99 once.
 - Mac: $39.99 once, for a license key from [[https://krz.sh/apps/orgstar/buy][krz.sh/apps/orgstar/buy]], entered in
-  Settings ▸ Pro.
+  Settings ▸ orgstar+.
 
-Anyone who installed orgstar before Pro keeps every feature without buying it.
+Anyone who installed orgstar before orgstar+ keeps every feature without buying it.
 
 To build from source, contribute or release (the Mac app and the App Store), see
 [[file:CONTRIBUTING.org]].

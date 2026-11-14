@@ -26,6 +26,14 @@ struct SettingsScreen: View {
     var body: some View {
         Form {
             Section {
+                NavigationLink {
+                    ProScreen()
+                } label: {
+                    ProBanner()
+                }
+            }
+            .listRowBackground(ProBanner.rowBackground)
+            Section {
                 LabeledContent("Folder", value: model.configFolder?.lastPathComponent ?? String(localized: "none.folder", defaultValue: "None", comment: "No configuration folder chosen"))
                 Button(model.configFolder == nil ? "Choose Folder…" : "Choose Another Folder…") { choosing = true }
                 if model.configFolder != nil {
@@ -127,11 +135,6 @@ struct SettingsScreen: View {
                 LabeledContent("Font", value: font)
             }
             Section {
-                NavigationLink {
-                    ProScreen()
-                } label: {
-                    Label("orgstar Pro", systemImage: "star")
-                }
                 NavigationLink {
                     AboutScreen(appIcon: appIcon)
                 } label: {
@@ -292,6 +295,37 @@ struct SettingsScreen: View {
             .joined(separator: "; ")
     }
 }
+/// The orgstar+ row at the top of Settings.
+private struct ProBanner: View {
+    private var access: ProAccess { .shared }
+
+    static var rowBackground: some View {
+        ZStack {
+            Color(uiColor: .secondarySystemGroupedBackground)
+            LinearGradient.plusGold.opacity(0.22)
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            PlusBadge()
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: "orgstar+").font(.headline)
+                Group {
+                    if access.isUnlocked {
+                        Text("Unlocked. Thanks for supporting orgstar.")
+                    } else {
+                        Text("Export, encryption, widgets, the Watch app and more")
+                    }
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}
+
 /// The configuration folder's `config.toml` as plain text, saved when you tap Save or leave.
 struct ConfigFileEditor: View {
     let model: MobileModel

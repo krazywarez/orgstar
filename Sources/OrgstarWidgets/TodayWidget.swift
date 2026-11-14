@@ -25,7 +25,7 @@ struct TodayView: View {
             if let snapshot = entry.snapshot {
                 content(snapshot)
             } else {
-                Text(!widgetsLocked ? "Open orgstar to show your agenda here." : "Widgets need orgstar Pro.")
+                Text(!widgetsLocked ? "Open orgstar to show your agenda here." : "Widgets need orgstar+.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

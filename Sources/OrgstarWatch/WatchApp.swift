@@ -99,7 +99,7 @@ struct AgendaList: View {
     var body: some View {
         if link.agenda?.locked == true {
             ScrollView {
-                Text("The Watch app needs orgstar Pro. Get it in orgstar on your iPhone, in Settings.")
+                Text("The Watch app needs orgstar+. Get it in orgstar on your iPhone, in Settings.")
                     .foregroundStyle(.secondary)
             }
             .navigationTitle("Today")

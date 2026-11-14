@@ -650,7 +650,7 @@ struct SettingsView: View {
             Tab("Appearance", systemImage: "paintpalette", value: "appearance") { appearance }
             Tab("Agenda", systemImage: "calendar", value: "agenda") { agenda }
             Tab("Capture", systemImage: "tray.and.arrow.down", value: "capture") { capture }
-            Tab("Pro", systemImage: "star", value: "pro") { LicenseForm() }
+            Tab("orgstar+", systemImage: "star", value: "pro") { LicenseForm() }
         }
         .frame(width: 600)
     }
@@ -846,7 +846,7 @@ struct SettingsView: View {
             Section {
                 Toggle("Show events from Calendar", isOn: $calendarEvents)
                     .disabled(!ProAccess.shared.isUnlocked && !calendarEvents)
-                    .help(ProAccess.shared.isUnlocked ? "" : "Needs orgstar Pro")
+                    .help(ProAccess.shared.isUnlocked ? "" : "Needs orgstar+")
                 if calendarEvents {
                     choices(calendars, empty: CalendarEvents.isAuthorized ? "No calendars." : "Allow orgstar to read your calendars in System Settings ▸ Privacy & Security ▸ Calendars.", setting: $calendarEventCalendars)
                 }
@@ -861,7 +861,7 @@ struct SettingsView: View {
             Section {
                 Toggle("Show reminders from Reminders", isOn: $agendaReminders)
                     .disabled(!ProAccess.shared.isUnlocked && !agendaReminders)
-                    .help(ProAccess.shared.isUnlocked ? "" : "Needs orgstar Pro")
+                    .help(ProAccess.shared.isUnlocked ? "" : "Needs orgstar+")
                 if agendaReminders {
                     choices(reminderLists, empty: ReminderLists.isAuthorized ? "No lists." : "Allow orgstar to read your reminders in System Settings ▸ Privacy & Security ▸ Reminders.", setting: $agendaReminderLists)
                 }

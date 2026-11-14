@@ -74,7 +74,7 @@ public struct WatchAgenda: Codable, Equatable, Sendable {
     public var clock: Clock?
     /// The most recently clocked entry, `org-clock-in-last`'s.
     public var lastClocked: String?
-    /// True when the phone hasn't got orgstar Pro, which the Watch app needs.
+    /// True when the phone hasn't got orgstar+, which the Watch app needs.
     public var locked: Bool?
 
     /// What the phone sends without Pro: no entries.

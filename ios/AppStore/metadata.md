@@ -40,7 +40,7 @@ AND MORE
 - Themes and settings read from the same configuration folder as the Mac app
 
 ORGSTAR PRO
-Editing, the agenda, capture, clocking, tables and search are free. Pro, monthly, yearly or as a one-time lifetime purchase, adds:
+Editing, the agenda, capture, clocking, tables and search are free. orgstar+, monthly, yearly or as a one-time lifetime purchase, adds:
 - Running and tangling source blocks
 - PDF, Word and rich text export
 - Encrypted entries
@@ -48,7 +48,7 @@ Editing, the agenda, capture, clocking, tables and search are free. Pro, monthly
 - Widgets, the Apple Watch app and the clock Live Activity
 - Calendar events and reminders in the agenda
 - Shortcuts actions
-Everyone who downloaded orgstar before Pro keeps all of it.
+Everyone who downloaded orgstar before orgstar+ keeps all of it.
 
 ## Keywords
 

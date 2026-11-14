@@ -29,11 +29,11 @@ struct LicenseForm: View {
             Section {
                 switch access.grant {
                 case .license:
-                    LabeledContent("orgstar Pro", value: license.map { "Licensed to \($0.email)" } ?? "Licensed")
+                    LabeledContent("orgstar+", value: license.map { "Licensed to \($0.email)" } ?? "Licensed")
                 case .grandfathered:
-                    LabeledContent("orgstar Pro", value: "Included: you used orgstar before Pro")
+                    LabeledContent("orgstar+", value: "Included: you used orgstar before orgstar+")
                 case .purchase, nil:
-                    LabeledContent("orgstar Pro", value: "Not licensed")
+                    LabeledContent("orgstar+", value: "Not licensed")
                 }
             }
             if access.grant != .license {
@@ -44,7 +44,7 @@ struct LicenseForm: View {
                         .onSubmit(activate)
                     if let error { Text(error).foregroundStyle(.red) }
                     HStack {
-                        Link("Buy orgstar Pro…", destination: MacPro.buyURL)
+                        Link("Buy orgstar+…", destination: MacPro.buyURL)
                         Spacer()
                         Button("Activate", action: activate).disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
@@ -60,7 +60,7 @@ struct LicenseForm: View {
                     }
                 }
             }
-            Section("Included in Pro") {
+            Section("Included in orgstar+") {
                 ForEach(ProFeature.macFeatures) { feature in
                     Label(feature.title, systemImage: feature.systemImage)
                 }
@@ -91,8 +91,8 @@ struct ProPaywallSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Label("\(feature.title) needs orgstar Pro", systemImage: feature.systemImage).font(.headline)
-                Text("Pro is a one-time purchase of $39.99 for this Mac. Editing, the agenda, capture, clocking and search stay free.")
+                Label("\(feature.title) needs orgstar+", systemImage: feature.systemImage).font(.headline)
+                Text("orgstar+ is a one-time purchase of $39.99 for this Mac. Editing, the agenda, capture, clocking and search stay free.")
                     .foregroundStyle(.secondary)
             }
             .padding([.horizontal, .top], 20)

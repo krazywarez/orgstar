@@ -122,7 +122,7 @@ struct ExportMenu: View {
         Menu("Export", systemImage: "square.and.arrow.up") {
             ForEach(OrgExport.Format.allCases, id: \.self) { format in
                 if format.locked {
-                    Button("\(format.name) (Pro)") { ProAccess.shared.allows(.export) }
+                    Button("\(format.name) (orgstar+)") { ProAccess.shared.allows(.export) }
                 } else {
                     let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings(),
                                            codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))

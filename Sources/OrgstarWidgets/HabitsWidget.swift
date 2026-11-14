@@ -53,7 +53,7 @@ struct HabitsView: View {
             if let snapshot = entry.snapshot, !snapshot.habits.isEmpty {
                 content(snapshot)
             } else {
-                Text(entry.snapshot == nil ? !widgetsLocked ? "Open orgstar to show your habits here." : "Widgets need orgstar Pro." : "No habits in the agenda. Give an entry STYLE: habit.")
+                Text(entry.snapshot == nil ? !widgetsLocked ? "Open orgstar to show your habits here." : "Widgets need orgstar+." : "No habits in the agenda. Give an entry STYLE: habit.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
