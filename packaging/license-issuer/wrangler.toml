@@ -10,7 +10,7 @@ routes = [
 [vars]
 PADDLE_ENV = "production"
 # The orgstar+ for Mac price in the live account, pri_…
-PRICE_ID = "pri_REPLACE_ME"
+PRICE_ID = "pri_01m7c397a7ty57r349ye22exta"
 
 # npx wrangler deploy --env sandbox. The sandbox account's default payment link is
 # https://krz.sh/apps/orgstar/sandbox/buy.
