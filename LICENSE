@@ -1,10 +1,8 @@
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
+Copyright (c) 2026 Christian Cleberg. All rights reserved.
 
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+orgstar is proprietary software. No permission is granted to use, copy, modify or
+distribute it except as allowed by its terms of sale (https://krz.sh/terms/).
+
+Code published in the public krz/orgstar repository before it was made private was
+released under the 0BSD license, and those published copies keep that license.
+Third-party components keep their own licenses; see THIRD_PARTY.org.

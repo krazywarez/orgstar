@@ -48,7 +48,7 @@ cp -R "$(dirname "$binary")/SwiftMath_SwiftMath.bundle" "$app/Contents/Resources
 # Updates: the appcast and its signing key, for signed builds only; a dev build never checks.
 if [ "$sign" != "-" ]; then
     feed_keys="    <key>SUFeedURL</key>
-    <string>https://krz.gitbay.site/orgstar/appcast.xml</string>
+    <string>https://files.krz.sh/orgstar/appcast.xml</string>
     <key>SUPublicEDKey</key>
     <string>${ORGSTAR_ED_PUBLIC_KEY:?set ORGSTAR_ED_PUBLIC_KEY to the key generate_keys printed}</string>"
 else

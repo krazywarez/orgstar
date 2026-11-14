@@ -1,10 +1,13 @@
 #!/bin/sh
 # Builds, signs, notarizes and publishes a Mac release: a universal orgstar.app in a DMG,
-# uploaded to the tag's gitbay release, and the cask in krz/homebrew-tap updated.
+# copied to files.krz.sh/orgstar/ (and the tag's gitbay release), and the cask in
+# krz/homebrew-tap updated.
 # Usage: scripts/release-mac.sh <version>   e.g. 0.2.0, for the tag v0.2.0 on HEAD
 #   ORGSTAR_SIGN     Developer ID Application identity (default: the keychain's only one)
 #   ORGSTAR_NOTARY   notarytool keychain profile (default: orgstar)
 #   ORGSTAR_TAP      the homebrew-tap checkout (default: ../homebrew-tap)
+#   ORGSTAR_FILES    rsync destination served at https://files.krz.sh/orgstar/
+#                    (default: homelab:/var/www/files/orgstar)
 #   ORGSTAR_PUBLISH  0 builds and notarizes without tagging, uploading or touching the tap
 #   ORGSTAR_NOTES    an HTML file of release notes for the appcast entry, which Sparkle's
 #                    update window shows; the platform line is added after it
@@ -21,6 +24,7 @@ version="${1:?usage: scripts/release-mac.sh <version>}"
 tag="v$version"
 notary="${ORGSTAR_NOTARY:-orgstar}"
 tap="${ORGSTAR_TAP:-../homebrew-tap}"
+files="${ORGSTAR_FILES:-homelab:/var/www/files/orgstar}"
 publish="${ORGSTAR_PUBLISH:-1}"
 sign="${ORGSTAR_SIGN:-$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)}"
 [ -n "$sign" ] || { echo "No Developer ID Application identity in the keychain." >&2; exit 1; }
@@ -81,6 +85,8 @@ else
     gitbay release create krz/orgstar "$tag" --title "orgstar $version" --notes "$notes"
 fi
 gitbay release asset add krz/orgstar "$tag" "orgstar-$version.dmg" < "$dmg"
+# The public download, which the appcast and the cask point at.
+rsync -a "$dmg" "$files/"
 
 # The appcast goes in through a merge request, as every change to main does, after the DMG
 # it points at is up; then the manual, which serves it, is published.

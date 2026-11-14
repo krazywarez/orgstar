@@ -6,11 +6,11 @@ cask "orgstar" do
   version "@VERSION@"
   sha256 "@SHA256@"
 
-  url "https://gitbay.org/krz/orgstar/releases/download/v#{version}/orgstar-#{version}.dmg"
+  url "https://files.krz.sh/orgstar/orgstar-#{version}.dmg"
   name "orgstar"
   desc "Native org-mode editor and agenda"
   auto_updates true
-  homepage "https://gitbay.org/krz/orgstar"
+  homepage "https://krz.sh/apps/orgstar/"
 
   depends_on macos: :tahoe
 

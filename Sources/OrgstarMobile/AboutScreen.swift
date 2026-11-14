@@ -9,7 +9,7 @@ struct AboutScreen: View {
 
     static let supportEmail = "help@krz.sh"
 
-    private static let repository = "https://gitbay.org/krz/orgstar"
+    private static let site = "https://files.krz.sh/orgstar/"
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -37,24 +37,22 @@ struct AboutScreen: View {
                 .listRowBackground(Color.clear)
             }
             Section {
-                link("Manual", "book", "https://krz.gitbay.site/orgstar/")
-                link("Release Notes", "sparkles", Self.repository + "/releases")
+                link("Manual", "book", Self.site)
+                link("Release Notes", "sparkles", "https://apps.apple.com/app/id6821552018")
                 link("Website", "globe", "https://krz.sh/apps/orgstar")
             }
             Section {
-                link("Report an Issue", "ladybug", Self.repository + "/issues/new")
+                link("Report an Issue", "ladybug", "https://gitbay.org/krz/orgstar-issues/issues/new")
                 link("Email Support", "envelope", mail.absoluteString)
                 link("Rate on the App Store", "star", "https://apps.apple.com/app/id6821552018?action=write-review")
             } footer: {
                 Text("Reporting an issue needs a gitbay account. Without one, email \(Self.supportEmail).")
             }
             Section {
-                link("Source Code", "chevron.left.forwardslash.chevron.right", Self.repository)
-                link("License", "doc.text", Self.repository + "/blob/main/LICENSE")
-                link("Third-Party Notices", "doc.on.doc", Self.repository + "/blob/main/THIRD_PARTY.org")
+                link("Third-Party Notices", "doc.on.doc", Self.site + "third-party.html")
                 link("Privacy Policy", "hand.raised", "https://krz.sh/privacy/orgstar/")
             } footer: {
-                Text("© 2026 Christian Cleberg. Free software under the 0BSD license.")
+                Text(verbatim: "© 2026 Christian Cleberg")
             }
         }
         .navigationTitle("About")

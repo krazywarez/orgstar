@@ -10,9 +10,9 @@ iPad. It reads and writes the same plain-text =.org= files Emacs does, and leave
 byte you didn't change as it was, so Emacs, the Mac app, the iOS app and your sync tool
 can all work on the same folder.
 
-[[https://gitbay.org/krz/orgstar/releases][Download for Mac]] ·
+[[https://files.krz.sh/orgstar/][Download for Mac]] ·
 [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store (iPhone and iPad)]] ·
-[[https://krz.gitbay.site/orgstar/][Manual]] ·
+[[https://files.krz.sh/orgstar/][Manual]] ·
 [[file:ios/AppStore/screenshots][Screenshots]]
 
 ** Your files stay yours
@@ -56,7 +56,7 @@ brew install --cask orgstar
 #+end_src
 
 or download the notarized DMG from the
-[[https://gitbay.org/krz/orgstar/releases][releases page]]. The iPhone and iPad app (iOS 26
+[[https://files.krz.sh/orgstar/][files.krz.sh/orgstar]]. The iPhone and iPad app (iOS 26
 or later), with its Apple Watch app, is on the [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store]].
 
 ** orgstar+
@@ -75,4 +75,4 @@ Anyone who installed orgstar before orgstar+ keeps every feature without buying 
 To build from source, contribute or release (the Mac app and the App Store), see
 [[file:CONTRIBUTING.org]].
 
-License: 0BSD.
+Copyright © 2026 Christian Cleberg. All rights reserved; see [[file:LICENSE]].
