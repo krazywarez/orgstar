@@ -1,0 +1,9 @@
+name = "orgstar-license"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# https://sandbox-api.paddle.com while testing.
+PADDLE_API = "https://api.paddle.com"
+# The orgstar Pro (Mac) price, pri_…
+PRICE_ID = "pri_REPLACE_ME"

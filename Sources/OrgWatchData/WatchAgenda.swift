@@ -74,6 +74,15 @@ public struct WatchAgenda: Codable, Equatable, Sendable {
     public var clock: Clock?
     /// The most recently clocked entry, `org-clock-in-last`'s.
     public var lastClocked: String?
+    /// True when the phone hasn't got orgstar Pro, which the Watch app needs.
+    public var locked: Bool?
+
+    /// What the phone sends without Pro: no entries.
+    public static func locked(generated: Date) -> WatchAgenda {
+        var agenda = WatchAgenda(generated: generated, day: generated, overdue: [], rows: [], clock: nil, lastClocked: nil)
+        agenda.locked = true
+        return agenda
+    }
 
     public init(generated: Date, day: Date, overdue: [Entry], rows: [Entry], clock: Clock?, lastClocked: String?) {
         self.generated = generated

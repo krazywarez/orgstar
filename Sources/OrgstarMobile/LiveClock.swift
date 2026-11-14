@@ -22,7 +22,7 @@ enum LiveClock {
         for activity in activities where running.map({ !shows(activity, $0) }) ?? true {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
-        guard let running, !activities.contains(where: { shows($0, running) }), ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        guard await ProAccess.shared.isUnlocked, let running, !activities.contains(where: { shows($0, running) }), ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let state = ClockActivityAttributes.ContentState(heading: running.heading, startedAt: running.startedAt)
         _ = try? Activity.request(
             attributes: ClockActivityAttributes(path: running.path, start: running.start), content: ActivityContent(state: state, staleDate: nil)

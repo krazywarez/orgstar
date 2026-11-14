@@ -23,6 +23,7 @@ struct CaptureIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+        guard ProAccess.shared.isUnlocked else { throw Failure(message: "Shortcuts actions need orgstar Pro") }
         let model = MobileModel.shared
         guard let workspace = model.workspace else { throw Failure(message: model.failure ?? "orgstar isn't ready") }
         let placed = model.session.capture(

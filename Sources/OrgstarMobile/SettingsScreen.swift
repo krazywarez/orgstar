@@ -128,6 +128,11 @@ struct SettingsScreen: View {
             }
             Section {
                 NavigationLink {
+                    ProScreen()
+                } label: {
+                    Label("orgstar Pro", systemImage: "star")
+                }
+                NavigationLink {
                     AboutScreen(appIcon: appIcon)
                 } label: {
                     Label("About orgstar", systemImage: "info.circle")
@@ -158,6 +163,7 @@ struct SettingsScreen: View {
             Toggle("Show Calendar Events", isOn: Binding {
                 on
             } set: { value in
+                guard !value || ProAccess.shared.allows(.calendar) else { return }
                 model.set("calendarEvents", to: .bool(value))
                 if value { Task { await requestCalendars() } }
             })
@@ -197,6 +203,7 @@ struct SettingsScreen: View {
             Toggle("Show Reminders", isOn: Binding {
                 on
             } set: { value in
+                guard !value || ProAccess.shared.allows(.calendar) else { return }
                 model.set("agendaReminders", to: .bool(value))
                 if value { Task { await requestReminders() } }
             })

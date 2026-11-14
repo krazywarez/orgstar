@@ -24,6 +24,8 @@ tap="${ORGSTAR_TAP:-../homebrew-tap}"
 publish="${ORGSTAR_PUBLISH:-1}"
 sign="${ORGSTAR_SIGN:-$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)}"
 [ -n "$sign" ] || { echo "No Developer ID Application identity in the keychain." >&2; exit 1; }
+! grep -q 'publicKey = .*// placeholder' Sources/OrgApp/LicenseKey.swift ||
+    { echo "Run packaging/license-issuer/keygen.sh first: the license public key is a placeholder." >&2; exit 1; }
 # The Sparkle public key; its private half is in the release Mac's login keychain (generate_keys).
 export ORGSTAR_ED_PUBLIC_KEY="${ORGSTAR_ED_PUBLIC_KEY:-StvsRDaDoGd4S/G66l7XHAcd3KPlpJlu0Gsv9GemsSo=}"
 notes="Universal (Apple silicon and Intel), macOS 26 or later. Notarized."

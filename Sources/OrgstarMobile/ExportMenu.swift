@@ -12,6 +12,9 @@ struct OrgExport: Transferable {
     enum Format: CaseIterable {
         case html, markdown, pdf, docx, rtf, plainText, icalendar
 
+        /// Whether it needs Pro now: every format but HTML and Markdown, until Pro is unlocked.
+        @MainActor var locked: Bool { self != .html && self != .markdown && !ProAccess.shared.isUnlocked }
+
         var name: String {
             switch self {
             case .html: "HTML"
@@ -118,15 +121,19 @@ struct ExportMenu: View {
     var body: some View {
         Menu("Export", systemImage: "square.and.arrow.up") {
             ForEach(OrgExport.Format.allCases, id: \.self) { format in
-                let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings(),
-                                       codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))
-                ShareLink(item: export, preview: SharePreview(export.fileName)) { Text(format.name) }
+                if format.locked {
+                    Button("\(format.name) (Pro)") { ProAccess.shared.allows(.export) }
+                } else {
+                    let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings(),
+                                           codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme))
+                    ShareLink(item: export, preview: SharePreview(export.fileName)) { Text(format.name) }
+                }
             }
             if let exportSubtree {
                 Button("Export Subtree…", systemImage: "list.bullet.indent") { exportSubtree() }
             }
             Divider()
-            Button("Copy as Rich Text", systemImage: "doc.on.doc") { copy() }
+            Button("Copy as Rich Text", systemImage: "doc.on.doc") { if ProAccess.shared.allows(.export) { copy() } }
         }
     }
 
@@ -155,7 +162,7 @@ struct SubtreeExportScreen: View {
 
     var body: some View {
         NavigationStack {
-            List(OrgExport.Format.allCases, id: \.self) { format in
+            List(OrgExport.Format.allCases.filter { !$0.locked }, id: \.self) { format in
                 let export = OrgExport(text: text, path: path, format: format, settings: OrgPreferences.orgSettings(),
                                        codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme), subtree: caret)
                 ShareLink(item: export, preview: SharePreview(export.fileName)) { Text(format.name) }

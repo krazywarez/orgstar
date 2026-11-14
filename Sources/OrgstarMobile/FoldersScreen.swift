@@ -109,6 +109,7 @@ struct FoldersScreen: View {
 extension FoldersScreen {
     /// A daily note, opened in the reader.
     private func dailies(_ id: String) {
+        guard ProAccess.shared.allows(.roam) else { return }
         RoamActions(session: session, roots: { workspace.rootPaths }, nodes: { [] }, show: { workspace.lastError = $0 }, ask: { $1(nil) },
                     open: { path, offset in model.openRequest = .offset(path, offset) }, insertLink: { _, _ in },
                     refresh: { Task { await workspace.refresh() } }).run(id)

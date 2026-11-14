@@ -73,6 +73,7 @@ public struct ClockToggleIntent: SetValueIntent, LiveActivityIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult {
+        guard ProAccess.isUnlockedNow else { return .result() }
         let handler = await MainActor.run { Self.handler }
         await handler?(value)
         return .result()

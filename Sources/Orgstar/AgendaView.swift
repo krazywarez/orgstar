@@ -176,13 +176,13 @@ struct AgendaView: View {
         agenda.options.logMode = logMode
         agenda.options = OrgPreferences.agendaOptions(agenda.options)
         agenda.calendarNames = OrgPreferences.calendarEventCalendars()
-        if calendarEventsOn, isAgenda || isBlocks {
+        if calendarEventsOn, ProAccess.shared.isUnlocked, isAgenda || isBlocks {
             agenda.calendarEvents = await CalendarAccess.events.requestAccess() ? CalendarAccess.events : nil
         } else {
             agenda.calendarEvents = nil
         }
         agenda.reminderListNames = OrgPreferences.agendaReminderLists()
-        if remindersOn, isAgenda || isBlocks {
+        if remindersOn, ProAccess.shared.isUnlocked, isAgenda || isBlocks {
             agenda.reminderLists = await CalendarAccess.reminders.requestAccess() ? CalendarAccess.reminders : nil
         } else {
             agenda.reminderLists = nil
@@ -601,6 +601,7 @@ struct AgendaView: View {
             Button("Set Deadline…") { selection = line.id; run(SetPlanning(deadline: true)) }
             Divider()
             Button("Add to Calendar…") {
+                guard ProAccess.shared.allows(.calendar) else { return }
                 eventRequest = EventRequest(draft: .entry(line.row.title, day: line.day, start: line.row.start, end: line.row.end))
             }
             Divider()

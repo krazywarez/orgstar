@@ -97,6 +97,18 @@ struct AgendaList: View {
     @State private var dictated = ""
 
     var body: some View {
+        if link.agenda?.locked == true {
+            ScrollView {
+                Text("The Watch app needs orgstar Pro. Get it in orgstar on your iPhone, in Settings.")
+                    .foregroundStyle(.secondary)
+            }
+            .navigationTitle("Today")
+        } else {
+            list
+        }
+    }
+
+    private var list: some View {
         List {
             if let clock = link.agenda?.clock {
                 Section("Clocked In") {

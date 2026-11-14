@@ -36,7 +36,7 @@ final class WatchLink: NSObject, WCSessionDelegate {
     }
 
     func perform(_ action: WatchAction) async {
-        guard let model, let workspace = model.workspace else { return }
+        guard ProAccess.shared.isUnlocked, let model, let workspace = model.workspace else { return }
         switch action {
         case .done(let path, let offset, let headingLine, let keyword):
             _ = model.session.perform(SetTodo(keyword: keyword), path: path, at: offset, expect: (offset, headingLine))

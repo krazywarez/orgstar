@@ -29,12 +29,12 @@ struct HabitProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (HabitEntry) -> Void) {
-        let snapshot = HabitSnapshot.read()
+        let snapshot = widgetsLocked ? nil : HabitSnapshot.read()
         completion(HabitEntry(date: .now, snapshot: snapshot ?? (context.isPreview ? .sample(.now) : nil)))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<HabitEntry>) -> Void) {
-        let snapshot = HabitSnapshot.read()
+        let snapshot = widgetsLocked ? nil : HabitSnapshot.read()
         let midnight = Calendar.current.startOfDay(for: .now)
         let dates = [Date.now] + (1...7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: midnight) }
         completion(Timeline(entries: dates.map { HabitEntry(date: $0, snapshot: snapshot) }, policy: .atEnd))
@@ -53,7 +53,7 @@ struct HabitsView: View {
             if let snapshot = entry.snapshot, !snapshot.habits.isEmpty {
                 content(snapshot)
             } else {
-                Text(entry.snapshot == nil ? "Open orgstar to show your habits here." : "No habits in the agenda. Give an entry STYLE: habit.")
+                Text(entry.snapshot == nil ? !widgetsLocked ? "Open orgstar to show your habits here." : "Widgets need orgstar Pro." : "No habits in the agenda. Give an entry STYLE: habit.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

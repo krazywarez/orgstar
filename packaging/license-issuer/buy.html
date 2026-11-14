@@ -1,0 +1,15 @@
+<!-- The Buy button for krz.sh/apps/orgstar/buy (the domain Paddle approves). Fill in the client
+     token and price ID; after checkout the buyer lands on the Worker's page with their key. -->
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<button id="buy">Buy orgstar Pro for Mac, $39.99</button>
+<script>
+  const ISSUER = "https://orgstar-license.REPLACE_ME.workers.dev/license";
+  Paddle.Initialize({
+    token: "live_REPLACE_ME",
+    eventCallback(event) {
+      if (event.name === "checkout.completed") location.href = `${ISSUER}?txn=${event.data.transaction_id}`;
+    },
+  });
+  document.getElementById("buy").onclick = () =>
+    Paddle.Checkout.open({ items: [{ priceId: "pri_REPLACE_ME", quantity: 1 }] });
+</script>

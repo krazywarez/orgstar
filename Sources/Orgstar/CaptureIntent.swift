@@ -26,6 +26,7 @@ struct CaptureIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         // Launched for the intent, the window sets the models up shortly.
+        guard ProAccess.shared.isUnlocked else { throw Failure(message: "Shortcuts actions need orgstar Pro") }
         for _ in 0..<50 where Self.environment == nil { try? await Task.sleep(for: .milliseconds(100)) }
         guard let (workspace, session, clock, commands) = Self.environment else { throw Failure(message: "orgstar isn't ready") }
         let placed = session.capture(

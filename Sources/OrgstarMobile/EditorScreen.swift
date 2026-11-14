@@ -136,18 +136,18 @@ struct EditorScreen: View {
                         Label("Show Markup", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                     RecentClockMenu(clock: clock) { editor?.run($0) }
-                    Button("Backlinks", systemImage: "arrow.uturn.backward.circle") { sheet = .backlinks }
+                    Button("Backlinks", systemImage: "arrow.uturn.backward.circle") { if ProAccess.shared.allows(.roam) { sheet = .backlinks } }
                     Menu("Daily Notes", systemImage: "calendar") {
-                        Button("Today", systemImage: "calendar") { roamActions.run("app.dailies.today") }
-                        Button("Yesterday", systemImage: "chevron.backward") { roamActions.run("app.dailies.yesterday") }
-                        Button("Tomorrow", systemImage: "chevron.forward") { roamActions.run("app.dailies.tomorrow") }
-                        Button("Date…", systemImage: "calendar.badge.clock") { roamActions.run("app.dailies.date") }
-                        Button("Capture to Today", systemImage: "square.and.pencil") { roamActions.run("app.dailies.capture-today") }
-                        Button("Previous Daily Note", systemImage: "arrow.left") { roamActions.run("app.dailies.previous") }
-                        Button("Next Daily Note", systemImage: "arrow.right") { roamActions.run("app.dailies.next") }
+                        Button("Today", systemImage: "calendar") { roam("app.dailies.today") }
+                        Button("Yesterday", systemImage: "chevron.backward") { roam("app.dailies.yesterday") }
+                        Button("Tomorrow", systemImage: "chevron.forward") { roam("app.dailies.tomorrow") }
+                        Button("Date…", systemImage: "calendar.badge.clock") { roam("app.dailies.date") }
+                        Button("Capture to Today", systemImage: "square.and.pencil") { roam("app.dailies.capture-today") }
+                        Button("Previous Daily Note", systemImage: "arrow.left") { roam("app.dailies.previous") }
+                        Button("Next Daily Note", systemImage: "arrow.right") { roam("app.dailies.next") }
                     }
-                    Button("Find Node…", systemImage: "point.3.connected.trianglepath.dotted") { roamActions.run("app.node.find") }
-                    Button("Insert Node Link…", systemImage: "link") { roamActions.run("app.node.insert") }
+                    Button("Find Node…", systemImage: "point.3.connected.trianglepath.dotted") { roam("app.node.find") }
+                    Button("Insert Node Link…", systemImage: "link") { roam("app.node.insert") }
                     Menu("Attachments", systemImage: "paperclip") {
                         Button("Attach File…", systemImage: "doc.badge.plus") { attaching = .cp }
                         Button("Attach Photo or Video…", systemImage: "photo.badge.plus") { attachingPhotos = true }
@@ -421,8 +421,8 @@ struct EditorScreen: View {
         editor.onLink = { link in follow(link) }
         editor.onEditBlock = { edit in sheet = .block(edit) }
         editor.onColumnView = { view in sheet = .columns(view) }
-        editor.onTangle = { scope in message = session.tangle(scope) }
-        editor.onBabel = { job in run(job) }
+        editor.onTangle = { scope in if ProAccess.shared.allows(.babel) { message = session.tangle(scope) } }
+        editor.onBabel = { job in if ProAccess.shared.allows(.babel) { run(job) } }
         editor.onRefreshSetup = { session.refreshSetup() }
         editor.onAgenda = { start, count in model.agendaRequest = .init(start: start, count: count) }
         editor.keymap = model.keymap
@@ -431,6 +431,7 @@ struct EditorScreen: View {
         editor.onFiles = { attachActions.drop($0, method: .attach, attachMethod: .mv) }
         editor.onImage = { attachActions.yankImage($0, ext: $1) }
         editor.onAppCommand = { id in
+            if let feature = ProFeature.required(byCommand: id), !ProAccess.shared.allows(feature) { return }
             if Self.paneCommands.contains(id) {
                 if let onPaneCommand { onPaneCommand(id) } else { message = "Not available here" }
             } else if id == "app.save" {
@@ -550,8 +551,14 @@ extension EditorScreen {
         sheet = .exportSubtree(context.caret)
     }
 
+    /// Org-roam's commands, with Pro.
+    private func roam(_ id: String) {
+        if ProAccess.shared.allows(.roam) { roamActions.run(id) }
+    }
+
     /// org-crypt's commands at the caret, through the passphrase sheet.
     private func crypt(_ id: String) {
+        if let feature = ProFeature.required(byCommand: id), !ProAccess.shared.allows(feature) { return }
         guard let editor else { return }
         let context = editor.editContext()
         switch id {

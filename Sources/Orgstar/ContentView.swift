@@ -341,6 +341,7 @@ struct ContentView: View {
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
         .sheet(item: $panel) { panel in panelView(panel) }
+        .sheet(item: Bindable(ProAccess.shared).paywall) { feature in ProPaywallSheet(feature: feature) }
         .sheet(item: $blockEdit) { request in
             BlockEditorView(edit: request.edit) { content in
                 blockEdit = nil
@@ -550,6 +551,7 @@ struct ContentView: View {
     /// dispatcher does, or to `destination`, and opens it with `open`. `subtree` exports the
     /// subtree at the caret alone; `bodyOnly` leaves out the title and page wrapper.
     private func export(_ format: String, to destination: URL? = nil, open: Bool = false, subtree: Bool = false, bodyOnly: Bool = false) {
+        if let feature = ProFeature.required(byExport: format), !ProAccess.shared.allows(feature) { return }
         if format == "icalendar-agenda" || format == "icalendar-combined" { return exportAgendaCalendars(combined: format == "icalendar-combined") }
         guard let path = session.path, var text = session.document?.text else {
             commands.show("No file is open")
@@ -860,6 +862,7 @@ struct ContentView: View {
                 DispatchQueue.main.async { commands.editor?.perform(SparseTreeCommand(), answers: ["sparse": "/", "regexp": regexp]) }
             }
         case .tangle(let scope):
+            guard ProAccess.shared.allows(.babel) else { return }
             commands.show(session.tangle(scope))
         case .agenda(let start, let days):
             commands.agendaRequest = (start, days)
@@ -886,6 +889,7 @@ struct ContentView: View {
                 }
             }
         case .babel(let job):
+            guard ProAccess.shared.allows(.babel) else { return }
             let run = {
                 commands.show("Running \(job.language) block… (⌘. to cancel)")
                 session.startBabel(job) { commands.show($0) }
@@ -941,7 +945,7 @@ struct ContentView: View {
     /// The desktop widgets' agenda and habits, written where the widget extension reads them,
     /// with the widgets reloaded when they changed.
     private func updateWidgets() async {
-        guard !Task.isCancelled, !workspace.files.isEmpty, let file = AgendaSnapshot.file() else { return }
+        guard !Task.isCancelled, ProAccess.shared.isUnlocked, !workspace.files.isEmpty, let file = AgendaSnapshot.file() else { return }
         let days = widgetAgenda ?? AgendaModel(workspace: workspace)
         widgetAgenda = days
         days.mode = .agenda(span: AgendaSnapshot.dayCount, startOffset: 0)
@@ -952,9 +956,9 @@ struct ContentView: View {
         days.agendaFiles = OrgPreferences.agendaFiles()
         days.options = OrgPreferences.agendaOptions(days.options)
         days.options.logMode = false
-        days.calendarEvents = OrgPreferences.calendarEvents() && CalendarEvents.isAuthorized ? CalendarAccess.events : nil
+        days.calendarEvents = ProAccess.shared.isUnlocked && OrgPreferences.calendarEvents() && CalendarEvents.isAuthorized ? CalendarAccess.events : nil
         days.calendarNames = OrgPreferences.calendarEventCalendars()
-        days.reminderLists = OrgPreferences.agendaReminders() && ReminderLists.isAuthorized ? CalendarAccess.reminders : nil
+        days.reminderLists = ProAccess.shared.isUnlocked && OrgPreferences.agendaReminders() && ReminderLists.isAuthorized ? CalendarAccess.reminders : nil
         days.reminderListNames = OrgPreferences.agendaReminderLists()
         let open = session.openTexts
         await days.refresh(open: open)
@@ -990,6 +994,7 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
+        if let feature = ProFeature.required(byCommand: id), !ProAccess.shared.allows(feature) { return }
         let orgOnly = ["app.refile", "app.refile.copy", "app.archive", "app.clock.in", "app.clock.default", "app.copy-rich-text"].contains(id) || (id.hasPrefix("app.export.") && !id.hasPrefix("app.export.icalendar-")) || id.hasPrefix("org.")
         if orgOnly, !session.isOrg {
             commands.show("Not an org file")

@@ -39,6 +39,17 @@ AND MORE
 - Spotlight search and Quick Look previews of .org files
 - Themes and settings read from the same configuration folder as the Mac app
 
+ORGSTAR PRO
+Editing, the agenda, capture, clocking, tables and search are free. Pro, monthly, yearly or as a one-time lifetime purchase, adds:
+- Running and tangling source blocks
+- PDF, Word and rich text export
+- Encrypted entries
+- Org-roam nodes, daily notes and backlinks
+- Widgets, the Apple Watch app and the clock Live Activity
+- Calendar events and reminders in the agenda
+- Shortcuts actions
+Everyone who downloaded orgstar before Pro keeps all of it.
+
 ## Keywords
 
 org-mode,emacs,outline,todo,agenda,plain text,notes,tasks,gtd,planner,journal,org file,clock

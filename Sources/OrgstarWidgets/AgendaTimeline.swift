@@ -2,6 +2,16 @@ import OrgApp
 import SwiftUI
 import WidgetKit
 
+/// Whether the app lacks Pro, which the widgets need. Only iOS shares the flag with the widgets;
+/// the Mac app stops writing their data instead.
+var widgetsLocked: Bool {
+    #if os(iOS)
+    !ProAccess.isUnlockedNow
+    #else
+    false
+    #endif
+}
+
 struct AgendaEntry: TimelineEntry {
     let date: Date
     /// Nil until the app has written one.
@@ -24,7 +34,8 @@ struct AgendaProvider: TimelineProvider {
     }
 
     static func load() -> AgendaSnapshot? {
-        AgendaSnapshot.file().flatMap(AgendaSnapshot.read)
+        guard !widgetsLocked else { return nil }
+        return AgendaSnapshot.file().flatMap(AgendaSnapshot.read)
     }
 
     static func timeline(_ snapshot: AgendaSnapshot?, now: Date, calendar: Calendar = .current) -> Timeline<AgendaEntry> {

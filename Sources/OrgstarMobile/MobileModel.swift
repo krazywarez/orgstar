@@ -156,9 +156,9 @@ final class MobileModel {
             agenda.excludeArchives = OrgPreferences.agendaExcludeArchives()
             agenda.agendaFiles = OrgPreferences.agendaFiles()
             agenda.options = OrgPreferences.agendaOptions(agenda.options)
-            agenda.calendarEvents = OrgPreferences.calendarEvents() ? calendarEvents : nil
+            agenda.calendarEvents = ProAccess.shared.isUnlocked && OrgPreferences.calendarEvents() ? calendarEvents : nil
             agenda.calendarNames = OrgPreferences.calendarEventCalendars()
-            agenda.reminderLists = OrgPreferences.agendaReminders() ? reminderLists : nil
+            agenda.reminderLists = ProAccess.shared.isUnlocked && OrgPreferences.agendaReminders() ? reminderLists : nil
             agenda.reminderListNames = OrgPreferences.agendaReminderLists()
         }
         settingsVersion += 1
@@ -308,6 +308,13 @@ final class MobileModel {
         }
         await days.refresh(open: session.openTexts)
         let groups = days.groups()
+        guard ProAccess.shared.isUnlocked else {
+            // Widgets read the flag and show that they need Pro.
+            WatchLink.shared.send(.locked(generated: Date()))
+            await updateBadge(OverdueBadge.counts(groups, today: days.today, days: AgendaSnapshot.dayCount))
+            WidgetCenter.shared.reloadAllTimelines()
+            return
+        }
         WatchLink.shared.send(WatchAgenda(groups: groups, today: days.today, clock: clock.running, lastClocked: clock.history.first?.title, generated: Date()))
         await updateBadge(OverdueBadge.counts(groups, today: days.today, days: AgendaSnapshot.dayCount))
         if (try? HabitSnapshot(habits: await days.habits(open: session.openTexts), theme: theme).write()) == true { WidgetCenter.shared.reloadTimelines(ofKind: "sh.krz.orgstar.habits") }

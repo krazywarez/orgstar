@@ -19,6 +19,7 @@ struct OrgstarMobileApp: App {
         if ProcessInfo.processInfo.environment["ORGSTAR_PERF"] != nil { Perf.watchMainThread() }
         #endif
         LiveClock.install()
+        ProStore.shared.start()
         // Early, so that the watch's actions are taken when iOS wakes the app for them.
         WatchLink.shared.activate(MobileModel.shared)
     }
@@ -218,6 +219,12 @@ struct RootView: View {
                 if !workspace.rootPaths.isEmpty { tab = .agenda }
             }
             .interactiveDismissDisabled()
+        }
+        .sheet(item: Bindable(ProAccess.shared).paywall) { ProSheet(feature: $0) }
+        .onChange(of: ProAccess.shared.isUnlocked) {
+            // Calendar and Reminders in the agenda, the widgets and the watch follow Pro.
+            model.reloadConfig()
+            Task { await model.updateWidgets() }
         }
         .sheet(item: Binding(get: { model.clockPrompts.pending }, set: { if $0 == nil { model.clockPrompts.answer(nil) } })) { pending in
             ClockPromptSheet(prompt: pending.prompt) { model.clockPrompts.answer($0) }
