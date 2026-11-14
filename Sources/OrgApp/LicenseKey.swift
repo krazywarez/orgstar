@@ -24,7 +24,7 @@ public struct LicenseKey: Codable, Sendable, Equatable {
     /// The issuer's Ed25519 public key (raw, 32 bytes), base64. `packaging/license-issuer/keygen.sh`
     /// writes it here; until then it is a placeholder whose private half was discarded, and
     /// `scripts/release-mac.sh` refuses to build.
-    public static let publicKey = "HgdAY0pinMJiv7QslPxwinKr+NCpzoEGpObk7PsLtm4=" // placeholder
+    public static let publicKey = "bsxWsmNYsFJiN6e/UaBgRzAmHBry9+sjI8BFFbf21aM="
 
     public init(email: String, transaction: String, issued: Int) {
         self.email = email
