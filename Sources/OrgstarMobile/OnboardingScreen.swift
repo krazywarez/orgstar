@@ -5,7 +5,7 @@ import SwiftUI
 import UserNotifications
 
 /// First launch: what the app does, the folder of org files, and the permissions each
-/// optional feature needs, asked for one at a time and only when the user chooses to.
+/// optional feature needs, each explained on its own page before the system request.
 struct OnboardingScreen: View {
     /// Set once onboarding is done or skipped for a workspace that had folders already.
     static let doneKey = "onboarded"
@@ -90,16 +90,13 @@ struct OnboardingScreen: View {
              text: "orgstar can notify you before timed entries, as Org's appointment reminders do, and show today's overdue count on its icon.") {
             EmptyView()
         } actions: {
-            primary("Allow Notifications") {
+            primary("Continue") {
                 Task {
-                    _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+                    let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+                    // Off when declined, so the agenda doesn't ask later; Settings turns it back on.
+                    if !granted { model.set("reminders", to: .bool(false)) }
                     next()
                 }
-            }
-            secondary("Not Now") {
-                // Off, so the agenda doesn't ask later; Settings turns it back on.
-                model.set("reminders", to: .bool(false))
-                next()
             }
         }
     }
@@ -109,13 +106,12 @@ struct OnboardingScreen: View {
              text: "Show events from Calendar among your agenda's entries. You can choose which calendars in Settings.") {
             EmptyView()
         } actions: {
-            primary("Show Calendar Events") {
+            primary("Continue") {
                 Task {
                     if await model.calendarEvents.requestAccess() { model.set("calendarEvents", to: .bool(true)) }
                     next()
                 }
             }
-            secondary("Not Now") { next() }
         }
     }
 
@@ -124,13 +120,12 @@ struct OnboardingScreen: View {
              text: "Show incomplete reminders with a due date from the Reminders app in your agenda, read-only.") {
             EmptyView()
         } actions: {
-            primary("Show Reminders") {
+            primary("Continue") {
                 Task {
                     if await model.reminderLists.requestAccess() { model.set("agendaReminders", to: .bool(true)) }
                     next()
                 }
             }
-            secondary("Not Now") { next() }
         }
     }
 
