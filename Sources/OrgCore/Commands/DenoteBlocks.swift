@@ -225,3 +225,72 @@ extension EmacsBuffer {
         return out
     }
 }
+
+/// `denote-org-dblock-insert-links` and the others: denote-org's questions, then the block
+/// with its parameters, as `org-create-dblock` writes them, updated.
+public struct InsertDenoteBlock: OrgCommand {
+    public enum Kind: String, CaseIterable, Sendable {
+        case links, missingLinks = "missing-links", backlinks, files, filesAsHeadings = "files-as-headings", sequence
+    }
+
+    public let kind: Kind
+    public init(_ kind: Kind) { self.kind = kind }
+    public var id: String { "org.denote.dblock-insert-\(kind.rawValue)" }
+    public var title: String {
+        switch kind {
+        case .links: "Insert Denote Links Block"
+        case .missingLinks: "Insert Denote Missing Links Block"
+        case .backlinks: "Insert Denote Backlinks Block"
+        case .files: "Insert Denote Files Block"
+        case .filesAsHeadings: "Insert Denote Files as Headings Block"
+        case .sequence: "Insert Denote Sequence Block"
+        }
+    }
+    public func applies(in context: EditContext) -> Bool { true }
+
+    static let sortComponents = ["title", "keywords", "signature", "identifier", "random", "last-modified"]
+
+    /// `prin1-to-string` of a string.
+    static func quoted(_ s: String) -> String {
+        "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
+
+    public func run(in context: EditContext) -> CommandStep {
+        let answers = context.answers
+        let params: String
+        switch kind {
+        case .links, .missingLinks:
+            guard let regexp = answers["regexp"] else { return .prompt(Self.regexpPrompt) }
+            params = ":regexp \(Self.quoted(regexp)) :not-regexp nil :excluded-dirs-regexp nil :sort-by-component nil :reverse-sort nil :id-only nil :include-date nil"
+        case .backlinks:
+            params = ":excluded-dirs-regexp nil :sort-by-component nil :reverse-sort nil :id-only nil :this-heading-only nil :include-date nil"
+        case .files, .filesAsHeadings:
+            guard let regexp = answers["regexp"] else { return .prompt(Self.regexpPrompt) }
+            guard let sort = answers["sort"] else {
+                return .prompt(Prompt(key: "sort", message: "Sort by file name component: ", choices: Self.sortComponents))
+            }
+            let rest = kind == .files ? ":no-front-matter nil :file-separator nil :add-links nil" : ":add-links nil :exclude-tags nil"
+            params = ":regexp \(Self.quoted(regexp)) :not-regexp nil :excluded-dirs-regexp nil :sort-by-component \(sort.isEmpty ? "nil" : sort) :reverse-sort nil " + rest
+        case .sequence:
+            let files = DenoteSequence.files(DenoteBlocks.files(in: context.options.denoteDirectories ?? []).map(\.path))
+            let labels = files.map { ($0.path as NSString).lastPathComponent }
+            guard let file = answers["sequence"] else {
+                guard !files.isEmpty else { return .failed("There are no sequence notes in the denote-directory") }
+                return .prompt(Prompt(key: "sequence", message: "List descendants of: ", choices: labels))
+            }
+            guard let depthText = answers["depth"] else {
+                return .prompt(Prompt(key: "depth", message: "Maximum relative depth from root node (default 2): ", requireMatch: false))
+            }
+            guard let index = labels.firstIndex(of: file) else { return .failed("No sequence note \(file)") }
+            guard let depth = depthText.isEmpty ? 2 : Int(depthText.trimmingCharacters(in: .whitespaces)) else { return .failed("Please enter a number.") }
+            params = ":sequence \(Self.quoted(files[index].sequence)) :depth \(depth)"
+        }
+        return commitBuffer(context) { buffer in
+            let begin = buffer.createDynamicBlock("denote-\(kind.rawValue) " + params)
+            try buffer.updateDynamicBlock(at: begin)
+            buffer.point = begin
+        }
+    }
+
+    static let regexpPrompt = Prompt(key: "regexp", message: "Match files with the given REGEXP: ", requireMatch: false)
+}

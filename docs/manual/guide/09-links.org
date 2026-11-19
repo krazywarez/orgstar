@@ -442,6 +442,12 @@ Dynamic Block, over the files in =denote-directory=:
 | =denote-files-as-headings= | The same, each note's title a heading and its headings one level down |
 | =denote-sequence= | A note's descendants, =:depth= levels deep, indented; with =:sequence ""= every note with a sequence |
 
+Insert Denote Links Block, Insert Denote Missing Links Block, Insert Denote Backlinks Block,
+Insert Denote Files Block, Insert Denote Files as Headings Block and Insert Denote Sequence
+Block (=denote-org-dblock-insert-links= and the others) ask what denote-org asks (the
+regexp; for files, the sort component; for a sequence, the note and the depth, 2 by
+default), then insert the block with all its parameters and fill it.
+
 They take denote-org's parameters: =:not-regexp=, =:sort-by-component= (=title=,
 =keywords=, =signature=, =identifier=, =last-modified=, =random=), =:reverse-sort=,
 =:id-only=, =:include-date=, =:block-name=, and for =denote-files= =:no-front-matter=,

@@ -1089,6 +1089,12 @@ See [[file:09-links.org][Links]].
 | Convert Note Sequence Scheme (=app.node.sequence-convert=) | — | — | — | =denote-sequence-convert=. |
 | Insert Sequence Link… (=app.node.sequence-link=) | — | — | — | =denote-sequence-link=. |
 | Sequence Hierarchy… (=app.node.sequence-hierarchy=) | — | — | — | =denote-sequence-view-hierarchy=. |
+| Insert Denote Links Block (=org.denote.dblock-insert-links=) | — | — | — | =denote-org-dblock-insert-links=. |
+| Insert Denote Missing Links Block (=org.denote.dblock-insert-missing-links=) | — | — | — | =denote-org-dblock-insert-missing-links=. |
+| Insert Denote Backlinks Block (=org.denote.dblock-insert-backlinks=) | — | — | — | =denote-org-dblock-insert-backlinks=. |
+| Insert Denote Files Block (=org.denote.dblock-insert-files=) | — | — | — | =denote-org-dblock-insert-files=. |
+| Insert Denote Files as Headings Block (=org.denote.dblock-insert-files-as-headings=) | — | — | — | =denote-org-dblock-insert-files-as-headings=. |
+| Insert Denote Sequence Block (=org.denote.dblock-insert-sequence=) | — | — | — | =denote-org-dblock-insert-sequence=. |
 
 ** Unbound commands
 

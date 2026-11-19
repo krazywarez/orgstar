@@ -189,6 +189,42 @@ struct DenoteOracleTests {
             }
             #expect(ours == theirs, "\(block)\nours:\n\(ours)\ntheirs:\n\(theirs)")
         }
+        // The insert commands, at the end of a line of text and on an empty line.
+        let inserts: [(lisp: String, kind: InsertDenoteBlock.Kind, answers: [String: String])] = [
+            ("(denote-org-dblock-insert-links \"_emacs\")", .links, ["regexp": "_emacs"]),
+            ("(denote-org-dblock-insert-missing-links \".\")", .missingLinks, ["regexp": "."]),
+            ("(denote-org-dblock-insert-backlinks)", .backlinks, [:]),
+            ("(denote-org-dblock-insert-files \"beta\" 'title)", .files, ["regexp": "beta", "sort": "title"]),
+            ("(denote-org-dblock-insert-files-as-headings \"_work\" nil)", .filesAsHeadings, ["regexp": "_work", "sort": ""]),
+            ("(denote-org-dblock-insert-sequence \(dir.appendingPathComponent("20261004T090000==1--root__seq.org").path.debugDescription) 2)", .sequence,
+             ["sequence": "20261004T090000==1--root__seq.org", "depth": "2"]),
+        ]
+        for (lisp, kind, answers) in inserts {
+            for text in [head + "Last line", head] {
+                try text.write(to: current, atomically: true, encoding: .utf8)
+                let theirs = try DailiesTests.emacs("""
+                    (progn (setq load-path (append (list \(paths)) load-path) coding-system-for-read 'utf-8 coding-system-for-write 'utf-8)
+                      (require 'org) (require 'denote) (require 'denote-sequence nil t) (require 'denote-org)
+                      (setq denote-directory \((dir.path + "/").debugDescription))
+                      (find-file \(current.path.debugDescription))
+                      (goto-char (point-max))
+                      \(lisp)
+                      (princ (buffer-string)))
+                    """)
+                var options = EditingOptions.org
+                options.filePath = current.path
+                options.denoteDirectories = [dir.path]
+                let end = (text as NSString).length
+                let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [end..<end], answers: answers, options: options)
+                var ours = text
+                if case .commit(let result) = InsertDenoteBlock(kind).run(in: context) {
+                    for edit in result.edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) { ours = edit.apply(to: ours) }
+                } else {
+                    ours = "failed"
+                }
+                #expect(ours == theirs, "\(lisp)\nours:\n\(ours)\ntheirs:\n\(theirs)")
+            }
+        }
     }
 
     /// denote-sequence's new parents, children and siblings, relatives and conversions, for

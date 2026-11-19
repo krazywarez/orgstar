@@ -52,6 +52,8 @@
       },
       "shouldTranslate": false
     },
+    "%@ (orgstar+)": {},
+    "%@ a month, billed yearly": {},
     "%@ ago": {
       "localizations": {
         "de": {
@@ -120,6 +122,8 @@
         }
       }
     },
+    "%@ needs orgstar+": {},
+    "%@ needs orgstar+.": {},
     "%@ state": {
       "localizations": {
         "de": {
@@ -1381,6 +1385,7 @@
         }
       }
     },
+    "Activate": {},
     "Add": {
       "localizations": {
         "de": {
@@ -2330,6 +2335,7 @@
       }
     },
     "Allow Notifications": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -3218,6 +3224,7 @@
         }
       }
     },
+    "Billed monthly": {},
     "Blocked entries": {
       "localizations": {
         "de": {
@@ -3422,6 +3429,7 @@
         }
       }
     },
+    "Buy orgstar+…": {},
     "By Category of Selected Line": {
       "localizations": {
         "de": {
@@ -4510,6 +4518,7 @@
         }
       }
     },
+    "Choose a plan": {},
     "Choose your init.el, or the folder holding it (~/.emacs.d, ~/.config/doom).": {
       "localizations": {
         "de": {
@@ -6148,6 +6157,7 @@
         }
       }
     },
+    "Current plan": {},
     "Cycle TODO State": {
       "localizations": {
         "de": {
@@ -7758,6 +7768,7 @@
         }
       }
     },
+    "Editing, the agenda, capture, clocking, tables and search stay free.": {},
     "Editor": {
       "localizations": {
         "de": {
@@ -8611,6 +8622,7 @@
         }
       }
     },
+    "Export, encryption, widgets, the Watch app and more": {},
     "File": {
       "localizations": {
         "de": {
@@ -10210,6 +10222,8 @@
         }
       }
     },
+    "Included in orgstar+": {},
+    "Included, because you downloaded orgstar before orgstar+ existed. Thank you.": {},
     "Incomplete reminders with a due date from the checked lists show in the agenda, read-only; overdue ones under today.": {
       "localizations": {
         "de": {
@@ -10687,6 +10701,7 @@
       }
     },
     "License": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -10720,6 +10735,7 @@
         }
       }
     },
+    "License key": {},
     "Light": {
       "localizations": {
         "de": {
@@ -11406,6 +11422,7 @@
         }
       }
     },
+    "Manage Subscription": {},
     "Manual": {
       "localizations": {
         "de": {
@@ -11950,6 +11967,7 @@
         }
       }
     },
+    "Needs orgstar+": {},
     "Neither": {
       "localizations": {
         "de": {
@@ -13759,6 +13777,7 @@
         }
       }
     },
+    "ORGSTAR1-…": {},
     "Once a day, from the app's own feed. orgstar ▸ Check for Updates… checks now.": {
       "localizations": {
         "de": {
@@ -13793,6 +13812,7 @@
         }
       }
     },
+    "One payment, no subscription": {},
     "One space after the title": {
       "localizations": {
         "de": {
@@ -15023,6 +15043,7 @@
         }
       }
     },
+    "Power features and Apple integrations, on top of everything that stays free.": {},
     "Previous Buffer": {
       "localizations": {
         "de": {
@@ -16213,6 +16234,7 @@
         }
       }
     },
+    "Remove License from This Mac": {},
     "Remove Tag…": {
       "localizations": {
         "de": {
@@ -16655,6 +16677,7 @@
         }
       }
     },
+    "Restore Purchases": {},
     "Revert to File on Disk": {
       "localizations": {
         "de": {
@@ -16893,6 +16916,7 @@
         }
       }
     },
+    "Save %lld%%": {},
     "Save All": {
       "localizations": {
         "de": {
@@ -18832,6 +18856,7 @@
       }
     },
     "Source Code": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -19347,6 +19372,7 @@
         }
       }
     },
+    "Subscriptions renew automatically until cancelled in your Apple Account settings, at least 24 hours before the period ends.": {},
     "Subtree": {
       "localizations": {
         "de": {
@@ -20201,6 +20227,7 @@
         }
       }
     },
+    "Terms of Use": {},
     "Text": {
       "localizations": {
         "de": {
@@ -20269,6 +20296,7 @@
         }
       }
     },
+    "The Watch app needs orgstar+. Get it in orgstar on your iPhone, in Settings.": {},
     "The agenda": {
       "localizations": {
         "de": {
@@ -21360,6 +21388,7 @@
         }
       }
     },
+    "Unlocked. Thanks for supporting orgstar.": {},
     "Unmark": {
       "localizations": {
         "de": {
@@ -22074,6 +22103,7 @@
         }
       }
     },
+    "Widgets need orgstar+.": {},
     "Word Count": {
       "localizations": {
         "de": {
@@ -22245,6 +22275,7 @@
         }
       }
     },
+    "You own orgstar+. Thank you for supporting orgstar.": {},
     "Your capture templates, from the app, the share sheet, widgets and the watch.": {
       "localizations": {
         "de": {
@@ -22313,6 +22344,7 @@
         }
       }
     },
+    "Your key is in the email from the purchase. It is checked on this Mac; nothing is sent.": {},
     "Your org files on iPhone, in the folders where they already are.": {
       "localizations": {
         "de": {
@@ -22347,6 +22379,7 @@
         }
       }
     },
+    "Your orgstar+ subscription is active. Thank you for supporting orgstar.": {},
     "Your own bindings go in %@, on top of the preset.": {
       "localizations": {
         "de": {
@@ -22386,7 +22419,6 @@
     },
     "agenda.later": {
       "comment": "Shows the next days in the agenda",
-      "extractionState": "extracted_with_value",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -22428,7 +22460,6 @@
     },
     "agenda.mark-done": {
       "comment": "Swipe action that marks the entry done",
-      "extractionState": "extracted_with_value",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -22541,7 +22572,6 @@
     },
     "none.date": {
       "comment": "No scheduled or deadline date",
-      "extractionState": "extracted_with_value",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -22583,7 +22613,6 @@
     },
     "none.folder": {
       "comment": "No configuration folder chosen",
-      "extractionState": "extracted_with_value",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -22625,7 +22654,6 @@
     },
     "none.priority": {
       "comment": "No priority",
-      "extractionState": "extracted_with_value",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -22667,7 +22695,6 @@
     },
     "none.state": {
       "comment": "No TODO state",
-      "extractionState": "extracted_with_value",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -22709,7 +22736,6 @@
     },
     "none.tags": {
       "comment": "No tags",
-      "extractionState": "extracted_with_value",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -23058,6 +23084,8 @@
         }
       }
     },
+    "orgstar+": {},
+    "orgstar+ is a one-time purchase of $39.99 for this Mac. Editing, the agenda, capture, clocking and search stay free.": {},
     "to": {
       "localizations": {
         "de": {
@@ -23099,6 +23127,7 @@
       "shouldTranslate": false
     },
     "© 2026 Christian Cleberg. Free software under the 0BSD license.": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
