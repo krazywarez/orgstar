@@ -1070,6 +1070,7 @@ See [[file:09-links.org][Links]].
 | Capture to Daily Note for Date… (=app.dailies.capture-date=) | =C-c n d v= | — | =SPC n r d D= (N) | =org-roam-dailies-capture-date=. |
 | Next Daily Note (=app.dailies.next=) | =C-c n d f= | — | =SPC n r d f= (N) | =org-roam-dailies-goto-next-note=. |
 | Previous Daily Note (=app.dailies.previous=) | =C-c n d b= | — | =SPC n r d b= (N) | =org-roam-dailies-goto-previous-note=. |
+| Rename Note from Front Matter (=app.node.rename-from-front-matter=) | — | — | — | =denote-rename-file-using-front-matter=. |
 
 ** Unbound commands
 

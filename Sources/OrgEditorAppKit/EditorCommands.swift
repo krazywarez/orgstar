@@ -121,6 +121,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.dailies.previous", title: "Previous Daily Note", action: .app),
         EditorCommand(id: "app.node.find", title: "Find Node…", action: .app),
         EditorCommand(id: "app.node.insert", title: "Insert Node Link…", action: .app),
+        EditorCommand(id: "app.node.rename-from-front-matter", title: "Rename Note from Front Matter", action: .app),
         EditorCommand(id: "app.attach.attach", title: "Attach File…", action: .app),
         EditorCommand(id: "app.attach.move", title: "Attach File by Moving…", action: .app),
         EditorCommand(id: "app.attach.link", title: "Attach File as Hard Link…", action: .app),

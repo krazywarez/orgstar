@@ -56,6 +56,53 @@ struct DailiesTests {
         #expect(try dailies.ensure(Self.day).created == false)
     }
 
+    @Test func denoteJournalEntries() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-journal-\(UUID().uuidString)").resolvingSymlinksInPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let journal = Dailies(directory: folder.path, journal: Dailies.Journal())
+        let made = try journal.ensure(Self.day)
+        #expect(made.created && (made.path as NSString).lastPathComponent == "20261011T120000--sunday-11-october-2026__journal.org")
+        #expect(try String(contentsOfFile: made.path, encoding: .utf8).hasPrefix("#+title:      Sunday 11 October 2026\n#+date:       [2026-10-11 Sun 12:00]\n#+filetags:   :journal:\n"))
+        // Another time the same day finds the entry.
+        let later = Calendar.current.date(byAdding: .hour, value: 3, to: Self.day)!
+        #expect(try journal.ensure(later) == (made.path, false))
+        try journal.ensure(Calendar.current.date(byAdding: .day, value: -2, to: Self.day)!)
+        try "x".write(to: folder.appendingPathComponent("20261010T080000--not-a-journal__work.org"), atomically: true, encoding: .utf8)
+        #expect(journal.files().map { ($0 as NSString).lastPathComponent } == ["20261009T120000--friday-9-october-2026__journal.org", (made.path as NSString).lastPathComponent])
+        #expect(try (journal.neighbor(of: made.path, by: -1) as NSString).lastPathComponent == "20261009T120000--friday-9-october-2026__journal.org")
+    }
+
+    @Test func newDenoteNote() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-denote-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: folder) }
+        let note = try DenoteNote.create(title: "Field Notes", keywords: ["Work", "ideas"], in: folder, now: Self.day)
+        #expect((note.path as NSString).lastPathComponent == "20261011T120000--field-notes__ideas_work.org" && note.id == "20261011T120000")
+        #expect(try String(contentsOfFile: note.path, encoding: .utf8).hasPrefix("#+title:      Field Notes\n"))
+        #expect(throws: (any Error).self) { try DenoteNote.create(title: "Field Notes", keywords: ["work", "ideas"], in: folder, now: Self.day) }
+    }
+
+    @MainActor
+    @Test func renamesFromFrontMatter() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-denote-\(UUID().uuidString)").resolvingSymlinksInPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let old = folder.appendingPathComponent("20261011T120000--old__x.org").path
+        try "#+title:      Old\n#+filetags:   :x:\n".write(toFile: old, atomically: true, encoding: .utf8)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: folder.appendingPathComponent(".r")))
+        session.open(old)
+        var opened: String?
+        var shown: [String] = []
+        let actions = RoamActions(session: session, roots: { [folder.path] }, nodes: { [] }, show: { shown.append($0) }, ask: { $1(nil) },
+                                  open: { path, _ in opened = path }, insertLink: { _, _ in }, refresh: {})
+        if case .failed = session.perform(ReplaceText(old: "#+title:      Old\n#+filetags:   :x:\n", new: "#+title:      New Name\n#+filetags:   :x:y:\n"), path: old, at: 0, expect: nil) {
+            Issue.record("edit failed"); return
+        }
+        actions.renameFromFrontMatter()
+        let new = folder.appendingPathComponent("20261011T120000--new-name__x_y.org").path
+        #expect(opened == new && !FileManager.default.fileExists(atPath: old), "\(shown)")
+        #expect(try String(contentsOfFile: new, encoding: .utf8) == "#+title:      New Name\n#+filetags:   :x:y:\n")
+    }
+
     @MainActor
     @Test func captureFilesTheEntryAtTheEnd() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-daily-\(UUID().uuidString)").resolvingSymlinksInPath()
@@ -74,6 +121,17 @@ struct DailiesTests {
 }
 
 struct NodeIndexTests {
+    @Test func denoteNotesAreNodes() throws {
+        let store = try IndexStore()
+        let settings = IndexSettings()
+        try store.write(FileRecord(path: "/n/20261011T120000--a__x.org", root: "/n", kind: .org, bytes: Array("#+title: A note\n".utf8), mtime: 1, settings: settings))
+        try store.write(FileRecord(path: "/n/20261012T120000--untitled.org", root: "/n", kind: .org, bytes: [], mtime: 1, settings: settings))
+        try store.write(FileRecord(path: "/n/plain.org", root: "/n", kind: .org, bytes: Array("#+title: Plain\n".utf8), mtime: 1, settings: settings))
+        let nodes = try store.denoteNodes()
+        #expect(nodes.map(\.id) == ["20261011T120000", "20261012T120000"])
+        #expect(nodes.map(\.title) == ["A note", "20261012T120000--untitled"])
+    }
+
     @Test func filesAndHeadingsWithIDsAreNodes() throws {
         let store = try IndexStore()
         let settings = IndexSettings()

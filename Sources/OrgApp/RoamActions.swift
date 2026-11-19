@@ -3,7 +3,8 @@ import OrgCore
 import OrgIndex
 
 /// The `app.dailies.` and `app.node.` commands: org-roam's daily notes, and finding and
-/// linking ID nodes, with the platform's questions and file opening.
+/// linking ID nodes, or with Denote set, denote-journal's entries and Denote's notes, with
+/// the platform's questions and file opening.
 @MainActor
 public struct RoamActions {
     public var session: DocumentSession
@@ -37,6 +38,8 @@ public struct RoamActions {
     }
 
     private var dailies: Dailies? { Dailies.configured(roots: roots()) }
+    private var denote: Bool { OrgPreferences.usesDenote() }
+    private var linkType: String { denote ? "denote:" : "id:" }
 
     private func day(_ offset: Int, from now: Date = Date()) -> Date {
         Calendar.current.date(byAdding: .day, value: offset, to: now) ?? now
@@ -72,6 +75,8 @@ public struct RoamActions {
             } catch {
                 show("\(error)")
             }
+        case "app.node.rename-from-front-matter":
+            renameFromFrontMatter()
         case "app.node.find":
             chooseNode("Node: ") { choice in
                 switch choice {
@@ -82,8 +87,8 @@ public struct RoamActions {
         case "app.node.insert":
             chooseNode("Node: ") { choice in
                 switch choice {
-                case .existing(let node): insertLink("id:" + node.id, node.title)
-                case .created(_, let id, let title): insertLink("id:" + id, title)
+                case .existing(let node): insertLink(linkType + node.id, node.title)
+                case .created(_, let id, let title): insertLink(linkType + id, title)
                 }
             }
         default:
@@ -146,7 +151,8 @@ public struct RoamActions {
     }
 
     /// `org-roam-node-read`: a node by its title, with its file's name when titles repeat. A
-    /// title no node has makes a node with it, as org-roam's default capture template does.
+    /// title no node has makes a node with it, as org-roam's default capture template does;
+    /// with Denote, `denote` asks for its keywords and makes the note.
     private func chooseNode(_ message: String, _ then: @escaping (NodeChoice) -> Void) {
         let all = nodes()
         let counts = Dictionary(all.map { ($0.title, 1) }, uniquingKeysWith: +)
@@ -158,6 +164,7 @@ public struct RoamActions {
             if let index = labels.firstIndex(of: answer) { return then(.existing(all[index])) }
             let title = answer.trimmingCharacters(in: .whitespaces)
             guard !title.isEmpty else { return }
+            if denote { return createDenote(title, known: all, then) }
             guard let folder = RoamNode.directory(roots: roots()) else { return show("No folder for new nodes") }
             do {
                 let node = try RoamNode.create(title: title, in: folder)
@@ -167,6 +174,44 @@ public struct RoamActions {
             } catch {
                 show("Can't make the node: \(error)")
             }
+        }
+    }
+
+    /// `denote`: the keywords, separated by commas or spaces, then the note in
+    /// `denote-directory`. The keywords already in file names are offered.
+    private func createDenote(_ title: String, known: [IndexStore.Node], _ then: @escaping (NodeChoice) -> Void) {
+        let keywords = Denote.keywords(known.flatMap { Denote.name(ofFile: $0.location.path).keywords })
+        ask(Prompt(key: "keywords", message: "New file KEYWORDS: ", choices: keywords, requireMatch: false)) { answer in
+            guard let answer else { return }
+            guard let folder = DenoteNote.directory(roots: roots()) else { return show("No folder for new notes") }
+            do {
+                let note = try DenoteNote.create(title: title, keywords: answer.split(whereSeparator: { $0 == "," || $0.isWhitespace }).map(String.init), in: folder)
+                refresh()
+                show("Created \((note.path as NSString).lastPathComponent)")
+                then(.created(path: note.path, id: note.id, title: title))
+            } catch {
+                show("Can't make the note: \(error)")
+            }
+        }
+    }
+
+    /// `denote-rename-file-using-front-matter`: the open file renamed from its title and
+    /// keywords, keeping its identifier and signature.
+    func renameFromFrontMatter() {
+        guard let path = session.path else { return show("No file is open") }
+        guard let text = session.text(of: path) else { return show("Can't read \((path as NSString).lastPathComponent)") }
+        guard let target = Denote.renamed(path, text: text) else { return show("Not a Denote note: no identifier") }
+        guard target != path else { return show("Nothing to rename") }
+        guard !FileManager.default.fileExists(atPath: target) else { return show("\((target as NSString).lastPathComponent) is already there") }
+        guard session.save(path) else { return show("Can't save \((path as NSString).lastPathComponent)") }
+        do {
+            try FileManager.default.moveItem(atPath: path, toPath: target)
+            session.kill(path)
+            refresh()
+            open(target, 0)
+            show("Renamed to \((target as NSString).lastPathComponent)")
+        } catch {
+            show("Can't rename: \(error.localizedDescription)")
         }
     }
 }

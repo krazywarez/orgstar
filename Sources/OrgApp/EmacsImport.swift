@@ -416,7 +416,7 @@ public struct EmacsImport: Sendable {
 
     // MARK: - Results
 
-    static let orgRelated = ["org-", "appt-", "display-line-numbers", "fill-column", "evil-", "doom-font", "doom-variable-pitch-font", "doom-theme", "calendar-week-start-day"]
+    static let orgRelated = ["org-", "denote-", "appt-", "display-line-numbers", "fill-column", "evil-", "doom-font", "doom-variable-pitch-font", "doom-theme", "calendar-week-start-day"]
 
     mutating func build(from scanner: Scanner) {
         var next = 0
@@ -557,6 +557,13 @@ public struct EmacsImport: Sendable {
             add(name, .string(format))
         case "org-timer-default-timer":
             if let text = value.string { add(name, .string(text)) } else if let number = value.integer { add(name, .string(String(number))) } else { note("not a string or number") }
+        case "denote-directory", "denote-journal-directory", "denote-journal-keyword":
+            guard let text = value.string else { return note("not a string") }
+            add(name, .string(text))
+        case "denote-journal-title-format":
+            let formats = ["day-date-month-year": "%A %e %B %Y", "day-date-month-year-24h": "%A %e %B %Y %H:%M",
+                           "day-date-month-year-12h": "%A %e %B %Y %I:%M %p"]
+            if let format = value.string ?? value.symbol.flatMap({ formats[$0] }) { add(name, .string(format)) } else { note("not a format or a known style") }
         case "org-roam-directory", "org-roam-dailies-directory":
             guard let dir = value.string else { return note("not a string") }
             add(name, .string(dir))

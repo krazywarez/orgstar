@@ -172,6 +172,15 @@ public enum OrgPreferences {
     public static func dailiesFile(_ defaults: UserDefaults = .standard) -> String { string("dailiesFile", defaults).nonEmpty ?? "%<%Y-%m-%d>.org" }
     public static func dailiesHead(_ defaults: UserDefaults = .standard) -> String { string("dailiesHead", defaults).nonEmpty ?? "#+title: %<%Y-%m-%d>\n" }
     public static func dailiesEntry(_ defaults: UserDefaults = .standard) -> String { string("dailiesEntry", defaults).nonEmpty ?? "* %?" }
+    /// Whether the note and daily-note commands follow Denote rather than org-roam.
+    public static func usesDenote(_ defaults: UserDefaults = .standard) -> Bool { string("notesPackage", defaults) == "denote" }
+    /// `denote-directory`; empty for the first folder.
+    public static func denoteDirectory(_ defaults: UserDefaults = .standard) -> String { string("denoteDirectory", defaults) }
+    /// `denote-journal-directory`, relative to `denote-directory` unless absolute.
+    public static func denoteJournalDirectory(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalDirectory", defaults).nonEmpty ?? "journal" }
+    public static func denoteJournalKeyword(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalKeyword", defaults).nonEmpty ?? "journal" }
+    /// `denote-journal-title-format`, a `format-time-string` format.
+    public static func denoteJournalTitle(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalTitle", defaults).nonEmpty ?? "%A %e %B %Y" }
     /// `org-attach-id-dir`, relative to an org file's folder unless absolute.
     public static func attachIDDir(_ defaults: UserDefaults = .standard) -> String {
         let dir = string("attachIDDir", defaults)

@@ -931,6 +931,7 @@ struct CommandPalette: View {
         ("app.crypt.encrypt-entry", "Encrypt Entry…"), ("app.crypt.open-entry", "Decrypt Entry…"), ("app.crypt.decrypt-entry", "Decrypt Entry in File…"),
         ("app.crypt.encrypt-entries", "Encrypt Tagged Entries…"), ("app.crypt.forget-passphrase", "Forget Encryption Passphrase"),
         ("app.backlinks", "Show Backlinks"), ("app.node.find", "Find Node…"), ("app.node.insert", "Insert Node Link…"),
+        ("app.node.rename-from-front-matter", "Rename Note from Front Matter"),
         ("app.dailies.today", "Go to Today's Daily Note"), ("app.dailies.yesterday", "Go to Yesterday's Daily Note"),
         ("app.dailies.tomorrow", "Go to Tomorrow's Daily Note"), ("app.dailies.date", "Go to Daily Note for Date…"),
         ("app.dailies.capture-today", "Capture to Today's Daily Note"), ("app.dailies.capture-yesterday", "Capture to Yesterday's Daily Note"),

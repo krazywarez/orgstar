@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import OrgCore
 
 /// What the index knows about a file without reading it.
 public struct FileState: Sendable, Equatable {
@@ -437,6 +438,20 @@ public final class IndexStore: Sendable {
             (record.fileID.map { [Node(id: $0, title: fileTitle(record.path, record.title), location: .file(record.path, contentHash: record.hash))] } ?? [])
                 + record.headings.compactMap { heading in heading.orgID.map { Node(id: $0, title: heading.title, location: location(record, heading)) } }
         }
+        return indexed.filter { overlay[$0.location.path] == nil } + live
+    }
+
+    /// Every Org file with a Denote identifier in its name, as a node with that identifier,
+    /// titled by its `#+TITLE`, else its name; unsaved buffers' titles in place of their files'.
+    public func denoteNodes(overlay: [String: FileRecord] = [:]) throws -> [Node] {
+        func node(_ path: String, _ title: String?, _ hash: String) -> Node? {
+            guard let id = Denote.identifier(ofFile: path) else { return nil }
+            return Node(id: id, title: title ?? ((path as NSString).lastPathComponent as NSString).deletingPathExtension, location: .file(path, contentHash: hash))
+        }
+        let indexed = try database.read { db in
+            try Row.fetchAll(db, sql: "SELECT path, hash, title FROM files WHERE kind = 'org' ORDER BY path").compactMap { node($0["path"], $0["title"], $0["hash"]) }
+        }
+        let live = overlay.values.sorted { $0.path < $1.path }.compactMap { node($0.path, $0.title, $0.hash) }
         return indexed.filter { overlay[$0.location.path] == nil } + live
     }
 

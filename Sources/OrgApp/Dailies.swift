@@ -4,6 +4,7 @@ import OrgCore
 /// org-roam-dailies (org-roam 2.3): a file a day in `org-roam-dailies-directory` under
 /// `org-roam-directory`, named and started as its default capture template does,
 /// `%<%Y-%m-%d>.org` with `#+title: %<%Y-%m-%d>`, and an ID like any new org-roam file.
+/// With `journal` set, denote-journal's instead: a Denote note a day with the journal keyword.
 public struct Dailies: Sendable, Equatable {
     public struct Failure: Error, Equatable, CustomStringConvertible {
         public let description: String
@@ -18,17 +19,37 @@ public struct Dailies: Sendable, Equatable {
     public var head: String
     /// What Capture to Daily adds, an org-capture template.
     public var entry: String
+    /// denote-journal's settings, in place of `file` and `head`.
+    public var journal: Journal?
 
-    public init(directory: String, file: String = "%<%Y-%m-%d>.org", head: String = "#+title: %<%Y-%m-%d>\n", entry: String = "* %?") {
+    public struct Journal: Sendable, Equatable {
+        /// `denote-journal-keyword`.
+        public var keyword: String
+        /// `denote-journal-title-format`, a `format-time-string` format.
+        public var title: String
+
+        public init(keyword: String = "journal", title: String = "%A %e %B %Y") {
+            self.keyword = keyword
+            self.title = title
+        }
+    }
+
+    public init(directory: String, file: String = "%<%Y-%m-%d>.org", head: String = "#+title: %<%Y-%m-%d>\n", entry: String = "* %?", journal: Journal? = nil) {
         self.directory = directory
         self.file = file
         self.head = head
         self.entry = entry
+        self.journal = journal
     }
 
     /// The settings' dailies: `org-roam-directory`, by default the first folder, and
     /// `org-roam-dailies-directory` in it. Nil without a folder.
     public static func configured(roots: [String], defaults: UserDefaults = .standard) -> Dailies? {
+        if OrgPreferences.usesDenote(defaults) {
+            guard let base = DenoteNote.directory(roots: roots, defaults: defaults) else { return nil }
+            return Dailies(directory: OrgAttach.expand(OrgPreferences.denoteJournalDirectory(defaults), in: base), entry: OrgPreferences.dailiesEntry(defaults),
+                           journal: Journal(keyword: Denote.keyword(OrgPreferences.denoteJournalKeyword(defaults)), title: OrgPreferences.denoteJournalTitle(defaults)))
+        }
         let roam = OrgPreferences.roamDirectory(defaults)
         guard let base = roam.isEmpty ? roots.first : OrgAttach.expand(roam, in: roots.first ?? NSHomeDirectory()) else { return nil }
         return Dailies(directory: OrgAttach.expand(OrgPreferences.dailiesDirectory(defaults), in: base),
@@ -50,12 +71,21 @@ public struct Dailies: Sendable, Equatable {
     }
 
     public func path(for day: Date) -> String {
-        OrgAttach.expand(Self.expandTime(file, day).trimmingCharacters(in: .whitespaces), in: directory)
+        if let journal {
+            let date = Denote.identifier(for: day).prefix(8)
+            if let found = files().first(where: { Denote.identifier(ofFile: $0)?.hasPrefix(date) == true }) { return found }
+            let name = Denote.fileName(identifier: Denote.identifier(for: day), title: Self.strftime(journal.title, day), keywords: [journal.keyword])
+            return (directory as NSString).appendingPathComponent(name)
+        }
+        return OrgAttach.expand(Self.expandTime(file, day).trimmingCharacters(in: .whitespaces), in: directory)
     }
 
     /// The file's text when it's new: the head, ending in a newline, under a property drawer
     /// with the ID, as `org-entry-put` puts it at the start.
     public func newText(_ day: Date, id: String) -> String {
+        if let journal {
+            return Denote.frontMatter(title: Self.strftime(journal.title, day), date: day, keywords: [journal.keyword], identifier: Denote.identifier(for: day))
+        }
         var text = Self.expandTime(head, day)
         if !text.hasSuffix("\n") { text += "\n" }
         return OrgAttach.ensuringID(text, at: 0) { id }.text
@@ -72,13 +102,14 @@ public struct Dailies: Sendable, Equatable {
     }
 
     /// `org-roam-dailies--list-files`: the org files in the folder and below, without hidden,
-    /// backup and auto-save files, sorted.
+    /// backup and auto-save files, sorted. For a Denote journal, those with its keyword.
     public func files() -> [String] {
         let paths = (FileManager.default.enumerator(atPath: directory)?.allObjects as? [String]) ?? []
         return paths.compactMap { relative -> String? in
             let name = (relative as NSString).lastPathComponent
             guard (relative as NSString).pathExtension == "org", !relative.split(separator: "/").contains(where: { $0.hasPrefix(".") }),
                   !name.hasPrefix("#"), !name.hasSuffix("~") else { return nil }
+            if let journal, !Denote.name(ofFile: name).keywords.contains(journal.keyword) { return nil }
             return (directory as NSString).appendingPathComponent(relative)
         }.sorted()
     }

@@ -127,6 +127,15 @@ under one of your sidebar folders. An =ID= in the property drawer before a file'
 heading names the file, as org-roam's file nodes do, and the link opens the file. A link
 to an ID that isn't indexed shows =No heading has the ID= followed by the ID.
 
+** denote links
+
+=denote:= links name a Denote note by its identifier, as in
+=[[denote:20261119T120000][A note]]=. The note is the indexed file whose name has the
+identifier, at its start or after =@@=; an Org file comes before others with the same
+identifier, such as a PDF. A search after =::=, such as =::#custom-id= or =::*Heading=,
+works as in a =file:= link. Backlinks list =denote:= links to a file, and to a heading when
+the link searches for it.
+
 ** Timestamps
 
 =C-c C-o= (Mac =⌃⌘O=) or =⌘=-click on a timestamp opens the agenda on that day, as
@@ -325,6 +334,40 @@ what a new note starts with, and what capturing adds; =%<…>= formats the note'
 =format-time-string= does. The entry is an org-capture template; its date escapes
 (=%t=, =%U= and the like) use the note's day. Import from Emacs reads them from the first of
 =org-roam-dailies-capture-templates=. See [[file:13-configuration.org][Configuration]].
+
+** Denote
+
+With =notes-package = "denote"= in =config.toml=, the same commands follow Denote:
+
+- Find Node… and Insert Node Link… list the Org files whose names have a Denote
+  identifier, titled by their =#+title:=, and Insert Node Link… inserts
+  =[[denote:…][Title]]=.
+- A title no note has asks for keywords, separated by commas or spaces, offering the
+  keywords in existing file names, then makes the note in =denote-directory= (the first
+  folder unless set), as =denote= does with its default prompts:
+
+  #+BEGIN_SRC org
+  ,#+title:      Field Notes
+  ,#+date:       [2026-11-19 Thu 12:00]
+  ,#+filetags:   :ideas:work:
+  ,#+identifier: 20261119T120000
+  #+END_SRC
+
+  named =20261119T120000--field-notes__ideas_work.org=: the title in lower case without
+  punctuation, words joined by =-=; the keywords sorted, each one word, joined by =_=.
+- The daily-note commands work on denote-journal's entries: notes in
+  =denote-journal-directory= (=journal=, under =denote-directory=) with the
+  =denote-journal-keyword= (=journal=). A day's entry is the one whose identifier has its
+  date; a new one is titled by =denote-journal-title-format= (="%A %e %B %Y"=). Capturing
+  adds =org-roam-dailies-entry= as for org-roam.
+- Rename Note from Front Matter renames the open file from its =#+title:= and
+  =#+filetags:=, keeping its identifier and signature, as
+  =denote-rename-file-using-front-matter= does. Links keep working, as they use the
+  identifier.
+
+Import from Emacs reads =denote-directory=, =denote-journal-directory=,
+=denote-journal-keyword= and =denote-journal-title-format=. Denote notes in Markdown or
+plain text are not supported.
 
 * Inline images
 

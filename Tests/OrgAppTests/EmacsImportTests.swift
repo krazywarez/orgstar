@@ -264,6 +264,22 @@ struct EmacsImportTests {
         #expect(s["org-roam-dailies-entry"] == .string("* %<%H:%M> %?"))
     }
 
+    @Test func readsDenote() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try #"""
+            (setq denote-directory "~/notes/")
+            (setq denote-journal-directory "~/notes/journal/" denote-journal-keyword "diary")
+            (setq denote-journal-title-format 'day-date-month-year-24h)
+            """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let s = settings(EmacsImport.scan(EmacsImport.files(in: folder)))
+        #expect(s["denote-directory"] == .string("~/notes/"))
+        #expect(s["denote-journal-directory"] == .string("~/notes/journal/"))
+        #expect(s["denote-journal-keyword"] == .string("diary"))
+        #expect(s["denote-journal-title-format"] == .string("%A %e %B %Y %H:%M"))
+    }
+
     @Test func readsPublishingProjects() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

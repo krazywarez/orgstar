@@ -179,6 +179,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-track-ordered-property-with-tag= |                       |
 | =org-timer-format=, =org-timer-default-timer= |                  |
 | =org-roam-directory=, =org-roam-dailies-directory=, =org-roam-dailies-file=, =org-roam-dailies-head=, =org-roam-dailies-entry= | |
+| =notes-package=, =denote-directory=, =denote-journal-directory=, =denote-journal-keyword=, =denote-journal-title-format= | |
 | =org-attach-id-dir=, =org-attach-use-inheritance= |              |
 | =org-yank-image-save-method=, =org-yank-dnd-method= |            |
 | =org-crypt-tag-matcher=          |                            |
@@ -238,6 +239,11 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-roam-dailies-file= | string | ="%<%Y-%m-%d>.org"= | A daily note's file name; =%<…>= formats its date. |
 | =org-roam-dailies-head= | string | ="#+title: %<%Y-%m-%d>\n"= | What a new daily note starts with, under its =ID=. |
 | =org-roam-dailies-entry= | string | ="* %?"= | The capture template Capture to Daily Note files. See [[file:09-links.org][Links]]. |
+| =notes-package= | string | ="org-roam"= | Whose conventions Find Node…, Insert Node Link… and the daily-note commands follow: ="org-roam"= or ="denote"=. |
+| =denote-directory= | string | =""= | The folder new Denote notes go in; empty for the first sidebar folder. Mirrors =denote-directory=. |
+| =denote-journal-directory= | string | ="journal"= | The folder journal entries are in, relative to =denote-directory=. Mirrors =denote-journal-directory=. |
+| =denote-journal-keyword= | string | ="journal"= | The keyword journal entries have. Mirrors =denote-journal-keyword=. |
+| =denote-journal-title-format= | string | ="%A %e %B %Y"= | A new journal entry's title, a =format-time-string= format. |
 | =org-timer-format= | string | ="%s "= | What Insert Timer Value writes, with =%s= for the =h:mm:ss= value. Mirrors =org-timer-format=. |
 | =org-timer-default-timer= | string | ="0"= | The countdown Set Countdown Timer… offers, in minutes or =h:mm:ss=; ="0"= offers none. Mirrors =org-timer-default-timer=. |
 | =org-attach-id-dir= | string | ="data/"= | The folder ID-based attachment folders go in, relative to the org file's folder unless absolute. See [[file:04-outlines.org][Outlines]]. Mirrors =org-attach-id-dir=. |
@@ -617,6 +623,8 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-agenda-todo-ignore-scheduled=, =-deadlines=, =-timestamp=      | The symbol or number as a string; =org-agenda-todo-ignore-with-date= and =org-agenda-tags-todo-honor-ignore-options= as booleans |
 | =org-track-ordered-property-with-tag=                              | A tag name as given; =t= becomes ="t"=, =nil= ="nil"=                                         |
 | =org-roam-directory=, =org-roam-dailies-directory=                 | The same keys, when the value is a string or a form that makes one                          |
+| =denote-directory=, =denote-journal-directory=, =denote-journal-keyword= | The same keys, when the value is a string |
+| =denote-journal-title-format=                                      | The same key; the symbols =day-date-month-year=, =-24h= and =-12h= become their formats       |
 | =org-roam-dailies-capture-templates=                               | =org-roam-dailies-file=, =-head= and =-entry=, from the first template's =(file+head NAME HEAD)= target and template |
 | =org-timer-format=, =org-timer-default-timer=                     | The same keys; a number becomes a string                                                     |
 | =org-attach-id-dir=                                                | The same key, when the value is a string or an =expand-file-name= form                         |
