@@ -850,7 +850,7 @@ struct AgendaScreen: View, Equatable {
     private func perform(_ command: any OrgCommand, _ path: String, _ offset: Int, answers: [String: String] = [:]) -> String? {
         switch session.perform(command, path: path, at: offset, expect: nil, answers: answers) {
         case .failed(let text): text
-        case .prompt: "\(command.title) needs an answer; run it on the entry itself"
+        case .prompt: String(localized: "\(CommandTitle.localized(command.title)) needs an answer; run it on the entry itself", comment: "A command run from the agenda that asks a question")
         case .external(let request): MobileEditor.unavailable(request, title: command.title)
         case .commit: nil
         }

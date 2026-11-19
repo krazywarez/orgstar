@@ -27,7 +27,8 @@ struct EchoArea: View {
                     ForEach(commands.keyHints, id: \.self) { hint in
                         HStack(spacing: 8) {
                             Text(hint.key).font(.system(.body, design: .monospaced)).foregroundStyle(.tint)
-                            Text(hint.title).foregroundStyle(hint.title == "+prefix" ? .secondary : .primary).lineLimit(1)
+                            Text(hint.title == "+prefix" ? String(localized: "+prefix", comment: "Key hint: the key starts a longer sequence") : hint.title)
+                                .foregroundStyle(hint.title == "+prefix" ? .secondary : .primary).lineLimit(1)
                         }
                     }
                 }

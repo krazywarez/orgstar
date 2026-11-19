@@ -154,6 +154,76 @@
         }
       }
     },
+    "%@ can't run here": {
+      "comment": "A command that doesn't apply in column view",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kann hier nicht ausgeführt werden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no se puede ejecutar aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'exécuter %@ ici"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@はここでは実行できません"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível executar %@ aqui"
+          }
+        }
+      }
+    },
+    "%@ isn't available on iPhone and iPad.": {
+      "comment": "A command that runs only on the Mac",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist auf iPhone und iPad nicht verfügbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no está disponible en iPhone ni en iPad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ n'est pas disponible sur iPhone et iPad."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@はiPhoneとiPadでは利用できません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ não está disponível no iPhone e no iPad."
+          }
+        }
+      }
+    },
     "%@ late": {
       "localizations": {
         "de": {
@@ -184,6 +254,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ de atraso"
+          }
+        }
+      }
+    },
+    "%@ needs an answer; run it on the entry itself": {
+      "comment": "A command run from the agenda that asks a question",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ braucht eine Antwort; führe den Befehl im Eintrag selbst aus"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ necesita una respuesta; ejecútalo en la propia entrada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ demande une réponse ; exécutez la commande dans l'entrée elle-même"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@は入力が必要です。エントリ上で直接実行してください"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ precisa de uma resposta; execute o comando na própria entrada"
           }
         }
       }
@@ -1238,6 +1343,41 @@
         }
       },
       "shouldTranslate": false
+    },
+    "+prefix": {
+      "comment": "Key hint: the key starts a longer sequence",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+Präfix"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+prefijo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+préfixe"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+プレフィックス"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+prefixo"
+          }
+        }
+      }
     },
     "+work-boss|LEVEL>2/!TODO": {
       "shouldTranslate": false

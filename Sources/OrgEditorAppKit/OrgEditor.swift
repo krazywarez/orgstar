@@ -479,7 +479,7 @@ public final class OrgEditor: NSObject {
         case .pending(let keys):
             let context = context()
             let next = keymap.continuations(of: keys) { runs($0, in: context) }.map { item in
-                (key: item.key.description, title: item.command.map { EditorCommands.command($0)?.title ?? $0 } ?? "+prefix")
+                (key: item.key.description, title: item.command.map { EditorCommands.command($0)?.localizedTitle ?? $0 } ?? "+prefix")
             }
             onKeysPending?(KeySequence.format(keys), next)
             return true

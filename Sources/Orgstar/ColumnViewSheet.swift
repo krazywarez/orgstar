@@ -178,7 +178,7 @@ struct ColumnViewSheet: View {
             reply = prompt.initial ?? ""
             pending = (prompt, command, start, answers)
         default:
-            message = "\(command.title) can't run here"
+            message = String(localized: "\(CommandTitle.localized(command.title)) can't run here", comment: "A command that doesn't apply in column view")
         }
         focused = true
     }

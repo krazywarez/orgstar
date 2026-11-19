@@ -247,7 +247,7 @@ extension AgendaView {
     private func performAt(_ entry: EntryRef, _ offset: Int, _ command: any OrgCommand, answers: [String: String] = [:]) -> String? {
         switch session.perform(command, path: entry.path, at: offset, expect: (offset, entry.line), answers: answers) {
         case .failed(let text): text
-        case .prompt: "\(command.title) needs an answer; run it on the entry itself"
+        case .prompt: String(localized: "\(CommandTitle.localized(command.title)) needs an answer; run it on the entry itself", comment: "A command run from the agenda that asks a question")
         default: nil
         }
     }
