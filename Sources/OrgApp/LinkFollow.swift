@@ -12,7 +12,7 @@ public enum LinkFollow: Equatable, Sendable {
 
 extension DocumentSession {
     /// Follows a link as `org-link-open` does: files open as buffers (with a `::` search),
-    /// `id:` links through the index, internal and radio links in the current file,
+    /// `id:` and `denote:` links through the index, internal and radio links in the current file,
     /// `attachment:` links in their entry's attachment folder, and web and mail links go to
     /// their apps.
     public func follow(_ link: OrgLink, workspace: WorkspaceModel?, isText: (String) -> Bool) -> LinkFollow {
@@ -29,6 +29,13 @@ extension DocumentSession {
             }
             show(location)
             return .shown
+        case "denote":
+            let (identifier, search) = Denote.split(link.path)
+            let paths = ((try? workspace?.index.files()) ?? []).map(\.path)
+            guard let file = Denote.file(withIdentifier: identifier, in: paths) else {
+                return .message("No file has the Denote identifier \(identifier)")
+            }
+            return followFile(OrgLink(type: "file", path: file, searchOption: search, raw: link.raw), isText: isText)
         case "custom-id":
             return searchCurrent("#" + link.path)
         case "fuzzy":

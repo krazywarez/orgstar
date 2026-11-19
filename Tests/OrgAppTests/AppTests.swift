@@ -1422,6 +1422,24 @@ struct LinkFollowTests {
         #expect(follow("shell:rm -rf x") == .message("orgstar doesn't run shell links"))
     }
 
+    @Test func followsDenoteLinks() async throws {
+        let notes = try Folder()
+        let a = try notes.write("a.org", "* Start\n")
+        let note = try notes.write("sub/20261119T120000--a-note__kw.org", "#+title: A note\n* Inside\n:PROPERTIES:\n:CUSTOM_ID: in\n:END:\n")
+        _ = try notes.write("20261119T120000--a-note.pdf", "pdf")
+        let workspace = try WorkspaceModel(directory: nil)
+        try await workspace.addRoot(notes.url)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(a.path)
+        func follow(_ raw: String) -> LinkFollow { session.follow(Links.parse(bracket: raw), workspace: workspace, isText: { $0.hasSuffix(".org") }) }
+
+        #expect(follow("denote:20261119T120000") == .shown && session.path == note.path)
+        session.open(a.path)
+        #expect(follow("denote:20261119T120000::#in") == .shown && session.path == note.path)
+        #expect(session.revealRequest?.offset == (try String(contentsOfFile: note.path, encoding: .utf8) as NSString).range(of: "* Inside").location)
+        #expect(follow("denote:20200101T000000") == .message("No file has the Denote identifier 20200101T000000"))
+    }
+
     @Test func followsAttachmentAndRadioLinks() throws {
         let notes = try Folder()
         let text = "* Task\n:PROPERTIES:\n:ID: ab12-cd\n:END:\nSee [[attachment:scan.pdf]] and <<<the plan>>>.\n* Later\nAs in The Plan.\n"

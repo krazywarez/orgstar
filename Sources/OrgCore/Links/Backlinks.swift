@@ -1,7 +1,7 @@
 import Foundation
 
 /// Which links point at a file or one of its headings, read as `org-open-at-point` would
-/// follow them: `id:`, `file:` with `::*Title` or `::#custom-id`, plain paths, and `*Title`,
+/// follow them: `id:`, `denote:`, `file:` with `::*Title` or `::#custom-id`, plain paths, and `*Title`,
 /// `#custom-id` or a heading's exact title within the same file.
 public enum Backlinks {
     public struct Target: Sendable, Equatable {
@@ -28,7 +28,13 @@ public enum Backlinks {
         }
         var path: String
         var search: String
-        if link.lowercased().hasPrefix("file:") {
+        if link.lowercased().hasPrefix("denote:") {
+            let (identifier, denoteSearch) = Denote.split(String(link.dropFirst(7)))
+            guard Denote.identifier(ofFile: target.path) == identifier else { return false }
+            path = ""
+            search = denoteSearch ?? ""
+            if search.isEmpty { return target.title == nil }
+        } else if link.lowercased().hasPrefix("file:") {
             let parts = link.dropFirst(5).components(separatedBy: "::")
             path = parts[0]
             search = parts.dropFirst().joined(separator: "::")

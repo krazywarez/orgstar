@@ -70,5 +70,5 @@ extension OrgCompletion {
     ]
 
     /// Link types offered after `[[` besides `#+LINK` abbreviations.
-    static let linkTypes = ["attachment", "doi", "file", "http", "https", "id", "mailto"]
+    static let linkTypes = ["attachment", "denote", "doi", "file", "http", "https", "id", "mailto"]
 }

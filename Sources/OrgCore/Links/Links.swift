@@ -2,7 +2,7 @@ import Foundation
 
 /// A link as `org-element-link-parser` reads it.
 public struct OrgLink: Sendable, Equatable {
-    /// `https`, `file`, `id`, `custom-id`, `coderef`, `fuzzy`, or another registered type.
+    /// `https`, `file`, `id`, `denote`, `custom-id`, `coderef`, `fuzzy`, or another registered type.
     public let type: String
     public let path: String
     /// What follows `::` in a file link.
@@ -22,9 +22,9 @@ public struct OrgLink: Sendable, Equatable {
 }
 
 public enum Links {
-    /// `org-link-parameters` in Emacs with Org's default modules, and org-attach's.
+    /// `org-link-parameters` in Emacs with Org's default modules, org-attach's and Denote's.
     static let types = [
-        "attachment", "id", "eww", "rmail", "mhe", "irc", "info", "gnus", "docview", "bibtex", "bbdb", "w3m", "doi", "file+sys", "file+emacs",
+        "attachment", "id", "denote", "eww", "rmail", "mhe", "irc", "info", "gnus", "docview", "bibtex", "bbdb", "w3m", "doi", "file+sys", "file+emacs",
         "shell", "news", "mailto", "https", "http", "ftp", "shortdoc", "help", "file", "elisp",
     ]
 

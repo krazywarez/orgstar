@@ -24,6 +24,17 @@ struct BacklinkTests {
         #expect(!links("*Fix the sink", from: "/notes/b.org", to: heading))
     }
 
+    @Test func followsDenoteLinks() {
+        let file = Backlinks.Target(path: "/notes/20261119T120000--a-note__kw.org")
+        let heading = Backlinks.Target(path: file.path, title: "Inside", customID: "in")
+        #expect(Backlinks.links("denote:20261119T120000", from: "/notes/b.org", to: file))
+        #expect(!Backlinks.links("denote:20261119T120000", from: "/notes/b.org", to: heading))
+        #expect(Backlinks.links("denote:20261119T120000::#in", from: "/notes/b.org", to: heading))
+        #expect(Backlinks.links("denote:20261119T120000::*Inside", from: "/notes/b.org", to: heading))
+        #expect(!Backlinks.links("denote:20261119T120001", from: "/notes/b.org", to: file))
+        #expect(!Backlinks.links("denote:20261119T120000", from: "/notes/b.org", to: Backlinks.Target(path: "/notes/a.org")))
+    }
+
     @Test func contextLineShowsLinksAsTheyRead() throws {
         let body = ":PROPERTIES:\n:ID: x\n:END:\nFirst line.\nSee [[id:s-1][the sink]] and [[file:a.org]] today.\n"
         let context = try #require(Backlinks.context(in: body, link: "id:s-1"))
