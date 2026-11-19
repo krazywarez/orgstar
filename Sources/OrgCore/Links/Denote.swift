@@ -87,20 +87,15 @@ public enum Denote {
         return name + "." + ext
     }
 
-    /// `denote-org-front-matter`, dated as an inactive Org timestamp.
-    public static func frontMatter(title: String, date: Date, keywords: [String], identifier: String, calendar: Calendar = .current) -> String {
+    /// `denote-org-front-matter`, dated as an inactive Org timestamp. The signature line is
+    /// left out when there's none.
+    public static func frontMatter(title: String, date: Date, keywords: [String], identifier: String, signature: String = "", calendar: Calendar = .current) -> String {
         let c = calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute], from: date)
         let day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][c.weekday! - 1]
         let stamp = String(format: "[%04d-%02d-%02d %@ %02d:%02d]", c.year!, c.month!, c.day!, day, c.hour!, c.minute!)
         let tags = keywords.isEmpty ? "" : ":" + keywords.joined(separator: ":") + ":"
-        return """
-            #+title:      \(title)
-            #+date:       \(stamp)
-            #+filetags:   \(tags)
-            #+identifier: \(identifier)
-
-
-            """
+        return "#+title:      \(title)\n#+date:       \(stamp)\n#+filetags:   \(tags)\n#+identifier: \(identifier)\n"
+            + (signature.isEmpty ? "" : "#+signature:  \(signature)\n") + "\n"
     }
 
     // MARK: - Reading names and front matter

@@ -78,7 +78,37 @@ struct DailiesTests {
         let note = try DenoteNote.create(title: "Field Notes", keywords: ["Work", "ideas"], in: folder, now: Self.day)
         #expect((note.path as NSString).lastPathComponent == "20261011T120000--field-notes__ideas_work.org" && note.id == "20261011T120000")
         #expect(try String(contentsOfFile: note.path, encoding: .utf8).hasPrefix("#+title:      Field Notes\n"))
-        #expect(throws: (any Error).self) { try DenoteNote.create(title: "Field Notes", keywords: ["work", "ideas"], in: folder, now: Self.day) }
+        // The same second again under the folder: the next unused one, the date unchanged.
+        let again = try DenoteNote.create(title: "Field Notes", keywords: ["work", "ideas"], in: folder, now: Self.day)
+        #expect((again.path as NSString).lastPathComponent == "20261011T120001--field-notes__ideas_work.org")
+        let sub = (folder as NSString).appendingPathComponent("projects")
+        let other = try DenoteNote.create(title: "Plan", keywords: [], in: sub, root: folder, now: Self.day, signature: "Two Words", template: "* Goals\n")
+        #expect((other.path as NSString).lastPathComponent == "20261011T120002==two=words--plan.org")
+        #expect(try String(contentsOfFile: other.path, encoding: .utf8)
+            == "#+title:      Plan\n#+date:       [2026-10-11 Sun 12:00]\n#+filetags:   \n#+identifier: 20261011T120002\n#+signature:  two=words\n\n* Goals\n")
+        #expect(DenoteNote.subdirectories(of: folder) == ["projects"])
+    }
+
+    /// `denote-prompts` sets the questions after the title and their order.
+    @MainActor
+    @Test func denotePromptsInOrder() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-denote-\(UUID().uuidString)").resolvingSymlinksInPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("work"), withIntermediateDirectories: true)
+        var asked: [String] = []
+        let answers = ["signature": "a1", "subdirectory": "work", "date": "2026-10-11 09:30", "template": "memo", "keywords": "beta, alpha"]
+        var created: String?
+        let actions = RoamActions(session: DocumentSession(recovery: FileRecoveryStore(directory: folder.appendingPathComponent(".r"))),
+                                  roots: { [folder.path] }, nodes: { [] }, show: { _ in }, ask: { prompt, reply in asked.append(prompt.key); reply(answers[prompt.key]) },
+                                  open: { _, _ in }, insertLink: { _, _ in }, refresh: {})
+        actions.createDenote("Field Notes", root: folder.path, prompts: ["title", "signature", "subdirectory", "date", "file-type", "template", "keywords"],
+                             templates: [("report", "* R\n"), ("memo", "* M\n")], keywords: []) { choice in
+            if case .created(let path, _, _) = choice { created = path }
+        }
+        #expect(asked == ["signature", "subdirectory", "date", "template", "keywords"])
+        let path = try #require(created)
+        #expect(path == folder.appendingPathComponent("work/20261011T093000==a1--field-notes__alpha_beta.org").path)
+        #expect(try String(contentsOfFile: path, encoding: .utf8).hasSuffix("#+signature:  a1\n\n* M\n"))
     }
 
     @MainActor

@@ -181,6 +181,10 @@ public enum OrgPreferences {
     public static func denoteJournalKeyword(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalKeyword", defaults).nonEmpty ?? "journal" }
     /// `denote-journal-title-format`, a `format-time-string` format.
     public static func denoteJournalTitle(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalTitle", defaults).nonEmpty ?? "%A %-e %B %Y %H:%M" }
+    /// `denote-prompts`: what a new note asks after its title, in order.
+    public static func denotePrompts(_ defaults: UserDefaults = .standard) -> [String] {
+        string("denotePrompts", defaults).split(whereSeparator: \.isWhitespace).map(String.init)
+    }
     /// `org-attach-id-dir`, relative to an org file's folder unless absolute.
     public static func attachIDDir(_ defaults: UserDefaults = .standard) -> String {
         let dir = string("attachIDDir", defaults)

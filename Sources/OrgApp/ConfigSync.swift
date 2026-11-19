@@ -141,6 +141,9 @@ public final class ConfigSync {
         for template in UserConfig.structureTemplates(defaults) where values[UserConfig.path(UserConfig.structureTemplateTable, template.key)] != .string(template.type) {
             current = UserConfig.setting(current, section: UserConfig.structureTemplateTable, key: template.key, to: .string(template.type))
         }
+        for template in UserConfig.denoteTemplates(defaults) where values[UserConfig.path(UserConfig.denoteTemplateTable, template.key)] != .string(template.text) {
+            current = UserConfig.setting(current, section: UserConfig.denoteTemplateTable, key: template.key, to: .string(template.text))
+        }
         guard current != original else { return }
         text = current
         try? current.write(to: target, atomically: true, encoding: .utf8)

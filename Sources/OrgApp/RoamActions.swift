@@ -41,6 +41,16 @@ public struct RoamActions {
     private var denote: Bool { OrgPreferences.usesDenote() }
     private var linkType: String { denote ? "denote:" : "id:" }
 
+    /// A date prompt's answer, read by `org-read-date`. Without a time, the time of day stays
+    /// now's, as `org-read-date` with `to-time` keeps it.
+    nonisolated static func date(_ answer: String, now: Date = Date()) -> Date? {
+        let read = ReadDate.read(answer, default: nil, now: now, calendar: .current)
+        guard let chosen = Calendar.current.date(from: read.components(.current)) else { return nil }
+        let time = Calendar.current.dateComponents([.hour, .minute, .second], from: now)
+        return Calendar.current.date(bySettingHour: read.timeGiven ? read.hour : time.hour!, minute: read.timeGiven ? read.minute : time.minute!,
+                                     second: read.timeGiven ? 0 : time.second!, of: chosen) ?? chosen
+    }
+
     private func day(_ offset: Int, from now: Date = Date()) -> Date {
         Calendar.current.date(byAdding: .day, value: offset, to: now) ?? now
     }
@@ -56,14 +66,7 @@ public struct RoamActions {
         case "app.dailies.date", "app.dailies.capture-date":
             let goto = id == "app.dailies.date"
             ask(Prompt(key: "date", message: goto ? "Find daily-note: " : "Capture to daily-note: ", date: Prompt.DateRead(defaultDate: nil))) { answer in
-                guard let answer else { return }
-                let now = Date()
-                let read = ReadDate.read(answer, default: nil, now: now, calendar: .current)
-                guard let chosen = Calendar.current.date(from: read.components(.current)) else { return }
-                // The time of day stays now's, as `org-read-date` with `to-time` keeps it.
-                let time = Calendar.current.dateComponents([.hour, .minute, .second], from: now)
-                let date = Calendar.current.date(bySettingHour: read.timeGiven ? read.hour : time.hour!, minute: read.timeGiven ? read.minute : time.minute!,
-                                                 second: read.timeGiven ? 0 : time.second!, of: chosen) ?? chosen
+                guard let answer, let date = Self.date(answer) else { return }
                 if goto { self.goto(date) } else { capture(date) }
             }
         case "app.dailies.next", "app.dailies.previous":
@@ -177,21 +180,79 @@ public struct RoamActions {
         }
     }
 
-    /// `denote`: the keywords, separated by commas or spaces, then the note in
-    /// `denote-directory`. The keywords already in file names are offered.
+    /// What a new Denote note's questions give.
+    struct DenoteAnswers {
+        var keywords: [String] = []
+        var folder: String?
+        var date: Date?
+        var template = ""
+        var signature = ""
+    }
+
+    /// `denote`: after the title, the questions `denote-prompts` lists, in its order, then the
+    /// note in `denote-directory` or the folder chosen under it.
     private func createDenote(_ title: String, known: [IndexStore.Node], _ then: @escaping (NodeChoice) -> Void) {
-        let keywords = Denote.keywords(known.flatMap { Denote.name(ofFile: $0.location.path).keywords })
-        ask(Prompt(key: "keywords", message: "New file KEYWORDS: ", choices: keywords, requireMatch: false)) { answer in
-            guard let answer else { return }
-            guard let folder = DenoteNote.directory(roots: roots()) else { return show("No folder for new notes") }
+        guard let root = DenoteNote.directory(roots: roots()) else { return show("No folder for new notes") }
+        createDenote(title, root: root, prompts: OrgPreferences.denotePrompts(), templates: UserConfig.denoteTemplates(.standard),
+                     keywords: Denote.keywords(known.flatMap { Denote.name(ofFile: $0.location.path).keywords }), then)
+    }
+
+    func createDenote(
+        _ title: String, root: String, prompts: [String], templates: [(key: String, text: String)], keywords: [String],
+        answers: DenoteAnswers = DenoteAnswers(), _ then: @escaping (NodeChoice) -> Void
+    ) {
+        func next(_ answers: DenoteAnswers) {
+            createDenote(title, root: root, prompts: Array(prompts.dropFirst()), templates: templates, keywords: keywords, answers: answers, then)
+        }
+        var answers = answers
+        switch prompts.first {
+        case nil:
             do {
-                let note = try DenoteNote.create(title: title, keywords: answer.split(whereSeparator: { $0 == "," || $0.isWhitespace }).map(String.init), in: folder)
+                let note = try DenoteNote.create(title: title, keywords: answers.keywords, in: answers.folder ?? root, root: root,
+                                                 now: answers.date ?? Date(), signature: answers.signature, template: answers.template)
                 refresh()
                 show("Created \((note.path as NSString).lastPathComponent)")
                 then(.created(path: note.path, id: note.id, title: title))
             } catch {
                 show("Can't make the note: \(error)")
             }
+        case "keywords":
+            // Separated by commas or spaces; the keywords already in file names are offered.
+            ask(Prompt(key: "keywords", message: "New file KEYWORDS: ", choices: keywords, requireMatch: false)) { answer in
+                guard let answer else { return }
+                answers.keywords = answer.split(whereSeparator: { $0 == "," || $0.isWhitespace }).map(String.init)
+                next(answers)
+            }
+        case "subdirectory":
+            let folders = DenoteNote.subdirectories(of: root)
+            guard !folders.isEmpty else { return next(answers) }
+            ask(Prompt(key: "subdirectory", message: "Select SUBDIRECTORY: ", choices: ["."] + folders)) { answer in
+                guard let answer else { return }
+                answers.folder = answer == "." || answer.isEmpty ? root : (root as NSString).appendingPathComponent(answer)
+                next(answers)
+            }
+        case "date":
+            ask(Prompt(key: "date", message: "DATE and TIME for note: ", date: Prompt.DateRead(defaultDate: nil))) { answer in
+                guard let answer else { return }
+                answers.date = Self.date(answer)
+                next(answers)
+            }
+        case "template":
+            guard !templates.isEmpty else { return next(answers) }
+            ask(Prompt(key: "template", message: "Select TEMPLATE key: ", choices: templates.map(\.key))) { answer in
+                guard let answer else { return }
+                answers.template = templates.first { $0.key == answer }?.text ?? ""
+                next(answers)
+            }
+        case "signature":
+            ask(Prompt(key: "signature", message: "New file SIGNATURE: ", requireMatch: false)) { answer in
+                guard let answer else { return }
+                answers.signature = answer
+                next(answers)
+            }
+        default:
+            // The title is asked first anyway; Org is the only file type; the rest have no equal.
+            next(answers)
         }
     }
 

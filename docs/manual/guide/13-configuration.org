@@ -179,7 +179,7 @@ These settings have no control in the Settings window. Some are in the View menu
 | =org-track-ordered-property-with-tag= |                       |
 | =org-timer-format=, =org-timer-default-timer= |                  |
 | =org-roam-directory=, =org-roam-dailies-directory=, =org-roam-dailies-file=, =org-roam-dailies-head=, =org-roam-dailies-entry= | |
-| =notes-package=, =denote-directory=, =denote-journal-directory=, =denote-journal-keyword=, =denote-journal-title-format= | |
+| =notes-package=, =denote-directory=, =denote-prompts=, =denote-journal-directory=, =denote-journal-keyword=, =denote-journal-title-format= | |
 | =org-attach-id-dir=, =org-attach-use-inheritance= |              |
 | =org-yank-image-save-method=, =org-yank-dnd-method= |            |
 | =org-crypt-tag-matcher=          |                            |
@@ -241,6 +241,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =org-roam-dailies-entry= | string | ="* %?"= | The capture template Capture to Daily Note files. See [[file:09-links.org][Links]]. |
 | =notes-package= | string | ="org-roam"= | Whose conventions Find Node…, Insert Node Link… and the daily-note commands follow: ="org-roam"= or ="denote"=. |
 | =denote-directory= | string | =""= | The folder new Denote notes go in; empty for the first sidebar folder. Mirrors =denote-directory=. |
+| =denote-prompts= | string | ="title keywords"= | What a new Denote note asks, in order, separated by spaces: =title=, =keywords=, =subdirectory=, =date=, =template=, =signature=. Mirrors =denote-prompts=. |
 | =denote-journal-directory= | string | ="journal"= | The folder journal entries are in, relative to =denote-directory=. Mirrors =denote-journal-directory=. |
 | =denote-journal-keyword= | string | ="journal"= | The keyword journal entries have. Mirrors =denote-journal-keyword=. |
 | =denote-journal-title-format= | string | ="%A %-e %B %Y %H:%M"= | A new journal entry's title, a =format-time-string= format. |
@@ -362,6 +363,18 @@ py = "src python"
 #+END_SRC
 
 Keys are letters, digits, =_= and =-=. Without the table, Org's templates apply. Emacs import adds entries here and so does nothing else in the app; remove one by deleting its line.
+
+** [denote-templates]
+
+Text a new Denote note starts with after its front matter, chosen by key when =denote-prompts= has =template=. Mirrors =denote-templates=.
+
+#+BEGIN_SRC toml
+[denote-templates]
+report = "* Summary\n\n* Details\n"
+memo = "* To\n\n* From\n"
+#+END_SRC
+
+Keys are letters, digits, =_= and =-=. Emacs import adds entries here; remove one by deleting its line.
 
 ** [[publish]]
 
@@ -624,6 +637,8 @@ Only variables whose names start with =org-=, =appt-=, =display-line-numbers=, =
 | =org-track-ordered-property-with-tag=                              | A tag name as given; =t= becomes ="t"=, =nil= ="nil"=                                         |
 | =org-roam-directory=, =org-roam-dailies-directory=                 | The same keys, when the value is a string or a form that makes one                          |
 | =denote-directory=, =denote-journal-directory=, =denote-journal-keyword= | The same keys, when the value is a string |
+| =denote-prompts=                                                   | The same key, the symbols separated by spaces                                                 |
+| =denote-templates=                                                 | =[denote-templates]=: entries whose text is a string or =concat= of strings; a function is listed as unsupported |
 | =denote-journal-title-format=                                      | The same key; the symbols =day-date-month-year=, =-24h= and =-12h= become their formats       |
 | =org-roam-dailies-capture-templates=                               | =org-roam-dailies-file=, =-head= and =-entry=, from the first template's =(file+head NAME HEAD)= target and template |
 | =org-timer-format=, =org-timer-default-timer=                     | The same keys; a number becomes a string                                                     |

@@ -9,6 +9,7 @@ extension EmacsImport {
             ("Capture templates", items.filter { if case .capture = $0.change { true } else { false } }),
             ("Key bindings", items.filter { if case .binding = $0.change { true } else { false } }),
             ("Structure templates", items.filter { if case .structureTemplate = $0.change { true } else { false } }),
+            ("Denote templates", items.filter { if case .denoteTemplate = $0.change { true } else { false } }),
             ("Agenda views", items.filter { if case .view = $0.change { true } else { false } }),
         ].filter { !$0.1.isEmpty }
     }

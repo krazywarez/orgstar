@@ -45,6 +45,13 @@ struct DenoteTests {
             """)
     }
 
+    @Test func signatures() {
+        #expect(Denote.signature("Two Words") == "two=words")
+        #expect(Denote.signature(" 1a_b-c==d ") == "1a=bc=d")
+        #expect(Denote.frontMatter(title: "A", date: Self.date, keywords: [], identifier: "20261119T090503", signature: "1a", calendar: Self.calendar)
+            == "#+title:      A\n#+date:       [2026-11-19 Thu 09:05]\n#+filetags:   \n#+identifier: 20261119T090503\n#+signature:  1a\n\n")
+    }
+
     @Test func readsNamesInAnyOrder() {
         #expect(Denote.name(ofFile: "/n/20261119T090503==1a--a-note__kw1_kw2.org")
             == Denote.Name(identifier: "20261119T090503", signature: "1a", title: "a-note", keywords: ["kw1", "kw2"], ext: "org"))

@@ -92,4 +92,33 @@ struct DenoteOracleTests {
                 == String(contentsOf: theirs.appendingPathComponent(name), encoding: .utf8), "\(name)")
         }
     }
+
+    /// A note in a subfolder with a signature and a template, dated a second some file's
+    /// identifier already has.
+    @Test(.enabled(if: enabled)) func optionsMatchDenote() throws {
+        let theirs = try Self.folder(), ours = try Self.folder()
+        defer { try? FileManager.default.removeItem(at: theirs); try? FileManager.default.removeItem(at: ours) }
+        let taken = "20261011T093000--taken.org"
+        for dir in [theirs, ours] {
+            try FileManager.default.createDirectory(at: dir.appendingPathComponent("work"), withIntermediateDirectories: true)
+            try "x\n".write(to: dir.appendingPathComponent(taken), atomically: true, encoding: .utf8)
+        }
+        let template = "* Goals\n\n* Notes\n"
+        try Self.denote(theirs, """
+            (let ((denote-templates '((plan . \(template.debugDescription)))))
+              (denote "Q4 Plan: draft" (denote-keywords-sort (list "work" "ideas")) 'org \(theirs.appendingPathComponent("work/").path.debugDescription)
+                      "2026-10-11 09:30" 'plan "Part One")
+              (save-buffer))
+            """)
+        let date = try #require(RoamActions.date("2026-10-11 09:30"))
+        _ = try DenoteNote.create(title: "Q4 Plan: draft", keywords: ["work", "ideas"], in: ours.appendingPathComponent("work").path, root: ours.path,
+                                  now: date, signature: "Part One", template: template)
+        let names = try FileManager.default.contentsOfDirectory(atPath: theirs.appendingPathComponent("work").path)
+        #expect(names.count == 1)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: ours.appendingPathComponent("work").path) == names)
+        for name in names {
+            #expect(try String(contentsOf: ours.appendingPathComponent("work/" + name), encoding: .utf8)
+                == String(contentsOf: theirs.appendingPathComponent("work/" + name), encoding: .utf8), "\(name)")
+        }
+    }
 }

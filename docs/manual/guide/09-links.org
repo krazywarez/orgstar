@@ -342,9 +342,21 @@ With =notes-package = "denote"= in =config.toml=, the same commands follow Denot
 - Find Node… and Insert Node Link… list the Org files whose names have a Denote
   identifier, titled by their =#+title:=, and Insert Node Link… inserts
   =[[denote:…][Title]]=.
-- A title no note has asks for keywords, separated by commas or spaces, offering the
-  keywords in existing file names, then makes the note in =denote-directory= (the first
-  folder unless set), as =denote= does with its default prompts:
+- A title no note has makes a note in =denote-directory= (the first folder unless set),
+  after the questions =denote-prompts= lists, in its order. The default is
+  ="title keywords"=; the title is always the one typed.
+  - =keywords=: separated by commas or spaces, offering the keywords in existing file
+    names.
+  - =subdirectory=: a folder under =denote-directory= (=.= for itself) to put the note in.
+  - =date=: the note's date, read as =org-read-date= reads one; without a time, the time
+    is now's.
+  - =template=: a key of =[denote-templates]=, whose text goes after the front matter.
+  - =signature=: put in the name after ~==~, in lower case with ~=~ between words, and
+    in a =#+signature:= line.
+
+  =file-type= and =identifier= are not asked: notes are Org, and the identifier is the
+  date's, or the first second after it no file under =denote-directory= has. With the
+  default prompts:
 
   #+BEGIN_SRC org
   ,#+title:      Field Notes
@@ -366,9 +378,10 @@ With =notes-package = "denote"= in =config.toml=, the same commands follow Denot
   the name, and the keywords keep their order. Links keep working, as they use the
   identifier.
 
-Import from Emacs reads =denote-directory=, =denote-journal-directory=,
-=denote-journal-keyword= and =denote-journal-title-format=. Denote notes in Markdown or
-plain text are not supported.
+Import from Emacs reads =denote-directory=, =denote-prompts=, =denote-templates=,
+=denote-journal-directory=, =denote-journal-keyword= and =denote-journal-title-format=.
+Templates that are functions, and Denote notes in Markdown or plain text, are not
+supported.
 
 * Inline images
 

@@ -183,6 +183,8 @@ public enum UserConfig {
                 comment: "the folder denote-journal entries are in, relative to denote-directory", legacy: ""),
         Setting(section: "", key: "denote-journal-keyword", defaultsKey: "denoteJournalKeyword", kind: .string, fallback: .string("journal"),
                 comment: "the keyword journal entries have", legacy: ""),
+        Setting(section: "", key: "denote-prompts", defaultsKey: "denotePrompts", kind: .string, fallback: .string("title keywords"),
+                comment: "what a new Denote note asks, in order, separated by spaces: title keywords subdirectory date template signature", legacy: ""),
         Setting(section: "", key: "denote-journal-title-format", defaultsKey: "denoteJournalTitle", kind: .string, fallback: .string("%A %-e %B %Y %H:%M"),
                 comment: "a journal entry's title; a format-time-string format", legacy: ""),
         Setting(section: "", key: "auto-fill-mode", defaultsKey: "autoFill", kind: .bool, fallback: .bool(false),
@@ -450,7 +452,22 @@ public enum UserConfig {
         }
         let templates = tables.first { $0.name == structureTemplateTable }
         if templates == nil, defaults.object(forKey: structureTemplatesKey) != nil { defaults.removeObject(forKey: structureTemplatesKey) }
+        if !tables.contains(where: { $0.name == denoteTemplateTable }), defaults.object(forKey: denoteTemplatesKey) != nil {
+            defaults.removeObject(forKey: denoteTemplatesKey)
+        }
         for table in tables {
+            if table.name == denoteTemplateTable {
+                var rows: [String] = []
+                for key in table.keys {
+                    guard let text = table.values[key]?.string else {
+                        problems.append("config.toml: \(denoteTemplateTable).\(key) must be text")
+                        continue
+                    }
+                    rows.append(key + "\t" + text)
+                }
+                if defaults.stringArray(forKey: denoteTemplatesKey) != rows { defaults.set(rows, forKey: denoteTemplatesKey) }
+                continue
+            }
             if table.name == structureTemplateTable {
                 var rows: [String] = []
                 for key in table.keys {
@@ -495,6 +512,22 @@ public enum UserConfig {
 
     public static func setStructureTemplates(_ templates: [StructureTemplate], in defaults: UserDefaults) {
         defaults.set(templates.map { $0.key + "\t" + $0.type }, forKey: structureTemplatesKey)
+    }
+
+    /// `[denote-templates]`, `denote-templates`: `key = "text"`, the text a new note starts
+    /// with after its front matter. Kept in user defaults as `key<Tab>text`.
+    public static let denoteTemplateTable = "denote-templates"
+    static let denoteTemplatesKey = "denoteTemplates"
+
+    public static func denoteTemplates(_ defaults: UserDefaults) -> [(key: String, text: String)] {
+        (defaults.stringArray(forKey: denoteTemplatesKey) ?? []).compactMap { row in
+            guard let tab = row.firstIndex(of: "\t") else { return nil }
+            return (String(row[..<tab]), String(row[row.index(after: tab)...]))
+        }
+    }
+
+    public static func setDenoteTemplates(_ templates: [(key: String, text: String)], in defaults: UserDefaults) {
+        defaults.set(templates.map { $0.key + "\t" + $0.text }, forKey: denoteTemplatesKey)
     }
 
     static func path(_ section: String, _ key: String) -> String { section.isEmpty ? key : section + "." + key }

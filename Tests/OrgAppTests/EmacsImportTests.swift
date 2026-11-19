@@ -280,6 +280,40 @@ struct EmacsImportTests {
         #expect(s["denote-journal-title-format"] == .string("%A %-e %B %Y %H:%M"))
     }
 
+    @MainActor
+    @Test func importsDenotePromptsAndTemplates() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try #"""
+            (setq denote-prompts '(title keywords subdirectory signature))
+            (setq denote-templates
+                  `((report . "* Summary\n\n* Details\n")
+                    (memo . ,(concat "* To" "\n\n" "* From\n"))
+                    (journal . my-denote-journal-template)))
+            """#.write(to: folder.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let result = EmacsImport.scan(EmacsImport.files(in: folder))
+        #expect(settings(result)["denote-prompts"] == .string("title keywords subdirectory signature"))
+        let templates = result.items.compactMap { item -> String? in
+            if case .denoteTemplate(let key, let text) = item.change { "\(key)=\(text)" } else { nil }
+        }
+        #expect(templates == ["report=* Summary\n\n* Details\n", "memo=* To\n\n* From\n"])
+        #expect(result.unsupported.map(\.name) == ["Denote template journal"])
+
+        let name = "orgstar-import-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        _ = await EmacsImport.apply(result.items, defaults: defaults, workspace: nil, directory: folder, writeConfig: true)
+        #expect(UserConfig.denoteTemplates(defaults).map(\.key) == ["report", "memo"])
+        #expect(OrgPreferences.denotePrompts(defaults) == ["title", "keywords", "subdirectory", "signature"])
+        let config = try String(contentsOf: folder.appendingPathComponent("config.toml"), encoding: .utf8)
+        // The file reads back to the same templates.
+        let reread = UserDefaults(suiteName: name + "-reread")!
+        defer { reread.removePersistentDomain(forName: name + "-reread") }
+        #expect(UserConfig.apply(config, to: reread).isEmpty, "\(config)")
+        #expect(UserConfig.denoteTemplates(reread).map(\.text) == ["* Summary\n\n* Details\n", "* To\n\n* From\n"])
+    }
+
     @Test func readsPublishingProjects() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-import-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

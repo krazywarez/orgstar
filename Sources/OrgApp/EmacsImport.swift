@@ -21,6 +21,8 @@ public struct EmacsImport: Sendable {
         case view(name: String, toml: String)
         /// A `[[publish]]` table for config.toml.
         case publish(name: String, toml: String)
+        /// A `[denote-templates]` entry for config.toml.
+        case denoteTemplate(key: String, text: String)
     }
 
     public struct Item: Sendable, Identifiable {
@@ -564,6 +566,28 @@ public struct EmacsImport: Sendable {
             let formats = ["day-date-month-year": "%A %-e %B %Y", "day-date-month-year-24h": "%A %-e %B %Y %H:%M",
                            "day-date-month-year-12h": "%A %-e %B %Y %I:%M %p", "day": "%A"]
             if let format = value.string ?? value.symbol.flatMap({ formats[$0] }) { add(name, .string(format)) } else { note("not a format or a known style") }
+        case "denote-prompts":
+            guard let prompts = value.elements, prompts.allSatisfy({ $0.symbol != nil }) else { return note("not a list of prompts") }
+            add(name, .string(prompts.compactMap(\.symbol).joined(separator: " ")))
+        case "denote-templates":
+            guard let entries = value.elements else { return note("not a list of (KEY . TEXT)") }
+            for entry in entries {
+                guard case .dotted(let head, let tail) = entry, head.count == 1, let key = head[0].symbol else {
+                    note("an entry that isn't (KEY . TEXT)")
+                    continue
+                }
+                guard let text = tail.string else {
+                    unsupported.append(Note(id: id(), name: "Denote template \(key)", reason: "a function, which only Emacs can run", source: source))
+                    continue
+                }
+                guard key.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }) else {
+                    unsupported.append(Note(id: id(), name: "Denote template \(key)", reason: "config.toml keys are letters, digits, _ and -", source: source))
+                    continue
+                }
+                items.removeAll { if case .denoteTemplate(key, _) = $0.change { true } else { false } }
+                items.append(Item(id: id(), name: "Denote template \(key)", summary: "denote-templates.\(key) = \(UserConfig.format(.string(text)).prefix(60))",
+                                  source: source, change: .denoteTemplate(key: key, text: text)))
+            }
         case "org-roam-directory", "org-roam-dailies-directory":
             guard let dir = value.string else { return note("not a string") }
             add(name, .string(dir))
@@ -1134,7 +1158,15 @@ extension EmacsImport {
             blocks += 1
         }
         if blocks > 0 { UserConfig.setStructureTemplates(rows, in: defaults) }
-        if writeConfig, settings + blocks > 0 {
+        var notes = UserConfig.denoteTemplates(defaults), noteTemplates = 0
+        for item in items {
+            guard case .denoteTemplate(let key, let text) = item.change else { continue }
+            notes.removeAll { $0.key == key }
+            notes.append((key, text))
+            noteTemplates += 1
+        }
+        if noteTemplates > 0 { UserConfig.setDenoteTemplates(notes, in: defaults) }
+        if writeConfig, settings + blocks + noteTemplates > 0 {
             var text = (try? String(contentsOf: configFile, encoding: .utf8)) ?? ""
             for setting in stored {
                 text = UserConfig.setting(text, section: setting.section, key: setting.key, to: UserConfig.value(setting, in: defaults))
@@ -1143,11 +1175,15 @@ extension EmacsImport {
                 guard case .structureTemplate(let key, let type) = item.change else { continue }
                 text = UserConfig.setting(text, section: UserConfig.structureTemplateTable, key: key, to: .string(type))
             }
+            for item in items {
+                guard case .denoteTemplate(let key, let template) = item.change else { continue }
+                text = UserConfig.setting(text, section: UserConfig.denoteTemplateTable, key: key, to: .string(template))
+            }
             try? text.write(to: configFile, atomically: true, encoding: .utf8)
         }
         func count(_ n: Int, _ word: String) -> String? { n == 0 ? nil : "\(n) \(word)\(n == 1 ? "" : "s")" }
         let done = [count(settings, "setting"), count(folders, "folder"), count(templates, "capture template"), count(bindings, "key binding"),
-                    count(blocks, "structure template"), count(views, "agenda view"), count(projects, "publishing project")].compactMap { $0 }
+                    count(blocks, "structure template"), count(noteTemplates, "Denote template"), count(views, "agenda view"), count(projects, "publishing project")].compactMap { $0 }
         var summary = done.isEmpty ? "Nothing new to import." : "Imported " + done.joined(separator: ", ") + "."
         if !problems.isEmpty { summary += " " + problems.joined(separator: "; ") + "." }
         return summary
