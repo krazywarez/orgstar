@@ -407,6 +407,7 @@ final class MobileEditor: NSObject, DocumentBuffer {
              "app.attach.new", "app.attach.open", "app.attach.reveal", "app.attach.delete", "app.attach.delete-all", "app.attach.sync",
              "app.attach.set-directory", "app.attach.unset-directory", "app.backlinks", "app.node.find", "app.node.insert",
              "app.node.rename-from-front-matter": return onAppCommand != nil
+        case _ where id.hasPrefix("app.node."): return onAppCommand != nil
         case _ where id.hasPrefix("app.dailies."): return onAppCommand != nil
         case "app.crypt.encrypt-entry": return onAppCommand != nil && OrgCrypt.heading(context.text, at: context.caret) != nil && OrgCrypt.encryptedRange(context.text, at: context.caret) == nil
         case "app.crypt.open-entry", "app.crypt.decrypt-entry": return onAppCommand != nil && OrgCrypt.encryptedRange(context.text, at: context.caret) != nil

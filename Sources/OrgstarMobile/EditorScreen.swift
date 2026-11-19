@@ -45,6 +45,8 @@ struct EditorScreen: View {
         var options = session.options
         options.filePath = path
         options.agendaFiles = workspace.agendaFilePaths()
+        options.denoteDirectories = DenoteNote.directories(roots: workspace.rootPaths)
+        options.denoteSequenceScheme = OrgPreferences.denoteSequenceScheme()
         options.timer = TimerModel.shared.timer
         return options
     }
@@ -333,7 +335,9 @@ struct EditorScreen: View {
         guard let editor else { return }
         switch id {
         case "org.link.store":
-            message = StoredLink.add(Links.store(in: editor.editContext(), path: Links.abbreviate(path, home: NSHomeDirectory())), to: &model.storedLinks)
+            let context = editor.editContext()
+            let denote = OrgPreferences.usesDenote() ? Links.storeDenote(in: context, path: path) : nil
+            message = StoredLink.add(denote ?? Links.store(in: context, path: Links.abbreviate(path, home: NSHomeDirectory())), to: &model.storedLinks)
         case "org.id.store-link":
             if case .commit = editor.perform(CreateID()),
                let link = Links.storeID(in: editor.editContext(), fileName: (path as NSString).lastPathComponent) {
@@ -475,6 +479,12 @@ extension EditorScreen {
             model.openRequest = .offset(target, caret)
         case .openExternally(let url): if url.isFileURL { previewed = url } else { openURL(url) }
         case .message(let text): message = text
+        case .choose(let question, let paths):
+            let labels = paths.map { ($0 as NSString).lastPathComponent }
+            prompt = PromptRequest(prompt: Prompt(key: "file", message: question, choices: labels)) { answer in
+                guard let answer, let index = labels.firstIndex(of: answer) else { return }
+                follow(OrgLink(type: "file", path: paths[index], raw: "file:" + paths[index]))
+            }
         }
     }
 
@@ -932,6 +942,24 @@ struct CommandPalette: View {
         ("app.crypt.encrypt-entries", "Encrypt Tagged Entries…"), ("app.crypt.forget-passphrase", "Forget Encryption Passphrase"),
         ("app.backlinks", "Show Backlinks"), ("app.node.find", "Find Node…"), ("app.node.insert", "Insert Node Link…"),
         ("app.node.rename-from-front-matter", "Rename Note from Front Matter"),
+        ("app.node.rename", "Rename Note…"),
+        ("app.node.rename-folder-from-front-matter", "Rename Notes in Folder from Front Matter…"),
+        ("app.node.silo-find", "Find Note in Silo…"),
+        ("app.node.silo-create", "New Note in Silo…"),
+        ("app.node.sequence-new-parent", "New Sequence Note…"),
+        ("app.node.sequence-new-child", "New Child Sequence Note…"),
+        ("app.node.sequence-new-sibling", "New Sibling Sequence Note…"),
+        ("app.node.sequence-new-child-of-current", "New Child of This Note…"),
+        ("app.node.sequence-new-sibling-of-current", "New Sibling of This Note…"),
+        ("app.node.sequence-find", "Find Sequence Relatives…"),
+        ("app.node.sequence-next-sibling", "Next Sibling Note"),
+        ("app.node.sequence-previous-sibling", "Previous Sibling Note"),
+        ("app.node.sequence-reparent", "Reparent Note…"),
+        ("app.node.sequence-reparent-recursive", "Reparent Note with Descendants…"),
+        ("app.node.sequence-rename-as-parent", "Rename Note as Sequence Parent"),
+        ("app.node.sequence-convert", "Convert Note Sequence Scheme"),
+        ("app.node.sequence-link", "Insert Sequence Link…"),
+        ("app.node.sequence-hierarchy", "Sequence Hierarchy…"),
         ("app.dailies.today", "Go to Today's Daily Note"), ("app.dailies.yesterday", "Go to Yesterday's Daily Note"),
         ("app.dailies.tomorrow", "Go to Tomorrow's Daily Note"), ("app.dailies.date", "Go to Daily Note for Date…"),
         ("app.dailies.capture-today", "Capture to Today's Daily Note"), ("app.dailies.capture-yesterday", "Capture to Yesterday's Daily Note"),

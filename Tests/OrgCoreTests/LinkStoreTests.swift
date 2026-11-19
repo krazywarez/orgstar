@@ -231,3 +231,21 @@ struct LinkStoreTests {
         #expect(links == [a, b])
     }
 }
+
+struct DenoteStoreLinkTests {
+    func context(_ text: String, caret: Int) -> EditContext {
+        EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+    }
+
+    /// `denote-link-ol-store`: the note's identifier, with a CUSTOM_ID when the entry has one.
+    @Test func storesDenoteLinks() {
+        let text = "#+title:      A Note\n\n* Plain\nx\n* Custom\n:PROPERTIES:\n:CUSTOM_ID: here\n:END:\ny\n"
+        let path = "/n/20261119T120000==1a--a-note__kw.org"
+        #expect(Links.storeDenote(in: context(text, caret: 0), path: path) == StoredLink(link: "denote:20261119T120000", description: "A Note"))
+        #expect(Links.storeDenote(in: context(text, caret: (text as NSString).range(of: "x\n").location), path: path)?.link == "denote:20261119T120000")
+        #expect(Links.storeDenote(in: context(text, caret: (text as NSString).range(of: "y\n").location), path: path)?.link == "denote:20261119T120000::#here")
+        #expect(Links.storeDenote(in: context("* x\n", caret: 0), path: "/n/20261119T120000--from-name.org")?.description == "from name")
+        #expect(Links.storeDenote(in: context(text, caret: 0), path: "/n/plain.org") == nil)
+    }
+}
+

@@ -112,7 +112,7 @@ The first list then shows =[w] Work…= in place of the templates under it; choo
 | =name=               | string            | The name in the list; the key when omitted                                                    | description             |
 | =type=               | string            | =entry= (the default), =item=, =checkitem=, =plain= or =table-line=                           | type                    |
 | =template=           | string, required  | The text to fill; see [[*Template escapes][Template escapes]]                                 | template                |
-| =file=               | string            | The target file; required except with =id= or =clock=                                         | target                  |
+| =file=               | string            | The target file; required except with =id=, =clock= or =denote=                               | target                  |
 | =headline=           | string            | A heading in =file=                                                                           | =file+headline=         |
 | =olp=                | string            | An outline path in =file=, titles separated by =/=                                            | =file+olp=              |
 | =datetree=           | boolean           | Today's entry in a date tree in =file=, under =olp= if given                                  | =file+olp+datetree=     |
@@ -121,6 +121,7 @@ The first list then shows =[w] Work…= in place of the templates under it; choo
 | =regexp=             | string            | After the first match of an Emacs regexp in =file=                                            | =file+regexp=           |
 | =id=                 | string            | The heading with this =ID= property, in any file                                              | =id=                    |
 | =clock=              | boolean           | The entry the clock is running in                                                             | =clock=                 |
+| =denote=             | boolean           | A new Denote note, asked for first; see [[file:09-links.org::*Capture][Denote capture]] | =denote-org-capture=    |
 | =prepend=            | boolean           | Put the text first rather than last                                                           | =:prepend=              |
 | =immediate-finish=   | boolean           | File without showing the editor                                                               | =:immediate-finish=     |
 | =empty-lines=        | integer           | Blank lines before and after the captured text                                                | =:empty-lines=          |

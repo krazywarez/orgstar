@@ -50,6 +50,18 @@ extension Links {
         return StoredLink(link: link, description: buffer.substring(title.lowerBound, title.upperBound))
     }
 
+    /// `denote-link-ol-store` with `denote-org-store-link-to-heading` nil: a `denote:` link to
+    /// the note at `path`, to the entry at the caret when it has a CUSTOM_ID, described by the
+    /// note's title. Nil when the file name has no identifier.
+    public static func storeDenote(in context: EditContext, path: String) -> StoredLink? {
+        guard let id = Denote.identifier(ofFile: path) else { return nil }
+        let title = Denote.frontMatter(of: context.text).title ?? Denote.name(ofFile: path).title?.replacingOccurrences(of: "-", with: " ") ?? ""
+        let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings)
+        buffer.backToHeadingOrPointMin()
+        let custom = buffer.beforeFirstHeading ? nil : buffer.entryProperty("CUSTOM_ID")
+        return StoredLink(link: "denote:" + id + (custom.map { "::#" + $0 } ?? ""), description: title)
+    }
+
     /// A `<<target>>` on the caret's line that the caret touches, as `org-in-regexp` finds it.
     static func targetAtCaret(_ context: EditContext) -> String? {
         let ns = context.text as NSString
@@ -312,7 +324,10 @@ public struct CreateID: OrgCommand {
 extension EmacsBuffer {
     /// The entry's own `ID` when it has non-blank one, from point at its heading (or the
     /// start of the file).
-    func entryID() -> String? {
+    func entryID() -> String? { entryProperty("ID") }
+
+    /// A property in the drawer of the entry at point, or before the first heading, the file's.
+    func entryProperty(_ name: String) -> String? {
         saveExcursion {
             if beforeFirstHeading {
                 while bolp, lookingAt("^[ \\t]*#[ \\t]") != nil || lookingAt("^[ \\t]*#$") != nil { if forwardLine(1) != 0 { break } }
@@ -322,8 +337,9 @@ extension EmacsBuffer {
             }
             guard let drawer = looking(Self.propertyDrawerPattern, caseInsensitive: true) else { return nil }
             let body = substring(drawer[0]!.lowerBound, drawer[0]!.upperBound)
-            guard let range = body.range(of: "(?m)^[ \\t]*:ID:[ \\t]+(\\S.*?)[ \\t]*$", options: [.regularExpression, .caseInsensitive]) else { return nil }
-            return body[range].replacingOccurrences(of: "^[ \\t]*:[Ii][Dd]:[ \\t]+|[ \\t]+$", with: "", options: .regularExpression)
+            let key = NSRegularExpression.escapedPattern(for: name)
+            guard let range = body.range(of: "(?m)^[ \\t]*:\(key):[ \\t]+(\\S.*?)[ \\t]*$", options: [.regularExpression, .caseInsensitive]) else { return nil }
+            return body[range].replacingOccurrences(of: "^[ \\t]*:\(key):[ \\t]+|[ \\t]+$", with: "", options: [.regularExpression, .caseInsensitive])
         }
     }
 }

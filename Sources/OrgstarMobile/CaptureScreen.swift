@@ -18,6 +18,10 @@ struct CaptureScreen: View {
     @State private var groups: [CaptureGroup] = []
     /// The day `:time-prompt` asked for.
     @State private var treeDate: Date?
+    /// A `denote = true` template's note: its questions, their answers, and once made, its file.
+    @State private var denote: DenoteCapture?
+    @State private var denoteAnswers: [String] = []
+    @State private var denoteFile: String?
     /// The filed entry, while its refile target is picked.
     @State private var refiling: RefileEntry?
     @State private var key: String?
@@ -127,7 +131,9 @@ struct CaptureScreen: View {
             for heading in DocumentModel(tree: OrgParser.parse(source)).headings { for tag in heading.localTags where !tags.contains(tag) { tags.append(tag) } }
             context.fileTags = tags
         }
-        questions = (asksTreeDate(template) ? [Self.treeQuestion] : []) + Capture.questions(template.template, context: context)
+        denote = template.options.denote ? DenoteCapture(roots: workspace.rootPaths, paths: workspace.files.map(\.path)) : nil
+        denoteFile = nil
+        questions = (denote?.questions ?? []) + (asksTreeDate(template) ? [Self.treeQuestion] : []) + Capture.questions(template.template, context: context)
         answers = questions.map { _ in "" }
         treeDate = nil
         editing = false
@@ -146,6 +152,10 @@ struct CaptureScreen: View {
     private func fill() {
         guard let template else { return }
         var answers = answers
+        if let denote {
+            denoteAnswers = Array(answers.prefix(denote.questions.count))
+            answers.removeFirst(min(denote.questions.count, answers.count))
+        }
         if asksTreeDate(template) { treeDate = Capture.treeDate(answers.removeFirst(), now: Date()) }
         context.now = captureDate
         switch Capture.fill(template.template, context: context, answers: answers) {
@@ -186,8 +196,20 @@ struct CaptureScreen: View {
     private func file(refile: Bool = false) {
         guard let template else { return }
         let now = Date()
-        let placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
-            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: treeDate ?? request.day.map(Self.date) ?? now)
+        let placed: Result<(path: String, offset: Int), CaptureError>
+        if let denote {
+            do {
+                let file = try denoteFile ?? denote.create(denoteAnswers, now: now)
+                if denoteFile == nil { Task { await workspace.refresh() } }
+                denoteFile = file
+                placed = session.capture(text, template: template, root: workspace.rootPaths.first, file: file, now: treeDate ?? request.day.map(Self.date) ?? now)
+            } catch {
+                placed = .failure(CaptureError(message: "Can't make the note: \(error)"))
+            }
+        } else {
+            placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
+                session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: treeDate ?? request.day.map(Self.date) ?? now)
+            }
         }
         switch placed {
         case .failure(let error):

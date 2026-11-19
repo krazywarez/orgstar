@@ -27,10 +27,31 @@ public struct Dailies: Sendable, Equatable {
         public var keyword: String
         /// `denote-journal-title-format`, a `format-time-string` format.
         public var title: String
+        /// `denote-journal-interval`: `daily`, `weekly`, `monthly` or `yearly`, how long one
+        /// entry lasts.
+        public var interval: String
 
-        public init(keyword: String = "journal", title: String = "%A %-e %B %Y %H:%M") {
+        public init(keyword: String = "journal", title: String = "%A %-e %B %Y %H:%M", interval: String = "daily") {
             self.keyword = keyword
             self.title = title
+            self.interval = interval
+        }
+
+        /// `denote-journal--filename-regexp`: whether an identifier's date is in `day`'s
+        /// interval, weeks starting on Monday.
+        func covers(_ identifier: String, _ day: Date) -> Bool {
+            let date = Denote.identifier(for: day)
+            switch interval {
+            case "monthly": return identifier.hasPrefix(date.prefix(6))
+            case "yearly": return identifier.hasPrefix(date.prefix(4))
+            case "weekly":
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.firstWeekday = 2
+                calendar.timeZone = .current
+                guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return false }
+                return (0..<7).contains { identifier.hasPrefix(Denote.identifier(for: week.start.addingTimeInterval(Double($0) * 86400 + 43200)).prefix(8)) }
+            default: return identifier.hasPrefix(date.prefix(8))
+            }
         }
     }
 
@@ -48,7 +69,8 @@ public struct Dailies: Sendable, Equatable {
         if OrgPreferences.usesDenote(defaults) {
             guard let base = DenoteNote.directory(roots: roots, defaults: defaults) else { return nil }
             return Dailies(directory: OrgAttach.expand(OrgPreferences.denoteJournalDirectory(defaults), in: base), entry: OrgPreferences.dailiesEntry(defaults),
-                           journal: Journal(keyword: Denote.keyword(OrgPreferences.denoteJournalKeyword(defaults)), title: OrgPreferences.denoteJournalTitle(defaults)))
+                           journal: Journal(keyword: Denote.keyword(OrgPreferences.denoteJournalKeyword(defaults)), title: OrgPreferences.denoteJournalTitle(defaults),
+                                            interval: OrgPreferences.denoteJournalInterval(defaults)))
         }
         let roam = OrgPreferences.roamDirectory(defaults)
         guard let base = roam.isEmpty ? roots.first : OrgAttach.expand(roam, in: roots.first ?? NSHomeDirectory()) else { return nil }
@@ -72,8 +94,7 @@ public struct Dailies: Sendable, Equatable {
 
     public func path(for day: Date) -> String {
         if let journal {
-            let date = Denote.identifier(for: day).prefix(8)
-            if let found = files().first(where: { Denote.identifier(ofFile: $0)?.hasPrefix(date) == true }) { return found }
+            if let found = files().first(where: { Denote.identifier(ofFile: $0).map { journal.covers($0, day) } == true }) { return found }
             let name = Denote.fileName(identifier: Denote.identifier(for: day), title: Self.strftime(journal.title, day), keywords: [journal.keyword])
             return (directory as NSString).appendingPathComponent(name)
         }

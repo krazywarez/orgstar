@@ -56,7 +56,7 @@ public enum CaptureTemplates {
                 groups.append(CaptureGroup(key: key, name: name))
                 continue
             }
-            let fileless = values["id"]?.string != nil || values["clock"]?.bool == true
+            let fileless = values["id"]?.string != nil || values["clock"]?.bool == true || values["denote"]?.bool == true
             guard let key = values["key"]?.string, let body = values["template"]?.string, let file = values["file"]?.string ?? (fileless ? "" : nil) else {
                 problems.append("capture.toml line \(table.line): a template needs key, file and template")
                 continue
@@ -92,7 +92,7 @@ public enum CaptureTemplates {
                 prepend: flag("prepend"), immediateFinish: flag("immediate-finish"), emptyLines: lines("empty-lines"),
                 emptyLinesBefore: lines("empty-lines-before"), emptyLinesAfter: lines("empty-lines-after"),
                 jumpToCaptured: flag("jump-to-captured"), clockIn: flag("clock-in"), clockKeep: flag("clock-keep"), clockResume: flag("clock-resume"),
-                tableLinePos: values["table-line-pos"]?.string, timePrompt: flag("time-prompt")
+                tableLinePos: values["table-line-pos"]?.string, timePrompt: flag("time-prompt"), denote: flag("denote")
             )
             templates.append(CaptureTemplate(key: key, name: values["name"]?.string ?? key, kind: kind, target: target, template: body, options: options))
         }

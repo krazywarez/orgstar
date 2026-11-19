@@ -46,6 +46,10 @@ public struct EditingOptions: Sendable, Equatable, Codable {
     public var archiveLocation: String?
     /// The agenda files (`(org-agenda-files)`), for clock tables over `agenda` scopes; nil for none.
     public var agendaFiles: [String]?
+    /// The folders of `denote-directory`, for denote-org's dynamic blocks; nil for none.
+    public var denoteDirectories: [String]?
+    /// `denote-sequence-scheme`, for the `denote-sequence` block.
+    public var denoteSequenceScheme = DenoteSequence.Scheme.numeric
     /// The file the buffer visits (`buffer-file-name`); nil for a buffer without one.
     public var filePath: String?
     /// `org-export-default-language`: the language of exports without `#+LANGUAGE`, and of

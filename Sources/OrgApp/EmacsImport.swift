@@ -559,9 +559,20 @@ public struct EmacsImport: Sendable {
             add(name, .string(format))
         case "org-timer-default-timer":
             if let text = value.string { add(name, .string(text)) } else if let number = value.integer { add(name, .string(String(number))) } else { note("not a string or number") }
+        case "denote-directory" where value.elements?.isEmpty == false, "denote-silo-directories":
+            guard let folders = value.elements?.compactMap(\.string), folders.count == value.elements?.count, !folders.contains(where: { $0.contains(":") }) else {
+                return note("not a list of folders without :")
+            }
+            add(name, .string(folders.joined(separator: ":")))
         case "denote-directory", "denote-journal-directory", "denote-journal-keyword":
             guard let text = value.string else { return note("not a string") }
             add(name, .string(text))
+        case "denote-sequence-scheme":
+            guard let scheme = value.symbol, DenoteSequence.Scheme(rawValue: scheme) != nil else { return note("not numeric, alphanumeric or alphanumeric-delimited") }
+            add(name, .string(scheme))
+        case "denote-journal-interval":
+            guard let interval = value.symbol, ["daily", "weekly", "monthly", "yearly"].contains(interval) else { return note("not daily, weekly, monthly or yearly") }
+            add(name, .string(interval))
         case "denote-journal-title-format":
             let formats = ["day-date-month-year": "%A %-e %B %Y", "day-date-month-year-24h": "%A %-e %B %Y %H:%M",
                            "day-date-month-year-12h": "%A %-e %B %Y %I:%M %p", "day": "%A"]

@@ -17,6 +17,10 @@ struct CaptureView: View {
     @State private var groups: [CaptureGroup] = []
     /// The day `:time-prompt` asked for.
     @State private var treeDate: Date?
+    /// A `denote = true` template's note: its questions, their answers, and once made, its file.
+    @State private var denote: DenoteCapture?
+    @State private var denoteAnswers: [String] = []
+    @State private var denoteFile: String?
     @State private var problem: String?
     @State private var template: CaptureTemplate?
     @State private var questions: [Capture.Question] = []
@@ -136,6 +140,7 @@ struct CaptureView: View {
     }
 
     static func target(_ template: CaptureTemplate) -> String {
+        if template.options.denote { return "a new Denote note" }
         let file = (template.target.file as NSString).lastPathComponent
         switch template.target {
         case .file, .heading: return file
@@ -198,7 +203,9 @@ struct CaptureView: View {
             for heading in DocumentModel(tree: OrgParser.parse(text)).headings { for tag in heading.localTags where !tags.contains(tag) { tags.append(tag) } }
             context.fileTags = tags
         }
-        questions = (asksTreeDate(chosen) ? [Self.treeQuestion] : []) + Capture.questions(chosen.template, context: context)
+        denote = chosen.options.denote ? DenoteCapture(roots: workspace.rootPaths, paths: workspace.files.map(\.path)) : nil
+        denoteFile = nil
+        questions = (denote?.questions ?? []) + (asksTreeDate(chosen) ? [Self.treeQuestion] : []) + Capture.questions(chosen.template, context: context)
         answers = questions.map { _ in "" }
         if questions.isEmpty { expand() }
     }
@@ -211,6 +218,10 @@ struct CaptureView: View {
     private func expand() {
         guard let template else { return }
         var answers = answers
+        if let denote {
+            denoteAnswers = Array(answers.prefix(denote.questions.count))
+            answers.removeFirst(min(denote.questions.count, answers.count))
+        }
         if asksTreeDate(template) {
             treeDate = Capture.treeDate(answers.removeFirst(), now: Date())
         }
@@ -247,8 +258,20 @@ struct CaptureView: View {
         guard let template else { return }
         let opened = context.now
         let now = Date()
-        let placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
-            session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: captureDate(now))
+        let placed: Result<(path: String, offset: Int), CaptureError>
+        if let denote {
+            do {
+                let file = try denoteFile ?? denote.create(denoteAnswers, now: now)
+                if denoteFile == nil { Task { await workspace.refresh() } }
+                denoteFile = file
+                placed = session.capture(text, template: template, root: workspace.rootPaths.first, file: file, now: captureDate(now))
+            } catch {
+                placed = .failure(CaptureError(message: "Can't make the note: \(error)"))
+            }
+        } else {
+            placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
+                session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: captureDate(now))
+            }
         }
         switch placed {
         case .failure(let error):

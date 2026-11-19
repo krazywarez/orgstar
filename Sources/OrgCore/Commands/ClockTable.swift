@@ -400,6 +400,10 @@ extension EmacsBuffer {
             try replaceDynamicBlockContent(at: mark.position, with: table, recalculate: table.range(of: "(?mi)^[ \\t]*#\\+TBLFM:", options: .regularExpression) != nil)
             return
         }
+        if DenoteBlocks.names.contains(name) {
+            try replaceDynamicBlockContent(at: begin, with: denoteBlock(name, paramText: paramText))
+            return
+        }
         guard name == "clocktable" else { throw UserError(message: "Dynamic blocks named \(name) aren't supported") }
         var defaults = ClockTable.Params.defaults
         defaults[":lang"] = .string(options.exportLanguage)

@@ -12,6 +12,17 @@ public enum Denote {
         return nil
     }
 
+    /// The files under `directories` whose names have an identifier, as Denote lists them.
+    public static func files(in directories: [String]) -> [String] { DenoteBlocks.files(in: directories).map(\.path) }
+
+    /// A query link's regexp, `denote:query-contents:REGEXP` (contents) or
+    /// `denote:query-filenames:REGEXP`; nil for a link to an identifier.
+    public static func query(_ path: String) -> (contents: Bool, regexp: String)? {
+        if path.hasPrefix("query-contents:") { return (true, String(path.dropFirst("query-contents:".count))) }
+        if path.hasPrefix("query-filenames:") { return (false, String(path.dropFirst("query-filenames:".count))) }
+        return nil
+    }
+
     /// A `denote:` link's path split at `::` into the identifier and the search.
     public static func split(_ path: String) -> (identifier: String, search: String?) {
         guard let range = path.range(of: "::") else { return (path, nil) }
@@ -90,12 +101,48 @@ public enum Denote {
     /// `denote-org-front-matter`, dated as an inactive Org timestamp. The signature line is
     /// left out when there's none.
     public static func frontMatter(title: String, date: Date, keywords: [String], identifier: String, signature: String = "", calendar: Calendar = .current) -> String {
-        let c = calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute], from: date)
-        let day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][c.weekday! - 1]
-        let stamp = String(format: "[%04d-%02d-%02d %@ %02d:%02d]", c.year!, c.month!, c.day!, day, c.hour!, c.minute!)
+        lines(title: title, date: date, keywords: keywords, identifier: identifier, signature: signature, calendar: calendar)
+            .compactMap(\.line).map { $0 + "\n" }.joined() + "\n"
+    }
+
+    /// The front matter's lines by key, in its order; nil for a signature line there isn't,
+    /// and for the date when `date` is nil.
+    static func lines(title: String, date: Date?, keywords: [String], identifier: String, signature: String, calendar: Calendar) -> [(key: String, line: String?)] {
+        let stamp = date.map { date in
+            let c = calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute], from: date)
+            let day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][c.weekday! - 1]
+            return String(format: "[%04d-%02d-%02d %@ %02d:%02d]", c.year!, c.month!, c.day!, day, c.hour!, c.minute!)
+        }
         let tags = keywords.isEmpty ? "" : ":" + keywords.joined(separator: ":") + ":"
-        return "#+title:      \(title)\n#+date:       \(stamp)\n#+filetags:   \(tags)\n#+identifier: \(identifier)\n"
-            + (signature.isEmpty ? "" : "#+signature:  \(signature)\n") + "\n"
+        return [("title", "#+title:      \(title)"), ("date", stamp.map { "#+date:       \($0)" }), ("filetags", "#+filetags:   \(tags)"),
+                ("identifier", "#+identifier: \(identifier)"), ("signature", signature.isEmpty ? nil : "#+signature:  \(signature)")]
+    }
+
+    /// `denote-rewrite-front-matter`: `text` with its front matter lines set to these values,
+    /// a missing one added after the one before it, an empty signature's removed, other lines
+    /// kept. A nil `date` keeps the date line. Without front matter, `denote-prepend-front-matter`:
+    /// all of it before the text, dated `date` or `now`.
+    public static func rewritingFrontMatter(
+        _ text: String, title: String, keywords: [String], signature: String, date: Date?, identifier: String, now: Date = Date(), calendar: Calendar = .current
+    ) -> String {
+        var lines = text.components(separatedBy: "\n")
+        let wanted = Self.lines(title: title, date: date, keywords: keywords, identifier: identifier, signature: signature, calendar: calendar)
+        func index(_ key: String) -> Int? {
+            lines.prefix(40).firstIndex { $0.trimmingCharacters(in: .whitespaces).lowercased().hasPrefix("#+" + key + ":") }
+        }
+        guard wanted.contains(where: { index($0.key) != nil }) else {
+            return frontMatter(title: title, date: date ?? now, keywords: keywords, identifier: identifier, signature: signature, calendar: calendar) + text
+        }
+        for (position, item) in wanted.enumerated() {
+            if let at = index(item.key) {
+                if let line = item.line { lines[at] = line } else if item.key == "signature" { lines.remove(at: at) }
+            } else if let line = item.line {
+                let before = wanted[..<position].reversed().compactMap { index($0.key) }.first
+                let after = wanted[(position + 1)...].compactMap { index($0.key) }.first
+                lines.insert(line, at: before.map { $0 + 1 } ?? after ?? 0)
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Reading names and front matter
@@ -137,6 +184,13 @@ public enum Denote {
         }
         let keywords = value("filetags").map { $0.split(separator: ":").map(String.init).filter { !$0.isEmpty } }
         return (value("title"), keywords, value("identifier")?.nonEmptyOrNil, value("signature"))
+    }
+
+    /// The front matter's `#+date:`, an Org timestamp, in `calendar`'s time zone.
+    public static func date(of text: String, calendar: Calendar = .current) -> Date? {
+        guard let match = text.firstMatch(of: /(?im)^[ \t]*#\+date:[ \t]*[\[<](\d{4})-(\d{2})-(\d{2})(?:[^\]>\d]*(\d{1,2}):(\d{2}))?/) else { return nil }
+        return calendar.date(from: DateComponents(year: Int(match.1), month: Int(match.2), day: Int(match.3),
+                                                  hour: match.4.flatMap { Int($0) } ?? 0, minute: match.5.flatMap { Int($0) } ?? 0))
     }
 
     /// `denote-rename-file-using-front-matter`: the name the file at `path` takes from its

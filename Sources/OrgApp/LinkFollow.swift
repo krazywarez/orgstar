@@ -8,6 +8,8 @@ public enum LinkFollow: Equatable, Sendable {
     /// For the system to open: a web or mail address, or a file Orgstar doesn't edit.
     case openExternally(URL)
     case message(String)
+    /// Files to choose one of to open: a Denote query link's matches.
+    case choose(prompt: String, paths: [String])
 }
 
 extension DocumentSession {
@@ -30,8 +32,21 @@ extension DocumentSession {
             show(location)
             return .shown
         case "denote":
-            let (identifier, search) = Denote.split(link.path)
             let paths = ((try? workspace?.index.files()) ?? []).map(\.path)
+            if let query = Denote.query(link.path) {
+                // `denote-query-contents-link` and `denote-query-filenames-link`: the notes whose
+                // text, or name, the regexp matches.
+                guard let regex = try? NSRegularExpression(pattern: EmacsRegex.translate(query.regexp), options: [.caseInsensitive]) else {
+                    return .message("Invalid regexp \(query.regexp)")
+                }
+                let matches = paths.filter { Denote.identifier(ofFile: $0) != nil }.filter { path in
+                    let subject = query.contents ? (text(of: path) ?? (try? String(contentsOfFile: path, encoding: .utf8)) ?? "") : (path as NSString).lastPathComponent
+                    return regex.firstMatch(in: subject, range: NSRange(location: 0, length: (subject as NSString).length)) != nil
+                }.sorted()
+                guard !matches.isEmpty else { return .message("No notes match \(query.regexp)") }
+                return .choose(prompt: "Notes matching \(query.regexp): ", paths: matches)
+            }
+            let (identifier, search) = Denote.split(link.path)
             guard let file = Denote.file(withIdentifier: identifier, in: paths) else {
                 return .message("No file has the Denote identifier \(identifier)")
             }

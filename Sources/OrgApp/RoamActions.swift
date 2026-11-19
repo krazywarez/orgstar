@@ -80,11 +80,35 @@ public struct RoamActions {
             }
         case "app.node.rename-from-front-matter":
             renameFromFrontMatter()
+        case "app.node.rename":
+            renameNote()
+        case _ where id.hasPrefix("app.node.sequence-"):
+            runSequence(String(id.dropFirst("app.node.sequence-".count)))
+        case "app.node.rename-folder-from-front-matter":
+            renameFolderFromFrontMatter()
         case "app.node.find":
             chooseNode("Node: ") { choice in
                 switch choice {
                 case .existing(let node): open(node.location.path, node.location.start)
                 case .created(let path, _, _): open(path, (session.text(of: path).map { ($0 as NSString).length }) ?? 0)
+                }
+            }
+        case "app.node.silo-find", "app.node.silo-create":
+            // denote-silo: a folder of `denote-silo-directories` in place of `denote-directory`.
+            let silos = DenoteNote.silos(roots: roots())
+            guard !silos.isEmpty else { return show("No folder for new notes") }
+            ask(Prompt(key: "silo", message: "Select a silo: ", choices: silos.map(DenoteNote.abbreviated))) { answer in
+                guard let answer, let silo = silos.first(where: { DenoteNote.abbreviated($0) == answer }) else { return }
+                let opened: (NodeChoice) -> Void = { choice in
+                    switch choice {
+                    case .existing(let node): open(node.location.path, node.location.start)
+                    case .created(let path, _, _): open(path, (session.text(of: path).map { ($0 as NSString).length }) ?? 0)
+                    }
+                }
+                guard id == "app.node.silo-create" else { return chooseNode("Node: ", silo: silo, opened) }
+                ask(Prompt(key: "title", message: "New file TITLE: ", requireMatch: false)) { title in
+                    guard let title = title?.trimmingCharacters(in: .whitespaces) else { return }
+                    createDenote(title, known: nodes(), silo: silo, opened)
                 }
             }
         case "app.node.insert":
@@ -156,8 +180,8 @@ public struct RoamActions {
     /// `org-roam-node-read`: a node by its title, with its file's name when titles repeat. A
     /// title no node has makes a node with it, as org-roam's default capture template does;
     /// with Denote, `denote` asks for its keywords and makes the note.
-    private func chooseNode(_ message: String, _ then: @escaping (NodeChoice) -> Void) {
-        let all = nodes()
+    private func chooseNode(_ message: String, silo: String? = nil, _ then: @escaping (NodeChoice) -> Void) {
+        let all = silo.map { silo in nodes().filter { $0.location.path.hasPrefix(silo.hasSuffix("/") ? silo : silo + "/") } } ?? nodes()
         let counts = Dictionary(all.map { ($0.title, 1) }, uniquingKeysWith: +)
         let labels = all.map { node in
             counts[node.title, default: 0] > 1 ? "\(node.title) (\((node.location.path as NSString).lastPathComponent))" : node.title
@@ -167,7 +191,7 @@ public struct RoamActions {
             if let index = labels.firstIndex(of: answer) { return then(.existing(all[index])) }
             let title = answer.trimmingCharacters(in: .whitespaces)
             guard !title.isEmpty else { return }
-            if denote { return createDenote(title, known: all, then) }
+            if denote || silo != nil { return createDenote(title, known: all, silo: silo, then) }
             guard let folder = RoamNode.directory(roots: roots()) else { return show("No folder for new nodes") }
             do {
                 let node = try RoamNode.create(title: title, in: folder)
@@ -191,24 +215,33 @@ public struct RoamActions {
 
     /// `denote`: after the title, the questions `denote-prompts` lists, in its order, then the
     /// note in `denote-directory` or the folder chosen under it.
-    private func createDenote(_ title: String, known: [IndexStore.Node], _ then: @escaping (NodeChoice) -> Void) {
-        guard let root = DenoteNote.directory(roots: roots()) else { return show("No folder for new notes") }
-        createDenote(title, root: root, prompts: OrgPreferences.denotePrompts(), templates: UserConfig.denoteTemplates(.standard),
-                     keywords: Denote.keywords(known.flatMap { Denote.name(ofFile: $0.location.path).keywords }), then)
+    /// In a silo, its folder takes the place of `denote-directory`.
+    /// With `signature`, as `denote-use-signature` sets it: that signature, not asked for.
+    func createDenote(_ title: String, known: [IndexStore.Node], silo: String? = nil, signature: String? = nil, _ then: @escaping (NodeChoice) -> Void) {
+        let folders = silo.map { [$0] } ?? DenoteNote.directories(roots: roots())
+        guard !folders.isEmpty else { return show("No folder for new notes") }
+        var answers = DenoteAnswers()
+        if let signature { answers.signature = signature }
+        createDenote(title, roots: folders, prompts: OrgPreferences.denotePrompts().filter { signature == nil || $0 != "signature" },
+                     templates: UserConfig.denoteTemplates(.standard), keywords: Denote.keywords(known.flatMap { Denote.name(ofFile: $0.location.path).keywords }),
+                     answers: answers, then)
     }
 
+    /// The note goes in the first of `roots`, or the folder the `subdirectory` question picks
+    /// among them and their folders.
     func createDenote(
-        _ title: String, root: String, prompts: [String], templates: [(key: String, text: String)], keywords: [String],
+        _ title: String, roots: [String], prompts: [String], templates: [(key: String, text: String)], keywords: [String],
         answers: DenoteAnswers = DenoteAnswers(), _ then: @escaping (NodeChoice) -> Void
     ) {
+        let root = roots[0]
         func next(_ answers: DenoteAnswers) {
-            createDenote(title, root: root, prompts: Array(prompts.dropFirst()), templates: templates, keywords: keywords, answers: answers, then)
+            createDenote(title, roots: roots, prompts: Array(prompts.dropFirst()), templates: templates, keywords: keywords, answers: answers, then)
         }
         var answers = answers
         switch prompts.first {
         case nil:
             do {
-                let note = try DenoteNote.create(title: title, keywords: answers.keywords, in: answers.folder ?? root, root: root,
+                let note = try DenoteNote.create(title: title, keywords: answers.keywords, in: answers.folder ?? root, roots: roots,
                                                  now: answers.date ?? Date(), signature: answers.signature, template: answers.template)
                 refresh()
                 show("Created \((note.path as NSString).lastPathComponent)")
@@ -224,11 +257,11 @@ public struct RoamActions {
                 next(answers)
             }
         case "subdirectory":
-            let folders = DenoteNote.subdirectories(of: root)
-            guard !folders.isEmpty else { return next(answers) }
-            ask(Prompt(key: "subdirectory", message: "Select SUBDIRECTORY: ", choices: ["."] + folders)) { answer in
+            let folders = DenoteNote.folderChoices(roots)
+            guard folders.count > 1 else { return next(answers) }
+            ask(Prompt(key: "subdirectory", message: "Select SUBDIRECTORY: ", choices: folders.map(\.label))) { answer in
                 guard let answer else { return }
-                answers.folder = answer == "." || answer.isEmpty ? root : (root as NSString).appendingPathComponent(answer)
+                answers.folder = folders.first { $0.label == answer }?.path ?? root
                 next(answers)
             }
         case "date":
@@ -256,23 +289,116 @@ public struct RoamActions {
         }
     }
 
-    /// `denote-rename-file-using-front-matter`: the open file renamed from its title and
-    /// keywords, keeping its identifier and signature.
+    /// `denote-rename-file-using-front-matter`: the open file renamed from its title,
+    /// keywords and signature, keeping its identifier.
     func renameFromFrontMatter() {
         guard let path = session.path else { return show("No file is open") }
         guard let text = session.text(of: path) else { return show("Can't read \((path as NSString).lastPathComponent)") }
         guard let target = Denote.renamed(path, text: text) else { return show("Not a Denote note: no front matter or identifier") }
         guard target != path else { return show("Nothing to rename") }
+        rename(path, to: target)
+    }
+
+    /// Saves `path`, moves it to `target` and opens it there.
+    func rename(_ path: String, to target: String) {
         guard !FileManager.default.fileExists(atPath: target) else { return show("\((target as NSString).lastPathComponent) is already there") }
-        guard session.save(path) else { return show("Can't save \((path as NSString).lastPathComponent)") }
         do {
-            try FileManager.default.moveItem(atPath: path, toPath: target)
-            session.kill(path)
+            try move(path, to: target)
             refresh()
             open(target, 0)
             show("Renamed to \((target as NSString).lastPathComponent)")
         } catch {
-            show("Can't rename: \(error.localizedDescription)")
+            show("Can't rename: \(error)")
+        }
+    }
+
+    /// Moves a file, saving it first and closing it when it's open.
+    func move(_ path: String, to target: String) throws {
+        if session.openPaths.contains(path) {
+            guard session.save(path) else { throw Dailies.Failure("Can't save \((path as NSString).lastPathComponent)") }
+        }
+        try FileManager.default.moveItem(atPath: path, toPath: target)
+        if session.openPaths.contains(path) { session.kill(path) }
+    }
+
+    /// `denote-rename-file`: the open file's title, keywords, signature and date, as
+    /// `denote-prompts` asks for them, each starting with the current value, then the file
+    /// renamed in its folder and its front matter rewritten. A file without an identifier
+    /// gets one from its modification time; one without front matter gets it at the top.
+    func renameNote() {
+        guard let path = session.path else { return show("No file is open") }
+        guard let text = session.text(of: path) else { return show("Can't read \((path as NSString).lastPathComponent)") }
+        let name = Denote.name(ofFile: path), front = Denote.frontMatter(of: text)
+        var title = front.title ?? name.title?.replacingOccurrences(of: "-", with: " ") ?? ""
+        var keywords = front.keywords ?? name.keywords
+        var signature = name.signature ?? front.signature ?? ""
+        var date: Date?
+        let file = (path as NSString).lastPathComponent
+        func ask(_ prompts: ArraySlice<String>) {
+            switch prompts.first {
+            case nil: finish()
+            case "title":
+                self.ask(Prompt(key: "title", message: "Rename \(file) with TITLE (empty to remove): ", initial: title, requireMatch: false)) { answer in
+                    guard let answer else { return }
+                    title = answer
+                    ask(prompts.dropFirst())
+                }
+            case "keywords":
+                self.ask(Prompt(key: "keywords", message: "Rename \(file) with KEYWORDS (empty to remove): ", initial: keywords.joined(separator: ","), requireMatch: false)) { answer in
+                    guard let answer else { return }
+                    keywords = answer.split(whereSeparator: { $0 == "," || $0.isWhitespace }).map(String.init)
+                    ask(prompts.dropFirst())
+                }
+            case "signature":
+                self.ask(Prompt(key: "signature", message: "Rename \(file) with SIGNATURE (empty to remove): ", initial: signature, requireMatch: false)) { answer in
+                    guard let answer else { return }
+                    signature = answer
+                    ask(prompts.dropFirst())
+                }
+            case "date":
+                self.ask(Prompt(key: "date", message: "Rename \(file) with DATE: ", date: Prompt.DateRead(defaultDate: Denote.date(of: text)))) { answer in
+                    guard let answer else { return }
+                    date = answer.isEmpty ? nil : Self.date(answer)
+                    ask(prompts.dropFirst())
+                }
+            default: ask(prompts.dropFirst())
+            }
+        }
+        func finish() {
+            let (target, rewritten) = DenoteNote.renaming(path, text: text, title: title, keywords: keywords, signature: signature, date: date,
+                                                          roots: DenoteNote.directories(roots: roots()))
+            guard target != path || rewritten != text else { return show("Nothing to rename") }
+            if rewritten != text, case .failed(let message) = session.perform(ReplaceText(old: text, new: rewritten), path: path, at: 0, expect: nil) { return show(message) }
+            guard target != path else { return show("Front matter rewritten") }
+            rename(path, to: target)
+        }
+        ask(ArraySlice(OrgPreferences.denotePrompts()))
+    }
+
+    /// `denote-dired-rename-marked-files-using-front-matter`, with every Denote note in a
+    /// folder of `denote-directory` marked: each renamed from its front matter.
+    func renameFolderFromFrontMatter() {
+        let folders = DenoteNote.folderChoices(DenoteNote.directories(roots: roots()))
+        guard !folders.isEmpty else { return show("No folder for notes") }
+        ask(Prompt(key: "folder", message: "Rename notes in: ", choices: folders.map(\.label))) { answer in
+            guard let answer, let folder = folders.first(where: { $0.label == answer })?.path else { return }
+            let shown = session.path
+            var renamed = 0, problems: [String] = []
+            for name in ((try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []).sorted() where Denote.identifier(ofFile: name) != nil {
+                let path = (folder as NSString).appendingPathComponent(name)
+                guard let text = session.text(of: path) ?? (try? String(contentsOfFile: path, encoding: .utf8)),
+                      let target = Denote.renamed(path, text: text), target != path else { continue }
+                guard !FileManager.default.fileExists(atPath: target) else { problems.append("\((target as NSString).lastPathComponent) is already there"); continue }
+                do {
+                    try move(path, to: target)
+                    renamed += 1
+                    if shown == path { open(target, 0) }
+                } catch {
+                    problems.append("\(error)")
+                }
+            }
+            refresh()
+            show(([renamed == 1 ? "Renamed 1 note" : "Renamed \(renamed) notes"] + problems).joined(separator: "; "))
         }
     }
 }

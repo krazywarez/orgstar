@@ -235,7 +235,7 @@ Tables and dynamic blocks (see [[file:10-tables.org][Tables]] and [[file:06-date
 
 - Formulas outside orgstar's own calculator go to Emacs on the Mac and are refused on iOS.
 - Clock tables support the scopes =nil=, =file=, =subtree= and =treeN=; other scopes, =:match= and =:step= aren't supported.
-- Dynamic blocks other than =clocktable= and =columnview= aren't supported. Column views of other files aren't supported.
+- Dynamic blocks other than =clocktable=, =columnview= and denote-org's aren't supported. Column views of other files aren't supported.
 
 Other:
 

@@ -1071,6 +1071,24 @@ See [[file:09-links.org][Links]].
 | Next Daily Note (=app.dailies.next=) | =C-c n d f= | — | =SPC n r d f= (N) | =org-roam-dailies-goto-next-note=. |
 | Previous Daily Note (=app.dailies.previous=) | =C-c n d b= | — | =SPC n r d b= (N) | =org-roam-dailies-goto-previous-note=. |
 | Rename Note from Front Matter (=app.node.rename-from-front-matter=) | — | — | — | =denote-rename-file-using-front-matter=. |
+| Rename Note… (=app.node.rename=) | — | — | — | =denote-rename-file=. |
+| Rename Notes in Folder from Front Matter… (=app.node.rename-folder-from-front-matter=) | — | — | — | =denote-dired-rename-marked-files-using-front-matter=. |
+| Find Note in Silo… (=app.node.silo-find=) | — | — | — | =denote-silo-open-or-create=. |
+| New Note in Silo… (=app.node.silo-create=) | — | — | — | =denote-silo-create-note=. |
+| New Sequence Note… (=app.node.sequence-new-parent=) | — | — | — | =denote-sequence-new-parent=. |
+| New Child Sequence Note… (=app.node.sequence-new-child=) | — | — | — | =denote-sequence-new-child=. |
+| New Sibling Sequence Note… (=app.node.sequence-new-sibling=) | — | — | — | =denote-sequence-new-sibling=. |
+| New Child of This Note… (=app.node.sequence-new-child-of-current=) | — | — | — | =denote-sequence-new-child-of-current=. |
+| New Sibling of This Note… (=app.node.sequence-new-sibling-of-current=) | — | — | — | =denote-sequence-new-sibling-of-current=. |
+| Find Sequence Relatives… (=app.node.sequence-find=) | — | — | — | =denote-sequence-find=. |
+| Next Sibling Note (=app.node.sequence-next-sibling=) | — | — | — | =denote-sequence-find-next-sibling=. |
+| Previous Sibling Note (=app.node.sequence-previous-sibling=) | — | — | — | =denote-sequence-find-previous-sibling=. |
+| Reparent Note… (=app.node.sequence-reparent=) | — | — | — | =denote-sequence-reparent=. |
+| Reparent Note with Descendants… (=app.node.sequence-reparent-recursive=) | — | — | — | =denote-sequence-reparent-recursive=. |
+| Rename Note as Sequence Parent (=app.node.sequence-rename-as-parent=) | — | — | — | =denote-sequence-rename-as-parent=. |
+| Convert Note Sequence Scheme (=app.node.sequence-convert=) | — | — | — | =denote-sequence-convert=. |
+| Insert Sequence Link… (=app.node.sequence-link=) | — | — | — | =denote-sequence-link=. |
+| Sequence Hierarchy… (=app.node.sequence-hierarchy=) | — | — | — | =denote-sequence-view-hierarchy=. |
 
 ** Unbound commands
 

@@ -369,19 +369,121 @@ With =notes-package = "denote"= in =config.toml=, the same commands follow Denot
   punctuation, words joined by =-=; the keywords sorted, each one word, joined by =_=.
 - The daily-note commands work on denote-journal's entries: notes in
   =denote-journal-directory= (=journal=, under =denote-directory=) with the
-  =denote-journal-keyword= (=journal=). A day's entry is the one whose identifier has its
-  date; a new one is titled by =denote-journal-title-format= (="%A %-e %B %Y %H:%M"=). Capturing
+  =denote-journal-keyword= (=journal=). With =denote-journal-interval= (=daily=), one entry
+  lasts a day, a week (Monday to Sunday), a month or a year, and the entry for a date is
+  the one whose identifier's date is in that stretch. denote-journal itself takes a date
+  outside the current week, month or year as today; orgstar uses the date's own. A new
+  entry is titled by =denote-journal-title-format= (="%A %-e %B %Y %H:%M"=). Capturing
   adds =org-roam-dailies-entry= as for org-roam.
+- Store Link in a Denote note stores =[[denote:ID][Title]]=, or =denote:ID::#custom-id=
+  in an entry with a =CUSTOM_ID=, as Denote does with =denote-org-store-link-to-heading=
+  nil.
+
+=denote-directory= can hold several folders, separated by =:=. New notes go in the first;
+the =subdirectory= question offers all of them and their folders, and identifiers are
+kept unique across them.
+
+*** Renaming
+
+- Rename Note… (=denote-rename-file=) asks the questions =denote-prompts= has among
+  =title=, =keywords=, =signature= and =date=, each starting with the current value, then
+  renames the file in its folder and rewrites its front matter. Empty answers remove a
+  part. A file without an identifier gets one from its modification time; a file
+  without front matter gets it added at the top.
 - Rename Note from Front Matter renames the open file from its =#+title:=,
   =#+filetags:= and =#+signature:=, keeping its identifier, as
   =denote-rename-file-using-front-matter= does. A missing line leaves that part out of
-  the name, and the keywords keep their order. Links keep working, as they use the
-  identifier.
+  the name, and the keywords keep their order.
+- Rename Notes in Folder from Front Matter… does that for every Denote note in a
+  folder of =denote-directory=, as =denote-dired-rename-marked-files-using-front-matter=
+  does with them all marked.
 
-Import from Emacs reads =denote-directory=, =denote-prompts=, =denote-templates=,
-=denote-journal-directory=, =denote-journal-keyword= and =denote-journal-title-format=.
-Templates that are functions, and Denote notes in Markdown or plain text, are not
+Links keep working after a rename, as they use the identifier.
+
+*** Query links
+
+=[[denote:query-contents:REGEXP]]= and =[[denote:query-filenames:REGEXP]]= offer the
+notes whose text, or name, the Emacs regexp matches, ignoring case, and open the one
+chosen. In the iOS reader they list the matches.
+
+*** Silos
+
+New Note in Silo… and Find Note in Silo… (denote-silo) ask for a folder of
+=denote-silo-directories= (=denote-directory='s folders unless set, separated by =:=)
+and work as if it were =denote-directory=. Find Note in Silo… lists the notes in the
+sidebar folders that are under it.
+
+*** Capture
+
+A capture template with =denote = true= and no =file= puts its entry in a new note, as
+=denote-org-capture= does: it asks for the title and the =denote-prompts= questions before
+its own. See [[file:08-capture.org][Capture]].
+
+#+BEGIN_SRC toml
+[[template]]
+key = "n"
+name = "New note"
+denote = true
+type = "plain"
+template = "%i\n%?"
+#+END_SRC
+
+*** Dynamic blocks
+
+denote-org's dynamic blocks update with =C-c C-c= on their =#+BEGIN:= line or Update
+Dynamic Block, over the files in =denote-directory=:
+
+| Block | What it lists |
+|-------+---------------|
+| =denote-links= | Links to the notes whose names (relative to =denote-directory=) match =:regexp= |
+| =denote-missing-links= | The same, without the notes this file links to already |
+| =denote-backlinks= | Links to the notes that link to this one |
+| =denote-files= | The text of the notes matching =:regexp= |
+| =denote-files-as-headings= | The same, each note's title a heading and its headings one level down |
+| =denote-sequence= | A note's descendants, =:depth= levels deep, indented; with =:sequence ""= every note with a sequence |
+
+They take denote-org's parameters: =:not-regexp=, =:sort-by-component= (=title=,
+=keywords=, =signature=, =identifier=, =last-modified=, =random=), =:reverse-sort=,
+=:id-only=, =:include-date=, =:block-name=, and for =denote-files= =:no-front-matter=,
+=:add-links= and =:file-separator=, for =denote-files-as-headings= =:add-links= and
+=:exclude-tags=. =:excluded-dirs-regexp=, =:this-heading-only= and =rx= forms aren't
 supported.
+
+#+BEGIN_SRC org
+,#+BEGIN: denote-links :regexp "_emacs" :sort-by-component title
+,#+END:
+#+END_SRC
+
+*** Sequences
+
+denote-sequence numbers notes in a hierarchy through their signatures, in the scheme
+=denote-sequence-scheme= sets: =numeric= (~1~, ~1=1~, ~1=1=2~), =alphanumeric= (~1~,
+~1a~, ~1a2~) or =alphanumeric-delimited= (~1~, ~1=a~, ~1=a2~). New sequences come out
+as denote-sequence 0.3 gives them.
+
+| Command | denote-sequence |
+|---------+-----------------|
+| New Sequence Note… | =denote-sequence-new-parent= |
+| New Child Sequence Note…, New Sibling Sequence Note… | =denote-sequence-new-child=, =-new-sibling= |
+| New Child of This Note…, New Sibling of This Note… | =denote-sequence-new-child-of-current=, =-new-sibling-of-current= |
+| Find Sequence Relatives… | =denote-sequence-find=: all parents, the parent, siblings, children or all children |
+| Next Sibling Note, Previous Sibling Note | =denote-sequence-find-next-sibling=, =-previous-sibling= |
+| Reparent Note…, Reparent Note with Descendants… | =denote-sequence-reparent=, =-reparent-recursive= |
+| Rename Note as Sequence Parent | =denote-sequence-rename-as-parent= |
+| Convert Note Sequence Scheme | =denote-sequence-convert= to =denote-sequence-scheme= |
+| Insert Sequence Link… | =denote-sequence-link= |
+| Sequence Hierarchy… | =denote-sequence-view-hierarchy=, as a list to open a note from |
+
+A new sequence note asks for its title and the =denote-prompts= questions other than
+=signature=, which is the sequence.
+
+*** Importing and limits
+
+Import from Emacs reads =denote-directory= (a folder or a list), =denote-prompts=,
+=denote-templates=, =denote-silo-directories=, =denote-sequence-scheme=,
+=denote-journal-directory=, =denote-journal-keyword=, =denote-journal-interval= and
+=denote-journal-title-format=. Templates that are functions, and Denote notes in
+Markdown or plain text, are not supported.
 
 * Inline images
 

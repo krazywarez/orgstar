@@ -71,6 +71,8 @@ struct ContentView: View {
         )
         // The agenda files, for clock tables over `agenda` scopes.
         options.agendaFiles = workspace.agendaFilePaths()
+        options.denoteDirectories = DenoteNote.directories(roots: workspace.rootPaths)
+        options.denoteSequenceScheme = OrgPreferences.denoteSequenceScheme()
         options.timer = TimerModel.shared.timer
         return options
     }
@@ -722,7 +724,7 @@ struct ContentView: View {
             apply: { applyText($0, caret: $1) }, show: { [commands] in commands.show($0) }, ask: { [commands] in commands.ask($0, reply: $1) },
             storeLink: { [commands] in _ = StoredLink.add($0, to: &commands.storedLinks) },
             open: { [session, workspace, commands] file in
-                if let message = LinkOpener.open(OrgLink(type: "file", path: file, raw: "file:" + file), session: session, workspace: workspace) { commands.show(message) }
+                if let message = LinkOpener.open(OrgLink(type: "file", path: file, raw: "file:" + file), session: session, workspace: workspace, ask: commands.ask) { commands.show(message) }
             },
             reveal: { NSWorkspace.shared.open(URL(fileURLWithPath: $0, isDirectory: true)) },
             pick: { method in
@@ -856,7 +858,7 @@ struct ContentView: View {
     private func runExternal(_ request: ExternalRequest) {
         switch request {
         case .openLink(let link):
-            if let message = LinkOpener.open(link, session: session, workspace: workspace) { commands.show(message) }
+            if let message = LinkOpener.open(link, session: session, workspace: workspace, ask: commands.ask) { commands.show(message) }
             // `org-occur` for a regexp link, once the editor shows the file.
             if let regexp = Links.regexpSearch(link) {
                 DispatchQueue.main.async { commands.editor?.perform(SparseTreeCommand(), answers: ["sparse": "/", "regexp": regexp]) }
@@ -1125,7 +1127,9 @@ struct ContentView: View {
             commands.editor?.perform(InsertLink(stored: commands.storedLinks, file: session.path))
         case "org.link.store":
             guard let editor = commands.editor, let path = session.path else { return commands.show("No method for storing a link from this buffer") }
-            commands.storeLink(Links.store(in: editor.context(), path: Links.abbreviate(path, home: NSHomeDirectory())))
+            let context = editor.context()
+            let denote = OrgPreferences.usesDenote() ? Links.storeDenote(in: context, path: path) : nil
+            commands.storeLink(denote ?? Links.store(in: context, path: Links.abbreviate(path, home: NSHomeDirectory())))
         case "org.id.store-link":
             guard let editor = commands.editor, let path = session.path else { return }
             if case .commit = editor.perform(CreateID()),

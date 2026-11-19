@@ -87,12 +87,15 @@ public struct CaptureTemplate: Sendable, Equatable, Identifiable {
         public var tableLinePos: String?
         /// `:time-prompt`: a date tree asks which day the entry is for.
         public var timePrompt = false
+        /// `denote-org-capture`: the entry goes in a new Denote note, asked for first.
+        public var denote = false
 
         public init(
             prepend: Bool = false, immediateFinish: Bool = false, emptyLines: Int? = nil, emptyLinesBefore: Int? = nil,
             emptyLinesAfter: Int? = nil, jumpToCaptured: Bool = false, clockIn: Bool = false, clockKeep: Bool = false, clockResume: Bool = false,
-            tableLinePos: String? = nil, timePrompt: Bool = false
+            tableLinePos: String? = nil, timePrompt: Bool = false, denote: Bool = false
         ) {
+            self.denote = denote
             self.tableLinePos = tableLinePos
             self.timePrompt = timePrompt
             self.prepend = prepend

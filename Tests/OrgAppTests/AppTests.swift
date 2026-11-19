@@ -1426,7 +1426,7 @@ struct LinkFollowTests {
         let notes = try Folder()
         let a = try notes.write("a.org", "* Start\n")
         let note = try notes.write("sub/20261119T120000--a-note__kw.org", "#+title: A note\n* Inside\n:PROPERTIES:\n:CUSTOM_ID: in\n:END:\n")
-        _ = try notes.write("20261119T120000--a-note.pdf", "pdf")
+        let pdf = try notes.write("20261119T120000--a-note.pdf", "pdf")
         let workspace = try WorkspaceModel(directory: nil)
         try await workspace.addRoot(notes.url)
         let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
@@ -1438,6 +1438,10 @@ struct LinkFollowTests {
         #expect(follow("denote:20261119T120000::#in") == .shown && session.path == note.path)
         #expect(session.revealRequest?.offset == (try String(contentsOfFile: note.path, encoding: .utf8) as NSString).range(of: "* Inside").location)
         #expect(follow("denote:20200101T000000") == .message("No file has the Denote identifier 20200101T000000"))
+        // Query links: the notes whose text or name the regexp matches.
+        #expect(follow("denote:query-contents:INSIDE") == .choose(prompt: "Notes matching INSIDE: ", paths: [note.path]))
+        #expect(follow("denote:query-filenames:a-no+te") == .choose(prompt: "Notes matching a-no+te: ", paths: [pdf.path, note.path].sorted()))
+        #expect(follow("denote:query-contents:Start") == .message("No notes match Start"))
     }
 
     @Test func followsAttachmentAndRadioLinks() throws {

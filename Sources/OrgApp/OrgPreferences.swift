@@ -174,13 +174,21 @@ public enum OrgPreferences {
     public static func dailiesEntry(_ defaults: UserDefaults = .standard) -> String { string("dailiesEntry", defaults).nonEmpty ?? "* %?" }
     /// Whether the note and daily-note commands follow Denote rather than org-roam.
     public static func usesDenote(_ defaults: UserDefaults = .standard) -> Bool { string("notesPackage", defaults) == "denote" }
-    /// `denote-directory`; empty for the first folder.
+    /// `denote-silo-directories`, separated by `:`; empty for `denote-directory`'s.
+    public static func denoteSiloDirectories(_ defaults: UserDefaults = .standard) -> String { string("denoteSiloDirectories", defaults) }
+    /// `denote-directory`, folders separated by `:`; empty for the first folder.
     public static func denoteDirectory(_ defaults: UserDefaults = .standard) -> String { string("denoteDirectory", defaults) }
     /// `denote-journal-directory`, relative to `denote-directory` unless absolute.
     public static func denoteJournalDirectory(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalDirectory", defaults).nonEmpty ?? "journal" }
     public static func denoteJournalKeyword(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalKeyword", defaults).nonEmpty ?? "journal" }
     /// `denote-journal-title-format`, a `format-time-string` format.
     public static func denoteJournalTitle(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalTitle", defaults).nonEmpty ?? "%A %-e %B %Y %H:%M" }
+    /// `denote-journal-interval`.
+    public static func denoteJournalInterval(_ defaults: UserDefaults = .standard) -> String { string("denoteJournalInterval", defaults) }
+    /// `denote-sequence-scheme`.
+    public static func denoteSequenceScheme(_ defaults: UserDefaults = .standard) -> DenoteSequence.Scheme {
+        DenoteSequence.Scheme(rawValue: string("denoteSequenceScheme", defaults)) ?? .numeric
+    }
     /// `denote-prompts`: what a new note asks after its title, in order.
     public static func denotePrompts(_ defaults: UserDefaults = .standard) -> [String] {
         string("denotePrompts", defaults).split(whereSeparator: \.isWhitespace).map(String.init)
