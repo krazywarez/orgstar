@@ -358,11 +358,12 @@ With =notes-package = "denote"= in =config.toml=, the same commands follow Denot
 - The daily-note commands work on denote-journal's entries: notes in
   =denote-journal-directory= (=journal=, under =denote-directory=) with the
   =denote-journal-keyword= (=journal=). A day's entry is the one whose identifier has its
-  date; a new one is titled by =denote-journal-title-format= (="%A %e %B %Y"=). Capturing
+  date; a new one is titled by =denote-journal-title-format= (="%A %-e %B %Y %H:%M"=). Capturing
   adds =org-roam-dailies-entry= as for org-roam.
-- Rename Note from Front Matter renames the open file from its =#+title:= and
-  =#+filetags:=, keeping its identifier and signature, as
-  =denote-rename-file-using-front-matter= does. Links keep working, as they use the
+- Rename Note from Front Matter renames the open file from its =#+title:=,
+  =#+filetags:= and =#+signature:=, keeping its identifier, as
+  =denote-rename-file-using-front-matter= does. A missing line leaves that part out of
+  the name, and the keywords keep their order. Links keep working, as they use the
   identifier.
 
 Import from Emacs reads =denote-directory=, =denote-journal-directory=,

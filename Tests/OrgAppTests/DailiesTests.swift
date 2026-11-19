@@ -61,15 +61,15 @@ struct DailiesTests {
         defer { try? FileManager.default.removeItem(at: folder) }
         let journal = Dailies(directory: folder.path, journal: Dailies.Journal())
         let made = try journal.ensure(Self.day)
-        #expect(made.created && (made.path as NSString).lastPathComponent == "20261011T120000--sunday-11-october-2026__journal.org")
-        #expect(try String(contentsOfFile: made.path, encoding: .utf8).hasPrefix("#+title:      Sunday 11 October 2026\n#+date:       [2026-10-11 Sun 12:00]\n#+filetags:   :journal:\n"))
+        #expect(made.created && (made.path as NSString).lastPathComponent == "20261011T120000--sunday-11-october-2026-1200__journal.org")
+        #expect(try String(contentsOfFile: made.path, encoding: .utf8).hasPrefix("#+title:      Sunday 11 October 2026 12:00\n#+date:       [2026-10-11 Sun 12:00]\n#+filetags:   :journal:\n"))
         // Another time the same day finds the entry.
         let later = Calendar.current.date(byAdding: .hour, value: 3, to: Self.day)!
         #expect(try journal.ensure(later) == (made.path, false))
         try journal.ensure(Calendar.current.date(byAdding: .day, value: -2, to: Self.day)!)
         try "x".write(to: folder.appendingPathComponent("20261010T080000--not-a-journal__work.org"), atomically: true, encoding: .utf8)
-        #expect(journal.files().map { ($0 as NSString).lastPathComponent } == ["20261009T120000--friday-9-october-2026__journal.org", (made.path as NSString).lastPathComponent])
-        #expect(try (journal.neighbor(of: made.path, by: -1) as NSString).lastPathComponent == "20261009T120000--friday-9-october-2026__journal.org")
+        #expect(journal.files().map { ($0 as NSString).lastPathComponent } == ["20261009T120000--friday-9-october-2026-1200__journal.org", (made.path as NSString).lastPathComponent])
+        #expect(try (journal.neighbor(of: made.path, by: -1) as NSString).lastPathComponent == "20261009T120000--friday-9-october-2026-1200__journal.org")
     }
 
     @Test func newDenoteNote() throws {

@@ -28,7 +28,7 @@ public enum Denote {
     // MARK: - Naming new files
 
     /// `denote-excluded-punctuation-regexp`.
-    static let punctuation = Set("[]{}!@#$%^&*()+'\"?,.|;:~`‘’“”=<>/")
+    static let punctuation = Set("[]{}!@#$%^&*()+'\"?,.|;:~`‘’“”=/")
 
     /// `denote-sluggify-title`: without punctuation, spaces and underscores as one `-`, none
     /// at either end, lower case.
@@ -48,6 +48,20 @@ public enum Denote {
     /// `denote-sluggify-keyword`: one word, lower case, without punctuation or spaces.
     public static func keyword(_ word: String) -> String {
         String(word.lowercased().filter { !punctuation.contains($0) && !$0.isWhitespace && $0 != "_" && $0 != "-" })
+    }
+
+    /// `denote-sluggify-signature`: like a title, with `=` between words.
+    public static func signature(_ text: String) -> String {
+        var out = ""
+        for character in text.lowercased() where character == "=" || !punctuation.contains(character) && character != "-" {
+            if character.isWhitespace || character == "_" || character == "=" {
+                if !out.isEmpty, out.last != "=" { out.append("=") }
+            } else {
+                out.append(character)
+            }
+        }
+        while out.last == "=" { out.removeLast() }
+        return out
     }
 
     /// Keywords as `denote-keywords-sort` keeps them: sluggified, without empties or repeats,
@@ -116,8 +130,8 @@ public enum Denote {
         return name
     }
 
-    /// The `#+title`, `#+filetags` and `#+identifier` of a file's front matter.
-    public static func frontMatter(of text: String) -> (title: String?, keywords: [String]?, identifier: String?) {
+    /// The `#+title`, `#+filetags`, `#+identifier` and `#+signature` of a file's front matter.
+    public static func frontMatter(of text: String) -> (title: String?, keywords: [String]?, identifier: String?, signature: String?) {
         func value(_ key: String) -> String? {
             for line in text.split(separator: "\n", omittingEmptySubsequences: false).prefix(40) {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -127,19 +141,21 @@ public enum Denote {
             return nil
         }
         let keywords = value("filetags").map { $0.split(separator: ":").map(String.init).filter { !$0.isEmpty } }
-        return (value("title"), keywords, value("identifier")?.nonEmptyOrNil)
+        return (value("title"), keywords, value("identifier")?.nonEmptyOrNil, value("signature"))
     }
 
     /// `denote-rename-file-using-front-matter`: the name the file at `path` takes from its
-    /// front matter, keeping the identifier and signature. Nil when the file has no identifier
-    /// in its name or front matter.
+    /// front matter's title, keywords and signature, each empty when its line is missing. Nil
+    /// when the file has no front matter, or no identifier in it or its name.
     public static func renamed(_ path: String, text: String) -> String? {
         let current = name(ofFile: path)
         let front = frontMatter(of: text)
-        guard let identifier = current.identifier ?? front.identifier else { return nil }
-        let title = front.title ?? current.title.map { $0.replacingOccurrences(of: "-", with: " ") } ?? ""
-        let keywords = keywords(front.keywords ?? current.keywords)
-        let file = fileName(identifier: identifier, signature: current.signature, title: title, keywords: keywords,
+        guard front.title != nil || front.keywords != nil || front.identifier != nil || front.signature != nil,
+              let identifier = front.identifier ?? current.identifier else { return nil }
+        // In the front matter's order: Denote sorts keywords only as it prompts for them.
+        var seen = Set<String>()
+        let keywords = (front.keywords ?? []).map(keyword).filter { !$0.isEmpty && seen.insert($0).inserted }
+        let file = fileName(identifier: identifier, signature: front.signature.map(signature), title: front.title ?? "", keywords: keywords,
                             extension: current.ext.isEmpty ? "org" : current.ext)
         return ((path as NSString).deletingLastPathComponent as NSString).appendingPathComponent(file)
     }

@@ -277,7 +277,7 @@ struct EmacsImportTests {
         #expect(s["denote-directory"] == .string("~/notes/"))
         #expect(s["denote-journal-directory"] == .string("~/notes/journal/"))
         #expect(s["denote-journal-keyword"] == .string("diary"))
-        #expect(s["denote-journal-title-format"] == .string("%A %e %B %Y %H:%M"))
+        #expect(s["denote-journal-title-format"] == .string("%A %-e %B %Y %H:%M"))
     }
 
     @Test func readsPublishingProjects() async throws {

@@ -183,7 +183,7 @@ public enum UserConfig {
                 comment: "the folder denote-journal entries are in, relative to denote-directory", legacy: ""),
         Setting(section: "", key: "denote-journal-keyword", defaultsKey: "denoteJournalKeyword", kind: .string, fallback: .string("journal"),
                 comment: "the keyword journal entries have", legacy: ""),
-        Setting(section: "", key: "denote-journal-title-format", defaultsKey: "denoteJournalTitle", kind: .string, fallback: .string("%A %e %B %Y"),
+        Setting(section: "", key: "denote-journal-title-format", defaultsKey: "denoteJournalTitle", kind: .string, fallback: .string("%A %-e %B %Y %H:%M"),
                 comment: "a journal entry's title; a format-time-string format", legacy: ""),
         Setting(section: "", key: "auto-fill-mode", defaultsKey: "autoFill", kind: .bool, fallback: .bool(false),
                 comment: "typing a space past fill-column breaks the line (View ▸ Auto Fill)", legacy: ""),

@@ -200,7 +200,7 @@ public struct RoamActions {
     func renameFromFrontMatter() {
         guard let path = session.path else { return show("No file is open") }
         guard let text = session.text(of: path) else { return show("Can't read \((path as NSString).lastPathComponent)") }
-        guard let target = Denote.renamed(path, text: text) else { return show("Not a Denote note: no identifier") }
+        guard let target = Denote.renamed(path, text: text) else { return show("Not a Denote note: no front matter or identifier") }
         guard target != path else { return show("Nothing to rename") }
         guard !FileManager.default.fileExists(atPath: target) else { return show("\((target as NSString).lastPathComponent) is already there") }
         guard session.save(path) else { return show("Can't save \((path as NSString).lastPathComponent)") }

@@ -243,7 +243,7 @@ A key you remove from the file goes back to its default. A key that isn't in the
 | =denote-directory= | string | =""= | The folder new Denote notes go in; empty for the first sidebar folder. Mirrors =denote-directory=. |
 | =denote-journal-directory= | string | ="journal"= | The folder journal entries are in, relative to =denote-directory=. Mirrors =denote-journal-directory=. |
 | =denote-journal-keyword= | string | ="journal"= | The keyword journal entries have. Mirrors =denote-journal-keyword=. |
-| =denote-journal-title-format= | string | ="%A %e %B %Y"= | A new journal entry's title, a =format-time-string= format. |
+| =denote-journal-title-format= | string | ="%A %-e %B %Y %H:%M"= | A new journal entry's title, a =format-time-string= format. |
 | =org-timer-format= | string | ="%s "= | What Insert Timer Value writes, with =%s= for the =h:mm:ss= value. Mirrors =org-timer-format=. |
 | =org-timer-default-timer= | string | ="0"= | The countdown Set Countdown Timer… offers, in minutes or =h:mm:ss=; ="0"= offers none. Mirrors =org-timer-default-timer=. |
 | =org-attach-id-dir= | string | ="data/"= | The folder ID-based attachment folders go in, relative to the org file's folder unless absolute. See [[file:04-outlines.org][Outlines]]. Mirrors =org-attach-id-dir=. |

@@ -561,8 +561,8 @@ public struct EmacsImport: Sendable {
             guard let text = value.string else { return note("not a string") }
             add(name, .string(text))
         case "denote-journal-title-format":
-            let formats = ["day-date-month-year": "%A %e %B %Y", "day-date-month-year-24h": "%A %e %B %Y %H:%M",
-                           "day-date-month-year-12h": "%A %e %B %Y %I:%M %p"]
+            let formats = ["day-date-month-year": "%A %-e %B %Y", "day-date-month-year-24h": "%A %-e %B %Y %H:%M",
+                           "day-date-month-year-12h": "%A %-e %B %Y %I:%M %p", "day": "%A"]
             if let format = value.string ?? value.symbol.flatMap({ formats[$0] }) { add(name, .string(format)) } else { note("not a format or a known style") }
         case "org-roam-directory", "org-roam-dailies-directory":
             guard let dir = value.string else { return note("not a string") }

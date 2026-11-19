@@ -28,7 +28,7 @@ public struct Dailies: Sendable, Equatable {
         /// `denote-journal-title-format`, a `format-time-string` format.
         public var title: String
 
-        public init(keyword: String = "journal", title: String = "%A %e %B %Y") {
+        public init(keyword: String = "journal", title: String = "%A %-e %B %Y %H:%M") {
             self.keyword = keyword
             self.title = title
         }

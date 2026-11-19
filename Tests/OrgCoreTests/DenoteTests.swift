@@ -54,9 +54,13 @@ struct DenoteTests {
 
     @Test func renamesFromFrontMatter() {
         let text = "#+title:      New Title\n#+filetags:   :Zeta:alpha:\n#+identifier: 20261119T090503\n\nBody\n"
-        #expect(Denote.renamed("/n/20261119T090503==1a--old__x.org", text: text) == "/n/20261119T090503==1a--new-title__alpha_zeta.org")
-        #expect(Denote.renamed("/n/plain.org", text: text) == "/n/20261119T090503--new-title__alpha_zeta.org")
+        // The signature, like the title and keywords, comes from the front matter.
+        #expect(Denote.renamed("/n/20261119T090503==1a--old__x.org", text: text) == "/n/20261119T090503--new-title__zeta_alpha.org")
+        #expect(Denote.renamed("/n/20261119T090503==1a--old__x.org", text: "#+signature:  Two Words\n" + text)
+            == "/n/20261119T090503==two=words--new-title__zeta_alpha.org")
+        #expect(Denote.renamed("/n/plain.org", text: text) == "/n/20261119T090503--new-title__zeta_alpha.org")
         #expect(Denote.renamed("/n/plain.org", text: "#+title: x\n") == nil)
-        #expect(Denote.renamed("/n/20261119T090503--old-name__x.org", text: "No front matter\n") == "/n/20261119T090503--old-name__x.org")
+        #expect(Denote.renamed("/n/20261119T090503--old-name__x.org", text: "No front matter\n") == nil)
+        #expect(Denote.renamed("/n/20261119T090503--old-name__x.org", text: "#+title: Only a title\n") == "/n/20261119T090503--only-a-title.org")
     }
 }
