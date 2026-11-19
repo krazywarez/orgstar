@@ -187,10 +187,10 @@ struct PaletteView: View {
 
     private var matches: [EditorCommand] {
         let scored: [(command: EditorCommand, score: Int)] = EditorCommands.all.filter(\.inPalette).compactMap { command in
-            guard let score = FuzzyMatch.score(query, command.title) else { return nil }
+            guard let score = FuzzyMatch.score(query, command.localizedTitle) ?? FuzzyMatch.score(query, command.title) else { return nil }
             return (command, score)
         }
-        return scored.sorted { $0.score != $1.score ? $0.score > $1.score : $0.command.title < $1.command.title }.map(\.command)
+        return scored.sorted { $0.score != $1.score ? $0.score > $1.score : $0.command.localizedTitle < $1.command.localizedTitle }.map(\.command)
     }
 
     var body: some View {
@@ -207,7 +207,7 @@ struct PaletteView: View {
                     run(command.id)
                 } label: {
                     HStack {
-                        Text(command.title)
+                        Text(command.localizedTitle)
                         Spacer()
                         if let keys = commands.keyLabel(for: command.id) {
                             Text(keys).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)

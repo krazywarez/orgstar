@@ -2,6 +2,7 @@
 # Brings l10n/Localizable.xcstrings up to date with the strings the apps show: builds the Mac and
 # iOS targets with SWIFT_EMIT_LOC_STRINGS and syncs the catalog from their .stringsdata files.
 # New strings are added, ones no longer used are marked stale; translations are kept.
+# Command titles come from Sources/OrgApp/CommandTitles.swift, which CommandTitleTests keeps current.
 set -eu
 
 cd "$(dirname "$0")/.."

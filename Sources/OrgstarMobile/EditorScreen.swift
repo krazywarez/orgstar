@@ -1002,9 +1002,9 @@ struct CommandPalette: View {
             let context = editor.editContext()
             let paneCommands: [(id: String, title: String)] = !panes ? [] : [("app.split-right", "Split Pane Right"), ("app.split-below", "Split Pane Below")]
                 + (split ? [("app.pane-next", "Next Pane"), ("app.pane-close", "Close Pane"), ("app.pane-only", "Close Other Panes")] : [])
-            applicable = paneCommands.map { ($0.id, $0.title, editor.keymap.keyLabels(for: $0.id).first) } + (Self.viewCommands + Commands.everything.map { ($0.id, $0.title) })
+            applicable = paneCommands.map { ($0.id, CommandTitle.localized($0.title), editor.keymap.keyLabels(for: $0.id).first) } + (Self.viewCommands + Commands.everything.map { ($0.id, $0.title) })
                 .filter { editor.applies($0.id, in: context) }
-                .map { ($0.id, $0.title, editor.keymap.keyLabels(for: $0.id).first) }
+                .map { ($0.id, CommandTitle.localized($0.title), editor.keymap.keyLabels(for: $0.id).first) }
         }
     }
 }

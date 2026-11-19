@@ -1351,6 +1351,12 @@
         }
       }
     },
+    "Act at Point": {
+      "comment": "Command title"
+    },
+    "Act at Point (C-c C-c)": {
+      "comment": "Command title"
+    },
     "Actions": {
       "localizations": {
         "de": {
@@ -1895,6 +1901,7 @@
       }
     },
     "Agenda": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -2129,6 +2136,12 @@
           }
         }
       }
+    },
+    "Align Table": {
+      "comment": "Command title"
+    },
+    "Align table.el Table": {
+      "comment": "Command title"
     },
     "Aligned to end at column 77": {
       "localizations": {
@@ -2748,6 +2761,9 @@
         }
       }
     },
+    "Archive Subtree": {
+      "comment": "Command title"
+    },
     "Archive files are the ones your agenda files archive to, named by #+ARCHIVE:, an :ARCHIVE: property or org-archive-location.": {
       "localizations": {
         "de": {
@@ -2815,6 +2831,9 @@
           }
         }
       }
+    },
+    "Archive to Archive Sibling": {
+      "comment": "Command title"
     },
     "Archive…": {
       "localizations": {
@@ -2952,7 +2971,17 @@
         }
       }
     },
+    "Attach File as Hard Link…": {
+      "comment": "Command title"
+    },
+    "Attach File as Symbolic Link…": {
+      "comment": "Command title"
+    },
+    "Attach File by Moving…": {
+      "comment": "Command title"
+    },
     "Attach File from URL…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -2987,6 +3016,7 @@
       }
     },
     "Attach File…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -3190,6 +3220,12 @@
         }
       }
     },
+    "Backward Character": {
+      "comment": "Command title"
+    },
+    "Backward Word": {
+      "comment": "Command title"
+    },
     "Badge": {
       "localizations": {
         "de": {
@@ -3223,6 +3259,12 @@
           }
         }
       }
+    },
+    "Beginning of Buffer": {
+      "comment": "Command title"
+    },
+    "Beginning of Line": {
+      "comment": "Command title"
     },
     "Billed monthly": {},
     "Blocked entries": {
@@ -3260,6 +3302,7 @@
       }
     },
     "Board": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -3360,6 +3403,9 @@
           }
         }
       }
+    },
+    "Bold": {
+      "comment": "Command title"
     },
     "Both": {
       "localizations": {
@@ -3771,6 +3817,7 @@
       }
     },
     "Cancel Clock": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -3805,6 +3852,7 @@
       }
     },
     "Cancel Running Task": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -3974,6 +4022,9 @@
         }
       }
     },
+    "Capture to Daily Note for Date…": {
+      "comment": "Command title"
+    },
     "Capture to Today": {
       "localizations": {
         "de": {
@@ -4007,6 +4058,15 @@
           }
         }
       }
+    },
+    "Capture to Today's Daily Note": {
+      "comment": "Command title"
+    },
+    "Capture to Tomorrow's Daily Note": {
+      "comment": "Command title"
+    },
+    "Capture to Yesterday's Daily Note": {
+      "comment": "Command title"
     },
     "Capture to orgstar": {
       "localizations": {
@@ -4043,6 +4103,7 @@
       }
     },
     "Capture…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -4179,6 +4240,7 @@
       }
     },
     "Check Spelling While Typing": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -4690,6 +4752,7 @@
       }
     },
     "Clock In": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -4791,7 +4854,11 @@
         }
       }
     },
+    "Clock In to Last Entry": {
+      "comment": "Command title"
+    },
     "Clock In to Recent Entry…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -4826,6 +4893,7 @@
       }
     },
     "Clock Out": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -4860,6 +4928,7 @@
       }
     },
     "Clock Report": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5171,6 +5240,9 @@
         }
       }
     },
+    "Clone Subtree with Time Shift": {
+      "comment": "Command title"
+    },
     "Close": {
       "localizations": {
         "de": {
@@ -5205,7 +5277,11 @@
         }
       }
     },
+    "Close All Buffers": {
+      "comment": "Command title"
+    },
     "Close Buffer": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5239,7 +5315,14 @@
         }
       }
     },
+    "Close Fold": {
+      "comment": "Command title"
+    },
+    "Close Other Buffers": {
+      "comment": "Command title"
+    },
     "Close Other Panes": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5274,6 +5357,7 @@
       }
     },
     "Close Pane": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5374,6 +5458,9 @@
           }
         }
       }
+    },
+    "Code": {
+      "comment": "Command title"
     },
     "Collapse": {
       "localizations": {
@@ -5546,6 +5633,7 @@
       }
     },
     "Column View": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5580,6 +5668,7 @@
       }
     },
     "Column View of File": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5613,7 +5702,11 @@
         }
       }
     },
+    "Combine Agenda Files into iCalendar": {
+      "comment": "Command title"
+    },
     "Command Palette…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -5680,6 +5773,9 @@
           }
         }
       }
+    },
+    "Complete at Point": {
+      "comment": "Command title"
     },
     "Configuration": {
       "localizations": {
@@ -5885,6 +5981,9 @@
         }
       }
     },
+    "Convert Note Sequence Scheme": {
+      "comment": "Command title"
+    },
     "Copied to my-theme.toml, now the theme file in place of %@.": {
       "localizations": {
         "de": {
@@ -5987,7 +6086,14 @@
         }
       }
     },
+    "Copy Region": {
+      "comment": "Command title"
+    },
+    "Copy Subtree": {
+      "comment": "Command title"
+    },
     "Copy as Rich Text": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -6054,6 +6160,9 @@
           }
         }
       }
+    },
+    "Copy to Refile Target…": {
+      "comment": "Command title"
     },
     "Couldn't change the file": {
       "localizations": {
@@ -6157,8 +6266,21 @@
         }
       }
     },
+    "Create ID": {
+      "comment": "Command title"
+    },
+    "Create Table": {
+      "comment": "Command title"
+    },
     "Current plan": {},
+    "Cut Subtree": {
+      "comment": "Command title"
+    },
+    "Cycle Global Visibility": {
+      "comment": "Command title"
+    },
     "Cycle TODO State": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -6191,6 +6313,9 @@
           }
         }
       }
+    },
+    "Cycle Visibility": {
+      "comment": "Command title"
     },
     "D: %@": {
       "localizations": {
@@ -6600,6 +6725,9 @@
         }
       }
     },
+    "Decrease Timestamp Part": {
+      "comment": "Command title"
+    },
     "Decrypt": {
       "localizations": {
         "de": {
@@ -6635,6 +6763,7 @@
       }
     },
     "Decrypt Entry in File…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -6669,6 +6798,7 @@
       }
     },
     "Decrypt Entry…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -6839,6 +6969,7 @@
       }
     },
     "Delete All Attachments…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -6873,6 +7004,7 @@
       }
     },
     "Delete Attachment…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -6905,6 +7037,9 @@
           }
         }
       }
+    },
+    "Delete Character": {
+      "comment": "Command title"
     },
     "Delete Folder…": {
       "localizations": {
@@ -6939,6 +7074,18 @@
           }
         }
       }
+    },
+    "Delete Property Everywhere…": {
+      "comment": "Command title"
+    },
+    "Delete Property…": {
+      "comment": "Command title"
+    },
+    "Delete Table Column": {
+      "comment": "Command title"
+    },
+    "Delete Table Row": {
+      "comment": "Command title"
     },
     "Delete this entry?": {
       "localizations": {
@@ -7041,6 +7188,12 @@
           }
         }
       }
+    },
+    "Demote Heading": {
+      "comment": "Command title"
+    },
+    "Demote Subtree": {
+      "comment": "Command title"
     },
     "Destination": {
       "localizations": {
@@ -7360,6 +7513,12 @@
         }
       }
     },
+    "Drag Element Backward": {
+      "comment": "Command title"
+    },
+    "Drag Element Forward": {
+      "comment": "Command title"
+    },
     "Due": {
       "localizations": {
         "de": {
@@ -7530,7 +7689,11 @@
         }
       }
     },
+    "Edit Block": {
+      "comment": "Command title"
+    },
     "Edit Config File": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -7631,6 +7794,9 @@
           }
         }
       }
+    },
+    "Edit Table Field": {
+      "comment": "Command title"
     },
     "Edit config.toml": {
       "localizations": {
@@ -7908,6 +8074,9 @@
         }
       }
     },
+    "Emphasize…": {
+      "comment": "Command title"
+    },
     "Empty takes the default.": {
       "localizations": {
         "de": {
@@ -7977,6 +8146,7 @@
       }
     },
     "Encrypt Entry…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -8011,6 +8181,7 @@
       }
     },
     "Encrypt Tagged Entries…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -8111,6 +8282,12 @@
           }
         }
       }
+    },
+    "End of Buffer": {
+      "comment": "Command title"
+    },
+    "End of Line": {
+      "comment": "Command title"
     },
     "Ends": {
       "localizations": {
@@ -8247,6 +8424,9 @@
           }
         }
       }
+    },
+    "Evaluate Time Range": {
+      "comment": "Command title"
     },
     "Events from the checked calendars show in the agenda. Tap one to edit it.": {
       "localizations": {
@@ -8418,6 +8598,9 @@
         }
       }
     },
+    "Expand Table Columns": {
+      "comment": "Command title"
+    },
     "Expanded": {
       "localizations": {
         "de": {
@@ -8485,6 +8668,9 @@
           }
         }
       }
+    },
+    "Export Agenda Files to iCalendar": {
+      "comment": "Command title"
     },
     "Export Subtree": {
       "localizations": {
@@ -8622,7 +8808,49 @@
         }
       }
     },
+    "Export Table to File…": {
+      "comment": "Command title"
+    },
+    "Export to HTML": {
+      "comment": "Command title"
+    },
+    "Export to HTML and Open": {
+      "comment": "Command title"
+    },
+    "Export to LaTeX with Emacs": {
+      "comment": "Command title"
+    },
+    "Export to Markdown": {
+      "comment": "Command title"
+    },
+    "Export to ODT with Emacs": {
+      "comment": "Command title"
+    },
+    "Export to PDF": {
+      "comment": "Command title"
+    },
+    "Export to PDF with Emacs": {
+      "comment": "Command title"
+    },
+    "Export to Plain Text": {
+      "comment": "Command title"
+    },
+    "Export to Plain Text with Emacs": {
+      "comment": "Command title"
+    },
+    "Export to RTF": {
+      "comment": "Command title"
+    },
+    "Export to Word": {
+      "comment": "Command title"
+    },
+    "Export to iCalendar": {
+      "comment": "Command title"
+    },
     "Export, encryption, widgets, the Watch app and more": {},
+    "Export…": {
+      "comment": "Command title"
+    },
     "File": {
       "localizations": {
         "de": {
@@ -8827,6 +9055,9 @@
         }
       }
     },
+    "Fill Paragraph": {
+      "comment": "Command title"
+    },
     "Filter": {
       "localizations": {
         "de": {
@@ -8930,6 +9161,7 @@
       }
     },
     "Find": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -8963,7 +9195,11 @@
         }
       }
     },
+    "Find Next": {
+      "comment": "Command title"
+    },
     "Find Node…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -8996,6 +9232,18 @@
           }
         }
       }
+    },
+    "Find Note in Silo…": {
+      "comment": "Command title"
+    },
+    "Find Previous": {
+      "comment": "Command title"
+    },
+    "Find Sequence Relatives…": {
+      "comment": "Command title"
+    },
+    "Find and Replace": {
+      "comment": "Command title"
     },
     "Folder": {
       "localizations": {
@@ -9133,6 +9381,12 @@
         }
       }
     },
+    "Footnote Action": {
+      "comment": "Command title"
+    },
+    "Footnote Menu": {
+      "comment": "Command title"
+    },
     "For files without #+TODO, in #+TODO syntax, one sequence per line. Takes effect when orgstar restarts.": {
       "localizations": {
         "de": {
@@ -9202,6 +9456,7 @@
       }
     },
     "Forget Encryption Passphrase": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -9268,6 +9523,12 @@
           }
         }
       }
+    },
+    "Forward Character": {
+      "comment": "Command title"
+    },
+    "Forward Word": {
+      "comment": "Command title"
     },
     "From": {
       "localizations": {
@@ -9406,6 +9667,7 @@
       }
     },
     "Go to Clocked Entry": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -9438,6 +9700,9 @@
           }
         }
       }
+    },
+    "Go to Daily Note for Date…": {
+      "comment": "Command title"
     },
     "Go to Date": {
       "localizations": {
@@ -9507,7 +9772,11 @@
         }
       }
     },
+    "Go to Heading…": {
+      "comment": "Command title"
+    },
     "Go to Recent Clocked Entry…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -9540,6 +9809,18 @@
           }
         }
       }
+    },
+    "Go to Refile Target…": {
+      "comment": "Command title"
+    },
+    "Go to Today's Daily Note": {
+      "comment": "Command title"
+    },
+    "Go to Tomorrow's Daily Note": {
+      "comment": "Command title"
+    },
+    "Go to Yesterday's Daily Note": {
+      "comment": "Command title"
     },
     "Go to a date (j)": {
       "localizations": {
@@ -10019,6 +10300,7 @@
       }
     },
     "Import Table from File…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -10087,6 +10369,7 @@
       }
     },
     "Import from Emacs…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -10292,7 +10575,71 @@
         }
       }
     },
+    "Increase Timestamp Part": {
+      "comment": "Command title"
+    },
+    "Incremental Regexp Search": {
+      "comment": "Command title"
+    },
+    "Incremental Regexp Search Backward": {
+      "comment": "Command title"
+    },
+    "Incremental Search": {
+      "comment": "Command title"
+    },
+    "Incremental Search Backward": {
+      "comment": "Command title"
+    },
+    "Indent Item": {
+      "comment": "Command title"
+    },
+    "Indent Item and Children": {
+      "comment": "Command title"
+    },
+    "Insert Checkbox Item": {
+      "comment": "Command title"
+    },
+    "Insert Column View Table": {
+      "comment": "Command title"
+    },
+    "Insert Denote Backlinks Block": {
+      "comment": "Command title"
+    },
+    "Insert Denote Files Block": {
+      "comment": "Command title"
+    },
+    "Insert Denote Files as Headings Block": {
+      "comment": "Command title"
+    },
+    "Insert Denote Links Block": {
+      "comment": "Command title"
+    },
+    "Insert Denote Missing Links Block": {
+      "comment": "Command title"
+    },
+    "Insert Denote Sequence Block": {
+      "comment": "Command title"
+    },
+    "Insert Drawer": {
+      "comment": "Command title"
+    },
+    "Insert Heading": {
+      "comment": "Command title"
+    },
+    "Insert Heading After Subtree": {
+      "comment": "Command title"
+    },
+    "Insert Inactive Timestamp": {
+      "comment": "Command title"
+    },
+    "Insert Item": {
+      "comment": "Command title"
+    },
+    "Insert Link…": {
+      "comment": "Command title"
+    },
     "Insert Node Link…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -10325,6 +10672,42 @@
           }
         }
       }
+    },
+    "Insert Sequence Link…": {
+      "comment": "Command title"
+    },
+    "Insert Structure Template": {
+      "comment": "Command title"
+    },
+    "Insert TODO Heading": {
+      "comment": "Command title"
+    },
+    "Insert Table Column": {
+      "comment": "Command title"
+    },
+    "Insert Table Row": {
+      "comment": "Command title"
+    },
+    "Insert Table Rule": {
+      "comment": "Command title"
+    },
+    "Insert Timer Item": {
+      "comment": "Command title"
+    },
+    "Insert Timer Value": {
+      "comment": "Command title"
+    },
+    "Insert Timestamp": {
+      "comment": "Command title"
+    },
+    "Insert or Update Clock Table": {
+      "comment": "Command title"
+    },
+    "Italic": {
+      "comment": "Command title"
+    },
+    "Iterate Table Formulas": {
+      "comment": "Command title"
     },
     "Kanban": {
       "localizations": {
@@ -10530,6 +10913,21 @@
         }
       }
     },
+    "Kill Line": {
+      "comment": "Command title"
+    },
+    "Kill Region": {
+      "comment": "Command title"
+    },
+    "Kill Word": {
+      "comment": "Command title"
+    },
+    "Kill Word Backward": {
+      "comment": "Command title"
+    },
+    "Last Buffer": {
+      "comment": "Command title"
+    },
     "Later": {
       "localizations": {
         "de": {
@@ -10563,6 +10961,9 @@
           }
         }
       }
+    },
+    "Leave Block": {
+      "comment": "Command title"
     },
     "Leave out": {
       "localizations": {
@@ -11286,6 +11687,9 @@
         }
       }
     },
+    "Lower Priority": {
+      "comment": "Command title"
+    },
     "M-RET adds the new heading after the subtree": {
       "localizations": {
         "de": {
@@ -11524,6 +11928,12 @@
           }
         }
       }
+    },
+    "Mark Subtree": {
+      "comment": "Command title"
+    },
+    "Mark as Default Clock Task": {
+      "comment": "Command title"
     },
     "Marks it %@": {
       "localizations": {
@@ -11797,6 +12207,30 @@
         }
       }
     },
+    "Move Item Down": {
+      "comment": "Command title"
+    },
+    "Move Item Up": {
+      "comment": "Command title"
+    },
+    "Move Subtree Down": {
+      "comment": "Command title"
+    },
+    "Move Subtree Up": {
+      "comment": "Command title"
+    },
+    "Move Table Column Left": {
+      "comment": "Command title"
+    },
+    "Move Table Column Right": {
+      "comment": "Command title"
+    },
+    "Move Table Row Down": {
+      "comment": "Command title"
+    },
+    "Move Table Row Up": {
+      "comment": "Command title"
+    },
     "Move To": {
       "localizations": {
         "de": {
@@ -11967,6 +12401,15 @@
         }
       }
     },
+    "Narrow to Block": {
+      "comment": "Command title"
+    },
+    "Narrow to Subtree": {
+      "comment": "Command title"
+    },
+    "Narrow to Subtree or Widen": {
+      "comment": "Command title"
+    },
     "Needs orgstar+": {},
     "Neither": {
       "localizations": {
@@ -12037,6 +12480,7 @@
       }
     },
     "New Attachment…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -12069,6 +12513,12 @@
           }
         }
       }
+    },
+    "New Child Sequence Note…": {
+      "comment": "Command title"
+    },
+    "New Child of This Note…": {
+      "comment": "Command title"
     },
     "New File": {
       "localizations": {
@@ -12240,7 +12690,20 @@
         }
       }
     },
+    "New Note in Silo…": {
+      "comment": "Command title"
+    },
+    "New Sequence Note…": {
+      "comment": "Command title"
+    },
+    "New Sibling Sequence Note…": {
+      "comment": "Command title"
+    },
+    "New Sibling of This Note…": {
+      "comment": "Command title"
+    },
     "New Window": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -12348,7 +12811,11 @@
         }
       }
     },
+    "Next Allowed Value": {
+      "comment": "Command title"
+    },
     "Next Buffer": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -12382,7 +12849,11 @@
         }
       }
     },
+    "Next Bullet Type": {
+      "comment": "Command title"
+    },
     "Next Daily Note": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -12416,7 +12887,17 @@
         }
       }
     },
+    "Next Heading": {
+      "comment": "Command title"
+    },
+    "Next Heading at Same Level": {
+      "comment": "Command title"
+    },
+    "Next Line": {
+      "comment": "Command title"
+    },
     "Next Pane": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -12449,6 +12930,9 @@
           }
         }
       }
+    },
+    "Next Sibling Note": {
+      "comment": "Command title"
     },
     "Next State": {
       "localizations": {
@@ -12483,6 +12967,15 @@
           }
         }
       }
+    },
+    "Next TODO Keyword": {
+      "comment": "Command title"
+    },
+    "Next Table Field": {
+      "comment": "Command title"
+    },
+    "Next Table Row": {
+      "comment": "Command title"
     },
     "Next Value": {
       "localizations": {
@@ -12619,6 +13112,9 @@
           }
         }
       }
+    },
+    "Next table.el Cell": {
+      "comment": "Command title"
     },
     "Night Star": {
       "localizations": {
@@ -13950,6 +14446,7 @@
       }
     },
     "Open Attachment…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -13982,6 +14479,12 @@
           }
         }
       }
+    },
+    "Open Fold": {
+      "comment": "Command title"
+    },
+    "Open Link": {
+      "comment": "Command title"
     },
     "Open after export": {
       "localizations": {
@@ -14530,6 +15033,12 @@
         }
       }
     },
+    "Outdent Item": {
+      "comment": "Command title"
+    },
+    "Outdent Item and Children": {
+      "comment": "Command title"
+    },
     "Outline": {
       "localizations": {
         "de": {
@@ -14771,6 +15280,9 @@
         }
       }
     },
+    "Paste Subtree": {
+      "comment": "Command title"
+    },
     "Pastel Star": {
       "localizations": {
         "de": {
@@ -14838,6 +15350,9 @@
           }
         }
       }
+    },
+    "Pause or Continue Timer": {
+      "comment": "Command title"
     },
     "Phrase or +word -word {regexp}": {
       "localizations": {
@@ -15010,6 +15525,7 @@
       }
     },
     "Plot Table": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -15044,7 +15560,11 @@
       }
     },
     "Power features and Apple integrations, on top of everything that stays free.": {},
+    "Previous Allowed Value": {
+      "comment": "Command title"
+    },
     "Previous Buffer": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -15078,7 +15598,11 @@
         }
       }
     },
+    "Previous Bullet Type": {
+      "comment": "Command title"
+    },
     "Previous Daily Note": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -15111,6 +15635,24 @@
           }
         }
       }
+    },
+    "Previous Heading": {
+      "comment": "Command title"
+    },
+    "Previous Heading at Same Level": {
+      "comment": "Command title"
+    },
+    "Previous Line": {
+      "comment": "Command title"
+    },
+    "Previous Sibling Note": {
+      "comment": "Command title"
+    },
+    "Previous TODO Keyword": {
+      "comment": "Command title"
+    },
+    "Previous Table Field": {
+      "comment": "Command title"
     },
     "Previous Value": {
       "localizations": {
@@ -15213,6 +15755,9 @@
           }
         }
       }
+    },
+    "Previous table.el Cell": {
+      "comment": "Command title"
     },
     "Priority": {
       "localizations": {
@@ -15350,6 +15895,15 @@
         }
       }
     },
+    "Promote Heading": {
+      "comment": "Command title"
+    },
+    "Promote Subtree": {
+      "comment": "Command title"
+    },
+    "Property Action…": {
+      "comment": "Command title"
+    },
     "Property columns": {
       "localizations": {
         "de": {
@@ -15452,7 +16006,20 @@
         }
       }
     },
+    "Publish All Projects": {
+      "comment": "Command title"
+    },
+    "Publish Current File": {
+      "comment": "Command title"
+    },
+    "Publish Current Project": {
+      "comment": "Command title"
+    },
+    "Publish Project…": {
+      "comment": "Command title"
+    },
     "Quick Open…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -15485,6 +16052,12 @@
           }
         }
       }
+    },
+    "Quit": {
+      "comment": "Command title"
+    },
+    "Quit orgstar": {
+      "comment": "Command title"
     },
     "Rainbow": {
       "localizations": {
@@ -15519,6 +16092,9 @@
           }
         }
       }
+    },
+    "Raise Priority": {
+      "comment": "Command title"
     },
     "Rate on the App Store": {
       "localizations": {
@@ -15588,6 +16164,12 @@
         }
       }
     },
+    "Recalculate Table": {
+      "comment": "Command title"
+    },
+    "Recalculate Table Row": {
+      "comment": "Command title"
+    },
     "Recent Entries": {
       "localizations": {
         "de": {
@@ -15621,6 +16203,9 @@
           }
         }
       }
+    },
+    "Recenter": {
+      "comment": "Command title"
     },
     "Record nothing": {
       "localizations": {
@@ -15759,6 +16344,7 @@
       }
     },
     "Recovery Versions…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -15793,6 +16379,7 @@
       }
     },
     "Redo": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -15827,6 +16414,7 @@
       }
     },
     "Refile…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -15961,6 +16549,9 @@
           }
         }
       }
+    },
+    "Reload Keymap": {
+      "comment": "Command title"
     },
     "Remember %lld recently clocked entries": {
       "localizations": {
@@ -16166,6 +16757,9 @@
         }
       }
     },
+    "Remove Deadline": {
+      "comment": "Command title"
+    },
     "Remove Filters": {
       "localizations": {
         "de": {
@@ -16235,6 +16829,12 @@
       }
     },
     "Remove License from This Mac": {},
+    "Remove Priority": {
+      "comment": "Command title"
+    },
+    "Remove Schedule": {
+      "comment": "Command title"
+    },
     "Remove Tag…": {
       "localizations": {
         "de": {
@@ -16405,6 +17005,18 @@
         }
       }
     },
+    "Rename Note as Sequence Parent": {
+      "comment": "Command title"
+    },
+    "Rename Note from Front Matter": {
+      "comment": "Command title"
+    },
+    "Rename Notes in Folder from Front Matter…": {
+      "comment": "Command title"
+    },
+    "Rename Note…": {
+      "comment": "Command title"
+    },
     "Rename…": {
       "localizations": {
         "de": {
@@ -16438,6 +17050,12 @@
           }
         }
       }
+    },
+    "Reparent Note with Descendants…": {
+      "comment": "Command title"
+    },
+    "Reparent Note…": {
+      "comment": "Command title"
     },
     "Repeat passphrase": {
       "localizations": {
@@ -16609,7 +17227,11 @@
         }
       }
     },
+    "Resolve Open Clocks…": {
+      "comment": "Command title"
+    },
     "Resolve Sync Conflicts…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -16679,6 +17301,7 @@
     },
     "Restore Purchases": {},
     "Revert to File on Disk": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -16779,6 +17402,9 @@
           }
         }
       }
+    },
+    "Run Source Block": {
+      "comment": "Command title"
     },
     "Run command": {
       "localizations": {
@@ -16883,6 +17509,7 @@
       }
     },
     "Save": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -16951,7 +17578,11 @@
         }
       }
     },
+    "Save All Buffers": {
+      "comment": "Command title"
+    },
     "Save Block": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17088,6 +17719,7 @@
       }
     },
     "Schedule": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17291,6 +17923,12 @@
         }
       }
     },
+    "Scroll Down": {
+      "comment": "Command title"
+    },
+    "Scroll Up": {
+      "comment": "Command title"
+    },
     "Search": {
       "localizations": {
         "de": {
@@ -17326,6 +17964,7 @@
       }
     },
     "Search Notes": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17461,6 +18100,9 @@
         }
       }
     },
+    "Select All": {
+      "comment": "Command title"
+    },
     "Selection (count-words-region)": {
       "localizations": {
         "de": {
@@ -17528,6 +18170,9 @@
           }
         }
       }
+    },
+    "Sequence Hierarchy…": {
+      "comment": "Command title"
     },
     "Series": {
       "localizations": {
@@ -17598,6 +18243,7 @@
       }
     },
     "Set Attachment Folder…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17630,6 +18276,15 @@
           }
         }
       }
+    },
+    "Set Column Formula": {
+      "comment": "Command title"
+    },
+    "Set Countdown Timer…": {
+      "comment": "Command title"
+    },
+    "Set Deadline": {
+      "comment": "Command title"
     },
     "Set Deadline…": {
       "localizations": {
@@ -17665,7 +18320,26 @@
         }
       }
     },
+    "Set Effort": {
+      "comment": "Command title"
+    },
+    "Set Field Formula": {
+      "comment": "Command title"
+    },
+    "Set Mark": {
+      "comment": "Command title"
+    },
+    "Set Priority A": {
+      "comment": "Command title"
+    },
+    "Set Priority B": {
+      "comment": "Command title"
+    },
+    "Set Priority C": {
+      "comment": "Command title"
+    },
     "Set Priority…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17700,6 +18374,7 @@
       }
     },
     "Set Property…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17766,6 +18441,9 @@
           }
         }
       }
+    },
+    "Set Tags": {
+      "comment": "Command title"
     },
     "Set Tags…": {
       "localizations": {
@@ -17869,7 +18547,11 @@
         }
       }
     },
+    "Shift Timer Values in Region…": {
+      "comment": "Command title"
+    },
     "Show Attachment Folder": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17902,6 +18584,9 @@
           }
         }
       }
+    },
+    "Show Backlinks": {
+      "comment": "Command title"
     },
     "Show Calendar Events": {
       "localizations": {
@@ -18106,6 +18791,9 @@
           }
         }
       }
+    },
+    "Show Remaining Countdown Time": {
+      "comment": "Command title"
     },
     "Show Reminders": {
       "localizations": {
@@ -18584,6 +19272,7 @@
       }
     },
     "Show or Hide Backlinks": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -18618,6 +19307,7 @@
       }
     },
     "Show or Hide Columns and Clock": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -18651,7 +19341,20 @@
         }
       }
     },
+    "Show or Hide Inline Images": {
+      "comment": "Command title"
+    },
+    "Show or Hide LaTeX Previews": {
+      "comment": "Command title"
+    },
+    "Show or Hide Line Numbers": {
+      "comment": "Command title"
+    },
+    "Show or Hide Markup": {
+      "comment": "Command title"
+    },
     "Show or Hide Outline": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -18684,6 +19387,9 @@
           }
         }
       }
+    },
+    "Show or Hide Tab Bar": {
+      "comment": "Command title"
     },
     "Show reminders from Reminders": {
       "localizations": {
@@ -18821,6 +19527,12 @@
         }
       }
     },
+    "Shrink Table Columns with Widths": {
+      "comment": "Command title"
+    },
+    "Shrink or Expand Table Column": {
+      "comment": "Command title"
+    },
     "Size: %lld pt": {
       "localizations": {
         "de": {
@@ -18854,6 +19566,12 @@
           }
         }
       }
+    },
+    "Sort Entries": {
+      "comment": "Command title"
+    },
+    "Sort Table Lines": {
+      "comment": "Command title"
     },
     "Source Code": {
       "extractionState": "stale",
@@ -18924,6 +19642,9 @@
         }
       }
     },
+    "Sparse Tree…": {
+      "comment": "Command title"
+    },
     "Speed keys: single letters at the start of a heading line run commands (org-use-speed-commands)": {
       "localizations": {
         "de": {
@@ -18993,6 +19714,7 @@
       }
     },
     "Split Pane Below": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -19027,6 +19749,7 @@
       }
     },
     "Split Pane Right": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -19093,6 +19816,12 @@
           }
         }
       }
+    },
+    "Start Timer": {
+      "comment": "Command title"
+    },
+    "Start Timer with Offset…": {
+      "comment": "Command title"
     },
     "Starting point": {
       "localizations": {
@@ -19271,6 +20000,7 @@
       }
     },
     "Stop Timer": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -19371,6 +20101,15 @@
           }
         }
       }
+    },
+    "Store ID Link": {
+      "comment": "Command title"
+    },
+    "Store Link": {
+      "comment": "Command title"
+    },
+    "Strike-Through": {
+      "comment": "Command title"
     },
     "Subscriptions renew automatically until cancelled in your Apple Account settings, at least 24 hours before the period ends.": {},
     "Subtree": {
@@ -19476,6 +20215,7 @@
       }
     },
     "Switch to Buffer…": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -19510,6 +20250,7 @@
       }
     },
     "Sync Attachments": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -20090,6 +20831,15 @@
           }
         }
       }
+    },
+    "Tangle Block": {
+      "comment": "Command title"
+    },
+    "Tangle Block's Target": {
+      "comment": "Command title"
+    },
+    "Tangle File": {
+      "comment": "Command title"
     },
     "Tap to edit": {
       "localizations": {
@@ -20909,6 +21659,12 @@
         }
       }
     },
+    "Timestamp One Day Earlier": {
+      "comment": "Command title"
+    },
+    "Timestamp One Day Later": {
+      "comment": "Command title"
+    },
     "Title": {
       "localizations": {
         "de": {
@@ -21011,6 +21767,27 @@
         }
       }
     },
+    "Toggle ARCHIVE Tag": {
+      "comment": "Command title"
+    },
+    "Toggle COMMENT": {
+      "comment": "Command title"
+    },
+    "Toggle Checkbox": {
+      "comment": "Command title"
+    },
+    "Toggle Fold": {
+      "comment": "Command title"
+    },
+    "Toggle Heading": {
+      "comment": "Command title"
+    },
+    "Toggle Item": {
+      "comment": "Command title"
+    },
+    "Toggle ORDERED Property": {
+      "comment": "Command title"
+    },
     "Tomorrow": {
       "localizations": {
         "de": {
@@ -21079,7 +21856,14 @@
         }
       }
     },
+    "Transpose Characters": {
+      "comment": "Command title"
+    },
+    "Transpose Table": {
+      "comment": "Command title"
+    },
     "Truncate or Wrap Long Lines": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -21114,6 +21898,7 @@
       }
     },
     "Turn Auto Fill On or Off": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -21215,7 +22000,11 @@
         }
       }
     },
+    "Underline": {
+      "comment": "Command title"
+    },
     "Undo": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -21492,6 +22281,7 @@
       }
     },
     "Unset Attachment Folder": {
+      "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -21593,6 +22383,12 @@
         }
       }
     },
+    "Up to Parent Heading": {
+      "comment": "Command title"
+    },
+    "Update Dynamic Block": {
+      "comment": "Command title"
+    },
     "Use Copy": {
       "localizations": {
         "de": {
@@ -21661,6 +22457,9 @@
         }
       }
     },
+    "Use Selection for Find": {
+      "comment": "Command title"
+    },
     "Value": {
       "localizations": {
         "de": {
@@ -21694,6 +22493,9 @@
           }
         }
       }
+    },
+    "Verbatim": {
+      "comment": "Command title"
     },
     "Version %@": {
       "localizations": {
@@ -22103,6 +22905,9 @@
         }
       }
     },
+    "Widen": {
+      "comment": "Command title"
+    },
     "Widgets need orgstar+.": {},
     "Word Count": {
       "localizations": {
@@ -22206,6 +23011,12 @@
           }
         }
       }
+    },
+    "Yank": {
+      "comment": "Command title"
+    },
+    "Yank Media": {
+      "comment": "Command title"
     },
     "Yesterday": {
       "localizations": {

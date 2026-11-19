@@ -4,6 +4,9 @@ import OrgCore
 
 /// Every command a key, menu or the palette can run, by id.
 public struct EditorCommand: Sendable {
+    /// The title as the string catalog translates it.
+    public var localizedTitle: String { CommandTitle.localized(title) }
+
     public enum Action: Sendable {
         /// An `OrgCore` command, run through `OrgEditor.perform`.
         case text(any OrgCommand)

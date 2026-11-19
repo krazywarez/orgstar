@@ -53,7 +53,7 @@ struct ClockMenu: View {
                 Button {
                     commands.run(command.id)
                 } label: {
-                    Text(command.title)
+                    Text(command.localizedTitle)
                     if let keys = commands.keyLabel(for: command.id) { Text(keys) }
                 }
             }

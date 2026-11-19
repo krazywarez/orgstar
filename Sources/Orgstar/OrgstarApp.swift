@@ -400,13 +400,13 @@ struct OrgstarApp: App {
             CommandGroup(after: .saveItem) {
                 Menu("Export") {
                     ForEach(EditorCommands.all.filter { $0.id.hasPrefix("app.export.") }, id: \.id) { command in
-                        Button(command.title) { commands.run(command.id) }
+                        Button(command.localizedTitle) { commands.run(command.id) }
                     }
                 }
                 .disabled(session.path == nil)
                 Menu("Publish") {
                     ForEach(EditorCommands.all.filter { $0.id.hasPrefix("app.publish") }, id: \.id) { command in
-                        Button(command.title) { commands.run(command.id) }
+                        Button(command.localizedTitle) { commands.run(command.id) }
                     }
                 }
                 Divider()
@@ -521,7 +521,7 @@ struct OrgMenuItems: View {
             Button {
                 commands.editor?.run(command.id)
             } label: {
-                Text(command.title)
+                Text(command.localizedTitle)
                 if let keys = commands.keyLabel(for: command.id) { Text(keys) }
             }
             .disabled(commands.editor == nil)
