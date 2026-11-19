@@ -341,7 +341,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     /// Why a request the app doesn't handle did nothing: only table recalculation needs Emacs.
     static func unavailable(_ request: ExternalRequest, title: String) -> String {
-        if case .emacsTable(_, _, _, let reason, _) = request { return "This table needs Emacs, which runs on the Mac: \(reason)." }
+        if case .emacsTable(_, _, _, let reason, _) = request {
+            return String(localized: "This table needs Emacs, which runs on the Mac: \(TableReason.localized(reason)).", comment: "Table formulas only Emacs can calculate")
+        }
         return String(localized: "\(CommandTitle.localized(title)) isn't available on iPhone and iPad.", comment: "A command that runs only on the Mac")
     }
 

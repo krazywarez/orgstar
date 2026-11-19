@@ -875,7 +875,7 @@ struct ContentView: View {
             panel = .columns(UUID(), view)
         case .emacsTable(let table, let point, let form, let reason, let lisp):
             let run = {
-                commands.show("Recalculating in Emacs (\(reason))…")
+                commands.show(String(localized: "Recalculating in Emacs (\(TableReason.localized(reason)))…", comment: "Table formulas sent to Emacs, and why"))
                 commands.runInEmacs { commands.show(await session.recalculateInEmacs(table: table, point: point, form: form)) }
             }
             guard lisp, let path = session.path, let text = session.document?.text else { return run() }
