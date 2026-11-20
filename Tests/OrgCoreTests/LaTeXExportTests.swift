@@ -154,6 +154,8 @@ struct LaTeXExportTests {
         "| a | =b\\\\|c= |\n\nThe {{{title}}} macro and ={{{title}}}= as written.\n",
         "#+begin_src emacs-lisp :exports none\n(hidden)\n#+end_src\n\n#+RESULTS:\n: gone\n\nafter\n\n#+RESULTS: orphan\n: kept\n",
         "Plain LaTeX's own words and TeXbook.\n",
+        "#+begin_example\nplain\n#+end_example\n\n#+begin_src sh -n\none\ntwo\n#+end_src\n\n#+begin_example\nplain\n#+end_example\n\n#+begin_src sh +n\nthree\n#+end_src\n",
+        "* Deep lists\n** two\n*** three\n**** four a\n**** COMMENT skipped\n**** four b :noexport:\n**** four c\n",
     ]
 
     @Test(.enabled(if: oracle))

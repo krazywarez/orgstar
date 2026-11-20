@@ -504,13 +504,8 @@ final class LaTeXRenderer {
         let subsections = children.filter { $0.kind == .section }
         var contents: String?
         if export == .all {
-            var out = Self.normalize(try elements(body, end: subsections.first?.range.lowerBound ?? node.range.upperBound))
-            let exported = try subsections.compactMap { try section($0) }
-            for (index, sub) in exported.enumerated() {
-                out += sub
-                _ = index
-            }
-            contents = Self.normalize(out)
+            let out = Self.normalize(try elements(body, end: subsections.first?.range.lowerBound ?? node.range.upperBound))
+            contents = Self.normalize(out + (try subsections.compactMap { try section($0) }.joined()))
         }
         let first = children.first?.range.lowerBound ?? node.range.upperBound
         let preBlank = children.isEmpty ? 0 : blankLines(from: heading.range.lowerBound, to: first)
@@ -566,19 +561,10 @@ final class LaTeXRenderer {
     /// headline opens its list when it is the first and closes it when it is the last.
     private func exportedSiblings(_ section: SyntaxNode) -> [Int] {
         guard let parent = section.parent else { return [section.range.lowerBound] }
-        // A section with a body before it means the headline isn't first.
-        var starts: [Int] = []
-        var bodyBefore = false
-        for child in parent.children where child.kind != .heading {
-            if child.kind != .section {
-                if starts.isEmpty { bodyBefore = true }
-                continue
-            }
-            guard let heading = child.firstChild(.heading), HTMLRenderer.sectionExport(heading, options: options, selected: selected) != .nothing else { continue }
-            starts.append(child.range.lowerBound)
-        }
-        _ = bodyBefore
-        return starts
+        return parent.children.filter { child in
+            guard child.kind == .section, let heading = child.firstChild(.heading) else { return false }
+            return HTMLRenderer.sectionExport(heading, options: options, selected: selected) != .nothing
+        }.map(\.range.lowerBound)
     }
 
     // MARK: - Elements
@@ -718,8 +704,6 @@ final class LaTeXRenderer {
         }
         return try wrapLabel(affiliated, "\\begin{\(type)}\(affiliated.value("options") ?? "")\n\(Self.normalize(contents))\\end{\(type)}")
     }
-
-    private var listDepth = 0
 
     /// `org-latex-item`.
     private func item(_ item: SyntaxNode, ordered: Bool, depth: Int) throws -> String {
@@ -962,13 +946,14 @@ final class LaTeXRenderer {
     /// `org-export-format-code-default` for a src or example block's lines.
     private func formatCode(_ lines: [String]) throws -> String {
         guard let parsed = Coderef.block(lines) else { return "" }
+        let blockLoc = try blockLoc(lines, numbered: parsed.switches.numberLines != nil)
         var value = parsed.body.joined(separator: "\n")
         if !value.isEmpty { value += "\n" }
         let preserve = lines[0].firstMatch(of: /^[ \t]*#\+(?i:begin_(?:src|example))\b.*\s-i\b/) != nil
         var code = preserve ? value : try Self.removeIndentation(value)
         if code.hasSuffix("\n") { code.removeLast() }
         let (lines, refs) = Coderef.unravel(code.components(separatedBy: "\n"), format: parsed.switches.labelFormat)
-        let loc = parsed.switches.numberLines == nil ? nil : blockLoc(lines: lines)
+        let loc = parsed.switches.numberLines == nil ? nil : blockLoc
         guard loc != nil || (parsed.switches.retainLabels && !refs.isEmpty) else { return lines.joined(separator: "\n") + "\n" }
         let width = loc.map { String($0 + lines.count).count } ?? 0
         let numberWidth = loc == nil ? 0 : width + 2
@@ -983,18 +968,25 @@ final class LaTeXRenderer {
         }.joined(separator: "\n") + "\n"
     }
 
-    private var blockLocs: [Int?]?
-    private var blockIndex = 0
-
-    /// `org-export-get-loc` of the next numbered block.
-    private func blockLoc(lines: [String]) -> Int? {
-        if blockLocs == nil {
-            let blocks = Coderef.blocks(tree).compactMap(Coderef.block)
-            blockLocs = Coderef.locs(blocks)
+    /// Each src and example block's `org-export-get-loc`, by the block's text, in order.
+    private lazy var blockLocs: [String: [Int?]] = {
+        let blocks = Coderef.blocks(tree)
+        var locs: [String: [Int?]] = [:]
+        for (lines, loc) in zip(blocks, Coderef.locs(blocks.compactMap(Coderef.block))) {
+            locs[lines.joined(separator: "\n"), default: []].append(loc)
         }
-        _ = lines
-        defer { blockIndex += 1 }
-        return blockIndex < blockLocs!.count ? blockLocs![blockIndex] : nil
+        return locs
+    }()
+
+    /// `org-export-get-loc` of the block with `lines`, the next of those with the same text.
+    private func blockLoc(_ lines: [String], numbered: Bool) throws -> Int? {
+        let key = lines.joined(separator: "\n")
+        guard let queue = blockLocs[key], !queue.isEmpty else {
+            if numbered { throw Unsupported(reason: "Numbered blocks inside other blocks") }
+            return nil
+        }
+        blockLocs[key] = Array(queue.dropFirst())
+        return queue[0]
     }
 
     /// `org-latex-verse-block` and the verse rules of `org-latex-plain-text`.
