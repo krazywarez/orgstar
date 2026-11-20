@@ -14,4 +14,4 @@ MONTHLY_DOLLARS = "5"
 # A monthly key lasts this long; the app renews it well before.
 RENEW_DAYS = "40"
 # The GitHub OAuth app's client ID. Its callback URL is https://krz.sh/apps/orgstar/license.
-GITHUB_CLIENT_ID = ""
+GITHUB_CLIENT_ID = "Ov23li0VjIFjZYslRU51"
