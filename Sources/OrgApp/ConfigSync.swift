@@ -20,7 +20,7 @@ public final class ConfigSync {
     /// The last file of the configuration folder that changed, with a serial number.
     public private(set) var changedFile: (name: String, serial: Int)?
 
-    private let url: URL
+    @ObservationIgnored private var url: URL
     private let defaults: UserDefaults
     @ObservationIgnored private var text: String?
     @ObservationIgnored private var configProblems: [String] = []
@@ -28,6 +28,7 @@ public final class ConfigSync {
     @ObservationIgnored private var watcher: FSEventsWatcher?
     @ObservationIgnored private var observer: NSObjectProtocol?
     @ObservationIgnored private var serial = 0
+    @ObservationIgnored private var watches = true
 
     /// Where `url` leads: a symlinked config.toml is written through, not replaced by a file.
     private var target: URL { url.resolvingSymlinksInPath() }
@@ -39,6 +40,7 @@ public final class ConfigSync {
 
     public func start(watch: Bool = true) {
         guard observer == nil else { return }
+        watches = watch
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let reference = url.deletingLastPathComponent().appendingPathComponent("default-theme.toml")
         if (try? String(contentsOf: reference, encoding: .utf8)) != ThemeSpec.defaultThemeFile() {
@@ -71,7 +73,7 @@ public final class ConfigSync {
         let watchesLinked = linked.path != directory.path
         // Files still read from where earlier versions kept them reload when edited there too.
         let legacy = UserConfig.legacyDirectory.resolvingSymlinksInPath()
-        let watchesLegacy = legacy.path != directory.path && FileManager.default.fileExists(atPath: legacy.path)
+        let watchesLegacy = UserConfig.directoryOverride == nil && legacy.path != directory.path && FileManager.default.fileExists(atPath: legacy.path)
         watcher = FSEventsWatcher(roots: [directory] + (watchesLinked ? [linked] : []) + (watchesLegacy ? [legacy] : [])) { [weak self] events in
             let changed = Set(events.compactMap { event -> URL? in
                 if case .changed(let url) = event { return url }
@@ -91,6 +93,24 @@ public final class ConfigSync {
             }
         }
         watcher?.start()
+    }
+
+    /// Uses `url`, as in another configuration folder, from now on: its settings apply, and a
+    /// missing file is created with the current ones. Does nothing before `start`.
+    public func move(to url: URL) {
+        guard observer != nil, url != self.url else { return }
+        watcher?.stop()
+        watcher = nil
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+        observer = nil
+        text = nil
+        configProblems = []
+        self.url = url
+        start(watch: watches)
+        readTheme()
+        // Windows read keymap.toml once, so they reload it from the new folder.
+        serial += 1
+        changedFile = ("keymap.toml", serial)
     }
 
     /// Reads the file and applies it when it changed since the last read or write.

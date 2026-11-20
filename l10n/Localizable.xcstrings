@@ -5565,6 +5565,40 @@
         }
       }
     },
+    "Choose Configuration Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konfigurationsordner wählen …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir carpeta de configuración…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir le dossier de configuration…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "構成フォルダを選択…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher Pasta de Configuração…"
+          }
+        }
+      }
+    },
     "Choose Folder": {
       "localizations": {
         "de": {
@@ -5731,6 +5765,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escolha um plano"
+          }
+        }
+      }
+    },
+    "Choose the folder for config.toml and orgstar's other configuration files.": {
+      "comment": "Choose Configuration Folder panel",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle den Ordner für config.toml und die anderen Konfigurationsdateien von orgstar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige la carpeta para config.toml y los demás archivos de configuración de orgstar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez le dossier de config.toml et des autres fichiers de configuration d'orgstar."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "config.toml と orgstar のほかの構成ファイルを置くフォルダを選択してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a pasta para o config.toml e os outros arquivos de configuração do orgstar."
           }
         }
       }
@@ -32020,6 +32089,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Usar Cópia"
+          }
+        }
+      }
+    },
+    "Use Default Folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardordner verwenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar carpeta predeterminada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser le dossier par défaut"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトのフォルダを使用"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar Pasta Padrão"
           }
         }
       }

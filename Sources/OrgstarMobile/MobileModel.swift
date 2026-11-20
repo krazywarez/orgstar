@@ -66,11 +66,9 @@ final class MobileModel {
     @ObservationIgnored private var presenter: FolderPresenter?
     @ObservationIgnored private var sizeObserver: NSObjectProtocol?
 
-    private static let bookmarkKey = "configFolderBookmark"
-
     private init() {
         // Development: `ORGSTAR_CONFIG_DIR` stands in for a chosen folder.
-        let folder = Self.resolveBookmark() ?? ProcessInfo.processInfo.environment["ORGSTAR_CONFIG_DIR"].map { URL(fileURLWithPath: $0) }
+        let folder = ConfigFolder.resolve() ?? ProcessInfo.processInfo.environment["ORGSTAR_CONFIG_DIR"].map { URL(fileURLWithPath: $0) }
         UserConfig.directoryOverride = folder
         let (problems, colors) = Self.readConfig(folder)
         let settings = OrgPreferences.orgSettings()
@@ -109,11 +107,10 @@ final class MobileModel {
     /// Chooses the configuration folder, or with nil stops using one; its settings apply now.
     func setConfigFolder(_ url: URL?) {
         if let url {
-            _ = url.startAccessingSecurityScopedResource()
-            if let bookmark = try? url.bookmarkData() { UserDefaults.standard.set(bookmark, forKey: Self.bookmarkKey) }
+            ConfigFolder.set(url)
             Self.createConfig(in: url)
         } else {
-            UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
+            ConfigFolder.clear()
             // What the folder set no longer applies.
             for setting in UserConfig.settings { UserDefaults.standard.removeObject(forKey: setting.defaultsKey) }
         }
@@ -215,15 +212,6 @@ final class MobileModel {
         }
         presenter.start()
         self.presenter = presenter
-    }
-
-    private static func resolveBookmark() -> URL? {
-        guard let data = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
-        var stale = false
-        guard let url = try? URL(resolvingBookmarkData: data, bookmarkDataIsStale: &stale) else { return nil }
-        _ = url.startAccessingSecurityScopedResource()
-        if stale, let fresh = try? url.bookmarkData() { UserDefaults.standard.set(fresh, forKey: bookmarkKey) }
-        return url
     }
 
     /// Applies the folder's `config.toml` to the settings; returns its problems and the theme's

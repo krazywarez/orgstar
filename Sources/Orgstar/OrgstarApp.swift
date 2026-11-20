@@ -612,6 +612,9 @@ struct SettingsView: View {
     let updates: Updates
     #endif
     @State private var importing = false
+    #if APPSTORE
+    @State private var configFolder = UserConfig.directoryOverride
+    #endif
     @Environment(\.openWindow) private var openWindow
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
     @AppStorage("keymap") private var preset = KeymapPreset.emacs
@@ -689,6 +692,29 @@ struct SettingsView: View {
         commands.jump(path: UserConfig.configFile.path, offset: 0)
     }
 
+    #if APPSTORE
+    /// A folder outside the app's container, such as `~/.config/orgstar` kept with dotfiles.
+    private func chooseConfigFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.directoryURL = configFolder ?? ConfigFolder.suggested
+        panel.message = String(localized: "Choose the folder for config.toml and orgstar's other configuration files.", comment: "Choose Configuration Folder panel")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        ConfigFolder.set(url)
+        useConfigFolder(url)
+    }
+
+    /// Reads and writes the configuration in `url`, or with nil in the default folder.
+    private func useConfigFolder(_ url: URL?) {
+        if url == nil { ConfigFolder.clear() }
+        UserConfig.directoryOverride = url
+        configFolder = url
+        ConfigSync.shared.move(to: UserConfig.configFile)
+    }
+    #endif
+
     private var general: some View {
         Form {
             Section {
@@ -699,6 +725,14 @@ struct SettingsView: View {
                         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([UserConfig.configFile]) }
                     }
                 }
+                #if APPSTORE
+                LabeledContent("Folder") {
+                    HStack {
+                        Button("Choose Configuration Folder…") { chooseConfigFolder() }
+                        if configFolder != nil { Button("Use Default Folder") { useConfigFolder(nil) } }
+                    }
+                }
+                #endif
                 LabeledContent("Emacs") {
                     Button("Import from Emacs…") { importing = true }
                 }

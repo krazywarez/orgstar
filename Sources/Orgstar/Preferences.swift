@@ -6,9 +6,18 @@ import OrgCore
 enum Preferences {
     static let defaultTodoKeywords = OrgPreferences.defaultTodoKeywords
 
+    #if APPSTORE
+    /// The folder chosen with Choose Configuration Folder…, used before anything reads the
+    /// configuration.
+    private static let chosenConfigFolder: Void = { UserConfig.directoryOverride = ConfigFolder.resolve() }()
+    #endif
+
     /// TODO keywords for files without `#+TODO`, read at launch.
     @MainActor
     static var orgSettings: OrgSettings {
+        #if APPSTORE
+        _ = chosenConfigFolder
+        #endif
         // config.toml applies before anything reads settings.
         ConfigSync.shared.start()
         return OrgPreferences.orgSettings()
