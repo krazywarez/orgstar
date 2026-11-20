@@ -4,6 +4,22 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 1.1.0</title>
+      <link>https://krz.sh/apps/orgstar/</link>
+      <sparkle:version>591</sparkle:version>
+      <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Thu, 19 Nov 2026 20:25:39 -0600</pubDate>
+      <description><![CDATA[<h2>orgstar 1.1.0</h2>
+<ul>
+<li><b>orgstar+</b>: running source blocks, PDF and Word export, encryption, org-roam and Denote notes, widgets, Calendar and Reminders, and Shortcuts actions are now orgstar+. You get it by sponsoring orgstar on GitHub: $60 once, or $5 a month. If you used orgstar before this version, you keep all of it.</li>
+<li><b>Denote</b>: with notes-package = "denote", the note commands follow Denote's file names and front matter. This covers denote: links and backlinks, query links, denote-journal entries, renaming, signatures, sequences, silos and denote-org's dynamic blocks.</li>
+<li>Command names in the palette, menus and messages are now in German, French, Japanese, Spanish and Brazilian Portuguese.</li>
+</ul>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://files.krz.sh/orgstar/orgstar-1.1.0.dmg" type="application/octet-stream" sparkle:edSignature="YwJM7sJdvOAOAGgwOxv0vSNT2HGo4JZ5ouJiyCzRhxOX9iBpgXDZO/DOD8TAPWE9jplJxUnLnunGyzHKFgEhBA==" length="58161966"/>
+    </item>
+    <item>
       <title>orgstar 0.9.2</title>
       <link>https://gitbay.org/krz/orgstar/releases/tag/v0.9.2</link>
       <sparkle:version>560</sparkle:version>
