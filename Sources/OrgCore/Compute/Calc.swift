@@ -383,12 +383,56 @@ public enum Calc {
         return try multiply(a, try integerPower(square, n / 2))
     }
 
+    /// `math-pow` of real numbers.
     static func power(_ a: Value, _ b: Value, fractions: Bool = false) throws -> Value {
         if isNaN(a, b) { return .nan }
-        if case .int(let n) = b { return try integerPower(a, n, fractions: fractions) }
-        let base = try double(a)
-        guard base >= 0 else { throw Unsupported("complex result") }
-        return try fromDouble(pow(base, try double(b)))
+        _ = (try sign(a), try sign(b))
+        var floatB = false
+        if case .float = b { floatB = true }
+        if isZero(a) {
+            // `math-pow-of-zero`.
+            if b == .int(0) { return .int(1) }
+            if isZero(b) { throw Unsupported("arguments") }
+            guard try sign(b) > 0 else { throw Unsupported("division by zero") }
+            return floatB ? try float(a) : a
+        }
+        if a == .int(1) || b == .int(1) || a == .float(1, 0) || b == .float(1, 0) { return a }
+        if isZero(b) {
+            if case .float = a { return .float(1, 0) }
+            return floatB ? .float(1, 0) : .int(1)
+        }
+        if case .int(let n) = b {
+            if a == .float(1, 1) { return try makeFloat(1, n) }
+            return try extra(2) { try integerPower(a, n, fractions: fractions) }
+        }
+        // `math-pow-fancy`.
+        if let q = quarter(b), (1...3).contains(q) {
+            let root = try squareRoot(floatB ? try float(a) : a)
+            return try power(root, try multiply(.int(2), b), fractions: fractions)
+        }
+        if case .frac(let num, let den) = b, den <= 10, try sign(a) > 0 {
+            return try integerPower(try nthRoot(a, den), num, fractions: fractions)
+        }
+        if a == .int(10) || a == .float(1, 1), isWhole(b) { return try makeFloat(1, try trunc(b)) }
+        guard try sign(a) > 0 else { throw Unsupported("complex result") }
+        return try extra(2) { try expRaw(try float(try multiply(b, try lnRaw(try float(a))))) }
+    }
+
+    /// `math-quarter-integer`: 0 for an integer, 1 to 3 for a number of quarters, else nil.
+    static func quarter(_ x: Value) -> Int? {
+        switch x {
+        case .int: return 0
+        case .frac(let n, let d):
+            if n < 0 { return quarter(.frac(-n, d)).map { 4 - $0 } }
+            return d == 2 ? 2 : d == 4 ? n % 4 : nil
+        case .float(let m, let e):
+            if m < 0 { return quarter(.float(-m, e)).map { 4 - $0 } }
+            if e >= 0 { return 0 }
+            if e == -1 { return m % 10 == 5 ? 2 : nil }
+            if e == -2 { return m % 100 == 25 ? 1 : m % 100 == 75 ? 3 : nil }
+            return nil
+        default: return nil
+        }
     }
 
     static func compare(_ a: Value, _ b: Value) throws -> Int {
@@ -994,7 +1038,8 @@ public enum Calc {
                 return .int(value)
             }
             var fraction: String?
-            if i < chars.count, chars[i] == "." {
+            // `2..5` is an interval, not `2.` then `.5`.
+            if i < chars.count, chars[i] == ".", i + 1 >= chars.count || chars[i + 1] != "." {
                 i += 1
                 var f = ""
                 while i < chars.count, chars[i].isASCII, chars[i].isNumber {
@@ -1168,13 +1213,17 @@ public enum Calc {
                 guard !items.isEmpty else { throw Unsupported("empty vector") }
                 return try extra(2) { try divide(try items.reduce(Value.int(0)) { try add($0, $1) }, .int(items.count), fractions: modes.preferFractions) }
             case "vmax", "vmin":
+                // `math-reduce-many-vecs` compares at two digits more.
                 let items = try elements(args)
-                guard var best = items.first else { throw Unsupported("empty vector") }
-                for item in items.dropFirst() {
-                    let order = try compare(item, best)
-                    if name == "vmax" ? order > 0 : order < 0 { best = item }
+                guard let first = items.first else { throw Unsupported("empty vector") }
+                return try extra(2) {
+                    var best = first
+                    for item in items.dropFirst() {
+                        let order = try compare(item, best)
+                        if name == "vmax" ? order > 0 : order < 0 { best = item }
+                    }
+                    return best
                 }
-                return best
             case "vmedian":
                 var items = try elements(args)
                 guard !items.isEmpty else { throw Unsupported("empty vector") }
@@ -1236,13 +1285,12 @@ public enum Calc {
             case "exp":
                 let x = try one(args)
                 if x == .int(0) { return .int(1) }
-                return try fromDouble(Foundation.exp(try double(x)))
+                return try extra(2) { try expRaw(try float(x)) }
             case "ln":
                 let x = try one(args)
                 if x == .int(1) { return .int(0) }
-                let d = try double(x)
-                guard d > 0 else { throw Unsupported("logarithm domain") }
-                return try fromDouble(Foundation.log(d))
+                guard try sign(x) > 0 else { throw Unsupported("logarithm domain") }
+                return try extra(2) { try lnRaw(try float(x)) }
             case "log10":
                 let x = try one(args)
                 if case .int(let i) = x, i > 0 {

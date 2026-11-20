@@ -397,7 +397,7 @@ After the formula, a =;= starts its flags, as in ~$3=$1/$2;%.2f~ or ~$4=$1*2;f2~
 
 Above =p14=, functions worked out from decimal approximations (=sqrt= of a non-square,
 =exp=, =ln=, =log=, non-integer powers, trigonometric and hyperbolic functions) may need
-Emacs, and above =p16= so may the statistics functions.
+Emacs, and above =p16= so may the statistics functions and powers of decimal numbers.
 
 The flags =S= (symbolic) and =u= need Emacs. Any other text after the flags is a
 =format= string applied to the result, such as =%.2f= or =%d=; =format= supports
@@ -542,8 +542,9 @@ When a formula uses something the native evaluator doesn't have, the command rep
 what it was and the Mac recalculates the table in Emacs instead. This happens for:
 
 - references to fields holding text in a Calc formula, and symbolic results;
-- Calc functions and variables not listed above, precisions beyond those given under
-  /Mode flags and formats/, and the =S= and =u= flags;
+- Calc functions and variables not listed above, intervals such as =[1..5]=,
+  precisions beyond those given under /Mode flags and formats/, and the =S= and =u=
+  flags;
 - division by zero, complex results, vector results, and numbers too large for
   64-bit integers;
 - Lisp functions not listed above.

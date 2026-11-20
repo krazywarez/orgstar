@@ -102,7 +102,9 @@ struct CalcTests {
         "choose(5,2)", "choose(5,0)", "choose(5,6)", "choose(-5,2)", "choose(-5,3)", "choose(-3,-5)", "choose(-5,-3)",
         "choose(5,-1)", "choose(52,5)", "choose(60,30)", "perm(5,2)", "perm(5,0)", "perm(5,5)", "perm(20,10)",
         // Powers, roots and logarithms.
-        "pow(2,10)", "pow(2,0.5)", "pow(2,-1)", "exp10(2)", "exp10(-2)", "exp10(0)", "exp10(15)",
+        "pow(2,10)", "pow(2,0.5)", "pow(2,-1)", "8^(1:3)", "pow(8,1:3)", "4^(3:2)", "pow(4,3:2)", "27^(2:3)", "8^(-1:3)",
+        "2^(1:3)", "2^(1:4)", "16^(3:4)", "2^(2:7)", "2^(1:11)", "1.5^(1:3)", "2^1.5", "2^2.5", "2^0.25", "2^-0.5", "2^2.",
+        "3^2.", "10^2.", "10.^3", "10.^-2.", "0^2", "0^2.", "0.^0", "1:4^(1:2)", "(1:8)^(2:3)", "2^1.1", "0.5^0.75", "exp10(2)", "exp10(-2)", "exp10(0)", "exp10(15)",
         "nroot(8,3)", "nroot(27,3)", "nroot(10,3)", "nroot(16,4)", "nroot(2.5,2)", "nroot(1:8,3)", "nroot(-8,1)",
         "nroot(2,4)", "nroot(2,5)", "nroot(100,7)", "nroot(1000,12)", "nroot(3.5,11)", "nroot(2:3,3)", "nroot(0,3)",
         "nroot(1,5)", "nroot(1024,10)", "nroot(7,6)", "nroot(1e10,9)",
@@ -208,10 +210,19 @@ struct CalcTests {
                          "5%", "fact(18)", "(0.3/3.14159)-100", "123456+0.5"].map { ($0, "(float 0)") }
             // Two digits more must fit in 18.
             if precision <= 16 {
-                cases += ["vsum([0.1,0.2,0.3])", "vmean([1,2,4])", "vsum([1e-13,1,-1])", "vsdev([1.5,2.25,3e-12])"].map { ($0, "(float 0)") }
+                cases += ["vsum([0.1,0.2,0.3])", "vmean([1,2,4])", "vsum([1e-13,1,-1])", "vsdev([1.5,2.25,3e-12])", "0.7^-3"].map { ($0, "(float 0)") }
             }
+            cases += ["vmax([1000., 1001])", "vmin([1001, 1000.])", "vmax([1234567890120., 1234567890123])", "1.1^10",
+                      "8^(1:3)", "1.5^3"].map { ($0, "(float 0)") }
             if precision <= 14 {
-                cases += ["sqrt(2)", "sinh(1)", "log(10,2)", "nroot(10,3)", "vgmean([1,2,3])", "exp(1)", "sin(30)", "2^0.5"].map { ($0, "(float 0)") }
+                cases += ["sqrt(2)", "sinh(1)", "log(10,2)", "nroot(10,3)", "vgmean([1,2,3])", "exp(1)", "sin(30)", "2^0.5",
+                          "exp(1.58)", "ln(9.44)", "0.08^1.5", "0.11^1.5", "exp(8.44)", "pow(2.5,1:3)"].map { ($0, "(float 0)") }
+                // exp, ln and powers round at two digits more first.
+                for _ in 0..<150 {
+                    let x = "\(Int.random(in: 1...999, using: &generator))e-2"
+                    let y = ["1.5", "0.5", "2.5", "1:3", "0.25", "-1.5", "2.", "3.7", "1.1", "-0.75", "5:7", "1:12"].randomElement(using: &generator)!
+                    cases += [("exp(\(x))", "(float 0)"), ("ln(\(x))", "(float 0)"), ("(\(x))^(\(y))", "(float 0)")]
+                }
             }
             for _ in 0..<100 {
                 var e = numbers.randomElement(using: &generator)!
@@ -231,7 +242,8 @@ struct CalcTests {
                   "fdiv(7.5,2)", "fdiv(7,0)", "perm(5,6)", "log(8,1)", "log(0,2)", "log(-8,2)", "arctanh(1)", "arccosh(0.5)",
                   "nroot(-8,3)", "vgmean([-1,2])", "vhmean([0,1])", "gcd(1.5,3)", "gcd(12,18,4)", "5%%3", "1:0", "1:2:3:4",
                   "16#1.8", "16#FG", "2##11", "2.5!", "(-1)!", "(-3)!!", "choose(5.5,2)", "exp10(0.5)", "3!!!",
-                  "eq(1,1,1)", "percent(nan)", "frac(0.5,0.1)", "frac(1e-20)"] {
+                  "eq(1,1,1)", "percent(nan)", "frac(0.5,0.1)", "frac(1e-20)",
+                  "(2..5)", "[2..5]", "vmax([1..5])", "vcount([1..5])", "2...5", "(-8)^(1:3)", "(-2)^1.5", "0^-1", "0^0.", "ln(0)", "ln(-1)"] {
             #expect(throws: Calc.Unsupported.self, "\(e)") { try Calc.evaluate(e) }
         }
         var modes = Calc.Modes()
