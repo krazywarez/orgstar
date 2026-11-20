@@ -47,7 +47,7 @@ A file that isn't valid TOML is reported with its parse error, and none of it ap
 
 * The Settings window
 
-Open it with orgstar ▸ Settings (=⌘,=). It has five panes. Each control writes the =config.toml= key named in the tables below; the config.toml reference below gives the type and the Emacs variable.
+Open it with orgstar ▸ Settings (=⌘,=). It has six panes. The last, orgstar+, has the plans and Restore Purchases in the Mac App Store version and the license key in the download version. Each control in the others writes the =config.toml= key named in the tables below; the config.toml reference below gives the type and the Emacs variable.
 
 ** General
 
@@ -59,6 +59,7 @@ Open it with orgstar ▸ Settings (=⌘,=). It has five panes. Each control writ
 | Folder: Choose Configuration Folder…       | Mac App Store version: reads and writes the configuration in a folder you choose |                         |                  |
 | Folder: Use Default Folder                 | Mac App Store version: goes back to the folder in the app's container       |                                 |                  |
 | Emacs: Import from Emacs…                  | Opens the import sheet; see Import from Emacs below|                                 |                  |
+| Check for updates automatically            | Download version: once a day; orgstar ▸ Check for Updates… checks now        | Asked on the second launch      |                  |
 | Save files                                 | Automatically, when typing stops; Only with File ▸ Save (=⌘S=)             | Automatically                   | =save=           |
 | Keys                                       | Emacs; Mac; Doom (Vim keys)                                                  | Emacs                           | =keymap=         |
 | Show hidden files and folders              | On or off                                                                    | On                              | =show-hidden-files= |

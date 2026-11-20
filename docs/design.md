@@ -16,7 +16,6 @@ A native macOS app, with iOS to follow, that edits a folder of org files directl
 
 - Emacs features unrelated to org (an elisp runtime, packages, other major modes).
 - Block-based storage, or a database as the source of truth.
-- Mac App Store distribution.
 - Babel execution on iOS.
 - Native Calc symbolic math in table formulas.
 - Sync providers other than Syncthing and iCloud Drive.
@@ -27,7 +26,7 @@ A native macOS app, with iOS to follow, that edits a folder of org files directl
 | --- | --- | --- |
 | Editing model | Text editor; the buffer is the file. Rendering and views sit on top. | Fill, table alignment and fidelity need plain text. Block editors can't round-trip. |
 | Platforms | macOS v1. iOS after the Mac app is mature. | One platform at a time; core stays portable. |
-| Distribution | Direct download (notarized, Sparkle) and Homebrew cask. No sandbox. | Babel needs to spawn interpreters. |
+| Distribution | Direct download (notarized, Sparkle) and Homebrew cask, unsandboxed; a sandboxed Mac App Store build that runs only Emacs Lisp blocks. | Babel needs to spawn interpreters. |
 | Language | Swift throughout. Core in a separate package with no AppKit/UIKit imports. | TextKit uses UTF-16 offsets natively; no FFI layer; direct path to iOS. |
 | Parser | New lossless parser (`OrgCore`) with source ranges. Port inline rules from OrgSwift. | OrgSwift and orgo are export parsers: no positions, drop drawers/comments, flat headings. |
 | Key bindings | Command registry; keymaps as data. Presets: Emacs (default), Mac, Doom. | One registry serves keys, palette, menus and iOS. Doom needs a modal engine, so it ships last. |
@@ -335,7 +334,7 @@ Fidelity is checked against Emacs itself, using the same oracle pattern as orgo'
 
 Seven phases, each usable on its own. Phase 1 is read-only, so it can run next to Emacs from the first build.
 
-Status, 2026-10-16: phases 1–7 are built. The Mac app is released as v0.6.1 (universal, notarized DMG, Homebrew cask). The iOS app (with the watch app) is on the App Store. Owed: the phase-1 gate run on the M1 Air, and the VoiceOver check on both platforms. The gates pass on an M-series Mac except peak memory for small real files (about 20x for a 161 kB file, from fixed overhead).
+Status, 2026-11-20: phases 1–7 are built. The Mac download is at 1.1.1 (universal, notarized DMG, Homebrew cask, Sparkle). The sandboxed Mac App Store build (the `APPSTORE` condition: no Sparkle, no `OrgPrograms`, only Emacs Lisp blocks run) is at 1.1.0. The iOS app (with the watch app) is on the App Store at 1.1.0. Owed: the phase-1 gate run on the M1 Air, and the VoiceOver check on both platforms. The gates pass on an M-series Mac except peak memory for small real files (about 20x for a 161 kB file, from fixed overhead).
 
 1. **Core and viewer:** `OrgCore` parser, workspace, index, read-only rendering, folding, search.
 2. **Editor:** text editing, structure and heading commands, timestamps, `M-q`, table alignment, command palette, Emacs and Mac keymaps, remaining tree-sitter grammars.
@@ -393,6 +392,6 @@ Phase 2 (writable editor) does not start until every gate passes.
 - [x] App name: orgstar, spelt in lowercase.
 - [x] Save model: a user setting (see Saving).
 - [x] Minimum OS: macOS 26 and iOS 26. One release behind current (macOS 27).
-- [x] License: 0BSD.
+- [x] License: proprietary, all rights reserved (see `LICENSE`).
 - [x] Oracle pins: Emacs 31.1 and Org 9.8.7.
 - [x] OrgSwift moves onto `OrgCore`'s tree later, tracked in krz/org-swift#2. Out of scope for now.

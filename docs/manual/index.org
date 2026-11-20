@@ -9,8 +9,8 @@ way Org does where the two overlap, and leaves every byte you didn't change as i
 
 On the Mac you get the editor with Emacs, Mac or Doom (Vim) keys, the agenda and a
 board view, capture templates, clocking, tables with formulas, code blocks and
-tangling, and export to HTML and Markdown (and to other formats through Emacs, if
-it is installed). The iOS app has the editor, agenda, capture, search, clocking,
+tangling, and export to HTML and Markdown (and, in the download version, to other
+formats through Emacs, if it is installed). The iOS app has the editor, agenda, capture, search, clocking,
 reminders, export and tangling.
 
 * Start here

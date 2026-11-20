@@ -94,7 +94,7 @@ The palette lists every command by title with its keys in the current keymap. Op
 
 Type part of a title; matching is fuzzy and the best matches come first. =Return= runs the top match, a click runs any row, and =Esc= closes the palette. Each row shows up to two key sequences; in the Doom preset these are normal-state keys first, then insert-state keys.
 
-The palette leaves out text-system movement and editing commands (Forward Character, Kill Line, Set Mark and the like), which only make sense from keys. Every other command is in it, including the ones no preset binds, such as Show or Hide Backlinks, Import Table from File…, Recovery Versions… and Delete Property…. Commands that cannot run at the caret show a message instead.
+The palette leaves out text-system movement and editing commands (Forward Character, Kill Line, Set Mark and the like), which only make sense from keys. Every other command is in it, including the ones no preset binds, such as Show or Hide Backlinks, Import Table from File…, Recovery Versions… and Delete Property…. The Mac App Store version leaves out the Emacs exports and Attach File as Hard Link… and as Symbolic Link…; a key bound to Export to PDF with Emacs runs Export to PDF. Commands that cannot run at the caret show a message instead.
 
 The Org menu in the menu bar lists every =org.= command with its keys in the current keymap, and is a way to find a key without the palette. Its Clock submenu lists the clock commands the same way, followed by the recently clocked entries.
 
@@ -148,7 +148,7 @@ Speed keys work in the Emacs and Mac presets, and in the Doom preset in insert s
 
 * Customizing keys: keymap.toml
 
-Your own bindings go in =keymap.toml= in the configuration folder: =$XDG_CONFIG_HOME/orgstar/keymap.toml= when =XDG_CONFIG_HOME= is set, otherwise =~/.config/orgstar/keymap.toml=. Settings ▸ General shows the path under the Keys picker. The file does not exist until you create it. If you used an earlier version that kept it in =~/Library/Application Support/Orgstar/=, that copy is read, and reloaded when you save it, until one exists in the configuration folder.
+Your own bindings go in =keymap.toml= in the configuration folder: =$XDG_CONFIG_HOME/orgstar/keymap.toml= when =XDG_CONFIG_HOME= is set, otherwise =~/.config/orgstar/keymap.toml=. The Mac App Store version uses its own configuration folder (see [[file:13-configuration.org][Configuration]]). Settings ▸ General shows the path under the Keys picker. The file does not exist until you create it. If you used an earlier version that kept it in =~/Library/Application Support/Orgstar/=, that copy is read, and reloaded when you save it, until one exists in the configuration folder.
 
 The bindings in the file are layered on top of the chosen preset. They apply to whichever preset is chosen, so a file written for the Emacs preset does nothing useful under Doom unless its bindings name a =mode=.
 

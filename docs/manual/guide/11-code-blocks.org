@@ -149,7 +149,7 @@ Before a block runs, orgstar asks "Run this /language/ block? (yes, no, always)"
 - =no= does not run it.
 - =always= runs it and remembers the block, so it runs without asking next time.
 
-A remembered block is identified by the file's path and the exact text of the block. Any change to the block, or moving the file, makes orgstar ask again. The remembered hashes are kept in =trusted.json= in orgstar's Application Support folder (=~/Library/Application Support/Orgstar= on the Mac). The same file records table formulas you allowed to run Lisp. To forget every choice, delete the file while orgstar is not running.
+A remembered block is identified by the file's path and the exact text of the block. Any change to the block, or moving the file, makes orgstar ask again. The remembered hashes are kept in =trusted.json= in orgstar's Application Support folder (=~/Library/Application Support/Orgstar= on the Mac, inside the container in the Mac App Store version). The same file records table formulas you allowed to run Lisp. To forget every choice, delete the file while orgstar is not running.
 
 When a block's =:var= or =:stdin= refers to other blocks that have to run first, you are asked once for all of them. The prompt covers the block you ran and every block its references reach. If any of those blocks changes while the chain runs, orgstar stops with "The blocks changed while running; nothing more was run."
 

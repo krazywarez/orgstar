@@ -550,7 +550,9 @@ Entering a formula that needs Emacs with ~C-c =~, Set Field Formula or ~=~ in a 
 is not handed to Emacs. The formula is stored in the =#+TBLFM:= line and the field is
 left as it was; the echo area shows =The formula was stored; recalculating it needs
 Emacs= and the reason. =TAB= and =RET= still move to the next field. Recalculate the
-table to run the formula in Emacs.
+table to run the formula in Emacs. In the Mac App Store version the echo area shows
+=The formula was stored; it can't be calculated here:= and the reason, and recalculating
+doesn't run it.
 
 For how orgstar and Emacs share files, see
 [[file:15-alongside-emacs.org][Using orgstar alongside Emacs]].

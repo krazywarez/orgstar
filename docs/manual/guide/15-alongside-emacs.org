@@ -221,7 +221,7 @@ Code blocks (see [[file:11-code-blocks.org][Code blocks]]):
 - Header arguments, =:var= values and =:cache= that need Lisp evaluated by Emacs are refused when orgstar's interpreter can't evaluate them: "… is Lisp that only Emacs can evaluate; nothing was run."
 - Noweb references that run a block aren't supported.
 - Tangling refuses =:var= that would run a block, and tables and lists in =:var= for some languages.
-- On iOS, only Emacs Lisp blocks run.
+- On iOS and in the Mac App Store version, only Emacs Lisp blocks run, in orgstar's own interpreter.
 
 Links (see [[file:09-links.org][Links]]):
 
@@ -234,7 +234,7 @@ Capture templates (see [[file:08-capture.org][Capture]]):
 
 Tables and dynamic blocks (see [[file:10-tables.org][Tables]] and [[file:06-dates-and-clocking.org][Dates and clocking]]):
 
-- Formulas outside orgstar's own calculator go to Emacs on the Mac and are refused on iOS.
+- Formulas outside orgstar's own calculator go to Emacs in the Mac download version, and are refused in the Mac App Store version and on iOS.
 - Clock tables support the scopes =nil=, =file=, =subtree= and =treeN=; other scopes, =:match= and =:step= aren't supported.
 - Dynamic blocks other than =clocktable=, =columnview= and denote-org's aren't supported. Column views of other files aren't supported.
 

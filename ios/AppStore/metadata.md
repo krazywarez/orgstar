@@ -39,7 +39,7 @@ AND MORE
 - Spotlight search and Quick Look previews of .org files
 - Themes and settings read from the same configuration folder as the Mac app
 
-ORGSTAR PRO
+ORGSTAR+
 Editing, the agenda, capture, clocking, tables and search are free. orgstar+, monthly, yearly or as a one-time lifetime purchase, adds:
 - Running and tangling source blocks
 - PDF, Word and rich text export

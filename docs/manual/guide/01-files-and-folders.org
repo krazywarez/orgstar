@@ -46,11 +46,11 @@ orgstar does not open a single folder like a project. You add any number of fold
 
 ** Adding a folder
 
-Choose File ▸ Add Folder… (=⇧⌘O=), or click =+= at the bottom of the sidebar, and pick a folder. The first time orgstar opens with no folder, a welcome sheet offers the same, or a new =org= folder in iCloud Drive with a =notes.org= in it, and the choice of keys; Get Started… in the empty window opens the sheet again. orgstar indexes it in the background; the toolbar shows a progress indicator while it works.
+Choose File ▸ Add Folder… (=⇧⌘O=), or click =+= at the bottom of the sidebar, and pick a folder. The first time orgstar opens with no folder, a welcome sheet offers the same, or a new =org= folder in iCloud Drive with a =notes.org= in it (in the Mac App Store version, a folder you choose or make in iCloud Drive), and the choice of keys; Get Started… in the empty window opens the sheet again. orgstar indexes it in the background; the toolbar shows a progress indicator while it works.
 
 orgstar keeps a bookmark to each folder, so a folder you move or rename in Finder is followed. If a folder can't be found at launch, orgstar reports =Can't find the folder PATH.= Adding a folder that is already in the sidebar does nothing.
 
-orgstar keeps the list of folders, the index and recovery versions in =~/Library/Application Support/Orgstar=.
+orgstar keeps the list of folders, the index and recovery versions in =~/Library/Application Support/Orgstar=; the Mac App Store version keeps them in =~/Library/Containers/sh.krz.orgstar/Data/Library/Application Support/Orgstar=.
 
 ** Removing a folder
 
@@ -112,7 +112,7 @@ Click a file in the sidebar to open it. Other ways:
 - *Links*: following a =file:= link or an ID link opens the target file; see [[file:09-links.org][Links]].
 - *Doom ex command*: =:e FILE= opens =FILE=, relative to the current file's folder; =~= is expanded. A file that doesn't exist is reported as =No file FILE=.
 
-A file opened from Finder or by a link does not have to be inside one of your folders. Such a file is edited and saved normally, but it isn't listed in the sidebar, isn't indexed for search or the agenda, and isn't watched for outside changes (orgstar still merges outside changes when it saves; see /Saving/ below).
+A file opened from Finder or by a link does not have to be inside one of your folders. In the Mac App Store version, a link to a file outside them first asks you to grant access to its folder (see [[file:../install.org][Install]]). Such a file is edited and saved normally, but it isn't listed in the sidebar, isn't indexed for search or the agenda, and isn't watched for outside changes (orgstar still merges outside changes when it saves; see /Saving/ below).
 
 orgstar has no Open Recent menu. Instead, it reopens the buffers that were open when you quit, in the same order, with the same file showing and each caret where you left it. Files that no longer exist are skipped.
 
@@ -282,7 +282,7 @@ Each choice moves the copy to recovery and deletes it from the folder. The buffe
 
 ** Recovery versions
 
-Whenever orgstar replaces a version of a file, it keeps a copy: your buffer when you take the disk version, the disk version when you keep yours, a version another program wrote while orgstar saved, and resolved Syncthing copies. It also keeps a snapshot of the file as it was before a save, at most once an hour, so there is a version of your own writing to go back to. orgstar keeps the last 20 replaced versions and the last 10 snapshots per file in =~/Library/Application Support/Orgstar/Recovery=.
+Whenever orgstar replaces a version of a file, it keeps a copy: your buffer when you take the disk version, the disk version when you keep yours, a version another program wrote while orgstar saved, and resolved Syncthing copies. It also keeps a snapshot of the file as it was before a save, at most once an hour, so there is a version of your own writing to go back to. orgstar keeps the last 20 replaced versions and the last 10 snapshots per file in =~/Library/Application Support/Orgstar/Recovery= (in the Mac App Store version, the same folder inside its container).
 
 Choose File ▸ Recovery Versions… to see the open file's versions, newest first, each with its date and why it was kept:
 

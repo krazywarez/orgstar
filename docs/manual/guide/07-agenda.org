@@ -710,7 +710,7 @@ On the Mac, orgstar's widgets go on the desktop and in Notification Center: righ
 | Up Next | Small                  | The next entry's time or status and title, or the agenda when nothing is left today.    |
 | Habits | Small, medium and large | Each habit's consistency graph, as on iOS.                                              |
 
-Click a row in Today, the Up Next widget or a habit to show that entry in orgstar; click elsewhere to open the agenda. The widgets read the next seven days of the agenda and the habits, which the app writes to =~/Library/Application Support/Orgstar/Widgets= when files, edits or settings change and every hour while it runs; see [[file:14-ios.org][iOS]] for what they show and leave out.
+Click a row in Today, the Up Next widget or a habit to show that entry in orgstar; click elsewhere to open the agenda. The widgets read the next seven days of the agenda and the habits, which the app writes to =~/Library/Application Support/Orgstar/Widgets= (in the Mac App Store version, =~/Library/Group Containers/group.sh.krz.orgstar/Widgets=) when files, edits or settings change and every hour while it runs; see [[file:14-ios.org][iOS]] for what they show and leave out.
 
 * The agenda on iOS
 

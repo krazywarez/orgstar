@@ -1,6 +1,6 @@
 #+TITLE: Export
 #+DESCRIPTION: Exporting Org files from orgstar to HTML, Markdown, PDF, Word, RTF, plain text and iCalendar, and to LaTeX, ODT and ASCII through Emacs; copying as rich text.
-#+LEDE: orgstar exports HTML, Markdown, PDF, Word, RTF, plain text and iCalendar itself, and hands LaTeX, ODT, ASCII and LaTeX-made PDF to Emacs on the Mac.
+#+LEDE: orgstar exports HTML, Markdown, PDF, Word, RTF, plain text and iCalendar itself, and the Mac download version hands LaTeX, ODT, ASCII and LaTeX-made PDF to Emacs.
 
 * Exporting a file
 

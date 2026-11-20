@@ -5,7 +5,8 @@
 * Add a folder
 
 The first time orgstar opens with no folder, a welcome sheet offers to choose a folder,
-to make one (=org= in iCloud Drive, with a =notes.org= to start on), and the keys to use. Get
+to make one (=org= in iCloud Drive, with a =notes.org= to start on; in the Mac App Store version, a
+folder you choose or make in iCloud Drive), and the keys to use. Get
 Started… in the empty window opens it again.
 
 Otherwise, choose File ▸ Add Folder… (=⇧⌘O=) and pick the folder that holds your org files.
@@ -74,7 +75,7 @@ day by day, and the TODO list. Select an item to jump to it. See
 * Capture a thought
 
 =⇧⌘N= opens capture from anywhere in the app. Until you define your own templates
-(in =~/.config/orgstar/capture.toml=, or imported from Emacs), there are two: =t= files a
+(in =capture.toml= in the [[file:guide/13-configuration.org][configuration folder]], or imported from Emacs), there are two: =t= files a
 TODO and =n= a note, each under an =Inbox= heading in =todo.org= or =notes.org= in your
 first folder. See [[file:guide/08-capture.org][Capture]].
 

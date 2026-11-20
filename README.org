@@ -45,7 +45,9 @@ Emacs tomorrow and nothing has been reformatted.
 orgstar behaves the way Org does where the two overlap. Settings ▸ General ▸ Import from
 Emacs reads an existing Emacs or Doom configuration and carries over its org settings,
 folders, capture templates, key bindings and agenda views. Settings live in plain files
-under =~/.config/orgstar/=, so they can sit in your dotfiles next to your Emacs config.
+under =~/.config/orgstar/=, so they can sit in your dotfiles next to your Emacs config. The Mac
+App Store version keeps its own until you choose that folder in Settings ▸ General ▸ Choose
+Configuration Folder….
 
 ** Get it
 The Mac app (macOS 26 or later) comes in two versions:

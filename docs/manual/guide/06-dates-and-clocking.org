@@ -283,7 +283,7 @@ CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 15:30] =>  1:30
 
 With no clock running, Clock In first asks about open clocks; see Open clocks below. So do the agenda's =I= and a capture template's =clock-in=.
 
-orgstar remembers the running clock and the clock history across restarts, in =clock.json= in =~/Library/Application Support/Orgstar=. If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
+orgstar remembers the running clock and the clock history across restarts, in =clock.json= in =~/Library/Application Support/Orgstar= (in the Mac App Store version, the same folder inside its container). If the open =CLOCK:= line is deleted from the file, Clock Out reports "Clock start time is gone" and forgets the clock.
 
 orgstar follows the open =CLOCK:= lines in the files, so a clock started or stopped in Emacs, or on another device, is the one it shows:
 

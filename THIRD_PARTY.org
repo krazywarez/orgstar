@@ -1,5 +1,5 @@
 * Third-party code
-Orgstar is 0BSD. It builds on these projects, under their own licenses.
+orgstar is proprietary (see [[file:LICENSE]]). It builds on these projects, under their own licenses.
 
 | Project | Use | License |
 |-+-+-|

@@ -3,8 +3,8 @@
 * Status
 
 Design phases 1–7 are built. The Mac app is released as a notarized DMG and a Homebrew
-cask, with Sparkle updates; a second, sandboxed build for the Mac App Store is not yet
-released (see /Mac App Store build/). The iOS and watchOS apps build from the Xcode project
+cask, with Sparkle updates; a second, sandboxed build is on the Mac App Store (see /Mac
+App Store build/). The iOS and watchOS apps build from the Xcode project
 for the Simulator and for a device signed with your own team, and go to TestFlight and the
 [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store]] with =scripts/release-ios.sh=. Owed: the M1 Air gate run (issue 2) and the VoiceOver
 passes on the Mac and iOS (issues 3 and 4).
@@ -92,40 +92,28 @@ data in =~/Library/Group Containers/group.sh.krz.orgstar/=. A development build 
 Store install share them, as they share the bundle ID. Keep the Developer ID app out of the way
 while testing, since Finder, Quick Look, Spotlight and URL handlers bind to one copy.
 
-Not yet done before the first submission:
-- A smoke test of a signed, sandboxed build: Grant Access… for includes, setup files, tangle
-  and export targets, images, capture, archive and dailies outside the folders (including a
-  picked folder that doesn't contain the one asked for); Can't Open and regranting a folder;
-  files opened from Finder coming back after a relaunch and after a force quit; the
-  configuration folder after a relaunch; =:shebang= tangling setting the mode; Save Elsewhere…
-  for exports; the Import from Emacs pickers; the welcome sheet's iCloud Drive folder.
-- The Mac screenshots (below).
-- The TestFlight group for the Mac app, in App Store Connect.
-- Installing each Mac version over the other, with the results in the manual's Install page.
-
 ** Mac screenshots
 
 App Store Connect takes Mac screenshots at 1280x800, 1440x900, 2560x1600 or 2880x1800 pixels.
-The set lives in =ios/AppStore/screenshots/mac/=; the =01-editor.png= there now is 2560x1720
-and is not accepted, so replace it. To take a 2880x1800 set on a Retina display:
+The set lives in =ios/AppStore/screenshots/mac/=, at 2880x1800: window captures centred on a
+radial gradient. To take one on a Retina display:
 
 1. Run the "Orgstar macOS" scheme. Remove other folders from its sidebar and add
    =ios/AppStore/demo= with File ▸ Add Folder….
-2. Size the main window to 1440 by 900 points (Terminal needs Accessibility access in System
-   Settings ▸ Privacy & Security):
+2. Set up each shot, then run =screencapture -o -w raw.png= and click the window.
+3. Put it on the background, scaled to fit 2640x1640, with no alpha channel:
    #+BEGIN_SRC sh
-   osascript -e 'tell application "System Events" to tell process "orgstar" to set size of front window to {1440, 900}'
+   magick -size 2880x1800 radial-gradient:'#56722c-#182109' bg.png
+   magick raw.png -resize '2640x1640>' win.png
+   magick bg.png win.png -gravity center -composite -background '#182109' -alpha remove -alpha off \
+       ios/AppStore/screenshots/mac/NN-name.png
    #+END_SRC
-3. Set up each shot, then run =screencapture -i -w -o ios/AppStore/screenshots/mac/NN-name.png=
-   and click the window. =-o= leaves out the shadow.
-4. Check the size with =sips -g pixelWidth -g pixelHeight ios/AppStore/screenshots/mac/*.png=.
 
 The demo's dates are around Friday 16 October 2026; in the agenda, Go to Date shows that week.
-Take five shots: =01-editor= (=work.org=, with the sidebar showing), =02-agenda= (the week),
-=03-board= (the agenda's board as kanban columns), =04-tables= (=home.org= and its table) and
-=05-capture= (the capture window with a template). Show nothing the App Store
-build leaves out: no code block results from languages other than Emacs Lisp, no Emacs exports,
-no license key form and no update settings.
+The set has four shots: =01-editor= (=work.org=, with the sidebar showing), =02-agenda= (the
+week), =03-table= (=home.org= and its table) and =04-capture= (the capture window with a
+template). Show nothing the App Store build leaves out: no code block results from languages
+other than Emacs Lisp, no Emacs exports, no license key form and no update settings.
 
 * Mac licenses
 
@@ -200,9 +188,10 @@ at =$APPSTORE_KIT=.
 =platform=macos=, and uploads a =.pkg=. Before archiving it checks that the scheme has
 =APPSTORE= and the bundle ID =sh.krz.orgstar= and that no entitlements file has a temporary
 exception. Before exporting it checks the archive: no Sparkle, no =SU*= keys in =Info.plist=, no
-=NSTask= or =posix_spawn= in any executable, no temporary-exception entitlements, and an
-=embedded.provisionprofile= in the app and each extension. =ORGSTAR_PUBLISH=0= exports the
-=.pkg= to =.build/macos-release= without uploading.
+=NSTask= or =posix_spawn= in any executable, and no temporary-exception entitlements.
+It doesn't check provisioning profiles: the archive is signed for development, which gives
+extensions without capabilities none, and the export signs every bundle again.
+=ORGSTAR_PUBLISH=0= exports the =.pkg= to =.build/macos-release= without uploading.
 
 The macOS listing, review notes and TestFlight information are in =ios/AppStore/metadata.md=.
 
