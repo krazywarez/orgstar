@@ -182,7 +182,9 @@ struct PromptRequest: Identifiable {
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     var session: DocumentSession?
     var commands: AppCommands?
-    #if !APPSTORE
+    #if APPSTORE
+    var workspace: WorkspaceModel?
+    #else
     let updates = Updates()
     #endif
 
@@ -242,7 +244,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let session else { return .terminateNow }
+        #if APPSTORE
+        BufferRestore.save(session, bookmarking: { [workspace] in workspace?.contains(URL(fileURLWithPath: $0)) != true })
+        #else
         BufferRestore.save(session)
+        #endif
         return UnsavedChanges.resolve(session, paths: session.openPaths) ? .terminateNow : .terminateCancel
     }
 }
@@ -298,18 +304,33 @@ enum BufferRestore {
         var paths: [String]
         var current: String?
         var carets: [String: Int]
+        /// In the Mac App Store build, bookmarks of the files outside every folder, which the
+        /// sandbox would otherwise keep orgstar out of after relaunch.
+        var bookmarks: [String: Data]?
     }
 
-    static func save(_ session: DocumentSession, defaults: UserDefaults = .standard) {
+    /// `bookmarking` says which paths get a bookmark.
+    static func save(_ session: DocumentSession, bookmarking: (String) -> Bool = { _ in false }, defaults: UserDefaults = .standard) {
         var carets: [String: Int] = [:]
         for path in session.openPaths { carets[path] = session.caret(of: path) }
-        let state = State(paths: session.openPaths, current: session.path, carets: carets)
+        var bookmarks: [String: Data] = [:]
+        for path in session.openPaths where bookmarking(path) {
+            bookmarks[path] = SecurityBookmark.make(URL(fileURLWithPath: path))
+        }
+        let state = State(paths: session.openPaths, current: session.path, carets: carets, bookmarks: bookmarks.isEmpty ? nil : bookmarks)
         if let data = try? JSONEncoder().encode(state) { defaults.set(data, forKey: key) }
     }
 
     /// Opens the buffers that were open, in order, and returns the carets to show them at.
     static func restore(_ session: DocumentSession, defaults: UserDefaults = .standard) -> [String: Int] {
-        guard let data = defaults.data(forKey: key), let state = try? JSONDecoder().decode(State.self, from: data) else { return [:] }
+        guard let data = defaults.data(forKey: key), var state = try? JSONDecoder().decode(State.self, from: data) else { return [:] }
+        // A bookmarked file comes back with access, at the path it has now.
+        for (path, bookmark) in state.bookmarks ?? [:] {
+            guard let moved = SecurityBookmark.resolve(bookmark)?.url.path, moved != path else { continue }
+            state.paths = state.paths.map { $0 == path ? moved : $0 }
+            if state.current == path { state.current = moved }
+            state.carets[moved] = state.carets.removeValue(forKey: path)
+        }
         let existing = state.paths.filter { FileManager.default.fileExists(atPath: $0) }
         for path in existing { session.open(path) }
         if let current = state.current, existing.contains(current) { session.open(current) }
@@ -360,6 +381,9 @@ struct OrgstarApp: App {
                     .onAppear {
                         delegate.session = session
                         delegate.commands = commands
+                        #if APPSTORE
+                        delegate.workspace = model
+                        #endif
                         CaptureIntent.environment = (model, session, clock, commands)
                     }
             case .failure(let error):
