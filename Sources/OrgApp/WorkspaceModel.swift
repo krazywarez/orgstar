@@ -163,7 +163,19 @@ public final class WorkspaceModel {
     public func foldersToGrant(for paths: [String], directories: Bool = false) -> [URL] {
         guard Sandbox.isActive else { return [] }
         let reachable = Array(resolvedRoots.values) + FolderGrants.shared.folders + [URL(fileURLWithPath: NSHomeDirectory())]
+            + (UserConfig.directoryOverride.map { [$0] } ?? [])
         return Self.foldersToGrant(for: paths, directories: directories, reachable: reachable)
+    }
+
+    /// Whether the file at `path` is there to be read, for all the read failed: missing files
+    /// aren't worth asking for access to.
+    public nonisolated static func isThere(_ path: String) -> Bool {
+        do {
+            _ = try Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe)
+            return true
+        } catch let error as NSError {
+            return !(error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoSuchFileError)
+        }
     }
 
     nonisolated static func foldersToGrant(

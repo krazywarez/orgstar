@@ -21,6 +21,9 @@ public struct RoamActions {
     public var insertLink: (_ link: String, _ title: String) -> Void
     /// The index reads new files.
     public var refresh: () -> Void
+    /// In the Mac sandbox, asks for access to folders outside the sidebar's that new notes go
+    /// in. False when one is still out of reach.
+    public var reachFolders: ([String]) -> Bool = { _ in true }
 
     public init(
         session: DocumentSession, roots: @escaping () -> [String], nodes: @escaping () -> [IndexStore.Node], show: @escaping (String) -> Void,
@@ -126,6 +129,7 @@ public struct RoamActions {
     /// `org-roam-dailies-goto-*`: the day's file, made if missing.
     func goto(_ day: Date) {
         guard let dailies else { return show("No folder for daily notes") }
+        guard reachFolders([dailies.directory]) else { return }
         do {
             let (path, created) = try dailies.ensure(day)
             if created { refresh() }
@@ -139,6 +143,7 @@ public struct RoamActions {
     /// which opens with the caret at `%?`.
     func capture(_ day: Date) {
         guard let dailies else { return show("No folder for daily notes") }
+        guard reachFolders([dailies.directory]) else { return }
         let context = CaptureContext(now: day, file: session.path ?? "", userName: NSFullUserName())
         let questions = Capture.questions(dailies.entry, context: context)
         func ask(_ answers: [String]) {
@@ -193,6 +198,7 @@ public struct RoamActions {
             guard !title.isEmpty else { return }
             if denote || silo != nil { return createDenote(title, known: all, silo: silo, then) }
             guard let folder = RoamNode.directory(roots: roots()) else { return show("No folder for new nodes") }
+            guard reachFolders([folder]) else { return }
             do {
                 let node = try RoamNode.create(title: title, in: folder)
                 refresh()
@@ -240,6 +246,7 @@ public struct RoamActions {
         var answers = answers
         switch prompts.first {
         case nil:
+            guard reachFolders([answers.folder ?? root]) else { return }
             do {
                 let note = try DenoteNote.create(title: title, keywords: answers.keywords, in: answers.folder ?? root, roots: roots,
                                                  now: answers.date ?? Date(), signature: answers.signature, template: answers.template)

@@ -79,8 +79,9 @@ The App Store version can open only the folders and files you give it:
 - Folders you add (File ▸ Add Folder…, or the welcome sheet) and files you open from Finder.
   orgstar remembers them across launches.
 - When something needs a file outside them, such as an =#+INCLUDE:= or =#+SETUPFILE:=, a
-  tangle target, an export file, a =file:= link, a =:file= result or a publishing folder,
-  orgstar asks once. Grant Access… opens a folder picker at that folder; choose it, and orgstar
+  tangle target, an export file, an image in a PDF, Word or RTF export, a =file:= link, a
+  =:file= result, a publishing folder, a capture target, an archive file, or the folder for
+  org-roam nodes, daily notes or Denote notes, orgstar asks once. Grant Access… opens a folder picker at that folder; choose it, and orgstar
   uses that folder and everything in it from then on. An export also offers Save Elsewhere….
 - A folder that can no longer be opened, for example one on a disk that isn't connected, is
   listed under Can't Open in the sidebar, with Grant Access… to choose it again.

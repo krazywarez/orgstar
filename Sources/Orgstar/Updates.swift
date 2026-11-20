@@ -37,7 +37,7 @@ struct CheckForUpdatesItem: View {
     let updates: Updates
 
     var body: some View {
-        Button("Check for Updates…") { updates.check() }
+        Button { updates.check() } label: { Text("Check for Updates…", tableName: "DeveloperID") }
             .disabled(!updates.canCheck)
     }
 }

@@ -31,6 +31,12 @@ struct ConfigFolderTests {
         #expect(ConfigFolder.resolve(defaults: store) == nil)
     }
 
+    @Test func aFolderWithoutABookmarkIsNotKept() {
+        let store = defaults()
+        #expect(!ConfigFolder.set(URL(fileURLWithPath: "/nowhere-\(UUID().uuidString)"), defaults: store))
+        #expect(store.data(forKey: ConfigFolder.bookmarkKey) == nil)
+    }
+
     /// iOS keeps its folder under the key it always used.
     @Test func bookmarkKeyIsUnchanged() {
         #expect(ConfigFolder.bookmarkKey == "configFolderBookmark")

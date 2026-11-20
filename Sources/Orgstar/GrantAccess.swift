@@ -30,8 +30,23 @@ enum GrantAccess {
         }
         guard let url = choose(at: folder, message: String(localized: "Choose \(name) or a folder that contains it.", comment: "Open panel for giving orgstar access to a folder"),
                                prompt: String(localized: "Grant Access", comment: "Open panel button that gives orgstar access to a folder")) else { return .canceled }
-        FolderGrants.shared.add(url)
+        guard FolderGrants.covers(url, folder) else {
+            tell(String(localized: "\(OrgPaths.abbreviatingWithTilde(url.path)) doesn't contain \(name).", comment: "Alert when the folder chosen to grant access doesn't contain the one needed"),
+                 String(localized: "Choose \(name) or a folder that contains it.", comment: "Open panel for giving orgstar access to a folder"))
+            return .canceled
+        }
+        if !FolderGrants.shared.add(url) {
+            tell(String(localized: "orgstar can't keep access to \(name).", comment: "Alert when a folder grant can't be saved"),
+                 String(localized: "Access lasts until orgstar quits.", comment: "Alert when a folder grant or the configuration folder can't be saved"))
+        }
         return workspace.foldersToGrant(for: [folder.path], directories: true).isEmpty ? .granted : .canceled
+    }
+
+    static func tell(_ message: String, _ information: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = information
+        alert.runModal()
     }
 
     /// An open panel at `location`, for a folder, or a file too with `files`. Hidden files show

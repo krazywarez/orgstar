@@ -48,4 +48,10 @@ struct PDFExportTests {
         #expect(inlined.contains(#"<img src="gone.png">"#))
         #expect(PDFExport.inliningImages(#"<img src="img/a b.png">"#, directory: nil) == #"<img src="img/a b.png">"#)
     }
+
+    /// The images to ask for access to before exporting.
+    @Test func localImageFiles() {
+        let html = #"<img src="img/a.png"> <img alt="c" src="/abs/c.svg"> <img src="https://x.org/r.png"> <img src="img/a.png">"#
+        #expect(PDFExport.imageFiles(html, directory: URL(fileURLWithPath: "/notes")) == ["/notes/img/a.png", "/abs/c.svg"])
+    }
 }

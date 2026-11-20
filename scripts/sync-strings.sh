@@ -1,5 +1,6 @@
 #!/bin/sh
-# Brings l10n/Localizable.xcstrings up to date with the strings the apps show: builds the Mac, Mac
+# Brings l10n/Localizable.xcstrings and l10n/DeveloperID.xcstrings (the strings with that table,
+# which only the Developer ID Mac app shows) up to date with the strings the apps show: builds the Mac, Mac
 # App Store and iOS targets with SWIFT_EMIT_LOC_STRINGS and syncs the catalog from their .stringsdata
 # files.
 # New strings are added, ones no longer used are marked stale; translations are kept.
@@ -34,7 +35,9 @@ find "$mas" -path '*/arm64/*' -name '*.stringsdata' | grep -E '/(Orgstar macOS|O
 # The App Store target's folder name has a space, so the list is read a line at a time.
 set --
 while IFS= read -r file; do set -- "$@" "$file"; done < "$mac/stringsdata.txt"
-xcrun xcstringstool sync "$catalog" --stringsdata "$@"
-# xcstringstool writes its own spacing; the committed catalog is Python's sorted JSON.
-python3 -c "import json, sys; p = sys.argv[1]; d = json.load(open(p)); open(p, 'w').write(json.dumps(d, indent=2, ensure_ascii=False, sort_keys=True) + '\n')" "$catalog"
-echo "$(python3 -c "import json; print(len(json.load(open('$catalog'))['strings']))") strings in $catalog"
+for catalog in "$catalog" l10n/DeveloperID.xcstrings; do
+    xcrun xcstringstool sync "$catalog" --stringsdata "$@"
+    # xcstringstool writes its own spacing; the committed catalog is Python's sorted JSON.
+    python3 -c "import json, sys; p = sys.argv[1]; d = json.load(open(p)); open(p, 'w').write(json.dumps(d, indent=2, ensure_ascii=False, sort_keys=True) + '\n')" "$catalog"
+    echo "$(python3 -c "import json; print(len(json.load(open('$catalog'))['strings']))") strings in $catalog"
+done

@@ -257,6 +257,47 @@
         }
       }
     },
+    "%@ doesn't contain %@.": {
+      "comment": "Alert when the folder chosen to grant access doesn't contain the one needed",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ enthält %2$@ nicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ doesn't contain %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ no contiene %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ne contient pas %2$@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@には%2$@が含まれていません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ não contém %2$@."
+          }
+        }
+      }
+    },
     "%@ isn't available on iPhone and iPad.": {
       "comment": "A command that runs only on the Mac",
       "localizations": {
@@ -1796,6 +1837,41 @@
         }
       }
     },
+    "Access lasts until orgstar quits.": {
+      "comment": "Alert when a folder grant or the configuration folder can't be saved",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Zugriff gilt, bis orgstar beendet wird."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El acceso dura hasta que se cierre orgstar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'accès dure jusqu'à ce que vous quittiez orgstar."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクセスはorgstarを終了するまで有効です。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O acesso dura até o orgstar ser encerrado."
+          }
+        }
+      }
+    },
     "Act at Point": {
       "comment": "Command title",
       "localizations": {
@@ -1896,40 +1972,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ações"
-          }
-        }
-      }
-    },
-    "Activate": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktivieren"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activer"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アクティベート"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ativar"
           }
         }
       }
@@ -5465,74 +5507,6 @@
         }
       }
     },
-    "Check for Updates…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nach Updates suchen …"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buscar actualizaciones…"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rechercher les mises à jour…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アップデートを確認…"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buscar Atualizações…"
-          }
-        }
-      }
-    },
-    "Check for updates automatically": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatisch nach Updates suchen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buscar actualizaciones automáticamente"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rechercher automatiquement les mises à jour"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アップデートを自動的に確認"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buscar atualizações automaticamente"
-          }
-        }
-      }
-    },
     "Check spelling while typing (spell-check)": {
       "localizations": {
         "de": {
@@ -6118,6 +6092,7 @@
       }
     },
     "Choose your init.el, or the folder holding it (~/.emacs.d, ~/.config/doom).": {
+      "comment": "Open panel for importing an Emacs configuration",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -13189,40 +13164,6 @@
         }
       }
     },
-    "Get Your Key…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schlüssel abrufen …"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obtener tu clave…"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obtenir votre clé…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーを取得…"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obter sua chave…"
-          }
-        }
-      }
-    },
     "Git branch": {
       "localizations": {
         "de": {
@@ -16334,40 +16275,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Licença"
-          }
-        }
-      }
-    },
-    "License key": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lizenzschlüssel"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clave de licencia"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clé de licence"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ライセンスキー"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chave de licença"
           }
         }
       }
@@ -20671,74 +20578,6 @@
         }
       }
     },
-    "ORGSTAR1-…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ORGSTAR1-…"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ORGSTAR1-…"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ORGSTAR1-…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ORGSTAR1-…"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ORGSTAR1-…"
-          }
-        }
-      }
-    },
-    "Once a day, from the app's own feed. orgstar ▸ Check for Updates… checks now.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einmal täglich, aus dem Feed der App. orgstar ▸ Nach Updates suchen … prüft sofort."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Una vez al día, desde el canal de la propia app. orgstar ▸ Buscar actualizaciones… lo comprueba ahora."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Une fois par jour, depuis le flux de l'app. orgstar ▸ Rechercher les mises à jour… vérifie immédiatement."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1日1回、App独自のフィードから確認します。orgstar ▸ アップデートを確認…ですぐに確認できます。"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uma vez por dia, a partir do feed do próprio app. orgstar ▸ Buscar Atualizações… verifica agora."
-          }
-        }
-      }
-    },
     "One payment, no subscription": {
       "localizations": {
         "de": {
@@ -24320,40 +24159,6 @@
         }
       }
     },
-    "Remove License from This Mac": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lizenz von diesem Mac entfernen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quitar la licencia de este Mac"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retirer la licence de ce Mac"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このMacからライセンスを削除"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remover Licença Deste Mac"
-          }
-        }
-      }
-    },
     "Remove Priority": {
       "comment": "Command title",
       "localizations": {
@@ -24764,40 +24569,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Renomear…"
-          }
-        }
-      }
-    },
-    "Renews while you sponsor monthly. This key is valid until %@.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wird verlängert, solange du monatlich sponserst. Dieser Schlüssel gilt bis %@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se renueva mientras patrocines cada mes. Esta clave es válida hasta el %@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Renouvelée tant que vous sponsorisez chaque mois. Cette clé est valable jusqu'au %@."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "毎月スポンサーを続けている間は更新されます。このキーは%@まで有効です。"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "É renovada enquanto você patrocina mensalmente. Esta chave é válida até %@."
           }
         }
       }
@@ -28381,6 +28152,40 @@
         }
       }
     },
+    "Some plans aren't available from the App Store right now.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einige Abos sind gerade nicht im App Store verfügbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunos planes no están disponibles en la App Store en este momento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Certaines formules ne sont pas disponibles sur l'App Store pour le moment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部のプランは現在App Storeで利用できません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alguns planos não estão disponíveis na App Store no momento."
+          }
+        }
+      }
+    },
     "Some tips aren't available from the App Store right now.": {
       "localizations": {
         "de": {
@@ -28723,74 +28528,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dividir Painel à Direita"
-          }
-        }
-      }
-    },
-    "Sponsor for orgstar+…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Für orgstar+ sponsern …"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Patrocinar para orgstar+…"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sponsoriser pour orgstar+…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スポンサーになってorgstar+を利用…"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Patrocinar para o orgstar+…"
-          }
-        }
-      }
-    },
-    "Sponsors get their key by signing in with GitHub. It is checked on this Mac; a monthly sponsor's key is renewed with krz.sh.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sponsoren erhalten ihren Schlüssel, indem sie sich mit GitHub anmelden. Er wird auf diesem Mac geprüft; der Schlüssel monatlicher Sponsoren wird über krz.sh verlängert."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Los patrocinadores obtienen su clave iniciando sesión con GitHub. Se comprueba en este Mac; la clave de un patrocinador mensual se renueva con krz.sh."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les sponsors obtiennent leur clé en se connectant avec GitHub. Elle est vérifiée sur ce Mac ; la clé d'un sponsor mensuel est renouvelée auprès de krz.sh."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スポンサーはGitHubでサインインしてキーを取得します。キーはこのMac上で確認されます。月額スポンサーのキーはkrz.shで更新されます。"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Os patrocinadores obtêm a chave entrando com o GitHub. Ela é verificada neste Mac; a chave de um patrocinador mensal é renovada com o krz.sh."
           }
         }
       }
@@ -35201,6 +34938,76 @@
         }
       }
     },
+    "orgstar can't keep %@ as the configuration folder.": {
+      "comment": "Alert when the chosen configuration folder can't be saved",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar kann %@ nicht als Konfigurationsordner behalten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar no puede conservar %@ como carpeta de configuración."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar ne peut pas conserver %@ comme dossier de configuration."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstarは%@を設定フォルダとして保持できません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O orgstar não consegue manter %@ como pasta de configuração."
+          }
+        }
+      }
+    },
+    "orgstar can't keep access to %@.": {
+      "comment": "Alert when a folder grant can't be saved",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar kann den Zugriff auf %@ nicht behalten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar no puede conservar el acceso a %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar ne peut pas conserver l'accès à %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstarは%@へのアクセスを保持できません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O orgstar não consegue manter o acesso a %@."
+          }
+        }
+      }
+    },
     "orgstar can't open this folder": {
       "localizations": {
         "de": {
@@ -35470,40 +35277,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "orgstar+"
-          }
-        }
-      }
-    },
-    "orgstar+ for Mac comes with sponsoring orgstar on GitHub: $60 once, or $5 a month. Editing, the agenda, capture, clocking and search stay free.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "orgstar+ für Mac gibt es, wenn du orgstar auf GitHub sponserst: einmalig $60 oder $5 im Monat. Bearbeiten, Agenda, Erfassen, Zeiterfassung und Suche bleiben kostenlos."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "orgstar+ para Mac se incluye al patrocinar orgstar en GitHub: $60 una vez o $5 al mes. La edición, la agenda, la captura, el registro de tiempo y la búsqueda siguen siendo gratuitos."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "orgstar+ pour Mac est inclus quand vous sponsorisez orgstar sur GitHub : $60 une fois, ou $5 par mois. L'édition, l'agenda, la capture, le chronométrage et la recherche restent gratuits."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mac版orgstar+は、GitHubでorgstarのスポンサーになると利用できます（1回$60、または月額$5）。編集、アジェンダ、キャプチャ、クロック、検索は引き続き無料です。"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O orgstar+ para Mac vem com o patrocínio do orgstar no GitHub: $60 uma vez ou $5 por mês. A edição, a agenda, a captura, o registro de tempo e a busca continuam gratuitos."
           }
         }
       }

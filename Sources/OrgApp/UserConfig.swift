@@ -13,14 +13,23 @@ public enum UserConfig {
 
     public static var directory: URL {
         if let directoryOverride { return directoryOverride }
-        let environment = ProcessInfo.processInfo.environment
-        if let override = environment["ORGSTAR_CONFIG_DIR"] { return URL(fileURLWithPath: override) }
+        return defaultDirectory(environment: ProcessInfo.processInfo.environment, home: NSHomeDirectory(), sandboxed: Sandbox.isActive)
+    }
+
+    /// The folder from the environment, else `~/.config/orgstar`. In the sandbox, `home` is the
+    /// container and folders from the environment outside it are ignored, since they can't be
+    /// reached without a grant.
+    public static func defaultDirectory(environment: [String: String], home: String, sandboxed: Bool) -> URL {
+        let usable: (String) -> Bool = { path in
+            !sandboxed || (path as NSString).standardizingPath.hasPrefix((home as NSString).standardizingPath + "/")
+        }
+        if let override = environment["ORGSTAR_CONFIG_DIR"], usable(override) { return URL(fileURLWithPath: override) }
         // Development runs keep everything in their data folder.
-        if let data = environment["ORGSTAR_DATA_DIR"] { return URL(fileURLWithPath: data) }
-        if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
+        if let data = environment["ORGSTAR_DATA_DIR"], usable(data) { return URL(fileURLWithPath: data) }
+        if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty, usable(xdg) {
             return URL(fileURLWithPath: xdg).appendingPathComponent("orgstar")
         }
-        return URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".config/orgstar")
+        return URL(fileURLWithPath: home).appendingPathComponent(".config/orgstar")
     }
 
     /// The theme `config.toml` (`text`) sets: its `[theme]` tables' colors over those of

@@ -752,6 +752,12 @@ public final class DocumentSession {
         return (TextEdit(range: at..<at, replacement: insertion), newStart, level)
     }
 
+    /// The file `archive(from:now:)` moves the entry to, or nil when it can't tell.
+    public func archiveFile(from: (path: String, offset: Int)? = nil, now: Date = Date()) -> String? {
+        guard let (path, context) = source(from, now: now), case .success(let destination) = Archive.destination(context, sourcePath: path) else { return nil }
+        return destination.path
+    }
+
     /// Archives the subtree at the caret, or at `from`, where `org-archive-subtree` would.
     /// Returns a message.
     @discardableResult

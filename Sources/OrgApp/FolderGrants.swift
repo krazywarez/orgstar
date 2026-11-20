@@ -47,12 +47,22 @@ public final class FolderGrants {
         if kept != saved { defaults.set(kept, forKey: Self.key) }
     }
 
-    /// Keeps `url`, a folder from an open panel, and starts access to it.
-    public func add(_ url: URL) {
+    /// Keeps `url`, a folder from an open panel, and starts access to it. False when its
+    /// bookmark can't be made, so access lasts only until the app quits.
+    @discardableResult
+    public func add(_ url: URL) -> Bool {
         _ = url.startAccessingSecurityScopedResource()
-        guard !folders.contains(where: { $0.standardizedFileURL == url.standardizedFileURL }),
-              let data = SecurityBookmark.make(url, sandboxed: sandboxed) else { return }
+        guard !folders.contains(where: { $0.standardizedFileURL == url.standardizedFileURL }) else { return true }
         folders.append(url)
+        guard let data = SecurityBookmark.make(url, sandboxed: sandboxed) else { return false }
         defaults.set((defaults.array(forKey: Self.key) as? [Data] ?? []) + [data], forKey: Self.key)
+        return true
+    }
+
+    /// Whether `granted` is `folder` or contains it.
+    public nonisolated static func covers(_ granted: URL, _ folder: URL) -> Bool {
+        let outer = granted.resolvingSymlinksInPath().standardizedFileURL.path
+        let inner = folder.resolvingSymlinksInPath().standardizedFileURL.path
+        return inner == outer || inner.hasPrefix(outer == "/" ? "/" : outer + "/")
     }
 }

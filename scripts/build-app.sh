@@ -54,8 +54,8 @@ if [ "$sign" != "-" ]; then
 else
     feed_keys=""
 fi
-# The UI's translations, from l10n/Localizable.xcstrings.
-scripts/localize.sh "$app/Contents/Resources"
+# The UI's translations, from l10n/Localizable.xcstrings and l10n/DeveloperID.xcstrings.
+scripts/localize.sh --developer-id "$app/Contents/Resources"
 
 # The icon (macOS derives its dark and tinted styles), and the Dock icons Settings offers.
 work="$(mktemp -d)"

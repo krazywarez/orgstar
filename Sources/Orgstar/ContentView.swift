@@ -299,13 +299,13 @@ struct ContentView: View {
             // Buffers switched by keys show in the sidebar too; a restored caret shows once.
             if let path = session.path, selectedFile != path { selectedFile = path }
             if let path = session.path, let caret = pendingCarets.removeValue(forKey: path) { session.reveal(caret) }
-            BufferRestore.save(session)
+            saveBuffers()
             // Syncthing's conflict copies of the file.
             let copies = session.syncConflictCopies().count
             if copies > 0 { commands.show("\(copies) sync conflict \(copies == 1 ? "copy" : "copies") of this file; Resolve Sync Conflicts compares them.") }
         }
         .onChange(of: session.openPaths) { _, paths in
-            BufferRestore.save(session)
+            saveBuffers()
             for path in commands.store.editors.keys where !paths.contains(path) { commands.store.releasePath(path) }
         }
         .onChange(of: editorSettings, initial: true) { _, settings in commands.editorSettings = settings }
@@ -637,6 +637,8 @@ struct ContentView: View {
                 codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme), language: OrgPreferences.exportLanguage()
             )
             let directory = url.deletingLastPathComponent()
+            // Images that can't be read are left out, so offer access to them first.
+            _ = reach(PDFExport.imageFiles(html, directory: directory).filter(WorkspaceModel.isThere))
             if format == "print-pdf" { commands.show("Exporting to PDF…") }
             Task {
                 do {
@@ -708,6 +710,14 @@ struct ContentView: View {
         #endif
     }
 
+    private func saveBuffers() {
+        #if APPSTORE
+        BufferRestore.save(session, workspace: workspace)
+        #else
+        BufferRestore.save(session)
+        #endif
+    }
+
     /// In the App Store build, asks for the folders outside the sidebar's folders that `paths`
     /// need. False when one is still out of reach.
     private func reach(_ paths: @autoclosure () -> [String], directories: Bool = false) -> Bool {
@@ -727,10 +737,10 @@ struct ContentView: View {
         var setupFiles: [String] = []
         _ = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path) { file in
             let contents = OrgSettings.readFile(file)
-            if contents == nil { setupFiles.append(file) }
+            if contents == nil, WorkspaceModel.isThere(file) { setupFiles.append(file) }
             return contents
         }
-        let includes = ExportPreprocess.unreadableIncludes(text, directory: directory)
+        let includes = ExportPreprocess.unreadableIncludes(text, directory: directory).filter(WorkspaceModel.isThere)
         guard !(setupFiles + includes).isEmpty else { return true }
         _ = reach(setupFiles + includes)
         guard let unreadable = ExportPreprocess.unreadableIncludes(text, directory: directory).first else { return true }
@@ -793,7 +803,7 @@ struct ContentView: View {
 
     /// org-roam's daily notes and nodes.
     private var roamActions: RoamActions {
-        RoamActions(
+        var actions = RoamActions(
             session: session, roots: { [workspace] in workspace.rootPaths },
             nodes: { [workspace, session] in workspace.nodes(overlay: workspace.overlay(session.openDocuments)) },
             show: { [commands] in commands.show($0) }, ask: { [commands] in commands.ask($0, reply: $1) },
@@ -808,6 +818,10 @@ struct ContentView: View {
                 editor.perform(PrecomputedEdit(EditResult(baseRevision: context.revision, edits: [TextEdit(range: range, replacement: text)], selection: [end..<end])))
             },
             refresh: { [workspace] in Task { await workspace.refresh() } })
+        #if APPSTORE
+        actions.reachFolders = { [workspace] in GrantAccess.reach($0, directories: true, workspace: workspace) }
+        #endif
+        return actions
     }
 
     /// org-attach's commands for the entry at the caret.
@@ -1218,6 +1232,7 @@ struct ContentView: View {
                 commands.jump(path: target.path, offset: target.start ?? Int.max)
             }
         case "app.archive":
+            guard reach(session.archiveFile().map { [$0] } ?? []) else { return }
             if let message = session.archive() { commands.show(message) }
         case "app.table-import":
             // `org-table-import`: a TSV, CSV or space-separated file becomes a table at point.

@@ -9,7 +9,7 @@ public struct TableRecalculate: OrgCommand {
     public var id: String { all ? "org.table.recalc-all" : "org.table.recalc" }
     public var title: String { all ? "Recalculate Table" : "Recalculate Table Row" }
 
-    public static let emacsMessage = "can't be calculated here: "
+    public static var emacsMessage: String { EmacsFallback.wording("needs Emacs: ", "can't be calculated here: ") }
 
     public func applies(in context: EditContext) -> Bool {
         KeyContext.holds("table", in: context) || Self.tblfmLine(in: context) != nil
@@ -199,7 +199,7 @@ extension EmacsBuffer {
         do {
             try tableEvalFormula(formula, analysis: analysis, substituted: false)
         } catch let error as Calc.Unsupported {
-            message = "The formula was stored; it can't be calculated here: " + error.reason
+            message = EmacsFallback.wording("The formula was stored; recalculating it needs Emacs: ", "The formula was stored; it can't be calculated here: ") + error.reason
         }
         tableAlign()
     }

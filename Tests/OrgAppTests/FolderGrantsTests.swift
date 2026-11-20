@@ -24,6 +24,23 @@ struct FolderGrantsTests {
         #expect(relaunched.folders.map { $0.resolvingSymlinksInPath().path } == [folder.url.resolvingSymlinksInPath().path])
     }
 
+    @Test func aGrantWithoutABookmarkLastsForTheSession() {
+        let store = defaults()
+        let grants = FolderGrants(defaults: store, sandboxed: false)
+        let missing = URL(fileURLWithPath: "/nowhere-\(UUID().uuidString)")
+        #expect(!grants.add(missing))
+        #expect(grants.folders == [missing])
+        #expect(store.array(forKey: FolderGrants.key) == nil)
+    }
+
+    @Test func coverage() {
+        #expect(FolderGrants.covers(URL(fileURLWithPath: "/a"), URL(fileURLWithPath: "/a/b")))
+        #expect(FolderGrants.covers(URL(fileURLWithPath: "/a/b"), URL(fileURLWithPath: "/a/b")))
+        #expect(FolderGrants.covers(URL(fileURLWithPath: "/"), URL(fileURLWithPath: "/a")))
+        #expect(!FolderGrants.covers(URL(fileURLWithPath: "/a/b"), URL(fileURLWithPath: "/a")))
+        #expect(!FolderGrants.covers(URL(fileURLWithPath: "/a/b"), URL(fileURLWithPath: "/a/bc")))
+    }
+
     @Test func bookmarksThatDontResolveAreKept() {
         let store = defaults()
         store.set([Data("not a bookmark".utf8)], forKey: FolderGrants.key)
@@ -46,6 +63,13 @@ struct FolderGrantsTests {
             for: ["/notes/a.org", "/container/x", "/other/setup.org", "/other/inc.org", "", "/other/site/new/out.html"],
             directories: false, reachable: reachable, exists: existing.contains)
         #expect(folders.map(\.path) == ["/other", "/other/site"])
+    }
+
+    @Test func onlyFilesThatAreThereAreAskedFor() throws {
+        let folder = try Folder()
+        let file = try folder.write("setup.org", "#+TODO: A\n")
+        #expect(WorkspaceModel.isThere(file.path))
+        #expect(!WorkspaceModel.isThere(folder.url.appendingPathComponent("missing.org").path))
     }
 
     @Test func foldersToGrantForFolders() {

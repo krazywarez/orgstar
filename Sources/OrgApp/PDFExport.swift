@@ -52,8 +52,24 @@ public enum PDFExport {
         }
     }
 
+    /// The local files the `<img>` tags of `html` name.
+    public nonisolated static func imageFiles(_ html: String, directory: URL?) -> [String] {
+        var paths: [String] = []
+        for match in html.matches(of: /<img\b[^>]*?\bsrc="([^"]*)"/) {
+            if let path = imageURL(String(match.output.1), directory: directory)?.path, !paths.contains(path) { paths.append(path) }
+        }
+        return paths
+    }
+
     /// The file an `<img src>` names, as a `data:` URI; nil for remote or unreadable images.
     nonisolated static func dataURI(_ src: String, directory: URL?) -> String? {
+        guard let url = imageURL(src, directory: directory), let data = try? Data(contentsOf: url) else { return nil }
+        let type = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+        return "data:\(type);base64,\(data.base64EncodedString())"
+    }
+
+    /// The local file an `<img src>` names; nil for remote images.
+    nonisolated static func imageURL(_ src: String, directory: URL?) -> URL? {
         let path = src.replacingOccurrences(of: "&quot;", with: "\"").replacingOccurrences(of: "&lt;", with: "<")
             .replacingOccurrences(of: "&gt;", with: ">").replacingOccurrences(of: "&amp;", with: "&")
         let url: URL
@@ -69,9 +85,7 @@ public enum PDFExport {
         } else {
             return nil
         }
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        let type = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-        return "data:\(type);base64,\(data.base64EncodedString())"
+        return url
     }
 
     /// Each page's number, centred in its bottom margin, as an annotation: drawing it into the

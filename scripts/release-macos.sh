@@ -31,7 +31,8 @@ preflight() {
 }
 
 # Checks the built app: no Sparkle, no updater keys, no process launching, no temporary exceptions,
-# and a provisioning profile in the app and in each extension.
+# a provisioning profile in the app and in each extension, and no license or update text in its
+# string tables.
 check_archive() {
     set -- "$1"/Products/Applications/*.app
     [ -d "$1" ] || fail "no app in the archive"
@@ -51,6 +52,9 @@ check_archive() {
         esac
         [ -f "$bundle/Contents/embedded.provisionprofile" ] || fail "$(basename "$bundle") has no embedded.provisionprofile"
     done
+    found="$(find "$app" -path '*.lproj/*' -name '*.strings' -exec sh -c \
+        'plutil -convert json -o - "$1" | grep -Eio "sponsor|license key|krz\.sh|check for updates" | sed "s|^|$1: |"' _ {} \; | head -1)"
+    [ -z "$found" ] || fail "the app has Developer ID text: $found"
 }
 
 # appstore-kit has no step between archiving and exporting, so its export call checks the archive first.

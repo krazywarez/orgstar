@@ -310,4 +310,14 @@ struct ThemeReadingTests {
         #expect(try String(contentsOf: folder.appendingPathComponent("config.toml"), encoding: .utf8).contains("dark-theme = \"nord\""))
         #expect(sync.theme.dark["background"] == ThemeSpec.palette("nord", .dark)?.colors["background"])
     }
+
+    @Test func sandboxIgnoresEnvironmentFoldersOutsideTheContainer() {
+        let home = "/Users/me/Library/Containers/sh.krz.orgstar/Data"
+        let outside = ["XDG_CONFIG_HOME": "/Users/me/.config", "ORGSTAR_CONFIG_DIR": "/Users/me/orgstar"]
+        #expect(UserConfig.defaultDirectory(environment: outside, home: home, sandboxed: true).path == home + "/.config/orgstar")
+        #expect(UserConfig.defaultDirectory(environment: outside, home: home, sandboxed: false).path == "/Users/me/orgstar")
+        #expect(UserConfig.defaultDirectory(environment: ["XDG_CONFIG_HOME": "/Users/me/.config"], home: home, sandboxed: false).path == "/Users/me/.config/orgstar")
+        let inside = ["XDG_CONFIG_HOME": home + "/xdg"]
+        #expect(UserConfig.defaultDirectory(environment: inside, home: home, sandboxed: true).path == home + "/xdg/orgstar")
+    }
 }

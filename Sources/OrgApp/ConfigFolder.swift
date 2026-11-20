@@ -20,12 +20,14 @@ public enum ConfigFolder {
         return url
     }
 
-    /// Keeps `url`, as from a folder picker, as the chosen folder and starts access to it.
-    public static func set(_ url: URL, defaults: UserDefaults = .standard, sandboxed: Bool = Sandbox.isActive) {
+    /// Keeps `url`, as from a folder picker, as the chosen folder and starts access to it. False
+    /// when its bookmark can't be made, so the choice isn't kept after the app quits.
+    @discardableResult
+    public static func set(_ url: URL, defaults: UserDefaults = .standard, sandboxed: Bool = Sandbox.isActive) -> Bool {
         _ = url.startAccessingSecurityScopedResource()
-        if let bookmark = try? url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed)) {
-            defaults.set(bookmark, forKey: bookmarkKey)
-        }
+        guard let bookmark = try? url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed)) else { return false }
+        defaults.set(bookmark, forKey: bookmarkKey)
+        return true
     }
 
     /// Stops using a chosen folder.

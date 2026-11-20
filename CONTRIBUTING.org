@@ -92,6 +92,17 @@ data in =~/Library/Group Containers/group.sh.krz.orgstar/=. A development build 
 Store install share them, as they share the bundle ID. Keep the Developer ID app out of the way
 while testing, since Finder, Quick Look, Spotlight and URL handlers bind to one copy.
 
+Not yet done before the first submission:
+- A smoke test of a signed, sandboxed build: Grant Access… for includes, setup files, tangle
+  and export targets, images, capture, archive and dailies outside the folders (including a
+  picked folder that doesn't contain the one asked for); Can't Open and regranting a folder;
+  files opened from Finder coming back after a relaunch and after a force quit; the
+  configuration folder after a relaunch; =:shebang= tangling setting the mode; Save Elsewhere…
+  for exports; the Import from Emacs pickers; the welcome sheet's iCloud Drive folder.
+- The Mac screenshots (below).
+- The TestFlight group for the Mac app, in App Store Connect.
+- Installing each Mac version over the other, with the results in the manual's Install page.
+
 ** Mac screenshots
 
 App Store Connect takes Mac screenshots at 1280x800, 1440x900, 2560x1600 or 2880x1800 pixels.

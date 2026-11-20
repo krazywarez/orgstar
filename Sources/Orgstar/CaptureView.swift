@@ -270,7 +270,13 @@ struct CaptureView: View {
             }
         } else {
             placed = template.resolved(workspace: workspace, session: session, clock: clock).flatMap { resolved in
-                session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: captureDate(now))
+                #if APPSTORE
+                let path = resolved.file ?? DocumentSession.resolve(resolved.template.target.file, root: workspace.rootPaths.first)
+                guard commands.reach([path]) else {
+                    return .failure(CaptureError(message: String(localized: "orgstar can't reach \(OrgPaths.abbreviatingWithTilde(path)).", comment: "Alert for a folder outside the sidebar's folders")))
+                }
+                #endif
+                return session.capture(text, template: resolved.template, root: workspace.rootPaths.first, file: resolved.file, now: captureDate(now))
             }
         }
         switch placed {

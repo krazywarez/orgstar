@@ -146,6 +146,9 @@ extension AgendaView {
             message = "No entry selected"
             return
         }
+        #if APPSTORE
+        guard commands.reach(session.archiveFile(from: (entry.path, offset)).map { [$0] } ?? []) else { return }
+        #endif
         message = session.archive(from: (entry.path, offset))
         tick += 1
     }

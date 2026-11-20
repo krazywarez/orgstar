@@ -36,9 +36,11 @@ public final class ProStore {
     public private(set) var products: [Product] = []
     public private(set) var activeProductID: String?
     public private(set) var busy = false
+    public private(set) var isLoading = false
     public var message: String?
 
     @ObservationIgnored private var updates: Task<Void, Never>?
+    @ObservationIgnored private var expiry: Task<Void, Never>?
 
     private init() {}
 
@@ -57,24 +59,35 @@ public final class ProStore {
     }
 
     public func loadProducts() async {
-        guard products.isEmpty else { return }
+        guard products.count < Self.productIDs.count, !isLoading else { return }
+        isLoading = true
+        message = nil
+        defer { isLoading = false }
         do {
             let fetched = try await Product.products(for: Self.productIDs)
             products = Self.productIDs.compactMap { id in fetched.first { $0.id == id } }
+            if products.count < Self.productIDs.count {
+                message = String(localized: "Some plans aren't available from the App Store right now.")
+            }
         } catch {
-            message = "The App Store can't be reached right now."
+            message = String(localized: "The App Store can't be reached right now.")
         }
     }
 
     /// Sets Pro from the current entitlements, or from the original download predating Pro.
     public func refresh() async {
         var active: String?
+        var expires: Date?
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result, Self.productIDs.contains(transaction.productID),
                   transaction.revocationDate == nil else { continue }
             if active == nil || transaction.productID == Self.lifetime { active = transaction.productID }
+            if let date = transaction.expirationDate { expires = max(expires ?? date, date) }
         }
         activeProductID = active
+        #if os(macOS)
+        refresh(at: active == Self.lifetime ? nil : expires)
+        #endif
         if active != nil {
             ProAccess.shared.set(.purchase)
         } else if await Self.predatesPro() {
@@ -84,6 +97,22 @@ public final class ProStore {
             ProAccess.shared.set(nil)
         }
     }
+
+    #if os(macOS)
+    /// Checks again when a subscription runs out, since StoreKit sends no update for a lapse and
+    /// the Mac app can stay open for weeks.
+    private func refresh(at date: Date?) {
+        expiry?.cancel()
+        expiry = nil
+        guard let date, date > .now else { return }
+        expiry = Task {
+            try? await Task.sleep(for: .seconds(date.timeIntervalSinceNow + 1))
+            guard !Task.isCancelled else { return }
+            // A new task, so cancelling this one can't cut the entitlement check short.
+            Task { await ProStore.shared.refresh() }
+        }
+    }
+    #endif
 
     /// Whether this Apple Account first downloaded orgstar before Pro. Only the production App
     /// Store reports real original versions; sandbox and Xcode always say "1.0".

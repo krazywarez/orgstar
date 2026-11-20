@@ -48,10 +48,13 @@ struct StoreForm: View {
             }
             if store.activeProductID != ProStore.lifetime {
                 Section {
-                    if store.products.isEmpty {
+                    if store.isLoading && store.products.isEmpty {
                         ProgressView().frame(maxWidth: .infinity)
                     }
                     ForEach(store.products) { product in plan(product) }
+                    if !store.isLoading && store.message != nil && store.products.count < ProStore.productIDs.count {
+                        Button("Try Again") { Task { await store.loadProducts() } }
+                    }
                 } header: {
                     Text("Choose a plan")
                 } footer: {

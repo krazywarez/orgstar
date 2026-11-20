@@ -46,7 +46,7 @@ struct LicenseForm: View {
                     LabeledContent("orgstar+", value: license.map { "Licensed to \($0.holder)" } ?? "Licensed")
                     if let expires = license?.expires {
                         let date = Date(timeIntervalSince1970: TimeInterval(expires)).formatted(date: .abbreviated, time: .omitted)
-                        Text("Renews while you sponsor monthly. This key is valid until \(date).")
+                        Text("Renews while you sponsor monthly. This key is valid until \(date).", tableName: "DeveloperID")
                             .foregroundStyle(.secondary)
                     }
                 case .grandfathered:
@@ -57,26 +57,28 @@ struct LicenseForm: View {
             }
             if access.grant != .license {
                 Section {
-                    TextField("License key", text: $key, prompt: Text("ORGSTAR1-…"), axis: .vertical)
+                    TextField(text: $key, prompt: Text("ORGSTAR1-…", tableName: "DeveloperID"), axis: .vertical) { Text("License key", tableName: "DeveloperID") }
                         .lineLimit(2...4)
                         .font(.body.monospaced())
                         .onSubmit(activate)
                     if let error { Text(error).foregroundStyle(.red) }
                     HStack {
-                        Link("Sponsor for orgstar+…", destination: MacPro.buyURL)
-                        Link("Get Your Key…", destination: MacPro.keyURL)
+                        Link(destination: MacPro.buyURL) { Text("Sponsor for orgstar+…", tableName: "DeveloperID") }
+                        Link(destination: MacPro.keyURL) { Text("Get Your Key…", tableName: "DeveloperID") }
                         Spacer()
-                        Button("Activate", action: activate).disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        Button(action: activate) { Text("Activate", tableName: "DeveloperID") }.disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 } footer: {
-                    Text("Sponsors get their key by signing in with GitHub. It is checked on this Mac; a monthly sponsor's key is renewed with krz.sh.")
+                    Text("Sponsors get their key by signing in with GitHub. It is checked on this Mac; a monthly sponsor's key is renewed with krz.sh.", tableName: "DeveloperID")
                 }
             } else {
                 Section {
-                    Button("Remove License from This Mac", role: .destructive) {
+                    Button(role: .destructive) {
                         LicenseStore.remove()
                         license = nil
                         MacPro.resolve()
+                    } label: {
+                        Text("Remove License from This Mac", tableName: "DeveloperID")
                     }
                 }
             }
@@ -114,7 +116,7 @@ struct ProPaywallSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Label("\(feature.title) needs orgstar+", systemImage: feature.systemImage).font(.headline)
-                Text("orgstar+ for Mac comes with sponsoring orgstar on GitHub: $60 once, or $5 a month. Editing, the agenda, capture, clocking and search stay free.")
+                Text("orgstar+ for Mac comes with sponsoring orgstar on GitHub: $60 once, or $5 a month. Editing, the agenda, capture, clocking and search stay free.", tableName: "DeveloperID")
                     .foregroundStyle(.secondary)
             }
             .padding([.horizontal, .top], 20)

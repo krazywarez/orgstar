@@ -200,6 +200,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         #endif
     }
 
+    #if APPSTORE
+    /// A subscription may have lapsed or renewed while the app was in the background.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        Task { await ProStore.shared.refresh() }
+    }
+    #endif
+
     /// `:session` interpreters end with the app.
     func applicationWillTerminate(_ notification: Notification) {
         #if !APPSTORE
@@ -249,7 +256,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let session else { return .terminateNow }
         #if APPSTORE
-        BufferRestore.save(session, bookmarking: { [workspace] in workspace?.contains(URL(fileURLWithPath: $0)) != true })
+        BufferRestore.save(session, workspace: workspace)
         #else
         BufferRestore.save(session)
         #endif
@@ -313,17 +320,26 @@ enum BufferRestore {
         var bookmarks: [String: Data]?
     }
 
-    /// `bookmarking` says which paths get a bookmark.
+    /// `bookmarking` says which paths get a bookmark. A path still open keeps the bookmark it
+    /// has when no new one is made.
     static func save(_ session: DocumentSession, bookmarking: (String) -> Bool = { _ in false }, defaults: UserDefaults = .standard) {
         var carets: [String: Int] = [:]
         for path in session.openPaths { carets[path] = session.caret(of: path) }
+        let previous = defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(State.self, from: $0) }?.bookmarks ?? [:]
         var bookmarks: [String: Data] = [:]
-        for path in session.openPaths where bookmarking(path) {
-            bookmarks[path] = SecurityBookmark.make(URL(fileURLWithPath: path))
+        for path in session.openPaths {
+            bookmarks[path] = (bookmarking(path) ? SecurityBookmark.make(URL(fileURLWithPath: path)) : nil) ?? previous[path]
         }
         let state = State(paths: session.openPaths, current: session.path, carets: carets, bookmarks: bookmarks.isEmpty ? nil : bookmarks)
         if let data = try? JSONEncoder().encode(state) { defaults.set(data, forKey: key) }
     }
+
+    #if APPSTORE
+    /// Saves with bookmarks for the files outside `workspace`'s folders and grants.
+    static func save(_ session: DocumentSession, workspace: WorkspaceModel?) {
+        save(session, bookmarking: { workspace?.contains(URL(fileURLWithPath: $0)) != true })
+    }
+    #endif
 
     /// Opens the buffers that were open, in order, and returns the carets to show them at.
     static func restore(_ session: DocumentSession, defaults: UserDefaults = .standard) -> [String: Int] {
@@ -360,6 +376,7 @@ struct OrgstarApp: App {
     init() {
         #if APPSTORE
         AgendaSnapshot.useGroupContainer = true
+        EmacsFallback.offered = false
         _ = FolderGrants.shared
         ProStore.shared.start()
         #else
@@ -731,7 +748,10 @@ struct SettingsView: View {
         panel.directoryURL = configFolder ?? ConfigFolder.suggested
         panel.message = String(localized: "Choose the folder for config.toml and orgstar's other configuration files.", comment: "Choose Configuration Folder panel")
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        ConfigFolder.set(url)
+        if !ConfigFolder.set(url) {
+            GrantAccess.tell(String(localized: "orgstar can't keep \(OrgPaths.abbreviatingWithTilde(url.path)) as the configuration folder.", comment: "Alert when the chosen configuration folder can't be saved"),
+                             String(localized: "Access lasts until orgstar quits.", comment: "Alert when a folder grant or the configuration folder can't be saved"))
+        }
         useConfigFolder(url)
     }
 
@@ -772,9 +792,9 @@ struct SettingsView: View {
             #if !APPSTORE
             if updates.canCheck {
                 Section {
-                    Toggle("Check for updates automatically", isOn: Binding(get: { updates.automatically }, set: { updates.automatically = $0 }))
+                    Toggle(isOn: Binding(get: { updates.automatically }, set: { updates.automatically = $0 })) { Text("Check for updates automatically", tableName: "DeveloperID") }
                 } footer: {
-                    Text("Once a day, from the app's own feed. orgstar ▸ Check for Updates… checks now.")
+                    Text("Once a day, from the app's own feed. orgstar ▸ Check for Updates… checks now.", tableName: "DeveloperID")
                         .settingsFooter()
                 }
             }

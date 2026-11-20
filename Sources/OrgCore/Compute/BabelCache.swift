@@ -45,7 +45,8 @@ extension Babel {
     /// sorted by key and printed with `%S`, then the expanded body.
     static func cacheInput(language: String, params: Params, tables: Tables, expanded: String, call: Bool) throws -> String {
         if let key = params.lisp.first(where: { params.evaluated[$0] == nil }) {
-            throw Failure.message(":cache with \(key) \(params.single[key] ?? "") is Lisp that can't be evaluated here; nothing was run.")
+            let setting = ":cache with \(key) \(params.single[key] ?? "")"
+            throw Failure.message(setting + EmacsFallback.wording(" needs Emacs to evaluate the Lisp; nothing was run.", " is Lisp that can't be evaluated here; nothing was run."))
         }
         let ignored: Set<String> = ["replace", "silent", "none", "discard", "append", "prepend"]
         let drawsFile = language == "dot" || language == "plantuml"
