@@ -603,17 +603,16 @@ public struct TableCommand: OrgCommand {
     public func applies(in context: EditContext) -> Bool { KeyContext.holds("table", in: context) }
 
     public func run(in context: EditContext) -> CommandStep {
-        let step = tableCommand(context) { buffer in
+        let body = { (buffer: EmacsBuffer) throws in
             guard buffer.atTable else { throw EmacsBuffer.UserError(message: "Not at a table") }
-            do {
-                try perform(buffer)
-            } catch let error as Calc.Unsupported {
-                throw EmacsBuffer.UserError(message: TableRecalculate.emacsMessage + error.reason)
-            }
+            try perform(buffer)
         }
-        // A row marked `#` that recalculates with formulas only Emacs can do.
+        // These recalculate a row marked `#` first, whose written fields stay after an error.
         let forms: [Action: String] = [.nextField: "(org-table-next-field)", .previousField: "(org-table-previous-field)", .nextRow: "(org-table-next-row)"]
-        return forms[action].map { TableRecalculate.inEmacs(step, form: $0, in: context) } ?? step
+        guard let form = forms[action], EmacsBuffer(context.text, point: context.caret).lookingAtLine("^[ \\t]*\\| *# *(\\||$)") else {
+            return tableCommand(context, body)
+        }
+        return TableRecalculate.recalculating(context, form: form, body)
     }
 
     private func perform(_ buffer: EmacsBuffer) throws {

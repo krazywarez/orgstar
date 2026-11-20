@@ -131,14 +131,18 @@ struct HeadingOracleTests {
 func compareWithEmacs(_ inputs: [(text: String, carets: [Int])], _ commands: [(command: any OrgCommand, form: String, headingLineOnly: Bool)], options: EditingOptions = .org) throws {
     try #require(EmacsOracle.isAvailable, "Emacs is required for the oracle tests; set ORGSTAR_SKIP_ORACLE to skip")
     var cases: [EmacsOracle.Case] = []
-    var ours: [(label: String, text: String, caret: Int, failed: Bool)] = []
+    var ours: [(label: String, text: String, caret: Int, failed: Bool, message: String?)] = []
     for (text, carets) in inputs {
         for offset in carets {
             let onHeadingLine = headingOnLine(at: offset, in: OrgParser.parse(text)) != nil
             for (command, form, headingLineOnly) in commands where onHeadingLine || !headingLineOnly {
                 cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(offset, in: text), form: withOptions(options, form)))
                 let result = runCommand(command, text, caret: offset, options: options)
-                ours.append(("\(command.id) at \(offset) in \(text.debugDescription)", result.text, result.caret, result.failure != nil))
+                // An error after edits that stay, as in Emacs, comes as their last message.
+                let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [offset..<offset], calendar: .current, answers: [:], options: options)
+                var message: String?
+                if case .commit(let commit) = command.run(in: context), case .message(let last)? = commit.effects.last { message = last }
+                ours.append(("\(command.id) at \(offset) in \(text.debugDescription)", result.text, result.caret, result.failure != nil, message))
             }
         }
     }
@@ -147,15 +151,17 @@ func compareWithEmacs(_ inputs: [(text: String, carets: [Int])], _ commands: [(c
     for (mine, emacs) in zip(ours, theirs) {
         let emacsFailed = !emacs.error.isEmpty
         let emacsCaret = EmacsOracle.offset(emacs.point, in: emacs.text)
-        let same = mine.failed == emacsFailed && (emacsFailed || (mine.text == emacs.text && mine.caret == emacsCaret))
+        let keptEdits = emacsFailed && !mine.failed && mine.message == emacs.error
+        let same = keptEdits ? mine.text == emacs.text && mine.caret == emacsCaret
+            : mine.failed == emacsFailed && (emacsFailed || (mine.text == emacs.text && mine.caret == emacsCaret))
         if !same {
             mismatches += 1
             if mismatches <= 15 {
                 let (a, b) = excerpts(mine.text, emacs.text)
                 Issue.record("""
                     \(mine.label.prefix(100))
-                      ours:  \(mine.failed ? "failed" : "\(a.debugDescription) @\(mine.caret)")
-                      emacs: \(emacsFailed ? "failed: \(emacs.error)" : "\(b.debugDescription) @\(emacsCaret)")
+                      ours:  \(mine.failed ? "failed" : "\(a.debugDescription) @\(mine.caret) \(mine.message ?? "")")
+                      emacs: \(emacsFailed && !keptEdits ? "failed: \(emacs.error)" : "\(b.debugDescription) @\(emacsCaret) \(emacs.error)")
                     """)
             }
         }

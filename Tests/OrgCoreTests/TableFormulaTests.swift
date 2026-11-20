@@ -188,6 +188,7 @@ struct TableFormulaTests {
             Self.unsupported,
             "| a | b | c |\n|---+---+---|\n| 1 | | |\n| 2 | | |\n| 3 | | |\n#+TBLFM: $2=$1*3::@3$3=\(lisp)::@2$3=7::@4$3=8\n",
             "| a | b |\n|---+---|\n| # | |\n| 2 | |\n#+TBLFM: $2=@0$1+1::@3$2=\(lisp)\n",
+            "|   | a | b | c |\n|---+---+---+---|\n| # | 1 |   |   |\n#+TBLFM: $3=$2*2::$4=\(lisp)\n",
         ]
         var cases: [EmacsOracle.Case] = []
         var ours: [(text: String, caret: Int)] = []
@@ -197,7 +198,8 @@ struct TableFormulaTests {
                 let onTblfm = (text as NSString).substring(with: (text as NSString).lineRange(for: NSRange(location: caret, length: 0))).contains("#+TBLFM")
                 let commands: [(any OrgCommand, String)] = onTblfm
                     ? [(TableRecalculate(all: true), "(org-ctrl-c-ctrl-c)")]
-                    : [(TableRecalculate(all: true), "(org-table-recalculate t)"), (TableRecalculate(all: false), "(org-table-recalculate nil)"), (TableIterate(), "(org-table-iterate)")]
+                    : [(TableRecalculate(all: true), "(org-table-recalculate t)"), (TableRecalculate(all: false), "(org-table-recalculate nil)"), (TableIterate(), "(org-table-iterate)"),
+                       (TableCommand(.nextField), "(org-table-next-field)"), (TableCommand(.previousField), "(org-table-previous-field)"), (TableCommand(.nextRow), "(org-table-next-row)")]
                 for (command, form) in commands {
                     let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
                     let step = command.run(in: context)
@@ -210,12 +212,42 @@ struct TableFormulaTests {
             }
         }
         #expect(cases.count >= 8)
+        #expect(cases.filter { ["(org-table-next-field)", "(org-table-previous-field)", "(org-table-next-row)"].contains($0.form) }.count == 3)
         for (i, (theirs, mine)) in zip(try EmacsOracle.run(cases), ours).enumerated() {
             #expect(theirs.error.contains("leads outside table"), "\(theirs.error)")
             let text = theirs.text.replacingOccurrences(of: failing, with: lisp)
             let point = EmacsOracle.offset(theirs.point, in: theirs.text)
             let shifted = point > (theirs.text as NSString).range(of: failing).location ? point + (text as NSString).length - (theirs.text as NSString).length : point
             #expect(mine.text == text && mine.caret == shifted, "\(cases[i].form) at \(cases[i].point)\nours:\n\(mine.text)@\(mine.caret)\nemacs:\n\(text)@\(shifted)")
+        }
+    }
+
+    /// TAB, S-TAB and RET in a row marked `#`, and recalculations with point inside a field,
+    /// when a formula fails: the fields written before it stay and point goes to the field's start.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func errorsKeepFieldsAndMovePointAsEmacs() throws {
+        let marked = "|   | a | b | c |\n|---+---+---+---|\n| # | 1 |   |   |\n#+TBLFM: $3=$2*2::$4=@-9$2\n"
+        let early = "| a | b |\n|---+---|\n| 1 |x|\n| 2 |y |\n#+TBLFM: $2=$1*2::@2$2=7::@3$2=8::@2$1=@-9$1\n"
+        let fine = "|   | a | b |\n|---+---+---|\n| # | 1 |   |\n|   | 2 |   |\n#+TBLFM: $3=$2*2\n"
+        func after(_ needle: String, in text: String) -> Int { NSMaxRange((text as NSString).range(of: needle)) }
+        let runs: [(text: String, caret: Int, command: any OrgCommand, form: String)] = [
+            (marked, after("| # | 1", in: marked), TableCommand(.nextField), "(org-table-next-field)"),
+            (marked, after("| # | 1", in: marked), TableCommand(.previousField), "(org-table-previous-field)"),
+            (marked, after("| # | 1", in: marked), TableCommand(.nextRow), "(org-table-next-row)"),
+            (marked, after("| # | 1 |  ", in: marked), TableCommand(.nextField), "(org-table-next-field)"),
+            (early, after("| 2", in: early), TableRecalculate(all: true), "(org-table-recalculate t)"),
+            (early, after("| 2 |y", in: early), TableRecalculate(all: true), "(org-table-recalculate t)"),
+            (early, after("| 1 |", in: early), TableRecalculate(all: false), "(org-table-recalculate nil)"),
+            (fine, after("| # | 1", in: fine), TableCommand(.nextField), "(org-table-next-field)"),
+            (fine, after("| # | 1", in: fine), TableCommand(.previousField), "(org-table-previous-field)"),
+            (fine, after("| # | 1", in: fine), TableCommand(.nextRow), "(org-table-next-row)"),
+        ]
+        let cases = runs.map { EmacsOracle.Case(text: $0.text, point: EmacsOracle.point($0.caret, in: $0.text), form: $0.form) }
+        for (i, theirs) in try EmacsOracle.run(cases).enumerated() {
+            let mine = Self.recalculate(runs[i].command, runs[i].text, caret: runs[i].caret)
+            let expected = (theirs.text, EmacsOracle.offset(theirs.point, in: theirs.text), theirs.error.isEmpty ? nil : theirs.error)
+            #expect(mine.text == expected.0 && mine.caret == expected.1 && mine.failure == expected.2,
+                    "\(runs[i].form) at \(runs[i].caret) in\n\(runs[i].text)\nours:\n\(mine.text)@\(mine.caret) \(mine.failure ?? "")\nemacs:\n\(theirs.text)@\(expected.1) \(theirs.error)")
         }
     }
 

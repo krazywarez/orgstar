@@ -68,15 +68,9 @@ public struct TableRecalculate: OrgCommand {
             return request(form: form, reason: unsupported.reason, formula: wrote ? unsupported.formula : nil, partial: wrote ? result : nil, in: context)
         }
         guard let failure else { return step }
-        guard !result.edits.isEmpty else { return .failed(failure) }
+        // `org-table-save-field` moves point to the field's start even when nothing was written.
+        guard !result.edits.isEmpty || result.selection != [context.caret..<context.caret] else { return .failed(failure) }
         return .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection, effects: result.effects + [.message(failure)]))
-    }
-
-    /// A step that failed with `emacsMessage` as a request to run `form` on the table in
-    /// Emacs, whose text then replaces the table here; other steps unchanged.
-    static func inEmacs(_ step: CommandStep, form: String, in context: EditContext) -> CommandStep {
-        guard case .failed(let message) = step, message.hasPrefix(emacsMessage) else { return step }
-        return request(form: form, reason: String(message.dropFirst(emacsMessage.count)), formula: nil, partial: nil, in: context)
     }
 
     static func request(form: String, reason: String, formula: String?, partial: EditResult?, in context: EditContext) -> CommandStep {

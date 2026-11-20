@@ -570,7 +570,9 @@ the whole table in the Emacs preset.
 
 A formula that fails, such as one whose reference leads outside the table, stops the
 command there. As in Emacs, the fields written before it stay, the table isn't aligned,
-and the echo area shows the error.
+the caret goes to the start of its field (on a =#+TBLFM= line it stays put), and the echo
+area shows the error.
+=TAB=, =S-TAB= and =RET= in a row marked =#= stop there too, without moving on.
 
 A row marked =#= is recalculated when you press =TAB=, =S-TAB= or =RET= in it, before
 the caret moves (=org-table-maybe-recalculate-line=), and with =C-c C-c= (Mac =⌃⌘X=).
