@@ -103,7 +103,8 @@ Folder goes back to the container.
 
 Both versions are called orgstar and have the same bundle identifier. Keep only one of them:
 quit orgstar and delete =orgstar.app= from Applications, or run =brew uninstall --cask
-orgstar=, before installing the other. With both on the Mac, Finder, Quick Look, Spotlight,
+orgstar=, before installing the other. The App Store doesn't replace the download version: it
+installs beside it as =orgstar 2.app=. With both on the Mac, Finder, Quick Look, Spotlight,
 widgets and =org-protocol://= links each use one of them, as macOS picks.
 
 The two don't share their sidebar folders, open files, recovery versions or orgstar+:
