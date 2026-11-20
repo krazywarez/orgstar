@@ -329,7 +329,7 @@ The app icon's badge counts the entries in the agenda's Overdue section that are
 
 * Export
 
-Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, iCalendar and LaTeX, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.
+Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, iCalendar and LaTeX, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does. For a file the LaTeX export can't write as Emacs would, the share sheet stops and "Can't export to LaTeX: " and the reason show at the bottom of the screen.
 
 PDF export follows =pdf-margin=, =pdf-font= and =pdf-page-numbers= in =config.toml=, and Word files get heading styles and the file's images, as on the Mac. ODT, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
 

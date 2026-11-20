@@ -306,6 +306,7 @@ struct EditorScreen: View {
         .onChange(of: session.lastError) { _, error in
             if let error { message = error; session.lastError = nil }
         }
+        .onReceive(NotificationCenter.default.publisher(for: OrgExport.refused)) { message = $0.object as? String }
         .onAppear(perform: start)
         // A pane command moved focus here.
         .onChange(of: isFocused) {

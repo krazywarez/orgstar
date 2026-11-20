@@ -60,6 +60,10 @@ struct OrgExport: Transferable {
             .lastPathComponent
     }
 
+    /// Posted with the message, for the screen's message line, when the LaTeX export refuses
+    /// the file: the share sheet shows no reason.
+    static let refused = Notification.Name("OrgExportRefused")
+
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(exportedContentType: .html) { try await $0.write() }
             .exportingCondition { $0.format == .html }
@@ -93,7 +97,15 @@ struct OrgExport: Transferable {
         case .markdown:
             try MarkdownExport.document(text, settings: settings, path: path).write(to: url, atomically: true, encoding: .utf8)
         case .latex:
-            try LaTeXExport.document(text, settings: settings, path: path, language: OrgPreferences.exportLanguage(), file: true).write(to: url, atomically: true, encoding: .utf8)
+            let content: String
+            do {
+                content = try LaTeXExport.document(text, settings: settings, path: path, language: OrgPreferences.exportLanguage(), file: true)
+            } catch let error as LaTeXExport.Unsupported {
+                let message = "Can't export to LaTeX: \(error.reason)"
+                await MainActor.run { NotificationCenter.default.post(name: Self.refused, object: message) }
+                throw error
+            }
+            try content.write(to: url, atomically: true, encoding: .utf8)
         case .icalendar:
             try ICalendarFiles.export(self.text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(),
                                       subtree: subtree, destination: url)

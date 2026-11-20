@@ -982,7 +982,11 @@ struct ContentView: View {
                     let settings = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
                     if function == "org-md-publish-to-md" { return MarkdownExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly) }
                     if function == "org-latex-publish-to-latex" {
-                        return try LaTeXExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+                        do {
+                            return try LaTeXExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+                        } catch let error as LaTeXExport.Unsupported {
+                            throw LaTeXExport.Unsupported(reason: "Can't export \((path as NSString).lastPathComponent) to LaTeX: \(error.reason)")
+                        }
                     }
                     let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
                     return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, bodyOnly: bodyOnly, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())

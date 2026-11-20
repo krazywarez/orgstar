@@ -121,6 +121,7 @@ struct ReaderScreen: View {
         .onChange(of: pane?.path) { loadFolds() }
         .onChange(of: pane?.editVersion) { loadFolds() }
         .onChange(of: model.settingsVersion) { loadFolds() }
+        .onReceive(NotificationCenter.default.publisher(for: OrgExport.refused)) { message = $0.object as? String }
     }
 
     // MARK: - Content
