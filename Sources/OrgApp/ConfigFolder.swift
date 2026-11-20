@@ -14,7 +14,7 @@ public enum ConfigFolder {
         var stale = false
         guard let url = try? URL(resolvingBookmarkData: data, options: Sandbox.bookmarkResolutionOptions(sandboxed: sandboxed), bookmarkDataIsStale: &stale) else { return nil }
         _ = url.startAccessingSecurityScopedResource()
-        if stale, let fresh = try? url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed)) {
+        if stale, let fresh = try? Sandbox.bookmark(url, sandboxed: sandboxed) {
             defaults.set(fresh, forKey: bookmarkKey)
         }
         return url
@@ -25,7 +25,7 @@ public enum ConfigFolder {
     @discardableResult
     public static func set(_ url: URL, defaults: UserDefaults = .standard, sandboxed: Bool = Sandbox.isActive) -> Bool {
         _ = url.startAccessingSecurityScopedResource()
-        guard let bookmark = try? url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed)) else { return false }
+        guard let bookmark = try? Sandbox.bookmark(url, sandboxed: sandboxed) else { return false }
         defaults.set(bookmark, forKey: bookmarkKey)
         return true
     }

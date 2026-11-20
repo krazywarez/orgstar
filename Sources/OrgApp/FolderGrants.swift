@@ -5,7 +5,7 @@ import OrgCore
 /// elsewhere.
 public enum SecurityBookmark {
     public static func make(_ url: URL, sandboxed: Bool = Sandbox.isActive) -> Data? {
-        try? url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed))
+        try? Sandbox.bookmark(url, sandboxed: sandboxed)
     }
 
     /// The bookmarked URL with access to it started, and new data when the bookmark was stale.

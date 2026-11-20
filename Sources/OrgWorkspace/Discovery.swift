@@ -10,7 +10,7 @@ public struct WorkspaceRoot: Sendable, Equatable, Codable {
     public var path: String
 
     public init(url: URL, sandboxed: Bool = Sandbox.isActive) throws {
-        bookmark = try url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed), includingResourceValuesForKeys: nil, relativeTo: nil)
+        bookmark = try Sandbox.bookmark(url, sandboxed: sandboxed)
         path = url.standardizedFileURL.path
     }
 

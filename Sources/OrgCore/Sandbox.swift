@@ -25,6 +25,14 @@ public enum Sandbox {
         #endif
     }
 
+    /// A bookmark of `url` made with `bookmarkCreationOptions`. Access to the URL is started
+    /// first: a URL from SwiftUI's file importer is security-scoped, and the sandbox refuses a
+    /// bookmark of it until access starts. Access stays on for the session.
+    public static func bookmark(_ url: URL, sandboxed: Bool = isActive) throws -> Data {
+        _ = url.startAccessingSecurityScopedResource()
+        return try url.bookmarkData(options: bookmarkCreationOptions(sandboxed: sandboxed), includingResourceValuesForKeys: nil, relativeTo: nil)
+    }
+
     /// The resolving side of `bookmarkCreationOptions`.
     public static func bookmarkResolutionOptions(sandboxed: Bool = isActive) -> URL.BookmarkResolutionOptions {
         #if os(macOS)
