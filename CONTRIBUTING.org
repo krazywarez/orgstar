@@ -95,6 +95,18 @@ swift test                                                 # all tests
 ORGSTAR_GATES=1 swift test -c release --filter GateTests   # performance gates
 #+END_SRC
 
+=swift test= covers the Developer ID build. =APPSTORE= is set only in the Xcode targets, so
+also check that the App Store build and the iOS app compile:
+
+#+BEGIN_SRC sh
+xcodebuild -project ios/Orgstar.xcodeproj -scheme 'Orgstar macOS' -destination 'generic/platform=macOS' \
+    -derivedDataPath .build/xcode CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ios/Orgstar.xcodeproj -scheme 'Orgstar iOS' -destination 'generic/platform=iOS Simulator' \
+    -derivedDataPath .build/xcode build
+#+END_SRC
+
+There is no CI; run these before committing.
+
 * Release
 
 =scripts/release-mac.sh <version>= builds a universal app, signs it with the

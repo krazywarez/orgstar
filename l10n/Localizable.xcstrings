@@ -86,6 +86,74 @@
         }
       }
     },
+    "%@ / month": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / Monat"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / mes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / mois"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / 月"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / mês"
+          }
+        }
+      }
+    },
+    "%@ / year": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / Jahr"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / año"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / an"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / 年"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / ano"
+          }
+        }
+      }
+    },
     "%@ a month, billed yearly": {
       "localizations": {
         "de": {
@@ -220,6 +288,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ não está disponível no iPhone e no iPad."
+          }
+        }
+      }
+    },
+    "%@ isn't available.": {
+      "comment": "A command the Mac App Store build leaves out",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist nicht verfügbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no está disponible."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ n'est pas disponible."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@は利用できません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ não está disponível."
+          }
+        }
+      }
+    },
+    "%@ isn't in one of your folders, so it can't be moved. Attach a copy instead.": {
+      "comment": "Attach by moving a file from outside the sidebar's folders",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ liegt in keinem deiner Ordner und kann daher nicht bewegt werden. Hänge stattdessen eine Kopie an."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no está en ninguna de tus carpetas, así que no se puede mover. Adjunta una copia en su lugar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ne se trouve dans aucun de vos dossiers et ne peut donc pas être déplacé. Joignez plutôt une copie."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@はどのフォルダにもないため、移動できません。代わりにコピーを添付してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ não está em nenhuma das suas pastas, então não pode ser movido. Anexe uma cópia em vez disso."
           }
         }
       }
@@ -16503,6 +16641,40 @@
         }
       }
     },
+    "Manage Subscription…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonnement verwalten …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestionar suscripción…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gérer l'abonnement…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブスクリプションを管理…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerenciar Assinatura…"
+          }
+        }
+      }
+    },
     "Manual": {
       "localizations": {
         "de": {
@@ -24522,6 +24694,40 @@
         }
       }
     },
+    "Run Emacs Lisp blocks and tangle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emacs-Lisp-Blöcke ausführen und tanglen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejecutar bloques de Emacs Lisp y extraer código (tangle)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exécuter les blocs Emacs Lisp et extraire (tangle)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emacs Lispブロックを実行してタングル"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Executar blocos de Emacs Lisp e fazer tangle"
+          }
+        }
+      }
+    },
     "Run Source Block": {
       "comment": "Command title",
       "localizations": {
@@ -30332,6 +30538,41 @@
         }
       }
     },
+    "This file isn't in one of your folders. Choose where the export goes.": {
+      "comment": "Save panel for an export outside the sidebar's folders",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Datei liegt in keinem deiner Ordner. Wähle, wohin der Export geht."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este archivo no está en ninguna de tus carpetas. Elige dónde guardar la exportación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce fichier ne se trouve dans aucun de vos dossiers. Choisissez où enregistrer l'exportation."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルはどのフォルダにもありません。書き出し先を選択してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este arquivo não está em nenhuma das suas pastas. Escolha onde salvar a exportação."
+          }
+        }
+      }
+    },
     "This table needs Emacs, which runs on the Mac: %@.": {
       "comment": "Table formulas only Emacs can calculate",
       "localizations": {
@@ -30363,6 +30604,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta tabela precisa do Emacs, que roda no Mac: %@."
+          }
+        }
+      }
+    },
+    "This table's formulas can't be calculated here: %@.": {
+      "comment": "Table formulas orgstar can't calculate",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Formeln dieser Tabelle können hier nicht berechnet werden: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las fórmulas de esta tabla no se pueden calcular aquí: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les formules de ce tableau ne peuvent pas être calculées ici : %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この表の数式はここでは計算できません：%@。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As fórmulas desta tabela não podem ser calculadas aqui: %@."
           }
         }
       }

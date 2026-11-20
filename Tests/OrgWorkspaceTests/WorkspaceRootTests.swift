@@ -1,4 +1,5 @@
 import Foundation
+import OrgCore
 import Testing
 @testable import OrgWorkspace
 
@@ -9,6 +10,15 @@ struct WorkspaceRootTests {
         let resolved = try root.resolve()
         #expect(resolved.url.resolvingSymlinksInPath() == folder.url.resolvingSymlinksInPath())
         #expect(root.path == folder.url.path)
+    }
+
+    /// Tests run unsandboxed, so roots keep the Developer ID build's plain bookmarks.
+    @Test func unsandboxedByDefault() throws {
+        #expect(!Sandbox.isActive)
+        let folder = try Folder()
+        let root = try WorkspaceRoot(url: folder.url)
+        #expect(try root.resolve(sandboxed: false).url.resolvingSymlinksInPath() == folder.url.resolvingSymlinksInPath())
+        #expect(root.bookmark == (try WorkspaceRoot(url: folder.url, sandboxed: false)).bookmark)
     }
 
     #if os(macOS)
