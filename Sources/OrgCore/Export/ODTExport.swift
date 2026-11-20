@@ -219,11 +219,9 @@ final class ODTRenderer {
         }
         // `org-odt--enumerate`: numbered within the closest numbered heading at level 2 or
         // above, else through the document.
-        var counts: [String: Int] = [:]
         for (index, item) in enumerables.enumerated() {
             let scope = item.ancestors.reversed().first { headings[$0].map { $0.relative <= 2 && $0.number != nil } ?? false }
             let ordinal = enumerables[...index].filter { $0.category == item.category && (scope.map($0.ancestors.contains) ?? true) }.count
-            counts[item.category, default: 0] += 1
             let sequence = (scope.flatMap { headings[$0]?.number }.map { $0.map(String.init).joined(separator: ".") + "." } ?? "") + String(ordinal)
             let named = names.contains { $0.key == item.key }
             let variable = ["Table": "Table", "Figure": "Illustration", "Listing": "Listing"][item.category]!
@@ -471,7 +469,7 @@ final class ODTRenderer {
             return code(lines)
         case .tableEl:
             // ox-odt strips table.el tables, the list around them closed and opened again.
-            return frames.isEmpty ? "" : "\n" + reopening(nil)
+            return frames.isEmpty ? "" : "\n" + reopening(nil, for: node)
         default:
             // Comments, property drawers, planning, clocks, footnote definitions, formulas.
             return ""
@@ -529,7 +527,7 @@ final class ODTRenderer {
             let parentLow = heading.ancestors.last.flatMap { headings[$0]?.lowLevel } ?? false
             out += "\n<text:list text:style-name=\"\(style)\" text:continue-numbering=\"\(parentLow)\">"
         }
-        frames.append(Frame(style: style))
+        frames.append(Frame(style: style, heading: true))
         let body = "\n<text:p text:style-name=\"Text_20_body\">\(extra)\(anchored)</text:p>" + (contents ? node.children.filter { $0.kind != .heading }.map(element).joined() : "")
         let frame = frames.removeLast()
         out += "\n<text:list-item>\n\(body)\n\(frame.header ? "</text:list-header>" : "</text:list-item>")"
@@ -596,9 +594,11 @@ final class ODTRenderer {
 
     // MARK: - Lists
 
-    /// An open list item, closed and opened again around a table.
+    /// An open list item, closed and opened again around a table; `heading` for a heading
+    /// deeper than `H`.
     private struct Frame {
         var style: String
+        var heading = false
         var header = false
     }
 
@@ -664,9 +664,14 @@ final class ODTRenderer {
         return "<text:span text:style-name=\"OrgCode\">\(mark)</text:span>"
     }
 
-    /// `org-odt-table`'s list handling: the open lists closed, `inner` in an indented section,
-    /// the lists opened again, the innermost item as a header.
-    private func reopening(_ inner: String?) -> String {
+    /// `org-odt-table`'s list handling for `node`: the open lists closed, `inner` in an indented
+    /// section, the lists opened again, the innermost item as a header.
+    private func reopening(_ inner: String?, for node: SyntaxNode) -> String {
+        // ox-odt doesn't close the lists around a table in a block, and writes XML that doesn't
+        // nest.
+        if let parent = node.parent, parent.kind != .item, parent.kind != .section, frames.contains(where: { !$0.heading }) {
+            return fail("ODT export doesn't support a table in a block inside a list")
+        }
         var closing: [String] = []
         for frame in frames.reversed() {
             closing.append(frame.header ? "</text:list-header>" : "</text:list-item>")
@@ -790,7 +795,7 @@ final class ODTRenderer {
         }.joined(separator: "\n")
         var out = caption.map { "\n<text:p text:style-name=\"Table\">\($0)</text:p>" } ?? ""
         out += "\n<table:table table:style-name=\"\(style)\">" + columnSpecs + "\n" + body + "</table:table>"
-        return "\n" + reopening(out)
+        return "\n" + reopening(out, for: node)
     }
 
     /// `org-odt-format-label` as a definition: a bookmark, then the category, sequence number
@@ -879,8 +884,7 @@ final class ODTRenderer {
 
     /// `org-odt-do-format-code`: one paragraph per line, the last one styled apart.
     private func code(_ lines: [String], refs: [Int: String] = [:], retain: Bool = false, loc: Int? = nil, emptyLast: Bool = false) -> String {
-        var lines = lines
-        if emptyLast { lines.append("") }
+        let lines = emptyLast ? lines + [""] : lines
         let out = lines.enumerated().map { index, line -> String in
             var text = line
             if let ref = refs[index + 1], retain { text += " (\(ref))" }

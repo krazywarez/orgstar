@@ -252,7 +252,7 @@ For Org's own ASCII layout, with underlined headings and drawn tables, use Expor
 
 Export to ODT writes an OpenDocument text file (=.odt=) for LibreOffice, Pages or Word. orgstar writes it itself, on the Mac and on iOS, the way Emacs's =ox-odt= does under =emacs -Q=: the same headings, paragraphs, lists, tables, links, notes and images, with ox-odt's style names, so a template that restyles ox-odt's output restyles this one too.
 
-- The title, subtitle (=#+SUBTITLE:=), author and date come first, then the table of contents and the text. Without =#+AUTHOR:=, the author is your account's full name, as =user-full-name= is in Emacs. Without =#+TITLE:= there is no title.
+- The title, subtitle (=#+SUBTITLE:=), author and date come first, then the table of contents and the text. On the Mac, without =#+AUTHOR:=, the author is your account's full name, as =user-full-name= is in Emacs. Without =#+TITLE:= there is no title.
 - Headings are numbered by the word processor, to the depth =num= gives. Headings deeper than =H= become list items. =#+TOC: headlines= puts a table of contents where it is; =local= limits it to the section.
 - Footnotes are the word processor's own notes. A note referred to again shows its number.
 - Tables keep their header rows, alignment cookies, column groups and cell borders. A table inside a list item ends the list, sits indented below it, and the list carries on after it, as in ox-odt.
@@ -261,7 +261,7 @@ Export to ODT writes an OpenDocument text file (=.odt=) for LibreOffice, Pages o
 - =#+ODT:= lines, =#+BEGIN_EXPORT odt= blocks and =@@odt:...@@= snippets go in as they are.
 - The styles (=styles.xml=) are orgstar's own: A4 pages with 2 cm margins. =#+ODT_STYLES_FILE:= is not read.
 
-The export stops with a message, instead of writing something different from ox-odt, for: a link that leads nowhere, an image file that can't be read, inline tasks, table templates (=#+ATTR_ODT: :style=), a link without a description to a =<<target>>= or to a code line that isn't numbered, an inline source block exported as code, an annotation in a dated document, and =#+TOC:= with =:target=. ODT export is always the whole document: the export dialog's *Body only* doesn't apply.
+The export stops with a message, instead of writing something different from ox-odt, for: a link that leads nowhere, an image file that can't be read, inline tasks, table templates (=#+ATTR_ODT: :style=), a link without a description to a =<<target>>= or to a code line that isn't numbered, an inline source block exported as code, a table in a quote or other block inside a list, an annotation in a dated document, and =#+TOC:= with =:target=. ODT export is always the whole document: the export dialog's *Body only* doesn't apply.
 
 * Markdown export
 

@@ -111,7 +111,7 @@ struct OrgExport: Transferable {
             }
             try content.write(to: url, atomically: true, encoding: .utf8)
         case .odt:
-            try ODTExport.document(text, settings: settings, path: path, author: NSFullUserName(), language: OrgPreferences.exportLanguage())
+            try ODTExport.document(text, settings: settings, path: path, language: OrgPreferences.exportLanguage())
                 .write(to: url, options: .atomic)
         case .icalendar:
             try ICalendarFiles.export(self.text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(),

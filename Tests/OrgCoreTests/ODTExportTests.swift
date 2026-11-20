@@ -490,6 +490,7 @@ struct ODTExportTests {
         "#+ATTR_ODT: :style TableWithHeaderRowAndColumn\n| a |\n",
         "Code src_python[:exports code]{1 + 1} here.\n",
         "#+DATE: 2024\n#+begin_annotation\nNote.\n#+end_annotation\n",
+        "- a quote\n  #+begin_quote\n  | q |\n  #+end_quote\n",
     ])
     func refuses(_ text: String) {
         #expect(throws: ODTExport.Failure.self) { try ODTExport.document(text, path: "/tmp/doc.org") }
