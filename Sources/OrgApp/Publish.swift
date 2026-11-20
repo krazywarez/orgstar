@@ -40,7 +40,7 @@ public struct PublishProject: Sendable, Equatable {
 
     public init(name: String) { self.name = name }
 
-    public static let functions = ["org-html-publish-to-html", "org-md-publish-to-md", "org-latex-publish-to-latex", "org-odt-publish-to-odt", "org-publish-attachment"]
+    public static let functions = ["org-html-publish-to-html", "org-md-publish-to-md", "org-latex-publish-to-latex", "org-odt-publish-to-odt", "org-ascii-publish-to-ascii", "org-publish-attachment"]
 }
 
 public enum Publish {
@@ -252,7 +252,7 @@ public enum Publish {
 
     /// `org-publish-projects`: each project's sitemap, when it has one, then its files, through
     /// its publishing functions. A file whose output is newer than it is skipped unless `force`.
-    /// `export` turns an Org file's text into the HTML, Markdown or LaTeX to write.
+    /// `export` turns an Org file's text into the HTML, Markdown, LaTeX or plain text to write.
     public static func publish(
         _ chosen: [PublishProject], all: [PublishProject], force: Bool = false, only: String? = nil,
         read: (String) -> String?, export: (_ function: String, _ text: String, _ path: String, _ bodyOnly: Bool) throws -> String
@@ -290,7 +290,7 @@ public enum Publish {
             if directory((file as NSString).deletingLastPathComponent) == outputDirectory { return nil }
             return outputDirectory + (file as NSString).lastPathComponent
         }
-        let ext = ["org-md-publish-to-md": "md", "org-latex-publish-to-latex": "tex", "org-odt-publish-to-odt": "odt"][function] ?? "html"
+        let ext = ["org-md-publish-to-md": "md", "org-latex-publish-to-latex": "tex", "org-odt-publish-to-odt": "odt", "org-ascii-publish-to-ascii": "txt"][function] ?? "html"
         guard let text = read(file) else { throw Failure(description: "Can't read \(file)") }
         return ExportScope.output(for: URL(fileURLWithPath: outputDirectory + (file as NSString).lastPathComponent),
                                   name: ExportScope.fileName(text), extension: ext).path

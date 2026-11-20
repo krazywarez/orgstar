@@ -15,6 +15,12 @@ struct AppStoreCommandsTests {
         #expect(EditorCommands.all.first { $0.id == "app.export.latex" }?.title == "Export to LaTeX")
     }
 
+    /// ASCII export is native, so the sandboxed build has it.
+    @Test func asciiExportIsShown() {
+        #expect(!AppStoreCommands.hidden.contains("app.export.text"))
+        #expect(EditorCommands.all.first { $0.id == "app.export.text" }?.title == "Export to Plain Text (ASCII)")
+    }
+
     @Test func pdfKeysExportThroughWebKit() throws {
         let replacement = try #require(AppStoreCommands.replacement(for: "app.export.pdf"))
         #expect(replacement == "app.export.print-pdf")

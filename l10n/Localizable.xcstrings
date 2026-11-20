@@ -11854,37 +11854,37 @@
         }
       }
     },
-    "Export to Plain Text with Emacs": {
+    "Export to Plain Text (ASCII)": {
       "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mit Emacs als reinen Text exportieren"
+            "value": "Als reinen Text (ASCII) exportieren"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exportar a texto sin formato con Emacs"
+            "value": "Exportar a texto sin formato (ASCII)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exporter en texte brut avec Emacs"
+            "value": "Exporter en texte brut (ASCII)"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Emacsでプレーンテキストに書き出す"
+            "value": "プレーンテキスト（ASCII）に書き出す"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exportar para Texto Simples com o Emacs"
+            "value": "Exportar para Texto Simples (ASCII)"
           }
         }
       }

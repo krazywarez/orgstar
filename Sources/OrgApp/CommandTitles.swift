@@ -94,7 +94,7 @@ enum CommandTitles {
         String(localized: "Export to PDF", comment: "Command title"),
         String(localized: "Export to PDF with Emacs", comment: "Command title"),
         String(localized: "Export to Plain Text", comment: "Command title"),
-        String(localized: "Export to Plain Text with Emacs", comment: "Command title"),
+        String(localized: "Export to Plain Text (ASCII)", comment: "Command title"),
         String(localized: "Export to RTF", comment: "Command title"),
         String(localized: "Export to Word", comment: "Command title"),
         String(localized: "Export to iCalendar", comment: "Command title"),

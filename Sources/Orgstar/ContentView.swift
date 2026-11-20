@@ -628,7 +628,13 @@ struct ContentView: View {
             } catch {
                 commands.show("Can't write \(target.lastPathComponent): \(error.localizedDescription)")
             }
-        case "latex" where exportLaTeX(text, whole: whole, url: url, to: destination, open: open, subtree: subtree ? caret : nil, bodyOnly: bodyOnly, settings: defaults):
+        case "latex" where exportNative("LaTeX", extension: "tex", whole: whole, url: url, to: destination, open: open, subtree: subtree ? caret : nil, settings: defaults, export: {
+            try LaTeXExport.document(text, settings: defaults, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+        }):
+            break
+        case "text" where exportNative("plain text", extension: "txt", whole: whole, url: url, to: destination, open: open, subtree: subtree ? caret : nil, settings: defaults, export: {
+            try ASCIIExport.document(text, settings: defaults, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+        }):
             break
         case "odt":
             let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
@@ -705,21 +711,24 @@ struct ContentView: View {
         }
     }
 
-    /// Writes `text` as LaTeX, as ox-latex does. False when the native export can't match Emacs
-    /// and Emacs is installed to export instead; otherwise the reason is shown.
-    private func exportLaTeX(_ text: String, whole: String, url: URL, to destination: URL?, open: Bool, subtree: Int?, bodyOnly: Bool, settings: OrgSettings) -> Bool {
+    /// Writes what `export` makes, as ox does for `format`. False when the native export can't
+    /// match Emacs and Emacs is installed to export instead; otherwise the reason is shown.
+    private func exportNative(
+        _ format: String, extension ext: String, whole: String, url: URL, to destination: URL?, open: Bool, subtree: Int?, settings: OrgSettings,
+        export: () throws -> String
+    ) -> Bool {
         let content: String
         do {
-            content = try LaTeXExport.document(text, settings: settings, path: url.path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+            content = try export()
         } catch {
             #if !APPSTORE
             if EmacsRunner.executable() != nil { return false }
             #endif
-            commands.show("Can't export to LaTeX: \(error.localizedDescription)")
+            commands.show("Can't export to \(format): \(error.localizedDescription)")
             return true
         }
         let name = ExportScope.fileName(whole, subtreeAt: subtree, settings: settings)
-        guard let target = destination ?? writable(ExportScope.output(for: url, name: name, extension: "tex")) else { return true }
+        guard let target = destination ?? writable(ExportScope.output(for: url, name: name, extension: ext)) else { return true }
         do {
             try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
             try content.write(to: target, atomically: true, encoding: .utf8)
@@ -1000,6 +1009,13 @@ struct ContentView: View {
                             return try LaTeXExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
                         } catch let error as LaTeXExport.Unsupported {
                             throw LaTeXExport.Unsupported(reason: "Can't export \((path as NSString).lastPathComponent) to LaTeX: \(error.reason)")
+                        }
+                    }
+                    if function == "org-ascii-publish-to-ascii" {
+                        do {
+                            return try ASCIIExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+                        } catch let error as ASCIIExport.Unsupported {
+                            throw ASCIIExport.Unsupported(reason: "Can't export \((path as NSString).lastPathComponent) to plain text: \(error.reason)")
                         }
                     }
                     let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension

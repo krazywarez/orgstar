@@ -6,12 +6,12 @@ import OrgPresentation
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A file exported as HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar or LaTeX, written
-/// when the share sheet takes it.
+/// A file exported as HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar, LaTeX or ASCII,
+/// written when the share sheet takes it.
 struct OrgExport: Transferable {
     enum Format: CaseIterable {
         case html, markdown, pdf, docx, rtf, plainText, odt, icalendar
-        case latex
+        case latex, ascii
 
         /// Whether it needs Pro now: every format but HTML and Markdown, until Pro is unlocked.
         @MainActor var locked: Bool { self != .html && self != .markdown && !ProAccess.shared.isUnlocked }
@@ -27,6 +27,7 @@ struct OrgExport: Transferable {
             case .odt: "ODT"
             case .icalendar: "iCalendar"
             case .latex: "LaTeX"
+            case .ascii: "Plain Text (ASCII)"
             }
         }
 
@@ -41,6 +42,7 @@ struct OrgExport: Transferable {
             case .odt: "odt"
             case .icalendar: "ics"
             case .latex: "tex"
+            case .ascii: "txt"
             }
         }
     }
@@ -62,8 +64,8 @@ struct OrgExport: Transferable {
             .lastPathComponent
     }
 
-    /// Posted with the message, for the screen's message line, when the LaTeX export refuses
-    /// the file: the share sheet shows no reason.
+    /// Posted with the message, for the screen's message line, when the LaTeX or ASCII export
+    /// refuses the file: the share sheet shows no reason.
     static let refused = Notification.Name("OrgExportRefused")
 
     static var transferRepresentation: some TransferRepresentation {
@@ -85,6 +87,8 @@ struct OrgExport: Transferable {
             .exportingCondition { $0.format == .icalendar }
         FileRepresentation(exportedContentType: UTType(filenameExtension: "tex") ?? .plainText) { try await $0.write() }
             .exportingCondition { $0.format == .latex }
+        FileRepresentation(exportedContentType: .plainText) { try await $0.write() }
+            .exportingCondition { $0.format == .ascii }
     }
 
     private func write() async throws -> SentTransferredFile {
@@ -106,6 +110,16 @@ struct OrgExport: Transferable {
                 content = try LaTeXExport.document(text, settings: settings, path: path, language: OrgPreferences.exportLanguage(), file: true)
             } catch let error as LaTeXExport.Unsupported {
                 let message = "Can't export to LaTeX: \(error.reason)"
+                await MainActor.run { NotificationCenter.default.post(name: Self.refused, object: message) }
+                throw error
+            }
+            try content.write(to: url, atomically: true, encoding: .utf8)
+        case .ascii:
+            let content: String
+            do {
+                content = try ASCIIExport.document(text, settings: settings, path: path, language: OrgPreferences.exportLanguage(), file: true)
+            } catch let error as ASCIIExport.Unsupported {
+                let message = "Can't export to plain text: \(error.reason)"
                 await MainActor.run { NotificationCenter.default.post(name: Self.refused, object: message) }
                 throw error
             }
@@ -133,7 +147,7 @@ struct OrgExport: Transferable {
     }
 }
 
-/// Sharing the file as HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar or LaTeX: to another app, or saved with
+/// Sharing the file as HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar, LaTeX or ASCII: to another app, or saved with
 /// Save to Files; or copying it as rich text.
 struct ExportMenu: View {
     let path: String

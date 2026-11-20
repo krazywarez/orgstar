@@ -25,13 +25,13 @@ struct ExportSheet: View {
     static let formats: [(id: String, title: String, ext: String)] = [
         ("html", "HTML", "html"), ("markdown", "Markdown", "md"), ("print-pdf", "PDF", "pdf"), ("docx", "Word", "docx"),
         ("rtf", "Rich Text (RTF)", "rtf"), ("plain-text", "Plain text", "txt"), ("odt", "ODT", "odt"),
-        ("icalendar", "iCalendar", "ics"), ("latex", "LaTeX", "tex"),
+        ("icalendar", "iCalendar", "ics"), ("latex", "LaTeX", "tex"), ("text", "Plain text, ASCII", "txt"),
     ]
     #else
     static let formats: [(id: String, title: String, ext: String)] = [
         ("html", "HTML", "html"), ("markdown", "Markdown", "md"), ("print-pdf", "PDF", "pdf"), ("docx", "Word", "docx"),
         ("rtf", "Rich Text (RTF)", "rtf"), ("plain-text", "Plain text", "txt"), ("pdf", "PDF via LaTeX (Emacs)", "pdf"),
-        ("odt", "ODT", "odt"), ("latex", "LaTeX", "tex"), ("text", "Plain text, ASCII (Emacs)", "txt"),
+        ("odt", "ODT", "odt"), ("latex", "LaTeX", "tex"), ("text", "Plain text, ASCII", "txt"),
         ("icalendar", "iCalendar", "ics"),
     ]
     #endif

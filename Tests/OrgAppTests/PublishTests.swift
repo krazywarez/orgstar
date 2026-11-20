@@ -195,6 +195,56 @@ struct PublishTests {
         }
     }
 
+    /// `org-ascii-publish-to-ascii`: the same `.txt` files as Emacs writes.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func publishesASCIILikeOrg() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-txt-\(UUID().uuidString)").resolvingSymlinksInPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let sources = ["a.org": "#+TITLE: A\n* One\nText with a [[https://orgmode.org][link]].\n| x | y |\n", "sub/b.org": "#+OPTIONS: toc:nil\n- item\n- [X] done\n"]
+        for (path, text) in sources {
+            let url = folder.appendingPathComponent("src/" + path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try text.write(to: url, atomically: true, encoding: .utf8)
+        }
+        let form = """
+        (progn
+          (require 'ox-publish) (require 'ox-ascii)
+          (setq user-full-name "A. Writer"
+                org-publish-timestamp-directory "\(folder.path)/ts/"
+                org-publish-project-alist '(("txt" :base-directory "\(folder.path)/src" :publishing-directory "\(folder.path)/emacs"
+                                             :recursive t :publishing-function org-ascii-publish-to-ascii)))
+          (org-publish "txt" t))
+        """
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [ProcessInfo.processInfo.environment["ORGSTAR_EMACS"] ?? "emacs", "-Q", "--batch", "--eval", form]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+
+        let toml = """
+        [[publish]]
+        name = "txt"
+        base-directory = "\(folder.path)/src"
+        publishing-directory = "\(folder.path)/ours"
+        recursive = true
+        publishing-function = "org-ascii-publish-to-ascii"
+        """
+        let loaded = Publish.projects(fromConfig: toml, root: nil)
+        #expect(loaded.problems.isEmpty, "\(loaded.problems)")
+        let read = { (path: String) in try? String(contentsOfFile: path, encoding: .utf8) }
+        let report = try Publish.publish(loaded.projects, all: loaded.projects, force: true, read: read) { _, text, path, bodyOnly in
+            try ASCIIExport.document(text, path: path, bodyOnly: bodyOnly, author: "A. Writer", file: true)
+        }
+        #expect(report.published.count == 2)
+        for path in ["a.txt", "sub/b.txt"] {
+            let theirs = try String(contentsOf: folder.appendingPathComponent("emacs/" + path), encoding: .utf8)
+            let ours = try String(contentsOf: folder.appendingPathComponent("ours/" + path), encoding: .utf8)
+            #expect(ours == theirs, "\(path)\nours:\n\(ours)\nemacs:\n\(theirs)")
+        }
+    }
+
     /// `org-odt-publish-to-odt` writes `.odt` files, which the export closure doesn't see.
     @Test func publishesODT() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-\(UUID().uuidString)")

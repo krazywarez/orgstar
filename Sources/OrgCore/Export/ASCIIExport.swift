@@ -15,10 +15,11 @@ public enum ASCIIExport {
     }
 
     /// A `.txt` document, or with `bodyOnly` the text without the title block and contents.
-    /// `author` stands for `user-full-name`, `language` for `org-export-default-language`.
+    /// `author` stands for `user-full-name`, `language` for `org-export-default-language`. `file`
+    /// adds the final newline `org-export-to-file` writes.
     public static func document(
         _ text: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), charset: Charset = .ascii,
-        bodyOnly: Bool = false, author: String = "", language: String = "en"
+        bodyOnly: Bool = false, author: String = "", language: String = "en", file: Bool = false
     ) throws -> String {
         let text = try LaTeXExport.expanded(text, settings: settings, path: path, now: now)
         let tree = OrgParser.parse(text, defaults: settings)
@@ -27,7 +28,8 @@ public enum ASCIIExport {
         let renderer = try ASCIIRenderer(tree: tree, text: text, settings: settings, keywords: keywords, language: language, charset: charset)
         var output = try renderer.body()
         if !bodyOnly { output = try renderer.template(output, author: author) }
-        return output.replacingOccurrences(of: ASCIIRenderer.hardNewline, with: "\n")
+        output = output.replacingOccurrences(of: ASCIIRenderer.hardNewline, with: "\n")
+        return file && !output.isEmpty && !output.hasSuffix("\n") ? output + "\n" : output
     }
 }
 
