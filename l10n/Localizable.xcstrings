@@ -30695,6 +30695,76 @@
         }
       }
     },
+    "The table was recalculated up to %@, which can't be calculated here: %@.": {
+      "comment": "Table formulas orgstar calculated up to one it can't",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Tabelle wurde bis %@ neu berechnet, das hier nicht berechnet werden kann: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tabla se recalculó hasta %@, que no se puede calcular aquí: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tableau a été recalculé jusqu'à %@, qui ne peut pas être calculé ici : %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表は%@の手前まで再計算されました。ここでは計算できません：%@。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A tabela foi recalculada até %@, que não pode ser calculada aqui: %@."
+          }
+        }
+      }
+    },
+    "The table was recalculated up to %@, which needs Emacs on the Mac: %@.": {
+      "comment": "Table formulas calculated up to one only Emacs can calculate",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Tabelle wurde bis %@ neu berechnet, das Emacs auf dem Mac braucht: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tabla se recalculó hasta %@, que necesita Emacs en el Mac: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tableau a été recalculé jusqu'à %@, qui nécessite Emacs sur Mac : %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表は%@の手前まで再計算されました。MacのEmacsが必要です：%@。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A tabela foi recalculada até %@, que precisa do Emacs no Mac: %@."
+          }
+        }
+      }
+    },
     "The template to capture with.": {
       "localizations": {
         "de": {

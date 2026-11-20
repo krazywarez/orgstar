@@ -1,8 +1,7 @@
 import Foundation
 
 /// C-c * and C-u C-c *: `org-table-recalculate`, and C-c C-c on a `#+TBLFM` line. Tables the
-/// native evaluator can't do fail with `TableRecalculate.emacsMessage`, and the app
-/// recalculates them in Emacs.
+/// native evaluator can't do become a request to recalculate them in Emacs.
 public struct TableRecalculate: OrgCommand {
     public let all: Bool
     public init(all: Bool) { self.all = all }
@@ -23,38 +22,64 @@ public struct TableRecalculate: OrgCommand {
     }
 
     public func run(in context: EditContext) -> CommandStep {
-        let step = commitBuffer(context) { buffer in
-            do {
-                if let line = Self.tblfmLine(in: context) {
-                    // `org-table-calc-current-TBLFM`: that line's formulas, every row, with
-                    // point at the end of the table.
-                    let formulas = String(line[line.index(after: line.firstIndex(of: ":")!)...]).trimmingCharacters(in: .init(charactersIn: " "))
-                    let saved = buffer.marker(buffer.point)
-                    defer { buffer.release(saved) }
-                    guard let tableEnd = buffer.saveExcursion({ () -> Int? in
-                        while buffer.forwardLine(-1) == 0 {
-                            if buffer.lookingAtLine("^[ \\t]*\\|") { return buffer.lineEnd(buffer.point) }
-                        }
-                        return nil
-                    }) else { throw EmacsBuffer.UserError(message: "Not at a table") }
-                    buffer.point = tableEnd
-                    try buffer.tableRecalculate(all: true, tblfm: formulas)
+        let form = Self.tblfmLine(in: context) != nil ? "(org-table-calc-current-TBLFM)" : all ? "(org-table-recalculate t)" : "(org-table-recalculate nil)"
+        return Self.recalculating(context, form: form) { buffer in
+            if let line = Self.tblfmLine(in: context) {
+                // `org-table-calc-current-TBLFM`: that line's formulas, every row, with
+                // point at the end of the table, then back where it was, even after an error.
+                let formulas = String(line[line.index(after: line.firstIndex(of: ":")!)...]).trimmingCharacters(in: .init(charactersIn: " "))
+                let saved = buffer.marker(buffer.point)
+                defer {
                     buffer.point = saved.position
-                } else {
-                    try buffer.tableRecalculate(all: all)
+                    buffer.release(saved)
                 }
-            } catch let error as Calc.Unsupported {
-                throw EmacsBuffer.UserError(message: Self.emacsMessage + error.reason)
+                guard let tableEnd = buffer.saveExcursion({ () -> Int? in
+                    while buffer.forwardLine(-1) == 0 {
+                        if buffer.lookingAtLine("^[ \\t]*\\|") { return buffer.lineEnd(buffer.point) }
+                    }
+                    return nil
+                }) else { throw EmacsBuffer.UserError(message: "Not at a table") }
+                buffer.point = tableEnd
+                try buffer.tableRecalculate(all: true, tblfm: formulas)
+            } else {
+                try buffer.tableRecalculate(all: all)
             }
         }
-        let form = Self.tblfmLine(in: context) != nil ? "(org-table-calc-current-TBLFM)" : all ? "(org-table-recalculate t)" : "(org-table-recalculate nil)"
-        return Self.inEmacs(step, form: form, in: context)
+    }
+
+    /// `commitBuffer` for a recalculation. On an error the fields written before it stay, as
+    /// in Emacs, with the error as the message. A formula the native evaluator can't do makes
+    /// a request to run `form` in Emacs, which carries those fields for builds without Emacs.
+    static func recalculating(_ context: EditContext, form: String, _ body: (EmacsBuffer) throws -> Void) -> CommandStep {
+        var failure: String?
+        var unsupported: Calc.Unsupported?
+        let step = commitBuffer(context) { buffer in
+            do {
+                try body(buffer)
+            } catch let error as EmacsBuffer.UserError {
+                failure = error.message
+            } catch let error as Calc.Unsupported {
+                unsupported = error
+            }
+        }
+        guard case .commit(let result) = step else { return step }
+        if let unsupported {
+            let wrote = !result.edits.isEmpty
+            return request(form: form, reason: unsupported.reason, formula: wrote ? unsupported.formula : nil, partial: wrote ? result : nil, in: context)
+        }
+        guard let failure else { return step }
+        guard !result.edits.isEmpty else { return .failed(failure) }
+        return .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection, effects: result.effects + [.message(failure)]))
     }
 
     /// A step that failed with `emacsMessage` as a request to run `form` on the table in
     /// Emacs, whose text then replaces the table here; other steps unchanged.
     static func inEmacs(_ step: CommandStep, form: String, in context: EditContext) -> CommandStep {
         guard case .failed(let message) = step, message.hasPrefix(emacsMessage) else { return step }
+        return request(form: form, reason: String(message.dropFirst(emacsMessage.count)), formula: nil, partial: nil, in: context)
+    }
+
+    static func request(form: String, reason: String, formula: String?, partial: EditResult?, in context: EditContext) -> CommandStep {
         let buffer = EmacsBuffer(context.text, point: context.caret, settings: context.tree.settings, options: context.options)
         let onTblfm = tblfmLine(in: context) != nil
         if onTblfm {
@@ -64,7 +89,7 @@ public struct TableRecalculate: OrgCommand {
         let tblfm = onTblfm ? tblfmLine(in: context) ?? "" : buffer.firstTblfm(after: table.upperBound) ?? ""
         return .external(.emacsTable(
             table: table, point: context.caret, form: form,
-            reason: String(message.dropFirst(emacsMessage.count)), lisp: tblfm.contains("'(")
+            reason: reason, lisp: tblfm.contains("'("), formula: formula, partial: partial
         ))
     }
 }
@@ -79,30 +104,24 @@ public struct TableIterate: OrgCommand {
 
     public func run(in context: EditContext) -> CommandStep {
         var message = ""
-        var step = commitBuffer(context) { buffer in
+        let step = TableRecalculate.recalculating(context, form: "(org-table-iterate)") { buffer in
             guard buffer.atTable else { throw EmacsBuffer.UserError(message: "Not at a table") }
             func table() -> String { buffer.substring(buffer.tableBegin(), buffer.tableEnd()) }
             var last = table()
-            do {
-                for iteration in 1...10 {
-                    try buffer.tableRecalculate(all: true)
-                    let this = table()
-                    if this == last {
-                        message = iteration > 1 ? "Convergence after \(iteration) iterations" : "Table was already stable"
-                        return
-                    }
-                    last = this
+            for iteration in 1...10 {
+                try buffer.tableRecalculate(all: true)
+                let this = table()
+                if this == last {
+                    message = iteration > 1 ? "Convergence after \(iteration) iterations" : "Table was already stable"
+                    return
                 }
-            } catch let error as Calc.Unsupported {
-                throw EmacsBuffer.UserError(message: TableRecalculate.emacsMessage + error.reason)
+                last = this
             }
             // The recalculations stay, as Emacs leaves them before its error.
             message = "No convergence after 10 iterations"
         }
-        if case .commit(let result) = step {
-            step = .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection, effects: result.effects + [.message(message)]))
-        }
-        return TableRecalculate.inEmacs(step, form: "(org-table-iterate)", in: context)
+        guard case .commit(let result) = step, !message.isEmpty else { return step }
+        return .commit(EditResult(baseRevision: result.baseRevision, edits: result.edits, selection: result.selection, effects: result.effects + [.message(message)]))
     }
 }
 

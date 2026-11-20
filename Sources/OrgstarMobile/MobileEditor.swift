@@ -334,6 +334,9 @@ final class MobileEditor: NSObject, DocumentBuffer {
         case .external(.columnView(let view)) where onColumnView != nil:
             onColumnView?(view)
         case .external(let request):
+            // The fields written before a formula only Emacs can do stay, as Emacs leaves them
+            // when a formula fails.
+            if case .emacsTable(_, _, _, _, _, _, let partial?) = request { _ = perform(PrecomputedEdit(partial)) }
             onMessage?(Self.unavailable(request, title: command.title))
         }
         return step
@@ -341,7 +344,10 @@ final class MobileEditor: NSObject, DocumentBuffer {
 
     /// Why a request the app doesn't handle did nothing: only table recalculation needs Emacs.
     static func unavailable(_ request: ExternalRequest, title: String) -> String {
-        if case .emacsTable(_, _, _, let reason, _) = request {
+        if case .emacsTable(_, _, _, let reason, _, let formula?, _) = request {
+            return String(localized: "The table was recalculated up to \(formula), which needs Emacs on the Mac: \(TableReason.localized(reason)).", comment: "Table formulas calculated up to one only Emacs can calculate")
+        }
+        if case .emacsTable(_, _, _, let reason, _, _, _) = request {
             return String(localized: "This table needs Emacs, which runs on the Mac: \(TableReason.localized(reason)).", comment: "Table formulas only Emacs can calculate")
         }
         return String(localized: "\(CommandTitle.localized(title)) isn't available on iPhone and iPad.", comment: "A command that runs only on the Mac")

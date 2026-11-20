@@ -27,7 +27,7 @@ struct EmacsFallbackTests {
         let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
         session.open(file.path)
         let step = session.perform(TableRecalculate(all: true), path: file.path, at: 50, expect: nil)
-        guard case .external(.emacsTable(let table, let point, let form, let reason, let lisp)) = step else {
+        guard case .external(.emacsTable(let table, let point, let form, let reason, let lisp, _, _)) = step else {
             Issue.record("\(step)")
             return
         }
@@ -46,7 +46,7 @@ struct EmacsFallbackTests {
         let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
         session.open(file.path)
         let step = session.perform(TableRecalculate(all: true), path: file.path, at: 2, expect: nil)
-        guard case .external(.emacsTable(let table, let point, let form, _, _)) = step else {
+        guard case .external(.emacsTable(let table, let point, let form, _, _, _, _)) = step else {
             Issue.record("\(step)")
             return
         }

@@ -568,6 +568,10 @@ results, at most ten times. The echo area says =Convergence after 3 iterations=,
 convergence after 10 iterations=, and the ten passes stay. =C-u C-c *= also recalculates
 the whole table in the Emacs preset.
 
+A formula that fails, such as one whose reference leads outside the table, stops the
+command there. As in Emacs, the fields written before it stay, the table isn't aligned,
+and the echo area shows the error.
+
 A row marked =#= is recalculated when you press =TAB=, =S-TAB= or =RET= in it, before
 the caret moves (=org-table-maybe-recalculate-line=), and with =C-c C-c= (Mac =⌃⌘X=).
 Other rows are recalculated only by the commands above. Emacs skips a second automatic
@@ -606,8 +610,13 @@ Edit ▸ Cancel Running Task (=⌘.=) stops the recalculation; the echo area sho
 export in Emacs cancels the one that is running.
 
 The [[file:../install.org][Mac App Store version]] doesn't run Emacs, so it recalculates
-only the tables orgstar computes itself. For any other table the echo area shows =This
-table's formulas can't be calculated here: (reason).=, and the table is unchanged.
+only the tables orgstar computes itself. In any other table it applies the formulas in
+Emacs's order up to the first one it can't compute and stops there, as Emacs does when a
+formula fails: the fields written before it stay, unaligned, and the rest are unchanged.
+The echo area shows =The table was recalculated up to (formula), which can't be
+calculated here: (reason).=, where /formula/ is the left-hand side, such as =$4=. When nothing
+was written, it shows =This table's formulas can't be calculated here: (reason).= and the
+table is unchanged.
 
 If the table's formulas contain Lisp, orgstar asks first:
 =This table's formulas run Lisp. Run them? (yes, no, always)=. =always= trusts this

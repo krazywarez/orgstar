@@ -69,8 +69,9 @@ App Store version.
 A block in another language reports "/language/ blocks don't run in this version of
 orgstar." An Emacs Lisp block that uses more than the interpreter has reports "This block uses
 Emacs Lisp that runs only in Emacs." A JavaScript block that uses something only node has
-reports "This block uses /name/, which runs only in node." A table whose formulas need Emacs reports "This table's
-formulas can't be calculated here", with the reason, and isn't changed. The Emacs exports are
+reports "This block uses /name/, which runs only in node." A table whose formulas need Emacs is recalculated up to
+the first formula that needs it, which the message names with the reason; the fields
+before it stay and the rest are unchanged. The Emacs exports are
 not in the File ▸ Export menu, the export dialog or the command palette; a key bound to
 Export to PDF with Emacs exports to PDF without LaTeX. LaTeX export is orgstar's own and is in
 both versions; a file it can't write as Emacs would reports "Can't export to LaTeX", with the

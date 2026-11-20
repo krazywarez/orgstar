@@ -7,6 +7,8 @@ import Foundation
 public enum Calc {
     public struct Unsupported: Error, Equatable, CustomStringConvertible {
         public let reason: String
+        /// The left-hand side of the table formula that threw, once recalculation knows it.
+        public var formula: String?
         public var description: String { reason }
         init(_ reason: String) { self.reason = reason }
     }

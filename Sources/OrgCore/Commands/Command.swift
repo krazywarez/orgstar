@@ -301,7 +301,10 @@ public enum CommandStep: Sendable, Equatable {
 public enum ExternalRequest: Sendable, Equatable {
     /// Recalculate the table whose text is at `table` in Emacs, running `form` with point at
     /// `point`, and put Emacs's table text in its place. `lisp` when its formulas run Lisp.
-    case emacsTable(table: Range<Int>, point: Int, form: String, reason: String, lisp: Bool)
+    /// `partial` is the fields written before `formula`, the one that needs Emacs, left as
+    /// Emacs leaves a table whose formula fails; builds without Emacs commit it. Both are nil
+    /// when nothing was written.
+    case emacsTable(table: Range<Int>, point: Int, form: String, reason: String, lisp: Bool, formula: String? = nil, partial: EditResult? = nil)
     /// Run a src block; `Babel.finish` turns its output into the result edit.
     case babel(BabelJob)
     /// Follow a link: the app opens URLs and files and searches headings.

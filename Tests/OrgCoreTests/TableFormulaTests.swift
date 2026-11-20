@@ -26,6 +26,14 @@ struct TableFormulaTests {
         "| a |\n|---|\n| 1 |\n| 2 |\n|---|\n| |\n#+TBLFM: @>$1=vmax(@I..@II)-vmin(@I..@II)+vcount(@I..@II)+vmedian(@I..@II)\n",
         "#+CONSTANTS: c=10 k=2.5\n| a | b |\n|---+---|\n| 1 | |\n| 2 | |\n#+TBLFM: $2=$1*$c+$k\n",
         "* Rates\n:PROPERTIES:\n:Rate:     3\n:END:\n| h | pay |\n|---+-----|\n| 2 | |\n#+TBLFM: $2=$1*$PROP_Rate\n",
+        // Errors partway through: the fields written before them stay.
+        "| a | b | c |\n|---+---+---|\n| 1 | | |\n| 22 | | |\n| 3 | | |\n#+TBLFM: $2=$1*2::$3=@-2$1\n",
+        "| a | b | c |\n|---+---+---|\n| 1 | | |\n| 22 | | |\n| 3 | | |\n#+TBLFM: $2=$1*2::@3$3=@-5$1::@2$3=7\n",
+        "| a | b |\n|---+---|\n| 1 |  |\n| 2 |  |\n#+TBLFM: $2=$1::@I$1=3\n",
+        "| a | b |\n|---+---|\n| 1 |  |\n| 2 |  |\n#+TBLFM: $2=$1*3::@2$2=1::@2$1..@3$2=5\n",
+        // A field formula's field of one space still gets the column formula first.
+        "| a | b |\n|---+---|\n| # | |\n| 2 | |\n#+TBLFM: $2=@0$1+1::@3$2=$2*10\n",
+        "| a | b |\n|---+---|\n| # |  |\n| 2 |  |\n| 3 ||\n#+TBLFM: $2=@0$1+1::@3$2=$2*10::@4$2=$2*10\n",
     ]
 
     /// Lisp formulas, names, parameters, marked rows, remote tables, durations, dates and
@@ -128,7 +136,7 @@ struct TableFormulaTests {
                     : [(TableRecalculate(all: true), "(org-table-recalculate t)"), (TableRecalculate(all: false), "(org-table-recalculate nil)")]
                 for (command, form) in commands {
                     cases.append(EmacsOracle.Case(text: text, point: EmacsOracle.point(caret, in: text), form: form))
-                    ours.append(runCommand(command, text, caret: caret))
+                    ours.append(Self.recalculate(command, text, caret: caret))
                 }
             }
         }
@@ -143,17 +151,80 @@ struct TableFormulaTests {
                 #expect(failure.contains("non-numeric field") || failure.contains("division by zero"), "\(failure)")
                 continue
             }
-            if !theirs.error.isEmpty {
-                // Emacs keeps the fields written before the error; nothing changes here.
-                #expect(mine.failure == theirs.error && mine.text == cases[i].text,
-                        "\(cases[i].form) at \(cases[i].point): ours \(mine.failure ?? "-"), emacs \(theirs.error)\n\(cases[i].text)")
-                continue
-            }
             let expected = (theirs.text, EmacsOracle.offset(theirs.point, in: theirs.text), theirs.error.isEmpty ? nil : theirs.error)
             #expect(mine.text == expected.0 && mine.caret == expected.1 && mine.failure == expected.2,
                     "\(cases[i].form) at \(cases[i].point) in\n\(cases[i].text)\nours:\n\(mine.text)@\(mine.caret) \(mine.failure ?? "")\nemacs:\n\(theirs.text)@\(expected.1) \(theirs.error)")
         }
         #expect(fallbacks < ours.count / 2, "\(fallbacks) fallbacks")
+    }
+
+    /// Two formulas, then one only Emacs can do: in row order, as Emacs applies them.
+    static let unsupported = "| a | b | c | d |\n|---+---+---+---|\n| 1 | | | |\n| 2 | | | |\n#+TBLFM: $2=$1*2::$3=$1+1::$4='(shell-command-to-string $1)\n"
+
+    @Test func keepsFieldsWrittenBeforeAFormulaOnlyEmacsCanDo() {
+        let text = Self.unsupported
+        let caret = (text as NSString).range(of: "#+TBLFM").location + 3
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+        guard case .external(.emacsTable(_, _, _, let reason, let lisp, let formula, let partial?)) = TableRecalculate(all: true).run(in: context) else {
+            Issue.record("not a request")
+            return
+        }
+        #expect(reason == "Lisp function shell-command-to-string")
+        #expect(lisp)
+        #expect(formula == "$4")
+        let result = partial.edits.reduce(text) { $1.apply(to: $0) }
+        #expect(result == "| a | b | c | d |\n|---+---+---+---|\n| 1 | 2 | 2 | |\n| 2 | | | |\n#+TBLFM: $2=$1*2::$3=$1+1::$4='(shell-command-to-string $1)\n")
+        // Point stays on the #+TBLFM line, after the two digits written.
+        #expect(partial.selection == [(caret + 4)..<(caret + 4)])
+    }
+
+    /// The fields kept before a formula only Emacs can do are what Emacs leaves when that
+    /// formula fails instead.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func keptFieldsMatchEmacsAfterAnError() throws {
+        let failing = "@-9$1"
+        let lisp = "'(shell-command-to-string $1)"
+        let tables = [
+            Self.unsupported,
+            "| a | b | c |\n|---+---+---|\n| 1 | | |\n| 2 | | |\n| 3 | | |\n#+TBLFM: $2=$1*3::@3$3=\(lisp)::@2$3=7::@4$3=8\n",
+            "| a | b |\n|---+---|\n| # | |\n| 2 | |\n#+TBLFM: $2=@0$1+1::@3$2=\(lisp)\n",
+        ]
+        var cases: [EmacsOracle.Case] = []
+        var ours: [(text: String, caret: Int)] = []
+        for text in tables {
+            let emacsText = text.replacingOccurrences(of: lisp, with: failing)
+            for caret in Self.carets(text) {
+                let onTblfm = (text as NSString).substring(with: (text as NSString).lineRange(for: NSRange(location: caret, length: 0))).contains("#+TBLFM")
+                let commands: [(any OrgCommand, String)] = onTblfm
+                    ? [(TableRecalculate(all: true), "(org-ctrl-c-ctrl-c)")]
+                    : [(TableRecalculate(all: true), "(org-table-recalculate t)"), (TableRecalculate(all: false), "(org-table-recalculate nil)"), (TableIterate(), "(org-table-iterate)")]
+                for (command, form) in commands {
+                    let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+                    let step = command.run(in: context)
+                    // Rows at point without the Lisp formula, and header rows Calc reads as symbols.
+                    guard case .external(.emacsTable(_, _, _, let reason, _, _, let partial?)) = step, reason.hasPrefix("Lisp") else { continue }
+                    cases.append(EmacsOracle.Case(text: emacsText, point: EmacsOracle.point(caret, in: emacsText), form: form))
+                    let new = partial.edits.reduce(text) { $1.apply(to: $0) }
+                    ours.append((new, partial.selection?.first?.lowerBound ?? caret))
+                }
+            }
+        }
+        #expect(cases.count >= 8)
+        for (i, (theirs, mine)) in zip(try EmacsOracle.run(cases), ours).enumerated() {
+            #expect(theirs.error.contains("leads outside table"), "\(theirs.error)")
+            let text = theirs.text.replacingOccurrences(of: failing, with: lisp)
+            let point = EmacsOracle.offset(theirs.point, in: theirs.text)
+            let shifted = point > (theirs.text as NSString).range(of: failing).location ? point + (text as NSString).length - (theirs.text as NSString).length : point
+            #expect(mine.text == text && mine.caret == shifted, "\(cases[i].form) at \(cases[i].point)\nours:\n\(mine.text)@\(mine.caret)\nemacs:\n\(text)@\(shifted)")
+        }
+    }
+
+    /// `runCommand`, with the message of an error that left fields written as the failure.
+    static func recalculate(_ command: any OrgCommand, _ text: String, caret: Int) -> (text: String, caret: Int, failure: String?) {
+        let result = runCommand(command, text, caret: caret)
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+        guard case .commit(let commit) = command.run(in: context), case .message(let message) = commit.effects.last else { return result }
+        return (result.text, result.caret, message)
     }
 
     /// `ORGSTAR_ORACLE_CORPUS=<folder>`: C-c C-c on every `#+TBLFM` line below the folder.

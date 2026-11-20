@@ -1049,11 +1049,22 @@ struct ContentView: View {
         case .columnView(let view):
             panel = .columns(UUID(), view)
         #if APPSTORE
-        case .emacsTable(_, _, _, let reason, _):
-            commands.show(String(localized: "This table's formulas can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar can't calculate"))
+        case .emacsTable(_, _, _, let reason, _, let formula, let partial):
+            // The fields written before the formula stay, as Emacs leaves them when a formula fails.
+            if let partial { commands.editor?.perform(PrecomputedEdit(partial)) }
+            if let formula {
+                commands.show(String(localized: "The table was recalculated up to \(formula), which can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar calculated up to one it can't"))
+            } else {
+                commands.show(String(localized: "This table's formulas can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar can't calculate"))
+            }
         #else
-        case .emacsTable(let table, let point, let form, let reason, let lisp):
+        case .emacsTable(let table, let point, let form, let reason, let lisp, let formula, let partial):
             guard EmacsRunner.executable() != nil else {
+                // Without Emacs this is the App Store build's case: keep the fields written so far.
+                if let partial { commands.editor?.perform(PrecomputedEdit(partial)) }
+                if let formula {
+                    return commands.show(String(localized: "The table was recalculated up to \(formula), which can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar calculated up to one it can't"))
+                }
                 return commands.show(String(localized: "This table's formulas can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar can't calculate"))
             }
             let run = {

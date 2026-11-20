@@ -24,16 +24,11 @@ public struct CtrlCCtrlC: OrgCommand {
             if TableRecalculate.tblfmLine(in: context) != nil || atStart { return TableRecalculate(all: true).run(in: context) }
             // `org-table-maybe-eval-formula`, then `org-table-maybe-recalculate-line` on a row
             // marked `#`, which aligns, or else `org-table-align`.
-            let step = commitBuffer(context) { buffer in
+            return TableRecalculate.recalculating(context, form: "(org-ctrl-c-ctrl-c)") { buffer in
                 try buffer.tableMaybeEvalFormula()
                 guard buffer.lookingAtLine("^[ \\t]*\\| *# *(\\||$)") else { return buffer.tableAlign() }
-                do {
-                    try buffer.tableRecalculate(all: false)
-                } catch let error as Calc.Unsupported {
-                    throw EmacsBuffer.UserError(message: TableRecalculate.emacsMessage + error.reason)
-                }
+                try buffer.tableRecalculate(all: false)
             }
-            return TableRecalculate.inEmacs(step, form: "(org-ctrl-c-ctrl-c)", in: context)
         }
         // Org says to edit table.el tables with C-c '; here their borders line up again.
         if KeyContext.holds("table-el", in: context) { return TableElAlign().run(in: context) }

@@ -752,47 +752,51 @@ extension EmacsBuffer {
         guard let line = tblfm ?? firstTblfm(after: end) else { return }
         let stored = try Self.storedFormulas(line).sorted { $0.lhs < $1.lhs }
         guard !stored.isEmpty else { return }
-        var columnEquations: [(Int, String)] = []
-        var fieldEquations: [(String, String)] = []
+        // `org-table-save-field`: the field is restored even when a formula fails.
+        let savedLine = lineStart(point)
+        let savedColumn = tableCurrentColumn()
+        let lineMarker = marker(savedLine)
+        defer { release(lineMarker) }
+        defer {
+            point = lineMarker.position
+            tableGotoColumn(savedColumn)
+        }
+        var columnEquations: [(column: Int, rhs: String, lhs: String)] = []
+        var fieldEquations: [(String, String, String)] = []
         for (oldLHS, rawRHS) in stored {
             let rhs = try substituteNames(try Self.handleFirstLast(rawRHS, analysis: analysis), analysis: analysis)
             if oldLHS.range(of: "^@-?I+", options: .regularExpression) != nil { throw UserError(message: "Can't assign to hline relative reference") }
             let lhs = try Self.handleFirstLast(oldLHS, analysis: analysis)
             if lhs.range(of: "^\\$[0-9]+$", options: .regularExpression) != nil {
-                columnEquations.append((try Self.integer(String(lhs.dropFirst())), rhs))
+                columnEquations.append((try Self.integer(String(lhs.dropFirst())), rhs, oldLHS))
             } else {
-                fieldEquations.append((lhs, rhs))
+                fieldEquations.append((lhs, rhs, oldLHS))
             }
         }
         // `org-table-expand-lhs-ranges`.
-        var fields: [(row: Int, column: Int, rhs: String)] = []
-        for (lhs, rhs) in fieldEquations {
+        var fields: [(row: Int, column: Int, rhs: String, lhs: String)] = []
+        for (lhs, rhs, oldLHS) in fieldEquations {
             if let m = lhs.firstMatch(of: /^@([0-9]+)\$([0-9]+)$/) {
-                fields.append((try Self.integer(String(m.1)), try Self.integer(String(m.2)), rhs))
+                fields.append((try Self.integer(String(m.1)), try Self.integer(String(m.2)), rhs, oldLHS))
             } else if lhs.range(of: "^[a-zA-Z][_a-zA-Z0-9]*$", options: .regularExpression) != nil {
                 guard let location = analysis.namedFields.last(where: { $0.name == lhs }), let row = Self.lineToDline(location.line, analysis) else {
                     throw UserError(message: "Unknown field: \(lhs)")
                 }
-                fields.append((row, location.column, rhs))
+                fields.append((row, location.column, rhs, oldLHS))
             } else if lhs.range(of: "^@[-+0-9]+\\$-?[0-9]+$", options: .regularExpression) != nil {
                 // `org-table-goto-field` knows only absolute fields and names.
                 throw UserError(message: "Unknown field: \(lhs)")
             } else if let m = lhs.firstMatch(of: /^@([0-9]+)$/) {
                 let row = try Self.integer(String(m.1))
-                for c in 1...analysis.ncol { fields.append((row, c, rhs)) }
+                for c in 1...analysis.ncol { fields.append((row, c, rhs, oldLHS)) }
             } else {
                 let corners = try rangeCorners(lhs, analysis: analysis)
                 guard let r1 = Self.lineToDline(corners.r1, analysis), let r2 = Self.lineToDline(corners.r2, analysis, above: true), r1 <= r2 else {
                     throw Calc.Unsupported("formula range")
                 }
-                for r in r1...r2 { for c in corners.c1...corners.c2 { fields.append((r, c, rhs)) } }
+                for r in r1...r2 { for c in corners.c1...corners.c2 { fields.append((r, c, rhs, oldLHS)) } }
             }
         }
-        let savedLine = lineStart(point)
-        let savedColumn = tableCurrentColumn()
-        let lineMarker = marker(savedLine)
-        defer { release(lineMarker) }
-
         let endMarker = marker(end)
         defer { release(endMarker) }
         var beg: Int
@@ -843,11 +847,13 @@ extension EmacsBuffer {
                     point = rowStart
                     return tableCurrentDataLine()
                 }
-                for (column, rhs) in columnEquations {
+                for (column, rhs, lhs) in columnEquations {
                     point = rowMarker.position
                     tableGotoColumn(column, force: true)
-                    if untouchable.contains("@\(dline)$\(column)") { continue }
-                    try tableEvalFormula(rhs, analysis: analysis)
+                    // Org reads the mark at point, which in a field of one space is on the bar
+                    // after it, so the column formula still runs there.
+                    if untouchable.contains("@\(dline)$\(column)"), let c = character(at: point), c != 124, c != 10 { continue }
+                    try Self.naming(lhs) { try tableEvalFormula(rhs, analysis: analysis) }
                 }
             }
             point = rowMarker.position
@@ -858,11 +864,19 @@ extension EmacsBuffer {
             let count = substring(lineStart(point), lineEnd(point)).filter { $0 == "|" }.count - 1
             if field.column > count { throw UserError(message: "Missing columns in the table.  Aborting") }
             tableGotoColumn(field.column)
-            try tableEvalFormula(field.rhs, analysis: analysis)
+            try Self.naming(field.lhs) { try tableEvalFormula(field.rhs, analysis: analysis) }
         }
         tableAlign()
-        point = lineMarker.position
-        tableGotoColumn(savedColumn)
+    }
+
+    /// `body`, with the formula `lhs` named in a `Calc.Unsupported` it throws.
+    static func naming(_ lhs: String, _ body: () throws -> Void) throws {
+        do {
+            try body()
+        } catch var error as Calc.Unsupported {
+            error.formula = lhs
+            throw error
+        }
     }
 
     /// `org-table-get-range` with `corners-only`.

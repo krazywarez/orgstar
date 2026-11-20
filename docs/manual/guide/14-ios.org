@@ -343,7 +343,7 @@ On iOS, only Emacs Lisp and JavaScript blocks run. orgstar evaluates Emacs Lisp 
 - Emacs Lisp the interpreter doesn't have: "This block uses Emacs Lisp that runs only in Emacs, on the Mac."
 - JavaScript that uses something only node has, such as =Buffer=: "This block uses /name/, which runs only in node."
 
-Table formulas that orgstar computes itself work on iOS. A table whose formulas need Emacs reports "This table needs Emacs, which runs on the Mac", with the reason, and isn't changed.
+Table formulas that orgstar computes itself work on iOS. In a table whose formulas need Emacs, orgstar applies the formulas up to the first one that needs it and stops there, as Emacs does when a formula fails: the fields written before it stay and the rest are unchanged. The message is "The table was recalculated up to /formula/, which needs Emacs on the Mac", with the formula's left-hand side and the reason. When nothing was written, it is "This table needs Emacs, which runs on the Mac", with the reason, and the table is unchanged.
 
 Tangling (=C-c C-v t=, in Commands) works on iOS and writes the tangled files next to the org file, or where =:tangle= says.
 
