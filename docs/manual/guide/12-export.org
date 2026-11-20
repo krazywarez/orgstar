@@ -1,6 +1,6 @@
 #+TITLE: Export
-#+DESCRIPTION: Exporting Org files from orgstar to HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar and LaTeX, and to ASCII through Emacs; copying as rich text.
-#+LEDE: orgstar exports HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar and LaTeX itself, and the Mac download version hands ASCII and LaTeX-made PDF to Emacs.
+#+DESCRIPTION: Exporting Org files from orgstar to HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar, LaTeX and ASCII, and to PDF through LaTeX with Emacs; copying as rich text.
+#+LEDE: orgstar exports HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar, LaTeX and ASCII itself, and the Mac download version hands LaTeX-made PDF to Emacs.
 
 * Exporting a file
 
@@ -20,7 +20,7 @@ Export works on the file in the current editor, using its text as it is now, sav
 | PDF through LaTeX  | Export to PDF with Emacs         | =C-c C-e l p= | =SPC m e l p=, =C-c C-e l p= | yes         |
 | LaTeX              | Export to LaTeX                  | =C-c C-e l l= | =C-c C-e l l=                 | no          |
 | ODT                | Export to ODT                    | =C-c C-e o o= | =C-c C-e o o=                 | no          |
-| ASCII text         | Export to Plain Text with Emacs  | =C-c C-e t u= | =C-c C-e t u=                 | yes         |
+| ASCII text         | Export to Plain Text (ASCII)     | =C-c C-e t u= | =C-c C-e t u=                 | no          |
 | iCalendar          | Export to iCalendar              | =C-c C-e c f= | =C-c C-e c f=                 | no          |
 | iCalendar, every agenda file | Export Agenda Files to iCalendar | =C-c C-e c a= | =C-c C-e c a=       | no          |
 | iCalendar, agenda files in one | Combine Agenda Files into iCalendar | =C-c C-e c c= | =C-c C-e c c=  | no          |
@@ -29,15 +29,15 @@ The keys follow Emacs's export dispatcher (=org-export-dispatch=). =C-c C-e= on 
 
 All fourteen commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.docx=, =.rtf=, =.tex=, =.odt=, =.txt= or =.ics=. The two agenda-file commands are the exceptions; see [[*iCalendar export][iCalendar export]]. =#+EXPORT_FILE_NAME:= names it instead, as in Org: relative to the Org file's folder (or absolute, or starting with =~=), with its extension replaced by the format's, so =#+EXPORT_FILE_NAME: out/report= writes =out/report.html=. A file already there is replaced. The message area shows "Exported to /name/".
 
-The [[file:../install.org][Mac App Store version]] has the eleven commands that don't need Emacs; File ▸ Export, the export dialog and the command palette leave out the other three, and a key bound to Export to PDF with Emacs runs Export to PDF. When the export file, or an =#+INCLUDE:= or =#+SETUPFILE:=, is outside your folders, orgstar first asks for access to its folder; for the export file, Save Elsewhere… instead picks another place. See [[file:../install.org][Install]].
+The [[file:../install.org][Mac App Store version]] has the thirteen commands that don't need Emacs; File ▸ Export, the export dialog and the command palette leave out Export to PDF with Emacs, and a key bound to it runs Export to PDF. When the export file, or an =#+INCLUDE:= or =#+SETUPFILE:=, is outside your folders, orgstar first asks for access to its folder; for the export file, Save Elsewhere… instead picks another place. See [[file:../install.org][Install]].
 
 ** The export dialog
 
 *Export…* in the command palette, or =⇧⌘E= in the Mac preset, opens a dialog. The Emacs and Doom presets have no key for it; bind =app.export-dialog= in =keymap.toml= if you want one (see [[file:03-keys.org][Keys and commands]]). The dialog has:
 
-- *Format*: HTML, Markdown, PDF, Word, Rich Text (RTF), Plain text, PDF via LaTeX (Emacs), ODT, LaTeX, Plain text, ASCII (Emacs) or iCalendar. The App Store version lists LaTeX last.
+- *Format*: HTML, Markdown, PDF, Word, Rich Text (RTF), Plain text, PDF via LaTeX (Emacs), ODT, LaTeX, Plain text, ASCII or iCalendar. The App Store version lists LaTeX and Plain text, ASCII last.
 - *Scope*: the whole file, or the subtree at the caret (Org's =C-s= in the dispatcher). A subtree is exported as a document of its own: its heading is the title, its text the body, and its child headings move up a level. iCalendar is the exception: there the subtree's heading is an entry like any other. The file's =#+= keywords still apply, and the heading's =EXPORT_TITLE=, =EXPORT_AUTHOR=, =EXPORT_DATE=, =EXPORT_EMAIL=, =EXPORT_OPTIONS=, =EXPORT_SELECT_TAGS=, =EXPORT_EXCLUDE_TAGS=, =EXPORT_HTML_HEAD= and =EXPORT_HTML_HEAD_EXTRA= properties override them. Its planning line and property drawer are left out. The choice is available when the caret is under a heading.
-- *Body only*: leave out the title and the page around the text (Org's =C-b=). HTML is then the table of contents, the text and the footnotes, without =<html>=, =<head>= or the title; Markdown has no title heading. Not available for PDF, Word, RTF, plain text, ODT and iCalendar.
+- *Body only*: leave out the title and the page around the text (Org's =C-b=). HTML is then the table of contents, the text and the footnotes, without =<html>=, =<head>= or the title; Markdown has no title heading; ASCII has no title block or table of contents. Not available for PDF, Word, RTF, plain text, ODT and iCalendar.
 - *Destination*: where =#+EXPORT_FILE_NAME:= says, or the subtree's =EXPORT_FILE_NAME= property for a subtree, else beside the Org file. *Choose…* picks another place and name. Changing the format changes the extension.
 - *Margins*, *Font* and *Page numbers*, for PDF: see /PDF export/.
 - *Open after export*: opens the file in its default app when the export finishes.
@@ -46,7 +46,7 @@ The dialog remembers the format and the *Open after export* setting. The PDF set
 
 ** On iOS
 
-The Export menu offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, ODT, iCalendar and LaTeX, and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac, except that LaTeX and ODT have no author unless the file has =#+AUTHOR:=. ASCII and PDF through LaTeX are not available on iOS, nor are the agenda-file iCalendar exports.
+The Export menu offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, ODT, iCalendar, LaTeX and Plain Text (ASCII), and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac, except that LaTeX, ODT and ASCII have no author unless the file has =#+AUTHOR:=. PDF through LaTeX is not available on iOS, nor are the agenda-file iCalendar exports.
 
 * HTML export
 
@@ -242,7 +242,7 @@ Export to Word, Export to RTF and Export to Plain Text make the HTML export into
 
 In Word files, the title has Word's Title style and headings have its Heading 1 to Heading 6 styles, so Word's navigation pane, outline view and contents fields find them. Images from =file:= links come through as pictures, as wide as their pixels at 96 to the inch, scaled to =#+ATTR_HTML: :width= when it is set, and no wider than the page. PNG, JPEG and GIF go in as they are; other formats the system can read, such as HEIC, WebP and TIFF, go in as PNG. SVG and images at web addresses are left out. RTF and plain text have no images.
 
-For Org's own ASCII layout, with underlined headings and drawn tables, use Export to Plain Text with Emacs.
+For Org's own ASCII layout, with underlined headings and drawn tables, use Export to Plain Text (ASCII); see /ASCII export/.
 
 ** Copying as rich text
 
@@ -264,6 +264,14 @@ Export to ODT writes an OpenDocument text file (=.odt=) for LibreOffice, Pages o
 - The styles (=styles.xml=) are orgstar's own: A4 pages with 2 cm margins. =#+ODT_STYLES_FILE:= is not read.
 
 The export stops with a message, instead of writing something different from ox-odt, for: a link that leads nowhere, an image file that can't be read, inline tasks, table templates (=#+ATTR_ODT: :style=), a link without a description to a =<<target>>= or to a code line that isn't numbered, an inline source block exported as code, a table in a quote or other block inside a list, an annotation in a dated document, =#+TOC:= with =:target=, and these =#+OPTIONS= at other than their default: =p=, =c=, =prop=, =broken-links=, =:=, =*=, =stat=, =tasks=, =<=, =arch=, =email=, ='=, =tex= other than =t= or =nil=, and =d= with a list of drawers. ODT export is always the whole document: the export dialog's *Body only* doesn't apply.
+
+* ASCII export
+
+Export to Plain Text (ASCII) writes the =.txt= file that Emacs's =org-ascii-export-to-ascii= writes under =emacs -Q= (Org 9.8.7), without Emacs, on the Mac and iOS: a centered title block, a table of contents, numbered headings underlined by level, paragraphs filled to 72 columns, links listed at the end of their section, and footnotes at the end. It uses Org's default =ascii= charset (=org-ascii-charset=), so bullets, rules and table borders are plain ASCII characters. Without =#+AUTHOR:=, the author on the Mac is your account's full name, as =user-full-name= is in Emacs.
+
+=#+TITLE=, =#+SUBTITLE=, =#+AUTHOR=, =#+DATE=, =#+LANGUAGE=, =#+TOC: headlines=, =#+ASCII:= lines, =#+BEGIN_EXPORT ascii= blocks, =@@ascii:...@@= snippets, =#+ATTR_ASCII: :width= on horizontal rules, and the =center=, =justifyleft= and =justifyright= blocks work as in Emacs, as do the tags and =COMMENT= that leave headings out (see /Which headings are exported/). Body-only and subtree export are in the export dialog. In a subtree export, the heading's =EXPORT_TITLE=, =EXPORT_SUBTITLE=, =EXPORT_AUTHOR=, =EXPORT_DATE=, =EXPORT_LANGUAGE=, =EXPORT_OPTIONS=, =EXPORT_SELECT_TAGS= and =EXPORT_EXCLUDE_TAGS= properties replace the file's keywords. Leading tabs in a source block become spaces, as in Emacs.
+
+A file with something this export doesn't handle stops with "Can't export to plain text: " and what it was, rather than giving a =.txt= that differs from Emacs's: citations and =#+BIBLIOGRAPHY=, radio targets, inline tasks, table.el tables, diary sexps, inline source blocks and calls, =#+CALL=, source blocks exported with their results, =#+RESULTS= without a source block, wide or combining characters (such as CJK text, emoji and combining accents), tabs outside source and example blocks or in the indentation of an indented source block, footnote definitions of several paragraphs, footnotes in headings, keywords, captions or other footnotes, =UNNUMBERED= and =ALT_TITLE=, tables with special columns or column groups, empty list items, alphabetical counters, affiliated keywords in list items, blocks whose first line is blank, headings inside blocks, numbered source blocks inside other blocks, verse blocks with more than text, links inside link descriptions, links to =<<targets>>= and named elements, short or repeated captions, unknown entities, a keyword such as =#+SUBTITLE= repeated with an empty value, =#+TOC:= other than =headlines= or with =local= or =:target=, and =#+OPTIONS= items other than =toc=, =num=, =H=, =tags=, =todo=, =pri=, =^=, =tex=, =title=, =author=, =date=, =-=, =<= and =timestamp= set to something other than Org's default. A link Emacs can't resolve stops the export in both, including a link to a heading the export leaves out. On iOS the share sheet stops and the message shows at the bottom of the screen. Publishing to plain text stops with the file's name in the message. In the download version, when Emacs is installed, such a file is exported by Emacs instead (see /Exporting through Emacs/).
 
 * Markdown export
 
@@ -308,7 +316,7 @@ Differences from Org: diary sexps (=%%(…)= lines and =<%%(…)>= timestamps) a
 
 * Publishing
 
-Publishing (=org-publish=) exports a folder of Org files to a folder of HTML, Markdown, LaTeX or ODT files, copies other files beside them, and can write a sitemap. Projects are =[[publish]]= tables in =config.toml=, as =org-publish-project-alist= entries are in Emacs:
+Publishing (=org-publish=) exports a folder of Org files to a folder of HTML, Markdown, LaTeX, ODT or plain text files, copies other files beside them, and can write a sitemap. Projects are =[[publish]]= tables in =config.toml=, as =org-publish-project-alist= entries are in Emacs:
 
 #+BEGIN_SRC toml
 [[publish]]
@@ -341,7 +349,7 @@ components = "notes static"
 | =recursive=            | Files in subfolders too                                                                     | =false=                     |
 | =exclude=              | An Emacs regexp on the file's path under =base-directory=; matching files are left out      |                             |
 | =include=              | More files, relative to =base-directory=, separated by spaces                              |                             |
-| =publishing-function=  | =org-html-publish-to-html=, =org-md-publish-to-md=, =org-latex-publish-to-latex=, =org-odt-publish-to-odt= or =org-publish-attachment= (copied as they are), several separated by spaces | =org-html-publish-to-html= |
+| =publishing-function=  | =org-html-publish-to-html=, =org-md-publish-to-md=, =org-latex-publish-to-latex=, =org-odt-publish-to-odt=, =org-ascii-publish-to-ascii= or =org-publish-attachment= (copied as they are), several separated by spaces | =org-html-publish-to-html= |
 | =body-only=            | The export's body only                                                                      | =false=                     |
 | =auto-sitemap=         | Write a sitemap into =base-directory= and publish it with the rest                          | =false=                     |
 | =sitemap-filename=     | The sitemap's name                                                                          | ="sitemap.org"=             |
@@ -367,14 +375,9 @@ A file whose published copy is newer than it is skipped, as Org skips files that
 
 * Exporting through Emacs
 
-On the Mac, PDF and plain text exports are done by Emacs, with the =ox= functions Emacs's dispatcher uses:
+On the Mac, PDF through LaTeX is done by Emacs, with =org-latex-export-to-pdf=, the function Emacs's dispatcher uses.
 
-| Format     | Function                    |
-|------------+-----------------------------|
-| PDF        | =org-latex-export-to-pdf=   |
-| Plain text | =org-ascii-export-to-ascii= |
-
-LaTeX goes to Emacs (=org-latex-export-to-latex=) only for a file orgstar's own LaTeX export can't write as Emacs would; see /LaTeX export/. The [[file:../install.org][Mac App Store version]] doesn't run Emacs and has none of these exports.
+LaTeX and plain text go to Emacs (=org-latex-export-to-latex=, =org-ascii-export-to-ascii=) only for a file orgstar's own export can't write as Emacs would; see /LaTeX export/ and /ASCII export/. The [[file:../install.org][Mac App Store version]] doesn't run Emacs and has none of these exports.
 
 orgstar runs =emacs -Q --batch= in the Org file's folder. It opens the file, replaces its contents with the editor's current text without saving, and calls the function. Emacs writes the result beside the file, as it would itself; with a destination chosen in the export dialog, orgstar then moves it there. The message area shows "Exporting with Emacs…" and then "Exported to /name/".
 
