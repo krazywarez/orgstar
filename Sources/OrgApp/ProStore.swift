@@ -24,6 +24,15 @@ public final class ProStore {
         #endif
     }()
 
+    /// How much a yearly price saves against twelve monthly ones, in whole percent, or nil when
+    /// it saves nothing.
+    public nonisolated static func yearlySavings(yearly: Decimal, monthly: Decimal) -> Int? {
+        guard monthly > 0 else { return nil }
+        let ratio = NSDecimalNumber(decimal: yearly / (monthly * 12)).doubleValue
+        let percent = Int((1 - ratio) * 100)
+        return percent > 0 ? percent : nil
+    }
+
     public private(set) var products: [Product] = []
     public private(set) var activeProductID: String?
     public private(set) var busy = false

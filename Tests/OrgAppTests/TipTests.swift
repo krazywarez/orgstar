@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import OrgApp
 
@@ -34,6 +35,13 @@ struct ProStoreTests {
         #else
         #expect(!ProStore.grandfathers)
         #endif
+    }
+
+    @Test func yearlySavingsAreWholePercentAgainstTwelveMonths() {
+        #expect(ProStore.yearlySavings(yearly: Decimal(string: "39.99")!, monthly: Decimal(string: "4.99")!) == 33)
+        #expect(ProStore.yearlySavings(yearly: 60, monthly: 5) == nil)
+        #expect(ProStore.yearlySavings(yearly: 70, monthly: 5) == nil)
+        #expect(ProStore.yearlySavings(yearly: 10, monthly: 0) == nil)
     }
 }
 #endif

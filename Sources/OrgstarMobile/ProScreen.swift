@@ -140,11 +140,9 @@ struct ProScreen: View {
     /// How much the yearly plan saves against twelve months, in whole percent.
     private func savings(_ product: Product) -> Int? {
         guard product.id == ProStore.yearly,
-              let monthly = store.products.first(where: { $0.id == ProStore.monthly }), monthly.price > 0
+              let monthly = store.products.first(where: { $0.id == ProStore.monthly })
         else { return nil }
-        let ratio = NSDecimalNumber(decimal: product.price / (monthly.price * 12)).doubleValue
-        let percent = Int((1 - ratio) * 100)
-        return percent > 0 ? percent : nil
+        return ProStore.yearlySavings(yearly: product.price, monthly: monthly.price)
     }
 
     private var status: LocalizedStringKey {
