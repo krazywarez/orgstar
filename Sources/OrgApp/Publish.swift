@@ -91,8 +91,8 @@ public enum Publish {
     /// Absolute, `~/…`, or relative to `root`.
     static func resolve(_ path: String, root: String?) -> String {
         if path.hasPrefix("/") { return path }
-        if path.hasPrefix("~") { return (path as NSString).expandingTildeInPath }
-        return ((root ?? NSHomeDirectory()) as NSString).appendingPathComponent(path)
+        if path.hasPrefix("~") { return OrgPaths.expandingTilde(path) }
+        return ((root ?? OrgPaths.home) as NSString).appendingPathComponent(path)
     }
 
     public struct Failure: Error, Equatable, CustomStringConvertible {

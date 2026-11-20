@@ -172,14 +172,14 @@ extension DocumentSession {
     /// A template's file: absolute, `~/…`, or relative to `root`.
     public static func resolve(_ file: String, root: String?) -> String {
         if file.hasPrefix("/") { return file }
-        if file.hasPrefix("~") { return (file as NSString).expandingTildeInPath }
-        return ((root ?? NSHomeDirectory()) as NSString).appendingPathComponent(file)
+        if file.hasPrefix("~") { return OrgPaths.expandingTilde(file) }
+        return ((root ?? OrgPaths.home) as NSString).appendingPathComponent(file)
     }
 
     /// `%a`: a link to the heading at the caret, as `org-store-link` makes one.
     public func captureAnnotation() -> String {
         guard let path, self.document != nil else { return "" }
-        let abbreviated = path.hasPrefix(NSHomeDirectory()) ? "~" + path.dropFirst(NSHomeDirectory().count) : Substring(path)
+        let abbreviated = path.hasPrefix(OrgPaths.home) ? "~" + path.dropFirst(OrgPaths.home.count) : Substring(path)
         guard let entry = outline.last(where: { $0.start <= caret }) else { return "[[file:\(abbreviated)]]" }
         return "[[file:\(abbreviated)::*\(entry.title)][\(entry.title)]]"
     }

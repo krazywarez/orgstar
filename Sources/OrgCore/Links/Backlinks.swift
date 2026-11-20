@@ -20,7 +20,7 @@ public enum Backlinks {
     }
 
     /// Whether `link`, written in the file at `source`, leads to `target`.
-    public static func links(_ link: String, from source: String, to target: Target, home: String = NSHomeDirectory()) -> Bool {
+    public static func links(_ link: String, from source: String, to target: Target, home: String = OrgPaths.home) -> Bool {
         let link = Links.unescape(link)
         if link.lowercased().hasPrefix("id:") {
             let id = link.dropFirst(3).components(separatedBy: "::")[0]

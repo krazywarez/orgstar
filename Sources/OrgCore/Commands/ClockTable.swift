@@ -435,7 +435,7 @@ extension EmacsBuffer {
             var expanded: [String] = []
             for item in list {
                 guard let name = item.string else { throw UserError(message: "Unknown scope: \(scopeValue.description)") }
-                var file = (name as NSString).expandingTildeInPath
+                var file = OrgPaths.expandingTilde(name)
                 if !file.hasPrefix("/"), let base { file = (base as NSString).appendingPathComponent(file) }
                 file = (file as NSString).standardizingPath
                 var isDirectory: ObjCBool = false

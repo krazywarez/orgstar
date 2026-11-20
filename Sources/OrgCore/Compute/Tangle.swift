@@ -153,7 +153,7 @@ public enum Tangle {
         lisp.define("expand-file-name") { lisp, args in
             try Elisp.arity(args, 1...2, "expand-file-name")
             let base = args.count > 1 && !Elisp.isNil(args[1]) ? try string(args, 1) : (try Elisp.string(lisp.value("default-directory")))
-            return .string(expand(try string(args, 0), in: (base as NSString).expandingTildeInPath))
+            return .string(expand(try string(args, 0), in: OrgPaths.expandingTilde(base)))
         }
         lisp.define("file-name-directory") { _, args in
             try Elisp.arity(args, 1...1, "file-name-directory")
@@ -206,7 +206,7 @@ public enum Tangle {
 
     /// `expand-file-name`.
     static func expand(_ name: String, in directory: String) -> String {
-        let expanded = (name as NSString).expandingTildeInPath
+        let expanded = OrgPaths.expandingTilde(name)
         let absolute = expanded.hasPrefix("/") ? expanded : (directory as NSString).appendingPathComponent(expanded)
         return (absolute as NSString).standardizingPath
     }

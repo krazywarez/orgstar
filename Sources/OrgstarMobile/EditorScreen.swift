@@ -337,7 +337,7 @@ struct EditorScreen: View {
         case "org.link.store":
             let context = editor.editContext()
             let denote = OrgPreferences.usesDenote() ? Links.storeDenote(in: context, path: path) : nil
-            message = StoredLink.add(denote ?? Links.store(in: context, path: Links.abbreviate(path, home: NSHomeDirectory())), to: &model.storedLinks)
+            message = StoredLink.add(denote ?? Links.store(in: context, path: Links.abbreviate(path, home: OrgPaths.home)), to: &model.storedLinks)
         case "org.id.store-link":
             if case .commit = editor.perform(CreateID()),
                let link = Links.storeID(in: editor.editContext(), fileName: (path as NSString).lastPathComponent) {

@@ -223,7 +223,7 @@ public struct AgendaSnapshot: Codable, Equatable, Sendable {
     #if os(macOS)
     /// From the account's home folder, not a sandbox container's.
     static var macWidgetsFolder: URL {
-        let home = getpwuid(getuid())?.pointee.pw_dir.map { String(cString: $0) } ?? NSHomeDirectory()
+        let home = OrgPaths.home
         return URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/Orgstar/Widgets")
     }
     #endif

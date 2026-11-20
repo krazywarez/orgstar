@@ -199,7 +199,7 @@ public enum Archive {
         if fileFormat.contains(where: { !$0.isWhitespace }) {
             let file = fileFormat.replacingOccurrences(of: "%s", with: name)
             let directory = (sourcePath as NSString).deletingLastPathComponent
-            path = ((file as NSString).isAbsolutePath ? file : (directory as NSString).appendingPathComponent(file)).replacingOccurrences(of: "~", with: NSHomeDirectory(), options: .anchored)
+            path = ((file as NSString).isAbsolutePath ? file : (directory as NSString).appendingPathComponent(file)).replacingOccurrences(of: "~", with: OrgPaths.home, options: .anchored)
         } else {
             path = sourcePath
         }
@@ -215,7 +215,7 @@ public enum Archive {
         guard fileFormat.contains(where: { !$0.isWhitespace }) else { return sourcePath }
         let file = fileFormat.replacingOccurrences(of: "%s", with: (sourcePath as NSString).lastPathComponent)
         let directory = (sourcePath as NSString).deletingLastPathComponent
-        let path = ((file as NSString).isAbsolutePath ? file : (directory as NSString).appendingPathComponent(file)).replacingOccurrences(of: "~", with: NSHomeDirectory(), options: .anchored)
+        let path = ((file as NSString).isAbsolutePath ? file : (directory as NSString).appendingPathComponent(file)).replacingOccurrences(of: "~", with: OrgPaths.home, options: .anchored)
         return (path as NSString).standardizingPath
     }
 
@@ -258,7 +258,7 @@ public enum Archive {
 
     /// `~/` for paths in the home folder, as `abbreviate-file-name`.
     static func abbreviate(_ path: String) -> String {
-        let home = NSHomeDirectory()
+        let home = OrgPaths.home
         return path.hasPrefix(home + "/") ? "~" + path.dropFirst(home.count) : path
     }
 

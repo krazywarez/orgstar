@@ -25,7 +25,7 @@ public enum SetupFile {
             var value = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
             if value.count >= 2, value.hasPrefix("\""), value.hasSuffix("\"") { value = String(value.dropFirst().dropLast()) }
             guard !value.isEmpty, value.range(of: "^[a-zA-Z][a-zA-Z0-9+.-]*://", options: .regularExpression) == nil else { continue }
-            let expanded = (value as NSString).expandingTildeInPath
+            let expanded = OrgPaths.expandingTilde(value)
             let path = ((expanded.hasPrefix("/") ? expanded : (directory as NSString).appendingPathComponent(expanded)) as NSString).standardizingPath
             guard !seen.contains(path), let contents = read(path) else { continue }
             out += lines(in: contents, directory: (path as NSString).deletingLastPathComponent, read: read, own: true, seen: seen.union([path]))

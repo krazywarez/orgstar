@@ -1,4 +1,5 @@
 import Foundation
+import OrgCore
 
 /// `org-agenda-files` as the `(org-agenda-files)` function reads it: each entry a folder (its
 /// `.org` files not starting with a dot, in name order, not below it), an `.org` file, or a
@@ -9,7 +10,7 @@ public enum AgendaFiles {
         var out: [String] = []
         var seen: Set<String> = []
         func expand(_ entry: String, from base: String?) -> String {
-            let path = (entry as NSString).expandingTildeInPath
+            let path = OrgPaths.expandingTilde(entry)
             if path.hasPrefix("/") || base == nil { return (path as NSString).standardizingPath }
             return ((base! as NSString).appendingPathComponent(path) as NSString).standardizingPath
         }

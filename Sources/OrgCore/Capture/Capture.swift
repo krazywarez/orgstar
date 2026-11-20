@@ -171,7 +171,7 @@ public struct CaptureContext: Sendable {
     public var linkProperties: [String: String] = [:]
     /// `%[file]`: what relative paths are relative to, and the contents of a file by its
     /// absolute path, nil when it can't be read.
-    public var directory = NSHomeDirectory()
+    public var directory = OrgPaths.home
     public var readFile: @Sendable (String) -> String? = { _ in nil }
 
     public init(
@@ -390,7 +390,7 @@ public enum Capture {
                 buffer.release(end)
             }
             if unescape(buffer, at: start.position) { continue }
-            let expanded = name.hasPrefix("~") ? NSHomeDirectory() + name.dropFirst() : name
+            let expanded = name.hasPrefix("~") ? OrgPaths.home + name.dropFirst() : name
             let path = ((expanded as NSString).isAbsolutePath ? expanded : (context.directory as NSString).appendingPathComponent(expanded) as String)
             let file = (path as NSString).standardizingPath
             buffer.deleteRegion(start.position, end.position)

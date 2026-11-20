@@ -63,7 +63,7 @@ public enum PDFExport {
         } else if path.hasPrefix("/") {
             url = URL(fileURLWithPath: path)
         } else if path.hasPrefix("~/") {
-            url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+            url = URL(fileURLWithPath: OrgPaths.expandingTilde(path))
         } else if !path.contains(":"), let directory {
             url = directory.appendingPathComponent(path)
         } else {

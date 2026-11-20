@@ -48,13 +48,13 @@ public enum ImageYank {
     /// file's folder, else absolute with `~` for the home folder.
     static func fileLink(_ path: String, from orgPath: String) -> String {
         let folder = (orgPath as NSString).deletingLastPathComponent + "/"
-        let target = path.hasPrefix(folder) ? String(path.dropFirst(folder.count)) : (path as NSString).abbreviatingWithTildeInPath
+        let target = path.hasPrefix(folder) ? String(path.dropFirst(folder.count)) : OrgPaths.abbreviatingWithTilde(path)
         return "[[file:\(target)]]"
     }
 
     /// The folder a `directory` method names, made if missing.
     static func folder(_ dir: String, for entry: Attachments.Entry) throws -> String {
-        let folder = OrgAttach.expand((dir as NSString).expandingTildeInPath, in: (entry.path as NSString).deletingLastPathComponent)
+        let folder = OrgAttach.expand(OrgPaths.expandingTilde(dir), in: (entry.path as NSString).deletingLastPathComponent)
         try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
         return folder
     }

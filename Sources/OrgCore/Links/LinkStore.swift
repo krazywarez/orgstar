@@ -235,7 +235,7 @@ public struct InsertLink: OrgCommand {
     public let file: String?
     public let home: String
 
-    public init(stored: [StoredLink] = [], file: String? = nil, home: String = NSHomeDirectory()) {
+    public init(stored: [StoredLink] = [], file: String? = nil, home: String = OrgPaths.home) {
         self.stored = stored
         self.file = file
         self.home = home

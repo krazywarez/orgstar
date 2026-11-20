@@ -83,9 +83,9 @@ extension DocumentSession {
 
     /// A file link's path against the open file's folder, as Org resolves relative links.
     public static func resolve(_ path: String, from current: String?) -> String {
-        let expanded = (path as NSString).expandingTildeInPath
+        let expanded = OrgPaths.expandingTilde(path)
         if expanded.hasPrefix("/") { return (expanded as NSString).standardizingPath }
-        let folder = current.map { ($0 as NSString).deletingLastPathComponent } ?? NSHomeDirectory()
+        let folder = current.map { ($0 as NSString).deletingLastPathComponent } ?? OrgPaths.home
         return ((folder as NSString).appendingPathComponent(expanded) as NSString).standardizingPath
     }
 

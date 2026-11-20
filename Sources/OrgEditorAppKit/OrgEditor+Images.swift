@@ -54,7 +54,7 @@ extension OrgEditor {
             }
             return data.flatMap(NSImage.init(data:))
         }
-        let expanded = (path as NSString).expandingTildeInPath
+        let expanded = OrgPaths.expandingTilde(path)
         let url = expanded.hasPrefix("/") ? URL(fileURLWithPath: expanded) : (baseDirectory ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath)).appendingPathComponent(expanded)
         let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate?.timeIntervalSince1970 ?? 0
         let key = "\(url.path)|\(modified)" as NSString

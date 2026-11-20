@@ -1192,7 +1192,7 @@ struct ContentView: View {
             guard let editor = commands.editor, let path = session.path else { return commands.show("No method for storing a link from this buffer") }
             let context = editor.context()
             let denote = OrgPreferences.usesDenote() ? Links.storeDenote(in: context, path: path) : nil
-            commands.storeLink(denote ?? Links.store(in: context, path: Links.abbreviate(path, home: NSHomeDirectory())))
+            commands.storeLink(denote ?? Links.store(in: context, path: Links.abbreviate(path, home: OrgPaths.home)))
         case "org.id.store-link":
             guard let editor = commands.editor, let path = session.path else { return }
             if case .commit = editor.perform(CreateID()),

@@ -389,7 +389,7 @@ struct CiteProcessor {
         // Each `#+bibliography:` names one file.
         for m in text.matches(of: #/(?mi)^[ \t]*#\+bibliography:[ \t]*(.*?)[ \t]*$/#) {
             for name in [String(m.1)].map({ $0.count > 1 && $0.hasPrefix("\"") && $0.hasSuffix("\"") ? String($0.dropFirst().dropLast()) : $0 }) where !name.isEmpty {
-                let path = (name as NSString).expandingTildeInPath
+                let path = OrgPaths.expandingTilde(name)
                 let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : (directory ?? URL(fileURLWithPath: "/")).appendingPathComponent(path)
                 guard let data = try? Data(contentsOf: url) else { continue }
                 let parsed = url.pathExtension.lowercased() == "json" ? Self.parseJSON(data) : Self.parseBibTeX(String(decoding: data, as: UTF8.self))

@@ -73,7 +73,7 @@ public struct Dailies: Sendable, Equatable {
                                             interval: OrgPreferences.denoteJournalInterval(defaults)))
         }
         let roam = OrgPreferences.roamDirectory(defaults)
-        guard let base = roam.isEmpty ? roots.first : OrgAttach.expand(roam, in: roots.first ?? NSHomeDirectory()) else { return nil }
+        guard let base = roam.isEmpty ? roots.first : OrgAttach.expand(roam, in: roots.first ?? OrgPaths.home) else { return nil }
         return Dailies(directory: OrgAttach.expand(OrgPreferences.dailiesDirectory(defaults), in: base),
                        file: OrgPreferences.dailiesFile(defaults), head: OrgPreferences.dailiesHead(defaults), entry: OrgPreferences.dailiesEntry(defaults))
     }

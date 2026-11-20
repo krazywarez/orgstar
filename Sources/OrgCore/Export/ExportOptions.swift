@@ -117,7 +117,7 @@ public enum ExportPreprocess {
                 target = String(spec[r.upperBound...])
             }
             let url = (file as NSString).isAbsolutePath || directory == nil
-                ? URL(fileURLWithPath: (file as NSString).expandingTildeInPath)
+                ? URL(fileURLWithPath: OrgPaths.expandingTilde(file))
                 : directory!.appendingPathComponent(file)
             guard var included = try? String(contentsOf: url, encoding: .utf8) else {
                 lines.append("")

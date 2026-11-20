@@ -59,7 +59,7 @@ public enum ExportScope {
     /// expanded) with its extension replaced by `ext`, or the source's name with `ext`.
     public static func output(for source: URL, name: String?, extension ext: String) -> URL {
         guard let name, !name.isEmpty else { return source.deletingPathExtension().appendingPathExtension(ext) }
-        let expanded = (name as NSString).expandingTildeInPath
+        let expanded = OrgPaths.expandingTilde(name)
         let url = expanded.hasPrefix("/") ? URL(fileURLWithPath: expanded) : source.deletingLastPathComponent().appendingPathComponent(expanded)
         return url.deletingPathExtension().appendingPathExtension(ext).standardizedFileURL
     }

@@ -410,7 +410,7 @@ extension EmacsBuffer {
             case "local", "nil", "": break
             case let value where value.hasPrefix("file:"):
                 // `file:PATH`: the whole file, read from disk; relative to this file's folder.
-                var path = (String(value.dropFirst(5)) as NSString).expandingTildeInPath
+                var path = OrgPaths.expandingTilde(String(value.dropFirst(5)))
                 if !path.hasPrefix("/"), let file = options.filePath { path = ((file as NSString).deletingLastPathComponent as NSString).appendingPathComponent(path) }
                 guard let text = path == options.filePath ? string : try? String(contentsOfFile: path, encoding: .utf8) else {
                     throw UserError(message: "No such file: \"\(value)\"")

@@ -221,7 +221,7 @@ public enum OrgPreferences {
     }
     /// `org-icalendar-combined-agenda-file`, `~` expanded.
     public static func icalendarCombinedFile(_ defaults: UserDefaults = .standard) -> String {
-        (string("icalendarCombinedAgendaFile", defaults) as NSString).expandingTildeInPath
+        OrgPaths.expandingTilde(string("icalendarCombinedAgendaFile", defaults))
     }
     /// `org-stuck-projects`.
     public static func stuckProjects(_ defaults: UserDefaults = .standard) -> StuckProjects {

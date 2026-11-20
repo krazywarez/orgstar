@@ -24,7 +24,7 @@ extension PlotOutput {
         try data.write(to: dataFile, atomically: true, encoding: .utf8)
         var script = TablePlot.script(plot, dataFile: dataFile.path, output: output.path, yLabels: labels)
         if let custom = plot.options["script"]?.description {
-            let path = (custom as NSString).expandingTildeInPath
+            let path = OrgPaths.expandingTilde(custom)
             let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : (directory ?? folder).appendingPathComponent(path)
             guard let text = try? String(contentsOf: url, encoding: .utf8) else { throw Failure(description: "Can't read \(custom)") }
             script = TablePlot.script(plot, dataFile: dataFile.path, output: output.path, yLabels: labels, preface: true)

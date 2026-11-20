@@ -17,7 +17,7 @@ public enum OrgAttach {
 
     /// `expand-file-name` of `path` in `folder`: `.` and `..` resolved, symbolic links not.
     public static func expand(_ path: String, in folder: String) -> String {
-        let expanded = (path as NSString).expandingTildeInPath
+        let expanded = OrgPaths.expandingTilde(path)
         let absolute = expanded.hasPrefix("/") ? expanded : (folder as NSString).appendingPathComponent(expanded)
         return URL(fileURLWithPath: absolute).standardized.path
     }

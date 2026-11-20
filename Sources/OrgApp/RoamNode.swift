@@ -8,7 +8,7 @@ public enum RoamNode {
     /// `org-roam-directory`: the setting, else the first folder.
     public static func directory(roots: [String], defaults: UserDefaults = .standard) -> String? {
         let roam = OrgPreferences.roamDirectory(defaults)
-        return roam.isEmpty ? roots.first : OrgAttach.expand(roam, in: roots.first ?? NSHomeDirectory())
+        return roam.isEmpty ? roots.first : OrgAttach.expand(roam, in: roots.first ?? OrgPaths.home)
     }
 
     /// `org-roam-node-slugify`: without the combining marks org-roam drops, everything but

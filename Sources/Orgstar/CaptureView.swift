@@ -164,7 +164,7 @@ struct CaptureView: View {
         keys = ""
         day = nil
         let clocked = clock.running
-        let clockFile = clocked.map { Links.abbreviate($0.path, home: NSHomeDirectory()) }
+        let clockFile = clocked.map { Links.abbreviate($0.path, home: OrgPaths.home) }
         context = CaptureContext(
             initial: commands.editor?.selectedText ?? "",
             annotation: session.captureAnnotation(),

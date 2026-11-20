@@ -25,12 +25,12 @@ public enum DenoteNote {
 
     static func paths(_ setting: String, roots: [String]) -> [String] {
         setting.split(separator: ":").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-            .map { OrgAttach.expand($0, in: roots.first ?? NSHomeDirectory()) }
+            .map { OrgAttach.expand($0, in: roots.first ?? OrgPaths.home) }
     }
 
     /// A folder as the folder prompts show it, under `~` when it's in the home folder.
     public static func abbreviated(_ path: String) -> String {
-        let home = NSHomeDirectory()
+        let home = OrgPaths.home
         return path == home || path.hasPrefix(home + "/") ? "~" + path.dropFirst(home.count) : path
     }
 

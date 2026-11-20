@@ -185,7 +185,7 @@ extension WorkspaceModel {
             case .paths(let list):
                 let base = openPath.map { ($0 as NSString).deletingLastPathComponent } ?? rootPaths.first
                 paths = list.map { entry in
-                    let path = (entry as NSString).expandingTildeInPath
+                    let path = OrgPaths.expandingTilde(entry)
                     return ((path.hasPrefix("/") || base == nil ? path : (base! as NSString).appendingPathComponent(path)) as NSString).standardizingPath
                 }
             }

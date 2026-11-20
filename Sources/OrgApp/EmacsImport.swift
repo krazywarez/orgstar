@@ -71,7 +71,7 @@ public struct EmacsImport: Sendable {
 
     /// Where an Emacs configuration usually is, first found first.
     public static func defaultLocations() -> [URL] {
-        let home = URL(fileURLWithPath: NSHomeDirectory())
+        let home = URL(fileURLWithPath: OrgPaths.home)
         let environment = ProcessInfo.processInfo.environment
         var candidates: [URL] = []
         if let doom = environment["DOOMDIR"] { candidates.append(URL(fileURLWithPath: doom)) }
@@ -87,7 +87,7 @@ public struct EmacsImport: Sendable {
 
     /// Doom's org module and core defaults, if Doom is installed.
     static func doomDefaultFiles() -> [URL] {
-        let home = URL(fileURLWithPath: NSHomeDirectory())
+        let home = URL(fileURLWithPath: OrgPaths.home)
         let environment = ProcessInfo.processInfo.environment
         let installs = ([environment["EMACSDIR"]].compactMap { $0 }.map { URL(fileURLWithPath: $0) })
             + [".config/emacs", ".emacs.d"].map { home.appendingPathComponent($0) }
@@ -469,7 +469,7 @@ public struct EmacsImport: Sendable {
         var folders: Set<String> = []
         items.removeAll { item in
             guard case .folder(let path) = item.change else { return false }
-            let key = (path as NSString).expandingTildeInPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let key = OrgPaths.expandingTilde(path).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             return !folders.insert(key).inserted
         }
         for binding in scanner.bindings {
@@ -1090,7 +1090,7 @@ extension EmacsImport {
         }
         for item in items {
             guard case .folder(let path) = item.change else { continue }
-            let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL
+            let url = URL(fileURLWithPath: OrgPaths.expandingTilde(path)).standardizedFileURL
             guard let workspace, FileManager.default.fileExists(atPath: url.path) else {
                 problems.append("\(path) doesn't exist")
                 continue

@@ -109,7 +109,7 @@ struct PaneView: NSViewRepresentable {
         }
         editor.onAppCommand = onAppCommand
         editor.onOpenFile = { [weak session, weak commands] typed in
-            let expanded = (typed as NSString).expandingTildeInPath
+            let expanded = OrgPaths.expandingTilde(typed)
             let base = URL(fileURLWithPath: path).deletingLastPathComponent()
             let target = expanded.hasPrefix("/") ? expanded : base.appendingPathComponent(expanded).standardizedFileURL.path
             guard FileManager.default.fileExists(atPath: target) else {

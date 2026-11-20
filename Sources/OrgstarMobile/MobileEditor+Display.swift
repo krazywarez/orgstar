@@ -93,7 +93,7 @@ extension MobileEditor {
             guard let url = URL(string: path) else { return nil }
             return RemoteImages.shared.data(for: url, mode: remote, loaded: loaded).flatMap(UIImage.init(data:))
         }
-        let expanded = (path as NSString).expandingTildeInPath
+        let expanded = OrgPaths.expandingTilde(path)
         let url: URL
         if expanded.hasPrefix("/") {
             url = URL(fileURLWithPath: expanded)

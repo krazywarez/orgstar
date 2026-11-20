@@ -223,8 +223,8 @@ public enum PlotOutput {
     /// `file:` relative to the Org file's folder.
     public static func file(_ plot: TablePlot.Plot, directory: URL?) -> URL? {
         guard let name = plot.options.file, !name.isEmpty else { return nil }
-        let expanded = (name as NSString).expandingTildeInPath
-        return expanded.hasPrefix("/") ? URL(fileURLWithPath: expanded) : (directory ?? URL(fileURLWithPath: NSHomeDirectory())).appendingPathComponent(expanded)
+        let expanded = OrgPaths.expandingTilde(name)
+        return expanded.hasPrefix("/") ? URL(fileURLWithPath: expanded) : (directory ?? URL(fileURLWithPath: OrgPaths.home)).appendingPathComponent(expanded)
     }
 
     /// The chart as gnuplot's default 640×480, as PNG, JPEG or PDF by the file's extension.
