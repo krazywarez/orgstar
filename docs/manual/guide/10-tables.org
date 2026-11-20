@@ -231,9 +231,9 @@ In a Calc formula a single field becomes a number in parentheses, and a range be
 a vector such as =[1,2,3]=. Without the =E= flag, empty fields count as 0 on their own
 and are left out of ranges.
 
-Fields in a Calc formula must hold numbers, timestamps or =nan=, unless the =N= flag
-reads every field as a number. A reference to a field with other text needs Emacs,
-because Calc would treat the text as a symbol.
+Fields in a Calc formula must hold numbers, fractions such as =1:30=, timestamps or
+=nan=, unless the =N= flag reads every field as a number. A reference to a field with
+other text needs Emacs, because Calc would treat the text as a symbol.
 
 ** Names, parameters and constants
 
@@ -311,22 +311,25 @@ Calc formulas use Calc's number rules: integers are exact, and decimal numbers a
 rounded to 12 significant digits after every operation. Results are shown with up to
 8 significant digits unless a format flag says otherwise (=org-calc-default-modes=).
 
-Operators, from lowest to highest precedence (the lowest, ~||~, is logical or, giving
-1 or 0):
+Operators, from lowest to highest precedence (the lowest, ~||~, is logical or: the left
+side if it is nonzero, else the right side):
 
 | Operator                           | Meaning                                                   |
 |------------------------------------+-----------------------------------------------------------|
-| =&&=                               | Logical and.                                              |
+| =&&=                               | Logical and: the left side if it is zero, else the right side. |
 | =!=                                | Logical not.                                              |
 | ~==~, ~!=~, =<=, =>=, ~<=~, ~>=~    | Comparisons, giving 1 or 0. They can't be chained.        |
 | =+=, =-=                           | Addition and subtraction.                                 |
 | =/=, =%=, =\=                      | Division, modulo (sign of the divisor), integer division rounding down. |
-| =*=                                | Multiplication.                                           |
+| =*=                                | Multiplication. Values side by side also multiply: =2 3=, =2 (x)=. |
 | unary =-=                          | Negation.                                                 |
 | =^=                                | Power.                                                    |
+| =!=, =!!= after a value            | Factorial, double factorial.                              |
+| =%= after a value                  | Percent: =5%= is =0.05=. Followed by a value, =%= is modulo instead. |
 
 Parentheses group, =[a, b, c]= writes a vector, =<2026-10-05 Mon>= writes a date, and
-=nan= is "not a number".
+=nan= is "not a number". =1:3= writes the fraction one third and =1:2:3= one and two
+thirds; =16#FF= writes an integer in base 16 (any base from 2 to 36).
 
 Functions:
 
@@ -335,22 +338,42 @@ Functions:
 | =vsum=, =vprod=                            | Sum or product of a vector.                                   |
 | =vcount=                                   | Number of elements.                                           |
 | =vmean=, =vmedian=                         | Mean, median.                                                 |
+| =vgmean=, =vhmean=                         | Geometric mean, harmonic mean.                                |
 | =vmax=, =vmin=                             | Largest, smallest element.                                    |
 | =vvar=, =vsdev=                            | Sample variance, sample standard deviation.                   |
 | =vpvar=, =vpsdev=                          | Population variance, population standard deviation.           |
+| =vcov(x, y)=, =vpcov(x, y)=, =vcorr(x, y)= | Sample and population covariance, correlation coefficient.    |
+| =vflat=                                    | The arguments as one vector.                                  |
+| =agmean(a, b)=                             | Arithmetic-geometric mean.                                    |
 | =max(a, b, …)=, =min(a, b, …)=             | Largest, smallest argument.                                   |
 | =if(c, a, b)=                              | =a= if =c= is nonzero, else =b=.                              |
 | =abs=                                      | Absolute value.                                               |
 | =floor=, =ceil=, =trunc=                   | Round down, up, toward zero, to an integer.                   |
 | =round(x)=, =round(x, n)=                  | Round to an integer, or to /n/ decimal places.                |
+| =rounde=, =roundu=                         | As =round=, with halves going to even, or up.                 |
+| =frac(x)=                                  | The fraction nearest to /x/.                                  |
+| =fdiv(a, b)=                               | /a/ divided by /b/ as a fraction.                             |
+| =float(x)=, =pfloat(x)=                    | /x/ as a decimal number.                                      |
+| =sign=                                     | -1, 0 or 1.                                                   |
 | =mod(a, b)=, =idiv(a, b)=                  | As =%= and =\=.                                               |
-| =fact=                                     | Factorial of a non-negative integer.                          |
+| =gcd(a, b)=, =lcm(a, b)=                   | Greatest common divisor, least common multiple.               |
+| =fact=, =dfact=                            | Factorial and double factorial of a non-negative integer.     |
+| =choose(n, m)=, =perm(n, m)=               | Binomial coefficient and permutations, of integers.           |
 | =sqrt=, =exp=, =ln=, =log10=               | Square root, exponential, natural and base-10 logarithm.      |
+| =log(x, b)=                                | Logarithm of /x/ to base /b/.                                 |
+| =pow(x, y)=, =nroot(x, n)=, =exp10(n)=     | /x/ to the power /y/, /n/-th root, 10 to an integer power.    |
+| =hypot(a, b)=                              | The square root of /a/² + /b/².                               |
 | =sin=, =cos=, =tan=                        | Trigonometry, in degrees unless the =R= flag is set.          |
-| =arcsin=, =arccos=, =arctan=               | Inverse trigonometry, in degrees unless =R=.                  |
+| =arcsin=, =arccos=, =arctan=, =arctan2(y, x)= | Inverse trigonometry, in degrees unless =R=.               |
+| =sinh=, =cosh=, =tanh=                     | Hyperbolic functions.                                         |
+| =arcsinh=, =arccosh=, =arctanh=            | Inverse hyperbolic functions.                                 |
+| =deg=, =rad=                               | Radians to degrees, degrees to radians.                       |
+| =eq=, =neq=, =lt=, =gt=, =leq=, =geq=      | As ~==~, ~!=~, =<=, =>=, ~<=~ and ~>=~.                       |
+| =land=, =lor=, =lnot=                      | As =&&=, ~||~ and =!=.                                        |
 
-Other Calc functions, variables such as =pi= or =e=, symbolic results, complex results
-and division by zero need Emacs.
+The statistics functions take any number of vectors and numbers, as in
+=vmean($2..$4, $6)=. Other Calc functions, variables such as =pi= or =e= (which Calc
+keeps as symbols), symbolic results, complex results and division by zero need Emacs.
 
 ** Mode flags and formats
 
@@ -362,7 +385,7 @@ After the formula, a =;= starts its flags, as in ~$3=$1/$2;%.2f~ or ~$4=$1*2;f2~
 | =fN=      | Fixed format with /N/ decimal places.                                                     |
 | =sN=      | Scientific format with /N/ digits.                                                        |
 | =eN=      | Engineering format with /N/ digits.                                                       |
-| =pN=      | Calc precision. Only =p12=, the default, is evaluated natively; others need Emacs.        |
+| =pN=      | Calc precision, 3 to 18 digits (12 by default). See below for limits.                     |
 | =D=, =R=  | Angles in degrees (the default) or radians.                                               |
 | =F=       | Prefer fractions: =1/3= stays =1:3=.                                                      |
 | =N=       | Treat every field as a number; text counts as 0.                                          |
@@ -371,6 +394,10 @@ After the formula, a =;= starts its flags, as in ~$3=$1/$2;%.2f~ or ~$4=$1*2;f2~
 | =T=       | Durations: read =H:MM= and =H:MM:SS= fields as times, show the result as =HH:MM:SS=.      |
 | =U=       | As =T=, showing =HH:MM=.                                                                  |
 | =t=       | As =T=, showing decimal hours with two places, such as =1.50=.                            |
+
+Above =p14=, functions worked out from decimal approximations (=sqrt= of a non-square,
+=exp=, =ln=, =log=, non-integer powers, trigonometric and hyperbolic functions) may need
+Emacs, and above =p16= so may the statistics functions.
 
 The flags =S= (symbolic) and =u= need Emacs. Any other text after the flags is a
 =format= string applied to the result, such as =%.2f= or =%d=; =format= supports
@@ -515,8 +542,8 @@ When a formula uses something the native evaluator doesn't have, the command rep
 what it was and the Mac recalculates the table in Emacs instead. This happens for:
 
 - references to fields holding text in a Calc formula, and symbolic results;
-- Calc functions and variables not listed above, precision other than =p12=, and the
-  =S= and =u= flags;
+- Calc functions and variables not listed above, precisions beyond those given under
+  /Mode flags and formats/, and the =S= and =u= flags;
 - division by zero, complex results, vector results, and numbers too large for
   64-bit integers;
 - Lisp functions not listed above.

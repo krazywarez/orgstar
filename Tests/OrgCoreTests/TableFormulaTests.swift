@@ -31,6 +31,7 @@ struct TableFormulaTests {
     /// Lisp formulas, names, parameters, marked rows, remote tables, durations, dates and
     /// the rest that once needed Emacs: all run natively.
     static let native = [
+        "| a | b | c | d | mean | ratio | gmean | more |\n|---+---+---+---+------+-------+-------+------|\n| 1:30 | 2 | 3 | 4.5 | | | | |\n| 2:4 | 5 | 1 | 2 | | | | |\n#+TBLFM: $5=vmean($2..$3,$4)::$6=$2/$3;p15::$7=vgmean($2..$4);f3::$8=$4% + $1 2 + roundu($4) + hypot($2,$3)\n",
         "| a | b |\n|---+---|\n| hello | |\n| x \"q\" | |\n|  | |\n#+TBLFM: $2='(concat $1 \"!\")\n",
         "| a | b |\n|---+---|\n| 1 | |\n| 2.5 | |\n| x | |\n#+TBLFM: $2='(* 2 $1);N\n",
         "| a | b | c |\n|---+---+---|\n| 1 | 2 | |\n| 3 | 4 | |\n#+TBLFM: $3='(+ $1 $2);L\n",

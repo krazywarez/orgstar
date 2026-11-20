@@ -334,6 +334,7 @@ extension EmacsBuffer {
         func calc(_ s: String) throws -> String {
             let text = mode.numbers ? numberText(s) : s
             guard text.range(of: calcNumber, options: .regularExpression) != nil || text == "nan"
+                || text.range(of: "^[-+]?[0-9]+:[0-9:]+$", options: .regularExpression) != nil
                 || text.range(of: "^" + timestampBoth + "$", options: .regularExpression) != nil else {
                 throw Calc.Unsupported("non-numeric field \(text)")
             }
