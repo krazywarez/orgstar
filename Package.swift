@@ -93,7 +93,9 @@ let package = Package(
         // The watch app and its complications, bundled by scripts/build-watch-app.sh.
         .executableTarget(name: "OrgstarWatch", dependencies: ["OrgWatchData"]),
         .executableTarget(name: "OrgstarWatchWidgets", dependencies: ["OrgWatchData"]),
-        .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgEditorAppKit", "OrgHighlight", .product(name: "Sparkle", package: "Sparkle")]),
+        // Babel, Emacs and gnuplot as processes; the Developer ID app alone links it.
+        .target(name: "OrgPrograms", dependencies: ["OrgApp"]),
+        .executableTarget(name: "Orgstar", dependencies: ["OrgApp", "OrgPrograms", "OrgEditorAppKit", "OrgHighlight", .product(name: "Sparkle", package: "Sparkle")]),
         // The iOS app, bundled by scripts/build-ios-app.sh.
         .executableTarget(name: "OrgstarMobile", dependencies: ["OrgApp", "OrgHighlight"]),
         // App extensions, bundled into orgstar.app by scripts/build-app.sh.
@@ -112,6 +114,7 @@ let package = Package(
         .testTarget(name: "OrgPresentationTests", dependencies: ["OrgPresentation"]),
         .testTarget(name: "OrgEditorAppKitTests", dependencies: ["OrgEditorAppKit", "OrgApp"]),
         .testTarget(name: "OrgAppTests", dependencies: ["OrgApp", "OrgDocument"]),
+        .testTarget(name: "OrgProgramsTests", dependencies: ["OrgPrograms", "OrgApp", "OrgDocument"]),
         .testTarget(name: "OrgHighlightTests", dependencies: ["OrgHighlight", "OrgCore", "OrgPresentation"])
     ]
 )

@@ -3,6 +3,9 @@ import OrgApp
 import OrgCore
 import OrgEditorAppKit
 import OrgPresentation
+#if !APPSTORE
+import OrgPrograms
+#endif
 import SwiftUI
 import UserNotifications
 
@@ -189,7 +192,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     /// `:session` interpreters end with the app.
     func applicationWillTerminate(_ notification: Notification) {
+        #if !APPSTORE
         BabelSessions.shared.stopAll()
+        #endif
     }
 
     /// Reminders show while Orgstar is in front too.
@@ -324,6 +329,9 @@ struct OrgstarApp: App {
     }()
 
     init() {
+        #if !APPSTORE
+        DocumentSession.programs = Programs()
+        #endif
         MacPro.resolve()
         MacPro.renewInBackground()
         // Debug builds, and runs with ORGSTAR_PERF set: main-thread stalls in the console.

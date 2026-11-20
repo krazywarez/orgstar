@@ -5,6 +5,9 @@ import OrgEditorAppKit
 import OrgPresentation
 import OrgWorkspace
 import OrgIndex
+#if !APPSTORE
+import OrgPrograms
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 import WidgetKit
@@ -624,6 +627,7 @@ struct ContentView: View {
                 }
             }
         default:
+            #if !APPSTORE
             let functions = ["pdf": "org-latex-export-to-pdf", "odt": "org-odt-export-to-odt", "latex": "org-latex-export-to-latex", "text": "org-ascii-export-to-ascii"]
             guard let function = functions[format] else { return }
             commands.show("Exporting with Emacs…")
@@ -647,6 +651,9 @@ struct ContentView: View {
                     commands.show("\(error)")
                 }
             }
+            #else
+            break
+            #endif
         }
     }
 
@@ -783,6 +790,7 @@ struct ContentView: View {
         let plot: TablePlot.Plot
         do { plot = try TablePlot.plot(context.text, at: context.caret) } catch { return commands.show("\(error)") }
         let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        #if !APPSTORE
         if let gnuplot = PlotOutput.gnuplot {
             commands.show("Plotting with gnuplot…")
             Task {
@@ -793,7 +801,10 @@ struct ContentView: View {
                     commands.show("\(error)")
                 }
             }
-        } else if let url = PlotOutput.file(plot, directory: directory) {
+            return
+        }
+        #endif
+        if let url = PlotOutput.file(plot, directory: directory) {
             do {
                 try PlotOutput.write(plot, to: url)
                 plotWritten(url, editor: editor)

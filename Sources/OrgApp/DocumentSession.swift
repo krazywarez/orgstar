@@ -877,7 +877,13 @@ public final class DocumentSession {
     /// Recalculates a table in Emacs from a snapshot of the buffer, then replaces the table
     /// with Emacs's text if it hasn't changed meanwhile. Returns a message for the echo area.
     public func recalculateInEmacs(table: Range<Int>, point: Int, form: String) async -> String {
-        #if os(macOS)
+        guard let programs = Self.runner else {
+            #if os(macOS)
+            return "Tables that need Emacs aren't recalculated in this version of orgstar."
+            #else
+            return "Tables that need Emacs aren't recalculated on iOS."
+            #endif
+        }
         guard let entry = current else { return "No file is open." }
         let path = entry.path
         let snapshot = entry.buffer.document.text as NSString
@@ -885,7 +891,7 @@ public final class DocumentSession {
         let old = snapshot.substring(with: NSRange(table))
         let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
         do {
-            let new = try await EmacsRunner.recalculateTable(text: snapshot as String, directory: directory, table: table, point: point, form: form)
+            let new = try await programs.recalculateTable(text: snapshot as String, directory: directory, table: table, point: point, form: form)
             guard entries.contains(where: { $0 === entry }) else { return "The file was closed before Emacs finished." }
             let current = entry.buffer
             let text = current.document.text as NSString
@@ -902,9 +908,6 @@ public final class DocumentSession {
         } catch {
             return "\(error)"
         }
-        #else
-        return "Tables that need Emacs aren't recalculated on iOS."
-        #endif
     }
 
     /// Runs a src block and writes its result under it, unless the block changed while it
@@ -912,18 +915,22 @@ public final class DocumentSession {
     public func runBabel(_ job: BabelJob) async -> String {
         guard let entry = current else { return "No file is open." }
         let directory = URL(fileURLWithPath: entry.path).deletingLastPathComponent()
-        /// A program on the Mac; on iOS, Emacs Lisp in `Elisp`, and nothing else.
+        let programs = Self.runner
+        /// A program through `programs`; without it, Emacs Lisp in `Elisp`, and nothing else.
         func run(_ job: BabelJob) async throws -> BabelOutput {
-            #if os(macOS)
-            return try await BabelRunner.run(job, fileDirectory: directory)
-            #else
+            if let programs { return try await programs.runBabel(job, fileDirectory: directory) }
             guard let output = try Babel.evaluateNatively(job) else {
+                #if os(macOS)
+                throw Babel.Failure.message(job.lispForm == nil
+                    ? "\(job.language) blocks don't run in this version of orgstar."
+                    : "This block uses Emacs Lisp that runs only in Emacs.")
+                #else
                 throw Babel.Failure.message(job.lispForm == nil
                     ? "\(job.language) blocks need the Mac to run."
                     : "This block uses Emacs Lisp that runs only in Emacs, on the Mac.")
+                #endif
             }
             return output
-            #endif
         }
         do {
             // Blocks the `:var`s refer to run first, one at a time.

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import OrgCore
 @testable import OrgApp
+@testable import OrgPrograms
 
 /// Serial: the sessions are shared, and each test stops them all when it ends.
 @Suite(.serialized)
