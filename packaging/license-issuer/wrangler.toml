@@ -8,7 +8,7 @@ routes = [
 ]
 
 [vars]
-SPONSORABLE = "ccleberg"
+SPONSORABLE = "krazywarez"
 LIFETIME_DOLLARS = "60"
 MONTHLY_DOLLARS = "5"
 # A monthly key lasts this long; the app renews it well before.

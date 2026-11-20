@@ -3,7 +3,7 @@
 #+ATTR_HTML: :alt orgstar on iPad, Mac and iPhone
 [[file:ios/AppStore/header-21x9.png]]
 
-Support orgstar through [[https://github.com/sponsors/ccleberg][GitHub Sponsors]].
+Support orgstar through [[https://github.com/sponsors/krazywarez][GitHub Sponsors]].
 
 orgstar is an editor for [[https://orgmode.org][Org mode]] files on the Mac, iPhone and
 iPad. It reads and writes the same plain-text =.org= files Emacs does, and leaves every
@@ -67,7 +67,7 @@ backlinks; widgets, the Apple Watch app and the clock Live Activity; Calendar an
 the agenda; and Shortcuts actions.
 
 - iPhone and iPad: in-app, $1.99 a month, $19.99 a year or $39.99 once.
-- Mac: by [[https://github.com/sponsors/ccleberg][sponsoring on GitHub]], $60 once for a license key that doesn't expire,
+- Mac: by [[https://github.com/sponsors/krazywarez][sponsoring on GitHub]], $60 once for a license key that doesn't expire,
   or $5 a month for a key orgstar renews while you sponsor. Sign in with GitHub at
   [[https://krz.sh/apps/orgstar/license][krz.sh/apps/orgstar/license]] for the key and enter it in Settings ▸ orgstar+.
 

@@ -19,7 +19,7 @@
 //
 // Vars (wrangler.toml): SPONSORABLE, LIFETIME_DOLLARS, MONTHLY_DOLLARS, RENEW_DAYS,
 // GITHUB_CLIENT_ID. Secrets (`wrangler secret put NAME`; locally .dev.vars, see
-// .dev.vars.example): GITHUB_CLIENT_SECRET, GITHUB_TOKEN (SPONSORABLE's token, for renewals),
+// .dev.vars.example): GITHUB_CLIENT_SECRET, GITHUB_TOKEN (an owner of SPONSORABLE, for renewals),
 // LICENSE_PRIVATE_KEY (PKCS#8 PEM, from keygen.sh).
 
 const FEATURES = [
@@ -114,9 +114,11 @@ async function license(request, url, env) {
     token,
     `query($login: String!) {
       viewer { id login }
-      user(login: $login) {
-        sponsorshipForViewerAsSponsor(activeOnly: false) {
-          isActive createdAt tier { monthlyPriceInDollars isOneTime }
+      owner: repositoryOwner(login: $login) {
+        ... on Sponsorable {
+          sponsorshipForViewerAsSponsor(activeOnly: false) {
+            isActive createdAt tier { monthlyPriceInDollars isOneTime }
+          }
         }
       }
     }`,
@@ -125,7 +127,8 @@ async function license(request, url, env) {
   if (!data) return page("GitHub can't be reached right now. Try again in a minute.", 502);
 
   const { viewer } = data;
-  const kind = entitlement(data.user?.sponsorshipForViewerAsSponsor, config);
+  const sponsorship = data.owner?.sponsorshipForViewerAsSponsor;
+  const kind = entitlement(sponsorship, config);
   const sponsor = `https://github.com/sponsors/${config.sponsorable}`;
   const clear = { "set-cookie": `${STATE_COOKIE}=; Path=${url.pathname}; Max-Age=0; HttpOnly; Secure; SameSite=Lax` };
   if (!kind)
@@ -139,7 +142,7 @@ async function license(request, url, env) {
 
   const t = "github:" + viewer.id;
   const payload = kind === "lifetime"
-    ? { e: viewer.login, t, i: seconds(data.user.sponsorshipForViewerAsSponsor.createdAt) }
+    ? { e: viewer.login, t, i: seconds(sponsorship.createdAt) }
     : monthlyPayload(viewer.login, t, config.renewDays);
   const key = await sign(payload, env.LICENSE_PRIVATE_KEY);
   const note = kind === "lifetime"
@@ -172,21 +175,42 @@ async function renew(request, env) {
   const payload = await verify((await request.text()).replace(/\s/g, ""), env.LICENSE_PRIVATE_KEY);
   if (!payload?.x || !payload.t?.startsWith("github:")) return text("Not a monthly orgstar+ key.", 400);
 
-  const data = await graphql(
-    env.GITHUB_TOKEN,
-    `query($id: ID!) {
-      node(id: $id) {
-        ... on User { login sponsorshipForViewerAsSponsorable(activeOnly: true) { isActive tier { monthlyPriceInDollars isOneTime } } }
-        ... on Organization { login sponsorshipForViewerAsSponsorable(activeOnly: true) { isActive tier { monthlyPriceInDollars isOneTime } } }
-      }
-    }`,
-    { id: payload.t.slice("github:".length) },
-  );
-  if (!data) return text("GitHub can't be reached right now.", 502);
-  const node = data.node;
-  if (entitlement(node?.sponsorshipForViewerAsSponsorable, config) !== "monthly")
-    return text("The monthly sponsorship has ended.", 403);
-  return text(await sign(monthlyPayload(node.login, payload.t, config.renewDays), env.LICENSE_PRIVATE_KEY), 200);
+  const found = await activeSponsorship(env.GITHUB_TOKEN, config.sponsorable, payload.t.slice("github:".length));
+  if (found === undefined) return text("GitHub can't be reached right now.", 502);
+  if (entitlement(found, config) !== "monthly") return text("The monthly sponsorship has ended.", 403);
+  return text(await sign(monthlyPayload(found.sponsorEntity.login, payload.t, config.renewDays), env.LICENSE_PRIVATE_KEY), 200);
+}
+
+/// The active sponsorship of `sponsorable` by the account with node ID `id`, from the
+/// sponsorable's own list (private ones too, so `token` belongs to it or an owner of it); null
+/// when there is none, undefined when GitHub can't be reached.
+async function activeSponsorship(token, sponsorable, id) {
+  let after = null;
+  for (;;) {
+    const data = await graphql(
+      token,
+      `query($login: String!, $after: String) {
+        owner: repositoryOwner(login: $login) {
+          ... on Sponsorable {
+            sponsorshipsAsMaintainer(first: 100, after: $after, activeOnly: true, includePrivate: true) {
+              nodes {
+                isActive tier { monthlyPriceInDollars isOneTime }
+                sponsorEntity { ... on User { id login } ... on Organization { id login } }
+              }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        }
+      }`,
+      { login: sponsorable, after },
+    );
+    const list = data?.owner?.sponsorshipsAsMaintainer;
+    if (!list) return undefined;
+    const match = list.nodes.find((node) => node.sponsorEntity?.id === id);
+    if (match) return match;
+    if (!list.pageInfo.hasNextPage) return null;
+    after = list.pageInfo.endCursor;
+  }
 }
 
 async function graphql(token, query, variables) {

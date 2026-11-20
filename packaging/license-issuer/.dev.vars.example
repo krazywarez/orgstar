@@ -3,8 +3,8 @@
 # The GitHub OAuth app's client secret. For local runs, use a second OAuth app whose callback
 # URL is http://localhost:8787/license, and override GITHUB_CLIENT_ID here.
 GITHUB_CLIENT_SECRET=
-# A token of the SPONSORABLE account with read:user, for renewals (classic token, or
-# fine-grained with no repository access).
+# A classic token of an owner of the SPONSORABLE organization with read:org and read:user,
+# for renewals: it lists the organization's sponsors, private ones included.
 GITHUB_TOKEN=
 # PKCS#8 PEM from keygen.sh, on one line with \n for line breaks.
 LICENSE_PRIVATE_KEY=

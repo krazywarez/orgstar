@@ -80,7 +80,8 @@ Setup, once:
 - Create a GitHub OAuth app with the callback URL =https://krz.sh/apps/orgstar/license= and
   put its client ID in =GITHUB_CLIENT_ID= in =wrangler.toml=.
 - =npx wrangler secret put GITHUB_CLIENT_SECRET= with the OAuth app's secret, and
-  =GITHUB_TOKEN= with a token of the sponsored account (=read:user=), which renewals use.
+  =GITHUB_TOKEN= with a classic token of an owner of the krazywarez organization (=read:org=,
+  =read:user=), which renewals use to list its sponsors.
 - =packaging/license-issuer/keygen.sh= set =LICENSE_PRIVATE_KEY= and the app's public key.
   Running it again invalidates every key issued so far.
 

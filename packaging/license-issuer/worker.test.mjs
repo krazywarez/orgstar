@@ -67,7 +67,7 @@ async function callback(sponsor, { state = "abc", cookie = "abc" } = {}) {
   return withFetch(
     (url) => url.includes("access_token")
       ? json({ access_token: "visitor-token" })
-      : json({ data: { viewer: { id: "U_1", login: "octo" }, user: { sponsorshipForViewerAsSponsor: sponsor } } }),
+      : json({ data: { viewer: { id: "U_1", login: "octo" }, owner: { sponsorshipForViewerAsSponsor: sponsor } } }),
     () => worker.fetch(
       new Request(`https://krz.sh/apps/orgstar/license?code=c&state=${state}`, { headers: { cookie: `orgstar_state=${cookie}` } }),
       env,
@@ -99,13 +99,19 @@ test("a callback whose state doesn't match the cookie is refused", async () => {
   assert.equal((await callback(sponsorship(5), { cookie: "other" })).status, 400);
 });
 
-/// …/renew with `key`, GitHub answering `sponsor` for the key's account.
-async function renewal(key, sponsor) {
-  let asked;
+/// …/renew with `key`, GitHub listing the maintainer's sponsors in `pages`, with `sponsor` as
+/// U_1's sponsorship on the last page.
+async function renewal(key, sponsor, pages = 1) {
+  const asked = [];
   const response = await withFetch(
     (url, init) => {
-      asked = JSON.parse(init.body).variables;
-      return json({ data: { node: { login: "octo-renamed", sponsorshipForViewerAsSponsorable: sponsor } } });
+      const { variables } = JSON.parse(init.body);
+      asked.push(variables);
+      const page = asked.length;
+      const nodes = [{ ...sponsorship(5), sponsorEntity: { id: `U_other${page}`, login: "someone" } }];
+      if (page === pages && sponsor) nodes.push({ ...sponsor, sponsorEntity: { id: "U_1", login: "octo-renamed" } });
+      const pageInfo = { hasNextPage: page < pages, endCursor: `cursor${page}` };
+      return json({ data: { owner: { sponsorshipsAsMaintainer: { nodes, pageInfo } } } });
     },
     () => worker.fetch(new Request("https://krz.sh/apps/orgstar/renew", { method: "POST", body: key }), env),
   );
@@ -114,9 +120,9 @@ async function renewal(key, sponsor) {
 
 test("renewal extends a monthly key while the sponsorship is active", async () => {
   const old = await sign({ e: "octo", t: "github:U_1", i: 1, x: 2 }, pem);
-  const { response, asked } = await renewal(old, sponsorship(5));
+  const { response, asked } = await renewal(old, sponsorship(5), 2);
   assert.equal(response.status, 200);
-  assert.deepEqual(asked, { id: "U_1" });
+  assert.deepEqual(asked, [{ login: "maintainer", after: null }, { login: "maintainer", after: "cursor1" }]);
   const fresh = await verify((await response.text()).trim(), pem);
   assert.equal(fresh.e, "octo-renamed");
   assert.ok(fresh.x > Date.now() / 1000 + 39 * 86400);
