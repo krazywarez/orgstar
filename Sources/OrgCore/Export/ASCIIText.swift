@@ -118,17 +118,54 @@ struct ASCIIText {
 
     static let hardNewline = "\u{1}"
 
+    /// `fill-context-prefix` with `adaptive-fill-regexp`: the second line's prefix when the
+    /// first has its characters, else what they share; for one line, its prefix, as spaces
+    /// unless it is blank.
+    static func fillPrefix(_ lines: [String]) -> String {
+        func adaptive(_ line: String) -> String { String(line.prefix { "-–!|#%;>*·•‣⁃◦ \t".contains($0) }) }
+        let first = adaptive(lines[0])
+        guard lines.count >= 2 else {
+            return first.allSatisfy { $0 == " " || $0 == "\t" } ? first : String(repeating: " ", count: first.count)
+        }
+        let second = adaptive(lines[1])
+        var rest = Substring(first)
+        let inOrder = second.split(whereSeparator: { $0 == " " || $0 == "\t" }).allSatisfy { chunk in
+            guard let range = rest.range(of: chunk) else { return false }
+            rest = rest[range.upperBound...]
+            return true
+        }
+        if inOrder { return second }
+        return String(zip(first, second).prefix { $0 == $1 }.map(\.0))
+    }
+
+    /// The length of what `fill-delete-prefix` takes from the start of `line`: blanks, `prefix`
+    /// with any blanks in it, blanks.
+    static func deletedPrefix(_ line: String, _ prefix: String) -> Int {
+        let chars = Array(line)
+        var i = 0
+        func blanks() { while i < chars.count, chars[i] == " " || chars[i] == "\t" { i += 1 } }
+        blanks()
+        let core = prefix.split(whereSeparator: { $0 == " " || $0 == "\t" })
+        guard !core.isEmpty else { return i }
+        let start = i
+        for (n, chunk) in core.enumerated() {
+            if n > 0 { blanks() }
+            guard chars.count - i >= chunk.count, String(chars[i..<(i + chunk.count)]) == chunk else { i = start; break }
+            i += chunk.count
+        }
+        blanks()
+        return i
+    }
+
     static func fillParagraph(_ text: String, width: Int) -> String {
         var lines = text.components(separatedBy: "\n")
         while lines.count > 1, lines.last!.allSatisfy({ $0 == " " || $0 == "\t" }) { lines.removeLast() }
         guard !lines.isEmpty else { return "" }
-        func indentation(_ line: String) -> String { String(line.prefix { $0 == " " || $0 == "\t" }) }
-        let first = indentation(lines[0])
-        // `fill-context-prefix`: the second line's indentation when the first starts with it.
-        let prefix = lines.count >= 2 ? (lines[0].hasPrefix(indentation(lines[1])) ? indentation(lines[1]) : "") : first
+        let prefix = fillPrefix(lines)
+        let first = String(lines[0].prefix(deletedPrefix(lines[0], prefix)))
         var parts: [String] = []
         for (i, line) in lines.enumerated() {
-            var content = String(line.dropFirst(indentation(line).count))
+            var content = String(line.dropFirst(deletedPrefix(line, prefix)))
             while content.hasSuffix(" ") || content.hasSuffix("\t") { content.removeLast() }
             // A sentence ending a line gets the second space it would have.
             if i < lines.count - 1, content.range(of: "[.?!…‽][]\"'”’)}»›]*$", options: .regularExpression) != nil { content += " " }

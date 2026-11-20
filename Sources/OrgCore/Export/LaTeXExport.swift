@@ -44,6 +44,18 @@ public enum LaTeXExport {
         _ text: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), bodyOnly: Bool = false,
         author: String = "", language: String = "en", timeZone: TimeZone = .current, file: Bool = false
     ) throws -> String {
+        let text = try expanded(text, settings: settings, path: path, now: now)
+        let tree = OrgParser.parse(text, defaults: settings)
+        let keywords = settings.setupKeywords.split(separator: "\n").map(String.init)
+            + tree.root.descendants().filter { $0.kind == .keyword }.map { $0.text.trimmingCharacters(in: .newlines) }
+        let renderer = try LaTeXRenderer(tree: tree, text: text, settings: settings, keywords: keywords, language: language)
+        let body = try renderer.body()
+        let output = bodyOnly ? body : try renderer.template(body, author: author, now: now, timeZone: timeZone)
+        return file && !output.isEmpty && !output.hasSuffix("\n") ? output + "\n" : output
+    }
+
+    /// `text` with `#+INCLUDE`s and macros expanded, as `org-export-as` does before parsing.
+    static func expanded(_ text: String, settings: OrgSettings, path: String?, now: Date) throws -> String {
         let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
         let included = ExportPreprocess.includes(text, directory: directory)
         // Org expands macro objects only: `{{{…}}}` in verbatim text and blocks stays.
@@ -63,14 +75,7 @@ public enum LaTeXExport {
             }
             literal = out + ns.substring(from: at)
         }
-        let text = ExportPreprocess.macros(literal, path: path, now: now, setup: settings.setupKeywords).replacingOccurrences(of: marker, with: "{")
-        let tree = OrgParser.parse(text, defaults: settings)
-        let keywords = settings.setupKeywords.split(separator: "\n").map(String.init)
-            + tree.root.descendants().filter { $0.kind == .keyword }.map { $0.text.trimmingCharacters(in: .newlines) }
-        let renderer = try LaTeXRenderer(tree: tree, text: text, settings: settings, keywords: keywords, language: language)
-        let body = try renderer.body()
-        let output = bodyOnly ? body : try renderer.template(body, author: author, now: now, timeZone: timeZone)
-        return file && !output.isEmpty && !output.hasSuffix("\n") ? output + "\n" : output
+        return ExportPreprocess.macros(literal, path: path, now: now, setup: settings.setupKeywords).replacingOccurrences(of: marker, with: "{")
     }
 }
 
