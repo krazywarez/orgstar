@@ -4,6 +4,17 @@
     <title>orgstar</title>
     <link>https://gitbay.org/krz/orgstar</link>
     <item>
+      <title>orgstar 1.1.1</title>
+      <link>https://krz.sh/apps/orgstar/</link>
+      <sparkle:version>611</sparkle:version>
+      <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Fri, 20 Nov 2026 09:06:31 -0600</pubDate>
+      <description><![CDATA[<p>Fixes shared with the new Mac App Store version, and a new signing key for sponsor licenses.</p>
+<p>Universal (Apple silicon and Intel), macOS 26 or later. Notarized.</p>]]></description>
+      <enclosure url="https://files.krz.sh/orgstar/orgstar-1.1.1.dmg" type="application/octet-stream" sparkle:edSignature="/HZ53dkVOoSI6iIT9OC+jYmXccvU15tLBWB5jyPxvkBJysoAwHgyCy7OAsXWfKddV4VDfVOuMO73fTu7tpkZDQ==" length="58377069"/>
+    </item>
+    <item>
       <title>orgstar 1.1.0</title>
       <link>https://krz.sh/apps/orgstar/</link>
       <sparkle:version>591</sparkle:version>
