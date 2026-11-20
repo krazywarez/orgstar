@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>third-party &middot; orgstar</title>
+<meta name="description" content="orgstar is proprietary (see ). It builds on these projects, under their own licenses.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="syntax.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="index.html">orgstar</a>
+<nav>
+<a href="install.html">Install</a>
+<a href="quickstart.html">Quick start</a>
+<a href="guide/index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>third-party</h1>
+<h2 id="third-party-code">Third-party code</h2>
+<p>orgstar is proprietary (see <a href="LICENSE">LICENSE</a>). It builds on these projects, under their own licenses.</p>
+<table>
+<thead>
+<tr><th>Project</th><th>Use</th><th>License</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="https://github.com/groue/GRDB.swift">GRDB.swift</a></td><td>Index database</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/tree-sitter/tree-sitter">tree-sitter</a>, <a href="https://github.com/tree-sitter/swift-tree-sitter">swift-tree-sitter</a></td><td>Src block parsing</td><td>MIT</td></tr>
+<tr><td>tree-sitter grammars: <a href="https://github.com/tree-sitter/tree-sitter-bash">bash</a>, <a href="https://github.com/tree-sitter/tree-sitter-c">c</a>, <a href="https://github.com/tree-sitter/tree-sitter-cpp">cpp</a>, <a href="https://github.com/tree-sitter/tree-sitter-go">go</a>, <a href="https://github.com/tree-sitter/tree-sitter-haskell">haskell</a>, <a href="https://github.com/tree-sitter/tree-sitter-java">java</a>, <a href="https://github.com/tree-sitter/tree-sitter-javascript">javascript</a>, <a href="https://github.com/tree-sitter/tree-sitter-json">json</a>, <a href="https://github.com/tree-sitter/tree-sitter-python">python</a>, <a href="https://github.com/tree-sitter/tree-sitter-ruby">ruby</a>, <a href="https://github.com/tree-sitter/tree-sitter-rust">rust</a></td><td>Highlighting; parsers, scanners and queries</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/tree-sitter-grammars/tree-sitter-lua">tree-sitter-lua</a>, <a href="https://github.com/tree-sitter-grammars/tree-sitter-yaml">tree-sitter-yaml</a></td><td>Highlighting</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/r-lib/tree-sitter-r">tree-sitter-r</a></td><td>Highlighting</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/6cdh/tree-sitter-scheme">tree-sitter-scheme</a></td><td>Highlighting</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/Wilfred/tree-sitter-elisp">tree-sitter-elisp</a></td><td>Highlighting (vendored in <code class="verbatim">Sources/TreeSitterElisp</code>)</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/sogaiu/tree-sitter-clojure">tree-sitter-clojure</a></td><td>Highlighting (vendored in <code class="verbatim">Sources/TreeSitterClojure</code>)</td><td>CC0-1.0</td></tr>
+<tr><td><a href="https://ethanschoonover.com/solarized/">Solarized</a></td><td>Colors of the Solarized themes</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/morhetz/gruvbox">Gruvbox</a></td><td>Colors of the Gruvbox themes</td><td>MIT</td></tr>
+<tr><td><a href="https://protesilaos.com/emacs/modus-themes">Modus themes</a></td><td>Colors of Modus Operandi and Modus Vivendi (color values only, no code)</td><td>GPL-3.0-or-later</td></tr>
+<tr><td><a href="https://github.com/catppuccin/catppuccin">Catppuccin</a></td><td>Colors of Catppuccin Latte and Mocha</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/chriskempson/tomorrow-theme">Tomorrow</a></td><td>Colors of the Tomorrow theme</td><td>MIT</td></tr>
+<tr><td><a href="https://www.nordtheme.com">Nord</a></td><td>Colors of the Nord theme</td><td>MIT</td></tr>
+<tr><td><a href="https://draculatheme.com">Dracula</a></td><td>Colors of the Dracula theme</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/folke/tokyonight.nvim">Tokyo Night</a></td><td>Colors of the Tokyo Night theme</td><td>Apache-2.0</td></tr>
+<tr><td><a href="https://github.com/doomemacs/themes">doom-themes</a></td><td>Colors of doom-one</td><td>MIT</td></tr>
+</tbody>
+</table>
+<p>The JavaScript, Lua, Python and YAML scanners are copied into <code class="verbatim">Sources/TreeSitterScanners</code> with their licenses. Highlight queries are embedded in <code class="verbatim">Sources/OrgHighlight/Queries.swift</code> by <code class="verbatim">scripts/update-highlight-queries.sh</code>. The theme colors are in <code class="verbatim">Sources/OrgPresentation/Palettes.swift</code>; a few light-theme colors are darkened from upstream for contrast, as noted there.</p>
+</main>
+<footer class="site">
+© 2026 Christian Cleberg · <a href="https://krz.sh/apps/orgstar/">krz.sh/apps/orgstar</a> · <a href="/orgstar/third-party.html">third-party notices</a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,6 @@
+/* Code blocks dark in both colour schemes, matching base16-ocean.dark. */
+:root {
+  --orgo-code-bg: #2b303b;
+  --orgo-code-fg: #c0c5ce;
+  --orgo-code-rule: #1f232b;
+}

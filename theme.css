@@ -1,0 +1,248 @@
+/* orgo built-in theme: docs
+ *
+ * A documentation site: a guide read in order, with a contents block that matters, code
+ * blocks that carry as much of the meaning as the prose, and a `#+LEDE:` line under the
+ * title. Cooler and more technical than `blog`, narrower and more designed than `wiki`.
+ *
+ * Every colour is a custom property on :root, so a stylesheet of your own loaded after
+ * this one can retheme the site by redefining a handful of values. */
+
+:root {
+  --orgo-ink: #1c1f24;
+  --orgo-muted: #5b6472;
+  --orgo-rule: #dfe3e8;
+  --orgo-accent: #0b5fa5;
+  --orgo-surface: #f6f8fa;
+  --orgo-bg: #ffffff;
+  --orgo-measure: 42rem;
+  --orgo-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --orgo-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  /* These three colour code *blocks* only; inline code follows the page. A block keeps
+     a light surface in both colour schemes, because syntax.css is coloured by
+     `highlight.theme` and that default (InspiredGitHub) is light. To let blocks follow
+     prefers-color-scheme, set `highlight.theme_dark` to a dark theme and override these
+     three in a dark query of your own. */
+  --orgo-todo: #b02a37;
+  --orgo-done: #2c7a4b;
+  --orgo-code-bg: #f6f8fa;
+  --orgo-code-fg: #323232;
+  --orgo-code-rule: #e3e7ec;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --orgo-ink: #dee3ea;
+    --orgo-muted: #9aa4b2;
+    --orgo-rule: #2b3138;
+    --orgo-accent: #79b8ff;
+    --orgo-surface: #171a1f;
+    --orgo-todo: #f0909a;
+    --orgo-done: #74c795;
+    --orgo-bg: #0f1216;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--orgo-bg);
+  color: var(--orgo-ink);
+  font: 16px/1.65 var(--orgo-font);
+  /* A bare URL or a long identifier must wrap, not widen the page on a phone. */
+  overflow-wrap: break-word;
+}
+
+/* Header ------------------------------------------------------------------- */
+
+body > header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--orgo-bg);
+  border-bottom: 1px solid var(--orgo-rule);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.5rem;
+  align-items: baseline;
+}
+
+.site-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--orgo-ink);
+  text-decoration: none;
+}
+
+body > header nav { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+body > header nav a {
+  color: var(--orgo-muted);
+  text-decoration: none;
+  padding-bottom: .15rem;
+  border-bottom: 2px solid transparent;
+}
+body > header nav a:hover { color: var(--orgo-ink); border-bottom-color: var(--orgo-accent); }
+
+/* Page body ---------------------------------------------------------------- */
+
+main {
+  max-width: var(--orgo-measure);
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+}
+
+h1 { font-size: 2rem; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 .5rem; }
+h2 { font-size: 1.35rem; letter-spacing: -0.01em; margin: 2.75rem 0 .75rem; }
+h3 { font-size: 1.1rem; margin: 2rem 0 .5rem; }
+h4, h5, h6 { font-size: 1rem; margin: 1.5rem 0 .5rem; }
+
+[class^="section-number-"] { color: var(--orgo-muted); font-weight: 400; }
+
+a { color: var(--orgo-accent); }
+
+/* `#+LEDE:` reaches the layout as page.keywords.lede; page.date as the byline. */
+p.lede { font-size: 1.1rem; color: var(--orgo-muted); margin-top: 0; }
+p.page-date { color: var(--orgo-muted); font-size: .9rem; }
+
+img, video { max-width: 100%; height: auto; }
+
+figure { margin: 1.75rem 0; }
+figcaption { color: var(--orgo-muted); font-size: .9rem; margin-top: .4rem; }
+.figure-number, .table-number { font-weight: 600; }
+
+/* A quote block reads as a note or a caution in a documentation site. */
+blockquote {
+  margin: 1.5rem 0;
+  padding: .75rem 1rem;
+  background: var(--orgo-surface);
+  border-left: 3px solid var(--orgo-accent);
+  border-radius: 0 4px 4px 0;
+  color: var(--orgo-muted);
+}
+blockquote > :first-child { margin-top: 0; }
+blockquote > :last-child { margin-bottom: 0; }
+
+hr { border: 0; border-top: 1px solid var(--orgo-rule); margin: 2.5rem 0; }
+
+.center { text-align: center; }
+.verse { font-family: var(--orgo-mono); white-space: pre-wrap; }
+
+dt { font-weight: 600; margin-top: .75rem; font-family: var(--orgo-mono); font-size: .95rem; }
+dd { margin: 0 0 0 1.5rem; }
+
+/* Code --------------------------------------------------------------------- */
+
+/* Inline code is prose furniture, so it follows the page rather than the code blocks. */
+code {
+  font: .875em/1.5 var(--orgo-mono);
+  background: var(--orgo-surface);
+  color: inherit;
+  padding: .1em .35em;
+  border-radius: 3px;
+}
+
+pre {
+  background: var(--orgo-code-bg);
+  color: var(--orgo-code-fg);
+  border: 1px solid var(--orgo-code-rule);
+  border-radius: 6px;
+  padding: .9rem 1.1rem;
+  font-size: .9rem;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+pre code { background: none; color: inherit; padding: 0; }
+
+/* Tables ------------------------------------------------------------------- */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+  display: block;
+  overflow-x: auto;
+}
+caption { text-align: left; color: var(--orgo-muted); font-size: .9rem; padding-bottom: .4rem; }
+th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid var(--orgo-rule); }
+th {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--orgo-muted);
+}
+
+/* Org-specific markup ------------------------------------------------------ */
+
+.tag {
+  font: .72rem/1.6 var(--orgo-mono);
+  color: var(--orgo-muted);
+  background: var(--orgo-surface);
+  border: 1px solid var(--orgo-rule);
+  border-radius: 999px;
+  padding: .05em .6em;
+  vertical-align: middle;
+}
+
+.todo, .done { font: .72rem/1.6 var(--orgo-mono); letter-spacing: .04em; }
+.todo { color: var(--orgo-todo); }
+.done { color: var(--orgo-done); }
+.priority { color: var(--orgo-muted); font-family: var(--orgo-mono); font-size: .8em; }
+
+time.timestamp { color: var(--orgo-muted); font-family: var(--orgo-mono); font-size: .9em; }
+
+li.on, li.trans { color: var(--orgo-muted); }
+li.on { text-decoration: line-through; }
+
+.footnotes { margin-top: 3rem; font-size: .9rem; color: var(--orgo-muted); }
+.footnote-ref a { text-decoration: none; }
+
+/* Table of contents: a card, because in a guide it is navigation ----------- */
+
+nav.toc {
+  background: var(--orgo-surface);
+  border: 1px solid var(--orgo-rule);
+  border-radius: 6px;
+  padding: .75rem 1.25rem 1rem;
+  margin: 1.75rem 0 2.5rem;
+}
+nav.toc h2 {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--orgo-muted);
+  margin: .25rem 0 .5rem;
+}
+nav.toc ul { margin: 0; padding-left: 1.1rem; }
+nav.toc li { margin: .15rem 0; }
+
+/* Listing pages: a guide's contents page, a tag index ---------------------- */
+
+ul.post-list { list-style: none; padding: 0; }
+ul.post-list > li { padding: 1rem 0; border-bottom: 1px solid var(--orgo-rule); }
+ul.post-list a { font-weight: 600; font-size: 1.05rem; }
+ul.post-list time { color: var(--orgo-muted); font-size: .9rem; }
+p.excerpt { margin: .35rem 0 .2rem; color: var(--orgo-muted); }
+span.reading-time { font-size: .85rem; color: var(--orgo-muted); }
+
+ul.tag-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .6rem 1.25rem; }
+
+nav.pagination {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  margin-top: 2.5rem;
+  color: var(--orgo-muted);
+  font-size: .9rem;
+}
+
+/* Footer ------------------------------------------------------------------- */
+
+body > footer {
+  border-top: 1px solid var(--orgo-rule);
+  padding: 1.5rem;
+  color: var(--orgo-muted);
+  font-size: .9rem;
+  text-align: center;
+}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install &middot; orgstar</title>
+<meta name="description" content="Installing orgstar on the Mac from the Mac App Store, with Homebrew or a download, and on iPhone and iPad from the App Store.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="syntax.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+<a class="site-title" href="index.html">orgstar</a>
+<nav>
+<a href="#">Install</a>
+<a href="quickstart.html">Quick start</a>
+<a href="guide/index.html">Manual</a>
+</nav>
+</header>
+<main>
+<h1>Install</h1>
+<p class="lede">The Mac app comes from the Mac App Store, or as a notarized download and a Homebrew cask; the iOS app is on the App Store.</p>
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ul>
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#the-mac-app">The Mac app</a>
+<ul>
+<li><a href="#from-the-mac-app-store">From the Mac App Store</a></li>
+<li><a href="#with-homebrew">With Homebrew</a></li>
+<li><a href="#as-a-download">As a download</a></li>
+</ul></li>
+<li><a href="#the-mac-app-store-version">The Mac App Store version</a>
+<ul>
+<li><a href="#what-it-does-differently">What it does differently</a></li>
+<li><a href="#folders-and-files">Folders and files</a></li>
+<li><a href="#settings">Settings</a></li>
+</ul></li>
+<li><a href="#switching-between-the-two-mac-versions">Switching between the two Mac versions</a></li>
+<li><a href="#the-ios-app">The iOS app</a></li>
+<li><a href="#updating">Updating</a></li>
+<li><a href="#uninstalling">Uninstalling</a></li>
+</ul>
+</nav>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>macOS 26 or later.</li>
+<li>Optional, for the download version: GNU Emacs, for the features that hand work to it (Emacs Lisp code blocks that need full Emacs, Lisp table formulas the built-in interpreter can't run, and export to PDF, LaTeX, ODT and other formats). See <a href="guide/15-alongside-emacs.html">Working alongside Emacs and other tools</a>.</li>
+</ul>
+<h2 id="the-mac-app">The Mac app</h2>
+<p>There are two versions of the Mac app. Both edit the same files in the same way; they differ in where they come from, how orgstar+ is bought, and what they can run.</p>
+<ul>
+<li>The Mac App Store version runs in the App Sandbox and starts no other programs. Emacs Lisp blocks run in orgstar's own interpreter, as on iOS; other languages, Emacs and gnuplot are not used. orgstar+ is an in-app purchase shared with the iPhone and iPad app.</li>
+<li>The download version, from Homebrew or files.krz.sh, is signed with a Developer ID and notarized. It runs code blocks with the programs installed on the Mac, hands some tables and exports to Emacs, and updates itself.</li>
+</ul>
+<h3 id="from-the-mac-app-store">From the Mac App Store</h3>
+<p>Get orgstar from the <a href="https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018">Mac App Store</a>. The Mac App Store keeps it up to date.</p>
+<p>Settings ▸ orgstar+ has the monthly, yearly and lifetime plans and Restore Purchases. A purchase made with the same Apple Account on iPhone or iPad unlocks orgstar+ on the Mac too, and the other way round. The same tab has tips, which unlock nothing.</p>
+<h3 id="with-homebrew">With Homebrew</h3>
+<pre><code class="language-sh highlight"><span class="source shell bash"><span class="meta function-call shell"><span class="variable function shell">brew</span></span><span class="meta function-call arguments shell"> tap krz/tap https://gitbay.org/krz/homebrew-tap.git</span>
+<span class="meta function-call shell"><span class="variable function shell">brew</span></span><span class="meta function-call arguments shell"> install<span class="variable parameter option shell"><span class="punctuation definition parameter shell"> --</span>cask</span> orgstar</span></span></code></pre>
+<h3 id="as-a-download">As a download</h3>
+<p>Download the newest <code class="verbatim">orgstar-&lt;version&gt;.dmg</code> from <a href="https://files.krz.sh/orgstar/">files.krz.sh/orgstar</a>, open it, and drag orgstar to Applications. The app is universal (Apple silicon and Intel), signed with a Developer ID and notarized by Apple, so it opens without warnings.</p>
+<p>Once the app has been launched, Finder opens <code class="verbatim">.org</code> files with it, Quick Look shows them formatted, and Spotlight indexes their headings and text. The same is true of the Mac App Store version.</p>
+<h2 id="the-mac-app-store-version">The Mac App Store version</h2>
+<h3 id="what-it-does-differently">What it does differently</h3>
+<table>
+<thead>
+<tr><th>Feature</th><th>Mac App Store version</th><th>Download version</th></tr>
+</thead>
+<tbody>
+<tr><td>Code blocks</td><td>Emacs Lisp, in orgstar's own interpreter</td><td>Every language installed; Emacs Lisp in Emacs</td></tr>
+<tr><td>Sessions, graphics</td><td>No</td><td>Yes</td></tr>
+<tr><td>Tangling</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Table formulas</td><td>Those orgstar computes itself</td><td>The rest in Emacs as well</td></tr>
+<tr><td>Plots</td><td>Drawn with Swift Charts</td><td>gnuplot when installed, else Swift Charts</td></tr>
+<tr><td>Export</td><td>HTML, Markdown, PDF, Word, RTF, plain text, iCalendar; publishing</td><td>Also PDF through LaTeX, LaTeX, ODT and ASCII, in Emacs</td></tr>
+<tr><td>Settings</td><td>In the app's container, or a folder you choose</td><td><code class="verbatim">~/.config/orgstar</code></td></tr>
+<tr><td>Files outside your folders</td><td>After you grant access to their folder</td><td>Directly</td></tr>
+<tr><td>Attachments</td><td>Copied, or moved from inside your folders</td><td>Copied, moved, linked or symlinked</td></tr>
+<tr><td>Updates</td><td>The Mac App Store</td><td>Built in, or Homebrew</td></tr>
+<tr><td>orgstar+</td><td>In-app purchase, shared with iPhone and iPad</td><td>License key</td></tr>
+</tbody>
+</table>
+<p>A block in another language reports "<em>language</em> blocks don't run in this version of orgstar." An Emacs Lisp block that uses more than the interpreter has reports "This block uses Emacs Lisp that runs only in Emacs." A table whose formulas need Emacs reports "This table's formulas can't be calculated here", with the reason, and isn't changed. The Emacs exports are not in the File ▸ Export menu, the export dialog or the command palette; a key bound to Export to PDF with Emacs exports to PDF without LaTeX.</p>
+<h3 id="folders-and-files">Folders and files</h3>
+<p>The App Store version can open only the folders and files you give it:</p>
+<ul>
+<li>Folders you add (File ▸ Add Folder…, or the welcome sheet) and files you open from Finder. orgstar remembers them across launches.</li>
+<li>When something needs a file outside them, such as an <code class="verbatim">#+INCLUDE:</code> or <code class="verbatim">#+SETUPFILE:</code>, a tangle target, an export file, an image in a PDF, Word or RTF export, a <code class="verbatim">file:</code> link, a <code class="verbatim">:file</code> result, a publishing folder, a capture target, an archive file, or the folder for org-roam nodes, daily notes or Denote notes, orgstar asks once. Grant Access… opens a folder picker at that folder; choose it, and orgstar uses that folder and everything in it from then on. An export also offers Save Elsewhere….</li>
+<li>A folder that can no longer be opened, for example one on a disk that isn't connected, is listed under Can't Open in the sidebar, with Grant Access… to choose it again.</li>
+<li><code class="verbatim">~</code> in paths and settings means your home folder, as in the download version.</li>
+<li>Import from Emacs opens a picker at the configuration it finds and asks for each folder it adds to the sidebar. For a Doom configuration, Choose Doom Folder… reads Doom's own org defaults from its installation folder.</li>
+</ul>
+<h3 id="settings">Settings</h3>
+<p>The App Store version keeps its settings in its container, <code class="verbatim">~/Library/Containers/sh.krz.orgstar/Data/.config/orgstar/</code>. To keep them in <code class="verbatim">~/.config/orgstar/</code> instead, for example to share them with the download version, the iOS app or your dotfiles, click Settings ▸ General ▸ Choose Configuration Folder… and choose that folder. If it has no <code class="verbatim">config.toml</code>, orgstar writes one with the current settings. Use Default Folder goes back to the container.</p>
+<h2 id="switching-between-the-two-mac-versions">Switching between the two Mac versions</h2>
+<p>Both versions are called orgstar and have the same bundle identifier. Keep only one of them: quit orgstar and delete <code class="verbatim">orgstar.app</code> from Applications, or run <code class="verbatim">brew uninstall --cask orgstar</code>, before installing the other. The App Store doesn't replace the download version: it installs beside it as <code class="verbatim">orgstar 2.app</code>. With both on the Mac, Finder, Quick Look, Spotlight, widgets and <code class="verbatim">org-protocol://</code> links each use one of them, as macOS picks.</p>
+<p>The two don't share their sidebar folders, open files, recovery versions or orgstar+:</p>
+<ul>
+<li>After switching, add your folders again with File ▸ Add Folder….</li>
+<li>The App Store version's purchase doesn't unlock the download version, and a license key doesn't unlock the App Store version.</li>
+<li>Recovery versions stay with the version that made them. The App Store version keeps them in <code class="verbatim">~/Library/Containers/sh.krz.orgstar/Data/Library/Application Support/Orgstar/Recovery/</code>.</li>
+</ul>
+<p>Settings move this way:</p>
+<ul>
+<li>From the download version to the App Store version: your settings stay in <code class="verbatim">~/.config/orgstar/</code>. Choose that folder with Choose Configuration Folder… (see <em>Settings</em> above).</li>
+<li>From the App Store version to the download version: if you chose <code class="verbatim">~/.config/orgstar/</code>, there is nothing to move. Otherwise copy the files out of the container; <code class="verbatim">cp -i</code> asks before replacing a file that is already there:</li>
+</ul>
+<pre><code class="language-sh highlight"><span class="source shell bash"><span class="meta function-call shell"><span class="variable function shell">mkdir</span></span><span class="meta function-call arguments shell"><span class="variable parameter option shell"><span class="punctuation definition parameter shell"> -</span>p</span> <span class="meta group expansion tilde"><span class="variable language tilde shell">~</span></span>/.config/orgstar</span>
+<span class="meta function-call shell"><span class="variable function shell">cp</span></span><span class="meta function-call arguments shell"><span class="variable parameter option shell"><span class="punctuation definition parameter shell"> -</span>i</span> <span class="meta group expansion tilde"><span class="variable language tilde shell">~</span></span>/Library/Containers/sh.krz.orgstar/Data/.config/orgstar/<span class="keyword operator regexp quantifier shell">*</span>.toml <span class="meta group expansion tilde"><span class="variable language tilde shell">~</span></span>/.config/orgstar/</span></span></code></pre>
+<h2 id="the-ios-app">The iOS app</h2>
+<p>The iPhone and iPad app (iOS 26 or later) is on the <a href="https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018">App Store</a>. The Apple Watch app comes with it. The App Store keeps it up to date.</p>
+<p>See <a href="guide/14-ios.html">iPhone and iPad</a> for what it does.</p>
+<h2 id="updating">Updating</h2>
+<p>The Mac App Store updates the App Store version. The rest of this section is about the download version.</p>
+<p>orgstar checks for a new release once a day, after asking on its second launch whether it may; orgstar ▸ Check for Updates… checks now, and Settings ▸ General has the switch. An update downloads, is checked against the key the releases are signed with, and installs when you agree. With Homebrew, <code class="verbatim">brew upgrade --cask orgstar</code> works too; the cask leaves updating to the app otherwise. From source, pull and build again (a build without a Developer ID never checks):</p>
+<pre><code class="language-sh highlight"><span class="source shell bash"><span class="meta function-call shell"><span class="variable function shell">git</span></span><span class="meta function-call arguments shell"> pull</span>
+<span class="meta function-call shell"><span class="variable function shell">scripts/build-app.sh</span></span></span></code></pre>
+<p>Your settings live in <code class="verbatim">~/.config/orgstar/</code> and survive rebuilds.</p>
+<h2 id="uninstalling">Uninstalling</h2>
+<p>Delete <code class="verbatim">orgstar.app</code>, or run <code class="verbatim">brew uninstall --cask orgstar</code>. To remove your settings as well, delete <code class="verbatim">~/.config/orgstar/</code> (<code class="verbatim">brew uninstall --zap --cask orgstar</code> does both). The App Store version keeps its settings, index and recovery versions in <code class="verbatim">~/Library/Containers/sh.krz.orgstar/</code>, and the widgets' data in <code class="verbatim">~/Library/Group Containers/group.sh.krz.orgstar/</code>. Your org files are never stored inside the app.</p>
+</main>
+<footer class="site">
+© 2026 Christian Cleberg · <a href="https://krz.sh/apps/orgstar/">krz.sh/apps/orgstar</a> · <a href="/orgstar/third-party.html">third-party notices</a>
+</footer>
+</body>
+</html>
