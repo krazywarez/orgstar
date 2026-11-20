@@ -107,15 +107,15 @@ The [[file:../install.org][Mac App Store version]] starts no programs, so only E
 
 ** JavaScript in JavaScriptCore
 
-In the Mac App Store version and on iOS, =js= and =javascript= blocks run in JavaScriptCore, the JavaScript engine built into macOS and iOS. The download version uses it when =node=, or the program in =:cmd=, isn't installed. A block runs as =node= runs a program on standard input, and its output and result are what node gives:
+In the Mac App Store version and on iOS, =js= and =javascript= blocks run in JavaScriptCore, the JavaScript engine built into macOS and iOS. The download version uses it when =node=, or the program in =:cmd=, isn't installed; a =:cmd= with options, such as =node --no-warnings=, never runs in JavaScriptCore. A block runs as =node= runs a program on standard input, and its output and result are what node gives:
 
 - =console.log=, =console.info= and =console.debug= write to the output, =console.warn= and =console.error= to the error output, and =console.dir= prints with =util.inspect=. =process.stdout.write= and =process.stderr.write= write text.
 - =require('util')= has =inspect=, =format= and =formatWithOptions=, which print values as Node 26 prints them. =require('process')= has =stdout= and =stderr=.
-- =setTimeout=, =setInterval=, their =clear= functions and =queueMicrotask= work. Timers run after the program, in the order node runs them, and the run ends when none is left.
+- =setTimeout=, =setInterval=, their =clear= functions and =queueMicrotask= work. Timers run after the program, in the order node runs them, and the run ends when none is left. In a =:session=, a block that leaves a timer set is refused, since node's session returns before the timer runs and prints its output later.
 - An uncaught error ends the run with status 1 and writes its name and message to the error output, such as "ReferenceError: hline is not defined".
 - =require= of any other module fails as it does for a module node can't find: "Error: Cannot find module 'fs'".
 
-A block that uses something only node has fails with "This block uses /name/, which runs only in node.", rather than giving a different result. That covers other members of =process=, =util= and =console= (=process.env=, =console.table=), Node's other globals (=Buffer=, =fetch=, =URL=, =TextEncoder=, =setImmediate=, =structuredClone=), and printing an =Error=, a =Promise= or an iterator with =util.inspect=, whose text in node comes from its own engine. There is no access to files, the network or other programs.
+A block that uses something only node has fails with "This block uses /name/, which runs only in node.", rather than giving a different result. That covers other members of =process=, =util=, =console=, =require= and =module= (=process.env=, =console.table=, =require.resolve=, =module.id=) and listing their members; Node's other globals (=Buffer=, =fetch=, =URL=, =TextEncoder=, =setImmediate=, =structuredClone=, =SharedArrayBuffer=, =Temporal=, =ReadableStream=); top-level =await= and =import= or =export= statements, which node runs as an ES module; an error's =stack=, =Error.stackTraceLimit=, =Error.captureStackTrace= and listing an error's own properties; and printing an =Error=, a =Promise=, an iterator or the global object with =util.inspect=, whose text in node comes from its own engine. There is no access to files, the network or other programs.
 
 Some things still differ from node:
 

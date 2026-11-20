@@ -8,10 +8,11 @@ public struct Programs: ProgramRunning {
     public init() {}
 
     public func runBabel(_ job: BabelJob, fileDirectory: URL) async throws -> BabelOutput {
-        // js in JavaScriptCore when node (or `:cmd`) isn't installed.
+        // js in JavaScriptCore when node (or `:cmd`) isn't installed. A `:cmd` with arguments runs
+        // as written, since JavaScriptCore can't take node's options.
         switch job.runner {
         case .process(let executable, _), .session(_, let executable, _):
-            if !BabelRunner.installed(executable), let output = try await JavaScriptBlocks.run(job, directory: fileDirectory) { return output }
+            if !executable.contains(where: \.isWhitespace), !BabelRunner.installed(executable), let output = try await JavaScriptBlocks.run(job, directory: fileDirectory) { return output }
         case .emacs:
             break
         }

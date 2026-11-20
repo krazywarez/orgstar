@@ -145,7 +145,8 @@ public enum JavaScriptBlocks {
         }
 
         /// Runs `source` where the session's earlier scripts ran, as `vm.runInThisContext` does;
-        /// with `value`, the result is its completion value as `util.inspect` prints it.
+        /// with `value`, the result is its completion value as `util.inspect` prints it. A block
+        /// that leaves a timer is refused.
         func session(_ source: String, value: Bool, run: Run) throws -> BabelOutput {
             try lock.withLock {
                 output.stdout = ""
@@ -157,9 +158,15 @@ public enum JavaScriptBlocks {
                 if let exception = output.exception {
                     node.invokeMethod("failed", withArguments: [exception])
                 } else if value, let completion {
-                    result = node.invokeMethod("inspect", withArguments: [completion]).toString()
+                    let inspected = node.invokeMethod("inspect", withArguments: [completion])
+                    if let exception = output.exception {
+                        node.invokeMethod("failed", withArguments: [exception])
+                    } else {
+                        result = inspected?.toString()
+                    }
                 }
-                runTimers(run)
+                // node's session returns before its timers run, and they print later.
+                node.invokeMethod("settle", withArguments: [])
                 return try finish(result: result)
             }
         }
@@ -196,16 +203,25 @@ public enum JavaScriptBlocks {
               function out(fd, text) {
                 if (!state.dead) write(fd, text.toWellFormed());
               }
-              // Members a script may use; any other is refused rather than answered differently.
-              const guarded = new WeakSet();
-              function guard(target, name) {
+              // Members a script may use, its own and those in `extra`; any other, and listing them, is
+              // refused rather than answered differently.
+              const ownProperty = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
+              const guarded = new WeakMap();
+              function guard(target, name, extra = []) {
+                const known = (t, key) => typeof key === 'symbol' || ownProperty(t, key) || extra.includes(key);
+                const member = (t, key) => { if (!known(t, key)) refuse(`${name}.${String(key)}`); };
                 const proxy = new Proxy(target, {
-                  get(t, key, receiver) {
-                    if (typeof key === 'symbol' || key in t) return Reflect.get(t, key, receiver);
-                    refuse(`${name}.${key}`);
-                  },
+                  get(t, key, receiver) { member(t, key); return Reflect.get(t, key, receiver); },
+                  has(t, key) { member(t, key); return Reflect.has(t, key); },
+                  set(t, key, value, receiver) { member(t, key); return Reflect.set(t, key, value, receiver); },
+                  defineProperty(t, key, descriptor) { member(t, key); return Reflect.defineProperty(t, key, descriptor); },
+                  deleteProperty(t, key) { member(t, key); return Reflect.deleteProperty(t, key); },
+                  getOwnPropertyDescriptor(t, key) { member(t, key); return Reflect.getOwnPropertyDescriptor(t, key); },
+                  ownKeys() { refuse(`the members of ${name}`); },
+                  getPrototypeOf() { refuse(`the prototype of ${name}`); },
+                  setPrototypeOf() { refuse(`the prototype of ${name}`); },
                 });
-                guarded.add(proxy);
+                guarded.set(proxy, name);
                 return proxy;
               }
               // The script's proxies, target and handler, or null once revoked: JavaScriptCore can't tell
@@ -339,7 +355,8 @@ public enum JavaScriptBlocks {
               function formatValue(ctx, value, recurseTimes, typedArray) {
                 if (typeof value !== 'object' && typeof value !== 'function') return formatPrimitive(value, ctx);
                 if (value === null) return 'null';
-                if (guarded.has(value)) refuse('util.inspect of console, process or util');
+                if (guarded.has(value)) refuse(`util.inspect of ${guarded.get(value)}`);
+                if (value === globalThis) refuse('util.inspect of the global object');
                 const context = value;
                 let proxyCount = 0;
                 let proxy = proxies.get(value);
@@ -1207,24 +1224,25 @@ public enum JavaScriptBlocks {
                   },
                 }, name);
               }
-              const process = guard({ stdout: stream(1, 'process.stdout'), stderr: stream(2, 'process.stderr') }, 'process');
+              const process = guard({ stdout: stream(1, 'process.stdout'), stderr: stream(2, 'process.stderr'), [Symbol.toStringTag]: 'process' }, 'process');
               const util = guard({
                 inspect,
                 format: (...args) => formatWithOptions(undefined, args),
                 formatWithOptions: (options, ...args) => formatWithOptions(options, args),
               }, 'util');
               const modules = { process, util };
-              function require(id) {
+              const require = guard(function require(id) {
                 const name = typeof id === 'string' && id.startsWith('node:') ? id.slice(5) : id;
                 if (Object.prototype.hasOwnProperty.call(modules, name)) return modules[name];
                 const error = new Error(`Cannot find module '${id}'`);
                 error.code = 'MODULE_NOT_FOUND';
                 throw error;
-              }
+              }, 'require', ['call', 'apply', 'bind']);
               const print = (fd) => (...args) => out(fd, formatWithOptions(undefined, args) + '\n');
               const console = guard({
                 log: print(1), info: print(1), debug: print(1), warn: print(2), error: print(2),
                 dir(object, options) { out(1, inspect(object, { customInspect: false, ...options }) + '\n'); },
+                [Symbol.toStringTag]: 'console',
               }, 'console');
 
               // Timers run after the script, in order of when they are due, as Node's event loop runs them.
@@ -1269,8 +1287,15 @@ public enum JavaScriptBlocks {
                 try { return `Uncaught ${inspect(error)}`; } catch { return 'Uncaught exception'; }
               }
 
+              const AsyncFunction = (async function () {}).constructor;
+              function moduleOnly(source) {
+                if (/^\s*(import\s*[\w{*'"]|export\s)|\bimport\s*\.\s*meta\b/m.test(source)) return true;
+                try { new AsyncFunction(source); } catch { return false; }
+                try { new Function(source); return false; } catch { return true; }
+              }
+
               const globals = {
-                require, console, process, global: globalThis, Proxy: ProxyConstructor, module: { exports: {} }, __filename: '[stdin]', __dirname: '.',
+                require, console, process, global: globalThis, Proxy: ProxyConstructor, module: guard({ exports: {} }, 'module'), __filename: '[stdin]', __dirname: '.',
                 setTimeout: (callback, delay, ...args) => schedule(callback, delay, args, false),
                 setInterval: (callback, delay, ...args) => schedule(callback, delay, args, true),
                 clearTimeout: clear, clearInterval: clear,
@@ -1283,19 +1308,69 @@ public enum JavaScriptBlocks {
               for (const [name, value] of Object.entries(globals)) {
                 Object.defineProperty(globalThis, name, { value, writable: true, configurable: true, enumerable: false });
               }
-              for (const name of ['Buffer', 'setImmediate', 'clearImmediate', 'structuredClone', 'atob', 'btoa', 'performance', 'fetch',
-                'crypto', 'navigator', 'URL', 'URLSearchParams', 'TextEncoder', 'TextDecoder', 'AbortController', 'AbortSignal',
-                'Event', 'EventTarget', 'Blob', 'Headers', 'Request', 'Response', 'FormData', 'WebSocket', 'MessageChannel',
-                'BroadcastChannel']) {
+              // Node 26's globals that JavaScriptCore lacks.
+              for (const name of [
+                'AbortController', 'AbortSignal', 'AsyncDisposableStack', 'atob', 'Blob', 'BroadcastChannel', 'btoa', 'Buffer',
+                'ByteLengthQueuingStrategy', 'clearImmediate', 'CloseEvent', 'CompressionStream', 'CountQueuingStrategy', 'Crypto',
+                'crypto', 'CryptoKey', 'CustomEvent', 'DecompressionStream', 'DisposableStack', 'DOMException', 'ErrorEvent', 'Event',
+                'EventTarget', 'fetch', 'File', 'FormData', 'Headers', 'localStorage', 'MessageChannel', 'MessageEvent', 'MessagePort',
+                'Navigator', 'navigator', 'Performance', 'performance', 'PerformanceEntry', 'PerformanceMark', 'PerformanceMeasure',
+                'PerformanceObserver', 'PerformanceObserverEntryList', 'PerformanceResourceTiming', 'QuotaExceededError',
+                'ReadableByteStreamController', 'ReadableStream', 'ReadableStreamBYOBReader', 'ReadableStreamBYOBRequest',
+                'ReadableStreamDefaultController', 'ReadableStreamDefaultReader', 'Request', 'Response', 'sessionStorage',
+                'setImmediate', 'SharedArrayBuffer', 'Storage', 'structuredClone', 'SubtleCrypto', 'SuppressedError', 'Temporal',
+                'TextDecoder', 'TextDecoderStream', 'TextEncoder', 'TextEncoderStream', 'TransformStream',
+                'TransformStreamDefaultController', 'URL', 'URLPattern', 'URLSearchParams', 'WebSocket', 'WritableStream',
+                'WritableStreamDefaultController', 'WritableStreamDefaultWriter'
+              ]) {
                 if (!(name in globalThis)) {
                   Object.defineProperty(globalThis, name, { get() { refuse(name); }, configurable: true });
                 }
               }
 
+              // JavaScriptCore's stack text isn't V8's, so errors get none and reading one is refused. In
+              // node an error's own keys include `stack`.
+              Error.stackTraceLimit = 0;
+              const refusing = (name) => ({ get() { refuse(name); }, set() { refuse(name); }, configurable: true });
+              Object.defineProperty(Error, 'stackTraceLimit', { ...refusing('Error.stackTraceLimit'), enumerable: true });
+              Object.defineProperty(Error, 'captureStackTrace', refusing('Error.captureStackTrace'));
+              Object.defineProperty(Error.prototype, 'stack', {
+                get() { refuse('Error.stack'); },
+                set(value) { Object.defineProperty(this, 'stack', { value, writable: true, configurable: true }); },
+                configurable: true,
+              });
+              const errorLike = (v) => v === Error.prototype || isError(v);
+              function refuseErrors(object, name, test) {
+                object[name] = new RealProxy(object[name], {
+                  apply(target, self, args) {
+                    if (test(self, args)) refuse("an error's own properties");
+                    return Reflect.apply(target, self, args);
+                  },
+                });
+              }
+              for (const [object, name] of [[Object, 'getOwnPropertyNames'], [Object, 'getOwnPropertyDescriptors'], [Reflect, 'ownKeys']]) {
+                refuseErrors(object, name, (self, [v]) => errorLike(v));
+              }
+              for (const [object, name] of [[Object, 'getOwnPropertyDescriptor'], [Object, 'hasOwn'], [Reflect, 'getOwnPropertyDescriptor']]) {
+                refuseErrors(object, name, (self, [v, key]) => key === 'stack' && errorLike(v));
+              }
+              for (const name of ['hasOwnProperty', 'propertyIsEnumerable']) {
+                refuseErrors(Object.prototype, name, (self, [key]) => key === 'stack' && errorLike(self));
+              }
+
               return {
                 // A script run as `node` runs standard input; an uncaught error ends it.
                 main(source) {
-                  try { evaluate(source); } catch (error) { uncaught(error); }
+                  try {
+                    evaluate(source);
+                  } catch (error) {
+                    // node runs a script that doesn't parse as one as an ES module, when that parses.
+                    if (error instanceof SyntaxError && moduleOnly(source)) {
+                      if (!state.refused) state.refused = 'top-level await, import or export';
+                    } else {
+                      uncaught(error);
+                    }
+                  }
                 },
                 begin() {
                   state.dead = false;
@@ -1305,6 +1380,12 @@ public enum JavaScriptBlocks {
                 },
                 // After a session's script: its error, or its value as the session writes it.
                 failed(error) { uncaught(error); },
+                // Drops a session's timers, which would print after the block in node, and refuses the block.
+                settle() {
+                  if (state.timers.length === 0) return;
+                  state.timers = [];
+                  if (!state.refused) state.refused = 'a timer in a session';
+                },
                 inspect(value) { return inspect(value); },
                 // Runs the next timer that is due: the milliseconds until one is, 0 after running one,
                 // or -1 when none is left to wait for.

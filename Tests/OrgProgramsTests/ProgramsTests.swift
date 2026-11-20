@@ -187,6 +187,14 @@ struct JavaScriptFallbackTests {
         #expect(try await run("#+begin_src js :cmd no-such-node :session s\n6 * 7\n#+end_src\n").resultFile == "42")
     }
 
+    /// A `:cmd` with arguments isn't run in JavaScriptCore, which can't take node's options.
+    @Test func leavesACommandWithArgumentsToTheRunner() async throws {
+        let error = await #expect(throws: BabelRunner.Failure.self) {
+            try await run("#+begin_src js :cmd \"no-such-node --no-warnings\" :results output\nconsole.log(1)\n#+end_src\n")
+        }
+        #expect(error?.description == "no-such-node --no-warnings isn't installed.")
+    }
+
     @Test(.enabled(if: BabelRunner.installed("node")))
     func usesNodeWhenInstalled() async throws {
         #expect(try await run("#+begin_src js :results output\nconsole.log(typeof require('fs').readFileSync)\n#+end_src\n").stdout == "function\n")

@@ -66,6 +66,12 @@ struct JavaScriptBlocksTests {
         "setTimeout(() => { throw new TypeError('in timer'); }, 1); setTimeout(() => console.log('not reached'), 5)",
         "var x = 5; console.log(globalThis.x, this === globalThis, typeof module, __filename, global === globalThis)",
         "console.log(JSON.stringify({a: 1, b: [1, 2]}, null, 2), [3, 1, 2].sort(), 0.1 + 0.2)",
+        // Every global of node's is here or refused.
+        "console.log(Object.getOwnPropertyNames(globalThis).sort().join(' '))",
+        "console.log(Object.prototype.toString.call(process), Object.prototype.toString.call(console), typeof require, require.name, require.length)",
+        "module.exports = 5; console.log(module.exports, exports, typeof module)",
+        "const e = new TypeError('x'); e.stack = 's'; console.log(e.stack, 'stack' in e, Object.keys(e), JSON.stringify(e), String(e))",
+        "class Stack { constructor() { this.stack = []; } }; const s = new Stack(); s.stack.push(1); console.log(s.stack, s)",
     ]
 
     /// The values a block returns, printed by `util.inspect`, and what `console` and timers
@@ -137,13 +143,33 @@ struct JavaScriptBlocksTests {
 
     @Test func whatNodeAloneHasIsRefused() async throws {
         let folder = FileManager.default.temporaryDirectory
-        for (body, what) in [("return new Error('x')", "util.inspect of an Error"), ("return Promise.resolve(1)", "util.inspect of a Promise"),
-                             ("return Buffer.from('a')", "Buffer"), ("return process.env.HOME", "process.env"),
-                             ("console.table([1])", "console.table")] {
-            await #expect(throws: Babel.Failure.message("This block uses \(what), which runs only in node.")) {
-                try await JavaScriptBlocks.run(Self.plan("#+begin_src js\n\(body)\n#+end_src\n"), directory: folder)
+        let module = "top-level await, import or export", stack = "an error's own properties"
+        for (header, body, what) in [
+            ("", "return new Error('x')", "util.inspect of an Error"), ("", "return Promise.resolve(1)", "util.inspect of a Promise"),
+            ("", "return Buffer.from('a')", "Buffer"), ("", "return process.env.HOME", "process.env"), ("", "console.table([1])", "console.table"),
+            (" :results output", "console.log(await Promise.resolve(5))", module), (" :results output", "for await (const x of [1]) console.log(x)", module),
+            (" :results output", "import util from 'util'; console.log(util.format('%d', 3))", module),
+            (" :results output", "console.log(import.meta.url)", module), (" :results output", "export const x = 1", module),
+            ("", "return new Error('x').stack", "Error.stack"), (" :results output", "try { null.x } catch (e) { console.log(e.stack) }", "Error.stack"),
+            ("", "return Error.stackTraceLimit", "Error.stackTraceLimit"), ("", "const o = {}; Error.captureStackTrace(o); return o", "Error.captureStackTrace"),
+            ("", "return Object.getOwnPropertyNames(new Error('x'))", stack), ("", "return Reflect.ownKeys(new RangeError('x'))", stack),
+            ("", "return new Error('x').hasOwnProperty('stack')", stack), ("", "return Object.hasOwn(new Error('x'), 'stack')", stack),
+            ("", "return require('util').inspect(Error.prototype, {showHidden: true})", stack),
+            ("", "return typeof Temporal", "Temporal"), ("", "return new SharedArrayBuffer(2)", "SharedArrayBuffer"),
+            ("", "return typeof DOMException", "DOMException"), ("", "return typeof ReadableStream", "ReadableStream"),
+            ("", "return 'env' in process", "process.env"), ("", "return Object.keys(console).length", "the members of console"),
+            ("", "return Object.getPrototypeOf(process)", "the prototype of process"), ("", "process.exitCode = 1", "process.exitCode"),
+            ("", "return process.toString()", "process.toString"), ("", "return typeof require.resolve", "require.resolve"),
+            ("", "return require.cache", "require.cache"), ("", "return module.id", "module.id"), ("", "return typeof module.paths", "module.paths"),
+            (" :results output", "console.log(globalThis)", "util.inspect of the global object"), ("", "return this", "util.inspect of the global object"),
+            ("", "return require", "util.inspect of require"), ("", "return module", "util.inspect of module"),
+        ] {
+            await #expect(throws: Babel.Failure.message("This block uses \(what), which runs only in node."), "\(body)") {
+                try await JavaScriptBlocks.run(Self.plan("#+begin_src js\(header)\n\(body)\n#+end_src\n"), directory: folder)
             }
         }
+        // A syntax error that isn't a module's is reported, as node reports it.
+        #expect(try await JavaScriptBlocks.run(Self.plan("#+begin_src js :results output\nconsole.log(1); return 2\n#+end_src\n"), directory: folder)?.status == 1)
         #expect(try await JavaScriptBlocks.run(Self.plan("#+begin_src python\n1\n#+end_src\n"), directory: folder) == nil)
         await #expect(throws: Babel.Failure.message("No folder \(folder.appendingPathComponent("nowhere").path) for :dir.")) {
             try await JavaScriptBlocks.run(Self.plan("#+begin_src js :dir nowhere\nreturn 1\n#+end_src\n"), directory: folder)
@@ -160,6 +186,17 @@ struct JavaScriptBlocksTests {
         #expect(try await run("", "throw new Error('boom')") == BabelOutput(stdout: "", stderr: "Error: boom\n", status: 1))
         #expect(try await run("", "[x, {y}]")?.resultFile == "[ 41, { y: 2 } ]")
         #expect(try await run(" :results output", "console.log(x); x") == BabelOutput(stdout: "41\n"))
+        // node's session returns before a timer runs, and it prints later; a block that leaves one is refused.
+        await #expect(throws: Babel.Failure.message("This block uses a timer in a session, which runs only in node.")) {
+            try await run(" :results output", "var z = 1; setInterval(() => console.log('tick'), 10)")
+        }
+        await #expect(throws: Babel.Failure.message("This block uses a timer in a session, which runs only in node.")) {
+            try await run("", "setTimeout(() => {}, 1).unref(); 2")
+        }
+        #expect(try await run("", "const t = setTimeout(() => {}, 1); clearTimeout(t); z")?.resultFile == "1")
+        // An error while printing the value is reported, and there is no result.
+        let thrown = try await run("", "({[Symbol.for('nodejs.util.inspect.custom')]() { throw new TypeError('boom') }})")
+        #expect(thrown == BabelOutput(stdout: "", stderr: "TypeError: boom\n", status: 1))
         let other = try Folder()
         #expect(try await JavaScriptBlocks.run(Self.plan("#+begin_src js :session work\ntypeof x\n#+end_src\n"), directory: other.url)?.resultFile == "'undefined'")
     }
