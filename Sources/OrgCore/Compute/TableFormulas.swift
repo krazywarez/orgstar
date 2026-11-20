@@ -632,7 +632,9 @@ extension EmacsBuffer {
             } else {
                 do {
                     result = try Calc.evaluate(form, modes: modes, numeric: !mode.keepEmpty && mode.numbers)
-                } catch is Calc.Failure {
+                } catch let failure as Calc.Failure {
+                    // A duration formula takes Calc's error for a string, as org does.
+                    if duration != nil { throw UserError(message: "Wrong type argument: stringp, (0 \"\(failure.reason)\")") }
                     (result, fmt) = ("#ERROR", nil)
                 }
             }

@@ -69,6 +69,30 @@ struct TableFormulaTests {
         "#+NAME: t1\n| 5 | 6 |\n| 1 | 2 |\n\n#+NAME: t2\n| 7 | 8 |\n\n| name | val | sum |\n|------+-----+-----|\n| t1 | | |\n| t2 | | |\n#+TBLFM: $2=remote($1,@1$1)::$3=vsum(remote(t1,$1..$2))+vsum($1..$2)\n",
     ]
 
+    /// Timestamps in fields and formulas, with and without the duration flags, and Calc's
+    /// date functions.
+    static let dates = [
+        "| d1 | d2 | diff | T | t | U | N |\n|----+----+------+---+---+---+---|\n| <2026-01-01 Thu> | <2026-01-03 Sat> | | | | | |\n| <2026-01-01 Thu 10:00> | <2026-01-03 Sat 12:30> | | | | | |\n| [2026-01-01 Thu] | <2026-01-03 Sat 00:00> | | | | | |\n#+TBLFM: $3=$2-$1::$4=$2-$1;T::$5=$2-$1;t::$6=$2-$1;U::$7=$2-$1;N\n",
+        "| d | later | T | left |\n|---+-------+---+------|\n| <2026-10-05 Mon 00:00> | | | |\n| <2026-10-05 Mon 23:30> | | | |\n| [2026-10-05 Mon 12:00] | | | |\n#+TBLFM: $2=$1+0.5::$3=$1+1;T::$4=<2026-12-25 Fri>-$1\n",
+        "| d | y | m | wd | yd | h | next | start | week | year |\n|---+---+---+----+----+---+------+-------+------+------|\n| <2026-10-05 Mon> | | | | | | | | | |\n| <2026-01-31 Sat 09:15> | | | | | | | | | |\n| [2024-02-29 Thu] | | | | | | | | | |\n#+TBLFM: $2=year($1)::$3=month($1)::$4=weekday($1)::$5=yearday($1)::$6=hour($1)+minute($1)::$7=incmonth($1,1)::$8=newmonth($1)::$9=newweek($1,1)::$10=incyear($1)\n",
+        "| d | due | days | jd | n | back |\n|---+-----+------+----+---+------|\n| <2026-10-09 Fri> | | | | | |\n| <2026-10-10 Sat 08:00> | | | | | |\n#+TBLFM: $2=badd($1,3)::$3=bsub(badd($1,10),$1)::$4=julian(floor($1))::$5=date($1)::$6=date(2026,1,1)+floor($1-date(2026,1,1))\n",
+        "| d |\n|---|\n| <2026-10-05 Mon> |\n| <2026-10-07 Wed 06:00> |\n|---|\n| |\n| |\n| |\n#+TBLFM: @4$1=vmean(@I..@II)::@5$1=vmin(@I..@II)::@6$1=vmax(@I..@II)\n",
+    ]
+
+    /// Results that aren't numbers under `N` and the duration flags: `#ERROR`, or for a
+    /// duration an error.
+    static let numericResults = [
+        "| a | b | c | d | e | f | g |\n|---+---+---+---+---+---+---|\n| <2026-01-01 Thu> | | | | | | |\n#+TBLFM: $2=<2026-01-01 Thu>+$1;N::$3=<2026-01-01 Thu>;E::$4=<2026-01-01 Thu>;EN::$5=<2026-01-01 Thu>;ET::$6=nan;N::$7=1/3;NF\n",
+        "| a | b |\n|---+---|\n| 1 | |\n#+TBLFM: $2=$1/3;TF\n",
+        "| a | b |\n|---+---|\n| 1 | |\n#+TBLFM: $2=nan;T\n",
+        "| a | b |\n|---+---|\n| <2026-01-01 Thu> | |\n#+TBLFM: $2=<2026-12-25 Fri>-$1;U\n",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func datesMatchEmacs() throws {
+        try compare(Self.dates + Self.numericResults, fallbacksAllowed: false)
+    }
+
     @Test func remoteFindsTablesByIDInOtherFiles() {
         let other = "* Elsewhere\n:PROPERTIES:\n:ID: far\n:END:\n| v |\n|---|\n| 7 |\n"
         RemoteTables.fileWithID = { $0 == "far" ? other : nil }

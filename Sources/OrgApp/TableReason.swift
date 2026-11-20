@@ -103,6 +103,7 @@ public enum TableReason {
         case "constants that refer to themselves": return String(localized: "constants that refer to themselves", comment: comment)
         case "date arithmetic": return String(localized: "date arithmetic", comment: comment)
         case "date syntax": return String(localized: "date syntax", comment: comment)
+        case "daylight saving time": return String(localized: "daylight saving time", comment: comment)
         case "division by zero": return String(localized: "division by zero", comment: comment)
         case "duration size": return String(localized: "duration size", comment: comment)
         case "empty vector": return String(localized: "empty vector", comment: comment)

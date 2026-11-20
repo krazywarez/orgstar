@@ -42,6 +42,10 @@ public enum Calc {
         public var degrees = true
         /// `calc-prefer-frac`: dividing integers gives a fraction.
         public var preferFractions = false
+        /// The clock `now()` reads; nil is the system clock.
+        public var now: Date?
+        /// The local time zone, for `now()`, `julian` and `unixtime`.
+        public var timeZone = TimeZone.current
         public init() {}
     }
 
@@ -56,7 +60,7 @@ public enum Calc {
             let value = try Evaluator(modes: modes).eval(tree)
             if numeric {
                 switch value {
-                case .int, .float: break
+                case .int, .float, .frac: break
                 default: throw Failure("Number expected")
                 }
             }
@@ -73,6 +77,7 @@ public enum Calc {
     static func extra(_ n: Int, _ body: () throws -> Value) throws -> Value {
         let v = try $precision.withValue(precision + n, operation: body)
         if case .float(let m, let e) = v { return try makeFloat(Int128(m), e) }
+        if case .date(.float(let m, let e)) = v { return .date(try makeFloat(Int128(m), e)) }
         return v
     }
 
@@ -272,7 +277,8 @@ public enum Calc {
         switch (a, b) {
         case (.nan, .vector), (.vector, .nan): throw Unsupported("vector arithmetic")
         case (.nan, _), (_, .nan): return .nan
-        case (.date, .date): throw Unsupported("date arithmetic")
+        // Two dates add as their day numbers.
+        case (.date(let x), .date(let y)): return try add(x, y)
         case (.date(let d), _): return .date(try add(d, b))
         case (_, .date(let d)): return .date(try add(a, d))
         default: break
@@ -310,16 +316,14 @@ public enum Calc {
         case .float(let m, let e): return .float(-m, e)
         case .frac(let n, let d): return .frac(-n, d)
         case .vector: throw Unsupported("vector arithmetic")
-        case .date: throw Unsupported("date arithmetic")
+        case .date(let d): return .date(try negate(d))
         case .nan: return .nan
         }
     }
 
     /// `a - b`: a date less a date is the days between them.
     static func subtract(_ a: Value, _ b: Value) throws -> Value {
-        if case .date(let x) = a, case .date(let y) = b { return try add(x, try negate(y)) }
-        if case .date(let x) = a, b != .nan { return .date(try add(x, try negate(b))) }
-        return try add(a, try negate(b))
+        try add(a, try negate(b))
     }
 
     static func isNaN(_ a: Value, _ b: Value) -> Bool {
@@ -768,16 +772,13 @@ public enum Calc {
 
     static let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-    /// `calc-date-format` as Org sets it: `YYYY-MM-DD Www`, then ` hh:mm` for a time of day.
+    /// `calc-date-format` as Org sets it: `YYYY-MM-DD Www`, then ` hh:mm` for a day number
+    /// that isn't an integer.
     static func formatDate(_ value: Value) throws -> String {
-        let days = try double(value)
-        let day = Int(days.rounded(.down))
-        let date = Days.date(day)
-        var text = String(format: "%04d-%02d-%02d ", date.year, date.month, date.day) + weekdays[Days.weekday(day)]
-        if case .float = value, days != Double(day) {
-            let seconds = Int(((days - Double(day)) * 86400).rounded())
-            text += String(format: " %02d:%02d", seconds / 3600, seconds / 60 % 60)
-        }
+        let dt = try dateParts(value)
+        let year = dt.year > 0 && dt.year < 100 ? "+\(dt.year)" : String(dt.year)
+        var text = year + String(format: "-%02d-%02d ", dt.month, dt.day) + weekdays[Days.weekday(try floorInt(value))]
+        if let time = dt.time { text += String(format: " %02d:%02d", time.hour, time.minute) }
         return text
     }
 
@@ -789,9 +790,96 @@ public enum Calc {
         }
         let day = Days.absolute(year: Int(m.1)!, month: Int(m.2)!, day: Int(m.3)!)
         guard let hour = m.4.flatMap({ Int($0) }), let minute = m.5.flatMap({ Int($0) }) else { return .date(.int(day)) }
-        let seconds = hour * 3600 + minute * 60 + (m.6.flatMap { Int($0) } ?? 0)
-        if seconds == 0 { return .date(.int(day)) }
-        return .date(try add(.int(day), try divide(.int(seconds), .int(86400))))
+        return try dateTime(day, hour * 3600 + minute * 60 + (m.6.flatMap { Int($0) } ?? 0))
+    }
+
+    // MARK: - Dates
+
+    /// Calc numbers years without a year 0: -1 comes before 1.
+    static func astronomical(_ year: Int) -> Int { year > 0 ? year : year == 0 ? 0 : year + 1 }
+
+    /// `math-absolute-from-gregorian-dt`.
+    static func absolute(_ year: Int, _ month: Int, _ day: Int) throws -> Int {
+        guard abs(year) < 1_000_000_000 else { throw Unsupported("number size") }
+        return Days.absolute(year: astronomical(year), month: month, day: day)
+    }
+
+    /// `math-days-in-month`.
+    static func daysInMonth(_ year: Int, _ month: Int) throws -> Int {
+        try absolute(year, month + 1, 1) - absolute(year, month, 1)
+    }
+
+    /// `math-dt-to-date` with a time of day: a float day number.
+    static func dateTime(_ day: Int, _ seconds: Int) throws -> Value {
+        .date(try add(try float(.int(day)), try divide(.int(seconds), .float(864, 2))))
+    }
+
+    /// `math-dt-to-date`.
+    static func dateValue(_ year: Int, _ month: Int, _ day: Int, _ time: (hour: Int, minute: Int, second: Int)? = nil) throws -> Value {
+        guard (1...12).contains(month), (1...31).contains(day) else { throw Unsupported("arguments") }
+        let n = try absolute(year, month, day)
+        guard let time else { return .date(.int(n)) }
+        guard [time.hour, time.minute, time.second].allSatisfy({ abs($0) < 1_000_000 }) else { throw Unsupported("arguments") }
+        return try dateTime(n, time.hour * 3600 + time.minute * 60 + time.second)
+    }
+
+    /// The day number of a date form, or a real number, which Calc's date functions also take.
+    static func dayNumber(_ v: Value) throws -> Value {
+        let x: Value = if case .date(let d) = v { d } else { v }
+        _ = try sign(x)
+        return x
+    }
+
+    /// `math-date-to-dt`: the day, with the time of day when the day number isn't an integer.
+    static func dateParts(_ v: Value) throws -> (year: Int, month: Int, day: Int, time: (hour: Int, minute: Int, second: Int)?) {
+        let x = try dayNumber(v)
+        let day = try floorInt(x)
+        guard abs(day) < 100_000_000_000 else { throw Unsupported("number size") }
+        let date = Days.date(day)
+        let year = date.year > 0 ? date.year : date.year - 1
+        if case .int = x { return (year, date.month, date.day, nil) }
+        // Above 12 digits Calc keeps fractions of a second.
+        guard precision <= 12 else { throw Unsupported("calc precision") }
+        let seconds = try trunc(try round(try multiply(try subtract(x, .int(day)), .int(86400)), even: false))
+        return (year, date.month, date.day, (seconds / 3600, seconds / 60 % 60, seconds % 60))
+    }
+
+    /// `math-to-business-day`, with Calc's default holidays: Saturdays and Sundays.
+    static func toBusinessDay(_ v: Value) throws -> (Value, holiday: Bool) {
+        let x = try dayNumber(v)
+        let day = try floorInt(x)
+        let weekday = Days.weekday(day)
+        let delta = day / 7 * 2 + (weekday > 0 ? 1 : 0)
+        return (try add(.int(day - delta), try subtract(x, .int(day))), weekday == 0 || weekday == 6)
+    }
+
+    /// `math-from-business-day`.
+    static func fromBusinessDay(_ n: Value) throws -> Value {
+        var day = try floorInt(n)
+        let time = try subtract(n, .int(day))
+        var left = ((day % 5) + 5) % 5
+        day += day / 5 * 2
+        var weekday = 0
+        while true {
+            if weekday == 0 || weekday == 6 {
+                day += 1
+            } else {
+                left -= 1
+                if left < 0 { break }
+            }
+            weekday += 1
+        }
+        return .date(try add(.int(day), time))
+    }
+
+    /// `calcFunc-tzone` for the local zone, in seconds. Calc applies the current year's
+    /// daylight saving rules to every date, which isn't reproduced, so only zones without
+    /// daylight saving time are supported.
+    static func zoneOffset(_ zone: TimeZone) throws -> Int {
+        guard !zone.isDaylightSavingTime(), zone.nextDaylightSavingTimeTransition == nil else {
+            throw Unsupported("daylight saving time")
+        }
+        return -zone.secondsFromGMT()
     }
 
     // MARK: - Parsing
@@ -856,6 +944,8 @@ public enum Calc {
 
         mutating func comparison() throws -> Node {
             let left = try sum()
+            // Calc reads `<<` and `>>` as one token, so `1<<2026-10-05 Mon>` is a syntax error.
+            if take("<<") || take(">>") { throw Unsupported("formula syntax") }
             for (token, op) in [("==", "="), ("!=", "≠"), ("<=", "≤"), (">=", "≥"), ("<", "<"), (">", ">")] where take(token) {
                 let right = try sum()
                 if let next = peek(), "=!<>".contains(next) { throw Unsupported("chained comparison") }
@@ -1199,6 +1289,20 @@ public enum Calc {
             return args[0]
         }
 
+        /// An integer argument, from an integer or a float with an integer value
+        /// (`math-messy-integerp`).
+        func integer(_ v: Value) throws -> Int {
+            guard isWhole(v) else { throw Unsupported("arguments") }
+            return try trunc(v)
+        }
+
+        /// The local date and time `now()` reads.
+        func clock() -> DateComponents {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = modes.timeZone
+            return calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: modes.now ?? Date())
+        }
+
         func radians(_ x: Double) -> Double { modes.degrees ? x * .pi / 180 : x }
         func angle(_ x: Double) -> Double { modes.degrees ? x * 180 / .pi : x }
 
@@ -1229,6 +1333,8 @@ public enum Calc {
             case "vmedian":
                 var items = try elements(args)
                 guard !items.isEmpty else { throw Unsupported("empty vector") }
+                // Calc leaves the median of dates unevaluated.
+                if items.contains(where: { if case .date = $0 { true } else { false } }) { throw Unsupported("arguments") }
                 try items.sort { try compare($0, $1) < 0 }
                 if items.count % 2 == 1 { return items[items.count / 2] }
                 return try divide(try add(items[items.count / 2 - 1], items[items.count / 2]), .int(2))
@@ -1261,8 +1367,10 @@ public enum Calc {
                 return best
             case "abs":
                 let x = try one(args)
+                if case .date = x { return x }
                 return try compare(x, .int(0)) < 0 ? try negate(x) : x
             case "floor", "ceil", "trunc":
+                if args.count == 1, case .date(let d) = args[0] { return .date(try call(name, [d])) }
                 var x = try one(args)
                 if case .frac(let n, let d) = x { x = try divide(.int(n), .int(d)) }
                 if case .int = x { return x }
@@ -1272,6 +1380,10 @@ public enum Calc {
                 return .int(i)
             case "round":
                 guard args.count == 1 || args.count == 2 else { throw Unsupported("arguments") }
+                if case .date(let d) = args[0] {
+                    guard args.count == 1 else { throw Unsupported("arguments") }
+                    return .date(try call(name, [d]))
+                }
                 var x = args[0]
                 if case .frac(let n, let d) = x { x = try divide(.int(n), .int(d)) }
                 if args.count == 2 {
@@ -1533,6 +1645,113 @@ public enum Calc {
                     }
                     throw Unsupported("number")
                 }
+            case "now":
+                guard args.isEmpty else { throw Unsupported("arguments") }
+                let c = clock()
+                return try dateValue(c.year!, c.month!, c.day!, (c.hour!, c.minute!, c.second!))
+            case "date":
+                // `date(d)` converts between a date and its day number; otherwise the
+                // arguments are [year,] month, day[, hour[, minute[, second]]].
+                if args.count == 1 {
+                    if case .date(let d) = args[0] { return d }
+                    return .date(try dayNumber(args[0]))
+                }
+                guard (2...6).contains(args.count) else { throw Unsupported("arguments") }
+                let n = try args.map(integer)
+                if n.count == 2 { return try dateValue(clock().year!, n[0], n[1]) }
+                return try dateValue(n[0], n[1], n[2], n.count > 3 ? (n[3], n.count > 4 ? n[4] : 0, n.count > 5 ? n[5] : 0) : nil)
+            case "year", "month", "day", "hour", "minute", "second", "yearday":
+                let dt = try dateParts(try one(args))
+                switch name {
+                case "year": return .int(dt.year)
+                case "month": return .int(dt.month)
+                case "day": return .int(dt.day)
+                case "hour": return .int(dt.time?.hour ?? 0)
+                case "minute": return .int(dt.time?.minute ?? 0)
+                case "second": return .int(dt.time?.second ?? 0)
+                default: return .int(try absolute(dt.year, dt.month, dt.day) - absolute(dt.year, 1, 1) + 1)
+                }
+            case "weekday":
+                return .int(Days.weekday(try floorInt(try dayNumber(try one(args)))))
+            case "newweek":
+                guard (1...2).contains(args.count) else { throw Unsupported("arguments") }
+                let day = try floorInt(try dayNumber(args[0]))
+                let weekday = args.count > 1 ? try integer(args[1]) : 0
+                guard (0...6).contains(weekday) else { throw Unsupported("arguments") }
+                return .date(.int(day - Days.weekday(day - weekday)))
+            case "newmonth":
+                guard (1...2).contains(args.count) else { throw Unsupported("arguments") }
+                var day = args.count > 1 ? try integer(args[1]) : 1
+                guard (0...31).contains(day) else { throw Unsupported("arguments") }
+                let dt = try dateParts(args[0])
+                let days = try daysInMonth(dt.year, dt.month)
+                day = day == 0 || day > days ? days - 1 : day - 1
+                return .date(.int(try absolute(dt.year, dt.month, 1) + day))
+            case "newyear":
+                guard (1...2).contains(args.count) else { throw Unsupported("arguments") }
+                var day = args.count > 1 ? try integer(args[1]) : 1
+                let dt = try dateParts(args[0])
+                if (-12 ... -1).contains(day) { return .date(.int(try absolute(dt.year, -day, 1))) }
+                guard (0...366).contains(day) else { throw Unsupported("arguments") }
+                let days = try daysInMonth(dt.year, 2) == 29 ? 366 : 365
+                if day == 0 || day > days { day = days }
+                return .date(.int(try absolute(dt.year, 1, 1) + day - 1))
+            case "incmonth", "incyear":
+                guard (1...2).contains(args.count) else { throw Unsupported("arguments") }
+                let step = args.count > 1 ? args[1] : .int(1)
+                let months = try integer(name == "incyear" ? try multiply(step, .int(12)) : step)
+                guard abs(months) < 1_000_000_000 else { throw Unsupported("arguments") }
+                let dt = try dateParts(args[0])
+                let m = dt.month - 1 + months
+                let extra = m >= 0 ? m / 12 : (m - 11) / 12
+                let month = m - extra * 12 + 1
+                var year = dt.year + extra
+                let day = min(dt.day, try daysInMonth(year, month))
+                // Past the year zero, which Calc doesn't have.
+                if dt.year > 0, year <= 0 { year -= 1 }
+                if dt.year < 0, year >= 0 { year += 1 }
+                return try dateValue(year, month, day, dt.time)
+            case "badd", "bsub":
+                guard args.count == 2 else { throw Unsupported("arguments") }
+                var (a, b) = (args[0], args[1])
+                if name == "bsub" {
+                    guard case .date = a else { throw Unsupported("arguments") }
+                    if case .date = b {
+                        if try compare(a, b) < 0 { return try negate(try call(name, [b, a])) }
+                        let (x, xHoliday) = try toBusinessDay(a)
+                        let (y, yHoliday) = try toBusinessDay(b)
+                        return try add(try subtract(x, y), .int(yHoliday && !xHoliday ? 1 : 0))
+                    }
+                    b = try negate(b)
+                }
+                if case .date = b {
+                    if case .date = a { throw Unsupported("arguments") }
+                    (a, b) = (b, a)
+                }
+                guard case .date = a else { throw Unsupported("arguments") }
+                if try sign(b) == 0 { return a }
+                let (day, holiday) = try toBusinessDay(a)
+                return try fromBusinessDay(try add(day, holiday && sign(b) > 0 ? try subtract(b, .int(1)) : b))
+            case "julian":
+                // `math-julian-date-beginning`: 1721424.5 days before day 0.
+                let x = try one(args)
+                if case .date(let d) = x {
+                    if case .int = d { return try add(d, .int(1721425)) }
+                    return try add(d, try add(.float(17214245, -1), try divide(.int(try zoneOffset(modes.timeZone)), .float(864, 2))))
+                }
+                if case .int(let d) = x { return .date(try add(.int(d), .int(-1721425))) }
+                let shifted = try subtract(try dayNumber(x), .float(17214245, -1))
+                return .date(try subtract(shifted, try divide(.int(try zoneOffset(modes.timeZone)), .float(864, 2))))
+            case "unixtime":
+                // `math-unix-epoch`: day 719163.
+                let x = try one(args)
+                if case .date(let d) = x {
+                    guard precision <= 12 else { throw Unsupported("calc precision") }
+                    let seconds = try round(try multiply(try subtract(d, .int(719163)), .int(86400)), even: false)
+                    return try add(seconds, .int(try zoneOffset(modes.timeZone)))
+                }
+                let day = try add(.int(719163), try divide(try dayNumber(x), .float(864, 2)))
+                return .date(try subtract(day, try divide(.int(try zoneOffset(modes.timeZone)), .float(864, 2))))
             default:
                 throw Unsupported("function \(name)")
             }

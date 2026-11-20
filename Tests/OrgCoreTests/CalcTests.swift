@@ -4,7 +4,7 @@ import Testing
 
 /// Runs `calc-eval` with org's table modes over a list of expressions.
 enum CalcOracle {
-    static func run(_ cases: [(expression: String, format: String)], precision: Int = 12) throws -> [String] {
+    static func run(_ cases: [(expression: String, format: String)], precision: Int = 12, zone: String = "UTC") throws -> [String] {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-calc-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -33,7 +33,7 @@ enum CalcOracle {
           (with-temp-file (getenv "ORACLE_OUTPUT")
             (insert (json-encode (vconcat results)))))
         """#.write(to: script, atomically: true, encoding: .utf8)
-        _ = try EmacsOracle.run(["-Q", "--batch", "-l", script.path], environment: ["ORACLE_INPUT": input.path, "ORACLE_OUTPUT": output.path, "ORACLE_PREC": String(precision)])
+        _ = try EmacsOracle.run(["-Q", "--batch", "-l", script.path], environment: ["ORACLE_INPUT": input.path, "ORACLE_OUTPUT": output.path, "ORACLE_PREC": String(precision), "TZ": zone])
         return try JSONDecoder().decode([String].self, from: Data(contentsOf: output))
     }
 }
@@ -64,7 +64,99 @@ struct CalcTests {
         "if(1.5, 2.5, 3)", "7%3", "-7%3", "7%-3", "7.5%2", "7\\2", "-7\\2", "7.5\\2", "mod(10,4)", "idiv(-9,4)", "fact(5)", "fact(0)",
         "vsdev([1,2,3,4])", "vvar([1,2,3])", "vpvar([1,2,3,4])", "vpsdev([2,4,4,4,5,5,7,9])", "vsdev([1.5,2.5,4])",
         "2+3<4*2", "1<2 && 3<4", "!(1<2)", "(1<2)+(2<3)",
+        // Date forms and date functions.
+        "<2026-10-05 Mon 00:00>", "<2026-10-05 Mon 00:00>+1", "<2026-10-05 Mon 12:00>+0.5", "<2026-10-05 Mon>+1e-9",
+        "<2026-10-05 Mon>+0.1", "<2026-10-05 Mon>+1:2", "<2026-10-05 Mon 10:00>-1:3", "<2026-10-05 Mon 23:59:59>+0",
+        "<2026-10-05 Mon>+<2026-10-06 Tue>", "1+<2026-10-05 Mon>+<2026-10-06 Tue>", "<2026-10-05 Mon>+1-<2026-10-01 Thu>",
+        "-(<2026-10-05 Mon>)+<2026-10-01 Thu>", "0-<2026-10-05 Mon>", "-<2026-10-05 Mon>", "<2026-10-05 Mon>-nan",
+        "<2026-10-05 Mon>-<2026-10-04 Sun 12:00>", "<2026-10-05 Mon> == <2026-10-05 Mon 00:00>",
+        "vsum([<2026-10-05 Mon>,1.5])", "vsum([<2026-10-05 Mon 06:00>,0.1])", "vsum([<2026-10-05 Mon>,<2026-10-06 Tue>])",
+        "vsum([<2026-10-05 Mon>,<2026-10-06 Tue>,<2026-10-10 Sat>])", "vmean([<2026-10-05 Mon>,<2026-10-06 Tue>])",
+        "vmean([<2026-10-05 Mon 06:00>,<2026-10-05 Mon 12:00>])", "vmin([<2026-10-05 Mon>,<2026-10-07 Wed>])",
+        "vmax([<2026-10-05 Mon>],[<2026-10-06 Tue>])", "vmin([<2026-10-05 Mon 00:00>,<2026-10-05 Mon>])",
+        "vcount([<2026-10-05 Mon>])", "max(<2026-10-05 Mon>,<2026-10-06 Tue>)", "abs(<2026-10-05 Mon>)",
+        "floor(<2026-10-05 Mon 10:30>)", "ceil(<2026-10-05 Mon 13:00>)", "trunc(<2026-10-05 Mon 13:00>)",
+        "round(<2026-10-05 Mon 13:00>)", "round(<2026-10-05 Mon 11:00>)", "floor(<2026-10-05 Mon>)",
+        "year(<2026-10-05 Mon>)", "month(<2026-10-05 Mon 10:30>)", "day(<2026-10-05 Mon>)", "weekday(<2026-10-05 Mon>)",
+        "weekday(<2026-10-05 Mon 10:00>)", "weekday(-1)", "weekday(5)", "hour(<2026-10-05 Mon 10:30>)",
+        "minute(<2026-10-05 Mon 10:30>)", "second(<2026-10-05 Mon 10:30:45>)", "hour(<2026-10-05 Mon>)",
+        "yearday(<2026-10-05 Mon>)", "yearday(<2024-12-31 Tue>)", "year(5)", "year(<2026-10-05 Mon>)+1",
+        "date(2026,10,5)", "date(2026,10,5,10,30,0)", "date(2026,1,1,10)", "date(2026,1,1,10,30)", "date(2026,1,1,25,0,0)",
+        "date(2026,1,1,10,70,0)", "date(2026,2,31)", "date(2026.,2.,3.)", "date(2026,10,5,0,0,0)", "date(10,5)",
+        "date(<2026-10-05 Mon>)", "date(<2026-10-05 Mon 06:00>)", "date(<2026-10-05 Mon>)+1", "date(739000)",
+        "date(739000.5)", "date(739000.)", "date(1:2)", "date(5)", "date(36524)", "date(36890)", "date(365250)",
+        "date(-5)", "date(-400)", "date(0)", "date(-366)", "date(-367)",
+        "incmonth(<2026-01-31 Sat>,1)", "incmonth(<2026-10-05 Mon 10:30>,-14)", "incmonth(<2026-10-05 Mon>)",
+        "incmonth(<2026-10-05 Mon>,2.)", "incmonth(5,1)", "incmonth(<2024-02-29 Thu>,12)", "incmonth(<2026-03-31 Tue>,-1)",
+        "incmonth(<2026-12-15 Tue>,1)", "incmonth(<2026-01-15 Thu>,-1)", "incmonth(<2026-01-15 Thu>,-25)",
+        "incmonth(400,-24)", "incmonth(-400,24)", "incyear(<2024-02-29 Thu>,1)", "incyear(<2024-02-29 Thu>,4)",
+        "incyear(<2026-10-05 Mon>)", "incyear(<2026-10-05 Mon>,1.5)", "incyear(<2026-10-05 Mon 08:00>,-3)",
+        "newmonth(<2026-10-15 Thu>)", "newmonth(<2026-02-15 Sun>,31)", "newmonth(<2026-02-15 Sun>,0)",
+        "newmonth(<2026-02-15 Sun 10:00>,5)", "newmonth(<2024-02-15 Thu>,30)", "newmonth(<2026-10-15 Thu>,31)",
+        "newyear(<2026-10-15 Thu>)", "newyear(<2026-10-15 Thu>,0)", "newyear(<2026-10-15 Thu>,-3)",
+        "newyear(<2026-10-15 Thu 10:00>,40)", "newyear(<2024-10-15 Tue>,366)", "newyear(<2026-10-15 Thu>,366)",
+        "newyear(<2026-10-15 Thu>,-12)", "newweek(<2026-10-15 Thu>)", "newweek(<2026-10-15 Thu>,3)",
+        "newweek(<2026-10-15 Thu 10:00>)", "newweek(<2026-10-11 Sun>,1)", "newweek(<2026-10-17 Sat>,6)",
+        "badd(<2026-10-09 Fri>,1)", "badd(<2026-10-10 Sat>,1)", "badd(<2026-10-10 Sat>,-1)", "badd(<2026-10-10 Sat>,0)",
+        "badd(<2026-10-09 Fri 10:00>,2.5)", "badd(1,<2026-10-09 Fri>)", "badd(<2026-10-05 Mon>,10)", "badd(<2026-10-05 Mon>,-10)",
+        "badd(<2026-10-11 Sun>,1)", "badd(<2026-10-11 Sun>,-1)", "badd(<2026-10-05 Mon>,0.5)", "badd(<2026-10-05 Mon>,-0.5)",
+        "bsub(<2026-10-12 Mon>,1)", "bsub(<2026-10-12 Mon>,<2026-10-09 Fri>)", "bsub(<2026-10-11 Sun>,<2026-10-09 Fri>)",
+        "bsub(<2026-10-12 Mon>,<2026-10-10 Sat>)", "bsub(<2026-10-05 Mon>,<2026-10-12 Mon>)",
+        "bsub(<2026-10-12 Mon 12:00>,<2026-10-09 Fri 06:00>)", "bsub(<2026-12-31 Thu>,<2026-01-01 Thu>)",
+        "bsub(<2026-10-10 Sat>,<2026-10-11 Sun>)", "bsub(<2026-10-11 Sun>,<2026-10-10 Sat>)",
+        "julian(<2026-10-05 Mon>)", "julian(<2026-10-05 Mon 12:00>)", "julian(2461319)", "julian(2461319.5)", "julian(1:2)",
+        "unixtime(<2026-10-05 Mon>)", "unixtime(<2026-10-05 Mon 10:30>)", "unixtime(1791158400)", "unixtime(1.5)",
+        "unixtime(0)", "unixtime(-86400)", "unixtime(<1970-01-01 Thu>)",
     ]
+
+    /// Zones without daylight saving time, as `TZ` names them for Emacs and their offsets.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func datesInFixedZonesMatchCalc() throws {
+        let cases = ["unixtime(<2026-10-05 Mon>)", "unixtime(<2026-10-05 Mon 10:30>)", "unixtime(1791158400)",
+                     "julian(<2026-10-05 Mon 12:00>)", "julian(2461319.5)", "julian(<2026-10-05 Mon>)"].map { ($0, "(float 8)") }
+        for zone in [("EST5", -5 * 3600), ("IST-5:30", 19800)] {
+            let skipped = try Self.compare(cases, zone: zone)
+            #expect(skipped == [], "\(zone.0) \(skipped)")
+        }
+    }
+
+    /// Every function and operator given dates where numbers go: what isn't refused must
+    /// match Calc.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func everythingOnDatesMatchesCalc() throws {
+        let functions = ["vsum", "vprod", "vcount", "vmean", "vmax", "vmin", "vmedian", "if", "vvar", "vpvar", "vsdev", "vpsdev",
+                         "mod", "idiv", "fact", "dfact", "max", "min", "abs", "floor", "ceil", "trunc", "round", "sqrt", "exp", "ln",
+                         "log10", "sin", "cos", "tan", "arcsin", "arccos", "arctan", "eq", "neq", "lt", "gt", "leq", "geq", "land",
+                         "lor", "lnot", "percent", "float", "pfloat", "sign", "rounde", "roundu", "frac", "fdiv", "gcd", "lcm",
+                         "choose", "perm", "pow", "exp10", "nroot", "hypot", "log", "sinh", "cosh", "tanh", "arcsinh", "arccosh",
+                         "arctanh", "arctan2", "deg", "rad", "vflat", "vgmean", "vhmean", "vcov", "vpcov", "vcorr", "agmean", "date",
+                         "year", "month", "day", "hour", "minute", "second", "yearday", "weekday", "newweek", "newmonth", "newyear",
+                         "incmonth", "incyear", "badd", "bsub", "julian", "unixtime"]
+        let (d, t) = ("<2026-10-05 Mon>", "<2026-10-07 Wed 10:30>")
+        var cases: [String] = []
+        for f in functions {
+            for args in [d, t, "\(d),2", "2,\(d)", "\(t),1.5", "\(d),\(t)", "\(t),\(d)", "[\(d),\(t)]", "[\(d),2]", "[\(t)],[\(d)]", "1,\(d),2"] {
+                cases.append("\(f)(\(args))")
+            }
+        }
+        for op in ["+", "-", "*", "/", "%", "\\", "^", "==", "!=", "<", ">", "<=", ">=", "&&", "||"] {
+            cases += ["\(d)\(op)2", "2\(op)\(d)", "\(d)\(op)\(t)", "\(t)\(op)0.5", "\(t)\(op)\(d)", "\(d)\(op)nan"]
+        }
+        cases += ["-\(t)", "!\(d)", "\(d)%", "\(d)!", "\(d) 2", "2 \(d)"]
+        let skipped = try Self.compare(cases.map { ($0, "(float 8)") })
+        #expect(skipped.count < cases.count)
+    }
+
+    @Test func now() throws {
+        var modes = Calc.Modes()
+        modes.timeZone = TimeZone(secondsFromGMT: 3600)!
+        modes.now = Date(timeIntervalSince1970: 1_791_196_245)
+        #expect(try Calc.evaluate("now()", modes: modes) == "<2026-10-05 Mon 11:30>")
+        #expect(try Calc.evaluate("second(now())", modes: modes) == "45")
+        #expect(try Calc.evaluate("date(10,6)-newyear(now())", modes: modes) == "278")
+        modes.now = Date(timeIntervalSince1970: 1_791_158_400 - 3600)
+        #expect(try Calc.evaluate("now()", modes: modes) == "<2026-10-05 Mon 00:00>")
+    }
 
     /// Constants, functions and syntax that only some tables use.
     static let functions = [
@@ -126,13 +218,14 @@ struct CalcTests {
 
     /// Each case through Calc and through `Calc.evaluate`, expecting the same text; returns the
     /// cases `Calc.evaluate` doesn't support.
-    static func compare(_ cases: [(String, String)], precision: Int = 12) throws -> [String] {
-        let emacs = try CalcOracle.run(cases, precision: precision)
+    static func compare(_ cases: [(String, String)], precision: Int = 12, zone: (name: String, offset: Int) = ("UTC", 0)) throws -> [String] {
+        let emacs = try CalcOracle.run(cases, precision: precision, zone: zone.name)
         #expect(emacs.count == cases.count)
         var skipped: [String] = []
         for (c, expected) in zip(cases, emacs) {
             var modes = Calc.Modes()
             modes.precision = precision
+            modes.timeZone = TimeZone(secondsFromGMT: zone.offset)!
             let f = c.1.dropFirst().dropLast().split(separator: " ")
             let n = Int(f[1])!
             switch f[0] {
@@ -212,6 +305,12 @@ struct CalcTests {
             if precision <= 16 {
                 cases += ["vsum([0.1,0.2,0.3])", "vmean([1,2,4])", "vsum([1e-13,1,-1])", "vsdev([1.5,2.25,3e-12])", "0.7^-3"].map { ($0, "(float 0)") }
             }
+            // Above 12 digits Calc keeps fractions of a second, which isn't supported.
+            if precision < 12 {
+                cases += ["<2026-10-05 Mon 08:30>+1", "<2026-10-05 Mon>+0.5", "julian(<2026-10-05 Mon 12:00>)", "unixtime(<2026-10-05 Mon 10:30>)",
+                          "badd(<2026-10-09 Fri 10:00>,2.5)", "date(2026,1,1,10,30,15)", "minute(<2026-10-05 Mon 10:30>)",
+                          "vsum([<2026-10-05 Mon 06:00>,0.1])"].map { ($0, "(float 0)") }
+            }
             cases += ["vmax([1000., 1001])", "vmin([1001, 1000.])", "vmax([1234567890120., 1234567890123])", "1.1^10",
                       "8^(1:3)", "1.5^3"].map { ($0, "(float 0)") }
             if precision <= 14 {
@@ -236,19 +335,32 @@ struct CalcTests {
         }
     }
 
-    @Test func unsupported() {
+    @Test func unsupported() throws {
         for e in ["abc*2", "1/0", "vmean([])", "pi", "e", "phi", "gamma", "2 pi", "(-8)^(1/3)", "vvar([5])", "1<2<3",
                   "vmax([])", "vmin([])", "vrms([1,2])", "vmeane([1,2])", "vcov([1,2],[3])", "vcov([1],[2])",
                   "fdiv(7.5,2)", "fdiv(7,0)", "perm(5,6)", "log(8,1)", "log(0,2)", "log(-8,2)", "arctanh(1)", "arccosh(0.5)",
                   "nroot(-8,3)", "vgmean([-1,2])", "vhmean([0,1])", "gcd(1.5,3)", "gcd(12,18,4)", "5%%3", "1:0", "1:2:3:4",
                   "16#1.8", "16#FG", "2##11", "2.5!", "(-1)!", "(-3)!!", "choose(5.5,2)", "exp10(0.5)", "3!!!",
                   "eq(1,1,1)", "percent(nan)", "frac(0.5,0.1)", "frac(1e-20)",
-                  "(2..5)", "[2..5]", "vmax([1..5])", "vcount([1..5])", "2...5", "(-8)^(1:3)", "(-2)^1.5", "0^-1", "0^0.", "ln(0)", "ln(-1)"] {
+                  "(2..5)", "[2..5]", "vmax([1..5])", "vcount([1..5])", "2...5", "(-8)^(1:3)", "(-2)^1.5", "0^-1", "0^0.", "ln(0)", "ln(-1)",
+                  // Calc leaves these date expressions unevaluated.
+                  "<2026-10-05 Mon>*2", "2*<2026-10-05 Mon>", "<2026-10-05 Mon>/2", "<2026-10-05 Mon>*0", "<2026-10-05 Mon> < 5",
+                  "vmedian([<2026-10-05 Mon>,<2026-10-07 Wed>])", "vmean([<2026-10-05 Mon>,1])", "vmean([<2026-10-05 Mon>])",
+                  "vmean([<2026-10-05 Mon>,<2026-10-06 Tue>,<2026-10-10 Sat>])", "vvar([<2026-10-05 Mon>,<2026-10-07 Wed>])",
+                  "max(<2026-10-05 Mon>,1)", "if(<2026-10-05 Mon>,1,2)", "round(<2026-10-05 Mon 13:00>,1)", "date(2026,13,1)",
+                  "date(2026,2,32)", "date(2026.5,1,1)", "date(2026,1,1,10,30,1.5)", "date([1,2])", "year([1,2])",
+                  "newweek(<2026-10-15 Thu>,7)", "newyear(<2026-10-15 Thu>,400)", "incmonth(<2026-10-05 Mon>,1.5)",
+                  "badd(<2026-10-09 Fri>,<2026-10-09 Fri>)", "bsub(5,1)", "now(5)", "julian(<2026-10-05 Mon>,5)", "1<<2026-10-05 Mon>"] {
             #expect(throws: Calc.Unsupported.self, "\(e)") { try Calc.evaluate(e) }
         }
         var modes = Calc.Modes()
+        // Calc's daylight saving rules aren't reproduced.
+        modes.timeZone = TimeZone(identifier: "America/New_York")!
+        #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("unixtime(<2026-10-05 Mon>)", modes: modes) }
+        #expect(try Calc.evaluate("julian(<2026-10-05 Mon>)", modes: modes) == "2461319")
         modes.precision = 15
         #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("sinh(1)", modes: modes) }
+        #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("<2026-10-05 Mon 10:00>+1", modes: modes) }
         modes.precision = 19
         #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("1+1", modes: modes) }
     }

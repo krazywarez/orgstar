@@ -429,6 +429,37 @@ times. A date plus a number is a date, written back as an inactive timestamp:
 ,#+TBLFM: $3=$2-$1::$4=$1+7
 #+END_SRC
 
+A date is its day number underneath, counted from 1 January of year 1, so the sum of two
+dates is a number and =vmean= of two dates is the day number halfway between them.
+=vsum=, =vmax=, =vmin=, =max=, =min=, =abs= and the comparisons work on dates; =floor=,
+=ceil=, =trunc= and =round= keep a date and drop or round its time. A timestamp with a
+time, even =00:00=, keeps showing one.
+
+| Function                                   | Result                                                                             |
+|--------------------------------------------+------------------------------------------------------------------------------------|
+| =year=, =month=, =day=                     | Parts of the date.                                                                 |
+| =hour=, =minute=, =second=                 | Parts of the time, 0 for a date without one.                                       |
+| =weekday=                                  | 0 for Sunday to 6 for Saturday.                                                    |
+| =yearday=                                  | Day of the year, 1 for 1 January.                                                  |
+| =date(y, m, d)=, =date(y, m, d, h, mi, s)= | The date, with a time when an hour is given. =date(m, d)= is this year.            |
+| =date(d)=                                  | The day number of date /d/, or the date of day number /d/.                         |
+| =now()=                                    | The current date and time.                                                         |
+| =incmonth(d, n)=, =incyear(d, n)=          | /n/ months or years later (1 by default), on the last day if the month is shorter. |
+| =newmonth(d, n)=, =newyear(d, n)=          | Day /n/ of the month or year (1 by default; 0 is the last day).                    |
+| =newweek(d, w)=                            | The day on or before /d/ that falls on weekday /w/ (0, Sunday, by default).        |
+| =badd(d, n)=, =bsub(d, n)=                 | /n/ business days later or earlier, skipping Saturdays and Sundays.                |
+| =bsub(d1, d2)=                             | Business days from /d2/ to /d1/.                                                   |
+| =julian(d)=                                | The Julian day number of /d/, or the date of a Julian day number.                  |
+| =unixtime(d)=                              | Seconds since 1970-01-01 00:00 UTC, or the date of a number of seconds.            |
+
+=julian= of a date with a time and =unixtime= use the local time zone. Emacs applies
+the current year's daylight saving rules to every date, which orgstar doesn't, so in a
+time zone with daylight saving time these need Emacs.
+
+With =N=, =T=, =U= or =t= a timestamp field counts as 0. A result that is a date is
+=#ERROR= with =N=, and with =T=, =U= or =t= it stops the recalculation with the error
+Org gives.
+
 ** Lisp formulas
 
 A formula that starts with ='(= is Emacs Lisp. Each reference becomes a Lisp string,
