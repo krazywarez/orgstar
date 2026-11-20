@@ -120,9 +120,9 @@ Some features run Emacs in batch mode on the Mac. Everything else works without 
 | Emacs Lisp source blocks (=emacs-lisp=, =elisp=)               | The block, in =emacs -Q --batch=                                                              |
 | Table formulas outside what orgstar computes itself            | =org-table-recalculate= on a copy of the file; the table's new text replaces the old one if the table didn't change meanwhile |
 | Lisp table formulas that orgstar's Emacs Lisp interpreter can't evaluate | The same; orgstar first asks whether to run Lisp (yes, no, always)                  |
-| Export to PDF, ODT, LaTeX and plain text                       | =org-latex-export-to-pdf=, =org-odt-export-to-odt=, =org-latex-export-to-latex= or =org-ascii-export-to-ascii= |
+| Export to PDF, ODT and plain text, and LaTeX orgstar can't write itself | =org-latex-export-to-pdf=, =org-odt-export-to-odt=, =org-ascii-export-to-ascii= or =org-latex-export-to-latex= |
 
-HTML and Markdown export don't use Emacs. See [[file:11-code-blocks.org][Code blocks]], [[file:10-tables.org][Tables]] and [[file:12-export.org][Export]].
+HTML, Markdown and LaTeX export don't use Emacs. See [[file:11-code-blocks.org][Code blocks]], [[file:10-tables.org][Tables]] and [[file:12-export.org][Export]].
 
 ** How Emacs is found
 

@@ -329,9 +329,9 @@ The app icon's badge counts the entries in the agenda's Overdue section that are
 
 * Export
 
-Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text and iCalendar, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.
+Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, iCalendar and LaTeX, and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does.
 
-PDF export follows =pdf-margin=, =pdf-font= and =pdf-page-numbers= in =config.toml=, and Word files get heading styles and the file's images, as on the Mac. ODT, LaTeX, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
+PDF export follows =pdf-margin=, =pdf-font= and =pdf-page-numbers= in =config.toml=, and Word files get heading styles and the file's images, as on the Mac. ODT, ASCII and PDF through LaTeX aren't available on iOS. See [[file:12-export.org][Export]].
 
 * Code blocks and tables
 
@@ -436,7 +436,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 * What the Mac has that iOS doesn't
 
 - In the download version: running code blocks in languages other than Emacs Lisp and JavaScript, Emacs Lisp beyond orgstar's interpreter, JavaScript that needs node, and tables that need Emacs.
-- Publishing, and in the download version ODT, LaTeX, ASCII and LaTeX-made PDF export.
+- Publishing, and in the download version ODT, ASCII and LaTeX-made PDF export.
 - Idle detection while a clock runs.
 - Import from Emacs of agenda folders.
 - The Columns inspector, the buffer list and tab bar, and resizing panes by dragging their divider. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).

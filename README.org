@@ -36,8 +36,8 @@ Emacs tomorrow and nothing has been reformatted.
 - *Tables.* Aligned as you type, with =#+TBLFM= formulas.
 - *Code blocks.* Run source blocks and tangle them into files, as =org-babel-tangle=
   does.
-- *Export.* HTML, Markdown, PDF, Word, RTF and iCalendar built in; PDF through LaTeX, ODT
-  and more through Emacs when it is installed (download version only).
+- *Export.* HTML, Markdown, PDF, Word, RTF, iCalendar and LaTeX built in; PDF through LaTeX,
+  ODT and more through Emacs when it is installed (download version only).
 - *Search.* Across file names, headings and text, plus Spotlight and Quick Look
   previews of =.org= files.
 

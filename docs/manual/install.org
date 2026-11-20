@@ -7,7 +7,7 @@
 - macOS 26 or later.
 - Optional, for the download version: GNU Emacs, for the features that hand work to it
   (Emacs Lisp code blocks that need full Emacs, Lisp table formulas the built-in
-  interpreter can't run, and export to PDF, LaTeX, ODT and other formats). See
+  interpreter can't run, and export to PDF through LaTeX, ODT and ASCII). See
   [[file:guide/15-alongside-emacs.org][Working alongside Emacs and other tools]].
 
 * The Mac app
@@ -52,19 +52,19 @@ App Store version.
 
 ** What it does differently
 
-| Feature                    | Mac App Store version                                                 | Download version                                                                                |
-|----------------------------+-----------------------------------------------------------------------+-------------------------------------------------------------------------------------------------|
-| Code blocks                | Emacs Lisp in orgstar's own interpreter, JavaScript in JavaScriptCore | Every language installed; Emacs Lisp in Emacs; JavaScript in node, or JavaScriptCore without it |
-| Sessions, graphics         | JavaScript sessions; no graphics                                      | Yes                                                                                             |
-| Tangling                   | Yes                                                                   | Yes                                                                                             |
-| Table formulas             | Those orgstar computes itself                                         | The rest in Emacs as well                                                                       |
-| Plots                      | Drawn with Swift Charts                                               | gnuplot when installed, else Swift Charts                                                       |
-| Export                     | HTML, Markdown, PDF, Word, RTF, plain text, iCalendar; publishing     | Also PDF through LaTeX, LaTeX, ODT and ASCII, in Emacs                                          |
-| Settings                   | In the app's container, or a folder you choose                        | =~/.config/orgstar=                                                                             |
-| Files outside your folders | After you grant access to their folder                                | Directly                                                                                        |
-| Attachments                | Copied, or moved from inside your folders                             | Copied, moved, linked or symlinked                                                              |
-| Updates                    | The Mac App Store                                                     | Built in, or Homebrew                                                                           |
-| orgstar+                   | In-app purchase, shared with iPhone and iPad                          | License key                                                                                     |
+| Feature                    | Mac App Store version                                                    | Download version                                                                                |
+|----------------------------+--------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------|
+| Code blocks                | Emacs Lisp in orgstar's own interpreter, JavaScript in JavaScriptCore    | Every language installed; Emacs Lisp in Emacs; JavaScript in node, or JavaScriptCore without it |
+| Sessions, graphics         | JavaScript sessions; no graphics                                         | Yes                                                                                             |
+| Tangling                   | Yes                                                                      | Yes                                                                                             |
+| Table formulas             | Those orgstar computes itself                                            | The rest in Emacs as well                                                                       |
+| Plots                      | Drawn with Swift Charts                                                  | gnuplot when installed, else Swift Charts                                                       |
+| Export                     | HTML, Markdown, PDF, Word, RTF, plain text, iCalendar, LaTeX; publishing | Also PDF through LaTeX, ODT and ASCII, in Emacs                                                 |
+| Settings                   | In the app's container, or a folder you choose                           | =~/.config/orgstar=                                                                             |
+| Files outside your folders | After you grant access to their folder                                   | Directly                                                                                        |
+| Attachments                | Copied, or moved from inside your folders                                | Copied, moved, linked or symlinked                                                              |
+| Updates                    | The Mac App Store                                                        | Built in, or Homebrew                                                                           |
+| orgstar+                   | In-app purchase, shared with iPhone and iPad                             | License key                                                                                     |
 
 A block in another language reports "/language/ blocks don't run in this version of
 orgstar." An Emacs Lisp block that uses more than the interpreter has reports "This block uses
@@ -72,7 +72,9 @@ Emacs Lisp that runs only in Emacs." A JavaScript block that uses something only
 reports "This block uses /name/, which runs only in node." A table whose formulas need Emacs reports "This table's
 formulas can't be calculated here", with the reason, and isn't changed. The Emacs exports are
 not in the File ▸ Export menu, the export dialog or the command palette; a key bound to
-Export to PDF with Emacs exports to PDF without LaTeX.
+Export to PDF with Emacs exports to PDF without LaTeX. LaTeX export is orgstar's own and is in
+both versions; a file it can't write as Emacs would reports "Can't export to LaTeX", with the
+reason.
 
 ** Folders and files
 
