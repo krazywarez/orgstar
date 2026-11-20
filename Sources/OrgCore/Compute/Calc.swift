@@ -788,7 +788,10 @@ public enum Calc {
         guard let m = text.firstMatch(of: /^([0-9]{4})-([0-9]{2})-([0-9]{2})(?: +[A-Za-z]+)?(?: +([0-9]{1,2}):([0-9]{2})(?::([0-9]{2}))?)?$/) else {
             throw Unsupported("date syntax")
         }
-        let day = Days.absolute(year: Int(m.1)!, month: Int(m.2)!, day: Int(m.3)!)
+        // `math-parse-date-validate`: a year under 100 is 19xx or 20xx.
+        var year = Int(m.1)!
+        if year < 100 { year += year < 40 ? 2000 : 1900 }
+        let day = Days.absolute(year: year, month: Int(m.2)!, day: Int(m.3)!)
         guard let hour = m.4.flatMap({ Int($0) }), let minute = m.5.flatMap({ Int($0) }) else { return .date(.int(day)) }
         return try dateTime(day, hour * 3600 + minute * 60 + (m.6.flatMap { Int($0) } ?? 0))
     }
@@ -848,9 +851,15 @@ public enum Calc {
     static func toBusinessDay(_ v: Value) throws -> (Value, holiday: Bool) {
         let x = try dayNumber(v)
         let day = try floorInt(x)
+        try checkHolidayRange(day)
         let weekday = Days.weekday(day)
         let delta = day / 7 * 2 + (weekday > 0 ? 1 : 0)
         return (try add(.int(day - delta), try subtract(x, .int(day))), weekday == 0 || weekday == 6)
+    }
+
+    /// `math-setup-holidays` with a date: Calc's holidays cover the years 1 to 2737.
+    static func checkHolidayRange(_ day: Int) throws {
+        guard (try absolute(1, 1, 1)...absolute(2737, 12, 31)).contains(day) else { throw Unsupported("arguments") }
     }
 
     /// `math-from-business-day`.
@@ -869,6 +878,7 @@ public enum Calc {
             }
             weekday += 1
         }
+        try checkHolidayRange(day)
         return .date(try add(.int(day), time))
     }
 
@@ -1367,7 +1377,7 @@ public enum Calc {
                 return best
             case "abs":
                 let x = try one(args)
-                if case .date = x { return x }
+                if case .date(let d) = x { return .date(try compare(d, .int(0)) < 0 ? try negate(d) : d) }
                 return try compare(x, .int(0)) < 0 ? try negate(x) : x
             case "floor", "ceil", "trunc":
                 if args.count == 1, case .date(let d) = args[0] { return .date(try call(name, [d])) }

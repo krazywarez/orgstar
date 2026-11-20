@@ -452,6 +452,10 @@ time, even =00:00=, keeps showing one.
 | =julian(d)=                                | The Julian day number of /d/, or the date of a Julian day number.                  |
 | =unixtime(d)=                              | Seconds since 1970-01-01 00:00 UTC, or the date of a number of seconds.            |
 
+As in Calc, a timestamp year under 100 is read as 19xx or 20xx: 00 to 39 is 20xx, 40 to
+99 is 19xx. =badd= and =bsub= work only for dates in the years 1 to 2737, the range of
+Calc's holiday table; outside it they need Emacs, which leaves them unevaluated.
+
 =julian= of a date with a time and =unixtime= use the local time zone. Emacs applies
 the current year's daylight saving rules to every date, which orgstar doesn't, so in a
 time zone with daylight saving time these need Emacs.

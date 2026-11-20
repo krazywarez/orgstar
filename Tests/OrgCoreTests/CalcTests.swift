@@ -107,6 +107,10 @@ struct CalcTests {
         "julian(<2026-10-05 Mon>)", "julian(<2026-10-05 Mon 12:00>)", "julian(2461319)", "julian(2461319.5)", "julian(1:2)",
         "unixtime(<2026-10-05 Mon>)", "unixtime(<2026-10-05 Mon 10:30>)", "unixtime(1791158400)", "unixtime(1.5)",
         "unixtime(0)", "unixtime(-86400)", "unixtime(<1970-01-01 Thu>)",
+        "abs(-<2026-10-05 Mon>)", "abs(date(-1,1,1))", "abs(-<2026-10-05 Mon 06:00>)", "abs(date(1,1,1))",
+        "badd(date(2737,12,30),1)", "badd(date(1,1,3),-1)", "bsub(date(2737,12,31),date(1,1,1))",
+        "<0070-01-01 Thu>", "<0001-01-01 Mon>", "<0010-01-01 Fri>", "<0000-01-01 Sat>", "<0039-12-31 Sat>", "<0040-01-01 Sun>",
+        "<0099-01-01 Fri>", "<0050-06-15 Thu 10:30>", "<0100-01-01 Fri>", "year(<0010-01-01 Fri>)", "unixtime(<0001-01-01 Mon>)",
     ]
 
     /// Zones without daylight saving time, as `TZ` names them for Emacs and their offsets.
@@ -350,7 +354,10 @@ struct CalcTests {
                   "max(<2026-10-05 Mon>,1)", "if(<2026-10-05 Mon>,1,2)", "round(<2026-10-05 Mon 13:00>,1)", "date(2026,13,1)",
                   "date(2026,2,32)", "date(2026.5,1,1)", "date(2026,1,1,10,30,1.5)", "date([1,2])", "year([1,2])",
                   "newweek(<2026-10-15 Thu>,7)", "newyear(<2026-10-15 Thu>,400)", "incmonth(<2026-10-05 Mon>,1.5)",
-                  "badd(<2026-10-09 Fri>,<2026-10-09 Fri>)", "bsub(5,1)", "now(5)", "julian(<2026-10-05 Mon>,5)", "1<<2026-10-05 Mon>"] {
+                  "badd(<2026-10-09 Fri>,<2026-10-09 Fri>)", "bsub(5,1)", "now(5)", "julian(<2026-10-05 Mon>,5)", "1<<2026-10-05 Mon>",
+                  // Outside the years 1 to 2737, Calc's holiday range.
+                  "badd(date(2737,12,31),1)", "badd(<2026-10-05 Mon>,200000)", "bsub(date(2738,1,10),date(2026,1,1))",
+                  "badd(date(-100,1,3),1)", "badd(date(1,1,3),-3)", "bsub(date(1,1,10),date(-1,12,20))", "badd(date(10000,1,3),1)"] {
             #expect(throws: Calc.Unsupported.self, "\(e)") { try Calc.evaluate(e) }
         }
         var modes = Calc.Modes()
