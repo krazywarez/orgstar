@@ -451,6 +451,67 @@ struct ODTExportTests {
             :END:
             Shown.
             """,
+        "include-subdirectory": """
+            #+OPTIONS: toc:nil
+            #+INCLUDE: "sub/part.inc"
+            """,
+        "src-blank-lines": """
+            #+OPTIONS: toc:nil
+            #+begin_src python
+            a
+            \u{20}\u{20}
+            #+end_src
+
+            #+begin_src python
+            a
+            \u{20}\u{20}
+
+            #+end_src
+
+            #+begin_src python -i
+            a
+            \u{20}\u{20}
+            #+end_src
+
+            #+begin_example
+            a
+            \u{20}\u{20}
+            #+end_example
+
+            #+begin_src foo
+            \u{20}\u{20}a
+            \u{20}\u{20}
+            #+end_src
+            """,
+        "toc-local-before-headings": """
+            #+OPTIONS: toc:nil
+            #+TOC: headlines 1 local
+            * A
+            ** B
+            """,
+        "babel-languages": """
+            #+OPTIONS: toc:nil
+            before
+            #+begin_src dot
+            a
+            #+end_src
+            after
+            #+begin_src latex
+            b
+            #+end_src
+            #+begin_src plantuml
+            c
+            #+end_src
+            #+begin_src ditaa
+            d
+            #+end_src
+            #+begin_src gnuplot
+            e
+            #+end_src
+            #+begin_src lilypond
+            f
+            #+end_src
+            """,
         "all-drawers": """
             #+OPTIONS: toc:nil d:t
             * H
@@ -505,6 +566,21 @@ struct ODTExportTests {
         defer { try? FileManager.default.removeItem(at: folder) }
         let picture = folder.appendingPathComponent("pic.png")
         try Self.png(width: 64, height: 48).write(to: picture)
+        // Links in a file included from another folder are relative to that folder.
+        let sub = folder.appendingPathComponent("sub")
+        try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+        try Self.png(width: 20, height: 10).write(to: sub.appendingPathComponent("pic.png"))
+        try """
+            [[file:pic.png]]
+
+            file:pic.png and <file:pic.png> and [[https://x.org][file:pic.png]] and [[file:../sub/pic.png][pic]]
+
+            See file:notes.txt and <file:notes.txt>.
+
+            #+begin_example
+            [[file:nothere.png]]
+            #+end_example
+            """.write(to: sub.appendingPathComponent("part.inc"), atomically: true, encoding: .utf8)
         var documents: [(name: String, text: String)] = []
         for name in Self.corpus {
             documents.append((name, try String(contentsOf: ExportTests.folder.appendingPathComponent("\(name).org"), encoding: .utf8)))
@@ -528,8 +604,14 @@ struct ODTExportTests {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-odt-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
+        // `[[./pic.png]]` included from `sub` is written back as `[[sub/pic.png]]`, a fuzzy link.
+        let sub = folder.appendingPathComponent("sub")
+        try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+        try Self.png(width: 10, height: 10).write(to: sub.appendingPathComponent("pic.png"))
+        try "[[./pic.png]]\n".write(to: sub.appendingPathComponent("dot.inc"), atomically: true, encoding: .utf8)
         let documents = [
             "broken": "See [[nowhere]].\n",
+            "included-dot-link": "#+INCLUDE: \"sub/dot.inc\"\n",
             "missing": "[[file:missing.png]]\n",
             "elements": try String(contentsOf: ExportTests.folder.appendingPathComponent("elements.org"), encoding: .utf8),
         ].sorted { $0.key < $1.key }
@@ -626,6 +708,11 @@ struct ODTExportTests {
         defer { try? FileManager.default.removeItem(at: folder) }
         try "[[file:/elsewhere/f.png]]\n".write(to: folder.appendingPathComponent("part.org"), atomically: true, encoding: .utf8)
         #expect(ODTExport.imageFiles("#+INCLUDE: \"part.org\"\n", path: folder.appendingPathComponent("doc.org").path) == ["/elsewhere/f.png"])
+        let sub = folder.appendingPathComponent("sub")
+        try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+        try "[[file:g.png]] [[https://x][file:../h.png]]\n".write(to: sub.appendingPathComponent("part.inc"), atomically: true, encoding: .utf8)
+        #expect(ODTExport.imageFiles("#+INCLUDE: \"sub/part.inc\"\n", path: folder.appendingPathComponent("doc.org").path)
+            == [sub.appendingPathComponent("g.png").path, folder.appendingPathComponent("h.png").path])
     }
 
     /// Every style `content.xml` names is in `styles.xml` or its automatic styles.

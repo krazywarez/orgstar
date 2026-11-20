@@ -126,7 +126,7 @@ LaTeX fragments (=\(…\)=, =\[…\]=, =$…$=, =$$…$$=) and LaTeX environment
 | =:lines "5-10"=                               | Only those lines; either end may be left out.              |
 | =:minlevel 2=                                 | Shift the included headings so the shallowest is at that level. |
 
-A file that cannot be read is replaced by an empty line.
+A file that cannot be read is replaced by an empty line. In a file included as Org from another folder, relative =file:= links are rewritten relative to the Org file, as Org does: =[[file:pic.png]]= in =sub/part.org= becomes =[[file:sub/pic.png]]=. A link written without =file:=, such as =[[./pic.png]]=, comes back as =[[sub/pic.png]]=, which Org then reads as a link to a heading.
 
 ** Macros
 
@@ -253,11 +253,12 @@ For Org's own ASCII layout, with underlined headings and drawn tables, use Expor
 Export to ODT writes an OpenDocument text file (=.odt=) for LibreOffice, Pages or Word. orgstar writes it itself, on the Mac and on iOS, the way Emacs's =ox-odt= does under =emacs -Q=: the same headings, paragraphs, lists, tables, links, notes and images, with ox-odt's style names, so a template that restyles ox-odt's output restyles this one too.
 
 - The title, subtitle (=#+SUBTITLE:=), author and date come first, then the table of contents and the text. On the Mac, without =#+AUTHOR:=, the author is your account's full name, as =user-full-name= is in Emacs. Without =#+TITLE:= there is no title.
-- Headings are numbered by the word processor, to the depth =num= gives (=num:t= numbers every level). Headings deeper than =H= become list items. =#+TOC: headlines= puts a table of contents where it is; =local= limits it to the section and counts the depth from there.
+- Headings are numbered by the word processor, to the depth =num= gives (=num:t= numbers every level). Headings deeper than =H= become list items. =#+TOC: headlines= puts a table of contents where it is; =local= limits it to the section, counts the depth from there and leaves out the title.
 - Footnotes are the word processor's own notes, numbered as ox-odt numbers them: those referred to in the text first, then those referred to only from other notes. A note referred to again shows its number.
 - Tables keep their header rows, alignment cookies, column groups and cell borders. A table inside a list item ends the list, sits indented below it, and the list carries on after it, as in ox-odt.
 - Images from =file:= links (PNG, JPEG, GIF and SVG) are put inside the file. Their size is their pixels at 96 to the inch, or =#+ATTR_ODT: :width=, =:length= (the height) or =:scale=, and no more than 17 by 20 cm. A caption or =#+NAME:= numbers figures, tables and source blocks, and a link to the name shows the number.
 - LaTeX fragments and environments are kept as written, in code style, as ox-odt does without a MathML converter. Source blocks are not colored; a language Emacs has no mode for gets ox-odt's plain code style.
+- Without =:exports=, every source block exports its code, =dot=, =plantuml=, =ditaa=, =gnuplot=, =latex= and =lilypond= included: =emacs -Q= loads no Babel library to give them =results=. A line of only spaces in a source block is exported empty, unless =-i= keeps the indentation.
 - Of the =#+OPTIONS=, =\n=, =f=, =|=, =e= and =d= (=t= or =nil=) are read, along with those every export reads.
 - =#+ODT:= lines, =#+BEGIN_EXPORT odt= blocks and =@@odt:...@@= snippets go in as they are.
 - The styles (=styles.xml=) are orgstar's own: A4 pages with 2 cm margins. =#+ODT_STYLES_FILE:= is not read.

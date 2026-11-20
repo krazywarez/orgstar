@@ -14,10 +14,13 @@ public enum Coderef {
         public var retainLabels = true
         public var useLabels = true
         public var labelFormat = Coderef.defaultFormat
+        /// `-i`.
+        public var preserveIndent = false
 
         public static func == (a: Switches, b: Switches) -> Bool {
             a.numberLines?.continued == b.numberLines?.continued && a.numberLines?.before == b.numberLines?.before
                 && a.retainLabels == b.retainLabels && a.useLabels == b.useLabels && a.labelFormat == b.labelFormat
+                && a.preserveIndent == b.preserveIndent
         }
 
         public init(_ switches: String?) {
@@ -30,6 +33,7 @@ public enum Coderef {
             retainLabels = !r || (numberLines != nil && k)
             useLabels = retainLabels && !k
             if let m = switches.firstMatch(of: /-l +"([^"\n]+)"/) { labelFormat = String(m.1) }
+            preserveIndent = switches.contains(/-i\b/)
         }
     }
 

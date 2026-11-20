@@ -37,7 +37,7 @@ public enum ODTExport {
             if let description = node.firstChild(.linkDescription) {
                 file = ODTRenderer.describedImage(description)
             } else {
-                file = ODTRenderer.filePath(node.tokens.first { $0.kind == .linkPath }?.text ?? "").flatMap { ODTRenderer.isImage($0) ? $0 : nil }
+                file = ODTRenderer.linkPath(node).flatMap(ODTRenderer.filePath).flatMap { ODTRenderer.isImage($0) ? $0 : nil }
             }
             return file.map { ODTRenderer.expand($0, directory: directory).path }
         }
@@ -365,10 +365,11 @@ final class ODTRenderer {
 
     private var source: ExportSource?
 
-    /// `body` with `tree` as the source of `:exports`.
+    /// `body` with `tree` as the source of `:exports`. As in `emacs -Q`, which loads no `ob-`
+    /// library for dot, LaTeX and the like, their blocks export their code.
     private func rendering<T>(_ tree: OrgTree, _ text: String, _ body: () -> T) -> T {
         let saved = source
-        source = ExportSource(tree: tree, text: text)
+        source = ExportSource(tree: tree, text: text, languages: false)
         defer { source = saved }
         return body()
     }
@@ -428,7 +429,8 @@ final class ODTRenderer {
     /// headings `org-export-excluded-from-toc-p` leaves out.
     /// In the `template` one, ox-odt reads `org-done-keywords` outside the Org buffer, where
     /// it's empty: every keyword is a TODO one.
-    private func toc(depth: Int, scope: Int?, template: Bool = false) -> String {
+    /// A `local` one has no title, even outside any heading.
+    private func toc(depth: Int, scope: Int?, local: Bool = false, template: Bool = false) -> String {
         let limit = min(scope.flatMap { headings[$0].map { $0.relative + depth } } ?? depth, options.headlineLevels)
         let keys = headingOrder.filter { key in
             let heading = headings[key]!
@@ -436,7 +438,7 @@ final class ODTRenderer {
             return heading.relative <= limit && !excluded && (scope.map { heading.ancestors.contains($0) } ?? true)
         }
         guard !keys.isEmpty else { return "" }
-        let title = scope == nil ? ExportDictionary.translate("Table of Contents", language: language, encoding: .utf8) : nil
+        let title = local ? nil : ExportDictionary.translate("Table of Contents", language: language, encoding: .utf8)
         var out = "\n<text:table-of-content text:style-name=\"OrgIndexSection\" text:protected=\"true\" text:name=\"Table of Contents\">\n"
         out += "  <text:table-of-content-source text:outline-level=\"\(depth)\">"
         if let title { out += "\n    <text:index-title-template text:style-name=\"Contents_20_Heading\">\(Self.escape(title))</text:index-title-template>\n" }
@@ -639,7 +641,7 @@ final class ODTRenderer {
         guard links.count == 1, node.children.count == 1,
               node.tokens.allSatisfy({ $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }),
               links[0].firstChild(.linkDescription) == nil,
-              let file = Self.filePath(links[0].tokens.first { $0.kind == .linkPath }?.text ?? ""), Self.isImage(file) else { return nil }
+              let file = Self.linkPath(links[0]).flatMap(Self.filePath), Self.isImage(file) else { return nil }
         return links[0]
     }
 
@@ -654,7 +656,7 @@ final class ODTRenderer {
             let depth = value.firstMatch(of: /\b([0-9]+)\b/).flatMap { Int($0.1) } ?? options.headlineLevels
             if value.range(of: ":target", options: .caseInsensitive) != nil { return fail("ODT export doesn't support #+TOC with :target") }
             let local = value.range(of: "\\blocal\\b", options: [.regularExpression, .caseInsensitive]) != nil
-            return toc(depth: depth, scope: local ? currentHeading() : nil)
+            return toc(depth: depth, scope: local ? currentHeading() : nil, local: local)
         case "PRINT_BIBLIOGRAPHY":
             guard let citations else { return "" }
             return citations.bibliography.map { "\n<text:p text:style-name=\"Text_20_body\">" + render($0) + "</text:p>" }.joined()
@@ -911,7 +913,11 @@ final class ODTRenderer {
             let caption = label(key, caption: affiliated["CAPTION"]).map { "\n<text:p text:style-name=\"Listing\">\($0)</text:p>" } ?? ""
             let attributes = affiliated["ATTR_ODT"].map(Self.attributes) ?? [:]
             let language = parameters.split(whereSeparator: \.isWhitespace).first.map(String.init).flatMap { $0.hasPrefix("-") || $0.hasPrefix(":") ? nil : $0 }
-            let formatted = numbered(lines, Self.dedent(unescaped), fontified: language.map(ODTSourceModes.fontified) ?? true)
+            // Babel rewrites the block, which empties lines of only blanks unless `-i` keeps
+            // the indentation.
+            let preserve = Coderef.block(lines)?.switches.preserveIndent ?? false
+            let kept = preserve ? unescaped : unescaped.map { $0.allSatisfy { $0 == " " || $0 == "\t" } ? "" : $0 }
+            let formatted = numbered(lines, Self.dedent(kept), fontified: language.map(ODTSourceModes.fontified) ?? true)
             if let textbox = attributes["textbox"], textbox != "nil" {
                 return caption + "\n<text:p text:style-name=\"Text_20_body\">\(self.textbox(formatted, width: nil, height: nil, style: nil, extra: nil, anchor: nil))</text:p>"
             }
@@ -1017,6 +1023,14 @@ final class ODTRenderer {
     private var imageCaptioned = false
     private var imageCaption: String?
     private var imageAttributes: String?
+
+    /// A bracket link's path, or a plain or angle `file:` link's.
+    static func linkPath(_ node: SyntaxNode) -> String? {
+        if let token = node.tokens.first(where: { $0.kind == .linkPath }) { return token.text }
+        var text = node.text
+        if text.hasPrefix("<"), text.hasSuffix(">") { text = String(text.dropFirst().dropLast()) }
+        return text.hasPrefix("file:") ? text : nil
+    }
 
     /// A link's file, for `file:` links and paths Org reads as files.
     static func filePath(_ path: String) -> String? {
@@ -1388,7 +1402,7 @@ final class ODTRenderer {
     }
 
     private func link(_ node: SyntaxNode) -> String {
-        let path = node.tokens.first { $0.kind == .linkPath }?.text
+        let path = Self.linkPath(node)
         let descriptionNode = node.firstChild(.linkDescription)
         var description = descriptionNode.map(inline).flatMap { $0.isEmpty ? nil : $0 }
         // `org-export-insert-image-links`: a description that is an image's path shows it.

@@ -118,7 +118,9 @@ public struct ExportOptions: Sendable, Equatable {
 public enum ExportPreprocess {
     /// `#+INCLUDE: "file" [example|export FORMAT|src LANG] [:lines "A-B"] [:minlevel N]`, with
     /// `file::*Heading` or `file::#custom-id` for one subtree. Relative to `directory`.
-    public static func includes(_ text: String, directory: URL?, depth: Int = 0) -> String {
+    /// `includer` is the exported file's directory, `directory` at the top.
+    public static func includes(_ text: String, directory: URL?, depth: Int = 0, includer: URL? = nil) -> String {
+        let includer = depth == 0 ? directory : includer
         guard depth < 8, text.containsIgnoringASCIICase("#+INCLUDE:") else { return text }
         var lines: [String] = []
         for line in text.components(separatedBy: "\n") {
@@ -159,10 +161,11 @@ public enum ExportPreprocess {
                 lines.append("#+END_\(kind)")
                 continue
             }
+            if let includer { included = rebasingLinks(included, from: url.deletingLastPathComponent(), to: includer) }
             if let minLevel = rest.firstMatch(of: /:minlevel[ \t]+([0-9]+)/).flatMap({ Int($0.1) }) {
                 included = shift(included, to: minLevel)
             }
-            let expanded = includes(included, directory: url.deletingLastPathComponent(), depth: depth + 1)
+            let expanded = includes(included, directory: url.deletingLastPathComponent(), depth: depth + 1, includer: includer)
             lines.append(expanded.hasSuffix("\n") ? String(expanded.dropLast()) : expanded)
         }
         return lines.joined(separator: "\n")
@@ -185,6 +188,75 @@ public enum ExportPreprocess {
             }
         }
         return unreadable
+    }
+
+    /// `org-export--update-included-link`: the relative `file` links of a file in `directory`,
+    /// relative to `includer` instead. Links in descriptions too; `plain` for those, which
+    /// can only be plain or angle links.
+    static func rebasingLinks(_ text: String, from directory: URL, to includer: URL, plain: Bool = false) -> String {
+        guard plain || directory.resolvingSymlinksInPath().path != includer.resolvingSymlinksInPath().path else { return text }
+        let ns = text as NSString
+        var edits: [(range: Range<Int>, text: String)] = []
+        for node in OrgParser.parse(text).root.descendants() where node.kind == .link {
+            let whole = node.text
+            if whole.hasPrefix("[[") {
+                guard !plain else { continue }
+                if let description = node.firstChild(.linkDescription) {
+                    let rebased = rebasingLinks(description.text, from: directory, to: includer, plain: true)
+                    if rebased != description.text { edits.append((description.range, rebased)) }
+                }
+                if let path = node.tokens.first(where: { $0.kind == .linkPath }), let rebased = rebasedPath(path.text, from: directory, to: includer, bracket: true) {
+                    edits.append((path.range, rebased))
+                }
+            } else if whole.hasPrefix("<"), whole.hasSuffix(">") {
+                if let rebased = rebasedPath(String(whole.dropFirst().dropLast()), from: directory, to: includer, bracket: false) {
+                    edits.append((node.range, "<" + rebased + ">"))
+                }
+            } else if let rebased = rebasedPath(whole, from: directory, to: includer, bracket: false) {
+                edits.append((node.range, rebased))
+            }
+        }
+        guard !edits.isEmpty else { return text }
+        let out = NSMutableString(string: ns)
+        for edit in edits.sorted(by: { $0.range.lowerBound > $1.range.lowerBound }) {
+            out.replaceCharacters(in: NSRange(location: edit.range.lowerBound, length: edit.range.count), with: edit.text)
+        }
+        return out as String
+    }
+
+    /// A link's path rewritten as `org-element-link-interpreter` writes it back: the type only
+    /// when it was written. Nil when it isn't a relative file link.
+    static func rebasedPath(_ raw: String, from directory: URL, to includer: URL, bracket: Bool) -> String? {
+        var type = ""
+        var rest = raw
+        if let m = raw.firstMatch(of: /^(file(?:\+[^:]+)?|[^:\/]+\+file):/) {
+            type = String(m.0)
+            rest = String(raw[m.0.endIndex...])
+        } else if !(bracket && ["/", "./", "../", "~"].contains(where: raw.hasPrefix)) {
+            return nil
+        }
+        var path = rest
+        var search = ""
+        if let r = rest.range(of: "::") {
+            path = String(rest[..<r.lowerBound])
+            search = String(rest[r.lowerBound...])
+        }
+        guard !path.hasPrefix("/"), !path.hasPrefix("~") else { return nil }
+        // `file-relative-name` of `expand-file-name`.
+        func components(_ path: String) -> [String] {
+            var out: [String] = []
+            for part in path.split(separator: "/", omittingEmptySubsequences: true) {
+                if part == "." { continue }
+                if part == ".." { if !out.isEmpty { out.removeLast() } } else { out.append(String(part)) }
+            }
+            return out
+        }
+        let target = components(directory.path + "/" + path)
+        let base = components(includer.path)
+        var common = 0
+        while common < min(target.count, base.count), target[common] == base[common] { common += 1 }
+        let relative = (Array(repeating: "..", count: base.count - common) + target[common...]).joined(separator: "/")
+        return type + (relative.isEmpty ? "." : relative) + search
     }
 
     /// An include's file, relative to `directory`.

@@ -252,10 +252,11 @@ public enum Babel {
     /// What export shows of the src block, `#+CALL:` line, inline call or inline src block
     /// starting at `offset` (`org-babel-exp-process-buffer`): `code`, `results`, `both` or
     /// `none`, from the header arguments as evaluation resolves them. Calls never show code.
-    /// Nil when nothing there runs.
-    public static func exports(at offset: Int, tree: OrgTree, model: DocumentModel, text: NSString) -> String? {
+    /// Nil when nothing there runs. Without `languages`, as in `emacs -Q`, no language's
+    /// `ob-` library is loaded to give its own default.
+    public static func exports(at offset: Int, tree: OrgTree, model: DocumentModel, text: NSString, languages: Bool = true) -> String? {
         func value(_ params: Params?, language: String?) -> String {
-            (params?.single[":exports"] ?? language.flatMap { languageExports[$0] } ?? "code").lowercased()
+            (params?.single[":exports"] ?? language.flatMap { languages ? languageExports[$0] : nil } ?? "code").lowercased()
         }
         if let block = model.srcBlocks.first(where: { $0.range.lowerBound == offset }) {
             return value(try? Params(block: block, model: model, text: text), language: block.language)

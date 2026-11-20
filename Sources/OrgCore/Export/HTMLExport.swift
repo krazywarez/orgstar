@@ -112,14 +112,17 @@ final class ExportSource {
     /// Whether the last inline src block or call lets the `{{{results(…)}}}` after it show;
     /// nil when nothing asks.
     var inlineResults: Bool?
+    /// Whether the languages' own `:exports` defaults apply.
+    let languages: Bool
 
-    init(tree: OrgTree, text: String) {
+    init(tree: OrgTree, text: String, languages: Bool = true) {
         self.tree = tree
         self.text = text as NSString
+        self.languages = languages
     }
 
     func exports(at offset: Int) -> String? {
-        Babel.exports(at: offset, tree: tree, model: model, text: text)
+        Babel.exports(at: offset, tree: tree, model: model, text: text, languages: languages)
     }
 
     /// `{{{results(…)}}}`, Org's `$1` macro, as the inline block or call before it allows:
