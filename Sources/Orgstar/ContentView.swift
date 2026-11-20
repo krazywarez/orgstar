@@ -628,6 +628,8 @@ struct ContentView: View {
             } catch {
                 commands.show("Can't write \(target.lastPathComponent): \(error.localizedDescription)")
             }
+        case "latex" where exportLaTeX(text, whole: whole, url: url, to: destination, open: open, subtree: subtree ? caret : nil, bodyOnly: bodyOnly, settings: defaults):
+            break
         case "print-pdf", "docx", "rtf", "plain-text":
             let ext = ["print-pdf": "pdf", "plain-text": "txt"][format] ?? format
             let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
@@ -687,6 +689,32 @@ struct ContentView: View {
             commands.show(Self.unavailable(title ?? format))
             #endif
         }
+    }
+
+    /// Writes `text` as LaTeX, as ox-latex does. False when the native export can't match Emacs
+    /// and Emacs is installed to export instead; otherwise the reason is shown.
+    private func exportLaTeX(_ text: String, whole: String, url: URL, to destination: URL?, open: Bool, subtree: Int?, bodyOnly: Bool, settings: OrgSettings) -> Bool {
+        let content: String
+        do {
+            content = try LaTeXExport.document(text, settings: settings, path: url.path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+        } catch {
+            #if !APPSTORE
+            if EmacsRunner.executable() != nil { return false }
+            #endif
+            commands.show("Can't export to LaTeX: \(error.localizedDescription)")
+            return true
+        }
+        let name = ExportScope.fileName(whole, subtreeAt: subtree, settings: settings)
+        guard let target = destination ?? writable(ExportScope.output(for: url, name: name, extension: "tex")) else { return true }
+        do {
+            try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try content.write(to: target, atomically: true, encoding: .utf8)
+            commands.show("Exported to \(target.lastPathComponent)")
+            if open { NSWorkspace.shared.open(target) }
+        } catch {
+            commands.show("Can't write \(target.lastPathComponent): \(error.localizedDescription)")
+        }
+        return true
     }
 
     /// `url`; in the App Store build, when the sandbox keeps orgstar out of its folder, `url` once
@@ -953,6 +981,9 @@ struct ContentView: View {
                 let report = try Publish.publish(chosen, all: loaded.projects, only: only, read: read) { function, text, path, bodyOnly in
                     let settings = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
                     if function == "org-md-publish-to-md" { return MarkdownExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly) }
+                    if function == "org-latex-publish-to-latex" {
+                        return try LaTeXExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
+                    }
                     let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
                     return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, bodyOnly: bodyOnly, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
                 }

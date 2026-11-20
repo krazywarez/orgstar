@@ -11644,37 +11644,37 @@
         }
       }
     },
-    "Export to LaTeX with Emacs": {
+    "Export to LaTeX": {
       "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mit Emacs als LaTeX exportieren"
+            "value": "Als LaTeX exportieren"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exportar a LaTeX con Emacs"
+            "value": "Exportar a LaTeX"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exporter en LaTeX avec Emacs"
+            "value": "Exporter en LaTeX"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "EmacsでLaTeXに書き出す"
+            "value": "LaTeXに書き出す"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exportar para LaTeX com o Emacs"
+            "value": "Exportar para LaTeX"
           }
         }
       }

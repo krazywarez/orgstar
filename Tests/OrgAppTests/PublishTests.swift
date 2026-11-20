@@ -136,6 +136,65 @@ struct PublishTests {
         #expect(Self.listing(ourFolder) == Self.listing(emacsFolder))
     }
 
+    /// `org-latex-publish-to-latex`: the same `.tex` files as Emacs writes, the `% Created`
+    /// line and the labels aside.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func publishesLaTeXLikeOrg() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-tex-\(UUID().uuidString)").resolvingSymlinksInPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let sources = ["a.org": "#+TITLE: A\n* One\nText with a [[https://orgmode.org][link]].\n", "sub/b.org": "#+OPTIONS: toc:nil\n- item\n- [X] done\n"]
+        for (path, text) in sources {
+            let url = folder.appendingPathComponent("src/" + path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try text.write(to: url, atomically: true, encoding: .utf8)
+        }
+        let form = """
+        (progn
+          (require 'ox-publish) (require 'ox-latex)
+          (setq user-full-name "A. Writer"
+                org-publish-timestamp-directory "\(folder.path)/ts/"
+                org-publish-project-alist '(("tex" :base-directory "\(folder.path)/src" :publishing-directory "\(folder.path)/emacs"
+                                             :recursive t :publishing-function org-latex-publish-to-latex)))
+          (org-publish "tex" t))
+        """
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [ProcessInfo.processInfo.environment["ORGSTAR_EMACS"] ?? "emacs", "-Q", "--batch", "--eval", form]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+
+        let toml = """
+        [[publish]]
+        name = "tex"
+        base-directory = "\(folder.path)/src"
+        publishing-directory = "\(folder.path)/ours"
+        recursive = true
+        publishing-function = "org-latex-publish-to-latex"
+        """
+        let loaded = Publish.projects(fromConfig: toml, root: nil)
+        #expect(loaded.problems.isEmpty, "\(loaded.problems)")
+        let read = { (path: String) in try? String(contentsOfFile: path, encoding: .utf8) }
+        let report = try Publish.publish(loaded.projects, all: loaded.projects, force: true, read: read) { _, text, path, bodyOnly in
+            try LaTeXExport.document(text, path: path, bodyOnly: bodyOnly, author: "A. Writer", file: true)
+        }
+        #expect(report.published.count == 2)
+        func normalized(_ s: String) -> String {
+            var labels: [String: String] = [:]
+            return s.replacing(#/(?m)^% Created .*\n/#, with: "").replacing(#/org[0-9a-f]{7}/#) { m in
+                let key = String(m.output)
+                if labels[key] == nil { labels[key] = "org\(labels.count + 1)" }
+                return labels[key]!
+            }
+        }
+        for path in ["a.tex", "sub/b.tex"] {
+            let theirs = try String(contentsOf: folder.appendingPathComponent("emacs/" + path), encoding: .utf8)
+            let ours = try String(contentsOf: folder.appendingPathComponent("ours/" + path), encoding: .utf8)
+            #expect(normalized(ours) == normalized(theirs), "\(path)\nours:\n\(ours)\nemacs:\n\(theirs)")
+        }
+    }
+
     @Test func skipsUpToDateFilesAndFindsProjects() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-\(UUID().uuidString)").resolvingSymlinksInPath()
         defer { try? FileManager.default.removeItem(at: folder) }

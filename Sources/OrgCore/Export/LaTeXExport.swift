@@ -5,9 +5,10 @@ import Foundation
 /// can't write as Emacs would throws `Unsupported`, naming the construct, instead of writing
 /// something else. Labels are made from the document, where Emacs picks them at random.
 public enum LaTeXExport {
-    public struct Unsupported: Error, LocalizedError, Equatable {
+    public struct Unsupported: Error, LocalizedError, Equatable, CustomStringConvertible {
         public let reason: String
         public var errorDescription: String? { reason }
+        public var description: String { reason }
     }
 
     /// `org-latex-classes`: each class's header and its sectioning, numbered and not.
@@ -36,18 +37,19 @@ public enum LaTeXExport {
 
     /// A `.tex` document, or with `bodyOnly` what goes between `\begin{document}` and
     /// `\end{document}` without the title and contents. `author` stands for `user-full-name`,
-    /// `language` for `org-export-default-language`, `now` for the `% Created` line.
+    /// `language` for `org-export-default-language`, `now` for the `% Created` line. `file` adds
+    /// the final newline `org-export-to-file` writes.
     public static func document(
         _ text: String, settings: OrgSettings = .default, path: String? = nil, now: Date = Date(), bodyOnly: Bool = false,
-        author: String = "", language: String = "en", timeZone: TimeZone = .current
+        author: String = "", language: String = "en", timeZone: TimeZone = .current, file: Bool = false
     ) throws -> String {
         let directory = path.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
         let included = ExportPreprocess.includes(text, directory: directory)
         // Org expands macro objects only: `{{{…}}}` in verbatim text and blocks stays.
         let marker = "\u{E000}"
-        if included.contains(marker) { throw LaTeXExport.Unsupported(reason: "U+E000 in the text") }
         var literal = included
         if included.contains("{{{") {
+            if included.contains(marker) { throw LaTeXExport.Unsupported(reason: "U+E000 in the text") }
             let ns = included as NSString
             let kept = OrgParser.parse(included, defaults: settings).root.descendants()
                 .filter { [.verbatim, .code, .block, .fixedWidth, .comment, .latexEnvironment, .exportSnippet].contains($0.kind) }.map(\.range)
@@ -66,8 +68,8 @@ public enum LaTeXExport {
             + tree.root.descendants().filter { $0.kind == .keyword }.map { $0.text.trimmingCharacters(in: .newlines) }
         let renderer = try LaTeXRenderer(tree: tree, text: text, settings: settings, keywords: keywords, language: language)
         let body = try renderer.body()
-        if bodyOnly { return body }
-        return try renderer.template(body, author: author, now: now, timeZone: timeZone)
+        let output = bodyOnly ? body : try renderer.template(body, author: author, now: now, timeZone: timeZone)
+        return file && !output.isEmpty && !output.hasSuffix("\n") ? output + "\n" : output
     }
 }
 

@@ -6,11 +6,12 @@ import OrgPresentation
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A file exported as HTML, Markdown, PDF, Word, RTF, plain text or iCalendar, written when the
+/// A file exported as HTML, Markdown, PDF, Word, RTF, plain text, iCalendar or LaTeX, written when the
 /// share sheet takes it.
 struct OrgExport: Transferable {
     enum Format: CaseIterable {
         case html, markdown, pdf, docx, rtf, plainText, icalendar
+        case latex
 
         /// Whether it needs Pro now: every format but HTML and Markdown, until Pro is unlocked.
         @MainActor var locked: Bool { self != .html && self != .markdown && !ProAccess.shared.isUnlocked }
@@ -24,6 +25,7 @@ struct OrgExport: Transferable {
             case .rtf: "Rich Text (RTF)"
             case .plainText: "Plain Text"
             case .icalendar: "iCalendar"
+            case .latex: "LaTeX"
             }
         }
 
@@ -36,6 +38,7 @@ struct OrgExport: Transferable {
             case .rtf: "rtf"
             case .plainText: "txt"
             case .icalendar: "ics"
+            case .latex: "tex"
             }
         }
     }
@@ -72,6 +75,8 @@ struct OrgExport: Transferable {
             .exportingCondition { $0.format == .plainText }
         FileRepresentation(exportedContentType: .calendarEvent) { try await $0.write() }
             .exportingCondition { $0.format == .icalendar }
+        FileRepresentation(exportedContentType: UTType(filenameExtension: "tex") ?? .plainText) { try await $0.write() }
+            .exportingCondition { $0.format == .latex }
     }
 
     private func write() async throws -> SentTransferredFile {
@@ -87,6 +92,8 @@ struct OrgExport: Transferable {
                 .write(to: url, atomically: true, encoding: .utf8)
         case .markdown:
             try MarkdownExport.document(text, settings: settings, path: path).write(to: url, atomically: true, encoding: .utf8)
+        case .latex:
+            try LaTeXExport.document(text, settings: settings, path: path, language: OrgPreferences.exportLanguage(), file: true).write(to: url, atomically: true, encoding: .utf8)
         case .icalendar:
             try ICalendarFiles.export(self.text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(),
                                       subtree: subtree, destination: url)
@@ -107,7 +114,7 @@ struct OrgExport: Transferable {
     }
 }
 
-/// Sharing the file as HTML, Markdown, PDF, Word, RTF, plain text or iCalendar: to another app, or saved with
+/// Sharing the file as HTML, Markdown, PDF, Word, RTF, plain text, iCalendar or LaTeX: to another app, or saved with
 /// Save to Files; or copying it as rich text.
 struct ExportMenu: View {
     let path: String

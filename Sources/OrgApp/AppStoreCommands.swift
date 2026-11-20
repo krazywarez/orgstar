@@ -4,7 +4,7 @@ import Foundation
 /// Emacs, and attaching by link, which the sandbox doesn't allow.
 public enum AppStoreCommands {
     public static let hidden: Set<String> = [
-        "app.export.pdf", "app.export.odt", "app.export.latex", "app.export.text",
+        "app.export.pdf", "app.export.odt", "app.export.text",
         "app.attach.link", "app.attach.symlink",
     ]
 
