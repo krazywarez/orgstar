@@ -486,7 +486,12 @@ final class ASCIIRenderer {
 
     /// `elements`, each `org-element-normalize-string`'d and followed by its blank lines, as
     /// `org-export-data` joins a greater element's contents.
-    func elements(_ nodes: [SyntaxNode], end: Int, context: Context, firstParagraph: ((SyntaxNode) -> Bool)? = nil) throws -> String {
+    /// `firstParagraph` says which paragraph's first line follows a bullet; `written` hears
+    /// what each element wrote.
+    func elements(
+        _ nodes: [SyntaxNode], end: Int, context: Context,
+        firstParagraph: ((SyntaxNode) -> Bool)? = nil, written: ((SyntaxNode, String) -> Void)? = nil
+    ) throws -> String {
         var out = ""
         var affiliated = Affiliated()
         // The element before and its blank lines, which a comment after it may add to; they
@@ -557,6 +562,7 @@ final class ASCIIRenderer {
             previous = node
             previousWrote = true
             pendingBlank = blankLines(from: node.range.lowerBound, to: next)
+            written?(node, result)
             out += Self.normalize(result) + String(repeating: "\n", count: pendingBlank)
         }
         return out
@@ -658,9 +664,13 @@ final class ASCIIRenderer {
     // MARK: Paragraphs
 
     private func paragraph(_ node: SyntaxNode, context: Context, ignoreFirst: Bool, prefix: String = "") throws -> String {
+        // `:with-timestamps` decides on timestamps alone in a paragraph.
+        isolatedTimestamps = ASCIIText.isolatedTimestamps(node)
+        defer { isolatedTimestamps = false }
         let items = LaTeXRenderer.normalizeIndentation(inlineItems(node), ignoreFirst: ignoreFirst)
         // `org-remove-blank-lines`, whose newline isn't a hard one.
         let contents = (prefix + (try transcode(items))).replacing(#/\x{1}?\n(?:[ \t]*\x{1}?\n)+/#, with: "\n")
+        guard contents.contains(where: { !$0.isWhitespace && $0 != "\u{1}" }) else { return contents }
         return Self.fill(contents.replacingOccurrences(of: Self.hardNewline, with: ASCIIText.hardNewline), context: context)
     }
 
@@ -707,19 +717,15 @@ final class ASCIIRenderer {
             let indentation = descriptive ? Self.quoteMargin : bullet.count
             let inner = Context(width: context.width - (descriptive ? Self.quoteMargin : bullet.count + checkbox.count), justify: context.justify)
             let children = item.children.filter { $0.kind != .itemTag }
+            if children.isEmpty { throw Unsupported(reason: "Empty list items") }
             let bulletLine = source.lineRange(for: NSRange(location: item.range.lowerBound, length: 0))
-            // Each child alone, to find the first that writes something.
-            var contents = ""
             var firstWriter: SyntaxNode?
-            for (i, child) in children.enumerated() {
-                let childEnd = i + 1 < children.count ? children[i + 1].range.lowerBound : item.range.upperBound
-                let text = try elements([child], end: childEnd, context: inner) { paragraph in
-                    i == 0 && paragraph.range.lowerBound < NSMaxRange(bulletLine)
-                }
-                if firstWriter == nil, child.kind != .affiliatedKeyword, text.contains(where: { !$0.isWhitespace }) { firstWriter = child }
-                contents += text
-            }
-            if children.contains(where: { $0.kind == .affiliatedKeyword || $0.kind == .comment }) { throw Unsupported(reason: "Affiliated keywords and comments in list items") }
+            let contents = try elements(children, end: item.range.upperBound, context: inner, firstParagraph: { paragraph in
+                paragraph.range == children[0].range && paragraph.range.lowerBound < NSMaxRange(bulletLine)
+            }, written: { node, text in
+                if firstWriter == nil, text.contains(where: { !$0.isWhitespace }) { firstWriter = node }
+            })
+            if children.contains(where: { $0.kind == .affiliatedKeyword }) { throw Unsupported(reason: "Affiliated keywords in list items") }
             let indented = ASCIIText.indent(children.isEmpty ? "" : Self.normalize(contents), indentation)
             var text = bullet + checkbox
             if !descriptive, indented.contains(where: { !$0.isWhitespace }), firstWriter?.kind == .paragraph {
@@ -819,6 +825,7 @@ final class ASCIIRenderer {
         return Self.justifyBlock(out + (caption ?? ""), context: context)
     }
 
+    private var isolatedTimestamps = false
     private var tableCount = 0
     private var listingCount = 0
 
@@ -898,6 +905,15 @@ final class ASCIIRenderer {
         if !value.isEmpty { value += "\n" }
         let preserve = lines[0].firstMatch(of: /^[ \t]*#\+(?i:begin_(?:src|example))\b.*\s-i\b/) != nil
         var code = preserve ? value : try LaTeXRenderer.removeIndentation(value)
+        // Emacs writes a src block's leading tabs as spaces.
+        if !preserve, lines[0].firstMatch(of: /^[ \t]*#\+(?i:begin_src)\b/) != nil {
+            code = code.components(separatedBy: "\n").map { line in
+                var column = 0
+                let indentation = line.prefix { $0 == " " || $0 == "\t" }
+                for c in indentation { column = c == "\t" ? (column / 8 + 1) * 8 : column + 1 }
+                return String(repeating: " ", count: column) + line.dropFirst(indentation.count)
+            }.joined(separator: "\n")
+        }
         if code.hasSuffix("\n") { code.removeLast() }
         let (lines, refs) = Coderef.unravel(code.components(separatedBy: "\n"), format: parsed.switches.labelFormat)
         let loc = parsed.switches.numberLines == nil ? nil : blockLoc
@@ -1103,7 +1119,9 @@ final class ASCIIRenderer {
         case .verbatim, .code: return "`\(node.text.dropFirst().dropLast())'"
         case .link: return try link(node, children)
         case .linkDescription: return try transcode(children)
-        case .timestamp: return plainText(ASCIIText.timestamp(node.text))
+        case .timestamp:
+            if isolatedTimestamps, ICalendarExport.skipsTimestamp(node.text, with: options.timestamps ?? "t") { return nil }
+            return plainText(ASCIIText.timestamp(node.text))
         case .footnoteReference: return try footnoteReference(node)
         case .entity:
             let name = String(node.text.dropFirst()).replacingOccurrences(of: "{}", with: "")

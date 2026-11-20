@@ -175,6 +175,40 @@ struct ASCIIExportTests {
         "#+begin_JUSTIFYLEFT\nleft\n#+end_JUSTIFYLEFT\n",
         "#+ATTR_ASCII: :width 20\n-----\n",
         "* A\n#+TOC: headlines 2\n** B\n** C\n",
+        "Quoted mail:\n> first line of the quote that goes on long enough to need a second line\n> second line\n",
+        "-- a dash opens this paragraph which goes on long enough to need a second line of text.\n",
+        "| a | b | c |\n| 1 |\n| 2 | 3 |\n",
+        "- [X] term :: with a checkbox\n- plain :: def\n",
+        "#+begin_quote\n#+begin_quote\nInner quote that goes on long enough to need filling at the narrower width.\n#+end_quote\n#+end_quote\n",
+        "- - nested first\n  - second\n- after\n",
+        "- line one\\\\\n  line two\n\n#+begin_quote\nq one\\\\\nq two\n#+end_quote\n",
+        "#+OPTIONS: H:1\n* A\n** B\n*** C\n**** D\n***** E\ntext under E that is long enough to be filled at the narrower width of it.\n",
+        "#+OPTIONS: num:nil\n* /Styled/ title\n* Other\nSee [[*/Styled/ title][it]] and [[*/Styled/ title]].\n",
+        "* A\n:PROPERTIES:\n:CUSTOM_ID: a\n:END:\n* B\nNote.[fn:1]\n\n[fn:1] See [[#a][A]] and [[https://x.y][X]].\n",
+        "#+OPTIONS: <:nil\n<2024-01-15 Mon>\n\nText <2024-01-15 Mon> kept.\n",
+        "#+OPTIONS: stat:t\n* Tasks [1/2]\n- [X] a\n- [ ] b\n",
+        "Averyveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryveryverylongword and more.\n",
+        "\n",
+        "#+TITLE: Only a title\n",
+        "#+begin_center\n#+ASCII: raw\n\\begin{x}\ny\n\\end{x}\n#+end_center\n",
+        "#+begin_justifyright\nlower\n#+end_justifyright\n",
+        "* A\n- item\n  [fn:1]\n\n#+begin_quote\nq[fn:2]\n#+end_quote\n\n[fn:1] One.\n\n[fn:2] Two.\n",
+        "#+OPTIONS: H:2\n* A\n** B\n*** C\n#+TOC: headlines\n",
+        "#+OPTIONS: toc:1\n* A\n** B\n* C [[https://a.b][link]]\n",
+        "- a\n  # comment\n  b\n- c\n\n  # comment\n\n  d\n- # only\n  e\n",
+        "* Tasks [1/3] [33%]\n** DONE One\nCLOSED: [2024-01-01 Mon 10:00]\n** TODO Two\n** Three\n",
+        "Some *bold\ntext* across /lines of\nitalic/ text.\n",
+        "#+begin_src emacs-lisp\n(message \"hi\")\n#+end_src\n\n#+begin_src python :exports code\nprint(1)\n#+end_src\n",
+        "Para.\n\n\n\nAfter three blank lines.\n\n- item\n\n\n- item after two\n",
+        "* A\n\n\nBody after blanks.\n\n\n* B\n",
+        "1. one\n\n   para\n\n   #+begin_example\n   ex\n   #+end_example\n2. two\n",
+        "- a\n  | x | y |\n  |---+---|\n  | 1 | 2 |\n- b\n",
+        "#+TITLE: T\n#+AUTHOR: A\n#+DATE: <2024-01-02 Tue>\n#+OPTIONS: toc:nil\nx\n",
+        "#+AUTHOR: Just an author\n#+DATE: 2024-01-02\nx\n",
+        "#+DATE: 2024-01-02\nx\n",
+        "#+begin_src makefile\nall: x\n\tcc -o x x.c\n#+end_src\n",
+        "#+begin_src makefile -n -r\nall: x\n  \t\tcc\tx  (ref:a)\n#+end_src\n\n#+begin_example\nall: x\n\tcc\n#+end_example\n",
+        "#+OPTIONS: e:t\n\\alpha\\beta \\ast{} \\S \\para \\deg \\plusmn \\micro \\middot \\cedil \\ordf \\iexcl \\pound \\yen \\euro \\trade\n",
     ]
 
     static var cases: [(String, ASCIIOracle.Case)] {
@@ -215,6 +249,91 @@ struct ASCIIExportTests {
             names += ["body", "blocks body", "subtree", "subtree from body", "subtree body"].map { "\($0) \(charset.rawValue)" }
         }
         try compare(cases, names: names)
+    }
+
+    /// A subtree's `EXPORT_*` properties replace the file's keywords.
+    @Test(.enabled(if: oracle))
+    func subtreePropertiesMatchEmacs() throws {
+        let doc = """
+            #+TITLE: Doc
+            #+SUBTITLE: File sub
+            #+AUTHOR: File author
+            #+LANGUAGE: fr
+            #+EXCLUDE_TAGS: drop
+            * Top
+            :PROPERTIES:
+            :EXPORT_SUBTITLE: Sub
+            :EXPORT_AUTHOR: Someone
+            :EXPORT_DATE: 2024-05-06
+            :EXPORT_LANGUAGE: de
+            :EXPORT_EXCLUDE_TAGS: gone
+            :EXPORT_OPTIONS: toc:nil
+            :END:
+            Body[fn:1].
+            ** Child
+            x
+            ** Dropped :gone:
+            z
+            ** Kept :drop:
+            w
+
+            [fn:1] Note.
+
+            """
+        let top = (doc as NSString).range(of: "Body").location
+        let cases = ASCIIExport.Charset.allCases.map { ASCIIOracle.Case(text: doc, charset: $0, subtree: EmacsOracle.point(top, in: doc)) }
+        try compare(cases, names: ASCIIExport.Charset.allCases.map { "subtree properties \($0.rawValue)" })
+    }
+
+    /// Links to what the export leaves out stop both exports.
+    @Test(.enabled(if: oracle))
+    func abortsWhereEmacsAborts() throws {
+        let docs = [
+            "* A :noexport:\n* B\nSee [[*A]].\n",
+            "* A :noexport:\n:PROPERTIES:\n:CUSTOM_ID: a\n:END:\n* B\nSee [[#a]].\n",
+            "* COMMENT A\n* B\nSee [[*A]].\n",
+            "See [[nowhere]].\n",
+            "See [[id:nowhere]].\n",
+            "#+OPTIONS: num:nil\n* /Styled/ title\nSee [[*Styled title]].\n",
+        ]
+        let emacs = try ASCIIOracle.export(docs.map { ASCIIOracle.Case(text: $0) })
+        for (doc, theirs) in zip(docs, emacs) {
+            let ours = ASCIIOracle.native(ASCIIOracle.Case(text: doc))
+            #expect(theirs.hasPrefix("ERROR: "), "\(doc)\n--- emacs\n\(theirs)")
+            #expect(ours.hasPrefix("ERROR: Unable to resolve link"), "\(doc)\n--- ours\n\(ours)")
+        }
+    }
+
+    /// What Emacs exports differently or refuses is refused, naming it.
+    @Test func refusesWhatItCannotMatch() {
+        func reason(_ org: String) -> String? {
+            do {
+                _ = try ASCIIExport.document(org)
+                return nil
+            } catch let error as ASCIIExport.Unsupported {
+                return error.reason
+            } catch {
+                return "\(error)"
+            }
+        }
+        #expect(reason("Ref[fn:9].\n") == "Definition not found for footnote 9")
+        #expect(reason("#+OPTIONS: \\n:t\nx\n") == "#+OPTIONS: \\n:t")
+        #expect(reason("#+OPTIONS: tex:verbatim\nx\n") == "#+OPTIONS: tex:verbatim")
+        #expect(reason("#+begin_src sh :exports results\necho\n#+end_src\n") == ":exports results")
+        #expect(reason("[cite:@key]\n") == "Citations")
+        #expect(reason("src_sh{echo 1}\n") == "Inline source blocks")
+        #expect(reason("A <<here>> target.\nSee [[here]].\n") == "Links to targets and named elements")
+        #expect(reason("#+NAME: t\n| a |\nSee [[t]].\n") == "Links to targets and named elements")
+        #expect(reason("| / | < | > |\n| | a | b |\n") == "Tables with special columns or column groups")
+        #expect(reason("Text[fn:1].\n\n[fn:1] One.\n\nTwo.\n") == "Footnote definitions of several paragraphs")
+        #expect(reason("漢字\n") == "Wide or combining characters")
+        #expect(reason("a\tb\n") == "Tabs outside code")
+        #expect(reason("#+begin_src make\n\tcc\n#+end_src\n") == "Tabs in indented code")
+        #expect(reason("#+TOC: tables\n") == "#+TOC: tables")
+        #expect(reason("-\n- x\n") == "Empty list items")
+        #expect(reason("* A\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n") == "UNNUMBERED and ALT_TITLE properties")
+        #expect(reason("* A [fn:1]\n\n[fn:1] x\n") == "Footnotes in headings")
+        #expect(reason("#+begin_quote\n\nq\n#+end_quote\n") == "Blocks opening with a blank line")
     }
 
     private func compare(_ cases: [ASCIIOracle.Case], names: [String]) throws {
