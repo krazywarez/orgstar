@@ -157,7 +157,7 @@ extension Elisp {
             case "u": out += String(weekday == 0 ? 7 : weekday)
             case "w": out += String(weekday)
             case "j": out += String(format: "%03d", Days.absolute(year: year, month: month, day: day) - Days.absolute(year: year, month: 1, day: 0))
-            case "F": out += yearText + String(format: "-%02d-%02d", month, day)
+            case "F": out += (year > 9999 ? "+" : "") + yearText + String(format: "-%02d-%02d", month, day)
             case "D": out += String(format: "%02d/%02d/%02d", month, day, shortYear)
             case "R": out += String(format: "%02d:%02d", hour, minute)
             case "T": out += String(format: "%02d:%02d:%02d", hour, minute, second)

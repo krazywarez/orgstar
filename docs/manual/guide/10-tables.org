@@ -498,7 +498,13 @@ Regular expressions use Emacs's syntax and the syntax table of an Org buffer, an
 =case-fold-search= is on unless the formula binds it to =nil=. These need Emacs:
 numbered groups =\\(?N:=, categories =\\c=, syntax classes and character classes
 such as =\\w=, =\\b= or =[[:alpha:]]= against text with characters past ASCII,
-and case folding of a letter past ASCII. =format-time-string= takes =%Y=, =%y=, =%m=,
+and case folding of a letter past ASCII, including =capitalize=. =condition-case=
+binds its variable to the error symbol and data, such as =(wrong-type-argument listp 1)=;
+reading that variable for an error whose data orgstar doesn't know, such as
+=args-out-of-range=, needs Emacs, as does a handler that names a specific condition
+when the error isn't one of =wrong-type-argument=, =args-out-of-range=, =arith-error=,
+=void-variable=, =invalid-function=, =wrong-number-of-arguments=, =error= and
+=user-error=. =format-time-string= takes =%Y=, =%y=, =%m=,
 =%d=, =%e=, =%H=, =%k=, =%I=, =%l=, =%M=, =%S=, =%p=, =%a=, =%A=, =%b=, =%h=, =%B=, =%u=,
 =%w=, =%j=, =%F=, =%D=, =%R=, =%T=, =%s=, =%z=, =%n=, =%t= and =%%=, without flags or
 widths; other codes need Emacs, as do float times in =time-add= and =time-subtract=. =date-to-time= and =days-between= read dates as

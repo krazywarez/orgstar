@@ -28,6 +28,8 @@ public enum TableReason {
         let comment: StaticString = "Why a table needs Emacs: something a Lisp formula does"
         switch what {
         case "integer size": return fixed(what)
+        case "a closure as a list": return String(localized: "a closure as a list", comment: comment)
+        case "capitalize past ASCII": return String(localized: "capitalize past ASCII", comment: comment)
         case "case folding past ASCII": return String(localized: "case folding past ASCII", comment: comment)
         case "cl-loop destructuring": return String(localized: "cl-loop destructuring", comment: comment)
         case "cl-loop with collect and sum": return String(localized: "cl-loop with collect and sum", comment: comment)
@@ -42,6 +44,7 @@ public enum TableReason {
         case "replace-regexp-in-string from the end": return String(localized: "replace-regexp-in-string from the end", comment: comment)
         case "seq-uniq with a test": return String(localized: "seq-uniq with a test", comment: comment)
         case "sort on a string": return String(localized: "sort on a string", comment: comment)
+        case "the data of this error": return String(localized: "the data of this error", comment: comment)
         default: break
         }
         func value(_ prefix: String) -> String? { what.hasPrefix(prefix) ? String(what.dropFirst(prefix.count)) : nil }
@@ -58,6 +61,7 @@ public enum TableReason {
         if let zone = value("format-time-string zone ") { return String(localized: "format-time-string zone \(zone)", comment: comment) }
         if let code = value("format-time-string ") { return String(localized: "format-time-string \(code)", comment: comment) }
         if let clause = value("cl-loop ") { return String(localized: "cl-loop \(clause)", comment: comment) }
+        if let names = value("condition-case on ") { return String(localized: "condition-case on \(names)", comment: comment) }
         if let pattern = value("pcase pattern ") { return String(localized: "pcase pattern \(pattern)", comment: comment) }
         if let name = value("let-alist ") { return String(localized: "let-alist \(name)", comment: comment) }
         if let text = value("string-width of ") { return String(localized: "string-width of \(text)", comment: comment) }
@@ -70,6 +74,10 @@ public enum TableReason {
         if what.hasSuffix(" on a place") {
             let name = String(what.dropLast(" on a place".count))
             return String(localized: "\(name) on a place", comment: "Why a table needs Emacs: a Lisp function used on a variable")
+        }
+        if what.hasSuffix(" on a closure") {
+            let name = String(what.dropLast(" on a closure".count))
+            return String(localized: "\(name) on a closure", comment: "Why a table needs Emacs: a Lisp function that looks inside a closure")
         }
         if what.hasSuffix(" on a list another value shares") {
             let name = String(what.dropLast(" on a list another value shares".count))

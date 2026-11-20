@@ -310,6 +310,14 @@ struct BabelTests {
         "(let ((x 1)) (funcall '(lambda () x)))",
         "(let ((x 3)) (mapcar (lambda (y) (* x y)) '(1 2)))",
         "(let ((k 1)) (pcase 2 ((pred (lambda (v) (> v k))) 'big)))",
+        "(list (capitalize \"it's o'neil\") (capitalize \"o'neil x_y 3d\"))",
+        "(progn (defun h () y) (funcall '(lambda (y) (h)) 3))",
+        "(progn (defun h3 () zz) (mapcar '(lambda (zz) (h3)) '(1 2)))",
+        "(progn (defun h2 () yy) (let ((f '(lambda (yy) (h2)))) (funcall f 8)))",
+        "(progn (defun h4 () w) (funcall '(lambda () (let ((w 4)) (h4)))))",
+        "(let ((x 2)) (funcall '(lambda (f) (funcall f)) (lambda () x)))",
+        "(let ((f (lambda (x) (* 2 x)))) (list (funcall f 2) (apply f '(3)) (car (list 5 f)) (length (list f f))))",
+        "(let ((x 1)) (condition-case err (car x) (error (funcall (lambda () (list x (car err)))))))",
     ].map { "#+begin_src emacs-lisp\n\($0)\n#+end_src\n" }
 
     /// Natively as with `emacs -Q --batch -l`, the way the app runs Emacs Lisp blocks.
@@ -330,6 +338,21 @@ struct BabelTests {
             } catch is NativeUnsupported {
                 Issue.record("not run natively:\n\(text)")
             }
+        }
+    }
+
+    /// Emacs's closures aren't lists: blocks that look inside one are refused.
+    @Test func refusesLookingInsideClosures() throws {
+        let folder = FileManager.default.temporaryDirectory
+        for form in [
+            "(listp (lambda () 1))", "(let ((f (lambda () 1))) (consp f))", "(car (lambda () 1))", "(equal (lambda () 1) (lambda () 1))",
+            "(functionp (lambda () 1))", "(let ((f (lambda () 1))) (eq f f))", "(let ((f (lambda () 1))) (length f))",
+            "(let ((f (lambda () 1))) (dolist (x f) x))", "(let ((f (lambda () 1))) (push 1 f) (length f))",
+            "(let ((f (lambda () 1))) (format \"%S\" (list f)))", "(let ((f (lambda () 1))) (and (memq f (list f)) t))",
+            "(funcall '(closure 99 () 1))",
+        ] {
+            let text = "#+begin_src emacs-lisp\n\(form)\n#+end_src\n"
+            #expect(throws: NativeUnsupported.self, "\(form)") { try TestBabelRunner.execute(text, caret: 2, directory: folder, native: true) }
         }
     }
 

@@ -115,6 +115,9 @@ public enum LispReader {
 
         func error(_ message: String) -> ReadError { ReadError(line: line, message: message) }
 
+        /// What `\a` and the other one-letter escapes in strings and characters stand for.
+        static let escapes: [Unicode.Scalar: Unicode.Scalar] = ["a": "\u{7}", "b": "\u{8}", "d": "\u{7F}", "e": "\u{1B}", "f": "\u{C}", "n": "\n", "r": "\r", "s": " ", "t": "\t", "v": "\u{B}"]
+
         static let delimiters: Set<Unicode.Scalar> = ["(", ")", "[", "]", "\"", "'", "`", ",", ";"]
 
         mutating func form() throws -> Sexp {
@@ -177,10 +180,8 @@ public enum LispReader {
                 case "\\":
                     guard let e = next() else { break }
                     switch e {
-                    case "n": out += "\n"
-                    case "t": out += "\t"
-                    case "\n": break
-                    default: out.unicodeScalars.append(e)
+                    case "\n", " ": break
+                    default: out.unicodeScalars.append(Self.escapes[e] ?? e)
                     }
                 default:
                     out.unicodeScalars.append(c)
@@ -194,10 +195,7 @@ public enum LispReader {
             guard c == "\\" else { return Int(c.value) }
             guard let e = next() else { throw error("bad character") }
             switch e {
-            case "n": return 10
-            case "t": return 9
-            case "s": return 32
-            case "e": return 27
+            case _ where Self.escapes[e] != nil: return Int(Self.escapes[e]!.value)
             case "C", "M", "S", "H", "A":
                 if peek == "-" { _ = next(); return try character() }
                 return Int(e.value)

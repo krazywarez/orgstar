@@ -28,6 +28,7 @@ extension Elisp {
         while let head = body.first?.head, head == "declare" || head == "interactive" { body.removeFirst() }
         let function = closure(.list([.symbol("lambda"), args[1]] + body))
         define(name) { lisp, values in try lisp.call(function, values) }
+        defined.insert(name)
         return .symbol(name)
     }
 

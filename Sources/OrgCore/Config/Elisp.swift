@@ -11,8 +11,27 @@ public final class Elisp {
 
     public struct Signal: Error, Equatable, CustomStringConvertible {
         public let message: String
+        /// The error symbol, by default from the message, and its data when known: what
+        /// `condition-case` binds.
+        public let symbol: String?
+        public let data: [Sexp]?
         public var description: String { message }
+
+        public init(message: String, symbol: String? = nil, data: [Sexp]? = nil) {
+            self.message = message
+            self.symbol = symbol ?? Self.symbols.first(where: { message.hasPrefix($0.prefix) })?.symbol
+            self.data = data ?? (message == "Arithmetic error" ? [] : nil)
+        }
+
+        static let symbols: [(prefix: String, symbol: String)] = [
+            ("Arithmetic error", "arith-error"), ("Args out of range", "args-out-of-range"), ("Invalid function", "invalid-function"),
+            ("Symbol’s value as variable is void", "void-variable"), ("Wrong number of arguments", "wrong-number-of-arguments"),
+            ("Wrong type argument", "wrong-type-argument"),
+        ]
     }
+
+    /// What `condition-case` binds its variable to for an error whose data isn't known.
+    static let unknownError = Sexp.symbol("\u{0}error")
 
     public typealias Builtin = (Elisp, [Sexp]) throws -> Sexp
 
@@ -29,6 +48,11 @@ public final class Elisp {
     public var lexical = false
     /// Variables bound dynamically when `lexical` is set.
     var specials: Set<String> = []
+    /// Under lexical binding, running a lambda list, which Emacs evaluates with dynamic binding:
+    /// every variable is bound dynamically and lambdas aren't closures.
+    private var dynamicOnly = false
+    /// The functions `defun` defined, which may take closures.
+    var defined: Set<String> = []
     /// Each closure's captured frames, by the id in its `(closure ID ARGS . BODY)` value.
     var closures: [[Frame]] = []
     /// The scopes of the callers of running closures, and the global values that dynamic
@@ -78,8 +102,12 @@ public final class Elisp {
     }
 
     public func value(_ name: String) throws -> Sexp {
-        for scope in scopes.reversed() { if let v = scope.vars[name] { return v } }
-        throw Signal(message: "Symbol’s value as variable is void: \(name)")
+        for scope in scopes.reversed() {
+            guard let v = scope.vars[name] else { continue }
+            if v == Self.unknownError { throw Unsupported(what: "the data of this error") }
+            return v
+        }
+        throw Signal(message: "Symbol’s value as variable is void: \(name)", data: [.symbol(name)])
     }
 
     /// Evaluates `body` with `bindings` added: in a new frame, or for special variables under
@@ -89,7 +117,7 @@ public final class Elisp {
     }
 
     func binding<T>(_ frame: Frame, _ body: () throws -> T) rethrows -> T {
-        let dynamic = lexical ? frame.vars.keys.filter(specials.contains) : []
+        let dynamic = dynamicOnly ? Array(frame.vars.keys) : lexical ? frame.vars.keys.filter(specials.contains) : []
         var saved: [(String, Sexp?)] = []
         for name in dynamic {
             saved.append((name, scopes[0].vars[name]))
@@ -118,7 +146,7 @@ public final class Elisp {
     /// A lambda as `function` makes it: a closure over the local frames under lexical
     /// binding, else the list itself.
     func closure(_ lambda: Sexp) -> Sexp {
-        guard lexical, case .list(let items) = lambda, items.first == .symbol("lambda"), items.count >= 2 else { return lambda }
+        guard lexical, !dynamicOnly, case .list(let items) = lambda, items.first == .symbol("lambda"), items.count >= 2 else { return lambda }
         closures.append(Array(scopes.dropFirst()))
         return .list([.symbol("closure"), .integer(closures.count - 1)] + items.dropFirst())
     }
@@ -126,6 +154,29 @@ public final class Elisp {
     static func isClosure(_ v: Sexp) -> Bool {
         if case .list(let items) = v, items.count >= 3, items[0] == .symbol("closure"), items[1].integer != nil { return true }
         return false
+    }
+
+    /// Builtins that may take closures as arguments, from the given position on: those that
+    /// call them or only hold them. Emacs's closures aren't lists, as they are here.
+    static let closureArguments: [String: Int] = [
+        "funcall": 0, "apply": 0, "mapcar": 0, "mapc": 0, "mapconcat": 0, "seq-map": 0, "seq-filter": 0, "seq-remove": 0,
+        "seq-reduce": 0, "cl-reduce": 0, "cl-remove-if": 0, "cl-remove-if-not": 0, "cl-find": 1, "cl-position": 1, "sort": 0,
+        "replace-regexp-in-string": 1, "list": 0, "identity": 0, "ignore": 0, "null": 0, "not": 0,
+    ]
+    /// Builtins that compare or print what lists hold.
+    static let closureInspectors: Set<String> = [
+        "equal", "eq", "eql", "member", "memq", "memql", "assoc", "assq", "delete", "delq", "delete-dups", "seq-uniq",
+        "format", "format-message", "message", "error", "user-error", "prin1-to-string", "princ", "prin1", "print",
+    ]
+
+    /// Refuses a builtin call that would look inside a closure.
+    func refuseClosures(_ name: String, _ args: [Sexp]) throws {
+        guard !closures.isEmpty, !defined.contains(name) else { return }
+        for (i, arg) in args.enumerated() {
+            if Self.isClosure(arg) ? i < Self.closureArguments[name] ?? .max : Self.closureInspectors.contains(name) && Self.containsClosure(arg) {
+                throw Unsupported(what: "\(name) on a closure")
+            }
+        }
     }
 
     /// Whether `v` contains a closure, which Emacs prints in a form this evaluator doesn't.
@@ -199,25 +250,28 @@ public final class Elisp {
     }
 
     static func car(_ v: Sexp) throws -> Sexp {
-        switch v {
+        if isClosure(v) { throw Unsupported(what: "car on a closure") }
+        return switch v {
         case .list(let items): items.first ?? .nil
         case .dotted(let items, _): items[0]
         case _ where isNil(v): .nil
-        default: throw Signal(message: "Wrong type argument: listp, \(v.description)")
+        default: throw Signal(message: "Wrong type argument: listp, \(v.description)", data: [.symbol("listp"), v])
         }
     }
 
     static func cdr(_ v: Sexp) throws -> Sexp {
-        switch v {
+        if isClosure(v) { throw Unsupported(what: "cdr on a closure") }
+        return switch v {
         case .list(let items): list(Array(items.dropFirst()))
         case .dotted(let items, let last): items.count == 1 ? last : .dotted(Array(items.dropFirst()), last)
         case _ where isNil(v): .nil
-        default: throw Signal(message: "Wrong type argument: listp, \(v.description)")
+        default: throw Signal(message: "Wrong type argument: listp, \(v.description)", data: [.symbol("listp"), v])
         }
     }
 
     /// A proper list's elements.
     static func elements(_ v: Sexp) throws -> [Sexp] {
+        if isClosure(v) { throw Unsupported(what: "a closure as a list") }
         if case .list(let items) = v { return items }
         if isNil(v) { return [] }
         throw Signal(message: "Wrong type argument: listp, \(v.description)")
@@ -328,6 +382,7 @@ public final class Elisp {
             defer { pending.removeLast() }
             for arg in args { pending[pending.count - 1].append(try eval(arg)) }
             let values = pending[pending.count - 1]
+            try refuseClosures(name, values)
             var variable: String?
             if case .symbol(let s)? = args.first, s != "nil", s != "t", !s.hasPrefix(":") { variable = s }
             inPlaceVariable = variable
@@ -440,6 +495,7 @@ public final class Elisp {
                 assign(variable, try Self.cdr(list))
                 return try Self.car(list)
             }
+            if Self.isClosure(list) { throw Unsupported(what: "push on a closure") }
             let pushed = Self.cons(try eval(args[0]), list)
             assign(variable, pushed)
             return pushed
@@ -481,12 +537,20 @@ public final class Elisp {
             do {
                 return try eval(args[1])
             } catch let signal as Signal {
+                // Every error has the `error` condition as well as its own.
+                let conditions = ["error", "t"] + (signal.symbol.map { [$0] } ?? [])
                 for handler in args.dropFirst(2) {
                     let parts = try Self.elements(handler)
                     guard let condition = parts.first else { continue }
-                    let names = (try? Self.elements(condition)) ?? [condition]
-                    guard names.contains(.symbol("error")) || names.contains(.symbol("t")) else { continue }
-                    let bindings: [String: Sexp] = args[0].symbol.map { $0 == "nil" ? [:] : [$0: .list([.symbol("error"), .string(signal.message)])] } ?? [:]
+                    let names = ((try? Self.elements(condition)) ?? [condition]).compactMap(\.symbol)
+                    guard names.contains(where: conditions.contains) else {
+                        if signal.symbol == nil, !names.isEmpty { throw Unsupported(what: "condition-case on \(names.joined(separator: " "))") }
+                        continue
+                    }
+                    var bindings: [String: Sexp] = [:]
+                    if let variable = args[0].symbol, variable != "nil" {
+                        bindings[variable] = signal.symbol.flatMap { symbol in signal.data.map { .list([.symbol(symbol)] + $0) } } ?? Self.unknownError
+                    }
                     return try binding(bindings) { try progn(parts.dropFirst()) }
                 }
                 throw signal
@@ -501,10 +565,19 @@ public final class Elisp {
         switch function {
         case .symbol(let name): return try callNamed(name, args)
         case .list(let items) where Self.isClosure(function):
+            guard closures.indices.contains(items[1].integer!) else { throw Unsupported(what: "a closure as a list") }
+            let saved = dynamicOnly
+            dynamicOnly = false
+            defer { dynamicOnly = saved }
             return try apply(parameters: items[2], body: items.dropFirst(3), args, scope: closures[items[1].integer!])
         case .list(let items) where items.first == .symbol("lambda") && items.count >= 2:
-            // Under lexical binding, a lambda list runs outside the caller's local frames.
-            return try apply(parameters: items[1], body: items.dropFirst(2), args, scope: lexical ? [] : nil)
+            guard lexical else { return try apply(parameters: items[1], body: items.dropFirst(2), args, scope: nil) }
+            // Under lexical binding, a lambda list runs outside the caller's local frames, with
+            // dynamic binding.
+            let saved = dynamicOnly
+            dynamicOnly = true
+            defer { dynamicOnly = saved }
+            return try apply(parameters: items[1], body: items.dropFirst(2), args, scope: [])
         default:
             throw Signal(message: "Invalid function: \(function.description)")
         }
@@ -548,6 +621,7 @@ public final class Elisp {
 
     func callNamed(_ name: String, _ args: [Sexp]) throws -> Sexp {
         guard let function = functions[name] else { throw Unsupported(what: "function \(name)") }
+        try refuseClosures(name, args)
         inPlaceVariable = nil
         return try function(self, args)
     }
@@ -831,12 +905,11 @@ public final class Elisp {
             try arity(args, 2...2, "delete")
             return list(try elements(args[1]).filter { normalized($0) != normalized(args[0]) })
         }
-        lisp.define("error") { _, args in
-            let message = args.isEmpty ? "" : try format(args)
-            throw Signal(message: message)
-        }
-        lisp.define("user-error") { _, args in
-            throw Signal(message: args.isEmpty ? "" : try format(args))
+        for name in ["error", "user-error"] {
+            lisp.define(name) { _, args in
+                let message = args.isEmpty ? "" : try format(args)
+                throw Signal(message: message, symbol: name, data: [.string(message)])
+            }
         }
 
         // Printing.
@@ -890,9 +963,18 @@ public final class Elisp {
             if case .integer(let c) = args[0] { return .integer(Int(String(try scalar(c)).lowercased().unicodeScalars.first!.value)) }
             return .string(try string(args[0]).lowercased())
         }
-        lisp.define("capitalize") { _, args in
+        // A letter is upcased after a character without word syntax, downcased after one with it.
+        lisp.define("capitalize") { lisp, args in
             try arity(args, 1...1, "capitalize")
-            return .string(try string(args[0]).capitalized)
+            let s = try string(args[0])
+            guard s.unicodeScalars.allSatisfy(\.isASCII) else { throw Unsupported(what: "capitalize past ASCII") }
+            var inWord = false
+            var out = ""
+            for c in s.unicodeScalars {
+                out += inWord ? String(c).lowercased() : String(c).uppercased()
+                inWord = lisp.syntax.isWord(c)
+            }
+            return .string(out)
         }
         lisp.define("substring") { _, args in
             try arity(args, 1...3, "substring")

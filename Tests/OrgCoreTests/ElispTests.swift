@@ -25,6 +25,12 @@ struct ElispTests {
         "(string-prefix-p \"ab\" \"abc\")", "(condition-case nil (/ 1 0) (error 'caught))", "(ignore-errors (car 1))", "(car 1)",
         "(let ((x 0)) (while (< x 5) (setq x (1+ x))) x)", "(elt [1 2 3] 1)", "(aref \"abc\" 1)", "(length [1 2])", "(nthcdr 1 '(1 2 3))",
         "(delq nil '(1 nil 2))", "(cadr '(1 2 3))", "(identity \"x\")", "(capitalize \"hello world\")", "(string-trim \"  x \")",
+        "(capitalize \"it's o'neil x_y 3d foo-bar\")",
+        #"(aref "\f" 0)"#, #"(string-match "\\s-" "\f")"#, #"(append "\a\b\d\e\f\n\r\s\t\v\ x" nil)"#, #"(list ?\a ?\b ?\d ?\e ?\f ?\r ?\s ?\v)"#,
+        "(condition-case err (car 1) (error (car err)))", "(condition-case err (cdr 'a) (error err))", "(condition-case err (/ 1 0) (arith-error err))",
+        "(condition-case err void-orgstar-variable (void-variable err))", "(condition-case nil (car 1) (wrong-type-argument 'w) (error 'e))",
+        "(condition-case nil (car 1) (arith-error 'a))", #"(condition-case err (error "e %d" 1) (error err))"#,
+        #"(condition-case err (user-error "u") (user-error err))"#, "(condition-case nil (aref [1] 5) (args-out-of-range 'r))",
     ]
 
     static func ours(_ form: String) -> String {
@@ -141,6 +147,9 @@ struct ElispTests {
         "(let* ((a (list 3 1 2)) (b (list a))) (sort a '<) b)", "(let* ((a (list 1 2 3)) (b a)) (nreverse a) b)",
         "(let* ((a (list 1 1 2)) (b a)) (delete-dups a) b)", "(let ((a (list 3 1 2))) (list a (sort a '<)))",
         "(let* ((a (list 3 1 2)) (b a)) (funcall #'sort a '<) b)", "(let ((a (list 3 1 2))) (prog1 a (sort a '<)))",
+        // Errors whose data, or whose symbol, isn't known here.
+        "(condition-case err (aref [1] 5) (error err))", "(condition-case nil (number-sequence 1 2 0) (wrong-type-argument 1))",
+        #"(capitalize "café")"#,
     ]
 
     static func strict(_ form: String) -> String {
@@ -211,7 +220,7 @@ struct ElispTests {
         #"(format-time-string "%F %a" (date-to-time "1500-01-01"))"#, #"(format-time-string "%F" -15000000000)"#,
         #"(format-time-string "%Y" -100000000000)"#, #"(format-time-string "%Y %y %D %F %j %a" -62200000000)"#,
         #"(format-time-string "%Y %F" -62135596800)"#, "(time-to-days -100000000000)", #"(time-to-days (date-to-time "1500-01-01"))"#,
-        #"(days-between "1500-01-01" "1600-01-01")"#,
+        #"(days-between "1500-01-01" "1600-01-01")"#, #"(format-time-string "%Y %F" 300000000000 t)"#,
     ]
 
     static let unsupportedTime = [
