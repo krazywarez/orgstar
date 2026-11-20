@@ -28,8 +28,14 @@ public enum ExportScope {
         body = body.replacing(#/^(?:[ \t]*(?:SCHEDULED|DEADLINE|CLOSED):[^\n]*\n)?(?:[ \t]*:PROPERTIES:[ \t]*\n(?:[^\n]*\n)*?[ \t]*:END:[ \t]*(?:\n|$))?/#, with: "", maxReplacements: 1)
         body = ExportPreprocess.shift(body, to: 1)
 
-        var lines = preamble(tree)
         let property = { (key: String) in heading.properties.last { $0.key.uppercased() == key }?.value }
+        // The title, author and date the subtree sets replace the file's, which Org would
+        // otherwise join.
+        let replaced = Set(overrides.prefix(4).filter { $0.property == "EXPORT_TITLE" || property($0.property) != nil }.map(\.keyword))
+        var lines = preamble(tree).filter { line in
+            guard let m = line.firstMatch(of: #/^#\+([^:\s]+):/#) else { return true }
+            return !replaced.contains(m.1.uppercased())
+        }
         lines.append("#+TITLE: " + (property("EXPORT_TITLE") ?? Links.displayFormat(heading.title).trimmingCharacters(in: .whitespaces)))
         for (key, keyword) in overrides where key != "EXPORT_TITLE" {
             if let value = property(key) { lines.append("#+\(keyword): \(value)") }

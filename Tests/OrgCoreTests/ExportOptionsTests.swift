@@ -13,6 +13,27 @@ struct ExportOptionsTests {
         #expect(ExportOptions.parse("#+OPTIONS: H:2 toc:t\n").toc == 2)
     }
 
+    /// ox-latex's keywords: the last class and class options, header lines in order, the first
+    /// compiler.
+    @Test func readsLaTeXKeywords() {
+        let o = ExportOptions.parse("""
+            #+LATEX_CLASS: article
+            #+LATEX_CLASS: report
+            #+LATEX_CLASS_OPTIONS: [a4paper]
+            #+LATEX_HEADER: \\usepackage{a}
+            #+LATEX_HEADER_EXTRA: \\usepackage{c}
+            #+LATEX_HEADER: \\usepackage{b}
+            #+LATEX_COMPILER: xelatex
+            #+LATEX_COMPILER: lualatex
+            #+OPTIONS: toc:nil toc:2 \\n:t
+            """)
+        #expect(o.latexClass == "report" && o.latexClassOptions == "[a4paper]")
+        #expect(o.latexHeader == ["\\usepackage{a}", "\\usepackage{b}"] && o.latexHeaderExtra == ["\\usepackage{c}"])
+        #expect(o.latexCompiler == "xelatex")
+        #expect(o.items["toc"] == "2" && o.items["\\n"] == "t")
+        #expect(ExportOptions.parse("x\n").latexClass == nil)
+    }
+
     @Test func pagesFollowOptions() {
         let org = """
             #+TITLE: Doc

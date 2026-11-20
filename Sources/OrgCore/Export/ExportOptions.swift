@@ -33,6 +33,18 @@ public struct ExportOptions: Sendable, Equatable {
     public var selectTags = ["export"]
     /// `#+HTML_HEAD` and `#+HTML_HEAD_EXTRA` lines, in order.
     public var htmlHead: [String] = []
+    /// `#+LATEX_CLASS`, the last one.
+    public var latexClass: String?
+    /// `#+LATEX_CLASS_OPTIONS`, the last one.
+    public var latexClassOptions: String?
+    /// `#+LATEX_HEADER` lines, in order.
+    public var latexHeader: [String] = []
+    /// `#+LATEX_HEADER_EXTRA` lines, in order.
+    public var latexHeaderExtra: [String] = []
+    /// `#+LATEX_COMPILER`, the first one.
+    public var latexCompiler: String?
+    /// Every `#+OPTIONS` item as written, the last value of each.
+    public var items: [String: String] = [:]
 
     /// `org-export-with-*` defaults.
     public static let org = ExportOptions(toc: 3, num: 3)
@@ -45,22 +57,28 @@ public struct ExportOptions: Sendable, Equatable {
         return options
     }()
 
-    /// `defaults` with the document's `#+OPTIONS`, `#+EXCLUDE_TAGS`, `#+SELECT_TAGS` and
-    /// `#+HTML_HEAD` applied.
+    /// `defaults` with the document's `#+OPTIONS`, `#+EXCLUDE_TAGS`, `#+SELECT_TAGS`,
+    /// `#+HTML_HEAD` and `#+LATEX_*` applied.
     public static func parse(_ text: String, defaults: ExportOptions = .org) -> ExportOptions {
         var options = defaults
         var tocSet: String?
         var numSet: String?
-        for m in text.matches(of: #/(?mi)^[ \t]*#\+(OPTIONS|EXCLUDE_TAGS|SELECT_TAGS|HTML_HEAD|HTML_HEAD_EXTRA):[ \t]*(.*?)[ \t]*$/#) {
+        for m in text.matches(of: #/(?mi)^[ \t]*#\+(OPTIONS|EXCLUDE_TAGS|SELECT_TAGS|HTML_HEAD|HTML_HEAD_EXTRA|LATEX_CLASS|LATEX_CLASS_OPTIONS|LATEX_HEADER|LATEX_HEADER_EXTRA|LATEX_COMPILER):[ \t]*(.*?)[ \t]*$/#) {
             let value = String(m.2)
             switch m.1.uppercased() {
             case "EXCLUDE_TAGS": options.excludeTags = value.split(whereSeparator: \.isWhitespace).map(String.init)
             case "SELECT_TAGS": options.selectTags = value.split(whereSeparator: \.isWhitespace).map(String.init)
             case "HTML_HEAD", "HTML_HEAD_EXTRA": options.htmlHead.append(value)
+            case "LATEX_CLASS": options.latexClass = value
+            case "LATEX_CLASS_OPTIONS": options.latexClassOptions = value
+            case "LATEX_HEADER": options.latexHeader.append(value)
+            case "LATEX_HEADER_EXTRA": options.latexHeaderExtra.append(value)
+            case "LATEX_COMPILER": if options.latexCompiler == nil { options.latexCompiler = value }
             default:
                 for item in value.matches(of: /(\S+?):(\S+)/) {
                     let key = String(item.1)
                     let v = String(item.2)
+                    options.items[key] = v
                     let on = v != "nil"
                     switch key {
                     case "toc": tocSet = v

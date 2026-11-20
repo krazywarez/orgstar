@@ -26,12 +26,11 @@ struct ExportScopeTests {
     static var project: Int { (file as NSString).range(of: "Body of").location }
 
     /// As `org-export-as` with SUBTREEP in Emacs 31: the heading's title is the title, its
-    /// EXPORT_AUTHOR the author; planning and drawer left out; children one level up.
+    /// EXPORT_AUTHOR the author, in place of the file's; planning and drawer left out; children
+    /// one level up.
     @Test func subtreeIsADocumentOfItsOwn() throws {
         let text = try #require(ExportScope.subtree(Self.file, at: Self.project))
         #expect(text == """
-            #+TITLE: Whole file
-            #+AUTHOR: Ann
             #+OPTIONS: toc:nil num:nil
             #+TITLE: Project
             #+AUTHOR: Bob
