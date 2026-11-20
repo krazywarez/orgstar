@@ -292,6 +292,47 @@ struct BabelTests {
         }
     }
 
+    /// Blocks whose result depends on how Emacs runs them: lexical binding, and the syntax table
+    /// of `*scratch*`.
+    static let runnerCases = [
+        "(list (string-match \"\\\\w\" \"'a\") (string-match \"\\\\s(\" \"<\") (string-match \"\\\\_<b\" \"a\\\\b\") (replace-regexp-in-string \"\\\\w+\" \"X\" \"it's\"))",
+        "(list (split-string \"a b\\nc\" \"[[:space:]]\") (string-match \"\\\\s-\" \"a\\nb\") (string-match \"\\\\s.\" \"a,b\"))",
+        "(progn (defun adder (n) (lambda (x) (+ x n))) (funcall (adder 3) 4))",
+        "(progn (defun g () y) (let ((y 5)) (g)))",
+        "(let ((fs nil)) (dolist (i '(1 2)) (push (lambda () i) fs)) (mapcar #'funcall fs))",
+        "(let ((fs nil)) (dotimes (i 2) (push (lambda () i) fs)) (mapcar #'funcall fs))",
+        "(mapcar #'funcall (cl-loop for i in '(1 2) collect (lambda () i)))",
+        "(let ((x 1)) (let ((f (lambda () x))) (let ((x 2)) (funcall f))))",
+        "(let* ((x 1) (f (lambda () x)) (x 2)) (funcall f))",
+        "(let ((n 0)) (let ((inc (lambda () (setq n (1+ n))))) (funcall inc) (funcall inc) n))",
+        "(progn (defvar orgstar-special 1) (defun orgstar-read () orgstar-special) (let ((orgstar-special 2)) (orgstar-read)))",
+        "(let ((x 5)) (defun orgstar-gx () x) (orgstar-gx))",
+        "(let ((x 1)) (funcall '(lambda () x)))",
+        "(let ((x 3)) (mapcar (lambda (y) (* x y)) '(1 2)))",
+        "(let ((k 1)) (pcase 2 ((pred (lambda (v) (> v k))) 'big)))",
+    ].map { "#+begin_src emacs-lisp\n\($0)\n#+end_src\n" }
+
+    /// Natively as with `emacs -Q --batch -l`, the way the app runs Emacs Lisp blocks.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func lispRunsNativelyLikeTheEmacsRunner() throws {
+        let folder = FileManager.default.temporaryDirectory
+        for text in Self.runnerCases {
+            let caret = (text as NSString).range(of: "#+begin_src").location + 2
+            let emacs = try TestBabelRunner.execute(text, caret: caret, directory: folder)
+            do {
+                let ours = try TestBabelRunner.execute(text, caret: caret, directory: folder, native: true)
+                // A Lisp error: Emacs's backtrace becomes the result here, and the run fails in the app.
+                if emacs.text.contains("#+begin_example\n\nError: ") {
+                    #expect(ours.failure != nil && ours.text == text, "\(text)\nours: \(ours.text)")
+                    continue
+                }
+                #expect(ours.text == emacs.text, "\(text)\nours (\(ours.failure ?? "")):\n\(ours.text)\nemacs (\(emacs.failure ?? "")):\n\(emacs.text)")
+            } catch is NativeUnsupported {
+                Issue.record("not run natively:\n\(text)")
+            }
+        }
+    }
+
     @Test func referencedQueryBlocksAskEveryTime() {
         let text = "#+begin_src sh :var x=gen\necho $x\n#+end_src\n\n#+NAME: gen\n#+begin_src sh :eval query\necho 1\n#+end_src\n"
         guard case .success(let job) = Babel.plan(EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])) else {

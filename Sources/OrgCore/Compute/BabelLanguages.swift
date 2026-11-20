@@ -92,11 +92,16 @@ extension Babel {
     /// doesn't have.
     public static func evaluateNatively(_ job: BabelJob) throws(Failure) -> BabelOutput? {
         guard let form = job.lispForm, let sexp = try? LispReader.readFirst(form).sexp else { return nil }
+        // As `emacs -Q --batch -l` runs `emacsScript`: lexical binding, in `*scratch*`.
         let lisp = Elisp()
+        lisp.lexical = true
+        lisp.syntax = .emacsLisp
         lisp.standardTime()
         let result: Sexp
         do {
             result = try lisp.eval(sexp)
+            // Emacs prints closures as `#[ARGS BODY ENV]`.
+            if Elisp.containsClosure(result) { return nil }
         } catch is Elisp.Unsupported {
             return nil
         } catch {

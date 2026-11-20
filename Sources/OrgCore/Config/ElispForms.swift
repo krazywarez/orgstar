@@ -26,8 +26,8 @@ extension Elisp {
         var body = Array(args.dropFirst(2))
         if body.count > 1, case .string = body[0] { body.removeFirst() }
         while let head = body.first?.head, head == "declare" || head == "interactive" { body.removeFirst() }
-        let lambda = Sexp.list([.symbol("lambda"), args[1]] + body)
-        define(name) { lisp, values in try lisp.call(lambda, values) }
+        let function = closure(.list([.symbol("lambda"), args[1]] + body))
+        define(name) { lisp, values in try lisp.call(function, values) }
         return .symbol(name)
     }
 
@@ -35,7 +35,8 @@ extension Elisp {
     func defineVariable(_ args: [Sexp], constant: Bool) throws -> Sexp {
         guard case .symbol(let name)? = args.first, args.count <= 3 else { throw Signal(message: "Malformed \(constant ? "defconst" : "defvar")") }
         if constant, args.count < 2 { throw Signal(message: "Wrong number of arguments: defconst, 1") }
-        if args.count > 1, constant || scopes[0][name] == nil { scopes[0][name] = try eval(args[1]) }
+        specials.insert(name)
+        if args.count > 1, constant || scopes[0].vars[name] == nil { scopes[0].vars[name] = try eval(args[1]) }
         return .symbol(name)
     }
 
@@ -121,9 +122,8 @@ extension Elisp {
         case .list(let items) where items.count == 2 && items[0] == .symbol("\\`"):
             return try backquoted(items[1], value, &bindings)
         case .list(let items) where items.count == 2 && items[0] == .symbol("pred") && (items[1].symbol != nil || items[1].head == "lambda"):
-            let function = items[1]
             let soFar = bindings
-            return !Self.isNil(try binding(soFar) { try call(function, [value]) })
+            return !Self.isNil(try binding(soFar) { try call(closure(items[1]), [value]) })
         default:
             throw Unsupported(what: "pcase pattern \(pattern.description)")
         }
@@ -162,7 +162,7 @@ extension Elisp {
         // What each `in` clause has left.
         var lists: [Int: Sexp] = [:]
         var actions: [(kind: String, forms: [Sexp])] = []
-        scopes.append([:])
+        scopes.append(Frame())
         defer { scopes.removeLast() }
         var i = 0
         func next() throws -> Sexp {
@@ -178,10 +178,10 @@ extension Elisp {
                 switch try next() {
                 case .symbol("in"):
                     lists[iterators.count] = try eval(try next())
-                    scopes[scopes.count - 1][variable] = .nil
+                    scopes[scopes.count - 1].vars[variable] = .nil
                     iterators.append(.list(variable))
                 case .symbol("from"):
-                    scopes[scopes.count - 1][variable] = try eval(try next())
+                    scopes[scopes.count - 1].vars[variable] = try eval(try next())
                     var limit: Sexp?
                     if i < args.count, args[i] == .symbol("to") {
                         i += 1

@@ -100,7 +100,9 @@ extension Elisp {
         lisp.define("string-pad") { _, args in
             try arity(args, 2...4, "string-pad")
             let s = try string(args[0])
-            let pad = try int(args[1]) - s.unicodeScalars.count
+            let length = try int(args[1])
+            guard length >= 0 else { throw Signal(message: "Wrong type argument: natnump, \(length)") }
+            let pad = length - s.unicodeScalars.count
             guard pad > 0 else { return .string(s) }
             guard pad <= lengthLimit else { throw Signal(message: "Too long for string-pad") }
             let padding = String(repeating: String(try scalar(args.count > 2 && !isNil(args[2]) ? try int(args[2]) : 32)), count: pad)
@@ -155,6 +157,12 @@ extension Elisp {
         default:
             return nil
         }
+    }
+
+    /// Refuses `name` on a first argument that another value may share, when it changes it in
+    /// place.
+    static func refuseShared(_ lisp: Elisp, _ name: String, _ args: [Sexp], variable: String?) throws {
+        if afterInPlace(name, args, .nil) != nil { try lisp.refuseShared(args[0], variable: variable, name) }
     }
 
     /// Keyword arguments `args` after the first `count`, of which only `allowed` are known.
@@ -242,12 +250,16 @@ extension Elisp {
             guard n > 0 else { return args[0] }
             return list(Array(try elements(args[0]).dropLast(n)))
         }
-        lisp.define("delete-dups") { _, args in
+        lisp.define("delete-dups") { lisp, args in
+            let variable = lisp.takeInPlaceVariable()
             try arity(args, 1...1, "delete-dups")
+            try refuseShared(lisp, "delete-dups", args, variable: variable)
             return list(uniqueEqual(try elements(args[0])))
         }
-        lisp.define("nreverse") { _, args in
+        lisp.define("nreverse") { lisp, args in
+            let variable = lisp.takeInPlaceVariable()
             try arity(args, 1...1, "nreverse")
+            try refuseShared(lisp, "nreverse", args, variable: variable)
             switch args[0] {
             case .string(let s): return .string(String(String.UnicodeScalarView(s.unicodeScalars.reversed())))
             case .vector(let items): return .vector(items.reversed())
@@ -255,6 +267,7 @@ extension Elisp {
             }
         }
         lisp.define("sort") { lisp, args in
+            let variable = lisp.takeInPlaceVariable()
             try arity(args, 1...Int.max, "sort")
             var key = Sexp.nil
             var lessp = Sexp.nil
@@ -274,6 +287,7 @@ extension Elisp {
             case .string: throw Unsupported(what: "sort on a string")
             default: items = try elements(args[0])
             }
+            try refuseShared(lisp, "sort", args, variable: variable)
             let keyed = try items.map { isNil(key) ? ($0, $0) : ($0, try lisp.call(key, [$0])) }
             func less(_ a: Sexp, _ b: Sexp) throws -> Bool {
                 isNil(lessp) ? try valueLess(a, b) : !isNil(try lisp.call(lessp, [a, b]))

@@ -1,9 +1,29 @@
 import Foundation
 
-/// An Emacs regexp as an `NSRegularExpression`, with the syntax table of an Org buffer, where
-/// table formulas and Emacs Lisp blocks run. A construct it can't translate exactly throws
-/// `Elisp.Unsupported`, and so do subjects where ICU's tables could differ from Emacs's:
-/// syntax classes against text past ASCII, and case folding with letters past ASCII.
+/// `char-syntax` of each ASCII character in a syntax table.
+struct ElispSyntax: Equatable {
+    let classes: [Character]
+
+    /// `org-mode-syntax-table`, where table formulas run.
+    static let org = ElispSyntax(classes: Array(".........  .  .................. .\".ww_w()__._._wwwwwwwwww..(_)..wwwwwwwwwwwwwwwwwwwwwwwwww(_)._.wwwwwwwwwwwwwwwwwwwwwwwwww(_)_."))
+    /// `lisp-interaction-mode`'s table, which `emacs -Q --batch -l` evaluates Emacs Lisp
+    /// blocks with, in `*scratch*`.
+    static let emacsLisp = ElispSyntax(classes: Array("_________ >_ ___________________ _\"'___'()__'___wwwwwwwwww_<_____wwwwwwwwwwwwwwwwwwwwwwwwww(\\)__'wwwwwwwwwwwwwwwwwwwwwwwwww_____"))
+
+    func codes(_ syntaxClass: Character) -> [UInt32] {
+        classes.indices.filter { classes[$0] == syntaxClass }.map(UInt32.init)
+    }
+
+    var word: [UInt32] { codes("w") }
+    var symbol: [UInt32] { word + codes("_") }
+
+    func isWord(_ c: Unicode.Scalar) -> Bool { c.isASCII && classes[Int(c.value)] == "w" }
+}
+
+/// An Emacs regexp as an `NSRegularExpression`, with the syntax table of the buffer it runs
+/// in. A construct it can't translate exactly throws `Elisp.Unsupported`, and so do subjects
+/// where ICU's tables could differ from Emacs's: syntax classes against text past ASCII, and
+/// case folding with letters past ASCII.
 struct ElispRegex {
     let pattern: String
     let groups: Int
@@ -16,28 +36,18 @@ struct ElispRegex {
     let plain: NSRegularExpression
     let folded: NSRegularExpression
 
-    /// `char-syntax` of each ASCII character in `org-mode-syntax-table`.
-    static let syntax = Array(".........  .  .................. .\".ww_w()__._._wwwwwwwwww..(_)..wwwwwwwwwwwwwwwwwwwwwwwwww(_)._.wwwwwwwwwwwwwwwwwwwwwwwwww(_)_.")
-
-    static func codes(_ syntaxClass: Character) -> [UInt32] {
-        syntax.indices.filter { syntax[$0] == syntaxClass }.map(UInt32.init)
-    }
-
     static func hex(_ c: UInt32) -> String { "\\x{" + String(c, radix: 16) + "}" }
 
     static func set(_ codes: [UInt32], negated: Bool = false) -> String {
         "[" + (negated ? "^" : "") + codes.map(hex).joined() + "]"
     }
 
-    static let word = codes("w")
-    static let symbol = word + codes("_")
-
     /// A letter with case, which case folding changes.
     static func isLetter(_ c: UInt32) -> Bool {
         (65...90).contains(c) || (97...122).contains(c) || c > 127 && Unicode.Scalar(c).map { $0.properties.changesWhenCaseMapped || $0.properties.changesWhenCaseFolded } ?? false
     }
 
-    init(_ pattern: String) throws {
+    init(_ pattern: String, syntax: ElispSyntax = .org) throws {
         self.pattern = pattern
         let p = Array(pattern.unicodeScalars)
         var out = ""
@@ -137,12 +147,12 @@ struct ElispRegex {
                         case "cntrl": ("\\x{0}-\\x{1f}", false, false)
                         case "ascii": ("\\x{0}-\\x{7f}", false, false)
                         case "nonascii": ("\\x{80}-\\x{10ffff}", false, false)
-                        case "space": (Self.codes(" ").map(Self.hex).joined(), true, false)
+                        case "space": (syntax.codes(" ").map(Self.hex).joined(), true, false)
                         case "blank": ("\\x{9}\\x{20}", true, false)
                         case "punct": ((33...126).filter { !Self.isLetter($0) && !(48...57).contains($0) }.map(Self.hex).joined(), true, false)
                         case "graph": ("\\x{21}-\\x{7e}", true, false)
                         case "print": ("\\x{20}-\\x{7e}", true, false)
-                        case "word": (Self.word.map(Self.hex).joined(), true, false)
+                        case "word": (syntax.word.map(Self.hex).joined(), true, false)
                         default: throw unsupported("[:\(name):]")
                         }
                         text += ascii.0
@@ -215,7 +225,7 @@ struct ElispRegex {
                     atom("(?:\\\(n))")
                 case "w", "W":
                     asciiClasses = true
-                    atom(Self.set(Self.word, negated: e == "W"))
+                    atom(Self.set(syntax.word, negated: e == "W"))
                 case "s", "S":
                     guard i < p.count else { throw unsupported("\\s") }
                     let code: Character = switch p[i] {
@@ -225,10 +235,11 @@ struct ElispRegex {
                     }
                     i += 1
                     asciiClasses = true
-                    atom(Self.set(Self.codes(code), negated: e == "S"))
+                    let codes = syntax.codes(code)
+                    atom(codes.isEmpty ? (e == "S" ? "[\\s\\S]" : "[^\\s\\S]") : Self.set(codes, negated: e == "S"))
                 case "b", "B", "<", ">":
                     asciiClasses = true
-                    let w = Self.set(Self.word)
+                    let w = Self.set(syntax.word)
                     let text = switch e {
                     case "b": "(?:(?<=\(w))(?!\(w))|(?<!\(w))(?=\(w)))"
                     case "B": "(?:(?<=\(w))(?=\(w))|(?<!\(w))(?!\(w)))"
@@ -239,7 +250,7 @@ struct ElispRegex {
                 case "_":
                     guard i < p.count, p[i] == "<" || p[i] == ">" else { throw unsupported("\\_") }
                     asciiClasses = true
-                    let s = Self.set(Self.symbol)
+                    let s = Self.set(syntax.symbol)
                     assertion(p[i] == "<" ? "(?<!\(s))(?=\(s))" : "(?<=\(s))(?!\(s))")
                     i += 1
                 case "`":
@@ -312,7 +323,7 @@ extension Elisp {
 
     func regex(_ pattern: String) throws -> ElispRegex {
         if let cached = regexes[pattern] { return cached }
-        let compiled = try ElispRegex(pattern)
+        let compiled = try ElispRegex(pattern, syntax: syntax)
         regexes[pattern] = compiled
         return compiled
     }
@@ -350,6 +361,8 @@ extension Elisp {
                 switch chars.next() {
                 case "&": text += try Self.substring(s, matchData[0]!)
                 case "\\": text += "\\"
+                // Kept as is, for `query-replace-regexp`.
+                case "?": text += "\\?"
                 case let d? where ("1"..."9").contains(d):
                     let n = Int(d.value) - 48
                     if n < matchData.count, let r = matchData[n] { text += try Self.substring(s, r) }
@@ -367,7 +380,7 @@ extension Elisp {
             }
         } else if !fixedCase {
             // How `replace-match` decides to change the replacement's case from the replaced text.
-            func isWord(_ c: Unicode.Scalar) -> Bool { c.isASCII && ElispRegex.syntax[Int(c.value)] == "w" }
+            let isWord = syntax.isWord
             var (multiletter, lower, nonUpperInitial, upper) = (false, false, false, false)
             var previous: Unicode.Scalar = "\n"
             for c in old.unicodeScalars {
@@ -485,38 +498,37 @@ extension Elisp {
             func optional(_ i: Int) -> Sexp { i < args.count ? args[i] : .nil }
             let s = try string(args[0])
             let length = s.unicodeScalars.count
-            let keepNulls = isNil(optional(1)) ? false : isNil(optional(2))
+            let keepEmpty = !isNil(optional(1)) && isNil(optional(2))
             let separators = isNil(optional(1)) ? "[ \u{0C}\t\n\r\u{0B}]+" : try string(optional(1))
             let trim = isNil(optional(3)) ? nil : try string(optional(3))
             var list: [Sexp] = []
-            func push(_ from: Int, _ to: Int) throws {
-                var from = from
-                if let trim, let data = try lisp.stringMatch(trim, s, start: .integer(from)) {
-                    lisp.matchData = data
-                    if data[0]!.lowerBound == from { from = data[0]!.upperBound }
+            // The loop of Emacs 31's `split-string`, empty separator matches included.
+            func push(_ item: String, last: Bool) throws {
+                guard let trim else {
+                    if !last || keepEmpty || !item.isEmpty { list.append(.string(item)) }
+                    return
                 }
-                guard keepNulls || from < to else { return }
-                guard from <= to else { throw Signal(message: "Args out of range") }
-                var this = try substring(s, from..<to)
-                if let trim, let data = try lisp.stringMatch(trim + "\\'", this) {
+                let count = item.unicodeScalars.count
+                var begin = 0
+                if let data = try lisp.stringMatch("\\`\\(?:" + trim + "\\)", item) {
                     lisp.matchData = data
-                    if data[0]!.lowerBound < this.unicodeScalars.count { this = try substring(this, 0..<data[0]!.lowerBound) }
+                    begin = data[0]!.upperBound
                 }
-                if keepNulls || !this.isEmpty { list.append(.string(this)) }
+                let end = try lisp.stringMatch("\\(?:" + trim + "\\)\\'", item, start: .integer(begin))?[0]!.lowerBound ?? count
+                let trimmed = begin > 0 || end < count ? try substring(item, begin..<end) : item
+                if keepEmpty || (last ? !trimmed.isEmpty : begin < end) { list.append(.string(trimmed)) }
             }
+            var next = 0
             var start = 0
-            var notFirst = false
-            while true {
-                let from = notFirst && start == lisp.matchData.first??.lowerBound && start < length ? start + 1 : start
-                guard let data = try lisp.stringMatch(separators, s, start: .integer(from)) else { break }
+            while let data = try lisp.stringMatch(separators, s, start: .integer(next)) {
                 lisp.matchData = data
+                let separator = data[0]!
+                if keepEmpty || start < separator.lowerBound { try push(try substring(s, start..<separator.lowerBound), last: false) }
+                next = max(next + 1, separator.upperBound)
+                start = separator.upperBound
                 guard start < length else { break }
-                notFirst = true
-                let thisStart = start
-                start = data[0]!.upperBound
-                try push(thisStart, data[0]!.lowerBound)
             }
-            try push(start, length)
+            try push(try substring(s, start..<length), last: true)
             return Elisp.list(list)
         }
     }

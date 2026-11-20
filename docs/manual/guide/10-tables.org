@@ -457,7 +457,7 @@ The evaluator supports:
   =unless=, =cond=, =and=, =or=, =let=, =let*=, =setq=, =push=, =pop=, =while=,
   =dolist=, =dotimes=, =with-output-to-string=, =ignore-errors=, =condition-case=,
   =save-match-data=, =defun=, =defvar=, =defconst=, =let-alist=, =cl-incf= and =cl-decf=
-  on a variable;
+  on a variable, with dynamic binding, as Org evaluates formulas;
 - =pcase= with literal, symbol, quoted, backquoted and =pred= patterns, where =pred=
   takes a function name or a lambda;
 - =cl-loop= with =for VAR in LIST=, =for VAR from START to END=, and one kind of
@@ -473,7 +473,8 @@ The evaluator supports:
   =append=, =length=, =reverse=, =number-sequence=, =memq=, =member=, =memql=, =assoc=,
   =assq=, =delq=, =delete=, =mapcar=, =mapc=, =mapconcat=, =funcall=, =apply=,
   =identity=, =ignore=, =last=, =butlast=, =delete-dups=, =nreverse=, =sort= (both
-  calling conventions), =seq-reduce=, =seq-filter=, =seq-remove=, =seq-map=, =seq-uniq=,
+  calling conventions; these three need Emacs when they would change a list that
+  another variable, list or argument may share), =seq-reduce=, =seq-filter=, =seq-remove=, =seq-map=, =seq-uniq=,
   =cl-reduce= (with =:initial-value=), =cl-remove-if=, =cl-remove-if-not=, =cl-find= and
   =cl-position= (with =:test=);
 - strings: =concat=, =format=, =format-message=, ~string=~, =string-equal=, =string<=,
@@ -488,7 +489,7 @@ The evaluator supports:
 - time: =current-time=, =format-time-string=, =float-time=, =time-add=, =time-subtract=,
   =time-to-days=, =date-to-time=, =days-between=, =org-time-string-to-time=,
   =org-time-string-to-absolute= and the =calendar-= functions that diary sexps use, in
-  the local time zone;
+  the local time zone and the proleptic Gregorian calendar;
 - output and errors: =princ=, =prin1=, =print=, =terpri=, =message=, =error=,
   =user-error=;
 - Org's lookup functions =org-lookup-first=, =org-lookup-last= and =org-lookup-all=.

@@ -93,6 +93,10 @@ struct ElispTests {
         #"(split-string "a1b22c" "[0-9]+")"#, #"(split-string "  a  b " " +")"#, #"(split-string "a,b,,c" "," t)"#,
         #"(split-string " a , b " "," t " ")"#, #"(split-string "abc" "")"#, #"(split-string "abc" "" t)"#, #"(split-string "a-b_c" "\\W")"#,
         #"(split-string "a,b" "," nil "\\s-*")"#, #"(split-string "a b" nil)"#, #"(split-string "  two words " "[ ]+" t)"#,
+        #"(split-string "a\nb" "$")"#, #"(split-string "a\nb\nc" "^")"#, #"(split-string "foo bar" "\\>")"#, #"(split-string "foo bar" "\\<")"#,
+        #"(split-string "foo bar" "\\b")"#, #"(split-string "a\nb" "$" t)"#, #"(split-string " a ,, b " "," nil " +")"#, #"(split-string " a ,, b " "," t " +")"#,
+        #"(replace-regexp-in-string "a" "\\?" "a")"#, #"(let ((s "abc")) (string-match "b" s) (replace-match "\\?" nil nil s))"#,
+        #"(string-pad "ab" -1)"#, "(let* ((a (list 3 1 2)) (b (list 4 5))) (sort a #'<) (list a b))",
         "(last '(1 2 3))", "(last '(1 2 3) 2)", "(last '(1 2 3) 0)", "(last '(1 2 . 3))", "(last nil)", "(butlast '(1 2 3))",
         "(butlast '(1 2 3) 2)", "(butlast '(1 2 3) 0)", "(butlast nil)", "(butlast '(1 2 . 3))", #"(delete-dups (list 1 2 1 "a" "a"))"#,
         "(nreverse (list 1 2 3))", "(nreverse [1 2 3])", #"(nreverse "abc")"#, "(let ((l (list 1 2 3))) (nreverse l) l)",
@@ -132,6 +136,11 @@ struct ElispTests {
         "(pcase 1.0 (1.0 'f))", "(pcase 1 ((or 1 2) 'a))", "(pcase 1 ((pred (< 0)) 'a))", "(cl-loop for x across [1 2] collect x)",
         "(cl-loop for i from 1 to 3 sum i collect i)", "(cl-loop repeat 3 collect 1)", "(let ((l (list 1 2))) (cl-incf (car l)))",
         "(when-let ((x 1)) x)", "(undefined-orgstar-macro (car 1))", "(undefined-orgstar-macro void-orgstar-variable)",
+        // In-place changes to a list another value may share.
+        "(let* ((a (list 3 1 2)) (b a)) (sort a '<) b)", "(let ((x (list 1 3 2))) (sort (cdr x) '<) x)",
+        "(let* ((a (list 3 1 2)) (b (list a))) (sort a '<) b)", "(let* ((a (list 1 2 3)) (b a)) (nreverse a) b)",
+        "(let* ((a (list 1 1 2)) (b a)) (delete-dups a) b)", "(let ((a (list 3 1 2))) (list a (sort a '<)))",
+        "(let* ((a (list 3 1 2)) (b a)) (funcall #'sort a '<) b)", "(let ((a (list 3 1 2))) (prog1 a (sort a '<)))",
     ]
 
     static func strict(_ form: String) -> String {
@@ -162,11 +171,19 @@ struct ElispTests {
         #expect(Self.strict("(undefined-orgstar-function (car 1))") == "unsupported")
     }
 
-    /// The syntax classes follow `org-mode-syntax-table`.
+    /// The syntax classes follow `org-mode-syntax-table`, and for Emacs Lisp blocks, the table
+    /// of `*scratch*` in `emacs -Q --batch -l`.
     @Test(.enabled(if: oracle))
-    func syntaxTableMatchesOrgMode() throws {
-        let emacs = try EmacsOracle.evaluate("", "(list (let (r) (dotimes (c 128) (push (string (char-syntax c)) r)) (apply #'concat (nreverse r))))")
-        #expect(emacs == [String(ElispRegex.syntax)])
+    func syntaxTablesMatchEmacs() throws {
+        let classes = "(let (r) (dotimes (c 128) (push (string (char-syntax c)) r)) (apply #'concat (nreverse r)))"
+        let emacs = try EmacsOracle.evaluate("", "(list \(classes))")
+        #expect(emacs == [String(ElispSyntax.org.classes)])
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-syntax-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let script = folder.appendingPathComponent("syntax.el")
+        try ";;; -*- lexical-binding: t -*-\n(princ \(classes))\n".write(to: script, atomically: true, encoding: .utf8)
+        #expect(try EmacsOracle.run(["-Q", "--batch", "-l", script.path]) == String(ElispSyntax.emacsLisp.classes))
     }
 
     static let timeForms = [
@@ -189,6 +206,12 @@ struct ElispTests {
         #"(let ((s (format-time-string "%Y-%m-%d"))) (string-match "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\'" s))"#,
         "(let ((t0 (current-time))) (and (consp t0) (= (length t0) 4) (< (abs (- (float-time t0) (float-time))) 5)))",
         "(> (time-to-days (current-time)) 739000)",
+        // Proleptic Gregorian dates, before 1582 and before year 1.
+        #"(org-time-string-to-time "<1500-01-01>")"#, #"(org-time-string-to-time "<0099-01-01>")"#, #"(date-to-time "1582-10-10")"#,
+        #"(format-time-string "%F %a" (date-to-time "1500-01-01"))"#, #"(format-time-string "%F" -15000000000)"#,
+        #"(format-time-string "%Y" -100000000000)"#, #"(format-time-string "%Y %y %D %F %j %a" -62200000000)"#,
+        #"(format-time-string "%Y %F" -62135596800)"#, "(time-to-days -100000000000)", #"(time-to-days (date-to-time "1500-01-01"))"#,
+        #"(days-between "1500-01-01" "1600-01-01")"#,
     ]
 
     static let unsupportedTime = [

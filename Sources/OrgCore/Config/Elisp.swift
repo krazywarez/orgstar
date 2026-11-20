@@ -1,8 +1,8 @@
 import Foundation
 
 /// A small Emacs Lisp evaluator over `Sexp` values: the special forms and functions diary
-/// sexps and table formulas use, with dynamic binding. A function or form it doesn't have
-/// throws `Unsupported`; errors Emacs would signal throw `Signal`.
+/// sexps and table formulas use, with dynamic binding unless `lexical` is set. A function or
+/// form it doesn't have throws `Unsupported`; errors Emacs would signal throw `Signal`.
 public final class Elisp {
     public struct Unsupported: Error, Equatable, CustomStringConvertible {
         public let what: String
@@ -16,7 +16,33 @@ public final class Elisp {
 
     public typealias Builtin = (Elisp, [Sexp]) throws -> Sexp
 
-    var scopes: [[String: Sexp]] = [[:]]
+    /// A set of bindings, shared by the closures created while it is in scope.
+    final class Frame {
+        var vars: [String: Sexp]
+        init(_ vars: [String: Sexp] = [:]) { self.vars = vars }
+    }
+
+    /// The global frame, then the visible local ones, innermost last.
+    var scopes: [Frame] = [Frame()]
+    /// `lexical-binding`: lambdas close over the local frames, and only special variables
+    /// (the host's and `defvar`'s) are bound dynamically.
+    public var lexical = false
+    /// Variables bound dynamically when `lexical` is set.
+    var specials: Set<String> = []
+    /// Each closure's captured frames, by the id in its `(closure ID ARGS . BODY)` value.
+    var closures: [[Frame]] = []
+    /// The scopes of the callers of running closures, and the global values that dynamic
+    /// bindings of special variables hide.
+    private var hiddenScopes: [[Frame]] = []
+    private var hiddenValues: [Sexp] = []
+    /// Values held while a form evaluates: each call's evaluated arguments, innermost last.
+    private var pending: [[Sexp]] = []
+    /// The variable an in-place function's first argument named, for that function to read.
+    private var inPlaceVariable: String?
+    /// The syntax table regexps and case conversion use.
+    var syntax = ElispSyntax.org {
+        didSet { regexes = [:] }
+    }
     private var functions: [String: Builtin] = [:]
     var steps = 0
     static let stepLimit = 1_000_000
@@ -45,27 +71,114 @@ public final class Elisp {
     /// Defines or replaces a function.
     public func define(_ name: String, _ function: @escaping Builtin) { functions[name] = function }
 
-    /// Sets a global variable.
-    public func set(_ name: String, _ value: Sexp) { scopes[0][name] = value }
+    /// Sets a global variable, which is special.
+    public func set(_ name: String, _ value: Sexp) {
+        scopes[0].vars[name] = value
+        specials.insert(name)
+    }
 
     public func value(_ name: String) throws -> Sexp {
-        for scope in scopes.reversed() { if let v = scope[name] { return v } }
+        for scope in scopes.reversed() { if let v = scope.vars[name] { return v } }
         throw Signal(message: "Symbol’s value as variable is void: \(name)")
     }
 
-    /// Evaluates `body` with `bindings` added.
+    /// Evaluates `body` with `bindings` added: in a new frame, or for special variables under
+    /// lexical binding, as their global values until `body` returns.
     public func binding<T>(_ bindings: [String: Sexp], _ body: () throws -> T) rethrows -> T {
-        scopes.append(bindings)
-        defer { scopes.removeLast() }
+        try binding(Frame(bindings), body)
+    }
+
+    func binding<T>(_ frame: Frame, _ body: () throws -> T) rethrows -> T {
+        let dynamic = lexical ? frame.vars.keys.filter(specials.contains) : []
+        var saved: [(String, Sexp?)] = []
+        for name in dynamic {
+            saved.append((name, scopes[0].vars[name]))
+            if let old = scopes[0].vars[name] { hiddenValues.append(old) }
+            scopes[0].vars[name] = frame.vars.removeValue(forKey: name)
+        }
+        scopes.append(frame)
+        defer {
+            scopes.removeLast()
+            for (name, old) in saved.reversed() {
+                scopes[0].vars[name] = old
+                if old != nil { hiddenValues.removeLast() }
+            }
+        }
         return try body()
     }
 
     func assign(_ name: String, _ v: Sexp) {
-        for i in scopes.indices.reversed() where scopes[i][name] != nil {
-            scopes[i][name] = v
+        for scope in scopes.reversed() where scope.vars[name] != nil {
+            scope.vars[name] = v
             return
         }
-        scopes[0][name] = v
+        scopes[0].vars[name] = v
+    }
+
+    /// A lambda as `function` makes it: a closure over the local frames under lexical
+    /// binding, else the list itself.
+    func closure(_ lambda: Sexp) -> Sexp {
+        guard lexical, case .list(let items) = lambda, items.first == .symbol("lambda"), items.count >= 2 else { return lambda }
+        closures.append(Array(scopes.dropFirst()))
+        return .list([.symbol("closure"), .integer(closures.count - 1)] + items.dropFirst())
+    }
+
+    static func isClosure(_ v: Sexp) -> Bool {
+        if case .list(let items) = v, items.count >= 3, items[0] == .symbol("closure"), items[1].integer != nil { return true }
+        return false
+    }
+
+    /// Whether `v` contains a closure, which Emacs prints in a form this evaluator doesn't.
+    static func containsClosure(_ v: Sexp) -> Bool {
+        switch v {
+        case .list(let items): isClosure(v) || items.contains(where: containsClosure)
+        case .dotted(let items, let last): items.contains(where: containsClosure) || containsClosure(last)
+        case .vector(let items): items.contains(where: containsClosure)
+        default: false
+        }
+    }
+
+    /// The variable named by the first argument of the function being called from `eval`, read
+    /// once.
+    func takeInPlaceVariable() -> String? {
+        defer { inPlaceVariable = nil }
+        return inPlaceVariable
+    }
+
+    /// Refuses an in-place change to `v` when another binding, list or pending argument may
+    /// share its cells, which Emacs would change too: any value holding a list that ends like
+    /// `v`, or an equal vector or string. `variable`'s innermost binding is the one `eval`
+    /// updates after the call.
+    func refuseShared(_ v: Sexp, variable: String?, _ name: String) throws {
+        let matches: (Sexp) -> Bool
+        switch v {
+        case .list(let items):
+            guard let last = items.last.map(Self.normalized) else { return }
+            matches = { if case .list(let xs) = $0, let l = xs.last { Self.normalized(l) == last } else { false } }
+        case .dotted(let items, let tail):
+            let last = Self.normalized(items.last!)
+            matches = { if case .dotted(let xs, let t) = $0 { t == tail && Self.normalized(xs.last!) == last } else { false } }
+        case .vector, .string:
+            matches = { $0 == v }
+        default:
+            return
+        }
+        func contains(_ x: Sexp) -> Bool {
+            if matches(x) { return true }
+            switch x {
+            case .list(let items), .vector(let items): return items.contains(where: contains)
+            case .dotted(let items, let last): return items.contains(where: contains) || contains(last)
+            default: return false
+            }
+        }
+        let owner = variable.flatMap { name in scopes.last { $0.vars[name] != nil } }
+        var seen: Set<ObjectIdentifier> = []
+        for frame in (hiddenScopes + [scopes] + closures).joined() where seen.insert(ObjectIdentifier(frame)).inserted {
+            for (key, value) in frame.vars where !(frame === owner && key == variable) && contains(value) {
+                throw Unsupported(what: "\(name) on a list another value shares")
+            }
+        }
+        if (hiddenValues + pending.dropLast().joined()).contains(where: contains) { throw Unsupported(what: "\(name) on a list another value shares") }
     }
 
     // MARK: - Values
@@ -202,7 +315,7 @@ public final class Elisp {
             guard let head = items.first else { return .nil }
             guard case .symbol(let name) = head else {
                 if case .list(let lambda) = head, lambda.first == .symbol("lambda") {
-                    return try call(head, try items.dropFirst().map(eval))
+                    return try call(closure(head), try evaluated(items.dropFirst()))
                 }
                 throw Signal(message: "Invalid function: \(head.description)")
             }
@@ -211,16 +324,28 @@ public final class Elisp {
             // The function first, so an unknown one, or a macro this evaluator lacks, is
             // unsupported rather than an error from its arguments.
             guard let function = functions[name] else { throw Unsupported(what: "function \(name)") }
-            let values = try args.map(eval)
+            pending.append([])
+            defer { pending.removeLast() }
+            for arg in args { pending[pending.count - 1].append(try eval(arg)) }
+            let values = pending[pending.count - 1]
+            var variable: String?
+            if case .symbol(let s)? = args.first, s != "nil", s != "t", !s.hasPrefix(":") { variable = s }
+            inPlaceVariable = variable
             let result = try function(self, values)
-            if case .symbol(let variable)? = args.first, variable != "nil", variable != "t", !variable.hasPrefix(":"),
-               let after = Self.afterInPlace(name, values, result) {
-                assign(variable, after)
-            }
+            inPlaceVariable = nil
+            if let variable, let after = Self.afterInPlace(name, values, result) { assign(variable, after) }
             return result
         case .dotted: throw Signal(message: "Invalid function")
         default: return form
         }
+    }
+
+    /// `forms`' values, held as pending while the later ones evaluate.
+    func evaluated(_ forms: some Collection<Sexp>) throws -> [Sexp] {
+        pending.append([])
+        defer { pending.removeLast() }
+        for form in forms { pending[pending.count - 1].append(try eval(form)) }
+        return pending[pending.count - 1]
     }
 
     func progn(_ body: some Collection<Sexp>) throws -> Sexp {
@@ -235,16 +360,17 @@ public final class Elisp {
         case "quote":
             return args.first ?? .nil
         case "function":
-            return args.first ?? .nil
+            return closure(args.first ?? .nil)
         case "lambda":
-            return .list([.symbol("lambda")] + args)
+            return closure(.list([.symbol("lambda")] + args))
         case "progn":
             return try progn(args)
         case "prog1":
             guard let first = args.first else { return .nil }
-            let value = try eval(first)
+            pending.append([try eval(first)])
+            defer { pending.removeLast() }
             _ = try progn(args.dropFirst())
-            return value
+            return pending[pending.count - 1][0]
         case "if":
             guard args.count >= 2 else { throw Signal(message: "Wrong number of arguments: if") }
             return Self.isNil(try eval(args[0])) ? try progn(args.dropFirst(2)) : try eval(args[1])
@@ -274,22 +400,29 @@ public final class Elisp {
             return .nil
         case "let", "let*":
             guard let first = args.first else { return .nil }
-            var bindings: [String: Sexp] = [:]
-            scopes.append([:])
-            defer { scopes.removeLast() }
+            var specs: [(String, Sexp?)] = []
             for binding in try Self.elements(first) {
-                let (variable, value): (String, Sexp)
                 if case .symbol(let s) = binding {
-                    (variable, value) = (s, .nil)
+                    specs.append((s, nil))
                 } else {
                     let parts = try Self.elements(binding)
                     guard case .symbol(let s)? = parts.first else { throw Signal(message: "Bad binding") }
-                    (variable, value) = (s, parts.count > 1 ? try eval(parts[1]) : .nil)
+                    specs.append((s, parts.count > 1 ? parts[1] : nil))
                 }
-                if name == "let*" { scopes[scopes.count - 1][variable] = value } else { bindings[variable] = value }
             }
-            if name == "let" { scopes[scopes.count - 1] = bindings }
-            return try progn(args.dropFirst())
+            if name == "let" {
+                let values = try evaluated(specs.map { $0.1 ?? .nil })
+                var bindings: [String: Sexp] = [:]
+                for ((variable, _), value) in zip(specs, values) { bindings[variable] = value }
+                return try binding(bindings) { try progn(args.dropFirst()) }
+            }
+            // `let*` nests a binding per variable, so a closure sees the ones before it.
+            func bind(_ rest: ArraySlice<(String, Sexp?)>) throws -> Sexp {
+                guard let (variable, form) = rest.first else { return try progn(args.dropFirst()) }
+                let value = try form.map(eval) ?? .nil
+                return try binding([variable: value]) { try bind(rest.dropFirst()) }
+            }
+            return try bind(specs[...])
         case "setq":
             var value = Sexp.nil
             var i = 0
@@ -320,17 +453,16 @@ public final class Elisp {
             let source = try eval(spec[1])
             let items = name == "dolist" ? try Self.elements(source) : []
             let count = name == "dolist" ? items.count : max(0, try Self.int(source))
-            scopes.append([:])
-            defer { scopes.removeLast() }
+            pending.append([source])
+            defer { pending.removeLast() }
+            // A new binding each time round, as closures over the variable see it.
             for i in 0..<count {
                 steps += 1
                 if steps > Self.stepLimit { throw Signal(message: "Evaluation took too long") }
-                scopes[scopes.count - 1][variable] = name == "dolist" ? items[i] : .integer(i)
-                _ = try progn(args.dropFirst())
+                _ = try binding([variable: name == "dolist" ? items[i] : .integer(i)]) { try progn(args.dropFirst()) }
             }
             if spec.count > 2 {
-                scopes[scopes.count - 1][variable] = name == "dotimes" ? .integer(count) : .nil
-                return try eval(spec[2])
+                return try binding([variable: name == "dotimes" ? .integer(count) : .nil]) { try eval(spec[2]) }
             }
             return .nil
         case "with-output-to-string":
@@ -368,37 +500,55 @@ public final class Elisp {
     public func call(_ function: Sexp, _ args: [Sexp]) throws -> Sexp {
         switch function {
         case .symbol(let name): return try callNamed(name, args)
+        case .list(let items) where Self.isClosure(function):
+            return try apply(parameters: items[2], body: items.dropFirst(3), args, scope: closures[items[1].integer!])
         case .list(let items) where items.first == .symbol("lambda") && items.count >= 2:
-            var bindings: [String: Sexp] = [:]
-            var mode = "required"
-            var i = 0
-            for parameter in try Self.elements(items[1]) {
-                guard case .symbol(let p) = parameter else { throw Signal(message: "Bad lambda list") }
-                if p == "&optional" || p == "&rest" {
-                    mode = p
-                    continue
-                }
-                if mode == "&rest" {
-                    bindings[p] = Self.list(Array(args.dropFirst(i)))
-                    i = args.count
-                } else if i < args.count {
-                    bindings[p] = args[i]
-                    i += 1
-                } else if mode == "&optional" {
-                    bindings[p] = .nil
-                } else {
-                    throw Signal(message: "Wrong number of arguments")
-                }
-            }
-            if i < args.count { throw Signal(message: "Wrong number of arguments") }
-            return try binding(bindings) { try progn(items.dropFirst(2)) }
+            // Under lexical binding, a lambda list runs outside the caller's local frames.
+            return try apply(parameters: items[1], body: items.dropFirst(2), args, scope: lexical ? [] : nil)
         default:
             throw Signal(message: "Invalid function: \(function.description)")
         }
     }
 
+    /// Binds `parameters` to `args` and runs `body`, in `scope`'s frames instead of the
+    /// caller's when given.
+    private func apply(parameters: Sexp, body: ArraySlice<Sexp>, _ args: [Sexp], scope: [Frame]?) throws -> Sexp {
+        var bindings: [String: Sexp] = [:]
+        var mode = "required"
+        var i = 0
+        for parameter in try Self.elements(parameters) {
+            guard case .symbol(let p) = parameter else { throw Signal(message: "Bad lambda list") }
+            if p == "&optional" || p == "&rest" {
+                mode = p
+                continue
+            }
+            if mode == "&rest" {
+                bindings[p] = Self.list(Array(args.dropFirst(i)))
+                i = args.count
+            } else if i < args.count {
+                bindings[p] = args[i]
+                i += 1
+            } else if mode == "&optional" {
+                bindings[p] = .nil
+            } else {
+                throw Signal(message: "Wrong number of arguments")
+            }
+        }
+        if i < args.count { throw Signal(message: "Wrong number of arguments") }
+        guard let scope else { return try binding(bindings) { try progn(body) } }
+        let caller = scopes
+        hiddenScopes.append(caller)
+        scopes = [scopes[0]] + scope
+        defer {
+            scopes = caller
+            hiddenScopes.removeLast()
+        }
+        return try binding(bindings) { try progn(body) }
+    }
+
     func callNamed(_ name: String, _ args: [Sexp]) throws -> Sexp {
         guard let function = functions[name] else { throw Unsupported(what: "function \(name)") }
+        inPlaceVariable = nil
         return try function(self, args)
     }
 

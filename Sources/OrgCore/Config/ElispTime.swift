@@ -75,12 +75,31 @@ extension Elisp {
         return parts
     }
 
-    /// `encode-time` of a local date and time.
+    /// Days from 1 January 1970 to absolute day 1, 1 January of year 1.
+    static let epochDay = 719163
+
+    /// `encode-time` of a local date and time, in the proleptic Gregorian calendar as Emacs
+    /// counts. Foundation's Gregorian calendar is Julian before 15 October 1582, so earlier
+    /// dates are counted here, where no daylight saving time applies.
     static func encode(_ parts: [Int], calendar: Calendar) throws -> Time {
-        guard let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: parts[3], minute: parts[4], second: parts.count > 5 ? parts[5] : 0)) else {
-            throw Unsupported(what: "date \(parts)")
+        let second = parts.count > 5 ? parts[5] : 0
+        if parts[0] >= 1583 {
+            guard let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: parts[3], minute: parts[4], second: second)) else {
+                throw Unsupported(what: "date \(parts)")
+            }
+            return Time(seconds: Int(date.timeIntervalSince1970.rounded(.down)))
         }
-        return Time(seconds: Int(date.timeIntervalSince1970.rounded(.down)))
+        let local = (Days.absolute(year: parts[0], month: parts[1], day: parts[2]) - epochDay) * 86400 + parts[3] * 3600 + parts[4] * 60 + second
+        func offset(_ seconds: Int) -> Int { calendar.timeZone.secondsFromGMT(for: Date(timeIntervalSince1970: Double(seconds))) }
+        return Time(seconds: local - offset(local - offset(local)))
+    }
+
+    /// The local date and time of `seconds` in the proleptic Gregorian calendar: the absolute
+    /// day, and the seconds into it.
+    static func civil(_ seconds: Int, calendar: Calendar) -> (day: Int, second: Int) {
+        let local = seconds + calendar.timeZone.secondsFromGMT(for: Date(timeIntervalSince1970: Double(seconds)))
+        let day = local >= 0 ? local / 86400 : -((-local - 1) / 86400) - 1
+        return (day + epochDay, local - day * 86400)
     }
 
     /// `date-to-time` for ISO 8601 dates, with or without a time.
@@ -94,17 +113,21 @@ extension Elisp {
     }
 
     static func days(_ seconds: Int, calendar: Calendar) -> Int {
-        Days.absolute(Date(timeIntervalSince1970: Double(seconds)), calendar: calendar)
+        civil(seconds, calendar: calendar).day
     }
 
     /// `format-time-string` with the conversions that don't depend on the locale, without
     /// flags or widths.
     static func formatTime(_ format: String, _ seconds: Int, calendar: Calendar) throws -> String {
-        let c = calendar.dateComponents([.year, .month, .day, .weekday, .hour, .minute, .second], from: Date(timeIntervalSince1970: Double(seconds)))
-        let (year, month, day, hour, minute, second) = (c.year!, c.month!, c.day!, c.hour!, c.minute!, c.second!)
+        let (absolute, secondOfDay) = civil(seconds, calendar: calendar)
+        let (year, month, day) = Days.date(absolute)
+        let (hour, minute, second) = (secondOfDay / 3600, secondOfDay % 3600 / 60, secondOfDay % 60)
         let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
         let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-        let weekday = c.weekday! - 1
+        let weekday = Days.weekday(absolute)
+        // Four digits with the sign, and the last two digits of the year without it.
+        let yearText = year < 0 ? String(format: "-%03d", -year) : String(format: "%04d", year)
+        let shortYear = abs(year) % 100
         let hour12 = hour % 12 == 0 ? 12 : hour % 12
         var out = ""
         var chars = format.makeIterator()
@@ -115,8 +138,8 @@ extension Elisp {
             }
             guard let f = chars.next() else { throw Unsupported(what: "format-time-string %") }
             switch f {
-            case "Y": out += String(year)
-            case "y": out += String(format: "%02d", year % 100)
+            case "Y": out += yearText
+            case "y": out += String(format: "%02d", shortYear)
             case "m": out += String(format: "%02d", month)
             case "d": out += String(format: "%02d", day)
             case "e": out += String(format: "%2d", day)
@@ -134,8 +157,8 @@ extension Elisp {
             case "u": out += String(weekday == 0 ? 7 : weekday)
             case "w": out += String(weekday)
             case "j": out += String(format: "%03d", Days.absolute(year: year, month: month, day: day) - Days.absolute(year: year, month: 1, day: 0))
-            case "F": out += String(format: "%d-%02d-%02d", year, month, day)
-            case "D": out += String(format: "%02d/%02d/%02d", month, day, year % 100)
+            case "F": out += yearText + String(format: "-%02d-%02d", month, day)
+            case "D": out += String(format: "%02d/%02d/%02d", month, day, shortYear)
             case "R": out += String(format: "%02d:%02d", hour, minute)
             case "T": out += String(format: "%02d:%02d:%02d", hour, minute, second)
             case "s": out += String(seconds)

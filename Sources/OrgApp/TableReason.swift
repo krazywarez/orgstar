@@ -71,6 +71,10 @@ public enum TableReason {
             let name = String(what.dropLast(" on a place".count))
             return String(localized: "\(name) on a place", comment: "Why a table needs Emacs: a Lisp function used on a variable")
         }
+        if what.hasSuffix(" on a list another value shares") {
+            let name = String(what.dropLast(" on a list another value shares".count))
+            return String(localized: "\(name) on a list another value shares", comment: "Why a table needs Emacs: a Lisp function that changes a shared list")
+        }
         if what.hasSuffix(" in a buffer") {
             let name = String(what.dropLast(" in a buffer".count))
             return String(localized: "\(name) in a buffer", comment: comment)
