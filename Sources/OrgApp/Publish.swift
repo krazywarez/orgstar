@@ -14,8 +14,8 @@ import OrgCore
 ///
 /// Other keys: `base-extension` (an Emacs regexp, or `any`), `exclude` (a regexp on the path
 /// under the base directory), `include` (file names separated by spaces), `publishing-function`
-/// (`org-html-publish-to-html`, `org-md-publish-to-md`, `org-publish-attachment`, separated by
-/// spaces), `sitemap-filename`, `sitemap-title`, `sitemap-style` (`tree` or `list`),
+/// (`org-html-publish-to-html`, `org-md-publish-to-md`, `org-odt-publish-to-odt`,
+/// `org-publish-attachment`, separated by spaces), `sitemap-filename`, `sitemap-title`, `sitemap-style` (`tree` or `list`),
 /// `sitemap-sort-files` (`alphabetically`, `chronologically`, `anti-chronologically`, `nil`),
 /// `sitemap-sort-folders` (`ignore`, `first`, `last`, `nil`), `sitemap-ignore-case`,
 /// `body-only`, and `components` (project names separated by spaces) for a project of projects.
@@ -40,7 +40,7 @@ public struct PublishProject: Sendable, Equatable {
 
     public init(name: String) { self.name = name }
 
-    public static let functions = ["org-html-publish-to-html", "org-md-publish-to-md", "org-latex-publish-to-latex", "org-publish-attachment"]
+    public static let functions = ["org-html-publish-to-html", "org-md-publish-to-md", "org-latex-publish-to-latex", "org-odt-publish-to-odt", "org-publish-attachment"]
 }
 
 public enum Publish {
@@ -290,13 +290,14 @@ public enum Publish {
             if directory((file as NSString).deletingLastPathComponent) == outputDirectory { return nil }
             return outputDirectory + (file as NSString).lastPathComponent
         }
-        let ext = ["org-md-publish-to-md": "md", "org-latex-publish-to-latex": "tex"][function] ?? "html"
+        let ext = ["org-md-publish-to-md": "md", "org-latex-publish-to-latex": "tex", "org-odt-publish-to-odt": "odt"][function] ?? "html"
         guard let text = read(file) else { throw Failure(description: "Can't read \(file)") }
         return ExportScope.output(for: URL(fileURLWithPath: outputDirectory + (file as NSString).lastPathComponent),
                                   name: ExportScope.fileName(text), extension: ext).path
     }
 
-    /// Copies an attachment to `output`, or writes what `function` exports from `file`.
+    /// Copies an attachment to `output`, or writes what `function` exports from `file`; ODT is
+    /// exported here, with the preferences' settings.
     private static func write(
         _ file: String, to output: String, function: String, bodyOnly: Bool,
         read: (String) -> String?, export: (_ function: String, _ text: String, _ path: String, _ bodyOnly: Bool) throws -> String
@@ -305,6 +306,11 @@ public enum Publish {
         if function == "org-publish-attachment" {
             if fm.fileExists(atPath: output) { try fm.removeItem(atPath: output) }
             try fm.copyItem(atPath: file, toPath: output)
+        } else if function == "org-odt-publish-to-odt" {
+            let text = read(file) ?? ""
+            let settings = OrgPreferences.orgSettings().resolvingSetupFiles(in: text, path: file, read: OrgSettings.readFile)
+            try ODTExport.document(text, settings: settings, path: file, author: NSFullUserName(), language: OrgPreferences.exportLanguage())
+                .write(to: URL(fileURLWithPath: output), options: .atomic)
         } else {
             try export(function, read(file) ?? "", file, bodyOnly).write(toFile: output, atomically: true, encoding: .utf8)
         }

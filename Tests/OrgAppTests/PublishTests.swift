@@ -195,6 +195,22 @@ struct PublishTests {
         }
     }
 
+    /// `org-odt-publish-to-odt` writes `.odt` files, which the export closure doesn't see.
+    @Test func publishesODT() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Self.tree(folder)
+        let config = "[[publish]]\nname = \"odt\"\nbase-directory = \"\(folder.path)/src\"\npublishing-directory = \"\(folder.path)/odt\"\npublishing-function = \"org-odt-publish-to-odt\"\n"
+        let loaded = Publish.projects(fromConfig: config, root: nil)
+        #expect(loaded.problems.isEmpty)
+        let read = { (path: String) in try? String(contentsOfFile: path, encoding: .utf8) }
+        let report = try Publish.publish(loaded.projects, all: loaded.projects, read: read) { _, _, _, _ in Issue.record("exported as text"); return "" }
+        #expect(report.published.count == 3)
+        let data = try Data(contentsOf: folder.appendingPathComponent("odt/a.odt"))
+        #expect(data.prefix(4) == Data([0x50, 0x4b, 0x03, 0x04]))
+        #expect(String(decoding: data[30..<38], as: UTF8.self) == "mimetype")
+    }
+
     @Test func skipsUpToDateFilesAndFindsProjects() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-\(UUID().uuidString)").resolvingSymlinksInPath()
         defer { try? FileManager.default.removeItem(at: folder) }

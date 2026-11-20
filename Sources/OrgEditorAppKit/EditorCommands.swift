@@ -174,7 +174,7 @@ public enum EditorCommands {
         EditorCommand(id: "app.export.plain-text", title: "Export to Plain Text", action: .app),
         EditorCommand(id: "app.copy-rich-text", title: "Copy as Rich Text", action: .app),
         EditorCommand(id: "app.export.pdf", title: "Export to PDF with Emacs", action: .app),
-        EditorCommand(id: "app.export.odt", title: "Export to ODT with Emacs", action: .app),
+        EditorCommand(id: "app.export.odt", title: "Export to ODT", action: .app),
         EditorCommand(id: "app.export.latex", title: "Export to LaTeX", action: .app),
         EditorCommand(id: "app.export.text", title: "Export to Plain Text with Emacs", action: .app),
         EditorCommand(id: "app.export.icalendar", title: "Export to iCalendar", action: .app),

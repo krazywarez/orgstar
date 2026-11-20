@@ -90,7 +90,7 @@ enum CommandTitles {
         String(localized: "Export to HTML and Open", comment: "Command title"),
         String(localized: "Export to LaTeX", comment: "Command title"),
         String(localized: "Export to Markdown", comment: "Command title"),
-        String(localized: "Export to ODT with Emacs", comment: "Command title"),
+        String(localized: "Export to ODT", comment: "Command title"),
         String(localized: "Export to PDF", comment: "Command title"),
         String(localized: "Export to PDF with Emacs", comment: "Command title"),
         String(localized: "Export to Plain Text", comment: "Command title"),

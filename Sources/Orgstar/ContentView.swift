@@ -630,6 +630,20 @@ struct ContentView: View {
             }
         case "latex" where exportLaTeX(text, whole: whole, url: url, to: destination, open: open, subtree: subtree ? caret : nil, bodyOnly: bodyOnly, settings: defaults):
             break
+        case "odt":
+            let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
+            guard let target = destination ?? writable(ExportScope.output(for: url, name: name, extension: "odt")) else { return }
+            // A missing image stops the export, so offer access to them first.
+            _ = reach(ODTExport.imageFiles(text, settings: defaults, path: path).filter(WorkspaceModel.isThere))
+            do {
+                let data = try ODTExport.document(text, settings: defaults, path: path, author: NSFullUserName(), language: OrgPreferences.exportLanguage())
+                try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try data.write(to: target, options: .atomic)
+                commands.show("Exported to \(target.lastPathComponent)")
+                if open { NSWorkspace.shared.open(target) }
+            } catch {
+                commands.show("Can't export \(target.lastPathComponent): \(error.localizedDescription)")
+            }
         case "print-pdf", "docx", "rtf", "plain-text":
             let ext = ["print-pdf": "pdf", "plain-text": "txt"][format] ?? format
             let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
@@ -661,7 +675,7 @@ struct ContentView: View {
             }
         default:
             #if !APPSTORE
-            let functions = ["pdf": "org-latex-export-to-pdf", "odt": "org-odt-export-to-odt", "latex": "org-latex-export-to-latex", "text": "org-ascii-export-to-ascii"]
+            let functions = ["pdf": "org-latex-export-to-pdf", "latex": "org-latex-export-to-latex", "text": "org-ascii-export-to-ascii"]
             guard let function = functions[format] else { return }
             commands.show("Exporting with Emacs…")
             commands.runInEmacs {

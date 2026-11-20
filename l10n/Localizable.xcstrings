@@ -11714,37 +11714,37 @@
         }
       }
     },
-    "Export to ODT with Emacs": {
+    "Export to ODT": {
       "comment": "Command title",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mit Emacs als ODT exportieren"
+            "value": "Als ODT exportieren"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exportar a ODT con Emacs"
+            "value": "Exportar a ODT"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exporter en ODT avec Emacs"
+            "value": "Exporter en ODT"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "EmacsでODTに書き出す"
+            "value": "ODTに書き出す"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exportar para ODT com o Emacs"
+            "value": "Exportar para ODT"
           }
         }
       }

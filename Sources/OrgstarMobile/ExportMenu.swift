@@ -6,11 +6,11 @@ import OrgPresentation
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A file exported as HTML, Markdown, PDF, Word, RTF, plain text, iCalendar or LaTeX, written when the
-/// share sheet takes it.
+/// A file exported as HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar or LaTeX, written
+/// when the share sheet takes it.
 struct OrgExport: Transferable {
     enum Format: CaseIterable {
-        case html, markdown, pdf, docx, rtf, plainText, icalendar
+        case html, markdown, pdf, docx, rtf, plainText, odt, icalendar
         case latex
 
         /// Whether it needs Pro now: every format but HTML and Markdown, until Pro is unlocked.
@@ -24,6 +24,7 @@ struct OrgExport: Transferable {
             case .docx: "Word"
             case .rtf: "Rich Text (RTF)"
             case .plainText: "Plain Text"
+            case .odt: "ODT"
             case .icalendar: "iCalendar"
             case .latex: "LaTeX"
             }
@@ -37,6 +38,7 @@ struct OrgExport: Transferable {
             case .docx: "docx"
             case .rtf: "rtf"
             case .plainText: "txt"
+            case .odt: "odt"
             case .icalendar: "ics"
             case .latex: "tex"
             }
@@ -77,6 +79,8 @@ struct OrgExport: Transferable {
             .exportingCondition { $0.format == .rtf }
         FileRepresentation(exportedContentType: .plainText) { try await $0.write() }
             .exportingCondition { $0.format == .plainText }
+        FileRepresentation(exportedContentType: UTType(filenameExtension: "odt") ?? .data) { try await $0.write() }
+            .exportingCondition { $0.format == .odt }
         FileRepresentation(exportedContentType: .calendarEvent) { try await $0.write() }
             .exportingCondition { $0.format == .icalendar }
         FileRepresentation(exportedContentType: UTType(filenameExtension: "tex") ?? .plainText) { try await $0.write() }
@@ -106,6 +110,9 @@ struct OrgExport: Transferable {
                 throw error
             }
             try content.write(to: url, atomically: true, encoding: .utf8)
+        case .odt:
+            try ODTExport.document(text, settings: settings, path: path, author: NSFullUserName(), language: OrgPreferences.exportLanguage())
+                .write(to: url, options: .atomic)
         case .icalendar:
             try ICalendarFiles.export(self.text, path: path, settings: settings, options: OrgPreferences.icalendarOptions(),
                                       subtree: subtree, destination: url)
@@ -126,7 +133,7 @@ struct OrgExport: Transferable {
     }
 }
 
-/// Sharing the file as HTML, Markdown, PDF, Word, RTF, plain text, iCalendar or LaTeX: to another app, or saved with
+/// Sharing the file as HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar or LaTeX: to another app, or saved with
 /// Save to Files; or copying it as rich text.
 struct ExportMenu: View {
     let path: String
