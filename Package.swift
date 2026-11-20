@@ -53,7 +53,7 @@ let package = Package(
         .target(name: "OrgCore"),
         .target(name: "OrgDocument", dependencies: ["OrgCore"]),
         .target(name: "OrgIndex", dependencies: ["OrgCore", .product(name: "GRDB", package: "GRDB.swift")]),
-        .target(name: "OrgWorkspace", dependencies: ["OrgIndex"]),
+        .target(name: "OrgWorkspace", dependencies: ["OrgCore", "OrgIndex"]),
         .target(name: "OrgPresentation", dependencies: ["OrgCore", .product(name: "SwiftMath", package: "SwiftMath")]),
         .target(name: "OrgEditorAppKit", dependencies: ["OrgDocument", "OrgPresentation"]),
         .target(name: "TreeSitterElisp", path: "Sources/TreeSitterElisp", sources: ["src/parser.c"], cSettings: [.headerSearchPath("src")]),

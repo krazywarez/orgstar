@@ -1,10 +1,17 @@
 import CryptoKit
 import Foundation
+import OrgCore
 
 /// Reads and replaces files under `NSFileCoordinator`, so iCloud and other coordinating
 /// writers see a consistent file.
 public struct CoordinatedFileSystem: FileSystem {
-    public init() {}
+    /// Write in place when the folder refuses the temporary file, as the sandbox does for a
+    /// file it granted alone. Not atomic, so only where it is the one way to save.
+    public let writesInPlaceWhenDenied: Bool
+
+    public init(writesInPlaceWhenDenied: Bool = Sandbox.isActive) {
+        self.writesInPlaceWhenDenied = writesInPlaceWhenDenied
+    }
 
     public func read(_ url: URL) throws -> [UInt8]? {
         try coordinate(reading: url) { url in
@@ -17,7 +24,13 @@ public struct CoordinatedFileSystem: FileSystem {
             let manager = FileManager.default
             let folder = url.deletingLastPathComponent()
             let temporary = folder.appendingPathComponent(".\(url.lastPathComponent).orgstar-\(UUID().uuidString)")
-            try Data(bytes).write(to: temporary)
+            do {
+                try Data(bytes).write(to: temporary)
+            } catch where writesInPlaceWhenDenied && Self.isPermissionDenied(error) {
+                let previous = manager.fileExists(atPath: url.path) ? [UInt8](try Data(contentsOf: url)) : nil
+                try Data(bytes).write(to: url)
+                return previous
+            }
             guard manager.fileExists(atPath: url.path) else {
                 try manager.moveItem(at: temporary, to: url)
                 return nil
@@ -30,6 +43,14 @@ public struct CoordinatedFileSystem: FileSystem {
             defer { try? manager.removeItem(at: backup) }
             return [UInt8](try Data(contentsOf: backup))
         }
+    }
+
+    /// Whether `error` is the file system refusing access.
+    static func isPermissionDenied(_ error: Error) -> Bool {
+        let error = error as NSError
+        if error.domain == NSCocoaErrorDomain, error.code == CocoaError.fileWriteNoPermission.rawValue { return true }
+        if error.domain == NSPOSIXErrorDomain, [Int(EACCES), Int(EPERM)].contains(error.code) { return true }
+        return (error.userInfo[NSUnderlyingErrorKey] as? Error).map(isPermissionDenied) ?? false
     }
 
     private func coordinate<T>(reading url: URL, _ body: (URL) throws -> T) throws -> T {

@@ -101,5 +101,13 @@ struct MacWidgetFolderTests {
         #expect(!agenda.path.contains("/Containers/"))
         #expect(HabitSnapshot.file()?.deletingLastPathComponent() == agenda.deletingLastPathComponent())
     }
+
+    /// The App Store build reads and writes the app group's container, as iOS does.
+    @Test func groupContainerWhenSwitchedOn() {
+        #expect(!AgendaSnapshot.useGroupContainer)
+        let agenda = AgendaSnapshot.file(inGroup: true)
+        #expect(agenda.map { !$0.path.contains("/Application Support/Orgstar/") } ?? true)
+        #expect(agenda.map { $0.path.hasSuffix("/\(CaptureInbox.group)/Widgets/agenda.json") } ?? true)
+    }
 }
 #endif

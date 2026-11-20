@@ -1,21 +1,24 @@
 import Foundation
+import OrgCore
 import OrgIndex
 
-/// A folder the user added. Identified by its bookmark, so a moved folder is followed.
+/// A folder the user added. Identified by its bookmark, so a moved folder is followed. In the
+/// Mac sandbox the bookmark is security-scoped, so access comes back after relaunch.
 public struct WorkspaceRoot: Sendable, Equatable, Codable {
     public let bookmark: Data
     /// The path when the bookmark was made or last refreshed, for display.
     public var path: String
 
-    public init(url: URL) throws {
-        bookmark = try url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
+    public init(url: URL, sandboxed: Bool = Sandbox.isActive) throws {
+        bookmark = try url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed), includingResourceValuesForKeys: nil, relativeTo: nil)
         path = url.standardizedFileURL.path
     }
 
     /// The folder's current location. `isStale` means the bookmark should be made again.
-    public func resolve() throws -> (url: URL, isStale: Bool) {
+    public func resolve(sandboxed: Bool = Sandbox.isActive) throws -> (url: URL, isStale: Bool) {
         var isStale = false
-        let url = try URL(resolvingBookmarkData: bookmark, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
+        let options = Sandbox.bookmarkResolutionOptions(sandboxed: sandboxed)
+        let url = try URL(resolvingBookmarkData: bookmark, options: options, relativeTo: nil, bookmarkDataIsStale: &isStale)
         _ = url.startAccessingSecurityScopedResource()
         return (url.standardizedFileURL, isStale)
     }

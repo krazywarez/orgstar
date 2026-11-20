@@ -181,6 +181,32 @@ struct FileStorageTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == ["a.org"])
     }
 
+    /// A file the sandbox granted alone: its folder takes no temporary file, so the save writes
+    /// in place and the previous bytes still come back for recovery.
+    @Test func writesInPlaceWhenTheFolderRefusesTheTemporaryFile() throws {
+        let folder = try temporaryFolder()
+        let manager = FileManager.default
+        let file = folder.appendingPathComponent("a.org")
+        try Data("one\n".utf8).write(to: file)
+        try manager.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path)
+        defer {
+            try? manager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path)
+            try? manager.removeItem(at: folder)
+        }
+        #expect(throws: (any Error).self) { try CoordinatedFileSystem(writesInPlaceWhenDenied: false).replace(file, with: Array("two\n".utf8)) }
+        let files = CoordinatedFileSystem(writesInPlaceWhenDenied: true)
+        #expect(try files.replace(file, with: Array("two\n".utf8)) == Array("one\n".utf8))
+        #expect(try files.read(file) == Array("two\n".utf8))
+        #expect(try manager.contentsOfDirectory(atPath: folder.path) == ["a.org"])
+    }
+
+    @Test func outsideTheSandboxSavesReplaceTheFile() {
+        #expect(!CoordinatedFileSystem().writesInPlaceWhenDenied)
+        #expect(CoordinatedFileSystem.isPermissionDenied(CocoaError(.fileWriteNoPermission)))
+        #expect(CoordinatedFileSystem.isPermissionDenied(NSError(domain: NSPOSIXErrorDomain, code: Int(EACCES))))
+        #expect(!CoordinatedFileSystem.isPermissionDenied(CocoaError(.fileWriteOutOfSpace)))
+    }
+
     @Test func savesThroughTheRealFileSystem() throws {
         let folder = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: folder) }

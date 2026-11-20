@@ -204,16 +204,20 @@ public struct AgendaSnapshot: Codable, Equatable, Sendable {
 
     // MARK: - The file
 
+    /// Use the app group's container on the Mac too. The App Store build sets it at launch, in
+    /// the app and in the widget extension, as both have a provisioning profile there.
+    nonisolated(unsafe) public static var useGroupContainer = false
+
     /// `Widgets/agenda.json` in the app group's container; nil without the group. On the Mac,
-    /// in `~/Library/Application Support/Orgstar/Widgets`, which the sandboxed widget extension
-    /// reads by a sandbox exception, as an app group there needs a provisioning profile.
-    public static func file(group: String = CaptureInbox.group) -> URL? {
+    /// unless `useGroupContainer`, in `~/Library/Application Support/Orgstar/Widgets`, which the
+    /// sandboxed widget extension reads by a sandbox exception, as an app group there needs a
+    /// provisioning profile.
+    public static func file(group: String = CaptureInbox.group, inGroup: Bool = useGroupContainer) -> URL? {
         #if os(macOS)
-        return macWidgetsFolder.appendingPathComponent("agenda.json")
-        #else
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)?
-            .appendingPathComponent("Widgets").appendingPathComponent("agenda.json")
+        guard inGroup else { return macWidgetsFolder.appendingPathComponent("agenda.json") }
         #endif
+        return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)?
+            .appendingPathComponent("Widgets").appendingPathComponent("agenda.json")
     }
 
     #if os(macOS)

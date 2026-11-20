@@ -1,5 +1,7 @@
 import Foundation
+import OrgCore
 import PDFKit
+import UniformTypeIdentifiers
 import WebKit
 #if os(macOS)
 import AppKit
@@ -37,6 +39,39 @@ public enum PDFExport {
         guard !options.font.isEmpty else { return printCSS }
         let family = options.font.replacingOccurrences(of: "\"", with: "")
         return printCSS.replacingOccurrences(of: "</style>", with: "body { font-family: \"\(family)\", -apple-system, sans-serif; }\n</style>")
+    }
+
+    /// `html` with each `<img>` that names a local file given that file as a `data:` URI.
+    /// Relative paths are read from `directory`; files that can't be read keep their `src`.
+    nonisolated static func inliningImages(_ html: String, directory: URL?) -> String {
+        let pattern = /(<img\b[^>]*?\bsrc=")([^"]*)(")/
+        return html.replacing(pattern) { match in
+            let (_, before, src, after) = match.output
+            guard let uri = dataURI(String(src), directory: directory) else { return String(match.output.0) }
+            return before + uri + after
+        }
+    }
+
+    /// The file an `<img src>` names, as a `data:` URI; nil for remote or unreadable images.
+    nonisolated static func dataURI(_ src: String, directory: URL?) -> String? {
+        let path = src.replacingOccurrences(of: "&quot;", with: "\"").replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">").replacingOccurrences(of: "&amp;", with: "&")
+        let url: URL
+        if path.hasPrefix("file://") {
+            guard let parsed = URL(string: path) else { return nil }
+            url = parsed
+        } else if path.hasPrefix("/") {
+            url = URL(fileURLWithPath: path)
+        } else if path.hasPrefix("~/") {
+            url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+        } else if !path.contains(":"), let directory {
+            url = directory.appendingPathComponent(path)
+        } else {
+            return nil
+        }
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        let type = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+        return "data:\(type);base64,\(data.base64EncodedString())"
     }
 
     /// Each page's number, centred in its bottom margin, as an annotation: drawing it into the
@@ -85,14 +120,17 @@ public enum PDFExport {
         webView.navigationDelegate = loader
         #if os(macOS)
         webView.appearance = NSAppearance(named: .aqua)
-        // A file beside nothing the user owns, readable with the images it links to.
+        // A file beside nothing the user owns, readable with the images it links to. In the
+        // sandbox WebKit's own process can't read the user's folders, so the images go in the page.
+        let sandboxed = Sandbox.isActive
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-pdf-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let file = folder.appendingPathComponent("page.html")
-        let based = directory.map { page.replacingOccurrences(of: "<head>", with: "<head>\n<base href=\"\($0.absoluteString)\">") } ?? page
+        let source = sandboxed ? inliningImages(page, directory: directory) : page
+        let based = directory.map { source.replacingOccurrences(of: "<head>", with: "<head>\n<base href=\"\($0.absoluteString)\">") } ?? source
         try based.write(to: file, atomically: true, encoding: .utf8)
-        webView.loadFileURL(file, allowingReadAccessTo: URL(fileURLWithPath: "/"))
+        webView.loadFileURL(file, allowingReadAccessTo: sandboxed ? folder : URL(fileURLWithPath: "/"))
         #else
         webView.overrideUserInterfaceStyle = .light
         webView.loadHTMLString(page, baseURL: directory)

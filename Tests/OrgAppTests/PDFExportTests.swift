@@ -31,4 +31,21 @@ struct PDFExportTests {
         #expect(css.contains("font-family: \"Georgia\""))
         #expect(!PDFExport.css(PDFExport.Options()).contains("font-family"))
     }
+
+    /// In the sandbox WebKit can't read the user's folders, so local images go in the page.
+    @Test func inlinesLocalImages() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("img"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Data([1, 2, 3]).write(to: folder.appendingPathComponent("img/a b.png"))
+        try Data([4]).write(to: folder.appendingPathComponent("c.svg"))
+        let absolute = folder.appendingPathComponent("c.svg").path
+        let html = #"<p><img src="img/a b.png" alt="a"> <img alt="c" src="\#(absolute)"> <img src="https://x.org/r.png"> <img src="gone.png"></p>"#
+        let inlined = PDFExport.inliningImages(html, directory: folder)
+        #expect(inlined.contains(#"<img src="data:image/png;base64,AQID" alt="a">"#))
+        #expect(inlined.contains(#"<img alt="c" src="data:image/svg+xml;base64,BA==">"#))
+        #expect(inlined.contains(#"<img src="https://x.org/r.png">"#))
+        #expect(inlined.contains(#"<img src="gone.png">"#))
+        #expect(PDFExport.inliningImages(#"<img src="img/a b.png">"#, directory: nil) == #"<img src="img/a b.png">"#)
+    }
 }
