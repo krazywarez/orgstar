@@ -32,7 +32,16 @@ public enum ExportScope {
         body = body.replacing(#/^(?:[ \t]*(?:SCHEDULED|DEADLINE|CLOSED):[^\n]*\n)?(?:[ \t]*:PROPERTIES:[ \t]*\n(?:[^\n]*\n)*?[ \t]*:END:[ \t]*(?:\n|$))?/#, with: "", maxReplacements: 1)
         body = ExportPreprocess.shift(body, to: 1)
 
-        let property = { (key: String) in heading.properties.last { $0.key.uppercased() == key }?.value }
+        // `org-entry-get`: the last `KEY` value, then each `KEY+` value, joined with spaces;
+        // "nil" is no value.
+        let property = { (key: String) -> String? in
+            let matching = heading.properties.filter { $0.key.uppercased() == key }
+            let base = matching.last { !$0.additive }?.value
+            let values = [base == "nil" ? nil : base] + matching.filter(\.additive).map(\.value)
+            guard values.contains(where: { $0 != nil }) else { return nil }
+            let value = values.compactMap { $0 }.joined(separator: " ")
+            return value == "nil" ? nil : value
+        }
         // What the subtree sets replaces the file's keywords; `EXPORT_OPTIONS` only the items
         // it names.
         let replaced = Set(overrides.filter { $0.property == "EXPORT_TITLE" || ($0.property != "EXPORT_OPTIONS" && property($0.property) != nil) }.map(\.keyword))

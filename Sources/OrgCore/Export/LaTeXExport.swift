@@ -183,7 +183,8 @@ final class LaTeXRenderer {
         let date = try keywords["DATE"].map { try parsed($0) } ?? (options.tex ? "\\today" : "")
         out += "\\date{\(options.date ? date : "")}\n"
         let title = try keywords["TITLE"].map { try parsed($0) } ?? ""
-        let subtitle = try keywords["SUBTITLE"].map { "\\\\\\medskip\n\\large " + (try parsed($0)) } ?? ""
+        // An empty `#+SUBTITLE` parses to nil, which ox-latex leaves out.
+        let subtitle = try keywords["SUBTITLE"].flatMap({ $0 == [""] ? nil : $0 }).map { "\\\\\\medskip\n\\large " + (try parsed($0)) } ?? ""
         out += "\\title{\(title)\(subtitle)}\n"
         let lang = Self.languageNames[self.language] ?? self.language
         out += "\\hypersetup{\n pdfauthor={\(options.author ? authorText ?? "" : "")},\n pdftitle={\(options.title ? title : "")},\n"
@@ -200,7 +201,8 @@ final class LaTeXRenderer {
 
     /// A keyword parsed as Org text, its lines joined with spaces.
     private func parsed(_ values: [String]) throws -> String {
-        try inlineString(values.joined(separator: " "))
+        if values.count > 1, values.contains("") { throw Unsupported(reason: "Repeated keywords with an empty value") }
+        return try inlineString(values.joined(separator: " "))
     }
 
     /// `org-latex-make-preamble` with the class, its options and the header lines.
@@ -661,9 +663,16 @@ final class LaTeXRenderer {
 
     /// Whether `nodes` hold an element the export keeps.
     private func hasContents(_ nodes: [SyntaxNode]) -> Bool {
-        nodes.contains { node in
+        nodes.indices.contains { index in
+            let node = nodes[index]
             switch node.kind {
-            case .comment, .affiliatedKeyword: return false
+            case .comment: return false
+            case .affiliatedKeyword:
+                // Org parses affiliated keywords with no element right after them as keywords.
+                var last = index
+                while last + 1 < nodes.count, nodes[last + 1].kind == .affiliatedKeyword,
+                      nodes[last].range.upperBound == nodes[last + 1].range.lowerBound { last += 1 }
+                return last + 1 == nodes.count || nodes[last].range.upperBound != nodes[last + 1].range.lowerBound
             case .block:
                 let type = blockType(node)
                 if type == "comment" { return false }
@@ -977,8 +986,19 @@ final class LaTeXRenderer {
             let environment = affiliated.value("environment") ?? "verbatim"
             return try wrapLabel(affiliated, "\\begin{\(environment)}\n\(try formatCode(lines))\\end{\(environment)}")
         case "quote", "center":
-            // Emacs formats nil contents as `nil`. Blank lines alone are a paragraph of one newline.
-            let contents = body.isEmpty ? nil : body.allSatisfy({ $0.allSatisfy(\.isWhitespace) }) ? "\n" : try blockContents(text)
+            // Emacs formats nil contents as `nil`.
+            var contents: String?
+            if let first = body.first, first.allSatisfy(\.isWhitespace) {
+                // Org parses a blank first line as a paragraph of that line, which runs on to
+                // the next blank line or element when it holds spaces.
+                let blanks = body.prefix { $0.allSatisfy(\.isWhitespace) }.count
+                if !first.isEmpty, blanks == 1, blanks < body.count { throw Unsupported(reason: "A line of spaces opening a \(type) block") }
+                let paragraph = first.isEmpty ? "\n\n" : first + "\n"
+                let rest = unescaped.dropFirst(blanks).joined(separator: "\n")
+                contents = paragraph + String(repeating: "\n", count: blanks - 1) + (rest.isEmpty ? "" : try blockContents(rest) ?? "")
+            } else if !body.isEmpty {
+                contents = try blockContents(text)
+            }
             let inner = contents.map(Self.normalize) ?? "nil"
             if type == "center" { return try wrapLabel(affiliated, "\\begin{center}\n\(inner)\\end{center}") }
             let environment = affiliated.value("environment") ?? "quote"

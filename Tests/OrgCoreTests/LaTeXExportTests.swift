@@ -178,6 +178,20 @@ struct LaTeXExportTests {
         "a\n:DR:\n:END:\n\nb\n\na\n#+begin_src sh\n#+end_src\n\nb\n\na\n:DR:\n:END:\nb\n\na\n#+BEGIN: x\n#+END:\n\nb\n",
         "*b*\tx =v=\t\ty \\alpha\tz [[https://a.b]]\tw x^2\tq $m$\tr <2024-01-15 Mon>\tt *b*\t\n",
         "a @@html:x@@\tb a@@html:x@@\tb [fn::n]\t[fn::m] c\n",
+        "a\n\n:DR:\n#+CAPTION: x\n:END:\n\nb\n",
+        "a\n\n:DR:\n#+NAME: x\n:END:\n\nb\n",
+        "a\n\n:DR:\n#+NAME: x\n\n:END:\n\nb\n",
+        "a\n\n:DR:\n#+CAPTION: x\n#+NAME: y\n:END:\n\nb\n",
+        "a\n\n#+BEGIN: foo\n#+CAPTION: x\n#+END:\n\nb\n",
+        "a\n\n#+begin_quote\n#+CAPTION: x\n#+end_quote\n\nb\n",
+        "a\n\n#+begin_quote\n\n  \nfoo\n#+end_quote\n",
+        "a\n\n#+begin_quote\n\nfoo\n#+end_quote\n",
+        "a\n\n#+begin_quote\n  \n\nfoo\n#+end_quote\n",
+        "a\n\n#+begin_quote\n\n\nfoo\n#+end_quote\n",
+        "a\n\n#+begin_quote\n\n# c\n#+end_quote\n",
+        "a\n\n#+begin_center\n\n#+CAPTION: x\n#+end_center\n",
+        "#+begin_quote\n   \n#+end_quote\n\n#+begin_center\n  \n#+end_center\n\n#+begin_quote\n  \n   \n#+end_quote\n\n#+begin_quote\n\n   \n#+end_quote\n\n#+begin_center\n \t \n\n#+end_center\n",
+        "#+TITLE: T\n#+SUBTITLE:\nx\n",
     ]
 
     @Test(.enabled(if: oracle))
@@ -254,6 +268,20 @@ struct LaTeXExportTests {
         try compare(cases, names: ["subtree properties", "subtree subtitle"])
     }
 
+    /// `PROP+` lines add to a subtree property, and an empty or "nil" value is no value.
+    @Test(.enabled(if: oracle))
+    func accumulatedSubtreePropertiesMatchEmacs() throws {
+        let docs = [
+            "#+SUBTITLE: File\n* Top\n:PROPERTIES:\n:EXPORT_LATEX_HEADER: \\usepackage{a}\n:EXPORT_SUBTITLE: s1\n:EXPORT_LATEX_HEADER+: \\usepackage{b}\n:EXPORT_SUBTITLE+: s2\n:EXPORT_SUBTITLE+: s3\n:END:\nx\n",
+            "#+SUBTITLE: File\n* Top\n:PROPERTIES:\n:EXPORT_SUBTITLE+: s2\n:EXPORT_KEYWORDS: k1\n:EXPORT_KEYWORDS: k2\n:END:\nx\n",
+            "#+SUBTITLE: File\n#+KEYWORDS: k\n* Top\n:PROPERTIES:\n:EXPORT_SUBTITLE:\n:EXPORT_KEYWORDS:\n:END:\nx\n",
+            "#+SUBTITLE: File\n* Top\n:PROPERTIES:\n:EXPORT_SUBTITLE: nil\n:EXPORT_TITLE: nil\n:END:\nx\n",
+            "#+SUBTITLE: File\n* Top\n:PROPERTIES:\n:EXPORT_SUBTITLE: nil\n:EXPORT_SUBTITLE+: s\n:END:\nx\n",
+        ]
+        let cases = docs.map { LaTeXOracle.Case(text: $0, subtree: EmacsOracle.point(($0 as NSString).range(of: "\nx\n").location + 1, in: $0)) }
+        try compare(cases, names: docs.indices.map { "accumulated \($0)" })
+    }
+
     /// Links to what the export leaves out stop both exports.
     @Test(.enabled(if: oracle))
     func abortsWhereEmacsAborts() throws {
@@ -314,6 +342,10 @@ struct LaTeXExportTests {
         #expect(reason("#+LATEX_HEADER: \\usepackage[AUTO]{babel}\nx\n") != nil)
         #expect(reason("#+begin_src sh :exports results\necho\n#+end_src\n") == ":exports results")
         #expect(reason("[cite:@key]\n") == "Citations")
+        for body in ["  \n#+CAPTION: x\n", "  \n#+FOO: x\n", "  \n# c\n", "  \nfoo\n", "  \n#+CAPTION: x\n\nfoo\n", "  \n  x\n"] {
+            #expect(reason("#+begin_quote\n\(body)#+end_quote\n") == "A line of spaces opening a quote block")
+        }
+        #expect(reason("#+TITLE: T\n#+SUBTITLE: a\n#+SUBTITLE:\nx\n") == "Repeated keywords with an empty value")
         #expect(reason("#+OPTIONS: tex:verbatim\nMath \\(a_1\\).\n") == "#+OPTIONS: tex:verbatim")
         let pre = "* Top\n:PROPERTIES:\n:EXPORT_LATEX_CLASS_PRE: \\x\n:END:\nBody.\n"
         #expect(ExportScope.subtree(pre, at: 0).flatMap(reason) == "#+LATEX_CLASS_PRE")
