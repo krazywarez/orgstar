@@ -15,3 +15,25 @@ struct TipTests {
         #expect(Tip.productIDs.allSatisfy { !$0.hasPrefix("sh.krz.orgstar.pro.") })
     }
 }
+
+#if canImport(StoreKit)
+@MainActor
+struct ProStoreTests {
+    @Test func productIDsAreOrgstarPlusAndNotTips() {
+        #expect(ProStore.productIDs == [
+            "sh.krz.orgstar.pro.monthly",
+            "sh.krz.orgstar.pro.yearly",
+            "sh.krz.orgstar.pro.lifetime",
+        ])
+        #expect(Set(ProStore.productIDs).isDisjoint(with: Tip.productIDs))
+    }
+
+    @Test func grandfathersOnlyOnIOS() {
+        #if os(iOS)
+        #expect(ProStore.grandfathers)
+        #else
+        #expect(!ProStore.grandfathers)
+        #endif
+    }
+}
+#endif
