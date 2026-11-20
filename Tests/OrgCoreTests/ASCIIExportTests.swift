@@ -208,6 +208,10 @@ struct ASCIIExportTests {
         "#+DATE: 2024-01-02\nx\n",
         "#+begin_src makefile\nall: x\n\tcc -o x x.c\n#+end_src\n",
         "#+begin_src makefile -n -r\nall: x\n  \t\tcc\tx  (ref:a)\n#+end_src\n\n#+begin_example\nall: x\n\tcc\n#+end_example\n",
+        "#+LANGUAGE: ja\n#+OPTIONS: toc:nil\n* A\nx[fn:1]\n\n[fn:1] n\n",
+        "#+LANGUAGE: zh-CN\n* A\nx\n",
+        "Types [[DOI:10.1/z][d]] [[Attachment:x.png]] [[ID:x]] [[INFO:emacs][i]] b_doi:10.1/x.\n",
+        "a\\\\\\\\\nb\n\nc\\\\\\\\\\\\  \nd\n\ne\\\\\nf\n",
         "#+OPTIONS: e:t\n\\alpha\\beta \\ast{} \\S \\para \\deg \\plusmn \\micro \\middot \\cedil \\ordf \\iexcl \\pound \\yen \\euro \\trade\n",
     ]
 
@@ -304,6 +308,16 @@ struct ASCIIExportTests {
         }
     }
 
+    /// Slovenian's "See section %d" stops Emacs's `format` when given a section.
+    @Test(.enabled(if: oracle))
+    func abortsOnSlovenianSectionReference() throws {
+        let cases = ASCIIExport.Charset.allCases.map { ASCIIOracle.Case(text: "#+LANGUAGE: sl\n* A\nSee [[*B][b]].\n* B\ny\n", charset: $0) }
+        for (c, theirs) in zip(cases, try ASCIIOracle.export(cases)) {
+            #expect(theirs == "ERROR: Format specifier doesn’t match argument type" || theirs == "ERROR: Format specifier doesn't match argument type", "\(theirs)")
+            #expect(ASCIIOracle.native(c) == "ERROR: Format specifier doesn't match argument type")
+        }
+    }
+
     /// What Emacs exports differently or refuses is refused, naming it.
     @Test func refusesWhatItCannotMatch() {
         func reason(_ org: String) -> String? {
@@ -334,6 +348,19 @@ struct ASCIIExportTests {
         #expect(reason("* A\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n") == "UNNUMBERED and ALT_TITLE properties")
         #expect(reason("* A [fn:1]\n\n[fn:1] x\n") == "Footnotes in headings")
         #expect(reason("#+begin_quote\n\nq\n#+end_quote\n") == "Blocks opening with a blank line")
+        #expect(reason("Plain doi:10.1/z here.\n") == "Plain links of type doi")
+        #expect(reason("Plain info:emacs#Top\n") == "Plain links of type info")
+        #expect(reason("Run shell:ls and elisp:foo.\n") == "Plain links of type shell")
+        #expect(reason("<irc:/irc.x/chan>\n") == "Plain links of type irc")
+        #expect(reason("| docview:a.pdf |\n") == "Plain links of type docview")
+        #expect(reason("[[doi:10.1/z][d]]\n") == "Links of type doi")
+        #expect(reason("[[attachment:x.png]]\n") == "Links of type attachment")
+        #expect(reason("<info:emacs#Top>\n") == "Links of type info")
+        #expect(reason("Case DOI:10.1/z.\n") == "Plain links of type DOI")
+        #expect(reason("#+LANGUAGE: ja\n#+CAPTION: c\n| a |\n") == "Wide or combining characters")
+        #expect(reason("#+LANGUAGE: ja\n* A\nSee [[*B][b]].\n* B\n") == "Wide or combining characters")
+        #expect(reason("#+LANGUAGE: sl\n* A\nSee [[*B][b]].\n* B\n") == "Format specifier doesn't match argument type")
+        #expect(reason("#+LANGUAGE: sl\n* A\nSee [[*B]].\n* B\n") == nil)
     }
 
     private func compare(_ cases: [ASCIIOracle.Case], names: [String]) throws {

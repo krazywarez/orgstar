@@ -154,16 +154,28 @@ final class ASCIIRenderer {
         collectHeadings(tree.root.children)
     }
 
-    static func isWideOrZeroWidth(_ s: Unicode.Scalar) -> Bool {
+    static func isWideOrZeroWidth(_ s: Unicode.Scalar) -> Bool { isWide(s) || isZeroWidth(s) }
+
+    static func isWide(_ s: Unicode.Scalar) -> Bool {
         switch s.value {
         case 0x1100...0x115F, 0x2E80...0x303E, 0x3041...0x33FF, 0x3400...0x4DBF, 0x4E00...0x9FFF, 0xA000...0xA4CF, 0xAC00...0xD7A3,
              0xF900...0xFAFF, 0xFE30...0xFE4F, 0xFF00...0xFF60, 0xFFE0...0xFFE6, 0x1F300...0x1F64F, 0x1F900...0x1F9FF, 0x20000...0x3FFFD:
             return true
-        case 0x200B...0x200F, 0xFE00...0xFE0F:
-            return true
         default:
-            return s.properties.generalCategory == .nonspacingMark || s.properties.generalCategory == .enclosingMark
+            return false
         }
+    }
+
+    static func isZeroWidth(_ s: Unicode.Scalar) -> Bool {
+        switch s.value {
+        case 0x200B...0x200F, 0xFE00...0xFE0F: return true
+        default: return s.properties.generalCategory == .nonspacingMark || s.properties.generalCategory == .enclosingMark
+        }
+    }
+
+    /// `string-width`.
+    static func width(_ s: String) -> Int {
+        s.unicodeScalars.reduce(0) { $0 + (isWide($1) ? 2 : isZeroWidth($1) ? 0 : 1) }
     }
 
     /// `org-export--collect-headline-numbering` over the headings the export writes.
@@ -249,7 +261,7 @@ final class ASCIIRenderer {
     /// `org-ascii--build-toc` over the whole document.
     private func tableOfContents(depth: Int?, width: Int, keyword: Bool) throws -> String {
         let title = translate("Table of Contents")
-        var out = title + "\n" + String(repeating: utf8 ? "─" : "_", count: title.count) + "\n\n"
+        var out = title + "\n" + String(repeating: utf8 ? "─" : "_", count: Self.width(title)) + "\n\n"
         let limit = min(depth ?? options.headlineLevels, options.headlineLevels)
         var lines: [String] = []
         for (start, level) in exported where level <= limit {
@@ -268,6 +280,13 @@ final class ASCIIRenderer {
     /// `org-ascii--translate`.
     func translate(_ term: String) -> String {
         ExportDictionary.translate(term, language: language, encoding: utf8 ? .utf8 : charset == .latin1 ? .latin1 : .ascii)
+    }
+
+    /// A translation for text that is filled, which counts characters, not columns.
+    func translateFilled(_ term: String) throws -> String {
+        let text = translate(term)
+        if text.unicodeScalars.contains(where: Self.isWideOrZeroWidth) { throw Unsupported(reason: "Wide or combining characters") }
+        return text
     }
 
     /// `org-ascii--justify-lines`: each line centered or flushed right in `width`. `tabs`
@@ -355,7 +374,7 @@ final class ASCIIRenderer {
         let notes = try footnotes()
         if !notes.isEmpty {
             let title = translate("Footnotes")
-            out += "\n\n\n" + title + "\n" + String(repeating: utf8 ? "─" : "_", count: title.count) + "\n\n" + notes
+            out += "\n\n\n" + title + "\n" + String(repeating: utf8 ? "─" : "_", count: Self.width(title)) + "\n\n" + notes
         }
         return Self.normalize(out)
     }
@@ -840,7 +859,7 @@ final class ASCIIRenderer {
         noting = false
         defer { noting = saved }
         let text = try inlineString(affiliated.caption[0])
-        return ASCIIText.fill(translate(type).replacingOccurrences(of: "%d", with: String(counter)) + " " + text, width: context.width)
+        return ASCIIText.fill(try translateFilled(type).replacingOccurrences(of: "%d", with: String(counter)) + " " + text, width: context.width)
     }
 
     // MARK: Blocks
@@ -1084,6 +1103,9 @@ final class ASCIIRenderer {
                     let blanks = t.prefix { $0 == " " || $0 == "\t" }
                     t = String(repeating: " ", count: blanks.count) + t.dropFirst(blanks.count)
                 }
+                if let m = Self.plainLink.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)) {
+                    throw Unsupported(reason: "Plain links of type \((t as NSString).substring(with: m.range(at: 1)))")
+                }
                 dropBlanks = false
                 afterObject = false
                 out += plainText(t)
@@ -1187,7 +1209,13 @@ final class ASCIIRenderer {
         return out
     }
 
-    private static let externalTypes: Set<String> = ["attachment", "file+sys", "file+emacs", "shell", "news", "mailto", "https", "http", "ftp", "shortdoc", "help", "file", "elisp"]
+    /// Link types Org registers in an Org buffer that this export doesn't write as Emacs does.
+    private static let unrenderedTypes: Set<String> = ["attachment", "bbdb", "bibtex", "docview", "doi", "eww", "gnus", "info", "irc", "mhe", "rmail", "w3m"]
+
+    /// `org-link-plain-re`, loosely, for the plain links the parser leaves as text.
+    private static let plainLink = try! NSRegularExpression(pattern: #"(?i)(?<![\p{L}\p{N}_])(attachment|bbdb|bibtex|docview|doi|elisp|eww|file\+emacs|file\+sys|file|ftp|gnus|help|https?|id|info|irc|mailto|mhe|news|rmail|shell|shortdoc|w3m):\S*[\p{L}\p{N}/)\]>-]"#)
+
+    private static let externalTypes: Set<String> = ["file+sys", "file+emacs", "shell", "news", "mailto", "https", "http", "ftp", "shortdoc", "help", "file", "elisp"]
 
     private func link(_ node: SyntaxNode, _ children: [Inline]) throws -> String? {
         if node.firstChild(.linkDescription)?.descendants().contains(where: { $0.kind == .link }) == true {
@@ -1198,9 +1226,12 @@ final class ASCIIRenderer {
         if pathToken == nil, raw.hasPrefix("<"), raw.hasSuffix(">") { raw = String(raw.dropFirst().dropLast()) }
         var description: String? = node.firstChild(.linkDescription) == nil ? nil : try transcode(children)
         if description?.contains(where: { !$0.isWhitespace }) != true { description = nil }
+        let linkType = raw.firstMatch(of: /^([A-Za-z][A-Za-z0-9+.-]*):/).map { String($0.1) }
+        if let linkType, Self.unrenderedTypes.contains(linkType) { throw Unsupported(reason: "Links of type \(linkType)") }
         let footprint = raw + "\u{0}" + (node.firstChild(.linkDescription)?.text ?? "").split(whereSeparator: { " \t\n\r".contains($0) }).joined(separator: " ")
-        // Only the link types Org knows have a scheme; `foo:bar` is a fuzzy link.
-        let scheme = raw.firstMatch(of: /^([A-Za-z][A-Za-z0-9+.-]*):/).map { String($0.1).lowercased() }.flatMap { Self.externalTypes.contains($0) || $0 == "id" ? $0 : nil }
+        // Only the link types Org knows, in any case, have a scheme; `foo:bar` is a fuzzy link.
+        // Only `id` in lower case is an ID link; `ID:x` and `DOI:x` are written as they are.
+        let scheme = linkType.map { $0.lowercased() }.flatMap { Self.externalTypes.contains($0) || Self.unrenderedTypes.contains($0) || $0 == "id" ? $0 : nil }
         if raw.hasPrefix("(") && raw.hasSuffix(")") {
             let path = String(raw.dropFirst().dropLast())
             guard let resolved = Coderef.resolve(path, blocks: exportedBlocks) else { throw Unsupported(reason: "Unable to resolve code reference: \(path)") }
@@ -1208,9 +1239,9 @@ final class ASCIIRenderer {
             if let range = format.range(of: "(\(path))") { format.replaceSubrange(range, with: "%s") }
             return format.replacingOccurrences(of: "%s", with: resolved).replacingOccurrences(of: "%%", with: "%")
         }
-        let internalLink = raw.hasPrefix("#") || scheme == "id" || (scheme == nil && !raw.hasPrefix("/") && !raw.hasPrefix("./") && !raw.hasPrefix("../") && !raw.hasPrefix("~"))
+        let internalLink = raw.hasPrefix("#") || linkType == "id" || (scheme == nil && !raw.hasPrefix("/") && !raw.hasPrefix("./") && !raw.hasPrefix("../") && !raw.hasPrefix("~"))
         if internalLink {
-            let type = raw.hasPrefix("#") ? "custom-id" : scheme == "id" ? "id" : "fuzzy"
+            let type = raw.hasPrefix("#") ? "custom-id" : linkType == "id" ? "id" : "fuzzy"
             let path = type == "custom-id" ? String(raw.dropFirst()) : type == "id" ? String(raw.dropFirst(3)) : raw
             if type == "fuzzy", !path.hasPrefix("*"), target(path) || namedElement(path) {
                 throw Unsupported(reason: "Links to targets and named elements")
@@ -1218,33 +1249,41 @@ final class ASCIIRenderer {
             guard let heading = resolveHeading(type: type, path: path) else {
                 throw Unsupported(reason: "Unable to resolve link: \"\(type == "custom-id" ? "#" : type == "id" ? "id:" : "")\(path)\"")
             }
-            let datum = try describeHeading(heading)
+            let reference = try describeHeading(heading)
             if let description {
-                if noting { noted.append(Noted(footprint: footprint, note: linksToNotes ? "[\(description)] \(datum.see)" : nil)) }
-                return linksToNotes ? "[\(description)]" : "[\(description)] (\(datum.see))"
+                let see = try seeSection(reference)
+                if noting { noted.append(Noted(footprint: footprint, note: linksToNotes ? "[\(description)] \(see)" : nil)) }
+                return linksToNotes ? "[\(description)]" : "[\(description)] (\(see))"
             }
             if noting { noted.append(Noted(footprint: footprint, note: nil)) }
-            return datum.reference
+            return reference
         }
         if noting { noted.append(Noted(footprint: footprint, note: description.map { "[\($0)] <\(raw)>" })) }
         return description.map { "[\($0)]" + (linksToNotes ? "" : " (<\(raw)>)") } ?? "<\(raw)>"
     }
 
-    /// A heading as a link without a description writes it, and as
-    /// `org-ascii--describe-datum` does.
-    private func describeHeading(_ heading: HeadingInfo) throws -> (reference: String, see: String) {
+    /// A heading as a link without a description writes it: its number, else its title.
+    private func describeHeading(_ heading: HeadingInfo) throws -> String {
         let number = numbers[heading.headingRange.lowerBound]?.map(String.init).joined(separator: ".")
         let text: String
         if let number {
             text = number
         } else {
-            guard let node = tree.root.descendants().first(where: { $0.kind == .heading && $0.range.lowerBound == heading.headingRange.lowerBound }) else { return ("", "") }
+            guard let node = tree.root.descendants().first(where: { $0.kind == .heading && $0.range.lowerBound == heading.headingRange.lowerBound }) else { return "" }
             let saved = noting
             noting = false
             defer { noting = saved }
             text = try node.firstChild(.title).map { try transcode(inlineItems($0)) } ?? ""
         }
-        return (text, translate("See section %s").replacingOccurrences(of: "%s", with: text))
+        return text
+    }
+
+    /// `org-ascii--describe-datum` for a heading `reference` names.
+    private func seeSection(_ reference: String) throws -> String {
+        let format = try translateFilled("See section %s")
+        // Emacs's `format` stops at `%d` given a string (Slovenian).
+        if format.contains("%d") { throw Unsupported(reason: "Format specifier doesn't match argument type") }
+        return format.replacingOccurrences(of: "%s", with: reference)
     }
 
     /// Whether a `<<target>>` has the name a fuzzy link gives.

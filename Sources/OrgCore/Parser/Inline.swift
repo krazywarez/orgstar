@@ -534,9 +534,10 @@ struct InlineScanner {
         return hasPrefix("}}}", at: j, limit) ? j + 3 : nil
     }
 
-    /// `\\` at the end of a line, before optional trailing blanks. The line break stays outside.
+    /// `\\` at the end of a line, before optional trailing blanks, not after another `\`. The
+    /// line break stays outside.
     func lineBreak(_ i: Int, _ limit: Int) -> Int? {
-        guard hasPrefix("\\\\", at: i, limit) else { return nil }
+        guard hasPrefix("\\\\", at: i, limit), i == 0 || chars[i - 1] != "\\" else { return nil }
         var j = i + 2
         while j < limit, chars[j] == " " || chars[j] == "\t" { j += 1 }
         if j + 1 < limit, chars[j] == "\r", chars[j + 1] == "\n" { return j }
