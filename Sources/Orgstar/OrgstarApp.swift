@@ -335,6 +335,7 @@ struct OrgstarApp: App {
     init() {
         #if APPSTORE
         AgendaSnapshot.useGroupContainer = true
+        _ = FolderGrants.shared
         ProStore.shared.start()
         #else
         DocumentSession.programs = Programs()

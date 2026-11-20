@@ -136,9 +136,33 @@ public final class WorkspaceModel {
     /// Resolved root paths, sorted.
     public var rootPaths: [String] { resolvedRoots.keys.sorted() }
 
-    /// Whether `url` is a root or inside one.
+    /// Whether `url` is a root or a granted folder, or inside one.
     public func contains(_ url: URL) -> Bool {
-        Self.isInside(url, roots: Array(resolvedRoots.values))
+        Self.isInside(url, roots: Array(resolvedRoots.values) + FolderGrants.shared.folders)
+    }
+
+    /// The folders to ask for so that `paths` can be read and written: in the Mac sandbox, for
+    /// each path outside the roots, the grants and the app's container, its nearest existing
+    /// folder. `directories` takes the paths as folders rather than files. Empty unsandboxed.
+    public func foldersToGrant(for paths: [String], directories: Bool = false) -> [URL] {
+        guard Sandbox.isActive else { return [] }
+        let reachable = Array(resolvedRoots.values) + FolderGrants.shared.folders + [URL(fileURLWithPath: NSHomeDirectory())]
+        return Self.foldersToGrant(for: paths, directories: directories, reachable: reachable)
+    }
+
+    nonisolated static func foldersToGrant(
+        for paths: [String], directories: Bool, reachable: [URL],
+        exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+    ) -> [URL] {
+        var folders: [URL] = []
+        for path in paths where !path.isEmpty {
+            let url = URL(fileURLWithPath: path).standardizedFileURL
+            guard !isInside(url, roots: reachable) else { continue }
+            var folder = directories ? url : url.deletingLastPathComponent()
+            while folder.pathComponents.count > 1, !exists(folder.path) { folder.deleteLastPathComponent() }
+            if !folders.contains(folder) { folders.append(folder) }
+        }
+        return folders
     }
 
     /// Whether `url` is one of `roots` or inside one, by whole path components, as written or

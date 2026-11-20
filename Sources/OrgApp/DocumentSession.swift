@@ -960,8 +960,7 @@ public final class DocumentSession {
             let output = try await run(job)
             guard entries.contains(where: { $0 === entry }) else { return "The file was closed before the block finished." }
             if let file = Babel.fileResult(job, output: output) {
-                let runDirectory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: directory).standardizedFileURL } ?? directory
-                let target = file.path.hasPrefix("/") ? URL(fileURLWithPath: file.path) : runDirectory.appendingPathComponent(file.path)
+                let target = Self.resultFile(file.path, job: job, directory: directory)
                 do {
                     try file.contents.write(to: target, atomically: true, encoding: .utf8)
                 } catch {
@@ -988,6 +987,18 @@ public final class DocumentSession {
         } catch {
             return "\(error)"
         }
+    }
+
+    /// Where a block's `:file` result goes: relative to `:dir`, itself relative to `directory`.
+    static func resultFile(_ name: String, job: BabelJob, directory: URL) -> URL {
+        let runDirectory = job.directory.map { URL(fileURLWithPath: $0, relativeTo: directory).standardizedFileURL } ?? directory
+        return name.hasPrefix("/") ? URL(fileURLWithPath: name) : runDirectory.appendingPathComponent(name)
+    }
+
+    /// The `:file` the block writes its result to, for the open file; nil without one.
+    public func resultFile(of job: BabelJob) -> String? {
+        guard let path, let name = job.finish.file else { return nil }
+        return Self.resultFile(name, job: job, directory: URL(fileURLWithPath: path).deletingLastPathComponent()).path
     }
 
     /// The block running now, to cancel.

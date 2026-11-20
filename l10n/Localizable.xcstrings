@@ -4707,6 +4707,41 @@
         }
       }
     },
+    "Can't include %@.": {
+      "comment": "Export stopped by an #+INCLUDE file that can't be read",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kann nicht eingebunden werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede incluir %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'inclure %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ を取り込めません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível incluir %@."
+          }
+        }
+      }
+    },
     "Can't open the entry": {
       "localizations": {
         "de": {
@@ -5527,6 +5562,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "Opções"
+          }
+        }
+      }
+    },
+    "Choose %@ or a folder that contains it.": {
+      "comment": "Open panel for giving orgstar access to a folder",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle %@ oder einen Ordner, der ihn enthält."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige %@ o una carpeta que la contenga."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez %@ ou un dossier qui le contient."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ またはそれを含むフォルダを選択してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha %@ ou uma pasta que a contenha."
           }
         }
       }
@@ -13292,6 +13362,76 @@
         }
       }
     },
+    "Grant Access": {
+      "comment": "Open panel button that gives orgstar access to a folder",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriff erlauben"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conceder acceso"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser l'accès"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクセスを許可"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conceder Acesso"
+          }
+        }
+      }
+    },
+    "Grant Access…": {
+      "comment": "Button that opens a panel to give orgstar access to a folder",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriff erlauben…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conceder acceso…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser l'accès…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクセスを許可…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conceder Acesso…"
+          }
+        }
+      }
+    },
     "Habit": {
       "localizations": {
         "de": {
@@ -15193,6 +15333,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inserir ou Atualizar Tabela de Registro de Tempo"
+          }
+        }
+      }
+    },
+    "It isn't in one of your folders. Grant access to it to continue.": {
+      "comment": "Alert for a folder outside the sidebar's folders",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er liegt in keinem deiner Ordner. Erlaube den Zugriff, um fortzufahren."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No está en ninguna de tus carpetas. Concede acceso para continuar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il ne se trouve dans aucun de vos dossiers. Autorisez l'accès pour continuer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どのフォルダにも含まれていません。続けるにはアクセスを許可してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ela não está em nenhuma das suas pastas. Conceda acesso para continuar."
           }
         }
       }
@@ -25107,6 +25282,41 @@
         }
       }
     },
+    "Save Elsewhere…": {
+      "comment": "Button that asks where an export goes instead",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Woanders sichern…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar en otro lugar…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer ailleurs…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別の場所に保存…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar em Outro Lugar…"
+          }
+        }
+      }
+    },
     "Save Field": {
       "localizations": {
         "de": {
@@ -34607,6 +34817,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "O orgstar pode notificar você antes de entradas com horário, como os lembretes de compromissos do Org, e mostrar o número de atrasados de hoje no ícone."
+          }
+        }
+      }
+    },
+    "orgstar can't reach %@.": {
+      "comment": "Alert for a folder outside the sidebar's folders",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar kann nicht auf %@ zugreifen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar no puede acceder a %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar ne peut pas accéder à %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstarは%@にアクセスできません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O orgstar não consegue acessar %@."
           }
         }
       }

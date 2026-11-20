@@ -104,4 +104,20 @@ struct ExportOptionsTests {
         let ours = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: folder), path: path)
         #expect(ours == emacs.first, "ours:\n\(ours)\nemacs:\n\(emacs.first ?? "")")
     }
+
+    @Test func unreadableIncludesAreListed() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-includes-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try "#+INCLUDE: \"gone.org\"\ntext\n".write(to: folder.appendingPathComponent("part.org"), atomically: true, encoding: .utf8)
+        let text = """
+            #+INCLUDE: "part.org::*Sub" :minlevel 1
+            #+INCLUDE: "missing.org" src sh
+            #+INCLUDE: "missing.org"
+            """
+        #expect(ExportPreprocess.unreadableIncludes(text, directory: folder) == [
+            folder.appendingPathComponent("gone.org").path, folder.appendingPathComponent("missing.org").path,
+        ])
+        #expect(ExportPreprocess.unreadableIncludes("no includes", directory: folder).isEmpty)
+    }
 }

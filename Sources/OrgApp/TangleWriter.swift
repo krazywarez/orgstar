@@ -3,7 +3,7 @@ import OrgCore
 
 /// Writes what `Tangle.run` produced, as `org-babel-tangle` does: a file whose contents
 /// haven't changed is left alone, `:mkdirp` makes its folder, a read-only file is replaced,
-/// and the mode is set after writing.
+/// and the mode is set after writing. A mode that can't be set doesn't stop the others.
 public enum TangleWriter {
     public struct Failure: Error, Equatable {
         public let message: String
@@ -14,6 +14,7 @@ public enum TangleWriter {
     public static func write(_ output: Tangle.Output, source: String) throws(Failure) -> [String] {
         let manager = FileManager.default
         var paths: [String] = []
+        var modeFailure: Failure?
         for file in output.files {
             let url = URL(fileURLWithPath: file.path)
             let data = Data(file.contents.utf8)
@@ -37,12 +38,19 @@ public enum TangleWriter {
             }
             do {
                 try data.write(to: url)
-                if let mode = file.mode { try manager.setAttributes([.posixPermissions: mode], ofItemAtPath: file.path) }
             } catch {
                 throw Failure(message: "Can't write \(file.path): \(error.localizedDescription)")
             }
+            if let mode = file.mode {
+                do {
+                    try manager.setAttributes([.posixPermissions: mode], ofItemAtPath: file.path)
+                } catch {
+                    modeFailure = modeFailure ?? Failure(message: "\(message(output, source: source)), but can't set the mode of \(file.path): \(error.localizedDescription)")
+                }
+            }
             paths.append(file.path)
         }
+        if let modeFailure { throw modeFailure }
         return paths
     }
 
@@ -53,6 +61,12 @@ public enum TangleWriter {
 }
 
 extension DocumentSession {
+    /// The files `tangle` would write.
+    public func tangleFiles(_ scope: Tangle.Scope) -> [String] {
+        guard let path, let document, case .success(let output) = Tangle.run(text: document.text, path: path, scope: scope, tree: document.tree) else { return [] }
+        return output.files.map(\.path)
+    }
+
     /// Tangles the open file: its text as it is now, written beside it.
     public func tangle(_ scope: Tangle.Scope) -> String {
         guard let path, let document else { return "No file is open" }

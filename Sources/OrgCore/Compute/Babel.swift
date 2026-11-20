@@ -74,7 +74,7 @@ public struct BabelJob: Sendable, Equatable {
         /// An inline block: the result goes after it, in `{{{results(…)}}}`.
         var inline = false
         /// `:file` (under `:output-dir`) with `:results file`, and `:file-desc`.
-        var file: String?
+        public internal(set) var file: String?
         var fileDescription: String?
         /// The program writes `file` itself, as graphics languages do.
         var writesFile = false

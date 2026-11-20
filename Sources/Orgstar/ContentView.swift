@@ -575,6 +575,7 @@ struct ContentView: View {
             commands.show("No file is open")
             return
         }
+        guard readsIncludes(text, path: path) else { return }
         let url = URL(fileURLWithPath: path)
         let base = url.deletingPathExtension()
         let defaults = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
@@ -673,11 +674,17 @@ struct ContentView: View {
         }
     }
 
-    /// `url`; in the App Store build, when it is outside every folder, where a save panel puts it
-    /// instead, as the sandbox lets orgstar write only there. Nil when the panel is canceled.
+    /// `url`; in the App Store build, when the sandbox keeps orgstar out of its folder, `url` once
+    /// that folder is granted, or where a save panel puts it instead. Nil when canceled.
     private func writable(_ url: URL) -> URL? {
         #if APPSTORE
-        guard !workspace.contains(url) else { return url }
+        guard let folder = workspace.foldersToGrant(for: [url.path]).first else { return url }
+        let elsewhere = String(localized: "Save Elsewhere…", comment: "Button that asks where an export goes instead")
+        switch GrantAccess.ask(folder, workspace: workspace, alternative: elsewhere) {
+        case .granted: return url
+        case .canceled: return nil
+        case .alternative: break
+        }
         let panel = NSSavePanel()
         panel.directoryURL = url.deletingLastPathComponent()
         panel.nameFieldStringValue = url.lastPathComponent
@@ -685,6 +692,39 @@ struct ContentView: View {
         return panel.runModal() == .OK ? panel.url : nil
         #else
         return url
+        #endif
+    }
+
+    /// In the App Store build, asks for the folders outside the sidebar's folders that `paths`
+    /// need. False when one is still out of reach.
+    private func reach(_ paths: @autoclosure () -> [String], directories: Bool = false) -> Bool {
+        #if APPSTORE
+        GrantAccess.reach(paths(), directories: directories, workspace: workspace)
+        #else
+        true
+        #endif
+    }
+
+    /// In the App Store build, offers access to the setup files and includes of `text` that
+    /// can't be read. False, with a message, when an include still can't be read, rather than
+    /// exporting it as an empty line.
+    private func readsIncludes(_ text: String, path: String) -> Bool {
+        #if APPSTORE
+        let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        var setupFiles: [String] = []
+        _ = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path) { file in
+            let contents = OrgSettings.readFile(file)
+            if contents == nil { setupFiles.append(file) }
+            return contents
+        }
+        let includes = ExportPreprocess.unreadableIncludes(text, directory: directory)
+        guard !(setupFiles + includes).isEmpty else { return true }
+        _ = reach(setupFiles + includes)
+        guard let unreadable = ExportPreprocess.unreadableIncludes(text, directory: directory).first else { return true }
+        commands.show(String(localized: "Can't include \(OrgPaths.abbreviatingWithTilde(unreadable)).", comment: "Export stopped by an #+INCLUDE file that can't be read"))
+        return false
+        #else
+        return true
         #endif
     }
 
@@ -696,6 +736,7 @@ struct ContentView: View {
     /// `org-icalendar-export-agenda-files`, or with `combined`, `org-icalendar-combine-agenda-files`.
     private func exportAgendaCalendars(combined: Bool) {
         let paths = workspace.agendaFilePaths()
+        guard reach(paths + (combined ? [OrgPreferences.icalendarCombinedFile()] : [])) else { return }
         let read = { (path: String) -> (text: String, settings: OrgSettings)? in
             guard let text = session.openDocuments.first(where: { $0.path == path })?.document.text ?? (try? String(contentsOfFile: path, encoding: .utf8)) else { return nil }
             return (text, Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile))
@@ -848,6 +889,7 @@ struct ContentView: View {
         }
         #endif
         if let url = PlotOutput.file(plot, directory: directory) {
+            guard reach([url.path]) else { return }
             do {
                 try PlotOutput.write(plot, to: url)
                 plotWritten(url, editor: editor)
@@ -877,6 +919,9 @@ struct ContentView: View {
         }
         let codeStyle = HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme)
         func run(_ chosen: [PublishProject], only: String? = nil) {
+            // The chosen projects and their components read and write these folders.
+            let involved = { loaded.projects.filter { project in chosen.contains { $0 == project || $0.components.contains(project.name) } } }
+            guard reach(involved().flatMap { [$0.baseDirectory, $0.publishingDirectory] }, directories: true) else { return }
             do {
                 let report = try Publish.publish(chosen, all: loaded.projects, only: only, read: read) { function, text, path, bodyOnly in
                     let settings = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
@@ -918,7 +963,7 @@ struct ContentView: View {
                 DispatchQueue.main.async { commands.editor?.perform(SparseTreeCommand(), answers: ["sparse": "/", "regexp": regexp]) }
             }
         case .tangle(let scope):
-            guard ProAccess.shared.allows(.babel) else { return }
+            guard ProAccess.shared.allows(.babel), reach(session.tangleFiles(scope)) else { return }
             commands.show(session.tangle(scope))
         case .agenda(let start, let days):
             commands.agendaRequest = (start, days)
@@ -952,6 +997,7 @@ struct ContentView: View {
         case .babel(let job):
             guard ProAccess.shared.allows(.babel) else { return }
             let run = {
+                guard reach(session.resultFile(of: job).map { [$0] } ?? []) else { return }
                 commands.show("Running \(job.language) block… (⌘. to cancel)")
                 session.startBabel(job) { commands.show($0) }
             }
@@ -1259,6 +1305,7 @@ struct ContentView: View {
         case let id where id.hasPrefix("app.crypt."):
             crypt(id)
         case let id where id.hasPrefix("app.attach."):
+            guard reach(attachActions.entry().flatMap { Attachments.directory($0, noFSCheck: true) }.map { [$0] } ?? [], directories: true) else { return }
             attachActions.run(id)
         case let id where id.hasPrefix("app.dailies.") || id.hasPrefix("app.node."):
             roamActions.run(id)

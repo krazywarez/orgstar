@@ -1,7 +1,7 @@
 import Foundation
-import OrgCore
 import Testing
 @testable import OrgApp
+@testable import OrgCore
 
 struct TangleWriterTests {
     @Test func writesMakesFoldersAndSetsModes() throws {
@@ -41,5 +41,24 @@ struct TangleWriterTests {
         #expect(throws: TangleWriter.Failure(message: "Not allowed to tangle into the same file as self")) {
             try TangleWriter.write(own, source: source.path)
         }
+    }
+
+    @Test func aModeThatCantBeSetIsReportedAfterWriting() throws {
+        let folder = try Folder()
+        let script = folder.url.appendingPathComponent("run.sh").path
+        // Anyone can write /dev/null, but only its owner can change its mode.
+        let output = Tangle.Output(files: [
+            Tangle.File(path: "/dev/null", contents: "x\n", mode: 0o755, makeDirectories: false),
+            Tangle.File(path: script, contents: "#!/bin/sh\n", mode: 0o755, makeDirectories: false),
+        ], blocks: 2)
+        let source = folder.url.appendingPathComponent("notes.org").path
+        do {
+            try TangleWriter.write(output, source: source)
+            Issue.record("The mode of /dev/null was set")
+        } catch {
+            #expect(error.message.hasPrefix("Tangled 2 code blocks from notes.org, but can't set the mode of /dev/null"))
+        }
+        #expect(try String(contentsOfFile: script, encoding: .utf8) == "#!/bin/sh\n")
+        #expect(try FileManager.default.attributesOfItem(atPath: script)[.posixPermissions] as? Int == 0o755)
     }
 }

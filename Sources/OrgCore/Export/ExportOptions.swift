@@ -116,9 +116,7 @@ public enum ExportPreprocess {
                 file = String(spec[..<r.lowerBound])
                 target = String(spec[r.upperBound...])
             }
-            let url = (file as NSString).isAbsolutePath || directory == nil
-                ? URL(fileURLWithPath: OrgPaths.expandingTilde(file))
-                : directory!.appendingPathComponent(file)
+            let url = includeURL(file, directory: directory)
             guard var included = try? String(contentsOf: url, encoding: .utf8) else {
                 lines.append("")
                 continue
@@ -150,6 +148,32 @@ public enum ExportPreprocess {
             lines.append(expanded.hasSuffix("\n") ? String(expanded.dropLast()) : expanded)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// The files `#+INCLUDE` names in `text`, and in the files they include, that can't be read.
+    public static func unreadableIncludes(_ text: String, directory: URL?, depth: Int = 0) -> [String] {
+        guard depth < 8, text.containsIgnoringASCIICase("#+INCLUDE:") else { return [] }
+        var unreadable: [String] = []
+        for line in text.components(separatedBy: "\n") {
+            guard let m = line.firstMatch(of: #/(?i)^[ \t]*#\+INCLUDE:[ \t]+"([^"]+)"/#) else { continue }
+            let spec = String(m.1)
+            let url = includeURL(spec.range(of: "::").map { String(spec[..<$0.lowerBound]) } ?? spec, directory: directory)
+            guard let included = try? String(contentsOf: url, encoding: .utf8) else {
+                if !unreadable.contains(url.path) { unreadable.append(url.path) }
+                continue
+            }
+            for path in unreadableIncludes(included, directory: url.deletingLastPathComponent(), depth: depth + 1) where !unreadable.contains(path) {
+                unreadable.append(path)
+            }
+        }
+        return unreadable
+    }
+
+    /// An include's file, relative to `directory`.
+    static func includeURL(_ file: String, directory: URL?) -> URL {
+        (file as NSString).isAbsolutePath || directory == nil
+            ? URL(fileURLWithPath: OrgPaths.expandingTilde(file))
+            : directory!.appendingPathComponent(file)
     }
 
     /// The subtree of `text` at `*Heading` or `#custom-id`.
