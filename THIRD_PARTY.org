@@ -9,6 +9,7 @@ orgstar is proprietary (see [[file:LICENSE]]). It builds on these projects, unde
 | [[https://github.com/tree-sitter-grammars/tree-sitter-lua][tree-sitter-lua]], [[https://github.com/tree-sitter-grammars/tree-sitter-yaml][tree-sitter-yaml]] | Highlighting | MIT |
 | [[https://github.com/r-lib/tree-sitter-r][tree-sitter-r]] | Highlighting | MIT |
 | [[https://github.com/6cdh/tree-sitter-scheme][tree-sitter-scheme]] | Highlighting | MIT |
+| [[https://github.com/nodejs/node][Node.js]] | =util.inspect= and =util.format=, ported to run in JavaScriptCore (in =Sources/OrgApp/JavaScriptBlocks.swift=) | MIT |
 | [[https://github.com/Wilfred/tree-sitter-elisp][tree-sitter-elisp]] | Highlighting (vendored in =Sources/TreeSitterElisp=) | MIT |
 | [[https://github.com/sogaiu/tree-sitter-clojure][tree-sitter-clojure]] | Highlighting (vendored in =Sources/TreeSitterClojure=) | CC0-1.0 |
 | [[https://ethanschoonover.com/solarized/][Solarized]] | Colors of the Solarized themes | MIT |

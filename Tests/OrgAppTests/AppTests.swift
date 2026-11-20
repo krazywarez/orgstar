@@ -980,17 +980,18 @@ struct ReminderSchedulerTests {
     }
 }
 
-/// Without `DocumentSession.programs`, only Emacs Lisp runs, natively.
+/// Without `DocumentSession.programs`, only Emacs Lisp and js run, natively.
 @MainActor
 struct NativeProgramsTests {
     @Test func runsOnlyNativeBlocksWithoutARunner() async throws {
         #expect(DocumentSession.runner == nil)
         let notes = try Folder()
-        let file = try notes.write("b.org", "#+begin_src sh\necho hi\n#+end_src\n\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n")
+        let file = try notes.write("b.org", "#+begin_src sh\necho hi\n#+end_src\n\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n\n#+begin_src js\nreturn 2 + 3\n#+end_src\n")
         let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
         session.open(file.path)
         guard case .external(.babel(let sh)) = session.perform(ExecuteSrcBlock(), path: file.path, at: 3, expect: nil),
-              case .external(.babel(let lisp)) = session.perform(ExecuteSrcBlock(), path: file.path, at: 40, expect: nil) else {
+              case .external(.babel(let lisp)) = session.perform(ExecuteSrcBlock(), path: file.path, at: 40, expect: nil),
+              case .external(.babel(let js)) = session.perform(ExecuteSrcBlock(), path: file.path, at: 78, expect: nil) else {
             Issue.record("not planned")
             return
         }
@@ -999,7 +1000,9 @@ struct NativeProgramsTests {
         #expect(await session.recalculateInEmacs(table: 0..<1, point: 0, form: "") == "Tables that need Emacs aren't recalculated in this version of orgstar.")
         #endif
         #expect(await session.runBabel(lisp) == "Code block evaluation complete.")
-        #expect(session.document?.text.hasSuffix("#+RESULTS:\n: 3\n") == true)
+        #expect(session.document?.text.contains("#+RESULTS:\n: 3\n") == true)
+        #expect(await session.runBabel(js) == "Code block evaluation complete.")
+        #expect(session.document?.text.hasSuffix("#+RESULTS:\n: 5\n") == true)
     }
 }
 

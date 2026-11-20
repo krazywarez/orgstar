@@ -337,10 +337,11 @@ PDF export follows =pdf-margin=, =pdf-font= and =pdf-page-numbers= in =config.to
 
 =C-c C-c= on a source block asks whether to run it (yes, no, or always for this block), as on the Mac.
 
-On iOS, only Emacs Lisp blocks run. orgstar evaluates them with its own Emacs Lisp interpreter, which covers a subset of the language. Other results:
+On iOS, only Emacs Lisp and JavaScript blocks run. orgstar evaluates Emacs Lisp with its own interpreter, which covers a subset of the language, and JavaScript in JavaScriptCore, as =node= would run it, sessions included. Other results:
 
 - A block in another language: "/language/ blocks need the Mac to run."
 - Emacs Lisp the interpreter doesn't have: "This block uses Emacs Lisp that runs only in Emacs, on the Mac."
+- JavaScript that uses something only node has, such as =Buffer=: "This block uses /name/, which runs only in node."
 
 Table formulas that orgstar computes itself work on iOS. A table whose formulas need Emacs reports "This table needs Emacs, which runs on the Mac", with the reason, and isn't changed.
 
@@ -434,7 +435,7 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 
 * What the Mac has that iOS doesn't
 
-- In the download version: running code blocks in languages other than Emacs Lisp, Emacs Lisp beyond orgstar's interpreter, and tables that need Emacs.
+- In the download version: running code blocks in languages other than Emacs Lisp and JavaScript, Emacs Lisp beyond orgstar's interpreter, JavaScript that needs node, and tables that need Emacs.
 - Publishing, and in the download version ODT, LaTeX, ASCII and LaTeX-made PDF export.
 - Idle detection while a clock runs.
 - Import from Emacs of agenda folders.

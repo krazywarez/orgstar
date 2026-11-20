@@ -173,3 +173,22 @@ struct EmacsExportTests {
         #expect(!alive)
     }
 }
+
+/// js runs in JavaScriptCore when its interpreter isn't installed, and in node when it is.
+struct JavaScriptFallbackTests {
+    func run(_ text: String) async throws -> BabelOutput {
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+        guard case .success(let job) = Babel.plan(context) else { throw Babel.Failure.message("not planned") }
+        return try await Programs().runBabel(job, fileDirectory: FileManager.default.temporaryDirectory)
+    }
+
+    @Test func runsWithoutTheInterpreter() async throws {
+        #expect(try await run("#+begin_src js :cmd no-such-node\nreturn [1, 2]\n#+end_src\n").stdout == "[ 1, 2 ]")
+        #expect(try await run("#+begin_src js :cmd no-such-node :session s\n6 * 7\n#+end_src\n").resultFile == "42")
+    }
+
+    @Test(.enabled(if: BabelRunner.installed("node")))
+    func usesNodeWhenInstalled() async throws {
+        #expect(try await run("#+begin_src js :results output\nconsole.log(typeof require('fs').readFileSync)\n#+end_src\n").stdout == "function\n")
+    }
+}
