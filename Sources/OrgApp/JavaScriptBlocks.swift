@@ -102,7 +102,7 @@ public enum JavaScriptBlocks {
         func engine(_ key: String) -> Engine {
             lock.withLock {
                 if let engine = engines[key] { return engine }
-                let engine = Engine()
+                let engine = Engine(session: true)
                 engines[key] = engine
                 return engine
             }
@@ -126,18 +126,32 @@ public enum JavaScriptBlocks {
         private let output: Output
         private let lock = NSLock()
 
-        init() {
+        /// A session's context has `require`, `module` and the rest of a module's names as
+        /// globals, as `node -e` has them.
+        init(session: Bool = false) {
             let output = Output()
             self.output = output
             context = JSContext()
             let write: @convention(block) (Int32, String) -> Void = { fd, text in
                 if fd == 1 { output.stdout += text } else { output.stderr += text }
             }
+            // Runs a session's script as a script of its own, which the caller's call holds back
+            // the promise callbacks of: whether it threw, and its error or completion value.
+            let script: @convention(block) (String) -> JSValue = { source in
+                let context = JSContext.current()!
+                output.exception = nil
+                let completion = context.evaluateScript(source)
+                let result = JSValue(newArrayIn: context)!
+                result.setValue(output.exception != nil, at: 0)
+                result.setValue(output.exception ?? completion, at: 1)
+                output.exception = nil
+                return result
+            }
             context.exceptionHandler = { _, exception in output.exception = exception }
-            node = context.evaluateScript(Self.shim).call(withArguments: [write])
+            node = context.evaluateScript(Self.shim).call(withArguments: [write, script, session])
         }
 
-        /// Runs `source` as node runs a script on standard input, then its timers.
+        /// Runs `source` as node runs a script file, as Emacs runs it, then its timers.
         func main(_ source: String, run: Run) throws -> BabelOutput {
             node.invokeMethod("main", withArguments: [source])
             runTimers(run)
@@ -146,28 +160,17 @@ public enum JavaScriptBlocks {
 
         /// Runs `source` where the session's earlier scripts ran, as `vm.runInThisContext` does;
         /// with `value`, the result is its completion value as `util.inspect` prints it. A block
-        /// that leaves a timer is refused.
+        /// that leaves a timer, or a promise callback that prints or throws, is refused.
         func session(_ source: String, value: Bool, run: Run) throws -> BabelOutput {
             try lock.withLock {
                 output.stdout = ""
                 output.stderr = ""
                 output.exception = nil
-                node.invokeMethod("begin", withArguments: [])
-                let completion = context.evaluateScript(source)
-                var result: String?
-                if let exception = output.exception {
-                    node.invokeMethod("failed", withArguments: [exception])
-                } else if value, let completion {
-                    let inspected = node.invokeMethod("inspect", withArguments: [completion])
-                    if let exception = output.exception {
-                        node.invokeMethod("failed", withArguments: [exception])
-                    } else {
-                        result = inspected?.toString()
-                    }
-                }
-                // node's session returns before its timers run, and they print later.
+                node.invokeMethod("session", withArguments: [source, value])
+                // node's session returns before its timers and promise callbacks run, and they print later.
                 node.invokeMethod("settle", withArguments: [])
-                return try finish(result: result)
+                let result = node.forProperty("result")
+                return try finish(result: result?.isString == true ? result?.toString() : nil)
             }
         }
 
@@ -191,16 +194,22 @@ public enum JavaScriptBlocks {
         /// lib/internal/util/inspect.js (MIT License, Node.js contributors). It returns the
         /// runner's controls.
         static let shim = #"""
-            (function (write) {
+            (function shim(write, script, session) {
               'use strict';
-              const evaluate = eval;
-              const state = { dead: false, error: undefined, refused: '', timers: [], seq: 0, now: Date.now() };
+              const functionToString = Function.prototype.toString;
+              const state = { dead: false, error: undefined, refused: '', timers: [], seq: 0, now: Date.now(), draining: false, result: undefined };
+              const lateInSession = 'a promise callback that prints or throws in a session';
 
               function refuse(what) {
                 if (!state.refused) state.refused = what;
                 throw new Error(`${what} isn't available`);
               }
               function out(fd, text) {
+                // node's session prints a promise callback's text after the block.
+                if (state.draining) {
+                  if (!state.refused) state.refused = lateInSession;
+                  return;
+                }
                 if (!state.dead) write(fd, text.toWellFormed());
               }
               // Members a script may use, its own and those in `extra`; any other, and listing them, is
@@ -695,7 +704,7 @@ public enum JavaScriptBlocks {
               }
 
               function getFunctionBase(ctx, value, constructor, tag) {
-                const stringified = Function.prototype.toString.call(value);
+                const stringified = functionToString.call(value);
                 if (stringified.startsWith('class') && stringified[stringified.length - 1] === '}') {
                   const slice = stringified.slice(5, -1);
                   const bracketIndex = slice.indexOf('{');
@@ -1274,6 +1283,10 @@ public enum JavaScriptBlocks {
                 state.timers = state.timers.filter((t) => t !== timer);
               }
               function uncaught(error) {
+                if (state.draining) {
+                  if (!state.refused) state.refused = lateInSession;
+                  return;
+                }
                 if (state.error === undefined) state.error = describe(error);
                 state.dead = true;
               }
@@ -1288,14 +1301,19 @@ public enum JavaScriptBlocks {
               }
 
               const AsyncFunction = (async function () {}).constructor;
+              // A script that doesn't parse, which node may run as an ES module. Any `import` or `export`
+              // counts, even in a string or comment.
               function moduleOnly(source) {
-                if (/^\s*(import\s*[\w{*'"]|export\s)|\bimport\s*\.\s*meta\b/m.test(source)) return true;
+                if (/\b(import|export)\b/.test(source)) return true;
                 try { new AsyncFunction(source); } catch { return false; }
                 try { new Function(source); return false; } catch { return true; }
               }
+              // `import()`, which parses in a script and never settles here.
+              const dynamicImport = /(?<![\w$.])import\s*(\(|\/[*\/])/;
 
+              const module = guard({ exports: {} }, 'module');
               const globals = {
-                require, console, process, global: globalThis, Proxy: ProxyConstructor, module: guard({ exports: {} }, 'module'), __filename: '[stdin]', __dirname: '.',
+                console, process, global: globalThis, Proxy: ProxyConstructor,
                 setTimeout: (callback, delay, ...args) => schedule(callback, delay, args, false),
                 setInterval: (callback, delay, ...args) => schedule(callback, delay, args, true),
                 clearTimeout: clear, clearInterval: clear,
@@ -1304,11 +1322,40 @@ public enum JavaScriptBlocks {
                   Promise.resolve().then(() => { try { callback(); } catch (error) { uncaught(error); } });
                 },
               };
-              globals.exports = globals.module.exports;
-              for (const [name, value] of Object.entries(globals)) {
-                Object.defineProperty(globalThis, name, { value, writable: true, configurable: true, enumerable: false });
+              // A promise callback that throws after a session's block ends its session in node.
+              const then = Promise.prototype.then;
+              const late = (callback) => typeof callback !== 'function' ? callback : function (value) {
+                try {
+                  return callback(value);
+                } catch (error) {
+                  if (state.draining && !state.refused) state.refused = lateInSession;
+                  throw error;
+                }
+              };
+              Object.defineProperty(Promise.prototype, 'then', {
+                value: { then(onFulfilled, onRejected) { return then.call(this, late(onFulfilled), late(onRejected)); } }.then,
+                writable: true, configurable: true,
+              });
+              // Node's enumerable globals, in node's order; `node -e` adds a module's names after them.
+              const enumerable = [
+                'global', 'clearImmediate', 'setImmediate', 'clearInterval', 'clearTimeout', 'setInterval', 'setTimeout',
+                'queueMicrotask', 'structuredClone', 'atob', 'btoa', 'performance', 'fetch', 'crypto', 'navigator', 'sessionStorage',
+              ];
+              const moduleScope = session ? { __filename: '[eval]', module, exports: module.exports, __dirname: '.', require } : {};
+              for (const name of enumerable) {
+                if (Object.prototype.hasOwnProperty.call(globals, name)) {
+                  Object.defineProperty(globalThis, name, { value: globals[name], writable: true, configurable: true, enumerable: true });
+                } else {
+                  Object.defineProperty(globalThis, name, { get() { refuse(name); }, configurable: true, enumerable: true });
+                }
               }
-              // Node 26's globals that JavaScriptCore lacks.
+              for (const [name, value] of Object.entries(moduleScope)) {
+                Object.defineProperty(globalThis, name, { value, writable: true, configurable: true, enumerable: true });
+              }
+              for (const [name, value] of Object.entries(globals)) {
+                if (!enumerable.includes(name)) Object.defineProperty(globalThis, name, { value, writable: true, configurable: true, enumerable: false });
+              }
+              // Node 26's other globals that JavaScriptCore lacks.
               for (const name of [
                 'AbortController', 'AbortSignal', 'AsyncDisposableStack', 'atob', 'Blob', 'BroadcastChannel', 'btoa', 'Buffer',
                 'ByteLengthQueuingStrategy', 'clearImmediate', 'CloseEvent', 'CompressionStream', 'CountQueuingStrategy', 'Crypto',
@@ -1340,53 +1387,101 @@ public enum JavaScriptBlocks {
                 configurable: true,
               });
               const errorLike = (v) => v === Error.prototype || isError(v);
-              function refuseErrors(object, name, test) {
+              // Calls `test` refuses, with what they use.
+              function refuseCalls(object, name, test) {
                 object[name] = new RealProxy(object[name], {
                   apply(target, self, args) {
-                    if (test(self, args)) refuse("an error's own properties");
+                    const what = test(self, args);
+                    if (what) refuse(what);
                     return Reflect.apply(target, self, args);
                   },
                 });
               }
+              const errors = "an error's own properties";
+              // The global object behind the script's proxies. Its enumerable names are node's, but
+              // the order of all of them is JavaScriptCore's.
+              const isGlobal = (v) => {
+                for (let p = proxies.get(v); p; p = proxies.get(v)) v = p[0];
+                return v === globalThis;
+              };
+              const listing = (v) => isGlobal(v) ? "a list of the global object's properties" : '';
               for (const [object, name] of [[Object, 'getOwnPropertyNames'], [Object, 'getOwnPropertyDescriptors'], [Reflect, 'ownKeys']]) {
-                refuseErrors(object, name, (self, [v]) => errorLike(v));
+                refuseCalls(object, name, (self, [v]) => listing(v) || (errorLike(v) ? errors : ''));
               }
+              refuseCalls(Object, 'getOwnPropertySymbols', (self, [v]) => listing(v));
+              // A session's `var`s come first in JavaScriptCore and last in node.
+              if (session) refuseCalls(Object, 'keys', (self, [v]) => listing(v));
+              const sessionListing = /\bfor\s*\([^)]*\bin\s+(globalThis|global|this)\s*\)/;
               for (const [object, name] of [[Object, 'getOwnPropertyDescriptor'], [Object, 'hasOwn'], [Reflect, 'getOwnPropertyDescriptor']]) {
-                refuseErrors(object, name, (self, [v, key]) => key === 'stack' && errorLike(v));
+                refuseCalls(object, name, (self, [v, key]) => key === 'stack' && errorLike(v) ? errors : '');
               }
               for (const name of ['hasOwnProperty', 'propertyIsEnumerable']) {
-                refuseErrors(Object.prototype, name, (self, [key]) => key === 'stack' && errorLike(self));
+                refuseCalls(Object.prototype, name, (self, [key]) => key === 'stack' && errorLike(self) ? errors : '');
               }
+              // A built-in function's text is laid out differently from V8's, and the functions here
+              // are native in node.
+              const shimText = functionToString.call(shim);
+              refuseCalls(Function.prototype, 'toString', (self) => {
+                let text;
+                try { text = functionToString.call(self); } catch { return ''; }
+                return /\[native code\]\s*\}$/.test(text) || shimText.includes(text) ? "a built-in function's source text" : '';
+              });
 
               return {
-                // A script run as `node` runs standard input; an uncaught error ends it.
+                // A script run as `node` runs a CommonJS file; an uncaught error ends it. `__filename`
+                // and `__dirname` name Emacs's temporary file.
                 main(source) {
+                  if (/\b__(filename|dirname)\b/.test(source)) {
+                    state.refused = '__filename or __dirname';
+                    return;
+                  }
+                  if (dynamicImport.test(source)) {
+                    state.refused = 'top-level await, import or export';
+                    return;
+                  }
+                  let body;
                   try {
-                    evaluate(source);
+                    body = new Function('exports', 'require', 'module', '__filename', '__dirname', source);
                   } catch (error) {
                     // node runs a script that doesn't parse as one as an ES module, when that parses.
-                    if (error instanceof SyntaxError && moduleOnly(source)) {
-                      if (!state.refused) state.refused = 'top-level await, import or export';
-                    } else {
-                      uncaught(error);
-                    }
+                    if (error instanceof SyntaxError && moduleOnly(source)) state.refused = 'top-level await, import or export';
+                    else uncaught(error);
+                    return;
+                  }
+                  try {
+                    body.call(module.exports, module.exports, require, module, undefined, undefined);
+                  } catch (error) {
+                    uncaught(error);
                   }
                 },
-                begin() {
-                  state.dead = false;
-                  state.error = undefined;
-                  state.refused = '';
-                  state.now = Date.now();
+                // A session's script, and its value as the session writes it. Promise callbacks run
+                // after this returns.
+                session(source, value) {
+                  Object.assign(state, { dead: false, error: undefined, refused: '', now: Date.now(), draining: false, result: undefined });
+                  if (dynamicImport.test(source)) {
+                    state.refused = 'top-level await, import or export';
+                    return;
+                  }
+                  if (sessionListing.test(source)) {
+                    state.refused = "a list of the global object's properties";
+                    return;
+                  }
+                  Promise.resolve().then(() => { state.draining = true; });
+                  const [failed, completion] = script(source);
+                  if (failed) {
+                    uncaught(completion);
+                  } else if (value) {
+                    try { state.result = inspect(completion); } catch (error) { uncaught(error); }
+                  }
                 },
-                // After a session's script: its error, or its value as the session writes it.
-                failed(error) { uncaught(error); },
                 // Drops a session's timers, which would print after the block in node, and refuses the block.
                 settle() {
+                  state.draining = false;
                   if (state.timers.length === 0) return;
                   state.timers = [];
                   if (!state.refused) state.refused = 'a timer in a session';
                 },
-                inspect(value) { return inspect(value); },
+                get result() { return state.result; },
                 // Runs the next timer that is due: the milliseconds until one is, 0 after running one,
                 // or -1 when none is left to wait for.
                 tick() {

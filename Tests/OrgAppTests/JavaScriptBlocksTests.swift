@@ -1,4 +1,5 @@
 import Foundation
+import JavaScriptCore
 import OrgCore
 import OrgDocument
 import Testing
@@ -16,19 +17,20 @@ struct JavaScriptBlocksTests {
         return job
     }
 
-    /// `node` reading `input` on standard input, as BabelRunner starts it.
-    static func node(_ input: String, in folder: URL) throws -> (stdout: String, status: Int32) {
+    /// `node` running `input` from a file, as Emacs runs it.
+    static func node(_ input: String, in folder: URL, arguments: [String] = []) throws -> (stdout: String, status: Int32) {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("js-script-\(UUID().uuidString)")
+        try input.write(to: file, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: file) }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["node"]
+        process.arguments = ["node"] + arguments + [file.path]
         process.currentDirectoryURL = folder
-        let stdin = Pipe(), stdout = Pipe()
-        process.standardInput = stdin
+        let stdout = Pipe()
+        process.standardInput = FileHandle.nullDevice
         process.standardOutput = stdout
         process.standardError = FileHandle.nullDevice
         try process.run()
-        stdin.fileHandleForWriting.write(Data(input.utf8))
-        try stdin.fileHandleForWriting.close()
         let data = stdout.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         return (String(decoding: data, as: UTF8.self), process.terminationStatus)
@@ -64,10 +66,13 @@ struct JavaScriptBlocksTests {
         "console.log('before'); undefinedThing.x; console.log('after')",
         "Promise.resolve().then(() => console.log('not printed')); throw new Error('sync')",
         "setTimeout(() => { throw new TypeError('in timer'); }, 1); setTimeout(() => console.log('not reached'), 5)",
-        "var x = 5; console.log(globalThis.x, this === globalThis, typeof module, __filename, global === globalThis)",
+        "var x = 5; console.log(globalThis.x, this === globalThis, typeof module, global === globalThis)",
+        "console.log(this === module.exports, typeof exports, exports === module.exports, arguments.length); this.a = 1; console.log(module.exports)",
+        "console.log('top'); return; console.log('not reached')",
         "console.log(JSON.stringify({a: 1, b: [1, 2]}, null, 2), [3, 1, 2].sort(), 0.1 + 0.2)",
-        // Every global of node's is here or refused.
-        "console.log(Object.getOwnPropertyNames(globalThis).sort().join(' '))",
+        "globalThis.y = 1; z = 2; console.log(Object.keys(globalThis).join(' ')); for (const k in global) console.log(k)",
+        "console.log(Object.keys(new Proxy(globalThis, {})).length, 'require' in globalThis, 'module' in globalThis, typeof require)",
+        "console.log(Function.prototype.toString.call(function f(a) { return a; }), String(() => 1), `${class A {}}`)",
         "console.log(Object.prototype.toString.call(process), Object.prototype.toString.call(console), typeof require, require.name, require.length)",
         "module.exports = 5; console.log(module.exports, exports, typeof module)",
         "const e = new TypeError('x'); e.stack = 's'; console.log(e.stack, 'stack' in e, Object.keys(e), JSON.stringify(e), String(e))",
@@ -100,6 +105,7 @@ struct JavaScriptBlocksTests {
         "#+begin_src js :results output :epilogue console.log('end')\nconsole.log('body')\n#+end_src\n",
         "#+begin_src js\nreturn {a: 1, b: [1, 2]}\n#+end_src\n",
         "#+begin_src js :results output\nsetTimeout(() => console.log('later'), 10); console.log('now')\n#+end_src\n",
+        "#+begin_src js :results output\nconsole.log(this === module.exports, typeof exports)\n#+end_src\n",
     ]
 
     /// The results the app inserts, as Emacs inserts them running the block with node.
@@ -144,6 +150,7 @@ struct JavaScriptBlocksTests {
     @Test func whatNodeAloneHasIsRefused() async throws {
         let folder = FileManager.default.temporaryDirectory
         let module = "top-level await, import or export", stack = "an error's own properties"
+        let listing = "a list of the global object's properties", source = "a built-in function's source text"
         for (header, body, what) in [
             ("", "return new Error('x')", "util.inspect of an Error"), ("", "return Promise.resolve(1)", "util.inspect of a Promise"),
             ("", "return Buffer.from('a')", "Buffer"), ("", "return process.env.HOME", "process.env"), ("", "console.table([1])", "console.table"),
@@ -163,13 +170,22 @@ struct JavaScriptBlocksTests {
             ("", "return require.cache", "require.cache"), ("", "return module.id", "module.id"), ("", "return typeof module.paths", "module.paths"),
             (" :results output", "console.log(globalThis)", "util.inspect of the global object"), ("", "return this", "util.inspect of the global object"),
             ("", "return require", "util.inspect of require"), ("", "return module", "util.inspect of module"),
+            (" :results output", "const a = 1; import util from 'util'; console.log(util.format('%d', 3))", module),
+            (" :results output", "/* c */ import util from 'util'; console.log(util.format('%d', 3))", module),
+            (" :results output", "import('util').then(m => console.log(typeof m.format))", module),
+            (" :results output", "console.log(__filename)", "__filename or __dirname"), ("", "return __dirname", "__filename or __dirname"),
+            ("", "return Object.getOwnPropertyNames(globalThis).length", listing), ("", "return Reflect.ownKeys(new Proxy(global, {}))", listing),
+            ("", "return Object.getOwnPropertyDescriptors(globalThis)", listing), ("", "return Object.getOwnPropertySymbols(globalThis)", listing),
+            ("", "return Object.values(globalThis)", "clearImmediate"),
+            ("", "return Function.prototype.toString.call(Object.prototype.propertyIsEnumerable)", source),
+            ("", "return String(Math.max)", source), ("", "return String(console.log)", source), ("", "return `${setTimeout}`", source),
         ] {
             await #expect(throws: Babel.Failure.message("This block uses \(what), which runs only in node."), "\(body)") {
                 try await JavaScriptBlocks.run(Self.plan("#+begin_src js\(header)\n\(body)\n#+end_src\n"), directory: folder)
             }
         }
         // A syntax error that isn't a module's is reported, as node reports it.
-        #expect(try await JavaScriptBlocks.run(Self.plan("#+begin_src js :results output\nconsole.log(1); return 2\n#+end_src\n"), directory: folder)?.status == 1)
+        #expect(try await JavaScriptBlocks.run(Self.plan("#+begin_src js :results output\nconsole.log(1); )\n#+end_src\n"), directory: folder)?.status == 1)
         #expect(try await JavaScriptBlocks.run(Self.plan("#+begin_src python\n1\n#+end_src\n"), directory: folder) == nil)
         await #expect(throws: Babel.Failure.message("No folder \(folder.appendingPathComponent("nowhere").path) for :dir.")) {
             try await JavaScriptBlocks.run(Self.plan("#+begin_src js :dir nowhere\nreturn 1\n#+end_src\n"), directory: folder)
@@ -194,11 +210,46 @@ struct JavaScriptBlocksTests {
             try await run("", "setTimeout(() => {}, 1).unref(); 2")
         }
         #expect(try await run("", "const t = setTimeout(() => {}, 1); clearTimeout(t); z")?.resultFile == "1")
+        // Promise callbacks run after node's session returns: their text would go to the next block.
+        for body in ["Promise.resolve().then(() => console.log('late')); console.log('now')", "queueMicrotask(() => console.log('q'))",
+                     "(async () => { await null; console.error('e'); })()", "Promise.resolve().then(() => { throw new Error('x'); })",
+                     "throw (Promise.resolve().then(() => console.log('late')), new Error('x'))"] {
+            await #expect(throws: Babel.Failure.message("This block uses a promise callback that prints or throws in a session, which runs only in node."), "\(body)") {
+                try await run(" :results output", body)
+            }
+        }
+        // The value is printed before they run, and the next block sees what they did.
+        #expect(try await run("", "var o = {a: 1}; Promise.resolve().then(() => { o.a = 2; }); o")?.resultFile == "{ a: 1 }")
+        #expect(try await run("", "[o.a, this === globalThis, __filename, __dirname, exports === module.exports]")?.resultFile
+                == "[ 2, true, '[eval]', '.', true ]")
+        for body in ["Object.keys(globalThis)", "for (const k in global) console.log(k)"] {
+            await #expect(throws: Babel.Failure.message("This block uses a list of the global object's properties, which runs only in node."), "\(body)") {
+                try await run(" :results output", body)
+            }
+        }
+        await #expect(throws: Babel.Failure.message("This block uses top-level await, import or export, which runs only in node.")) {
+            try await run("", "import('util')")
+        }
         // An error while printing the value is reported, and there is no result.
         let thrown = try await run("", "({[Symbol.for('nodejs.util.inspect.custom')]() { throw new TypeError('boom') }})")
         #expect(thrown == BabelOutput(stdout: "", stderr: "TypeError: boom\n", status: 1))
         let other = try Folder()
         #expect(try await JavaScriptBlocks.run(Self.plan("#+begin_src js :session work\ntypeof x\n#+end_src\n"), directory: other.url)?.resultFile == "'undefined'")
+    }
+
+    /// Every global of node's is here, and no other, though listing them is refused.
+    @Test(.enabled(if: oracle && nodeInstalled))
+    func globalsAreNodes() async throws {
+        let folder = FileManager.default.temporaryDirectory
+        let theirs = try Self.node("console.log(JSON.stringify(Object.getOwnPropertyNames(globalThis).sort()))", in: folder)
+        let names = try #require(try JSONSerialization.jsonObject(with: Data(theirs.stdout.utf8)) as? [String])
+        let missing = try await JavaScriptBlocks.run(Self.plan("#+begin_src js\nreturn \(theirs.stdout.trimmingCharacters(in: .newlines)).filter(n => !(n in globalThis))\n#+end_src\n"), directory: folder)
+        #expect(missing?.stdout == "[]")
+        let context = try #require(JSContext())
+        context.evaluateScript("var names = Object.getOwnPropertyNames")
+        context.evaluateScript(JavaScriptBlocks.Engine.shim).call(withArguments: [{ (_: Int32, _: String) in } as @convention(block) (Int32, String) -> Void, NSNull(), false])
+        let ours = context.evaluateScript("names(globalThis).filter(n => n !== 'names').sort()").toArray() as? [String]
+        #expect(ours == names)
     }
 
     @Test func cancelAndTimeoutEndTheRun() async throws {
