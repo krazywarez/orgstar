@@ -10,6 +10,10 @@ public enum ExportScope {
         ("EXPORT_TITLE", "TITLE"), ("EXPORT_AUTHOR", "AUTHOR"), ("EXPORT_DATE", "DATE"), ("EXPORT_EMAIL", "EMAIL"),
         ("EXPORT_OPTIONS", "OPTIONS"), ("EXPORT_SELECT_TAGS", "SELECT_TAGS"), ("EXPORT_EXCLUDE_TAGS", "EXCLUDE_TAGS"),
         ("EXPORT_HTML_HEAD", "HTML_HEAD"), ("EXPORT_HTML_HEAD_EXTRA", "HTML_HEAD_EXTRA"),
+        ("EXPORT_SUBTITLE", "SUBTITLE"), ("EXPORT_KEYWORDS", "KEYWORDS"), ("EXPORT_DESCRIPTION", "DESCRIPTION"), ("EXPORT_LANGUAGE", "LANGUAGE"),
+        ("EXPORT_LATEX_CLASS", "LATEX_CLASS"), ("EXPORT_LATEX_CLASS_OPTIONS", "LATEX_CLASS_OPTIONS"), ("EXPORT_LATEX_HEADER", "LATEX_HEADER"),
+        ("EXPORT_LATEX_HEADER_EXTRA", "LATEX_HEADER_EXTRA"), ("EXPORT_LATEX_COMPILER", "LATEX_COMPILER"),
+        ("EXPORT_LATEX_CLASS_PRE", "LATEX_CLASS_PRE"), ("EXPORT_LATEX_FOOTNOTE_COMMAND", "LATEX_FOOTNOTE_COMMAND"), ("EXPORT_CITE_EXPORT", "CITE_EXPORT"),
     ]
 
     /// The subtree containing `offset` as a document of its own: the file's keyword lines, then
@@ -29,9 +33,9 @@ public enum ExportScope {
         body = ExportPreprocess.shift(body, to: 1)
 
         let property = { (key: String) in heading.properties.last { $0.key.uppercased() == key }?.value }
-        // The title, author and date the subtree sets replace the file's, which Org would
-        // otherwise join.
-        let replaced = Set(overrides.prefix(4).filter { $0.property == "EXPORT_TITLE" || property($0.property) != nil }.map(\.keyword))
+        // What the subtree sets replaces the file's keywords; `EXPORT_OPTIONS` only the items
+        // it names.
+        let replaced = Set(overrides.filter { $0.property == "EXPORT_TITLE" || ($0.property != "EXPORT_OPTIONS" && property($0.property) != nil) }.map(\.keyword))
         var lines = preamble(tree).filter { line in
             guard let m = line.firstMatch(of: #/^#\+([^:\s]+):/#) else { return true }
             return !replaced.contains(m.1.uppercased())
