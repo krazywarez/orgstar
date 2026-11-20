@@ -55,6 +55,8 @@ public struct EmacsImport: Sendable {
     /// Doom's own org defaults Orgstar has no use for, not listed one by one.
     public var doomDefaultsLeftOut = 0
     public var isDoom = false
+    /// Doom's own org defaults were found and read.
+    public var doomDefaultsRead = false
 
     // MARK: - Finding the configuration
 
@@ -80,6 +82,19 @@ public struct EmacsImport: Sendable {
         return candidates.filter { !files(in: $0).isEmpty && !isDoomInstall($0) }
     }
 
+    /// Where an open panel for the configuration starts: the first configuration found, or the
+    /// home folder.
+    public static func pickerLocation() -> URL {
+        defaultLocations().first ?? URL(fileURLWithPath: OrgPaths.home)
+    }
+
+    /// Where Doom is usually installed, `EMACSDIR` first.
+    public static func doomInstallLocations() -> [URL] {
+        let home = URL(fileURLWithPath: OrgPaths.home)
+        return [ProcessInfo.processInfo.environment["EMACSDIR"]].compactMap { $0 }.map { URL(fileURLWithPath: $0) }
+            + [".config/emacs", ".emacs.d"].map { home.appendingPathComponent($0) }
+    }
+
     /// Doom's own source folder, which holds `lisp/doom.el`, isn't a user configuration.
     static func isDoomInstall(_ url: URL) -> Bool {
         FileManager.default.fileExists(atPath: url.appendingPathComponent("lisp/doom.el").path)
@@ -87,11 +102,13 @@ public struct EmacsImport: Sendable {
 
     /// Doom's org module and core defaults, if Doom is installed.
     static func doomDefaultFiles() -> [URL] {
-        let home = URL(fileURLWithPath: OrgPaths.home)
-        let environment = ProcessInfo.processInfo.environment
-        let installs = ([environment["EMACSDIR"]].compactMap { $0 }.map { URL(fileURLWithPath: $0) })
-            + [".config/emacs", ".emacs.d"].map { home.appendingPathComponent($0) }
-        guard let install = installs.first(where: isDoomInstall) else { return [] }
+        guard let install = doomInstallLocations().first(where: isDoomInstall) else { return [] }
+        return doomDefaultFiles(in: install)
+    }
+
+    /// Doom's org module and core defaults in `install`, Doom's own folder; empty when it isn't one.
+    public static func doomDefaultFiles(in install: URL) -> [URL] {
+        guard isDoomInstall(install) else { return [] }
         var files = [install.appendingPathComponent("lisp/doom-emacs.el")]
         var moduleRoots = [install.appendingPathComponent("modules")]
         if let sources = try? FileManager.default.contentsOfDirectory(at: install.appendingPathComponent("sources"), includingPropertiesForKeys: nil) {
@@ -119,7 +136,10 @@ public struct EmacsImport: Sendable {
         result.isDoom = sources.contains { $0.text.contains("(doom!") || $0.text.contains("(map! ") || $0.text.contains("(after! ") }
         if result.isDoom {
             for url in doomDefaults ?? doomDefaultFiles() {
-                if let text = try? String(contentsOf: url, encoding: .utf8) { sources.insert(("Doom", text, 0), at: 0) }
+                if let text = try? String(contentsOf: url, encoding: .utf8) {
+                    sources.insert(("Doom", text, 0), at: 0)
+                    result.doomDefaultsRead = true
+                }
             }
         }
         var scanner = Scanner()
@@ -1064,16 +1084,33 @@ public struct EmacsImport: Sendable {
 }
 
 extension EmacsImport {
+    /// The paths of `items`' folders that aren't in the sidebar yet, as written.
+    @MainActor
+    public static func foldersToAdd(_ items: [Item], workspace: WorkspaceModel?) -> [String] {
+        items.compactMap { item in
+            guard case .folder(let path) = item.change else { return nil }
+            let url = URL(fileURLWithPath: OrgPaths.expandingTilde(path)).standardizedFileURL
+            if let workspace, isRoot(url, in: workspace) { return nil }
+            return path
+        }
+    }
+
+    @MainActor
+    static func isRoot(_ url: URL, in workspace: WorkspaceModel) -> Bool {
+        workspace.roots.contains { URL(fileURLWithPath: $0.path).standardizedFileURL.path == url.path }
+    }
+
     /// Applies `items`: settings to `defaults` (and so config.toml), folders to the workspace,
     /// capture templates and key bindings appended to capture.toml and keymap.toml in
     /// `directory`, leaving out templates whose key is there already and bindings that are
     /// there already. Returns a summary.
     @MainActor
     /// With `writeConfig`, settings and structure templates are written into `config.toml` too,
-    /// for where nothing syncs user defaults into it (iOS).
+    /// for where nothing syncs user defaults into it (iOS). With `chosenFolders`, folders chosen in
+    /// open panels by the path of their item, a folder item is added only as the folder chosen for it.
     public static func apply(
         _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory,
-        writeConfig: Bool = false
+        writeConfig: Bool = false, chosenFolders: [String: URL]? = nil
     ) async -> String {
         var stored: [UserConfig.Setting] = []
         var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0, views = 0, projects = 0
@@ -1090,12 +1127,20 @@ extension EmacsImport {
         }
         for item in items {
             guard case .folder(let path) = item.change else { continue }
-            let url = URL(fileURLWithPath: OrgPaths.expandingTilde(path)).standardizedFileURL
+            var url = URL(fileURLWithPath: OrgPaths.expandingTilde(path)).standardizedFileURL
+            if let chosenFolders {
+                if let workspace, Self.isRoot(url, in: workspace) { continue }
+                guard let chosen = chosenFolders[path] else {
+                    problems.append("\(path) wasn't added")
+                    continue
+                }
+                url = chosen.standardizedFileURL
+            }
             guard let workspace, FileManager.default.fileExists(atPath: url.path) else {
                 problems.append("\(path) doesn't exist")
                 continue
             }
-            if workspace.roots.contains(where: { URL(fileURLWithPath: $0.path).standardizedFileURL.path == url.path }) { continue }
+            if Self.isRoot(url, in: workspace) { continue }
             do {
                 try await workspace.addRoot(url)
                 folders += 1

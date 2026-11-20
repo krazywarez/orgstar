@@ -112,6 +112,9 @@ struct PaneView: NSViewRepresentable {
             let expanded = OrgPaths.expandingTilde(typed)
             let base = URL(fileURLWithPath: path).deletingLastPathComponent()
             let target = expanded.hasPrefix("/") ? expanded : base.appendingPathComponent(expanded).standardizedFileURL.path
+            #if APPSTORE
+            guard commands?.reach([target]) ?? false else { return }
+            #endif
             guard FileManager.default.fileExists(atPath: target) else {
                 commands?.show("No file \(typed)")
                 return

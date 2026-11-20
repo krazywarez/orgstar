@@ -8,6 +8,11 @@ enum LinkOpener {
     /// Returns a message when the link can't be followed.
     /// `ask` picks among a query link's matches.
     static func open(_ link: OrgLink, session: DocumentSession, workspace: WorkspaceModel, ask: @escaping (Prompt, @escaping (String?) -> Void) -> Void) -> String? {
+        #if APPSTORE
+        // A file outside the sidebar's folders needs access to its folder first.
+        if link.type == "file", !link.path.isEmpty,
+           !GrantAccess.reach([DocumentSession.resolve(link.path, from: session.path)], workspace: workspace) { return nil }
+        #endif
         switch session.follow(link, workspace: workspace, isText: FileTypes.isText) {
         case .shown: return nil
         case .openExternally(let url):

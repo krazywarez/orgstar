@@ -39,6 +39,10 @@ final class AppCommands {
     /// Files and images pasted or dropped on an editor; the main window sets them.
     var filesHandler: (([URL]) -> Void)?
     var imageHandler: ((Data, String) -> Void)?
+    #if APPSTORE
+    /// Asks for the folders outside the sidebar's folders that paths need; the main window sets it.
+    var reach: ([String]) -> Bool = { _ in true }
+    #endif
     /// Tags used across the workspace, for tag completion; the main window sets it.
     var knownTags: () -> [String] = { [] }
     /// The pending key prefix, and what can follow it.

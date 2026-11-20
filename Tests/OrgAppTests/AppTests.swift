@@ -95,6 +95,37 @@ struct WorkspaceModelTests {
         #expect(reopened.roots.count == 1)
     }
 
+    @Test func aFolderThatDoesntResolveCanBeChosenAgain() async throws {
+        let parent = try Folder()
+        let gone = parent.url.appendingPathComponent("gone")
+        try FileManager.default.createDirectory(at: gone, withIntermediateDirectories: true)
+        let data = parent.url.appendingPathComponent("data")
+        let model = try WorkspaceModel(directory: data)
+        try await model.addRoot(gone)
+        #expect(model.unresolvedRoots.isEmpty)
+        try FileManager.default.removeItem(at: gone)
+
+        let reopened = try WorkspaceModel(directory: data)
+        let root = try #require(reopened.unresolvedRoots.first)
+        #expect(reopened.rootPaths.isEmpty && root.path == gone.path)
+        let found = try parent.write("found/a.org", "* Plumber\n").deletingLastPathComponent()
+        try await reopened.regrant(root, with: found)
+        #expect(reopened.unresolvedRoots.isEmpty)
+        #expect(reopened.roots.map(\.path) == [found.path])
+        #expect(reopened.search("plumber").count == 1)
+        #expect(try WorkspaceModel(directory: data).roots.map(\.path) == [found.path])
+
+        // Chosen again as a folder already in the sidebar, the old one just goes.
+        let other = parent.url.appendingPathComponent("other")
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        try await reopened.addRoot(other)
+        try FileManager.default.removeItem(at: other)
+        let third = try WorkspaceModel(directory: data)
+        let stale = try #require(third.unresolvedRoots.first)
+        try await third.regrant(stale, with: found)
+        #expect(third.roots.map(\.path) == [found.path] && third.unresolvedRoots.isEmpty)
+    }
+
     @Test func listsDownloadsInTheTree() {
         let files = [FileEntry(path: "/r/a.org", root: "/r", kind: .org)]
         let tree = FileTreeNode.build(root: "/r", files: files, downloading: ["/r/b.org", "/r/sub/c.org"])

@@ -49,6 +49,27 @@ struct Sidebar: View {
                         .contextMenu { folderMenu(root) }
                 }
             }
+            #if APPSTORE
+            if !workspace.unresolvedRoots.isEmpty {
+                Section("Can't Open") {
+                    ForEach(workspace.unresolvedRoots, id: \.path) { root in
+                        HStack {
+                            Label((root.path as NSString).lastPathComponent, systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Grant Access…") { GrantAccess.regrant(root, workspace: workspace) }
+                                .buttonStyle(.borderless)
+                                .controlSize(.small)
+                        }
+                        .help(root.path)
+                        .contextMenu {
+                            Button("Grant Access…") { GrantAccess.regrant(root, workspace: workspace) }
+                            Button("Remove from Sidebar…") { removing = root.path }
+                        }
+                    }
+                }
+            }
+            #endif
         }
         .listStyle(.sidebar)
         .themedListBackground(theme.color("sidebar-background", in: colorScheme))

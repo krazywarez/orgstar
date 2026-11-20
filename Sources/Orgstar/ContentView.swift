@@ -183,13 +183,23 @@ struct ContentView: View {
             }
         } else {
             ContentUnavailableView {
-                Label(workspace.roots.isEmpty ? "Add a folder of org files" : "Choose a file", systemImage: "doc.text")
+                Label(noFolders ? "Add a folder of org files" : "Choose a file", systemImage: "doc.text")
             } description: {
-                Text(workspace.roots.isEmpty ? "File ▸ Add Folder… (⇧⌘O)" : "Or press ⌘P to open one by name.")
+                Text(noFolders ? "File ▸ Add Folder… (⇧⌘O)" : "Or press ⌘P to open one by name.")
             } actions: {
-                if workspace.roots.isEmpty { Button("Get Started…") { commands.showingWelcome = true } }
+                if noFolders { Button("Get Started…") { commands.showingWelcome = true } }
             }
         }
+    }
+
+    /// No folder to show: in the App Store build, also when none of them resolves, so the
+    /// welcome sheet can ask for them again.
+    private var noFolders: Bool {
+        #if APPSTORE
+        workspace.rootPaths.isEmpty
+        #else
+        workspace.roots.isEmpty
+        #endif
     }
 
     @ToolbarContentBuilder
@@ -303,6 +313,9 @@ struct ContentView: View {
             commands.externalHandler = runExternal
             commands.filesHandler = { attachActions.drop($0) }
             commands.imageHandler = { attachActions.yankImage($0, ext: $1) }
+            #if APPSTORE
+            commands.reach = { [workspace] in GrantAccess.reach($0, workspace: workspace) }
+            #endif
             // `org-clock-out-when-done`, and the notification when the Effort runs out.
             clock.notifications = SystemReminderCenter.isAvailable ? SystemReminderCenter() : nil
             session.textChanged = { [weak session, weak clock, weak commands] path in
@@ -312,7 +325,7 @@ struct ContentView: View {
             clock.remindAtEffort(session)
             commands.knownTags = { [index = workspace.index] in (try? index.tags()) ?? [] }
             commands.mainWindowOpen = true
-            if workspace.roots.isEmpty, !welcomeShown {
+            if noFolders, !welcomeShown {
                 welcomeShown = true
                 commands.showingWelcome = true
             }

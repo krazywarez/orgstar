@@ -31,6 +31,9 @@ public final class WorkspaceModel {
     private let rootsFile: URL
     /// Resolved root folders, keyed by their resolved path, which is how the index stores them.
     private var resolvedRoots: [String: URL] = [:]
+    /// Roots whose bookmark doesn't resolve: a folder gone, on a volume not mounted, or out of
+    /// the sandbox's reach.
+    public private(set) var unresolvedRoots: [WorkspaceRoot] = []
     @ObservationIgnored private var watcher: AnyObject?
     /// Watchers of the roots where there are no FSEvents.
     @ObservationIgnored private var presenters: [FolderPresenter] = []
@@ -92,6 +95,17 @@ public final class WorkspaceModel {
         await refresh()
     }
 
+    /// Replaces `root`, one that doesn't resolve, with `url`, chosen again in an open panel.
+    public func regrant(_ root: WorkspaceRoot, with url: URL) async throws {
+        let fresh = try WorkspaceRoot(url: url)
+        roots.removeAll { $0 == root }
+        if !roots.contains(where: { $0.path == fresh.path }), resolvedRoots[fresh.path] == nil { roots.append(fresh) }
+        try saveRoots()
+        resolveRoots()
+        rootsChanged()
+        await refresh()
+    }
+
     /// Removes a root by its resolved path, as `FileEntry.root` gives it.
     public func removeRoot(path: String) throws {
         let bookmarkPaths = roots.filter { (try? $0.resolve().url.path) == path || $0.path == path }.map(\.path)
@@ -116,10 +130,12 @@ public final class WorkspaceModel {
     /// Resolves bookmarks; refreshes stale ones; reports folders that can't be found.
     private func resolveRoots() {
         resolvedRoots = [:]
+        unresolvedRoots = []
         var refreshed = roots
         for (i, root) in roots.enumerated() {
             guard let (url, isStale) = try? root.resolve() else {
                 lastError = "Can't find the folder \(root.path)."
+                unresolvedRoots.append(root)
                 continue
             }
             if isStale, let fresh = try? WorkspaceRoot(url: url) { refreshed[i] = fresh }

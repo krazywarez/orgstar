@@ -4707,6 +4707,41 @@
         }
       }
     },
+    "Can't Open": {
+      "comment": "Sidebar section for folders orgstar can't open",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kann nicht geöffnet werden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pueden abrir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'ouvrir"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開けません"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não É Possível Abrir"
+          }
+        }
+      }
+    },
     "Can't include %@.": {
       "comment": "Export stopped by an #+INCLUDE file that can't be read",
       "localizations": {
@@ -5566,6 +5601,40 @@
         }
       }
     },
+    "Choose": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher"
+          }
+        }
+      }
+    },
     "Choose %@ or a folder that contains it.": {
       "comment": "Open panel for giving orgstar access to a folder",
       "localizations": {
@@ -5597,6 +5666,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escolha %@ ou uma pasta que a contenha."
+          }
+        }
+      }
+    },
+    "Choose %@ to add it to the sidebar.": {
+      "comment": "Open panel for a folder imported from Emacs",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle %@, um ihn zur Seitenleiste hinzuzufügen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige %@ para añadirla a la barra lateral."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez %@ pour l'ajouter à la barre latérale."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ を選択してサイドバーに追加してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha %@ para adicioná-la à barra lateral."
+          }
+        }
+      }
+    },
+    "Choose %@ to give orgstar access to it again.": {
+      "comment": "Open panel for a sidebar folder orgstar can't open",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle %@, um orgstar wieder Zugriff darauf zu geben."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige %@ para volver a dar acceso a orgstar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez %@ pour redonner l'accès à orgstar."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ を選択して、orgstarに再度アクセスを許可してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha %@ para dar acesso ao orgstar novamente."
           }
         }
       }
@@ -5665,6 +5804,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escolher Pasta de Configuração…"
+          }
+        }
+      }
+    },
+    "Choose Doom Folder…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doom-Ordner wählen …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir carpeta de Doom…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir le dossier de Doom…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doomフォルダを選択…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher Pasta do Doom…"
           }
         }
       }
@@ -5835,6 +6008,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escolha um plano"
+          }
+        }
+      }
+    },
+    "Choose or make the folder for your notes in iCloud Drive.": {
+      "comment": "Open panel on the welcome sheet",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle oder erstelle in iCloud Drive den Ordner für deine Notizen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige o crea en iCloud Drive la carpeta para tus notas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez ou créez dans iCloud Drive le dossier de vos notes."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud Driveでメモ用のフォルダを選択または作成してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha ou crie no iCloud Drive a pasta para suas notas."
+          }
+        }
+      }
+    },
+    "Choose the folder Doom is installed in (~/.config/emacs or ~/.emacs.d) to read Doom's own org defaults.": {
+      "comment": "Open panel for Doom's install folder when importing from Emacs",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle den Ordner, in dem Doom installiert ist (~/.config/emacs oder ~/.emacs.d), um Dooms eigene Org-Voreinstellungen zu lesen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige la carpeta donde está instalado Doom (~/.config/emacs o ~/.emacs.d) para leer los valores predeterminados de org de Doom."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez le dossier où Doom est installé (~/.config/emacs ou ~/.emacs.d) pour lire les réglages org par défaut de Doom."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doomのorg既定値を読み込むには、Doomがインストールされているフォルダ(~/.config/emacs または ~/.emacs.d)を選択してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a pasta onde o Doom está instalado (~/.config/emacs ou ~/.emacs.d) para ler os padrões de org do próprio Doom."
           }
         }
       }
@@ -9601,6 +9844,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concluído em %1$lld dos últimos %2$lld dias"
+          }
+        }
+      }
+    },
+    "Doom's own org defaults are read from the folder Doom is installed in": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dooms eigene Org-Voreinstellungen werden aus dem Ordner gelesen, in dem Doom installiert ist"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los valores predeterminados de org de Doom se leen de la carpeta donde está instalado Doom"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réglages org par défaut de Doom sont lus dans le dossier où Doom est installé"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doomのorg既定値は、Doomがインストールされているフォルダから読み込まれます"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os padrões de org do próprio Doom são lidos da pasta onde o Doom está instalado"
           }
         }
       }
@@ -16817,6 +17094,40 @@
         }
       }
     },
+    "Makes notes.org in a folder you choose or make in iCloud Drive and adds the folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legt notes.org in einem Ordner an, den du in iCloud Drive wählst oder erstellst, und fügt den Ordner hinzu"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea notes.org en una carpeta que eliges o creas en iCloud Drive y añade la carpeta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crée notes.org dans un dossier que vous choisissez ou créez dans iCloud Drive et ajoute le dossier"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud Driveで選択または作成したフォルダにnotes.orgを作成し、フォルダを追加します"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cria notes.org em uma pasta que você escolhe ou cria no iCloud Drive e adiciona a pasta"
+          }
+        }
+      }
+    },
     "Makes org/notes.org in iCloud Drive and adds the folder": {
       "localizations": {
         "de": {
@@ -18257,6 +18568,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nova Pasta no iCloud Drive"
+          }
+        }
+      }
+    },
+    "New Folder in iCloud Drive…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Ordner in iCloud Drive …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nueva carpeta en iCloud Drive…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau dossier dans iCloud Drive…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud Driveに新規フォルダ…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nova Pasta no iCloud Drive…"
           }
         }
       }
@@ -32371,6 +32716,41 @@
         }
       }
     },
+    "Use Folder": {
+      "comment": "Open panel button on the welcome sheet",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner verwenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar carpeta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser le dossier"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダを使用"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar Pasta"
+          }
+        }
+      }
+    },
     "Use Selection for Find": {
       "comment": "Command title",
       "localizations": {
@@ -34817,6 +35197,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "O orgstar pode notificar você antes de entradas com horário, como os lembretes de compromissos do Org, e mostrar o número de atrasados de hoje no ícone."
+          }
+        }
+      }
+    },
+    "orgstar can't open this folder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar kann diesen Ordner nicht öffnen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar no puede abrir esta carpeta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar ne peut pas ouvrir ce dossier"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstarはこのフォルダを開けません"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O orgstar não consegue abrir esta pasta"
           }
         }
       }
