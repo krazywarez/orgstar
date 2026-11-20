@@ -31,8 +31,9 @@ preflight() {
 }
 
 # Checks the built app: no Sparkle, no updater keys, no process launching, no temporary exceptions,
-# a provisioning profile in the app and in each extension, and no license or update text in its
-# string tables.
+# and no license or update text in its string tables. Provisioning profiles aren't checked here: the
+# archive is signed for development, which gives extensions without capabilities none, and the
+# export signs every bundle again with a distribution profile.
 check_archive() {
     set -- "$1"/Products/Applications/*.app
     [ -d "$1" ] || fail "no app in the archive"
@@ -50,7 +51,6 @@ check_archive() {
         case "$entitlements" in
             *temporary-exception*) fail "$(basename "$bundle") has a temporary-exception entitlement" ;;
         esac
-        [ -f "$bundle/Contents/embedded.provisionprofile" ] || fail "$(basename "$bundle") has no embedded.provisionprofile"
     done
     found="$(find "$app" -path '*.lproj/*' -name '*.strings' -exec sh -c \
         'plutil -convert json -o - "$1" | grep -Eio "sponsor|license key|krz\.sh|check for updates" | sed "s|^|$1: |"' _ {} \; | head -1)"
