@@ -1377,7 +1377,11 @@ public enum Calc {
                 return best
             case "abs":
                 let x = try one(args)
-                if case .date(let d) = x { return .date(try compare(d, .int(0)) < 0 ? try negate(d) : d) }
+                if case .date(let d) = x {
+                    // Calc leaves abs of day number 0 unevaluated.
+                    if d == .int(0) { throw Unsupported("date arithmetic") }
+                    return .date(try compare(d, .int(0)) < 0 ? try negate(d) : d)
+                }
                 return try compare(x, .int(0)) < 0 ? try negate(x) : x
             case "floor", "ceil", "trunc":
                 if args.count == 1, case .date(let d) = args[0] { return .date(try call(name, [d])) }

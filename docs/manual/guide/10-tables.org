@@ -433,7 +433,8 @@ A date is its day number underneath, counted from 1 January of year 1, so the su
 dates is a number and =vmean= of two dates is the day number halfway between them.
 =vsum=, =vmax=, =vmin=, =max=, =min=, =abs= and the comparisons work on dates; =floor=,
 =ceil=, =trunc= and =round= keep a date and drop or round its time. A timestamp with a
-time, even =00:00=, keeps showing one.
+time, even =00:00=, keeps showing one. Calc leaves =abs= of day 0 (=<-1-12-31>=)
+unevaluated, so that needs Emacs.
 
 | Function                                   | Result                                                                             |
 |--------------------------------------------+------------------------------------------------------------------------------------|
