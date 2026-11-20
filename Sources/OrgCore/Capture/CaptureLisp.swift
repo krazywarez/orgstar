@@ -82,14 +82,7 @@ extension Capture {
             self.answers = answers[...]
             lisp.set("user-full-name", .string(context.userName))
             lisp.define("user-full-name") { [context] _, _ in .string(context.userName) }
-            lisp.define("current-time") { [context] _, _ in Self.time(context.now) }
-            lisp.define("format-time-string") { [context] _, args in
-                guard let format = args.first?.string else { throw Elisp.Signal(message: "Wrong type argument: stringp, \(args.first?.description ?? "nil")") }
-                let date = try args.count > 1 && !Elisp.isNil(args[1]) ? Self.date(args[1]) : context.now
-                var at = context
-                at.now = date
-                return .string(Capture.strftime(format, at))
-            }
+            lisp.standardTime(now: { [context] in context.now }, calendar: context.calendar)
             lisp.define("read-string") { [unowned self] _, args in
                 let prompt = args.first?.string ?? ""
                 let initial = args.count > 1 ? args[1].string : nil
@@ -100,22 +93,6 @@ extension Capture {
                 used += 1
                 return .string(answer.isEmpty ? fallback ?? initial ?? "" : answer)
             }
-        }
-
-        /// `(HIGH LOW USEC PSEC)`.
-        static func time(_ date: Date) -> Sexp {
-            let seconds = Int(date.timeIntervalSince1970.rounded(.down))
-            let micro = Int((date.timeIntervalSince1970 - Double(seconds)) * 1_000_000)
-            return .list([.integer(seconds >> 16), .integer(seconds & 0xFFFF), .integer(micro), .integer(0)])
-        }
-
-        static func date(_ time: Sexp) throws -> Date {
-            if let seconds = time.integer { return Date(timeIntervalSince1970: Double(seconds)) }
-            guard let parts = time.elements, parts.count >= 2, let high = parts[0].integer, let low = parts[1].integer else {
-                throw Elisp.Unsupported(what: "time value \(time.description)")
-            }
-            let micro = parts.count > 2 ? Double(parts[2].integer ?? 0) / 1_000_000 : 0
-            return Date(timeIntervalSince1970: Double(high << 16 + low) + micro)
         }
 
         /// The value to insert for the form `text`: a string, or "" for nil.

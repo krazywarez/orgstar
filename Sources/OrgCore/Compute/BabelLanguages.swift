@@ -93,6 +93,7 @@ extension Babel {
     public static func evaluateNatively(_ job: BabelJob) throws(Failure) -> BabelOutput? {
         guard let form = job.lispForm, let sexp = try? LispReader.readFirst(form).sexp else { return nil }
         let lisp = Elisp()
+        lisp.standardTime()
         let result: Sexp
         do {
             result = try lisp.eval(sexp)

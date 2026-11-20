@@ -257,6 +257,13 @@ struct BabelTests {
         "#+begin_src emacs-lisp\n(car 1)\n#+end_src\n",
         "#+begin_src emacs-lisp :results raw\n\"*bold*\"\n#+end_src\n",
         "#+begin_src emacs-lisp :wrap example\n(upcase \"wrapped\")\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(defun sq (x) (* x x))\n(mapcar #'sq '(1 2 3))\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(cl-loop for i from 1 to 3 collect (list i (* i i)))\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(let ((s \"v2.15\")) (when (string-match \"\\\\([0-9]+\\\\)\\\\.\\\\([0-9]+\\\\)\" s) (list (match-string 1 s) (match-string 2 s))))\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(pcase '(add 2 3) (`(add ,a ,b) (+ a b)) (_ 'unknown))\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(replace-regexp-in-string \"o+\" \"0\" \"foo boo\")\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(format-time-string \"%A %Y-%m-%d\" (org-time-string-to-time \"<2026-11-20>\"))\n#+end_src\n",
+        "#+begin_src emacs-lisp\n(let-alist '((name . \"x\") (size . 3)) (format \"%s:%d\" .name .size))\n#+end_src\n",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))

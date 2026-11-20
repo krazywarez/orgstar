@@ -102,6 +102,21 @@ struct TableFormulaTests {
         try compare(Self.native, fallbacksAllowed: false)
     }
 
+    /// Lisp formulas with regexps, math, sequences, loops and dates: all run natively.
+    static let lisp = [
+        "| name | starred | words |\n|------+---------+-------|\n| apple pie | | |\n| kiwi | | |\n#+TBLFM: $2='(replace-regexp-in-string \"[aeiou]\" \"*\" $1)::$3='(length (split-string $1))\n",
+        "| code | number |\n|------+--------|\n| ab-12 | |\n| none | |\n#+TBLFM: $2='(if (string-match \"[0-9]+\" $1) (match-string 0 $1) \"-\")\n",
+        "| n | root | square | sum |\n|---+------+--------+-----|\n| 4 | | | |\n| 10 | | | |\n#+TBLFM: $2='(sqrt $1);N::$3='(expt $1 2);N::$4='(cl-loop for i from 1 to $1 sum i);N\n",
+        "| day | weekday | since |\n|-----+---------+-------|\n| <2026-11-20 Fri> | | |\n| [2026-03-01 Sun] | | |\n#+TBLFM: $2='(format-time-string \"%A\" (org-time-string-to-time $1))::$3='(- (org-time-string-to-absolute $1) (org-time-string-to-absolute \"<2026-01-01 Thu>\"))\n",
+        "| tags | sorted |\n|------+--------|\n| c,a,b | |\n#+TBLFM: $2='(string-join (sort (split-string $1 \",\") #'string<) \"+\")\n",
+        "| kind | label |\n|------+-------|\n| 1 | |\n| 2 | |\n| 7 | |\n#+TBLFM: $2='(pcase $1 (1 \"one\") (2 \"two\") (_ \"many\"));N\n",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func lispFormulasMatchEmacsNatively() throws {
+        try compare(Self.lisp, fallbacksAllowed: false)
+    }
+
     func compare(_ tables: [String], fallbacksAllowed: Bool) throws {
         var cases: [EmacsOracle.Case] = []
         var ours: [(text: String, caret: Int, failure: String?)] = []

@@ -125,9 +125,8 @@ public enum DiarySexp {
 
     static func optional(_ args: [Sexp], _ i: Int) -> Sexp { i < args.count ? args[i] : .nil }
 
-    static func define(_ lisp: Elisp) {
-        func date() throws -> Sexp { try lisp.value("date") }
-        func entry() throws -> Sexp { try lisp.value("entry") }
+    /// The calendar functions, which don't depend on the diary entry.
+    static func defineCalendar(_ lisp: Elisp) {
         func arity(_ args: [Sexp], _ range: ClosedRange<Int>, _ name: String) throws {
             try Elisp.arity(args, range, name)
         }
@@ -180,7 +179,20 @@ public enum DiarySexp {
             let thursday = day - (Days.weekday(day) + 6) % 7 + 3
             return .list([.integer(Days.isoWeek(day)), .integer(Days.weekday(day)), .integer(Days.date(thursday).year)])
         }
+        lisp.define("calendar-check-holidays") { _, args in
+            try arity(args, 1...1, "calendar-check-holidays")
+            return Elisp.list(holidays(try absolute(args[0])).map(Sexp.string))
+        }
+    }
 
+    static func define(_ lisp: Elisp) {
+        func date() throws -> Sexp { try lisp.value("date") }
+        func entry() throws -> Sexp { try lisp.value("entry") }
+        func arity(_ args: [Sexp], _ range: ClosedRange<Int>, _ name: String) throws {
+            try Elisp.arity(args, range, name)
+        }
+
+        defineCalendar(lisp)
         lisp.define("diary-ordinal-suffix") { _, args in
             try arity(args, 1...1, "diary-ordinal-suffix")
             return .string(try ordinalSuffix(try Elisp.int(args[0])))
@@ -299,10 +311,6 @@ public enum DiarySexp {
         lisp.define("org-cyclic") { lisp, args in try iso(lisp) { try lisp.callNamed("diary-cyclic", args) } }
         lisp.define("org-block") { lisp, args in try iso(lisp) { try lisp.callNamed("diary-block", args) } }
         lisp.define("org-date") { lisp, args in try iso(lisp) { try lisp.callNamed("diary-date", args) } }
-        lisp.define("calendar-check-holidays") { _, args in
-            try arity(args, 1...1, "calendar-check-holidays")
-            return Elisp.list(holidays(try absolute(args[0])).map(Sexp.string))
-        }
         lisp.define("org-calendar-holiday") { _, _ in
             let names = holidays(try absolute(try date()))
             return names.isEmpty ? .nil : .string(names.joined(separator: "; "))

@@ -656,6 +656,7 @@ extension EmacsBuffer {
     /// `(eval (eval (read form)))` for a Lisp formula; an error is `#ERROR`.
     func evalLisp(_ form: String, duration: DurationFormat?) throws -> String {
         let lisp = Elisp()
+        lisp.standardTime()
         Self.defineLookups(lisp)
         let value: Sexp
         do {

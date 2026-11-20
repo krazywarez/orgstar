@@ -16,9 +16,9 @@ public final class Elisp {
 
     public typealias Builtin = (Elisp, [Sexp]) throws -> Sexp
 
-    private var scopes: [[String: Sexp]] = [[:]]
+    var scopes: [[String: Sexp]] = [[:]]
     private var functions: [String: Builtin] = [:]
-    private var steps = 0
+    var steps = 0
     static let stepLimit = 1_000_000
     /// Nested evaluations, as `max-lisp-eval-depth` limits them.
     private var depth = 0
@@ -32,9 +32,14 @@ public final class Elisp {
     public var standardOutput: String { outputs[0] }
     /// What `message` wrote.
     public private(set) var messages = ""
+    /// What the last `string-match` matched: each group's range in characters.
+    var matchData: [Range<Int>?] = []
+    var regexes: [String: ElispRegex] = [:]
 
     public init() {
         Self.core(self)
+        Self.library(self)
+        Self.regexFunctions(self)
     }
 
     /// Defines or replaces a function.
@@ -55,7 +60,7 @@ public final class Elisp {
         return try body()
     }
 
-    private func assign(_ name: String, _ v: Sexp) {
+    func assign(_ name: String, _ v: Sexp) {
         for i in scopes.indices.reversed() where scopes[i][name] != nil {
             scopes[i][name] = v
             return
@@ -201,7 +206,18 @@ public final class Elisp {
                 }
                 throw Signal(message: "Invalid function: \(head.description)")
             }
-            return try special(name, Array(items.dropFirst())) ?? callNamed(name, try items.dropFirst().map(eval))
+            let args = Array(items.dropFirst())
+            if let value = try special(name, args) { return value }
+            // The function first, so an unknown one, or a macro this evaluator lacks, is
+            // unsupported rather than an error from its arguments.
+            guard let function = functions[name] else { throw Unsupported(what: "function \(name)") }
+            let values = try args.map(eval)
+            let result = try function(self, values)
+            if case .symbol(let variable)? = args.first, variable != "nil", variable != "t", !variable.hasPrefix(":"),
+               let after = Self.afterInPlace(name, values, result) {
+                assign(variable, after)
+            }
+            return result
         case .dotted: throw Signal(message: "Invalid function")
         default: return form
         }
@@ -344,7 +360,7 @@ public final class Elisp {
                 throw signal
             }
         default:
-            return nil
+            return try moreSpecial(name, args)
         }
     }
 
@@ -725,7 +741,7 @@ public final class Elisp {
         }
         lisp.define("substring") { _, args in
             try arity(args, 1...3, "substring")
-            let chars = Array(try string(args[0]))
+            let chars = Array(try string(args[0]).unicodeScalars)
             func index(_ v: Sexp?, _ fallback: Int) throws -> Int {
                 guard let v, !isNil(v) else { return fallback }
                 let i = try int(v)
@@ -734,7 +750,7 @@ public final class Elisp {
             let from = try index(args.count > 1 ? args[1] : nil, 0)
             let to = try index(args.count > 2 ? args[2] : nil, chars.count)
             guard from >= 0, to <= chars.count, from <= to else { throw Signal(message: "Args out of range") }
-            return .string(String(chars[from..<to]))
+            return .string(String(String.UnicodeScalarView(chars[from..<to])))
         }
         lisp.define("string-to-number") { _, args in
             try arity(args, 1...2, "string-to-number")
@@ -761,24 +777,6 @@ public final class Elisp {
         lisp.define("string-trim") { _, args in
             try arity(args, 1...1, "string-trim")
             return .string(try string(args[0]).trimmingCharacters(in: .whitespacesAndNewlines))
-        }
-        lisp.define("split-string") { _, args in
-            try arity(args, 1...2, "split-string")
-            let s = try string(args[0])
-            if args.count == 2, !isNil(args[1]) {
-                let separator = try string(args[1])
-                let regex = try NSRegularExpression(pattern: separator)
-                let ns = s as NSString
-                var parts: [Sexp] = []
-                var start = 0
-                for m in regex.matches(in: s, range: NSRange(location: 0, length: ns.length)) where m.range.length > 0 {
-                    parts.append(.string(ns.substring(with: NSRange(location: start, length: m.range.location - start))))
-                    start = NSMaxRange(m.range)
-                }
-                parts.append(.string(ns.substring(from: start)))
-                return list(parts)
-            }
-            return list(s.split(whereSeparator: { " \t\n\r\u{0C}\u{0B}".contains($0) }).map { .string(String($0)) })
         }
     }
 
