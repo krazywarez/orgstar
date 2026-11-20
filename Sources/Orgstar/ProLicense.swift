@@ -1,6 +1,7 @@
 import OrgApp
 import SwiftUI
 
+#if !APPSTORE
 /// Pro on the Mac: a license key for sponsoring on GitHub, or an install that predates Pro.
 enum MacPro {
     static let buyURL = URL(string: "https://krz.sh/apps/orgstar/buy")!
@@ -128,6 +129,8 @@ struct ProPaywallSheet: View {
         .onChange(of: ProAccess.shared.isUnlocked) { _, unlocked in if unlocked { dismiss() } }
     }
 }
+
+#endif
 
 extension ProFeature {
     /// The Pro features the Mac app has.

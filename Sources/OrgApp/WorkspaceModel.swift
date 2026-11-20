@@ -136,6 +136,24 @@ public final class WorkspaceModel {
     /// Resolved root paths, sorted.
     public var rootPaths: [String] { resolvedRoots.keys.sorted() }
 
+    /// Whether `url` is a root or inside one.
+    public func contains(_ url: URL) -> Bool {
+        Self.isInside(url, roots: Array(resolvedRoots.values))
+    }
+
+    /// Whether `url` is one of `roots` or inside one, by whole path components, as written or
+    /// with symbolic links resolved.
+    nonisolated static func isInside(_ url: URL, roots: [URL]) -> Bool {
+        func forms(_ url: URL) -> [[String]] {
+            let standard = url.standardizedFileURL
+            return [standard.pathComponents, standard.resolvingSymlinksInPath().pathComponents]
+        }
+        let paths = forms(url)
+        return roots.flatMap(forms).contains { root in
+            paths.contains { $0.count >= root.count && Array($0.prefix(root.count)) == root }
+        }
+    }
+
     // MARK: - Indexing
 
     /// Which files the folders show; a change rescans them.

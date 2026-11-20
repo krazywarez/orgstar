@@ -1,3 +1,4 @@
+#if !APPSTORE
 import AppKit
 import OrgEditorAppKit
 
@@ -47,3 +48,4 @@ enum DevelopmentHooks {
         }
     }
 }
+#endif

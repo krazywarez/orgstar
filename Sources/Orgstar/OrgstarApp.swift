@@ -182,12 +182,16 @@ struct PromptRequest: Identifiable {
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     var session: DocumentSession?
     var commands: AppCommands?
+    #if !APPSTORE
     let updates = Updates()
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         DockIcon.start()
         if SystemReminderCenter.isAvailable { UNUserNotificationCenter.current().delegate = self }
+        #if !APPSTORE
         updates.start()
+        #endif
     }
 
     /// `:session` interpreters end with the app.
@@ -329,11 +333,14 @@ struct OrgstarApp: App {
     }()
 
     init() {
-        #if !APPSTORE
+        #if APPSTORE
+        AgendaSnapshot.useGroupContainer = true
+        ProStore.shared.start()
+        #else
         DocumentSession.programs = Programs()
-        #endif
         MacPro.resolve()
         MacPro.renewInBackground()
+        #endif
         // Debug builds, and runs with ORGSTAR_PERF set: main-thread stalls in the console.
         #if DEBUG
         Perf.watchMainThread()
@@ -408,7 +415,7 @@ struct OrgstarApp: App {
             }
             CommandGroup(after: .saveItem) {
                 Menu("Export") {
-                    ForEach(EditorCommands.all.filter { $0.id.hasPrefix("app.export.") }, id: \.id) { command in
+                    ForEach(EditorCommands.all.filter { $0.id.hasPrefix("app.export.") && !hiddenCommandIDs.contains($0.id) }, id: \.id) { command in
                         Button(command.localizedTitle) { commands.run(command.id) }
                     }
                 }
@@ -511,12 +518,18 @@ struct OrgstarApp: App {
                 Button("Edit Config File") { commands.jump(path: UserConfig.configFile.path, offset: 0) }
                     .keyboardShortcut(",", modifiers: [.command, .option])
             }
+            #if !APPSTORE
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesItem(updates: delegate.updates)
             }
+            #endif
         }
         Settings {
+            #if APPSTORE
+            SettingsView(commands: commands, workspace: try? workspace.get())
+            #else
             SettingsView(commands: commands, workspace: try? workspace.get(), updates: delegate.updates)
+            #endif
         }
     }
 }
@@ -595,7 +608,9 @@ struct AgendaMenuItem: View {
 struct SettingsView: View {
     let commands: AppCommands
     let workspace: WorkspaceModel?
+    #if !APPSTORE
     let updates: Updates
+    #endif
     @State private var importing = false
     @Environment(\.openWindow) private var openWindow
     @AppStorage("saveMode") private var saveMode = SaveMode.automatic
@@ -659,7 +674,11 @@ struct SettingsView: View {
             Tab("Appearance", systemImage: "paintpalette", value: "appearance") { appearance }
             Tab("Agenda", systemImage: "calendar", value: "agenda") { agenda }
             Tab("Capture", systemImage: "tray.and.arrow.down", value: "capture") { capture }
+            #if APPSTORE
+            Tab("orgstar+", systemImage: "star", value: "pro") { StoreForm() }
+            #else
             Tab("orgstar+", systemImage: "star", value: "pro") { LicenseForm() }
+            #endif
         }
         .frame(width: 600)
     }
@@ -687,6 +706,7 @@ struct SettingsView: View {
                 Text("Every setting here is also in \(UserConfig.configFile.path), which you can edit, share or keep with your dotfiles. Changes in either place show up in the other.")
                     .settingsFooter()
             }
+            #if !APPSTORE
             if updates.canCheck {
                 Section {
                     Toggle("Check for updates automatically", isOn: Binding(get: { updates.automatically }, set: { updates.automatically = $0 }))
@@ -695,6 +715,7 @@ struct SettingsView: View {
                         .settingsFooter()
                 }
             }
+            #endif
             Section {
                 Picker("Save files", selection: $saveMode) {
                     Text("Automatically, when typing stops").tag(SaveMode.automatic)

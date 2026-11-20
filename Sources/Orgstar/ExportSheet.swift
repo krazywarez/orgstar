@@ -8,7 +8,9 @@ struct ExportSheet: View {
     let inSubtree: Bool
     /// The default destination for an extension, with or without the subtree.
     let target: (_ ext: String, _ subtree: Bool) -> URL
-    let export: (_ format: String, _ destination: URL, _ open: Bool, _ subtree: Bool, _ bodyOnly: Bool) -> Void
+    /// Without a chosen destination, the App Store build passes nil, and the export asks where
+    /// to write when the default is outside the sandbox's reach.
+    let export: (_ format: String, _ destination: URL?, _ open: Bool, _ subtree: Bool, _ bodyOnly: Bool) -> Void
     @AppStorage("exportFormat") private var format = "html"
     @AppStorage("exportOpenAfter") private var openAfter = false
     @AppStorage("exportBodyOnly") private var bodyOnly = false
@@ -19,12 +21,19 @@ struct ExportSheet: View {
     @State private var destination: URL?
     @Environment(\.dismiss) private var dismiss
 
+    #if APPSTORE
+    static let formats: [(id: String, title: String, ext: String)] = [
+        ("html", "HTML", "html"), ("markdown", "Markdown", "md"), ("print-pdf", "PDF", "pdf"), ("docx", "Word", "docx"),
+        ("rtf", "Rich Text (RTF)", "rtf"), ("plain-text", "Plain text", "txt"), ("icalendar", "iCalendar", "ics"),
+    ]
+    #else
     static let formats: [(id: String, title: String, ext: String)] = [
         ("html", "HTML", "html"), ("markdown", "Markdown", "md"), ("print-pdf", "PDF", "pdf"), ("docx", "Word", "docx"),
         ("rtf", "Rich Text (RTF)", "rtf"), ("plain-text", "Plain text", "txt"), ("pdf", "PDF via LaTeX (Emacs)", "pdf"),
         ("odt", "ODT (Emacs)", "odt"), ("latex", "LaTeX (Emacs)", "tex"), ("text", "Plain text, ASCII (Emacs)", "txt"),
         ("icalendar", "iCalendar", "ics"),
     ]
+    #endif
 
     private var ext: String { Self.formats.first { $0.id == format }?.ext ?? "html" }
     private var chosen: URL { destination ?? target(ext, subtree) }
@@ -68,7 +77,11 @@ struct ExportSheet: View {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button("Export") {
+                    #if APPSTORE
+                    export(format, destination, openAfter, subtree && inSubtree, bodyOnly && allowsBodyOnly)
+                    #else
                     export(format, chosen, openAfter, subtree && inSubtree, bodyOnly && allowsBodyOnly)
+                    #endif
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)

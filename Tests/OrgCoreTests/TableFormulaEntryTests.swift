@@ -98,7 +98,7 @@ extension TableFormulaEntryTests {
         let tab = try #require(committed(TableCommand(.nextField), symbolic, after: "*2"))
         #expect(tab.text == "| a | b     |\n| x | =$1*2 |\n| y |       |\n#+TBLFM: $2=$1*2\n", "\(tab.text.debugDescription)")
         #expect(tab.caret == (tab.text as NSString).range(of: "| y").location + 2)
-        #expect(tab.message?.hasPrefix("The formula was stored; recalculating it needs Emacs") == true)
+        #expect(tab.message?.hasPrefix("The formula was stored; it can't be calculated here") == true)
         let prompted = try #require(committed(TableEvalFormula(named: false), symbolic, after: "| x", answers: ["formula": "$1+1"]))
         #expect(prompted.text.hasSuffix("#+TBLFM: $1=$1+1\n") && prompted.message != nil, "\(prompted)")
     }

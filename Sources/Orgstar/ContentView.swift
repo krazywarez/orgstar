@@ -346,7 +346,13 @@ struct ContentView: View {
         .onChange(of: preset, initial: true) { loadKeymap() }
         .sheet(isPresented: $showingImport) { EmacsImportView(workspace: workspace) }
         .sheet(item: $panel) { panel in panelView(panel) }
-        .sheet(item: Bindable(ProAccess.shared).paywall) { feature in ProPaywallSheet(feature: feature) }
+        .sheet(item: Bindable(ProAccess.shared).paywall) { feature in
+            #if APPSTORE
+            StorePaywallSheet(feature: feature)
+            #else
+            ProPaywallSheet(feature: feature)
+            #endif
+        }
         .sheet(item: $blockEdit) { request in
             BlockEditorView(edit: request.edit) { content in
                 blockEdit = nil
@@ -490,12 +496,18 @@ struct ContentView: View {
             }
         }
         .task {
+            #if !APPSTORE
             DevelopmentHooks.scheduleSnapshot()
+            #endif
             pendingCarets = BufferRestore.restore(session)
             if let path = session.path, let caret = pendingCarets.removeValue(forKey: path) { session.reveal(caret) }
             // Files handed over at launch open after the restored buffers, and show.
             for path in AppDelegate.pendingOpens { session.open(path) }
             AppDelegate.pendingOpens = []
+            #if APPSTORE
+            for link in AppDelegate.pendingLinks { commands.handle(protocolURL: link) }
+            AppDelegate.pendingLinks = []
+            #else
             for link in AppDelegate.pendingLinks + [DevelopmentHooks.urlToOpen].compactMap({ $0 }) { commands.handle(protocolURL: link) }
             AppDelegate.pendingLinks = []
             if let path = DevelopmentHooks.fileToOpen { selectedFile = path }
@@ -512,6 +524,7 @@ struct ContentView: View {
             if let id = DevelopmentHooks.windowToOpen {
                 if id == "settings" { openSettings() } else { openWindow(id: id) }
             }
+            #endif
             await workspace.refresh()
             workspace.startWatching()
         }
@@ -574,6 +587,8 @@ struct ContentView: View {
         }
         switch format {
         case "icalendar":
+            let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
+            guard let destination = destination ?? writable(ExportScope.output(for: url, name: name, extension: "ics")) else { return }
             do {
                 let target = try ICalendarFiles.export(whole, path: path, settings: defaults, options: OrgPreferences.icalendarOptions(),
                                                        subtree: subtree ? caret : nil, destination: destination)
@@ -584,7 +599,7 @@ struct ContentView: View {
             }
         case "html", "html-open", "markdown":
             let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
-            let target = destination ?? ExportScope.output(for: url, name: name, extension: format == "markdown" ? "md" : "html")
+            guard let target = destination ?? writable(ExportScope.output(for: url, name: name, extension: format == "markdown" ? "md" : "html")) else { return }
             let content = format == "markdown"
                 ? MarkdownExport.document(text, settings: defaults, path: path, bodyOnly: bodyOnly)
                 : HTMLExport.page(
@@ -602,7 +617,7 @@ struct ContentView: View {
         case "print-pdf", "docx", "rtf", "plain-text":
             let ext = ["print-pdf": "pdf", "plain-text": "txt"][format] ?? format
             let name = ExportScope.fileName(whole, subtreeAt: subtree ? caret : nil, settings: defaults)
-            let target = destination ?? ExportScope.output(for: url, name: name, extension: ext)
+            guard let target = destination ?? writable(ExportScope.output(for: url, name: name, extension: ext)) else { return }
             let html = HTMLExport.page(
                 text, fallbackTitle: base.lastPathComponent, settings: defaults, path: path,
                 codeStyle: HTMLCodeStyle(highlighter: PaneView.highlighter, theme: theme), language: OrgPreferences.exportLanguage()
@@ -652,9 +667,30 @@ struct ContentView: View {
                 }
             }
             #else
-            break
+            let title = EditorCommands.all.first { $0.id == "app.export." + format }?.title
+            commands.show(Self.unavailable(title ?? format))
             #endif
         }
+    }
+
+    /// `url`; in the App Store build, when it is outside every folder, where a save panel puts it
+    /// instead, as the sandbox lets orgstar write only there. Nil when the panel is canceled.
+    private func writable(_ url: URL) -> URL? {
+        #if APPSTORE
+        guard !workspace.contains(url) else { return url }
+        let panel = NSSavePanel()
+        panel.directoryURL = url.deletingLastPathComponent()
+        panel.nameFieldStringValue = url.lastPathComponent
+        panel.message = String(localized: "This file isn't in one of your folders. Choose where the export goes.", comment: "Save panel for an export outside the sidebar's folders")
+        return panel.runModal() == .OK ? panel.url : nil
+        #else
+        return url
+        #endif
+    }
+
+    /// Says a command doesn't run in this build.
+    static func unavailable(_ title: String) -> String {
+        String(localized: "\(CommandTitle.localized(title)) isn't available.", comment: "A command the Mac App Store build leaves out")
     }
 
     /// `org-icalendar-export-agenda-files`, or with `combined`, `org-icalendar-combine-agenda-files`.
@@ -740,6 +776,13 @@ struct ContentView: View {
                 panel.allowsMultipleSelection = true
                 panel.message = "File to keep as an attachment"
                 guard panel.runModal() == .OK else { return }
+                #if APPSTORE
+                // The sandbox can remove only files in the sidebar's folders, and links nothing.
+                if method == .mv, let outside = panel.urls.first(where: { !workspace.contains($0) }) {
+                    return commands.show(String(localized: "\(outside.lastPathComponent) isn't in one of your folders, so it can't be moved. Attach a copy instead.", comment: "Attach by moving a file from outside the sidebar's folders"))
+                }
+                guard method == .cp || method == .mv else { return }
+                #endif
                 attachActions.attach(panel.urls, method: method)
             })
     }
@@ -884,6 +927,10 @@ struct ContentView: View {
             blockEdit = BlockEditRequest(edit: edit)
         case .columnView(let view):
             panel = .columns(UUID(), view)
+        #if APPSTORE
+        case .emacsTable(_, _, _, let reason, _):
+            commands.show(String(localized: "This table's formulas can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar can't calculate"))
+        #else
         case .emacsTable(let table, let point, let form, let reason, let lisp):
             let run = {
                 commands.show(String(localized: "Recalculating in Emacs (\(TableReason.localized(reason)))…", comment: "Table formulas sent to Emacs, and why"))
@@ -901,6 +948,7 @@ struct ContentView: View {
                 default: commands.show("Not recalculated")
                 }
             }
+        #endif
         case .babel(let job):
             guard ProAccess.shared.allows(.babel) else { return }
             let run = {
@@ -1007,6 +1055,10 @@ struct ContentView: View {
 
     /// Runs a command from a key, the palette or the Org menu.
     private func perform(_ id: String) {
+        if hiddenCommandIDs.contains(id) {
+            if let replacement = AppStoreCommands.replacement(for: id) { return perform(replacement) }
+            return commands.show(Self.unavailable(EditorCommands.all.first { $0.id == id }?.title ?? id))
+        }
         if let feature = ProFeature.required(byCommand: id), !ProAccess.shared.allows(feature) { return }
         let orgOnly = ["app.refile", "app.refile.copy", "app.archive", "app.clock.in", "app.clock.default", "app.copy-rich-text"].contains(id) || (id.hasPrefix("app.export.") && !id.hasPrefix("app.export.icalendar-")) || id.hasPrefix("org.")
         if orgOnly, !session.isOrg {

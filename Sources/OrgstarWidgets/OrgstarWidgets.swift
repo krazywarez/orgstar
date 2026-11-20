@@ -8,6 +8,13 @@ import WidgetKit
 /// the desktop and in Notification Center.
 @main
 struct OrgstarWidgets: WidgetBundle {
+    #if APPSTORE
+    /// The App Store app writes the widgets' data to the app group's container.
+    init() {
+        AgendaSnapshot.useGroupContainer = true
+    }
+    #endif
+
     var body: some Widget {
         TodayWidget()
         HabitsWidget()

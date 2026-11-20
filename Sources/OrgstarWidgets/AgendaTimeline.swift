@@ -2,10 +2,10 @@ import OrgApp
 import SwiftUI
 import WidgetKit
 
-/// Whether the app lacks Pro, which the widgets need. Only iOS shares the flag with the widgets;
-/// the Mac app stops writing their data instead.
+/// Whether the app lacks Pro, which the widgets need. iOS and the App Store Mac app share the flag
+/// with the widgets; the Developer ID Mac app stops writing their data instead.
 var widgetsLocked: Bool {
-    #if os(iOS)
+    #if os(iOS) || APPSTORE
     !ProAccess.isUnlockedNow
     #else
     false

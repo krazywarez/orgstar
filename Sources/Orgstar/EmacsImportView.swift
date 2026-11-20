@@ -44,7 +44,12 @@ struct EmacsImportView: View {
         }
         .frame(width: 640, height: 560)
         .onAppear {
+            // The sandbox can't look in the home folder, so the App Store build starts with the picker.
+            #if APPSTORE
+            if location == nil { choosing = true }
+            #else
             if location == nil, let first = EmacsImport.defaultLocations().first { read(first) }
+            #endif
         }
         .fileImporter(isPresented: $choosing, allowedContentTypes: [.folder, .item]) { chosen in
             if case .success(let url) = chosen { read(url) }

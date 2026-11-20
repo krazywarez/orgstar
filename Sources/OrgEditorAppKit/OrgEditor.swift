@@ -652,7 +652,7 @@ public final class OrgEditor: NSObject {
         case .failed(let message):
             onMessage?(message)
         case .external(let request):
-            if let onExternal { onExternal(request) } else { onMessage?("This needs Emacs, which isn't available here.") }
+            if let onExternal { onExternal(request) } else { onMessage?("This isn't available here.") }
         case .prompt(let prompt):
             onPrompt?(prompt) { [weak self] answer in
                 guard let self else { return }

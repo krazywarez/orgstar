@@ -179,6 +179,13 @@ extension EchoArea {
     }
 }
 
+/// Commands this build leaves out of the palette and menus; their keys say so when pressed.
+#if APPSTORE
+let hiddenCommandIDs = AppStoreCommands.hidden
+#else
+let hiddenCommandIDs: Set<String> = []
+#endif
+
 /// M-x and ⇧⌘P: every command by title, with its keys.
 struct PaletteView: View {
     let commands: AppCommands
@@ -187,7 +194,7 @@ struct PaletteView: View {
     @Environment(\.dismiss) private var dismiss
 
     private var matches: [EditorCommand] {
-        let scored: [(command: EditorCommand, score: Int)] = EditorCommands.all.filter(\.inPalette).compactMap { command in
+        let scored: [(command: EditorCommand, score: Int)] = EditorCommands.all.filter { $0.inPalette && !hiddenCommandIDs.contains($0.id) }.compactMap { command in
             guard let score = FuzzyMatch.score(query, command.localizedTitle) ?? FuzzyMatch.score(query, command.title) else { return nil }
             return (command, score)
         }
