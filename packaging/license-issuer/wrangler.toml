@@ -1,23 +1,17 @@
 name = "orgstar-license"
 main = "worker.js"
 compatibility_date = "2026-10-01"
-# Paddle approves krz.sh as the live checkout domain.
 routes = [
   { pattern = "krz.sh/apps/orgstar/buy*", zone_name = "krz.sh" },
   { pattern = "krz.sh/apps/orgstar/license*", zone_name = "krz.sh" },
+  { pattern = "krz.sh/apps/orgstar/renew*", zone_name = "krz.sh" },
 ]
 
 [vars]
-PADDLE_ENV = "production"
-# The orgstar+ for Mac price in the live account, pri_…
-PRICE_ID = "pri_01m7c397a7ty57r349ye22exta"
-
-# npx wrangler deploy --env sandbox. The sandbox account's default payment link is
-# https://krz.sh/apps/orgstar/sandbox/buy.
-[env.sandbox]
-name = "orgstar-license-sandbox"
-routes = [{ pattern = "krz.sh/apps/orgstar/sandbox/*", zone_name = "krz.sh" }]
-
-[env.sandbox.vars]
-PADDLE_ENV = "sandbox"
-PRICE_ID = "pri_01m7c13kgj4jcb8xek3ej93j8c"
+SPONSORABLE = "ccleberg"
+LIFETIME_DOLLARS = "60"
+MONTHLY_DOLLARS = "5"
+# A monthly key lasts this long; the app renews it well before.
+RENEW_DAYS = "40"
+# The GitHub OAuth app's client ID. Its callback URL is https://krz.sh/apps/orgstar/license.
+GITHUB_CLIENT_ID = ""

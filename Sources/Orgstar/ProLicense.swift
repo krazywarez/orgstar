@@ -1,9 +1,10 @@
 import OrgApp
 import SwiftUI
 
-/// Pro on the Mac: a license key bought from the website, or an install that predates Pro.
+/// Pro on the Mac: a license key for sponsoring on GitHub, or an install that predates Pro.
 enum MacPro {
     static let buyURL = URL(string: "https://krz.sh/apps/orgstar/buy")!
+    static let keyURL = URL(string: "https://krz.sh/apps/orgstar/license")!
 
     /// Sets `ProAccess.shared` from the stored license or an earlier free install.
     @MainActor static func resolve() {
@@ -13,6 +14,18 @@ enum MacPro {
             ProAccess.shared.set(.grandfathered)
         } else {
             ProAccess.shared.set(nil)
+        }
+    }
+
+    /// Renews a monthly sponsor's key now and then daily, and re-resolves, so an ended
+    /// sponsorship locks orgstar+ once its key expires.
+    @MainActor static func renewInBackground() {
+        Task {
+            while true {
+                _ = await LicenseStore.renewIfDue()
+                resolve()
+                try? await Task.sleep(for: .seconds(86400))
+            }
         }
     }
 }
@@ -29,7 +42,12 @@ struct LicenseForm: View {
             Section {
                 switch access.grant {
                 case .license:
-                    LabeledContent("orgstar+", value: license.map { "Licensed to \($0.email)" } ?? "Licensed")
+                    LabeledContent("orgstar+", value: license.map { "Licensed to \($0.holder)" } ?? "Licensed")
+                    if let expires = license?.expires {
+                        let date = Date(timeIntervalSince1970: TimeInterval(expires)).formatted(date: .abbreviated, time: .omitted)
+                        Text("Renews while you sponsor monthly. This key is valid until \(date).")
+                            .foregroundStyle(.secondary)
+                    }
                 case .grandfathered:
                     LabeledContent("orgstar+", value: "Included: you used orgstar before orgstar+")
                 case .purchase, nil:
@@ -44,12 +62,13 @@ struct LicenseForm: View {
                         .onSubmit(activate)
                     if let error { Text(error).foregroundStyle(.red) }
                     HStack {
-                        Link("Buy orgstar+…", destination: MacPro.buyURL)
+                        Link("Sponsor for orgstar+…", destination: MacPro.buyURL)
+                        Link("Get Your Key…", destination: MacPro.keyURL)
                         Spacer()
                         Button("Activate", action: activate).disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 } footer: {
-                    Text("Your key is in the email from the purchase. It is checked on this Mac; nothing is sent.")
+                    Text("Sponsors get their key by signing in with GitHub. It is checked on this Mac; a monthly sponsor's key is renewed with krz.sh.")
                 }
             } else {
                 Section {
@@ -76,7 +95,9 @@ struct LicenseForm: View {
             error = nil
             ProAccess.shared.set(.license)
         } catch .badSignature {
-            error = "This key isn't valid for orgstar. Paste the whole key from the email."
+            error = "This key isn't valid for orgstar. Paste the whole key from the license page."
+        } catch .expired {
+            error = "This key has expired. Sign in on the license page for a current one."
         } catch {
             self.error = "That doesn't look like an orgstar license key."
         }
@@ -92,7 +113,7 @@ struct ProPaywallSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Label("\(feature.title) needs orgstar+", systemImage: feature.systemImage).font(.headline)
-                Text("orgstar+ is a one-time purchase of $39.99 for this Mac. Editing, the agenda, capture, clocking and search stay free.")
+                Text("orgstar+ for Mac comes with sponsoring orgstar on GitHub: $60 once, or $5 a month. Editing, the agenda, capture, clocking and search stay free.")
                     .foregroundStyle(.secondary)
             }
             .padding([.horizontal, .top], 20)

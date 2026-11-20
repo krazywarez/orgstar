@@ -1,153 +1,261 @@
-// Serves the orgstar+ for Mac buy page and issues license keys for completed Paddle transactions.
-// Both paths are matched by their last segment, so the Worker answers under any route:
-// krz.sh/apps/orgstar/buy, krz.sh/apps/orgstar/sandbox/buy, or /buy under `wrangler dev`.
+// Issues orgstar+ for Mac license keys to GitHub sponsors. Paths are matched by their last
+// segment, so the Worker answers under any route: krz.sh/apps/orgstar/buy, or /buy under
+// `wrangler dev`.
 //
-// GET …/buy shows the price from Paddle.PricePreview, localized to the visitor's country (from
-// Cloudflare's request.cf, omitted when unknown so Paddle.js detects it from the IP), and opens
-// Paddle Checkout as a one-page overlay. On checkout.completed it goes to …/license?txn=txn_….
+// GET …/buy shows what orgstar+ includes and the two sponsorships that come with a key, linking to
+// github.com/sponsors/SPONSORABLE, and to …/license for a sponsor's key.
 //
-// GET …/license?txn=txn_… looks the transaction up in Paddle, and when it is completed and
-// includes PRICE_ID, returns `ORGSTAR1-<payload>.<signature>`: base64url JSON
-// {"e": email, "t": transaction, "i": billed-at seconds}, signed with Ed25519. The app checks the
-// signature offline (Sources/OrgApp/LicenseKey.swift). Ed25519 signatures are deterministic, so the
-// same transaction always yields the same key; nothing is stored.
+// GET …/license signs in with GitHub (OAuth, state in a cookie) and asks GitHub for the visitor's
+// sponsorship of SPONSORABLE:
+// - one-time, LIFETIME_DOLLARS or more: a key that doesn't expire, the same one each time;
+// - monthly and active, MONTHLY_DOLLARS or more: a key that expires RENEW_DAYS after it is issued.
 //
-// Vars (wrangler.toml, per environment): PADDLE_ENV ("sandbox" or "production", no default), PRICE_ID.
-// Secrets (`wrangler secret put NAME [--env sandbox]`; locally .dev.vars, see .dev.vars.example):
-// PADDLE_CLIENT_TOKEN (test_… or live_…), PADDLE_API_KEY, LICENSE_PRIVATE_KEY (PKCS#8 PEM, from
-// keygen.sh; the sandbox Worker takes the same key).
+// POST …/renew with a monthly key as the body returns a fresh one while that sponsorship is
+// still active (403 when it isn't). orgstar renews monthly keys in the background.
+//
+// A key is `ORGSTAR1-<payload>.<signature>`: base64url JSON {"e": GitHub login, "t": "github:" +
+// the account's node ID, "i": issued, "x": expires (monthly keys only), seconds}, signed with
+// Ed25519. The app checks it offline (Sources/OrgApp/LicenseKey.swift). Nothing is stored.
+//
+// Vars (wrangler.toml): SPONSORABLE, LIFETIME_DOLLARS, MONTHLY_DOLLARS, RENEW_DAYS,
+// GITHUB_CLIENT_ID. Secrets (`wrangler secret put NAME`; locally .dev.vars, see
+// .dev.vars.example): GITHUB_CLIENT_SECRET, GITHUB_TOKEN (SPONSORABLE's token, for renewals),
+// LICENSE_PRIVATE_KEY (PKCS#8 PEM, from keygen.sh).
 
-// The buy page's copy. The price comes from Paddle.
-const PRODUCT = {
-  name: "orgstar+ for Mac",
-  description: "One payment, a license key that doesn't expire. Editing, the agenda, capture, clocking, tables and search stay free.",
-  features: [
-    "Run and tangle source blocks",
-    "PDF, Word and other export, and publishing",
-    "Encrypted entries",
-    "Org-roam nodes and backlinks",
-    "Widgets",
-    "Calendar and Reminders",
-    "Shortcuts actions",
-  ],
-};
+const FEATURES = [
+  "Run and tangle source blocks",
+  "PDF, Word and other export, and publishing",
+  "Encrypted entries",
+  "Org-roam and Denote notes, daily notes and backlinks",
+  "Widgets",
+  "Calendar and Reminders",
+  "Shortcuts actions",
+];
 
-const PADDLE_API = { sandbox: "https://sandbox-api.paddle.com", production: "https://api.paddle.com" };
+const STATE_COOKIE = "orgstar_state";
 
-/// Reads the settings a path needs and throws when one is missing or belongs to the other environment.
-function settings(env, ...needs) {
-  const api = PADDLE_API[env.PADDLE_ENV];
-  if (!api) throw new Error(`PADDLE_ENV must be "sandbox" or "production", not ${JSON.stringify(env.PADDLE_ENV)}`);
-  if (!/^pri_[a-z\d]{26}$/.test(env.PRICE_ID ?? "")) throw new Error(`PRICE_ID isn't a Paddle price ID: ${JSON.stringify(env.PRICE_ID)}`);
-  const prefix = env.PADDLE_ENV === "sandbox" ? "test_" : "live_";
-  if (needs.includes("token") && !env.PADDLE_CLIENT_TOKEN?.startsWith(prefix))
-    throw new Error(`PADDLE_CLIENT_TOKEN must be a ${prefix}… client-side token for ${env.PADDLE_ENV}`);
-  for (const name of ["PADDLE_API_KEY", "LICENSE_PRIVATE_KEY"])
-    if (needs.includes("issuer") && !env[name]) throw new Error(`${name} is not set`);
-  return { api, sandbox: env.PADDLE_ENV === "sandbox" };
+/// Reads the settings and throws when one is missing.
+function settings(env, ...secrets) {
+  for (const name of ["SPONSORABLE", ...secrets])
+    if (!env[name]) throw new Error(`${name} is not set`);
+  const number = (name) => {
+    const value = Number(env[name]);
+    if (!(value > 0)) throw new Error(`${name} must be a positive number, not ${JSON.stringify(env[name])}`);
+    return value;
+  };
+  return {
+    sponsorable: env.SPONSORABLE,
+    lifetime: number("LIFETIME_DOLLARS"),
+    monthly: number("MONTHLY_DOLLARS"),
+    renewDays: number("RENEW_DAYS"),
+  };
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.endsWith("/buy")) return buy(request, env);
-    if (url.pathname.endsWith("/license")) return license(url, env);
+    if (url.pathname.endsWith("/buy")) return buy(url, env);
+    if (url.pathname.endsWith("/license")) return license(request, url, env);
+    if (url.pathname.endsWith("/renew") && request.method === "POST") return renew(request, env);
     return new Response("Not found", { status: 404 });
   },
 };
 
-function buy(request, env) {
-  const { sandbox } = settings(env, "token");
-  const country = request.cf?.country;
-  const config = {
-    sandbox,
-    token: env.PADDLE_CLIENT_TOKEN,
-    priceId: env.PRICE_ID,
-    // XX is Cloudflare's unknown and T1 is Tor; Paddle.js detects the country itself without one.
-    country: /^[A-Z]{2}$/.test(country ?? "") && country !== "XX" && country !== "T1" ? country : null,
-  };
-  const features = PRODUCT.features.map((feature) => `<li>${feature}</li>`).join("");
+function buy(url, env) {
+  const { sponsorable, lifetime, monthly } = settings(env);
+  const features = FEATURES.map((feature) => `<li>${feature}</li>`).join("");
   return page(
-    `<p>${PRODUCT.description}</p><ul>${features}</ul>` +
-      `<p class="price" id="price">Loading the price…</p>` +
-      `<button id="buy" type="button">Buy ${PRODUCT.name}</button>` +
-      `<p class="note">Checkout is by Paddle, the merchant of record. Your key shows on the next page.</p>` +
-      `<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>` +
-      `<script>const config = ${JSON.stringify(config).replace(/</g, "\\u003c")};\n${BUY_SCRIPT}</script>`,
+    `<p>orgstar+ for Mac comes with sponsoring orgstar on GitHub. Editing, the agenda, capture, ` +
+      `clocking, tables and search stay free.</p><ul>${features}</ul>` +
+      `<ul class="tiers"><li><b>$${lifetime} once</b>: a license key that doesn't expire.</li>` +
+      `<li><b>$${monthly} a month</b>: a key that orgstar renews while you sponsor.</li></ul>` +
+      `<p><a class="button" href="https://github.com/sponsors/${sponsorable}">Sponsor on GitHub</a></p>` +
+      `<p>Then <a href="${new URL("license", url)}">sign in with GitHub to get your key</a>.</p>` +
+      `<p class="note">Payment is through GitHub Sponsors and needs a GitHub account.</p>`,
     200,
-    PRODUCT.name,
+    "orgstar+ for Mac",
   );
 }
 
-// Runs on the buy page. Shows only Paddle's formatted total; does no price arithmetic.
-const BUY_SCRIPT = `
-if (config.sandbox) Paddle.Environment.set("sandbox");
-Paddle.Initialize({
-  token: config.token,
-  eventCallback(event) {
-    if (event.name === "checkout.completed")
-      location.href = new URL("license?txn=" + encodeURIComponent(event.data.transaction_id), location.href);
-  },
-});
-const items = [{ priceId: config.priceId, quantity: 1 }];
-const request = config.country ? { items, address: { countryCode: config.country } } : { items };
-Paddle.PricePreview(request)
-  .then((preview) => {
-    document.getElementById("price").textContent = preview.data.details.lineItems[0].formattedTotals.total;
-  })
-  .catch(() => {
-    document.getElementById("price").textContent = "The price shows at checkout.";
+async function license(request, url, env) {
+  const config = settings(env, "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "LICENSE_PRIVATE_KEY");
+  const self = new URL(url.pathname, url);
+  const code = url.searchParams.get("code");
+  if (!code) {
+    const state = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const authorize = new URL("https://github.com/login/oauth/authorize");
+    authorize.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
+    authorize.searchParams.set("redirect_uri", self.href);
+    authorize.searchParams.set("scope", "read:user");
+    authorize.searchParams.set("state", state);
+    authorize.searchParams.set("allow_signup", "true");
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: authorize.href,
+        "set-cookie": `${STATE_COOKIE}=${state}; Path=${url.pathname}; Max-Age=600; HttpOnly; Secure; SameSite=Lax`,
+      },
+    });
+  }
+
+  const cookie = (request.headers.get("cookie") ?? "").split(/;\s*/).find((c) => c.startsWith(STATE_COOKIE + "="));
+  if (!cookie || cookie.slice(STATE_COOKIE.length + 1) !== url.searchParams.get("state"))
+    return page(`The sign-in expired. <a href="${self}">Sign in again</a>.`, 400);
+
+  const exchange = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify({ client_id: env.GITHUB_CLIENT_ID, client_secret: env.GITHUB_CLIENT_SECRET, code, redirect_uri: self.href }),
   });
-document.getElementById("buy").onclick = () =>
-  Paddle.Checkout.open({ items, settings: { displayMode: "overlay", variant: "one-page" } });
-`;
+  const token = exchange.ok ? (await exchange.json()).access_token : null;
+  if (!token) return page(`GitHub didn't complete the sign-in. <a href="${self}">Try again</a>.`, 502);
 
-async function license(url, env) {
-  const { api } = settings(env, "issuer");
-  const txn = url.searchParams.get("txn") ?? "";
-  if (!/^txn_[a-z0-9]{20,40}$/.test(txn)) return page("That isn't a Paddle transaction ID.", 400);
-
-  const response = await fetch(`${api}/transactions/${txn}?include=customer`, {
-    headers: { Authorization: `Bearer ${env.PADDLE_API_KEY}` },
-  });
-  if (response.status === 404) return page("No purchase was found for that transaction.", 404);
-  if (!response.ok) return page("Paddle can't be reached right now. Try again in a minute.", 502);
-  const { data } = await response.json();
-  const paid = data.status === "completed" || data.status === "paid";
-  const forOrgstar = data.items?.some((item) => item.price?.id === env.PRICE_ID);
-  if (!paid || !forOrgstar) return page("That transaction isn't a completed orgstar+ purchase.", 404);
-
-  const key = await sign(
-    { e: data.customer?.email ?? "", t: txn, i: Math.floor(Date.parse(data.billed_at ?? data.created_at) / 1000) },
-    env.LICENSE_PRIVATE_KEY,
+  const data = await graphql(
+    token,
+    `query($login: String!) {
+      viewer { id login }
+      user(login: $login) {
+        sponsorshipForViewerAsSponsor(activeOnly: false) {
+          isActive createdAt tier { monthlyPriceInDollars isOneTime }
+        }
+      }
+    }`,
+    { login: config.sponsorable },
   );
-  if (url.searchParams.get("format") === "text") return new Response(key + "\n");
+  if (!data) return page("GitHub can't be reached right now. Try again in a minute.", 502);
+
+  const { viewer } = data;
+  const kind = entitlement(data.user?.sponsorshipForViewerAsSponsor, config);
+  const sponsor = `https://github.com/sponsors/${config.sponsorable}`;
+  const clear = { "set-cookie": `${STATE_COOKIE}=; Path=${url.pathname}; Max-Age=0; HttpOnly; Secure; SameSite=Lax` };
+  if (!kind)
+    return page(
+      `${escape(viewer.login)} isn't sponsoring at a level that includes orgstar+: $${config.lifetime} once, ` +
+        `or $${config.monthly} or more a month. <a href="${sponsor}">Sponsor on GitHub</a>, then come back to this page.`,
+      403,
+      "orgstar+",
+      clear,
+    );
+
+  const t = "github:" + viewer.id;
+  const payload = kind === "lifetime"
+    ? { e: viewer.login, t, i: seconds(data.user.sponsorshipForViewerAsSponsor.createdAt) }
+    : monthlyPayload(viewer.login, t, config.renewDays);
+  const key = await sign(payload, env.LICENSE_PRIVATE_KEY);
+  const note = kind === "lifetime"
+    ? "It doesn't expire, and this page shows the same key whenever you sign in again."
+    : `orgstar renews it while your monthly sponsorship continues. If you stop, orgstar+ ends when the key expires.`;
   return page(
     `<p>Your orgstar+ license key:</p><pre>${key}</pre>` +
-      `<p>In orgstar, open Settings ▸ orgstar+, paste the key and choose Activate. Keep this page or the key; ` +
-      `the same link shows it again.</p>`,
+      `<p>In orgstar, open Settings ▸ orgstar+, paste the key and choose Activate. ${note}</p>`,
     200,
+    "orgstar+",
+    clear,
   );
+}
+
+/// "lifetime", "monthly" or null for a sponsorship from GitHub's API.
+export function entitlement(sponsorship, { lifetime, monthly }) {
+  const dollars = sponsorship?.tier?.monthlyPriceInDollars ?? 0;
+  if (!sponsorship) return null;
+  if (sponsorship.tier?.isOneTime) return dollars >= lifetime ? "lifetime" : null;
+  return sponsorship.isActive && dollars >= monthly ? "monthly" : null;
+}
+
+function monthlyPayload(login, t, renewDays) {
+  const now = Math.floor(Date.now() / 1000);
+  return { e: login, t, i: now, x: now + renewDays * 86400 };
+}
+
+async function renew(request, env) {
+  const config = settings(env, "GITHUB_TOKEN", "LICENSE_PRIVATE_KEY");
+  const payload = await verify((await request.text()).replace(/\s/g, ""), env.LICENSE_PRIVATE_KEY);
+  if (!payload?.x || !payload.t?.startsWith("github:")) return text("Not a monthly orgstar+ key.", 400);
+
+  const data = await graphql(
+    env.GITHUB_TOKEN,
+    `query($id: ID!) {
+      node(id: $id) {
+        ... on User { login sponsorshipForViewerAsSponsorable(activeOnly: true) { isActive tier { monthlyPriceInDollars isOneTime } } }
+        ... on Organization { login sponsorshipForViewerAsSponsorable(activeOnly: true) { isActive tier { monthlyPriceInDollars isOneTime } } }
+      }
+    }`,
+    { id: payload.t.slice("github:".length) },
+  );
+  if (!data) return text("GitHub can't be reached right now.", 502);
+  const node = data.node;
+  if (entitlement(node?.sponsorshipForViewerAsSponsorable, config) !== "monthly")
+    return text("The monthly sponsorship has ended.", 403);
+  return text(await sign(monthlyPayload(node.login, payload.t, config.renewDays), env.LICENSE_PRIVATE_KEY), 200);
+}
+
+async function graphql(token, query, variables) {
+  const response = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json", "user-agent": "orgstar-license" },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!response.ok) return null;
+  const body = await response.json();
+  return body.data ?? null;
+}
+
+function seconds(iso) {
+  return Math.floor(Date.parse(iso) / 1000);
+}
+
+async function keys(pem) {
+  const der = Uint8Array.from(atob(pem.replace(/-----[^-]+-----|\s|\\n/g, "")), (c) => c.charCodeAt(0));
+  const privateKey = await crypto.subtle.importKey("pkcs8", der, { name: "Ed25519" }, true, ["sign"]);
+  const { x } = await crypto.subtle.exportKey("jwk", privateKey);
+  const publicKey = await crypto.subtle.importKey("jwk", { kty: "OKP", crv: "Ed25519", x }, { name: "Ed25519" }, false, ["verify"]);
+  return { privateKey, publicKey };
 }
 
 export async function sign(payload, pem) {
-  const der = Uint8Array.from(atob(pem.replace(/-----[^-]+-----|\s/g, "")), (c) => c.charCodeAt(0));
-  const privateKey = await crypto.subtle.importKey("pkcs8", der, { name: "Ed25519" }, false, ["sign"]);
+  const { privateKey } = await keys(pem);
   const body = new TextEncoder().encode(JSON.stringify(payload));
   const signature = new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, privateKey, body));
   return `ORGSTAR1-${base64url(body)}.${base64url(signature)}`;
+}
+
+/// The payload of a key this issuer signed, or null.
+export async function verify(key, pem) {
+  const match = /^ORGSTAR1-([\w-]+)\.([\w-]+)$/.exec(key);
+  if (!match) return null;
+  const [body, signature] = [unbase64url(match[1]), unbase64url(match[2])];
+  const { publicKey } = await keys(pem);
+  if (!(await crypto.subtle.verify({ name: "Ed25519" }, publicKey, signature, body))) return null;
+  try {
+    return JSON.parse(new TextDecoder().decode(body));
+  } catch {
+    return null;
+  }
 }
 
 function base64url(bytes) {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function page(body, status, heading = "orgstar+") {
+function unbase64url(text) {
+  const padded = text.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (text.length % 4)) % 4);
+  return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+}
+
+function escape(text) {
+  return String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+}
+
+function text(body, status) {
+  return new Response(body + "\n", { status, headers: { "content-type": "text/plain; charset=utf-8" } });
+}
+
+function page(body, status, heading = "orgstar+", headers = {}) {
   const html = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">` +
     `<title>${heading}</title><style>body{font:16px/1.5 system-ui;max-width:40rem;margin:3rem auto;padding:0 1rem}` +
     `pre{white-space:pre-wrap;word-break:break-all;background:#f4f4f4;padding:1rem;border-radius:6px}` +
-    `.price{font-size:1.75rem;font-weight:600;margin:1.5rem 0 .75rem}.note{color:#666;font-size:.9rem}` +
-    `button{font:inherit;font-weight:600;padding:.7rem 1.4rem;border:0;border-radius:8px;background:#d4a017;color:#fff;cursor:pointer}</style>` +
+    `.tiers{list-style:none;padding:0}.note{color:#666;font-size:.9rem}` +
+    `.button{display:inline-block;font-weight:600;padding:.7rem 1.4rem;border-radius:8px;background:#d4a017;color:#fff;text-decoration:none}</style>` +
     `<h1>${heading}</h1>${body.startsWith("<") ? body : `<p>${body}</p>`}`;
-  return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8" } });
+  return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8", ...headers } });
 }

@@ -4297,6 +4297,7 @@
       }
     },
     "Buy orgstar+…": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -12630,6 +12631,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Começar…"
+          }
+        }
+      }
+    },
+    "Get Your Key…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlüssel abrufen …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtener tu clave…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtenir votre clé…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーを取得…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obter sua chave…"
           }
         }
       }
@@ -23972,6 +24007,40 @@
         }
       }
     },
+    "Renews while you sponsor monthly. This key is valid until %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird verlängert, solange du monatlich sponserst. Dieser Schlüssel gilt bis %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se renueva mientras patrocines cada mes. Esta clave es válida hasta el %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renouvelée tant que vous sponsorisez chaque mois. Cette clé est valable jusqu'au %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎月スポンサーを続けている間は更新されます。このキーは%@まで有効です。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "É renovada enquanto você patrocina mensalmente. Esta chave é válida até %@."
+          }
+        }
+      }
+    },
     "Reparent Note with Descendants…": {
       "comment": "Command title",
       "localizations": {
@@ -27824,6 +27893,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dividir Painel à Direita"
+          }
+        }
+      }
+    },
+    "Sponsor for orgstar+…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für orgstar+ sponsern …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Patrocinar para orgstar+…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sponsoriser pour orgstar+…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スポンサーになってorgstar+を利用…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Patrocinar para o orgstar+…"
+          }
+        }
+      }
+    },
+    "Sponsors get their key by signing in with GitHub. It is checked on this Mac; a monthly sponsor's key is renewed with krz.sh.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sponsoren erhalten ihren Schlüssel, indem sie sich mit GitHub anmelden. Er wird auf diesem Mac geprüft; der Schlüssel monatlicher Sponsoren wird über krz.sh verlängert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los patrocinadores obtienen su clave iniciando sesión con GitHub. Se comprueba en este Mac; la clave de un patrocinador mensual se renueva con krz.sh."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les sponsors obtiennent leur clé en se connectant avec GitHub. Elle est vérifiée sur ce Mac ; la clé d'un sponsor mensuel est renouvelée auprès de krz.sh."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スポンサーはGitHubでサインインしてキーを取得します。キーはこのMac上で確認されます。月額スポンサーのキーはkrz.shで更新されます。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os patrocinadores obtêm a chave entrando com o GitHub. Ela é verificada neste Mac; a chave de um patrocinador mensal é renovada com o krz.sh."
           }
         }
       }
@@ -32570,6 +32707,7 @@
       }
     },
     "Your key is in the email from the purchase. It is checked on this Mac; nothing is sent.": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -34264,7 +34402,42 @@
         }
       }
     },
+    "orgstar+ for Mac comes with sponsoring orgstar on GitHub: $60 once, or $5 a month. Editing, the agenda, capture, clocking and search stay free.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar+ für Mac gibt es, wenn du orgstar auf GitHub sponserst: einmalig $60 oder $5 im Monat. Bearbeiten, Agenda, Erfassen, Zeiterfassung und Suche bleiben kostenlos."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar+ para Mac se incluye al patrocinar orgstar en GitHub: $60 una vez o $5 al mes. La edición, la agenda, la captura, el registro de tiempo y la búsqueda siguen siendo gratuitos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar+ pour Mac est inclus quand vous sponsorisez orgstar sur GitHub : $60 une fois, ou $5 par mois. L'édition, l'agenda, la capture, le chronométrage et la recherche restent gratuits."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac版orgstar+は、GitHubでorgstarのスポンサーになると利用できます（1回$60、または月額$5）。編集、アジェンダ、キャプチャ、クロック、検索は引き続き無料です。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O orgstar+ para Mac vem com o patrocínio do orgstar no GitHub: $60 uma vez ou $5 por mês. A edição, a agenda, a captura, o registro de tempo e a busca continuam gratuitos."
+          }
+        }
+      }
+    },
     "orgstar+ is a one-time purchase of $39.99 for this Mac. Editing, the agenda, capture, clocking and search stay free.": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {

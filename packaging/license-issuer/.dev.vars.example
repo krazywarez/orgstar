@@ -1,8 +1,10 @@
-# Secrets for `npx wrangler dev --env sandbox`: copy to .dev.vars (ignored by git) and fill in.
-# Deployed Workers take them from `npx wrangler secret put NAME [--env sandbox]` instead.
-# Client-side token: test_… (sandbox) or live_…, from Paddle > Developer tools > Authentication.
-PADDLE_CLIENT_TOKEN=test_
-# API key with transaction.read and customer.read: pdl_sdbx_apikey_… (sandbox) or pdl_live_apikey_….
-PADDLE_API_KEY=
+# Secrets for `npx wrangler dev`: copy to .dev.vars (ignored by git) and fill in.
+# Deployed Workers take them from `npx wrangler secret put NAME` instead.
+# The GitHub OAuth app's client secret. For local runs, use a second OAuth app whose callback
+# URL is http://localhost:8787/license, and override GITHUB_CLIENT_ID here.
+GITHUB_CLIENT_SECRET=
+# A token of the SPONSORABLE account with read:user, for renewals (classic token, or
+# fine-grained with no repository access).
+GITHUB_TOKEN=
 # PKCS#8 PEM from keygen.sh, on one line with \n for line breaks.
 LICENSE_PRIVATE_KEY=

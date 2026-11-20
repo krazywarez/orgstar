@@ -67,6 +67,26 @@ and availability, and a review screenshot of the About screen's Support Developm
 Submit new in-app purchases with an app version. Changes take up to an hour to reach the
 sandbox; test there with a Sandbox Apple Account (Settings ▸ Developer on the device).
 
+* Mac licenses
+
+orgstar+ for Mac comes with GitHub Sponsors: $60 once for a key that doesn't expire, or $5 a
+month for a key that expires after 40 days and that the app renews daily from 30 days before.
+=packaging/license-issuer= is the Cloudflare Worker that serves =krz.sh/apps/orgstar/buy=,
+=/license= (Sign in with GitHub, then the key) and =/renew=; its header describes the key
+format.
+
+Setup, once:
+- In GitHub Sponsors, publish a $60 one-time tier and a $5 monthly tier.
+- Create a GitHub OAuth app with the callback URL =https://krz.sh/apps/orgstar/license= and
+  put its client ID in =GITHUB_CLIENT_ID= in =wrangler.toml=.
+- =npx wrangler secret put GITHUB_CLIENT_SECRET= with the OAuth app's secret, and
+  =GITHUB_TOKEN= with a token of the sponsored account (=read:user=), which renewals use.
+- =packaging/license-issuer/keygen.sh= set =LICENSE_PRIVATE_KEY= and the app's public key.
+  Running it again invalidates every key issued so far.
+
+=node --test packaging/license-issuer= runs the Worker's tests; =npx wrangler deploy= from
+that folder publishes it.
+
 * Tests
 
 #+BEGIN_SRC sh

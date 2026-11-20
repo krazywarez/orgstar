@@ -325,6 +325,7 @@ struct OrgstarApp: App {
 
     init() {
         MacPro.resolve()
+        MacPro.renewInBackground()
         // Debug builds, and runs with ORGSTAR_PERF set: main-thread stalls in the console.
         #if DEBUG
         Perf.watchMainThread()

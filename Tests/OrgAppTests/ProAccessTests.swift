@@ -84,7 +84,7 @@ struct LicenseKeyTests {
     @Test func verifiesASignedKey() throws {
         let text = try key(#"{"e":"a@example.com","t":"txn_01","i":1763000000}"#)
         let license = try LicenseKey.verify(text, publicKey: publicKey)
-        #expect(license == LicenseKey(email: "a@example.com", transaction: "txn_01", issued: 1763000000))
+        #expect(license == LicenseKey(holder: "a@example.com", transaction: "txn_01", issued: 1763000000))
     }
 
     @Test func ignoresWhitespaceFromPasting() throws {
@@ -114,6 +114,59 @@ struct LicenseKeyTests {
     @Test func theShippedPublicKeyParses() throws {
         let raw = try #require(Data(base64Encoded: LicenseKey.publicKey))
         _ = try Curve25519.Signing.PublicKey(rawRepresentation: raw)
+    }
+
+    @Test func monthlyKeysExpire() throws {
+        let license = try LicenseKey.verify(try key(#"{"e":"octo","t":"github:U_1","i":100,"x":200}"#), publicKey: publicKey)
+        #expect(license.expires == 200)
+        #expect(!license.isExpired(at: Date(timeIntervalSince1970: 199)))
+        #expect(license.isExpired(at: Date(timeIntervalSince1970: 200)))
+        #expect(LicenseKey(holder: "octo", transaction: "github:U_1", issued: 100).isExpired(at: .distantFuture) == false)
+    }
+
+    @Test func refusesAndIgnoresExpiredKeys() throws {
+        let defaults = try #require(UserDefaults(suiteName: "test.\(UUID().uuidString)"))
+        let text = try key(#"{"e":"octo","t":"github:U_1","i":100,"x":200}"#)
+        #expect(throws: LicenseKey.Failure.expired) {
+            try LicenseStore.activate(text, defaults: defaults, now: Date(timeIntervalSince1970: 300), publicKey: publicKey)
+        }
+        _ = try LicenseStore.activate(text, defaults: defaults, now: Date(timeIntervalSince1970: 150), publicKey: publicKey)
+        #expect(LicenseStore.current(defaults: defaults, now: Date(timeIntervalSince1970: 150), publicKey: publicKey) != nil)
+        #expect(LicenseStore.current(defaults: defaults, now: Date(timeIntervalSince1970: 300), publicKey: publicKey) == nil)
+    }
+
+    /// Stores a monthly key expiring at `expires` and renews at `now`, the issuer answering
+    /// `status` with `answer`. Returns the stored key afterwards and whether it asked.
+    func renew(expires: Int, now: Int, status: Int, answer: String) async throws -> (key: String?, asked: Bool) {
+        let defaults = try #require(UserDefaults(suiteName: "test.\(UUID().uuidString)"))
+        defaults.set(try key(#"{"e":"octo","t":"github:U_1","i":1,"x":\#(expires)}"#), forKey: LicenseStore.key)
+        nonisolated(unsafe) var asked = false
+        _ = await LicenseStore.renewIfDue(defaults: defaults, now: Date(timeIntervalSince1970: TimeInterval(now)), publicKey: publicKey) { request in
+            asked = true
+            #expect(request.httpMethod == "POST")
+            return (Data(answer.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+        }
+        return (defaults.string(forKey: LicenseStore.key), asked)
+    }
+
+    @Test func renewsMonthlyKeysThatAreDue() async throws {
+        let day = 86400
+        let fresh = try key(#"{"e":"octo","t":"github:U_1","i":2,"x":\#(80 * day)}"#)
+        let renewed = try await renew(expires: 40 * day, now: 20 * day, status: 200, answer: fresh + "\n")
+        #expect(renewed.asked && renewed.key == fresh)
+
+        let early = try await renew(expires: 40 * day, now: 5 * day, status: 200, answer: fresh)
+        #expect(!early.asked)
+    }
+
+    @Test func keepsTheKeyWhenRenewalIsRefusedOrWrong() async throws {
+        let day = 86400
+        let ended = try await renew(expires: 40 * day, now: 20 * day, status: 403, answer: "The monthly sponsorship has ended.")
+        #expect(ended.asked && ended.key.flatMap { try? LicenseKey.verify($0, publicKey: publicKey).expires } == 40 * day)
+
+        let someoneElse = try key(#"{"e":"other","t":"github:U_2","i":2,"x":\#(80 * day)}"#)
+        let wrong = try await renew(expires: 40 * day, now: 20 * day, status: 200, answer: someoneElse)
+        #expect(wrong.key.flatMap { try? LicenseKey.verify($0, publicKey: publicKey).transaction } == "github:U_1")
     }
 
     @Test func storesOnlyKeysThatVerify() throws {
