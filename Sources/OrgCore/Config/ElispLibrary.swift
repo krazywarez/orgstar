@@ -102,6 +102,7 @@ extension Elisp {
             let s = try string(args[0])
             let pad = try int(args[1]) - s.unicodeScalars.count
             guard pad > 0 else { return .string(s) }
+            guard pad <= lengthLimit else { throw Signal(message: "Too long for string-pad") }
             let padding = String(repeating: String(try scalar(args.count > 2 && !isNil(args[2]) ? try int(args[2]) : 32)), count: pad)
             return .string(args.count > 3 && !isNil(args[3]) ? padding + s : s + padding)
         }
@@ -181,6 +182,20 @@ extension Elisp {
         }
     }
 
+    /// The first of each run of `equal` items, in order.
+    static func uniqueEqual(_ items: [Sexp]) -> [Sexp] {
+        var seen: [String: [Sexp]] = [:]
+        var kept: [Sexp] = []
+        for item in items {
+            let value = normalized(item)
+            let key = printed(value, escape: true)
+            guard !(seen[key]?.contains(value) ?? false) else { continue }
+            seen[key, default: []].append(value)
+            kept.append(item)
+        }
+        return kept
+    }
+
     /// A stable merge sort with a predicate that may throw.
     static func stableSort(_ items: [Sexp], _ less: (Sexp, Sexp) throws -> Bool) throws -> [Sexp] {
         guard items.count > 1 else { return items }
@@ -229,9 +244,7 @@ extension Elisp {
         }
         lisp.define("delete-dups") { _, args in
             try arity(args, 1...1, "delete-dups")
-            var kept: [Sexp] = []
-            for item in try elements(args[0]) where !kept.contains(where: { normalized($0) == normalized(item) }) { kept.append(item) }
-            return list(kept)
+            return list(uniqueEqual(try elements(args[0])))
         }
         lisp.define("nreverse") { _, args in
             try arity(args, 1...1, "nreverse")
@@ -291,9 +304,7 @@ extension Elisp {
         lisp.define("seq-uniq") { _, args in
             try arity(args, 1...2, "seq-uniq")
             guard args.count == 1 || isNil(args[1]) else { throw Unsupported(what: "seq-uniq with a test") }
-            var kept: [Sexp] = []
-            for item in try sequence(args[0]) where !kept.contains(where: { normalized($0) == normalized(item) }) { kept.append(item) }
-            return list(kept)
+            return list(uniqueEqual(try sequence(args[0])))
         }
         lisp.define("cl-reduce") { lisp, args in
             try arity(args, 2...Int.max, "cl-reduce")

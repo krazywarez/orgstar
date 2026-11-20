@@ -231,11 +231,14 @@ struct HostileInputTests {
         "(% -9223372036854775808 -1)", "(mod -9223372036854775808 -1)", "(/ -9223372036854775808 -1)",
         "(upcase -1)", "(downcase -1)", "(concat (list -1))", "(format \"%c\" -1)", "(format \"%c\" 99999999)",
         "(funcall (lambda (f) (funcall f f)) (lambda (f) (funcall f f)))",
-        "(dotimes (i 10000000000) nil)", "(number-sequence 1 10000000000)",
+        "(dotimes (i 10000000000) nil)", "(number-sequence 1 10000000000)", #"(string-pad "a" 10000000000)"#,
+        "(cl-loop for i from 1 to 10000000000 sum i)", "(cl-loop for i from 1 collect i)", "(expt 7 10000000000)",
     ]
 
     @Test func evaluatorRefusesWithoutCrashing() {
         for form in Self.forms { #expect(ElispTests.ours(form) == "error", "\(form)") }
+        // Long lists lose duplicates without comparing every pair.
+        #expect(ElispTests.ours("(length (seq-uniq (append (number-sequence 1 50000) (number-sequence 1 50000))))") == "50000")
     }
 
     /// On a stack the size of a background task's, deep recursion stops with an error.

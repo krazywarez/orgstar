@@ -54,7 +54,7 @@ App Store version.
 
 | Feature                    | Mac App Store version                                                         | Download version                                                                                |
 |----------------------------+-------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------|
-| Code blocks                | Emacs Lisp in orgstar's own interpreter, JavaScript in JavaScriptCore         | Every language installed; Emacs Lisp in Emacs; JavaScript in node, or JavaScriptCore without it |
+| Code blocks                | Emacs Lisp in orgstar's own interpreter, JavaScript in JavaScriptCore         | Every language installed; Emacs Lisp in Emacs and JavaScript in node, or built in without them  |
 | Sessions, graphics         | JavaScript sessions; no graphics                                              | Yes                                                                                             |
 | Tangling                   | Yes                                                                           | Yes                                                                                             |
 | Table formulas             | Those orgstar computes itself                                                 | The rest in Emacs as well                                                                       |

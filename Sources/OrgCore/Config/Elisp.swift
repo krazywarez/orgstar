@@ -600,7 +600,12 @@ public final class Elisp {
             guard let last = args.last else { return .nil }
             var items: [Sexp] = []
             for arg in args.dropLast() { items += try sequence(arg) }
-            return items.reversed().reduce(last) { cons($1, $0) }
+            switch last {
+            case .list(let rest): return .list(items + rest)
+            case .dotted(let rest, let tail): return .dotted(items + rest, tail)
+            case _ where isNil(last): return list(items)
+            default: return items.isEmpty ? last : .dotted(items, last)
+            }
         }
         lisp.define("length") { _, args in
             try arity(args, 1...1, "length")

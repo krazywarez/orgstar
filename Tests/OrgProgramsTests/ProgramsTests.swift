@@ -200,3 +200,23 @@ struct JavaScriptFallbackTests {
         #expect(try await run("#+begin_src js :results output\nconsole.log(typeof require('fs').readFileSync)\n#+end_src\n").stdout == "function\n")
     }
 }
+
+/// Emacs Lisp runs in `Elisp` when Emacs isn't installed.
+struct EmacsLispFallbackTests {
+    func run(_ text: String) async throws -> BabelOutput {
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [2..<2])
+        guard case .success(let job) = Babel.plan(context) else { throw Babel.Failure.message("not planned") }
+        return try await Programs(emacs: { nil }).runBabel(job, fileDirectory: FileManager.default.temporaryDirectory)
+    }
+
+    @Test func runsWithoutEmacs() async throws {
+        #expect(try await run("#+begin_src emacs-lisp\n(cl-loop for i from 1 to 4 sum i)\n#+end_src\n").stdout.contains("\"s\":\"10\""))
+    }
+
+    @Test func refusesWhatOnlyEmacsRuns() async throws {
+        let error = await #expect(throws: BabelRunner.Failure.self) {
+            try await run("#+begin_src emacs-lisp\n(with-temp-buffer (insert \"x\") (buffer-string))\n#+end_src\n")
+        }
+        #expect(error?.description == "This block uses Emacs Lisp that runs only in Emacs, and Emacs isn't installed.")
+    }
+}

@@ -455,25 +455,56 @@ The evaluator supports:
 
 - special forms: =quote=, =function=, =lambda=, =progn=, =prog1=, =if=, =when=,
   =unless=, =cond=, =and=, =or=, =let=, =let*=, =setq=, =push=, =pop=, =while=,
-  =dolist=, =dotimes=, =with-output-to-string=, =ignore-errors=, =condition-case=;
+  =dolist=, =dotimes=, =with-output-to-string=, =ignore-errors=, =condition-case=,
+  =save-match-data=, =defun=, =defvar=, =defconst=, =let-alist=, =cl-incf= and =cl-decf=
+  on a variable;
+- =pcase= with literal, symbol, quoted, backquoted and =pred= patterns, where =pred=
+  takes a function name or a lambda;
+- =cl-loop= with =for VAR in LIST=, =for VAR from START to END=, and one kind of
+  =collect= or =sum=, with =do=;
 - arithmetic: =+=, =-=, =*=, =/=, =%=, =mod=, =1+=, =1-=, =abs=, =max=, =min=, =float=,
-  =floor=, =ceiling=, =round=, =truncate=, ~=~, =<=, =>=, ~<=~, ~>=~, ~/=~, =zerop=;
+  =floor=, =ceiling=, =round=, =truncate=, ~=~, =<=, =>=, ~<=~, ~>=~, ~/=~, =zerop=,
+  =expt=, =sqrt=, =exp=, =log=, =sin=, =cos=, =tan=, =asin=, =acos=, =atan=, =isnan=,
+  =random=, =logand=, =logior=, =logxor=, =ash=, and the variables =float-pi=, =pi= and
+  =float-e=;
 - predicates: =not=, =null=, =eq=, =eql=, =equal=, =numberp=, =integerp=, =floatp=,
   =stringp=, =listp=, =consp=, =symbolp=;
 - lists: =car=, =cdr=, =cadr=, =cddr=, =cons=, =list=, =nth=, =nthcdr=, =elt=, =aref=,
   =append=, =length=, =reverse=, =number-sequence=, =memq=, =member=, =memql=, =assoc=,
   =assq=, =delq=, =delete=, =mapcar=, =mapc=, =mapconcat=, =funcall=, =apply=,
-  =identity=, =ignore=;
+  =identity=, =ignore=, =last=, =butlast=, =delete-dups=, =nreverse=, =sort= (both
+  calling conventions), =seq-reduce=, =seq-filter=, =seq-remove=, =seq-map=, =seq-uniq=,
+  =cl-reduce= (with =:initial-value=), =cl-remove-if=, =cl-remove-if-not=, =cl-find= and
+  =cl-position= (with =:test=);
 - strings: =concat=, =format=, =format-message=, ~string=~, =string-equal=, =string<=,
   =string-lessp=, =upcase=, =downcase=, =capitalize=, =substring=, =string-to-number=,
   =number-to-string=, =int-to-string=, =string-prefix-p=, =string-suffix-p=,
-  =string-empty-p=, =string-trim=, =split-string=, =prin1-to-string=;
+  =string-empty-p=, =string-trim=, =split-string=, =prin1-to-string=, =string-join=,
+  =string-to-char=, =char-to-string=, =string-pad=, =string-width=, =string-search=,
+  =string-replace=;
+- regular expressions: =string-match=, =string-match-p=, =match-beginning=, =match-end=,
+  =match-string=, =replace-match= and =replace-regexp-in-string= on strings, and
+  =regexp-quote=;
+- time: =current-time=, =format-time-string=, =float-time=, =time-add=, =time-subtract=,
+  =time-to-days=, =date-to-time=, =days-between=, =org-time-string-to-time=,
+  =org-time-string-to-absolute= and the =calendar-= functions that diary sexps use, in
+  the local time zone;
 - output and errors: =princ=, =prin1=, =print=, =terpri=, =message=, =error=,
   =user-error=;
 - Org's lookup functions =org-lookup-first=, =org-lookup-last= and =org-lookup-all=.
 
-Any other function needs Emacs. An error inside a Lisp formula writes =#ERROR= in the
-field, as does a Calc error.
+Regular expressions use Emacs's syntax and the syntax table of an Org buffer, and
+=case-fold-search= is on unless the formula binds it to =nil=. These need Emacs:
+numbered groups =\\(?N:=, categories =\\c=, syntax classes and character classes
+such as =\\w=, =\\b= or =[[:alpha:]]= against text with characters past ASCII,
+and case folding of a letter past ASCII. =format-time-string= takes =%Y=, =%y=, =%m=,
+=%d=, =%e=, =%H=, =%k=, =%I=, =%l=, =%M=, =%S=, =%p=, =%a=, =%A=, =%b=, =%h=, =%B=, =%u=,
+=%w=, =%j=, =%F=, =%D=, =%R=, =%T=, =%s=, =%z=, =%n=, =%t= and =%%=, without flags or
+widths; other codes need Emacs, as do float times in =time-add= and =time-subtract=. =date-to-time= and =days-between= read dates as
+=YYYY-MM-DD=, with an optional =HH:MM= or =HH:MM:SS=.
+
+Any other function, or a macro not listed, needs Emacs. An error inside a Lisp formula
+writes =#ERROR= in the field, as does a Calc error.
 
 * Entering formulas
 
@@ -555,8 +586,9 @@ packages and customizations are not loaded, then replaces the table with Emacs's
 result. It looks for Emacs at the path in the =ORGSTAR_EMACS= environment variable,
 then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=,
 =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and
-=/usr/bin/emacs=. If none is found, the echo area says Emacs isn't installed and the
-table is unchanged. Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local/bin=,
+=/usr/bin/emacs=. If none is found, the echo area shows the reason, as
+=This table's formulas can't be calculated here: reason.=, and the table is unchanged.
+Emacs gets your =PATH= with =/opt/homebrew/bin=, =/usr/local/bin=,
 =/Library/TeX/texbin=, =/usr/bin= and =/bin= added, as code blocks and export do, so
 programs a formula starts are found when orgstar was opened from the Dock. The run
 stops after 60 seconds. If you edit the table while Emacs is working, its result is

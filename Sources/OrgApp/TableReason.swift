@@ -25,15 +25,57 @@ public enum TableReason {
 
     /// `Elisp.Unsupported`'s reasons.
     static func lisp(_ what: String) -> String? {
-        if what == "integer size" { return fixed(what) }
+        let comment: StaticString = "Why a table needs Emacs: something a Lisp formula does"
+        switch what {
+        case "integer size": return fixed(what)
+        case "case folding past ASCII": return String(localized: "case folding past ASCII", comment: comment)
+        case "cl-loop destructuring": return String(localized: "cl-loop destructuring", comment: comment)
+        case "cl-loop with collect and sum": return String(localized: "cl-loop with collect and sum", comment: comment)
+        case "cl-loop without for": return String(localized: "cl-loop without for", comment: comment)
+        case "float times": return String(localized: "float times", comment: comment)
+        case "float-time of picoseconds": return String(localized: "float-time of picoseconds", comment: comment)
+        case "org-time-string-to-absolute with a day": return String(localized: "org-time-string-to-absolute with a day", comment: comment)
+        case "random with a seed": return String(localized: "random with a seed", comment: comment)
+        case "regexp classes on text past ASCII": return String(localized: "regexp classes on text past ASCII", comment: comment)
+        case "replace-match case past ASCII": return String(localized: "replace-match case past ASCII", comment: comment)
+        case "replace-match in a buffer": return String(localized: "replace-match in a buffer", comment: comment)
+        case "replace-regexp-in-string from the end": return String(localized: "replace-regexp-in-string from the end", comment: comment)
+        case "seq-uniq with a test": return String(localized: "seq-uniq with a test", comment: comment)
+        case "sort on a string": return String(localized: "sort on a string", comment: comment)
+        default: break
+        }
         func value(_ prefix: String) -> String? { what.hasPrefix(prefix) ? String(what.dropFirst(prefix.count)) : nil }
+        func split(_ text: String, _ separator: String) -> (String, String)? {
+            guard let range = text.range(of: separator) else { return nil }
+            return (String(text[..<range.lowerBound]), String(text[range.upperBound...]))
+        }
         if let name = value("function ") { return String(localized: "function \(name)", comment: "Why a table needs Emacs: a Calc function") }
         if let time = value("time value ") { return String(localized: "time value \(time)", comment: "Why a table needs Emacs: a Lisp time value") }
         if let number = value("date number ") { return String(localized: "date number \(number)", comment: "Why a table needs Emacs: a Lisp date number") }
+        if let text = value("date-to-time of ") { return String(localized: "date-to-time of \(text)", comment: comment) }
+        if let parts = value("date ") { return String(localized: "date \(parts)", comment: comment) }
+        if let text = value("time string ") { return String(localized: "time string \(text)", comment: comment) }
+        if let zone = value("format-time-string zone ") { return String(localized: "format-time-string zone \(zone)", comment: comment) }
+        if let code = value("format-time-string ") { return String(localized: "format-time-string \(code)", comment: comment) }
+        if let clause = value("cl-loop ") { return String(localized: "cl-loop \(clause)", comment: comment) }
+        if let pattern = value("pcase pattern ") { return String(localized: "pcase pattern \(pattern)", comment: comment) }
+        if let name = value("let-alist ") { return String(localized: "let-alist \(name)", comment: comment) }
+        if let text = value("string-width of ") { return String(localized: "string-width of \(text)", comment: comment) }
+        if let rest = value("regexp "), let parts = split(rest, " in ") {
+            return String(localized: "regexp \(parts.0) in \(parts.1)", comment: "Why a table needs Emacs: part of a Lisp regular expression")
+        }
+        if let rest = value("value< on "), let parts = split(rest, " and ") {
+            return String(localized: "value< on \(parts.0) and \(parts.1)", comment: comment)
+        }
         if what.hasSuffix(" on a place") {
             let name = String(what.dropLast(" on a place".count))
             return String(localized: "\(name) on a place", comment: "Why a table needs Emacs: a Lisp function used on a variable")
         }
+        if what.hasSuffix(" in a buffer") {
+            let name = String(what.dropLast(" in a buffer".count))
+            return String(localized: "\(name) in a buffer", comment: comment)
+        }
+        if let parts = split(what, " with ") { return String(localized: "\(parts.0) with \(parts.1)", comment: comment) }
         return nil
     }
 

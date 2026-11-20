@@ -1053,6 +1053,9 @@ struct ContentView: View {
             commands.show(String(localized: "This table's formulas can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar can't calculate"))
         #else
         case .emacsTable(let table, let point, let form, let reason, let lisp):
+            guard EmacsRunner.executable() != nil else {
+                return commands.show(String(localized: "This table's formulas can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar can't calculate"))
+            }
             let run = {
                 commands.show(String(localized: "Recalculating in Emacs (\(TableReason.localized(reason)))…", comment: "Table formulas sent to Emacs, and why"))
                 commands.runInEmacs { commands.show(await session.recalculateInEmacs(table: table, point: point, form: form)) }

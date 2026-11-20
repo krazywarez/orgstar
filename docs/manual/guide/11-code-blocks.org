@@ -89,7 +89,7 @@ On the Mac, orgstar starts each interpreter through =/usr/bin/env=. Because an a
 | =sh=, =bash=, =zsh=, =fish=, =ksh=, =dash=, =ash=, =csh=, =mksh=, =posh= | The shell of that name                         |
 | =shell=                                                          | The shell in =SHELL=, or =/bin/sh=                  |
 | =python=                                                         | =python3=, or the program in =:python=              |
-| =emacs-lisp=, =elisp=                                            | =emacs -Q --batch=; see Emacs Lisp blocks below     |
+| =emacs-lisp=, =elisp=                                            | =emacs -Q --batch=, or the interpreter; see below    |
 | =ruby=                                                           | =ruby=, or the program in =:ruby=                   |
 | =js=, =javascript=                                               | =node=, or JavaScriptCore without it; see below     |
 | =R=                                                              | =Rscript -=                                         |
@@ -618,9 +618,9 @@ An inline call, =call_double(n=6)=, has the same parts as a =#+CALL:= line: =cal
 
 * Emacs Lisp blocks
 
-On the Mac, an =emacs-lisp= or =elisp= block runs in a new =emacs -Q --batch= for each run, with lexical binding on. =-Q= means your init file and packages are not loaded, and nothing carries over between runs. orgstar looks for Emacs at =ORGSTAR_EMACS=, then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and =/usr/bin/emacs=. Without Emacs, the block fails with "Emacs isn't installed, so Emacs Lisp blocks can't run."
+On the Mac, an =emacs-lisp= or =elisp= block runs in a new =emacs -Q --batch= for each run, with lexical binding on. =-Q= means your init file and packages are not loaded, and nothing carries over between runs. orgstar looks for Emacs at =ORGSTAR_EMACS=, then =/opt/homebrew/bin/emacs=, =/usr/local/bin/emacs=, =/Applications/Emacs.app/Contents/MacOS/Emacs=, =/run/current-system/sw/bin/emacs= and =/usr/bin/emacs=. Without Emacs, the block runs in orgstar's own Emacs Lisp interpreter, and a block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, and Emacs isn't installed."
 
-On iOS, Emacs Lisp blocks run in orgstar's own Emacs Lisp interpreter. It covers ordinary list, string, number and control forms, =princ= and =message=. A block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, on the Mac." A Lisp error fails the run, as it does in Emacs.
+On iOS, Emacs Lisp blocks run in orgstar's own Emacs Lisp interpreter. It has the forms and functions listed under Lisp formulas in [[file:10-tables.org][Tables]]: list, string, number and control forms, regular expressions on strings, =defun=, =pcase=, =cl-loop=, the =seq-= and =cl-= sequence functions, time functions, =princ= and =message=. It binds variables dynamically, and it has no buffers. A block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, on the Mac." A Lisp error fails the run, as it does in Emacs.
 
 In the [[file:../install.org][Mac App Store version]], Emacs Lisp blocks run in the same interpreter as on iOS. A block that uses something it does not have fails with "This block uses Emacs Lisp that runs only in Emacs."
 
