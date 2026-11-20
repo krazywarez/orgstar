@@ -31,6 +31,8 @@ struct WelcomeView: View {
             }
             Text(presetNote).font(.callout).foregroundStyle(.secondary)
             #if APPSTORE
+            Text("orgstar keeps its settings in a folder of its own. To use the ones in ~/.config/orgstar, choose that folder in Settings ▸ General ▸ Choose Configuration Folder….")
+                .font(.callout).foregroundStyle(.secondary)
             ForEach(workspace.unresolvedRoots, id: \.path) { root in
                 HStack {
                     Label(OrgPaths.abbreviatingWithTilde(root.path), systemImage: "exclamationmark.triangle")

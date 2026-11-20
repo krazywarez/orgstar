@@ -29,6 +29,8 @@ The keys follow Emacs's export dispatcher (=org-export-dispatch=). =C-c C-e= on 
 
 All fourteen commands are in File ▸ Export and in the command palette. They write the export beside the Org file, with the same name and the format's extension: =.html=, =.md=, =.pdf=, =.docx=, =.rtf=, =.tex=, =.odt=, =.txt= or =.ics=. The two agenda-file commands are the exceptions; see [[*iCalendar export][iCalendar export]]. =#+EXPORT_FILE_NAME:= names it instead, as in Org: relative to the Org file's folder (or absolute, or starting with =~=), with its extension replaced by the format's, so =#+EXPORT_FILE_NAME: out/report= writes =out/report.html=. A file already there is replaced. The message area shows "Exported to /name/".
 
+The [[file:../install.org][Mac App Store version]] has the ten commands that don't need Emacs; File ▸ Export, the export dialog and the command palette leave out the other four, and a key bound to Export to PDF with Emacs runs Export to PDF. When the export file, or an =#+INCLUDE:= or =#+SETUPFILE:=, is outside your folders, orgstar first asks for access to its folder; for the export file, Save Elsewhere… instead picks another place. See [[file:../install.org][Install]].
+
 ** The export dialog
 
 *Export…* in the command palette, or =⇧⌘E= in the Mac preset, opens a dialog. The Emacs and Doom presets have no key for it; bind =app.export-dialog= in =keymap.toml= if you want one (see [[file:03-keys.org][Keys and commands]]). The dialog has:
@@ -337,6 +339,8 @@ On the Mac, PDF, LaTeX, ODT and plain text exports are done by Emacs, with the =
 | LaTeX      | =org-latex-export-to-latex= |
 | ODT        | =org-odt-export-to-odt=     |
 | Plain text | =org-ascii-export-to-ascii= |
+
+The [[file:../install.org][Mac App Store version]] doesn't run Emacs and has none of these exports.
 
 orgstar runs =emacs -Q --batch= in the Org file's folder. It opens the file, replaces its contents with the editor's current text without saving, and calls the function. Emacs writes the result beside the file, as it would itself; with a destination chosen in the export dialog, orgstar then moves it there. The message area shows "Exporting with Emacs…" and then "Exported to /name/".
 

@@ -10,8 +10,8 @@ iPad. It reads and writes the same plain-text =.org= files Emacs does, and leave
 byte you didn't change as it was, so Emacs, the Mac app, the iOS app and your sync tool
 can all work on the same folder.
 
+[[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store (Mac, iPhone and iPad)]] ·
 [[https://files.krz.sh/orgstar/][Download for Mac]] ·
-[[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store (iPhone and iPad)]] ·
 [[https://files.krz.sh/orgstar/][Manual]] ·
 [[file:ios/AppStore/screenshots][Screenshots]]
 
@@ -36,8 +36,8 @@ Emacs tomorrow and nothing has been reformatted.
 - *Tables.* Aligned as you type, with =#+TBLFM= formulas.
 - *Code blocks.* Run source blocks and tangle them into files, as =org-babel-tangle=
   does.
-- *Export.* HTML and Markdown built in; PDF, LaTeX, ODT and more through Emacs when
-  it is installed.
+- *Export.* HTML, Markdown, PDF, Word, RTF and iCalendar built in; PDF through LaTeX, ODT
+  and more through Emacs when it is installed (download version only).
 - *Search.* Across file names, headings and text, plus Spotlight and Quick Look
   previews of =.org= files.
 
@@ -48,16 +48,25 @@ folders, capture templates, key bindings and agenda views. Settings live in plai
 under =~/.config/orgstar/=, so they can sit in your dotfiles next to your Emacs config.
 
 ** Get it
-On the Mac (macOS 26 or later), with Homebrew:
+The Mac app (macOS 26 or later) comes in two versions:
 
-#+begin_src sh
-brew tap krz/tap https://gitbay.org/krz/homebrew-tap.git
-brew install --cask orgstar
-#+end_src
+- From the [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][Mac App Store]]. It runs in the App Sandbox and starts no other programs: Emacs
+  Lisp blocks run in orgstar's own interpreter, other languages don't run, and nothing is
+  handed to Emacs. Folders outside the ones you add need your permission once.
+- As a download, signed with a Developer ID and notarized. It runs code blocks in any
+  language installed on the Mac, recalculates the tables and makes the exports orgstar can't
+  do itself in Emacs, and updates itself. Install it with Homebrew:
 
-or download the notarized DMG from the
-[[https://files.krz.sh/orgstar/][files.krz.sh/orgstar]]. The iPhone and iPad app (iOS 26
-or later), with its Apple Watch app, is on the [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store]].
+  #+begin_src sh
+  brew tap krz/tap https://gitbay.org/krz/homebrew-tap.git
+  brew install --cask orgstar
+  #+end_src
+
+  or download the DMG from [[https://files.krz.sh/orgstar/][files.krz.sh/orgstar]].
+
+Keep only one of them installed. The manual's Install page lists the differences and how to
+move settings between them. The iPhone and iPad app (iOS 26 or later), with its Apple Watch
+app, is on the [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][App Store]].
 
 ** orgstar+
 Editing, the agenda, capture, clocking, tables, search, and HTML and Markdown export are
@@ -66,17 +75,20 @@ and publishing; encrypting entries (decrypting stays free); org-roam nodes, dail
 backlinks; widgets, the Apple Watch app and the clock Live Activity; Calendar and Reminders in
 the agenda; and Shortcuts actions.
 
-- iPhone and iPad: in-app, $1.99 a month, $19.99 a year or $39.99 once.
-- Mac: by [[https://github.com/sponsors/krazywarez][sponsoring on GitHub]], $60 once for a license key that doesn't expire,
+- iPhone, iPad and the Mac App Store version: in-app, $1.99 a month, $19.99 a year or $39.99
+  once. One purchase covers all three with the same Apple Account.
+- Mac download: by [[https://github.com/sponsors/krazywarez][sponsoring on GitHub]], $60 once for a license key that doesn't expire,
   or $5 a month for a key orgstar renews while you sponsor. Sign in with GitHub at
   [[https://krz.sh/apps/orgstar/license][krz.sh/apps/orgstar/license]] for the key and enter it in Settings ▸ orgstar+.
 
-Anyone who installed orgstar before orgstar+ keeps every feature without buying it.
+Anyone who installed the iOS app or the Mac download before orgstar+ keeps every feature
+without buying it.
 
-On iPhone and iPad, anyone can also leave a one-time tip in Settings ▸ About orgstar. Tips
-unlock nothing.
+On iPhone and iPad, anyone can also leave a one-time tip in Settings ▸ About orgstar, and in
+the Mac App Store version in Settings ▸ orgstar+. Tips unlock nothing.
 
-To build from source, contribute or release (the Mac app and the App Store), see
+To build from source, contribute or release (the Mac download, the Mac App Store and the iOS
+App Store), see
 [[file:CONTRIBUTING.org]].
 
 Copyright © 2026 Christian Cleberg. All rights reserved; see [[file:LICENSE]].

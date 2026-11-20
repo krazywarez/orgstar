@@ -103,6 +103,8 @@ Any other language is refused with "No way to run /language/ blocks yet."
 
 A run that takes longer than five minutes is stopped. Runs in a =:session= have no time limit.
 
+The [[file:../install.org][Mac App Store version]] starts no programs, so only Emacs Lisp blocks run there; see /In the Mac App Store version/ below.
+
 ** Compiled languages
 
 On the Mac, =C=, =C++=, =cpp=, =D=, =java=, =fortran= and =clojure= blocks run as Org's =ob-C=, =ob-java=, =ob-fortran= and =ob-clojure= run them. orgstar writes the body, expanded as tangling writes it (see Tangling below), to a source file in a temporary folder, compiles it and runs the program in the file's folder or =:dir=, with a newline on standard input. What the compiler prints is dropped.
@@ -600,6 +602,8 @@ On the Mac, an =emacs-lisp= or =elisp= block runs in a new =emacs -Q --batch= fo
 
 On iOS, Emacs Lisp blocks run in orgstar's own Emacs Lisp interpreter. It covers ordinary list, string, number and control forms, =princ= and =message=. A block that uses something the interpreter does not have fails with "This block uses Emacs Lisp that runs only in Emacs, on the Mac." A Lisp error fails the run, as it does in Emacs.
 
+In the [[file:../install.org][Mac App Store version]], Emacs Lisp blocks run in the same interpreter as on iOS. A block that uses something it does not have fails with "This block uses Emacs Lisp that runs only in Emacs."
+
 Variables are bound with =let= around the body. =:results output= collects what the block prints with =princ=, =prin1=, =print= and =terpri=.
 
 * Graphics
@@ -708,6 +712,7 @@ Comments need the language's comment syntax. orgstar knows it for: =emacs-lisp=,
 - A file whose contents would not change is left alone, so its modification time stays the same.
 - A read-only file is replaced.
 - Tangling into the Org file itself is refused: "Not allowed to tangle into the same file as self".
+- When a file's mode, from =:shebang= or =:tangle-mode=, can't be set, the other files are still written and their modes set, and the message area says "Tangled /N/ code blocks from /file/, but can't set the mode of /path/: /reason/".
 
 ** What tangling refuses
 
@@ -731,3 +736,10 @@ Tangling stops, writes nothing and says why when:
 - Edit Block opens a plain text sheet without highlighting.
 
 See [[file:14-ios.org][iOS]] for the rest of the iOS app.
+
+* In the Mac App Store version
+
+- Only Emacs Lisp blocks run, in the same interpreter as on iOS. Any other language, compiled languages included, fails with "/language/ blocks don't run in this version of orgstar."
+- There are no sessions and no graphics.
+- The trust prompt works the same way.
+- Tangling works as in the download version, =:shebang= included. A target outside your folders needs access to its folder first: orgstar asks with Grant Access…, as described in [[file:../install.org][Install]]. So does a =:file= result outside them.

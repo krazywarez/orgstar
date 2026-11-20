@@ -11,6 +11,8 @@ orgstar keeps its settings in a configuration folder:
 
 The environment variable =ORGSTAR_CONFIG_DIR= overrides both. If a file is missing from the configuration folder but exists in =~/Library/Application Support/Orgstar= (where earlier versions kept it), orgstar reads it from there, and reloads it when you edit it there.
 
+The [[file:../install.org][Mac App Store version]] keeps the configuration folder in its container, =~/Library/Containers/sh.krz.orgstar/Data/.config/orgstar=. Settings ▸ General ▸ Choose Configuration Folder… makes it use another folder, such as =~/.config/orgstar= shared with the download version or kept with your dotfiles; Use Default Folder goes back to the container.
+
 The folder holds these files:
 
 | File                 | What it holds                                                    | Written by orgstar                    |
@@ -54,6 +56,8 @@ Open it with orgstar ▸ Settings (=⌘,=). It has five panes. Each control writ
 | config.toml: Edit in orgstar               | Opens the file in the main window                                            |                                 |                  |
 | config.toml: Open with Default App         | Opens the file in the app macOS uses for =.toml=                             |                                 |                  |
 | config.toml: Show in Finder                | Selects the file in Finder                                                   |                                 |                  |
+| Folder: Choose Configuration Folder…       | Mac App Store version: reads and writes the configuration in a folder you choose |                         |                  |
+| Folder: Use Default Folder                 | Mac App Store version: goes back to the folder in the app's container       |                                 |                  |
 | Emacs: Import from Emacs…                  | Opens the import sheet; see Import from Emacs below|                                 |                  |
 | Save files                                 | Automatically, when typing stops; Only with File ▸ Save (=⌘S=)             | Automatically                   | =save=           |
 | Keys                                       | Emacs; Mac; Doom (Vim keys)                                                  | Emacs                           | =keymap=         |
@@ -568,6 +572,8 @@ The Not imported section lists what orgstar read but can't use, with the reason:
 A literate configuration (=config.org=) is read as =org-babel-load-file= and Doom tangle it: its =emacs-lisp= and =elisp= blocks, except blocks whose =:tangle= is =no= (set on the block, in a =#+HEADER:= line, in a =header-args= property or in =#+PROPERTY:=) and blocks under a COMMENT or =:ARCHIVE:= heading. Items show the line of =config.org= they came from. When the folder also has a =config.el=, it is read instead, as the file =config.org= tangles to.
 
 On iOS, Settings ▸ Import from Emacs reads a configuration folder you choose; see [[file:14-ios.org][iOS]].
+
+In the [[file:../install.org][Mac App Store version]], Import from Emacs first opens a picker at the configuration it finds, since the app can read only what you choose. For a Doom configuration, Choose Doom Folder… picks Doom's installation folder, so its org defaults are read; without it the footer says Doom's own org defaults were skipped. On Import, each folder to add opens a picker at that folder, and only the folders you choose there are added.
 
 ** Doom Emacs
 

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Archives the iOS app (with its extensions and the watch app) and uploads it to App Store
 # Connect for TestFlight. The version is the project's MARKETING_VERSION; the build number is the
-# commit count, as the Mac release's is. Run after scripts/release-mac.sh. The work is done by
+# commit count, as the Mac releases' are. Run after scripts/release-mac.sh and before
+# scripts/release-macos.sh, from the same commit. The work is done by
 # appstore-kit, checked out beside this repository or at $APPSTORE_KIT.
 # Usage: scripts/release-ios.sh
 #   ORGSTAR_PUBLISH  0 archives and exports the .ipa to .build/ios-release without uploading

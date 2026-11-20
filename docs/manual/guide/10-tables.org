@@ -538,6 +538,10 @@ Edit ▸ Cancel Running Task (=⌘.=) stops the recalculation; the echo area sho
 =Recalculation canceled= and the table is unchanged. Starting another recalculation or
 export in Emacs cancels the one that is running.
 
+The [[file:../install.org][Mac App Store version]] doesn't run Emacs, so it recalculates
+only the tables orgstar computes itself. For any other table the echo area shows =This
+table's formulas can't be calculated here: (reason).=, and the table is unchanged.
+
 If the table's formulas contain Lisp, orgstar asks first:
 =This table's formulas run Lisp. Run them? (yes, no, always)=. =always= trusts this
 table's text in this file, so the question isn't asked again until the text changes.
@@ -623,6 +627,9 @@ gnuplot-only options are ignored. If inline images are showing, a link to the fi
 new plot.
 
 =type:radar= needs gnuplot; orgstar reports it.
+
+The [[file:../install.org][Mac App Store version]] doesn't use gnuplot: it always draws
+the plot with Swift Charts, and reports =type:radar= in the same way.
 
 * On iOS
 

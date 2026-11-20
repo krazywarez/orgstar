@@ -1,16 +1,34 @@
 #+TITLE: Install
-#+DESCRIPTION: Installing orgstar on the Mac with Homebrew or a download, and on iPhone and iPad from the App Store.
-#+LEDE: The Mac app comes as a notarized download and a Homebrew cask; the iOS app is on the App Store.
+#+DESCRIPTION: Installing orgstar on the Mac from the Mac App Store, with Homebrew or a download, and on iPhone and iPad from the App Store.
+#+LEDE: The Mac app comes from the Mac App Store, or as a notarized download and a Homebrew cask; the iOS app is on the App Store.
 
 * Requirements
 
 - macOS 26 or later.
-- Optional: GNU Emacs, for the features that hand work to it on the Mac
+- Optional, for the download version: GNU Emacs, for the features that hand work to it
   (Emacs Lisp code blocks that need full Emacs, Lisp table formulas the built-in
   interpreter can't run, and export to PDF, LaTeX, ODT and other formats). See
   [[file:guide/15-alongside-emacs.org][Working alongside Emacs and other tools]].
 
 * The Mac app
+
+There are two versions of the Mac app. Both edit the same files in the same way; they
+differ in where they come from, how orgstar+ is bought, and what they can run.
+
+- The Mac App Store version runs in the App Sandbox and starts no other programs. Emacs
+  Lisp blocks run in orgstar's own interpreter, as on iOS; other languages, Emacs and
+  gnuplot are not used. orgstar+ is an in-app purchase shared with the iPhone and iPad app.
+- The download version, from Homebrew or files.krz.sh, is signed with a Developer ID and
+  notarized. It runs code blocks with the programs installed on the Mac, hands some tables and
+  exports to Emacs, and updates itself.
+
+** From the Mac App Store
+
+Get orgstar from the [[https://apps.apple.com/us/app/orgstar-org-mode-agenda/id6821552018][Mac App Store]]. The Mac App Store keeps it up to date.
+
+Settings ▸ orgstar+ has the monthly, yearly and lifetime plans and Restore Purchases. A
+purchase made with the same Apple Account on iPhone or iPad unlocks orgstar+ on the Mac too,
+and the other way round. The same tab has tips, which unlock nothing.
 
 ** With Homebrew
 
@@ -26,7 +44,88 @@ orgstar to Applications. The app is universal (Apple silicon and Intel), signed 
 Developer ID and notarized by Apple, so it opens without warnings.
 
 Once the app has been launched, Finder opens =.org= files with it, Quick Look shows
-them formatted, and Spotlight indexes their headings and text.
+them formatted, and Spotlight indexes their headings and text. The same is true of the Mac
+App Store version.
+
+* The Mac App Store version
+
+** What it does differently
+
+| Feature                    | Mac App Store version                                             | Download version                                       |
+|----------------------------+-------------------------------------------------------------------+--------------------------------------------------------|
+| Code blocks                | Emacs Lisp, in orgstar's own interpreter                          | Every language installed; Emacs Lisp in Emacs          |
+| Sessions, graphics         | No                                                                | Yes                                                    |
+| Tangling                   | Yes                                                               | Yes                                                    |
+| Table formulas             | Those orgstar computes itself                                     | The rest in Emacs as well                              |
+| Plots                      | Drawn with Swift Charts                                           | gnuplot when installed, else Swift Charts              |
+| Export                     | HTML, Markdown, PDF, Word, RTF, plain text, iCalendar; publishing | Also PDF through LaTeX, LaTeX, ODT and ASCII, in Emacs |
+| Settings                   | In the app's container, or a folder you choose                    | =~/.config/orgstar=                                    |
+| Files outside your folders | After you grant access to their folder                            | Directly                                               |
+| Attachments                | Copied, or moved from inside your folders                         | Copied, moved, linked or symlinked                     |
+| Updates                    | The Mac App Store                                                 | Built in, or Homebrew                                  |
+| orgstar+                   | In-app purchase, shared with iPhone and iPad                      | License key                                            |
+
+A block in another language reports "/language/ blocks don't run in this version of
+orgstar." An Emacs Lisp block that uses more than the interpreter has reports "This block uses
+Emacs Lisp that runs only in Emacs." A table whose formulas need Emacs reports "This table's
+formulas can't be calculated here", with the reason, and isn't changed. The Emacs exports are
+not in the File ▸ Export menu, the export dialog or the command palette; a key bound to
+Export to PDF with Emacs exports to PDF without LaTeX.
+
+** Folders and files
+
+The App Store version can open only the folders and files you give it:
+
+- Folders you add (File ▸ Add Folder…, or the welcome sheet) and files you open from Finder.
+  orgstar remembers them across launches.
+- When something needs a file outside them, such as an =#+INCLUDE:= or =#+SETUPFILE:=, a
+  tangle target, an export file, a =file:= link, a =:file= result or a publishing folder,
+  orgstar asks once. Grant Access… opens a folder picker at that folder; choose it, and orgstar
+  uses that folder and everything in it from then on. An export also offers Save Elsewhere….
+- A folder that can no longer be opened, for example one on a disk that isn't connected, is
+  listed under Can't Open in the sidebar, with Grant Access… to choose it again.
+- =~= in paths and settings means your home folder, as in the download version.
+- Import from Emacs opens a picker at the configuration it finds and asks for each folder it
+  adds to the sidebar. For a Doom configuration, Choose Doom Folder… reads Doom's own org
+  defaults from its installation folder.
+
+** Settings
+
+The App Store version keeps its settings in its container,
+=~/Library/Containers/sh.krz.orgstar/Data/.config/orgstar/=. To keep them in
+=~/.config/orgstar/= instead, for example to share them with the download version, the iOS app
+or your dotfiles, click Settings ▸ General ▸ Choose Configuration Folder… and choose that
+folder. If it has no =config.toml=, orgstar writes one with the current settings. Use Default
+Folder goes back to the container.
+
+* Switching between the two Mac versions
+
+Both versions are called orgstar and have the same bundle identifier. Keep only one of them:
+quit orgstar and delete =orgstar.app= from Applications, or run =brew uninstall --cask
+orgstar=, before installing the other. With both on the Mac, Finder, Quick Look, Spotlight,
+widgets and =org-protocol://= links each use one of them, as macOS picks.
+
+The two don't share their sidebar folders, open files, recovery versions or orgstar+:
+
+- After switching, add your folders again with File ▸ Add Folder….
+- The App Store version's purchase doesn't unlock the download version, and a license key
+  doesn't unlock the App Store version.
+- Recovery versions stay with the version that made them. The App Store version keeps them in
+  =~/Library/Containers/sh.krz.orgstar/Data/Library/Application Support/Orgstar/Recovery/=.
+
+Settings move this way:
+
+- From the download version to the App Store version: your settings stay in
+  =~/.config/orgstar/=. Choose that folder with Choose Configuration Folder… (see /Settings/
+  above).
+- From the App Store version to the download version: if you chose =~/.config/orgstar/=, there
+  is nothing to move. Otherwise copy the files out of the container; =cp -i= asks before
+  replacing a file that is already there:
+
+#+BEGIN_SRC sh
+mkdir -p ~/.config/orgstar
+cp -i ~/Library/Containers/sh.krz.orgstar/Data/.config/orgstar/*.toml ~/.config/orgstar/
+#+END_SRC
 
 * The iOS app
 
@@ -36,6 +135,9 @@ app comes with it. The App Store keeps it up to date.
 See [[file:guide/14-ios.org][iPhone and iPad]] for what it does.
 
 * Updating
+
+The Mac App Store updates the App Store version. The rest of this section is about the download
+version.
 
 orgstar checks for a new release once a day, after asking on its second launch whether it
 may; orgstar ▸ Check for Updates… checks now, and Settings ▸ General has the switch. An update
@@ -53,5 +155,8 @@ Your settings live in =~/.config/orgstar/= and survive rebuilds.
 * Uninstalling
 
 Delete =orgstar.app=, or run =brew uninstall --cask orgstar=. To remove your settings as
-well, delete =~/.config/orgstar/= (=brew uninstall --zap --cask orgstar= does both).
+well, delete =~/.config/orgstar/= (=brew uninstall --zap --cask orgstar= does both). The App
+Store version keeps its settings, index and recovery versions in
+=~/Library/Containers/sh.krz.orgstar/=, and the widgets' data in
+=~/Library/Group Containers/group.sh.krz.orgstar/=.
 Your org files are never stored inside the app.

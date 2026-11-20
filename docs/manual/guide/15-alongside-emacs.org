@@ -97,6 +97,7 @@ When scanning folders, orgstar skips Emacs lock files (=.#name=), backups (=name
 Every version a save, a merge or a conflict resolution displaces is kept in the recovery folder, and so is a snapshot of the file before a save, at most once an hour:
 
 - on the Mac, =~/Library/Application Support/Orgstar/Recovery= (or =$ORGSTAR_DATA_DIR/Recovery=),
+- in the Mac App Store version, =~/Library/Containers/sh.krz.orgstar/Data/Library/Application Support/Orgstar/Recovery=,
 - on iOS, the app's own Application Support folder.
 
 Each file has a subfolder named from a hash of its path, holding its last 20 replaced versions and, apart from them, its last 10 snapshots. A version's file name has a timestamp, a label and the file's name. The labels are:
@@ -112,7 +113,7 @@ File ▸ Recovery Versions… (More ▸ Recovered Versions on iOS) lists the ope
 
 * Features that use Emacs on the Mac
 
-Some features run Emacs in batch mode on the Mac. Everything else works without Emacs installed.
+Some features run Emacs in batch mode on the Mac. Everything else works without Emacs installed. The [[file:../install.org][Mac App Store version]] never runs Emacs and does without these features.
 
 | Feature                                                        | What runs                                                                                     |
 |----------------------------------------------------------------+-----------------------------------------------------------------------------------------------|

@@ -35372,6 +35372,40 @@
         }
       }
     },
+    "orgstar keeps its settings in a folder of its own. To use the ones in ~/.config/orgstar, choose that folder in Settings ▸ General ▸ Choose Configuration Folder….": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar speichert seine Einstellungen in einem eigenen Ordner. Um die aus ~/.config/orgstar zu verwenden, wähle diesen Ordner unter Einstellungen ▸ Allgemein ▸ Konfigurationsordner wählen …."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar guarda sus ajustes en una carpeta propia. Para usar los de ~/.config/orgstar, elige esa carpeta en Ajustes ▸ General ▸ Elegir carpeta de configuración…."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstar range ses réglages dans un dossier à lui. Pour utiliser ceux de ~/.config/orgstar, choisissez ce dossier dans Réglages ▸ Général ▸ Choisir le dossier de configuration…."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "orgstarは設定を専用のフォルダに保存します。~/.config/orgstarの設定を使うには、設定 ▸ 一般 ▸ 構成フォルダを選択…でそのフォルダを選択してください。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O orgstar guarda seus ajustes em uma pasta própria. Para usar os de ~/.config/orgstar, escolha essa pasta em Ajustes ▸ Geral ▸ Escolher Pasta de Configuração…."
+          }
+        }
+      }
+    },
     "orgstar's shared folder isn't available.": {
       "localizations": {
         "de": {
