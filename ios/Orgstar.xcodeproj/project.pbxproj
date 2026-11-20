@@ -21,6 +21,19 @@
 		0A61626884F48A1B4963D767 /* OrgWatchData in Frameworks */ = {isa = PBXBuildFile; productRef = 925F6F580D155C1597A5F07B /* OrgWatchData */; };
 		C6824548013D3A2076EAF9C7 /* OrgWatchData in Frameworks */ = {isa = PBXBuildFile; productRef = 2EFA0D9CD8BD435F6283F3AA /* OrgWatchData */; };
 		625E39E946591E6D43200C02 /* OrgstarWatch/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C908C5209CABA6130FD12641 /* OrgstarWatch/Assets.xcassets */; };
+		34F40D483630871B50619E6F /* OrgApp in Frameworks */ = {isa = PBXBuildFile; productRef = B1EC171400CB989363332D07 /* OrgApp */; };
+		4392873ADA2B1FC8930BE6C9 /* OrgEditorAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0E5F6DB1CD783274FB49FD5E /* OrgEditorAppKit */; };
+		CA594F2E6DAFED2D16900872 /* OrgHighlight in Frameworks */ = {isa = PBXBuildFile; productRef = 88F9A423F8C1EBE523B6438B /* OrgHighlight */; };
+		D94278A370A1FB41D7A518DA /* AppIcons.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B977A6852EA92ABDAA7C98AA /* AppIcons.xcassets */; };
+		8626AEED3928BE739C1DF301 /* IconPreviews in Resources */ = {isa = PBXBuildFile; fileRef = 9B39CA5A070717D948728096 /* IconPreviews */; };
+		BA4DCBEF0B0F66E84D66137B /* OrgstarMac/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AD93BA820CE0A7E09BB5CB1C /* OrgstarMac/PrivacyInfo.xcprivacy */; };
+		C1D3CBF59C494CF9A95F1B28 /* OrgstarQuickLook.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 54F0339BC26341A6010C1386 /* OrgstarQuickLook.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5A205B2638DB5D65DC83501B /* OrgstarWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B54C32C5D364C02EE21DB092 /* OrgstarWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		15F20FD7060931A9FA7D5B5A /* OrgstarSpotlight.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AC88ABFF2E0DEC4AD6935E44 /* OrgstarSpotlight.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C4B7AD977A87099C72B5E114 /* OrgCore in Frameworks */ = {isa = PBXBuildFile; productRef = 43689CAB6915EAB97D264A39 /* OrgCore */; };
+		B59088D6FF3E6C60DF909823 /* OrgstarSpotlight/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 20B42E017B9B06BDBBF0CCDD /* OrgstarSpotlight/PrivacyInfo.xcprivacy */; };
+		9B607A4A9227D06D4F53091C /* OrgstarQuickLook/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7B319D00B61E5D44B6F8660B /* OrgstarQuickLook/PrivacyInfo.xcprivacy */; platformFilters = (macos, ); };
+		3AA1AFEEC1E57E8A3A1AF804 /* OrgstarWidgets/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 83EDEDFCE07E278A9F985A17 /* OrgstarWidgets/PrivacyInfo.xcprivacy */; platformFilters = (macos, ); };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +71,27 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9571051E69F5D60E9CDFD246;
 			remoteInfo = OrgstarWatch;
+		};
+		77FCBFF918E6E58AE9698F1B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BBA37636EB6BBA564493899D;
+			remoteInfo = OrgstarQuickLook;
+		};
+		A211EBFC69B345042D422426 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E87BE20AFDC99FD25E1A163F;
+			remoteInfo = OrgstarWidgets;
+		};
+		7C6ACD0E0D599F98671D5D8D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 983BBE813E871966964F6876;
+			remoteInfo = OrgstarSpotlight;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -97,6 +131,19 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		50EAF92A2ABF4715F69C1B26 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C1D3CBF59C494CF9A95F1B28 /* OrgstarQuickLook.appex in Embed Foundation Extensions */,
+				15F20FD7060931A9FA7D5B5A /* OrgstarSpotlight.appex in Embed Foundation Extensions */,
+				5A205B2638DB5D65DC83501B /* OrgstarWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -120,6 +167,20 @@
 		512F8C0EB67DE2C4AB5051D4 /* OrgstarWatchWidgets/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = OrgstarWatchWidgets/Info.plist; sourceTree = "<group>"; };
 		970E22E052046C63CA01A88F /* OrgstarWatch/OrgstarWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarWatch/OrgstarWatch.entitlements; sourceTree = "<group>"; };
 		F75B5AA8EBA6F457B6D124AC /* OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements; sourceTree = "<group>"; };
+		C51149D0B6EA8A5C84383462 /* orgstar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = orgstar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC88ABFF2E0DEC4AD6935E44 /* OrgstarSpotlight.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OrgstarSpotlight.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5CAA663B7191AA35B15DE681 /* OrgstarMac/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = OrgstarMac/Info.plist; sourceTree = "<group>"; };
+		465A4F530E1EB892DCA2659D /* OrgstarMac/Orgstar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarMac/Orgstar.entitlements; sourceTree = "<group>"; };
+		AD93BA820CE0A7E09BB5CB1C /* OrgstarMac/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = OrgstarMac/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B977A6852EA92ABDAA7C98AA /* AppIcons.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = AppIcons.xcassets; path = ../packaging/AppIcons.xcassets; sourceTree = "<group>"; };
+		9B39CA5A070717D948728096 /* IconPreviews */ = {isa = PBXFileReference; lastKnownFileType = folder; name = IconPreviews; path = ../packaging/IconPreviews; sourceTree = "<group>"; };
+		7B28B0DBC8FEDCBB28FF11E9 /* OrgstarSpotlight/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = OrgstarSpotlight/Info.plist; sourceTree = "<group>"; };
+		108CFDFF570EDFC4035D4DF7 /* OrgstarSpotlight/OrgstarSpotlight.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarSpotlight/OrgstarSpotlight.entitlements; sourceTree = "<group>"; };
+		20B42E017B9B06BDBBF0CCDD /* OrgstarSpotlight/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = OrgstarSpotlight/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D27AFAB2F0523C96E1F9CC93 /* OrgstarQuickLook/OrgstarQuickLook-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarQuickLook/OrgstarQuickLook-macOS.entitlements; sourceTree = "<group>"; };
+		7B319D00B61E5D44B6F8660B /* OrgstarQuickLook/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = OrgstarQuickLook/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		6857BB16511F98A95242D558 /* OrgstarWidgets/OrgstarWidgets-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrgstarWidgets/OrgstarWidgets-macOS.entitlements; sourceTree = "<group>"; };
+		83EDEDFCE07E278A9F985A17 /* OrgstarWidgets/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = OrgstarWidgets/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -136,6 +197,13 @@
 				main.swift,
 			);
 			target = 92364A1473ECC9B162FEAE51 /* OrgstarShare */;
+		};
+		4B121E9E27D011F773E768FF /* Exceptions for "../Sources/OrgstarSpotlight" folder in "OrgstarSpotlight" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				main.swift,
+			);
+			target = 983BBE813E871966964F6876 /* OrgstarSpotlight */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -174,6 +242,19 @@
 		C2450FF4F75DA4598ABE47D6 /* ../Sources/OrgstarWatchWidgets */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ../Sources/OrgstarWatchWidgets;
+			sourceTree = "<group>";
+		};
+		5492CCAC81DA9B3B7C8E53D9 /* ../Sources/Orgstar */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ../Sources/Orgstar;
+			sourceTree = "<group>";
+		};
+		DCA0D699899E2CA4B0F5956F /* ../Sources/OrgstarSpotlight */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4B121E9E27D011F773E768FF /* Exceptions for "../Sources/OrgstarSpotlight" folder in "OrgstarSpotlight" target */,
+			);
+			path = ../Sources/OrgstarSpotlight;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -228,6 +309,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		39CC8FCF3B50EC810191AF52 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34F40D483630871B50619E6F /* OrgApp in Frameworks */,
+				4392873ADA2B1FC8930BE6C9 /* OrgEditorAppKit in Frameworks */,
+				CA594F2E6DAFED2D16900872 /* OrgHighlight in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2B8E1256CB480BB98CECFCA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C4B7AD977A87099C72B5E114 /* OrgCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -240,6 +339,8 @@
 				B54C32C5D364C02EE21DB092 /* OrgstarWidgets.appex */,
 				8A7A8B14798B54AA57D91D55 /* OrgstarWatch.app */,
 				03F7E491D72C8915E6CB2542 /* OrgstarWatchWidgets.appex */,
+				C51149D0B6EA8A5C84383462 /* orgstar.app */,
+				AC88ABFF2E0DEC4AD6935E44 /* OrgstarSpotlight.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -250,6 +351,8 @@
 				6425CB8F177EDFF8EE2BD447 /* ../Sources/OrgstarShare */,
 				2412EC8ED6427B76498FCD18 /* ../Sources/OrgstarQuickLook */,
 				7E85FA5E5BA11D0F6891693E /* ../Sources/OrgstarMobile */,
+				5492CCAC81DA9B3B7C8E53D9 /* ../Sources/Orgstar */,
+				DCA0D699899E2CA4B0F5956F /* ../Sources/OrgstarSpotlight */,
 				DE99BDA1BB90EEDFA8FF4CC2 /* ../Sources/OrgstarWidgets */,
 				0D702B6721D2BC88F89E3883 /* ../Sources/OrgstarWatch */,
 				C2450FF4F75DA4598ABE47D6 /* ../Sources/OrgstarWatchWidgets */,
@@ -275,6 +378,18 @@
 				970E22E052046C63CA01A88F /* OrgstarWatch/OrgstarWatch.entitlements */,
 				512F8C0EB67DE2C4AB5051D4 /* OrgstarWatchWidgets/Info.plist */,
 				F75B5AA8EBA6F457B6D124AC /* OrgstarWatchWidgets/OrgstarWatchWidgets.entitlements */,
+				5CAA663B7191AA35B15DE681 /* OrgstarMac/Info.plist */,
+				465A4F530E1EB892DCA2659D /* OrgstarMac/Orgstar.entitlements */,
+				AD93BA820CE0A7E09BB5CB1C /* OrgstarMac/PrivacyInfo.xcprivacy */,
+				B977A6852EA92ABDAA7C98AA /* AppIcons.xcassets */,
+				9B39CA5A070717D948728096 /* IconPreviews */,
+				D27AFAB2F0523C96E1F9CC93 /* OrgstarQuickLook/OrgstarQuickLook-macOS.entitlements */,
+				7B319D00B61E5D44B6F8660B /* OrgstarQuickLook/PrivacyInfo.xcprivacy */,
+				6857BB16511F98A95242D558 /* OrgstarWidgets/OrgstarWidgets-macOS.entitlements */,
+				83EDEDFCE07E278A9F985A17 /* OrgstarWidgets/PrivacyInfo.xcprivacy */,
+				7B28B0DBC8FEDCBB28FF11E9 /* OrgstarSpotlight/Info.plist */,
+				108CFDFF570EDFC4035D4DF7 /* OrgstarSpotlight/OrgstarSpotlight.entitlements */,
+				20B42E017B9B06BDBBF0CCDD /* OrgstarSpotlight/PrivacyInfo.xcprivacy */,
 			);
 			name = Support;
 			sourceTree = "<group>";
@@ -434,6 +549,59 @@
 			productReference = 03F7E491D72C8915E6CB2542 /* OrgstarWatchWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		B4840CC47B21EF2ECB49A2B1 /* Orgstar macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F9E8A973377C36C09C37D74B /* Build configuration list for PBXNativeTarget "Orgstar macOS" */;
+			buildPhases = (
+				8FB5AC5ACF7BCCCB4CB0CA6A /* Compile string catalog */,
+				0EFD7F2537761E968D3FE030 /* Sources */,
+				39CC8FCF3B50EC810191AF52 /* Frameworks */,
+				EDF6CA650FB1A0A57A682074 /* Resources */,
+				50EAF92A2ABF4715F69C1B26 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C826A938ED8C4860D583408F /* PBXTargetDependency */,
+				12D858EB45921C42A853582E /* PBXTargetDependency */,
+				B8558921DD478BF0929CD181 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5492CCAC81DA9B3B7C8E53D9 /* ../Sources/Orgstar */,
+			);
+			name = "Orgstar macOS";
+			packageProductDependencies = (
+				B1EC171400CB989363332D07 /* OrgApp */,
+				0E5F6DB1CD783274FB49FD5E /* OrgEditorAppKit */,
+				88F9A423F8C1EBE523B6438B /* OrgHighlight */,
+			);
+			productName = Orgstar;
+			productReference = C51149D0B6EA8A5C84383462 /* orgstar.app */;
+			productType = "com.apple.product-type.application";
+		};
+		983BBE813E871966964F6876 /* OrgstarSpotlight */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B19660ED1008ECEF3FBC821 /* Build configuration list for PBXNativeTarget "OrgstarSpotlight" */;
+			buildPhases = (
+				84D0DC560E0227549E1F5F7E /* Sources */,
+				E2B8E1256CB480BB98CECFCA /* Frameworks */,
+				E0CA3F1B80A8855DAA3B427A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DCA0D699899E2CA4B0F5956F /* ../Sources/OrgstarSpotlight */,
+			);
+			name = OrgstarSpotlight;
+			packageProductDependencies = (
+				43689CAB6915EAB97D264A39 /* OrgCore */,
+			);
+			productName = OrgstarSpotlight;
+			productReference = AC88ABFF2E0DEC4AD6935E44 /* OrgstarSpotlight.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -472,6 +640,8 @@
 				E87BE20AFDC99FD25E1A163F /* OrgstarWidgets */,
 				9571051E69F5D60E9CDFD246 /* OrgstarWatch */,
 				A7FEE6F7EC27BB417D26E08E /* OrgstarWatchWidgets */,
+				B4840CC47B21EF2ECB49A2B1 /* Orgstar macOS */,
+				983BBE813E871966964F6876 /* OrgstarSpotlight */,
 			);
 		};
 /* End PBXProject section */
@@ -496,6 +666,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9B607A4A9227D06D4F53091C /* OrgstarQuickLook/PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -503,6 +674,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3AA1AFEEC1E57E8A3A1AF804 /* OrgstarWidgets/PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -518,6 +690,24 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EDF6CA650FB1A0A57A682074 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D94278A370A1FB41D7A518DA /* AppIcons.xcassets in Resources */,
+				8626AEED3928BE739C1DF301 /* IconPreviews in Resources */,
+				BA4DCBEF0B0F66E84D66137B /* OrgstarMac/PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E0CA3F1B80A8855DAA3B427A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B59088D6FF3E6C60DF909823 /* OrgstarSpotlight/PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -679,6 +869,37 @@
 			shellPath = /bin/sh;
 			shellScript = "# The catalog is compiled here rather than as a resource, so that Xcode doesn't sync it\n# from this target's sources; scripts/sync-strings.sh keeps it.\nxcrun xcstringstool compile \"$SCRIPT_INPUT_FILE_0\" --output-directory \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
 		};
+		8FB5AC5ACF7BCCCB4CB0CA6A /* Compile string catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../l10n/Localizable.xcstrings",
+			);
+			name = "Compile string catalog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/en.lproj/Localizable.strings",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/en.lproj/Localizable.stringsdict",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/de.lproj/Localizable.strings",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/de.lproj/Localizable.stringsdict",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/fr.lproj/Localizable.strings",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/fr.lproj/Localizable.stringsdict",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ja.lproj/Localizable.strings",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ja.lproj/Localizable.stringsdict",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/es.lproj/Localizable.strings",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/es.lproj/Localizable.stringsdict",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/pt-BR.lproj/Localizable.strings",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/pt-BR.lproj/Localizable.stringsdict",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The catalog is compiled here rather than as a resource, so that Xcode doesn't sync it\n# from this target's sources; scripts/sync-strings.sh keeps it.\nxcrun xcstringstool compile \"$SCRIPT_INPUT_FILE_0\" --output-directory \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -724,6 +945,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0EFD7F2537761E968D3FE030 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		84D0DC560E0227549E1F5F7E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -752,12 +987,28 @@
 			target = 9571051E69F5D60E9CDFD246 /* OrgstarWatch */;
 			targetProxy = 3CD251D01E4C9C2DC6EA4271 /* PBXContainerItemProxy */;
 		};
+		C826A938ED8C4860D583408F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BBA37636EB6BBA564493899D /* OrgstarQuickLook */;
+			targetProxy = 77FCBFF918E6E58AE9698F1B /* PBXContainerItemProxy */;
+		};
+		B8558921DD478BF0929CD181 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E87BE20AFDC99FD25E1A163F /* OrgstarWidgets */;
+			targetProxy = A211EBFC69B345042D422426 /* PBXContainerItemProxy */;
+		};
+		12D858EB45921C42A853582E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 983BBE813E871966964F6876 /* OrgstarSpotlight */;
+			targetProxy = 7C6ACD0E0D599F98671D5D8D /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0BF40655E429259B35B06BEC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = OrgstarQuickLook/OrgstarQuickLook-macOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
@@ -768,10 +1019,20 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.quicklook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) APPSTORE";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -849,6 +1110,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = OrgstarWidgets/OrgstarWidgets.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = OrgstarWidgets/OrgstarWidgets-macOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
@@ -860,10 +1122,20 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) APPSTORE";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -871,6 +1143,7 @@
 		942C95A5D90B164020736D83 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = OrgstarQuickLook/OrgstarQuickLook-macOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
@@ -881,10 +1154,20 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.quicklook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) APPSTORE";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -935,6 +1218,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = OrgstarWidgets/OrgstarWidgets.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = OrgstarWidgets/OrgstarWidgets-macOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = ZCNAX3VL9D;
@@ -946,10 +1230,20 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.widgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=macosx*]" = "$(inherited) APPSTORE";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1074,6 +1368,108 @@
 			};
 			name = Release;
 		};
+		054B9495D84C3E79F2234534 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = OrgstarMac/Orgstar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarMac/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar;
+				PRODUCT_MODULE_NAME = Orgstar;
+				PRODUCT_NAME = orgstar;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPSTORE";
+			};
+			name = Debug;
+		};
+		FEBB323890D181DA410264E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = OrgstarMac/Orgstar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarMac/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar;
+				PRODUCT_MODULE_NAME = Orgstar;
+				PRODUCT_NAME = orgstar;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPSTORE";
+			};
+			name = Release;
+		};
+		68F53E07FC366481771DDDB1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = OrgstarSpotlight/OrgstarSpotlight.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarSpotlight/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.spotlight;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPSTORE";
+			};
+			name = Debug;
+		};
+		7F0C08C96E27C66039571111 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = OrgstarSpotlight/OrgstarSpotlight.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = ZCNAX3VL9D;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OrgstarSpotlight/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sh.krz.orgstar.spotlight;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPSTORE";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1140,6 +1536,24 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		F9E8A973377C36C09C37D74B /* Build configuration list for PBXNativeTarget "Orgstar macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				054B9495D84C3E79F2234534 /* Debug */,
+				FEBB323890D181DA410264E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7B19660ED1008ECEF3FBC821 /* Build configuration list for PBXNativeTarget "OrgstarSpotlight" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				68F53E07FC366481771DDDB1 /* Debug */,
+				7F0C08C96E27C66039571111 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -1184,6 +1598,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
 			productName = OrgWatchData;
+		};
+		B1EC171400CB989363332D07 /* OrgApp */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
+			productName = OrgApp;
+		};
+		0E5F6DB1CD783274FB49FD5E /* OrgEditorAppKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
+			productName = OrgEditorAppKit;
+		};
+		88F9A423F8C1EBE523B6438B /* OrgHighlight */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
+			productName = OrgHighlight;
+		};
+		43689CAB6915EAB97D264A39 /* OrgCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A46A1BCE0B67C45BEC8F435B /* XCLocalSwiftPackageReference ".." */;
+			productName = OrgCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
