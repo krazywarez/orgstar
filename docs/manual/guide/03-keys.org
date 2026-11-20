@@ -995,7 +995,7 @@ When a key appears in several rows, it runs the command whose condition holds at
 | Copy as Rich Text (=app.copy-rich-text=) | — | — | — | Copies the selection, or the file, as HTML, RTF and plain text. |
 | Export to PDF with Emacs (=app.export.pdf=) | =C-c C-e l p= | — | =SPC m e l p= (N) | Exports to PDF through Emacs (=org-latex-export-to-pdf=). |
 | Export to LaTeX (=app.export.latex=) | =C-c C-e l l= | — | — | Exports to LaTeX without Emacs, as =org-latex-export-to-latex= does. |
-| Export to ODT with Emacs (=app.export.odt=) | =C-c C-e o o= | — | — | Exports to ODT through Emacs (=org-odt-export-to-odt=). |
+| Export to ODT (=app.export.odt=) | =C-c C-e o o= | — | — | Exports to OpenDocument text without Emacs, as =org-odt-export-to-odt= does. |
 | Export to Plain Text with Emacs (=app.export.text=) | =C-c C-e t u= | — | — | Exports to plain text through Emacs (=org-ascii-export-to-ascii=). |
 | Export to iCalendar (=app.export.icalendar=) | =C-c C-e c f= | — | — | Exports to an =.ics= calendar (=org-icalendar-export-to-ics=). |
 | Export Agenda Files to iCalendar (=app.export.icalendar-agenda=) | =C-c C-e c a= | — | — | Writes an =.ics= beside each agenda file (=org-icalendar-export-agenda-files=). |
