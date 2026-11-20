@@ -46,7 +46,7 @@ The dialog remembers the format and the *Open after export* setting. The PDF set
 
 ** On iOS
 
-The Export menu offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, ODT, iCalendar and LaTeX, and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac, except that LaTeX has no =\author= unless the file has =#+AUTHOR:=. ASCII and PDF through LaTeX are not available on iOS, nor are the agenda-file iCalendar exports.
+The Export menu offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, ODT, iCalendar and LaTeX, and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac, except that LaTeX and ODT have no author unless the file has =#+AUTHOR:=. ASCII and PDF through LaTeX are not available on iOS, nor are the agenda-file iCalendar exports.
 
 * HTML export
 
