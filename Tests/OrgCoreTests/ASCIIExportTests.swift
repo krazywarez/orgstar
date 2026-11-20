@@ -211,6 +211,11 @@ struct ASCIIExportTests {
         "#+LANGUAGE: ja\n#+OPTIONS: toc:nil\n* A\nx[fn:1]\n\n[fn:1] n\n",
         "#+LANGUAGE: zh-CN\n* A\nx\n",
         "Types [[DOI:10.1/z][d]] [[Attachment:x.png]] [[ID:x]] [[INFO:emacs][i]] b_doi:10.1/x.\n",
+        "#+LANGUAGE: ja\n* A\nSee [[*B][b]].\n* B\ny\n",
+        "#+LANGUAGE: zh-CN\n* A\nSee [[*B][b]].\n* B\ny\n",
+        "#+LANGUAGE: ja\n* A\nSee [[*B][\(String(repeating: "b", count: 72))]].\n* B\ny\n",
+        "Text doi:- here, doi:a. and b.\n",
+        "x HTTPS://x.y/z and mailto:a@b.c and File:a.txt. FILE:foo-- \"q\" FILE:a(b) Mailto:a@b, y\n",
         "a\\\\\\\\\nb\n\nc\\\\\\\\\\\\  \nd\n\ne\\\\\nf\n",
         "#+OPTIONS: e:t\n\\alpha\\beta \\ast{} \\S \\para \\deg \\plusmn \\micro \\middot \\cedil \\ordf \\iexcl \\pound \\yen \\euro \\trade\n",
     ]
@@ -358,7 +363,11 @@ struct ASCIIExportTests {
         #expect(reason("<info:emacs#Top>\n") == "Links of type info")
         #expect(reason("Case DOI:10.1/z.\n") == "Plain links of type DOI")
         #expect(reason("#+LANGUAGE: ja\n#+CAPTION: c\n| a |\n") == "Wide or combining characters")
-        #expect(reason("#+LANGUAGE: ja\n* A\nSee [[*B][b]].\n* B\n") == "Wide or combining characters")
+        #expect(reason("#+LANGUAGE: ja\n* A\nSee [[*B][\(String(repeating: "b", count: 56))]].\n* B\n") == "Wide or combining characters")
+        #expect(reason("#+LANGUAGE: ja\nx[fn:1]\n* B\n\n[fn:1] See [[*B][b]].\n") == "Wide or combining characters")
+        #expect(reason("Text doi:- here.\n") == nil)
+        #expect(reason("Plain FILE:foo.txt and HTTPS://x.y here.\n") == nil)
+        #expect(reason("Plain FILE:foo.txt and SHELL:ls here.\n") == "Plain links of type SHELL")
         #expect(reason("#+LANGUAGE: sl\n* A\nSee [[*B][b]].\n* B\n") == "Format specifier doesn't match argument type")
         #expect(reason("#+LANGUAGE: sl\n* A\nSee [[*B]].\n* B\n") == nil)
     }

@@ -399,7 +399,7 @@ final class ASCIIRenderer {
         let linkStart = noted.count
         var contents = try elements(nodes, end: end, context: Context(width: width))
         if heading == nil {
-            let links = describeLinks(from: linkStart, width: width)
+            let links = try describeLinks(from: linkStart, width: width)
             if !links.isEmpty { contents = Self.normalize(contents) + "\n\n" + links }
         }
         if heading != nil, low == false { contents = ASCIIText.indent(contents, Self.innerMargin) }
@@ -426,7 +426,7 @@ final class ASCIIRenderer {
                 let end = subsections.first?.range.lowerBound ?? node.range.upperBound
                 sectionText = try section(elements, end: end, heading: level)
             }
-            let links = describeLinks(from: linkStart, width: width)
+            let links = try describeLinks(from: linkStart, width: width)
             let sub = try subsections.compactMap { try headline($0) }.joined()
             if links.isEmpty {
                 body = (sectionText ?? "") + sub
@@ -434,7 +434,7 @@ final class ASCIIRenderer {
                 body = (sectionText.map { Self.normalize($0) + "\n\n" } ?? "") + links + sub
             }
         } else {
-            _ = describeLinks(from: linkStart, width: width)
+            _ = try? describeLinks(from: linkStart, width: width)
         }
         let out: String
         if let low {
@@ -1103,12 +1103,9 @@ final class ASCIIRenderer {
                     let blanks = t.prefix { $0 == " " || $0 == "\t" }
                     t = String(repeating: " ", count: blanks.count) + t.dropFirst(blanks.count)
                 }
-                if let m = Self.plainLink.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)) {
-                    throw Unsupported(reason: "Plain links of type \((t as NSString).substring(with: m.range(at: 1)))")
-                }
                 dropBlanks = false
                 afterObject = false
-                out += plainText(t)
+                out += try plainTextAndLinks(t)
                 index += 1
             case .object(let node, let children):
                 dropBlanks = false
@@ -1182,6 +1179,20 @@ final class ASCIIRenderer {
         return text.replacingOccurrences(of: "---", with: "—").replacingOccurrences(of: "--", with: "–").replacingOccurrences(of: "...", with: "…")
     }
 
+    /// Text with the plain links the parser leaves in it, `FILE:x` and the like, written as Emacs does.
+    private func plainTextAndLinks(_ t: String) throws -> String {
+        let ns = t as NSString
+        var out = ""
+        var last = 0
+        for m in Self.plainLink.matches(in: t, range: NSRange(location: 0, length: ns.length)) {
+            let type = ns.substring(with: m.range(at: 1))
+            guard ["http", "https", "mailto", "file"].contains(type.lowercased()) else { throw Unsupported(reason: "Plain links of type \(type)") }
+            out += plainText(ns.substring(with: NSRange(location: last, length: m.range.location - last))) + "<" + ns.substring(with: m.range) + ">"
+            last = NSMaxRange(m.range)
+        }
+        return out + plainText(ns.substring(from: last))
+    }
+
     // MARK: Links
 
     /// A link written in notes mode: its footprint and how `org-ascii--describe-links`
@@ -1197,13 +1208,20 @@ final class ASCIIRenderer {
     private var noting = true
 
     /// `org-ascii--describe-links` for the links noted since `start`, each once.
-    private func describeLinks(from start: Int, width: Int) -> String {
+    private func describeLinks(from start: Int, width: Int) throws -> String {
         guard linksToNotes else { return "" }
         var seen: Set<String> = []
         var out = ""
         for link in noted[start...] where !seen.contains(link.footprint) {
             seen.insert(link.footprint)
-            if let note = link.note { out += ASCIIText.fill(note, width: width) + "\n\n" }
+            if let note = link.note {
+                let filled = ASCIIText.fill(note, width: width)
+                // Emacs fills by columns: the same unless wide characters take a line past them.
+                if note.unicodeScalars.contains(where: Self.isZeroWidth) || filled.split(separator: "\n").contains(where: { Self.width(String($0)) > max(width, $0.count) }) {
+                    throw Unsupported(reason: "Wide or combining characters")
+                }
+                out += filled + "\n\n"
+            }
         }
         noted.removeSubrange(start...)
         return out
@@ -1212,8 +1230,13 @@ final class ASCIIRenderer {
     /// Link types Org registers in an Org buffer that this export doesn't write as Emacs does.
     private static let unrenderedTypes: Set<String> = ["attachment", "bbdb", "bibtex", "docview", "doi", "eww", "gnus", "info", "irc", "mhe", "rmail", "w3m"]
 
-    /// `org-link-plain-re`, loosely, for the plain links the parser leaves as text.
-    private static let plainLink = try! NSRegularExpression(pattern: #"(?i)(?<![\p{L}\p{N}_])(attachment|bbdb|bibtex|docview|doi|elisp|eww|file\+emacs|file\+sys|file|ftp|gnus|help|https?|id|info|irc|mailto|mhe|news|rmail|shell|shortdoc|w3m):\S*[\p{L}\p{N}/)\]>-]"#)
+    /// `org-link-plain-re`, in any case, for the plain links the parser leaves as text.
+    private static let plainLink: NSRegularExpression = {
+        let plain = #"[^\[\]\s()<>]"#
+        let parens = #"[<(\[](?:\#(plain)|[<(\[]\#(plain)*[\])>])*[\])>]"#
+        let types = "attachment|bbdb|bibtex|docview|doi|elisp|eww|file\\+emacs|file\\+sys|file|ftp|gnus|help|https?|id|info|irc|mailto|mhe|news|rmail|shell|shortdoc|w3m"
+        return try! NSRegularExpression(pattern: #"(?i)(?<![\p{L}\p{N}_])("# + types + #"):(?:\#(plain)|\#(parens))+(?:[^\p{P}\p{S}\s]|[/-]|\#(parens))"#)
+    }()
 
     private static let externalTypes: Set<String> = ["file+sys", "file+emacs", "shell", "news", "mailto", "https", "http", "ftp", "shortdoc", "help", "file", "elisp"]
 
@@ -1280,7 +1303,8 @@ final class ASCIIRenderer {
 
     /// `org-ascii--describe-datum` for a heading `reference` names.
     private func seeSection(_ reference: String) throws -> String {
-        let format = try translateFilled("See section %s")
+        // In notes, `describeLinks` checks the width.
+        let format = linksToNotes ? translate("See section %s") : try translateFilled("See section %s")
         // Emacs's `format` stops at `%d` given a string (Slovenian).
         if format.contains("%d") { throw Unsupported(reason: "Format specifier doesn't match argument type") }
         return format.replacingOccurrences(of: "%s", with: reference)
