@@ -7,6 +7,7 @@ import Foundation
 public enum LaTeXExport {
     public struct Unsupported: Error, LocalizedError, Equatable, CustomStringConvertible {
         public let reason: String
+        public init(reason: String) { self.reason = reason }
         public var errorDescription: String? { reason }
         public var description: String { reason }
     }
@@ -131,6 +132,7 @@ final class LaTeXRenderer {
         (numbered, num) = try depth("num")
         (withTOC, toc) = try depth("toc")
         timeStampFile = items["timestamp"] != "nil"
+        if let tex = items["tex"], tex != "t", tex != "nil" { throw Unsupported(reason: "#+OPTIONS: tex:\(tex)") }
         for key in ["CITE_EXPORT", "BIBLIOGRAPHY", "PRINT_BIBLIOGRAPHY", "LATEX_CLASS_PRE", "LATEX_FOOTNOTE_COMMAND", "CALL", "EXPORT_LATEX_CLASS"] where keywords[key] != nil {
             throw Unsupported(reason: "#+\(key)")
         }
@@ -533,6 +535,8 @@ final class LaTeXRenderer {
             full += "\\framebox{\\#\(letter)} "
         }
         full += text
+        // The title for the table of contents, without the tags unless `tags` is t.
+        let tocTitle = (options.items["tags"] ?? "t") == "t" ? nil : full
         if options.tags, let tags = tokens.first(where: { $0.kind == .tags })?.text {
             let shown = tags.split(separator: ":").map(String.init)
             if !shown.isEmpty { full += "\\hfill{}\\textsc{\(shown.map(Self.protect).joined(separator: ":"))}" }
@@ -553,7 +557,14 @@ final class LaTeXRenderer {
             }
             return out
         }
-        let format = isNumbered ? sections[level - 1].0 : sections[level - 1].1
+        var format = isNumbered ? sections[level - 1].0 : sections[level - 1].1
+        // A numbered section's title in the table of contents, when it differs.
+        if isNumbered, let tocTitle, tocTitle != full, let brace = format.firstIndex(of: "{") {
+            // Emacs puts it in a `format` string, where `%` is a directive.
+            if tocTitle.contains("%") { throw Unsupported(reason: "% in a heading with tags not in the table of contents") }
+            let optional = tocTitle.replacingOccurrences(of: "[", with: "(").replacingOccurrences(of: "]", with: ")")
+            format.insert(contentsOf: "[\(optional)]", at: brace)
+        }
         return format.replacingOccurrences(of: "%s", with: full) + "\n" + label + pre + (contents ?? "")
     }
 
@@ -602,11 +613,13 @@ final class LaTeXRenderer {
             return try keyword(node)
         case .drawer:
             if drawerName(node).uppercased() == "LOGBOOK" { return nil }
-            let inner = node.children
-            return try wrapLabel(affiliated, Self.normalize(try elements(inner, end: node.range.upperBound)))
+            // `org-latex-format-drawer-default-function` gives nil for no contents.
+            guard hasContents(node.children) else { return nil }
+            return try wrapLabel(affiliated, Self.normalize(try elements(node.children, end: node.range.upperBound)))
         case .dynamicBlock:
             let lines = node.text.components(separatedBy: "\n")
-            return try wrapLabel(affiliated, Self.normalize(try blocks(lines.dropFirst().dropLast(2).joined(separator: "\n"))))
+            guard let contents = try blockContents(lines.dropFirst().dropLast(2).joined(separator: "\n")) else { return nil }
+            return try wrapLabel(affiliated, Self.normalize(contents))
         case .planning, .propertyDrawer, .clock, .footnoteDefinition, .nodeProperty:
             return nil
         default:
@@ -632,6 +645,33 @@ final class LaTeXRenderer {
         currentSource = text as NSString
         defer { currentSource = saveSource }
         return try elements(nodes, end: (text as NSString).length)
+    }
+
+    /// `blocks`, or nil when `text` has no element the export keeps, where Emacs passes nil
+    /// contents.
+    func blockContents(_ text: String) throws -> String? {
+        let tree = OrgParser.parse(text, defaults: settings)
+        let nodes = tree.root.children.flatMap { $0.kind == .zerothSection ? $0.children : [$0] }
+        let saved = exportSource
+        exportSource = ExportSource(tree: tree, text: text)
+        defer { exportSource = saved }
+        guard hasContents(nodes) else { return nil }
+        return try blocks(text)
+    }
+
+    /// Whether `nodes` hold an element the export keeps.
+    private func hasContents(_ nodes: [SyntaxNode]) -> Bool {
+        nodes.contains { node in
+            switch node.kind {
+            case .comment, .affiliatedKeyword: return false
+            case .block:
+                let type = blockType(node)
+                if type == "comment" { return false }
+                if type == "src", exportSource.exports(at: node.range.lowerBound) == "none" { return false }
+                return !isResults(node)
+            default: return !pruned(node)
+            }
+        }
     }
 
     /// The text blank lines are counted in, when it isn't the document's.
@@ -762,7 +802,7 @@ final class LaTeXRenderer {
             out += ordered ? "{\(checkbox) \(tag)} " : "[{\(checkbox) \(tag)}] "
         } else if let label = checkbox ?? tag {
             out += ordered ? "{\(label)} " : "[{\(label)}] "
-        } else if contents.firstMatch(of: /^[ \t]*\[/) != nil {
+        } else if contents.firstMatch(of: /^[ \t]*\[/) != nil, !Self.startsWithLaTeXSnippet(children.first) {
             out += "\\relax "
         } else {
             out += " "
@@ -770,10 +810,24 @@ final class LaTeXRenderer {
         return out + Self.trim(contents)
     }
 
+    /// Whether `node` is a paragraph whose first object is a `@@latex:…@@` snippet.
+    static func startsWithLaTeXSnippet(_ node: SyntaxNode?) -> Bool {
+        guard let node, node.kind == .paragraph else { return false }
+        for element in node.elements {
+            switch element {
+            case .token(let token):
+                if token.text.contains(where: { !$0.isWhitespace }) { return false }
+            case .node(let n):
+                return n.kind == .exportSnippet && n.text.hasPrefix("@@latex:")
+            }
+        }
+        return false
+    }
+
     // MARK: Tables
 
     /// `org-table-number-regexp`.
-    static let numberPattern = try! NSRegularExpression(pattern: "^(?:[<>]?[-+^.0-9]*[0-9][-+^.0-9eEdDx()%:]*|[<>]?[-+]?0[xX][0-9a-fA-F.]+|[<>]?[-+]?[0-9]+#[0-9a-zA-Z.]+|nan|[-+u]?inf)$")
+    static let numberPattern = try! NSRegularExpression(pattern: "^(?:[<>]?[-+^.0-9]*[0-9][-+^.0-9eEdDx()%:]*|[<>]?[-+]?0[xX][0-9a-fA-F.]+|[<>]?[-+]?[0-9]+#[0-9a-zA-Z.]+|nan|[-+u]?inf)$", options: .caseInsensitive)
 
     private func table(_ node: SyntaxNode, affiliated: Affiliated) throws -> String {
         let rows = node.children.filter { $0.kind == .tableRow }
@@ -922,11 +976,13 @@ final class LaTeXRenderer {
             guard text.contains(where: { !$0.isWhitespace }) else { return nil }
             let environment = affiliated.value("environment") ?? "verbatim"
             return try wrapLabel(affiliated, "\\begin{\(environment)}\n\(try formatCode(lines))\\end{\(environment)}")
-        case "quote":
+        case "quote", "center":
+            // Emacs formats nil contents as `nil`. Blank lines alone are a paragraph of one newline.
+            let contents = body.isEmpty ? nil : body.allSatisfy({ $0.allSatisfy(\.isWhitespace) }) ? "\n" : try blockContents(text)
+            let inner = contents.map(Self.normalize) ?? "nil"
+            if type == "center" { return try wrapLabel(affiliated, "\\begin{center}\n\(inner)\\end{center}") }
             let environment = affiliated.value("environment") ?? "quote"
-            return try wrapLabel(affiliated, "\\begin{\(environment)}\(affiliated.value("options") ?? "")\n\(Self.normalize(try blocks(text)))\\end{\(environment)}")
-        case "center":
-            return try wrapLabel(affiliated, "\\begin{center}\n\(Self.normalize(try blocks(text)))\\end{center}")
+            return try wrapLabel(affiliated, "\\begin{\(environment)}\(affiliated.value("options") ?? "")\n\(inner)\\end{\(environment)}")
         case "verse":
             if !affiliated.attr.isEmpty { throw Unsupported(reason: "#+ATTR_LATEX on verse blocks") }
             return try wrapLabel(affiliated, try verse(unescaped))
@@ -968,9 +1024,31 @@ final class LaTeXRenderer {
         }.joined(separator: "\n") + "\n"
     }
 
+    /// The src and example blocks the export writes, in order, as their lines: none under a
+    /// section left out, with `:exports none`, or a src block's results.
+    private lazy var exportedBlocks: [[String]] = {
+        let source = ExportSource(tree: tree, text: self.source as String)
+        return tree.root.descendants().filter { $0.kind == .block }.compactMap { node in
+            var lines = node.text.components(separatedBy: "\n")
+            if lines.last == "" { lines.removeLast() }
+            guard Coderef.block(lines) != nil, !Self.excluded(node, by: self), !isResults(node) else { return nil }
+            if blockType(node) == "src", source.exports(at: node.range.lowerBound) == "none" { return nil }
+            return lines
+        }
+    }()
+
+    /// Whether `node` is the results of the src block before it, which the export removes.
+    private func isResults(_ node: SyntaxNode) -> Bool {
+        guard let siblings = node.parent?.children, let index = siblings.firstIndex(where: { $0.range == node.range }) else { return false }
+        let keywords = siblings[..<index].reversed().prefix { $0.kind == .affiliatedKeyword }
+        guard keywords.contains(where: { $0.text.firstMatch(of: /^[ \t]*#\+(?i:results)[\[:]/) != nil }) else { return false }
+        let before = index - keywords.count - 1
+        return before >= 0 && siblings[before].kind == .block && blockType(siblings[before]) == "src"
+    }
+
     /// Each src and example block's `org-export-get-loc`, by the block's text, in order.
     private lazy var blockLocs: [String: [Int?]] = {
-        let blocks = Coderef.blocks(tree)
+        let blocks = exportedBlocks
         var locs: [String: [Int?]] = [:]
         for (lines, loc) in zip(blocks, Coderef.locs(blocks.compactMap(Coderef.block))) {
             locs[lines.joined(separator: "\n"), default: []].append(loc)
@@ -1197,16 +1275,25 @@ final class LaTeXRenderer {
         var out = ""
         var index = 0
         var dropBlanks = false
+        // An object's post-blank, which Emacs writes as spaces.
+        var afterObject = false
         while index < items.count {
             let item = items[index]
             switch item {
             case .text(var t):
-                if dropBlanks { t = String(t.drop { $0 == " " || $0 == "\t" }) }
+                if dropBlanks {
+                    t = String(t.drop { $0 == " " || $0 == "\t" })
+                } else if afterObject {
+                    let blanks = t.prefix { $0 == " " || $0 == "\t" }
+                    t = String(repeating: " ", count: blanks.count) + t.dropFirst(blanks.count)
+                }
                 dropBlanks = false
+                afterObject = false
                 out += plainText(t)
                 index += 1
             case .object(let node, let children):
                 dropBlanks = false
+                afterObject = true
                 if let math = mathValue(node) {
                     var values = [math]
                     var next = index + 1
@@ -1222,7 +1309,7 @@ final class LaTeXRenderer {
                 if var result = try object(node, children) {
                     // `org-timestamp-translate` keeps the blanks after the timestamp.
                     if node.kind == .timestamp, index + 1 < items.count, case .text(let t) = items[index + 1] {
-                        result = result.dropLast() + String(t.prefix { $0 == " " || $0 == "\t" }) + "}"
+                        result = result.dropLast() + String(repeating: " ", count: t.prefix { $0 == " " || $0 == "\t" }.count) + "}"
                     }
                     out += result
                 } else {
@@ -1486,7 +1573,7 @@ final class LaTeXRenderer {
             }
             return "\\hyperref[\(label)]{\(description ?? title ?? "")}"
         case "coderef":
-            guard let resolved = Coderef.resolve(path, in: tree) else { throw Unsupported(reason: "Unable to resolve code reference: \(path)") }
+            guard let resolved = Coderef.resolve(path, blocks: exportedBlocks) else { throw Unsupported(reason: "Unable to resolve code reference: \(path)") }
             // `org-export-get-coderef-format` on the transcoded description, then `format`.
             var format = description ?? "%s"
             if let range = format.range(of: "(\(path))") { format.replaceSubrange(range, with: "%s") }
@@ -1512,14 +1599,14 @@ final class LaTeXRenderer {
     /// The `<<target>>` a fuzzy link names.
     private func target(_ path: String) -> String? {
         let search = Self.words(path)
-        return tree.root.descendants().first { $0.kind == .target && Self.words(String($0.text.dropFirst(2).dropLast(2))) == search }
+        return tree.root.descendants().first { $0.kind == .target && Self.words(String($0.text.dropFirst(2).dropLast(2))) == search && !Self.excluded($0, by: self) }
             .map { String($0.text.dropFirst(2).dropLast(2)) }
     }
 
     /// The label of the element whose `#+NAME` a fuzzy link names, as the element writes it.
     private func namedElement(_ path: String) -> String? {
         let search = path.split(whereSeparator: \.isWhitespace).map(String.init)
-        for node in tree.root.descendants() where node.kind == .affiliatedKeyword {
+        for node in tree.root.descendants() where node.kind == .affiliatedKeyword && !Self.excluded(node, by: self) {
             guard let m = node.text.firstMatch(of: /^[ \t]*#\+(?i:name):[ \t]*(.*?)[ \t]*\n?$/) else { continue }
             let name = String(m.1)
             let words = name.split(whereSeparator: \.isWhitespace).map(String.init)
@@ -1541,16 +1628,26 @@ final class LaTeXRenderer {
         return nil
     }
 
-    /// The heading a link goes to: by `CUSTOM_ID`, `ID` or title.
+    /// The headings the export writes.
+    private lazy var exportedHeadings: [HeadingInfo] = {
+        let starts = Set(tree.root.descendants().filter { node in
+            node.kind == .heading && HTMLRenderer.sectionExport(node, options: options, selected: selected) != .nothing
+                && !(node.parent?.parent.map { Self.excluded($0, by: self) } ?? false)
+        }.map(\.range.lowerBound))
+        return model.headings.filter { starts.contains($0.headingRange.lowerBound) }
+    }()
+
+    /// The exported heading a link goes to: by `CUSTOM_ID`, `ID` or title.
     private func resolveHeading(type: String, path: String) throws -> HeadingInfo? {
+        let headings = exportedHeadings
         switch type {
         case "custom-id":
-            return model.headings.first { $0.properties.contains { $0.key.uppercased() == "CUSTOM_ID" && $0.value == path } }
+            return headings.first { $0.properties.contains { $0.key.uppercased() == "CUSTOM_ID" && $0.value == path } }
         case "id":
-            return model.headings.first { $0.properties.contains { $0.key.uppercased() == "ID" && $0.value == path } }
+            return headings.first { $0.properties.contains { $0.key.uppercased() == "ID" && $0.value == path } }
         default:
             let search = Self.words(path.hasPrefix("*") ? String(path.dropFirst()) : path)
-            return model.headings.first { heading in
+            return headings.first { heading in
                 let node = tree.root.descendants().first { $0.kind == .heading && $0.range.lowerBound == heading.headingRange.lowerBound }
                 let raw = (node?.firstChild(.title)?.text ?? "").replacing(#/\[[0-9]*(?:%|/[0-9]*)\]/#, with: " ")
                 return Self.words(raw) == search
@@ -1711,7 +1808,8 @@ final class LaTeXRenderer {
         return try blocks(text)
     }
 
-    /// The object or text before `node` in its parent.
+    /// The object before `node` in its parent, nil after text. Spaces and tabs after an object
+    /// are its post-blank, not text.
     private func previousSibling(_ node: SyntaxNode) -> SyntaxNode? {
         guard let parent = node.parent else { return nil }
         var previous: SyntaxNode.Element?
@@ -1720,6 +1818,7 @@ final class LaTeXRenderer {
                 if case .node(let p)? = previous { return p }
                 return nil
             }
+            if case .token(let t) = element, !t.text.isEmpty, t.text.allSatisfy({ $0 == " " || $0 == "\t" }), case .node? = previous { continue }
             previous = element
         }
         return nil

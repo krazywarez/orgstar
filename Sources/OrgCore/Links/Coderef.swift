@@ -96,7 +96,12 @@ public enum Coderef {
     /// `org-export-resolve-coderef`: the label, or its line's number for blocks that number
     /// lines instead; nil when no block has it.
     public static func resolve(_ ref: String, in tree: OrgTree) -> String? {
-        let parsed = blocks(tree).compactMap(block)
+        resolve(ref, blocks: blocks(tree))
+    }
+
+    /// `resolve` among `blocks`, as their lines.
+    static func resolve(_ ref: String, blocks: [[String]]) -> String? {
+        let parsed = blocks.compactMap(block)
         let locs = locs(parsed)
         for (block, loc) in zip(parsed, locs) {
             let lines = trimmedLines(block.body)

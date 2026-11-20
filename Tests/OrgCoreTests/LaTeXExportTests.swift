@@ -156,6 +156,28 @@ struct LaTeXExportTests {
         "Plain LaTeX's own words and TeXbook.\n",
         "#+begin_example\nplain\n#+end_example\n\n#+begin_src sh -n\none\ntwo\n#+end_src\n\n#+begin_example\nplain\n#+end_example\n\n#+begin_src sh +n\nthree\n#+end_src\n",
         "* Deep lists\n** two\n*** three\n**** four a\n**** COMMENT skipped\n**** four b :noexport:\n**** four c\n",
+        "| NaN | a |\n| INF | b |\n| 2X | c |\n| -inf | d |\n",
+        "#+OPTIONS: tags:not-in-toc\n* TODO [#A] One [x] :a:b:\n* Two\n* Three :c:\n** Four :d:\n*** Five :e:\n**** Six :f:\n",
+        "#+OPTIONS: tags:not-in-toc num:nil pri:t\n* [#B] One :a:\n",
+        "* A :noexport:\n#+begin_src sh -n\na\nb\n#+end_src\n* B\n#+begin_src sh +n\nc\n#+end_src\n",
+        "#+begin_src sh -n :exports none\na\nb\n#+end_src\n\n#+begin_src sh +n\nc\n#+end_src\n",
+        "#+begin_src sh -n :exports code\na\n#+end_src\n\n#+RESULTS:\n#+begin_example\nr\ns\n#+end_example\n\n#+begin_src sh +n\nc\n#+end_src\n",
+        "* COMMENT A\n#+begin_src sh -n\na (ref:x)\n#+end_src\n* B\n#+begin_src sh -n -r\nb\nc (ref:x)\n#+end_src\nSee [[(x)]].\n",
+        "A[fn:1] [fn:2] b[fn:1]\t[fn:2] c[fn:1]\n [fn:2] d.\n\n[fn:1] One.\n\n[fn:2] Two.\n",
+        "- @@latex:[x]@@ foo\n- @@LaTeX:[x]@@ foo\n- @@tex:[x]@@ foo\n-  @@latex:[x]@@ foo\n- x\n\n  [a] b\n",
+        "#+begin_foo\n#+end_foo\n\n:DR:\n:END:\n\nb\n",
+        "a\n\n:DR:\n# c\n:END:\n\nb\n",
+        "a\n\n:DR:\n\n:END:\n\nb\n",
+        "a\n\n#+BEGIN: x\n#+END:\n\nb\n",
+        "a\n\n#+begin_quote\n#+end_quote\n\nb\n",
+        "a\n\n#+begin_quote\n\n#+end_quote\n\nb\n",
+        "a\n\n#+begin_quote\n# c\n#+end_quote\n\nb\n",
+        "a\n\n#+begin_center\n#+end_center\n\nb\n",
+        "#+NAME: n\n#+begin_quote\n#+end_quote\n",
+        "#+begin_center\n# c\n\n#+end_center\n\n#+begin_quote\n#+begin_src sh :exports none\nx\n#+end_src\n#+end_quote\n\n#+begin_quote\n#+FOO: t\n#+end_quote\n\n:DR:\n#+begin_comment\nc\n#+end_comment\n:END:\n\n:DR:\n#+begin_src sh\n#+end_src\n:END:\n\nend\n",
+        "a\n:DR:\n:END:\n\nb\n\na\n#+begin_src sh\n#+end_src\n\nb\n\na\n:DR:\n:END:\nb\n\na\n#+BEGIN: x\n#+END:\n\nb\n",
+        "*b*\tx =v=\t\ty \\alpha\tz [[https://a.b]]\tw x^2\tq $m$\tr <2024-01-15 Mon>\tt *b*\t\n",
+        "a @@html:x@@\tb a@@html:x@@\tb [fn::n]\t[fn::m] c\n",
     ]
 
     @Test(.enabled(if: oracle))
@@ -179,6 +201,77 @@ struct LaTeXExportTests {
             LaTeXOracle.Case(text: doc, bodyOnly: true, subtree: EmacsOracle.point(sub, in: doc)),
         ]
         try compare(cases, names: ["body", "blocks body", "subtree", "subtree from body", "subtree body"])
+    }
+
+    /// A subtree's `EXPORT_*` properties replace the file's keywords.
+    @Test(.enabled(if: oracle))
+    func subtreePropertiesMatchEmacs() throws {
+        let doc = """
+            #+TITLE: Doc
+            #+SUBTITLE: File sub
+            #+LATEX_CLASS: book
+            #+LATEX_CLASS_OPTIONS: [a4paper]
+            #+LATEX_HEADER: \\usepackage{tikz}
+            #+LATEX_HEADER_EXTRA: \\usepackage{amsthm}
+            #+LATEX_COMPILER: xelatex
+            #+KEYWORDS: k1
+            #+DESCRIPTION: d1
+            #+LANGUAGE: fr
+            #+EXCLUDE_TAGS: drop
+            * Top
+            :PROPERTIES:
+            :EXPORT_LATEX_CLASS: report
+            :EXPORT_LATEX_CLASS_OPTIONS: [12pt]
+            :EXPORT_LATEX_HEADER: \\usepackage{xcolor}
+            :EXPORT_LATEX_HEADER_EXTRA: \\usepackage{listings}
+            :EXPORT_LATEX_COMPILER: lualatex
+            :EXPORT_SUBTITLE: Sub
+            :EXPORT_KEYWORDS: k2
+            :EXPORT_DESCRIPTION: d2
+            :EXPORT_LANGUAGE: de
+            :EXPORT_EXCLUDE_TAGS: gone
+            :END:
+            Body.
+            ** Child
+            x
+            ** Dropped :gone:
+            z
+            ** Kept :drop:
+            w
+            * Other
+            :PROPERTIES:
+            :EXPORT_SUBTITLE: Only sub
+            :END:
+            y
+
+            """
+        let top = (doc as NSString).range(of: "Body.").location
+        let other = (doc as NSString).range(of: "\ny").location + 1
+        let cases = [
+            LaTeXOracle.Case(text: doc, subtree: EmacsOracle.point(top, in: doc)),
+            LaTeXOracle.Case(text: doc, subtree: EmacsOracle.point(other, in: doc)),
+        ]
+        try compare(cases, names: ["subtree properties", "subtree subtitle"])
+    }
+
+    /// Links to what the export leaves out stop both exports.
+    @Test(.enabled(if: oracle))
+    func abortsWhereEmacsAborts() throws {
+        let docs = [
+            "* A :noexport:\n* B\nSee [[*A]].\n",
+            "* A :noexport:\n:PROPERTIES:\n:CUSTOM_ID: a\n:END:\n* B\nSee [[#a]].\n",
+            "* COMMENT A\n* B\nSee [[*A]].\n",
+            "* A :noexport:\n** Inner\n* B\nSee [[*Inner]].\n",
+            "* A :noexport:\nA <<here>> target.\n* B\nSee [[here]].\n",
+            "* A :noexport:\n#+NAME: tbl\n| x |\n* B\nSee [[tbl]].\n",
+            "* A :noexport:\n#+begin_src sh -r\nx (ref:y)\n#+end_src\n* B\nSee [[(y)]].\n",
+        ]
+        let emacs = try LaTeXOracle.export(docs.map { LaTeXOracle.Case(text: $0) })
+        for (doc, theirs) in zip(docs, emacs) {
+            let ours = LaTeXOracle.native(LaTeXOracle.Case(text: doc))
+            #expect(theirs.hasPrefix("ERROR: "), "\(doc)\n--- emacs\n\(theirs)")
+            #expect(ours.hasPrefix("ERROR: Unable to resolve"), "\(doc)\n--- ours\n\(ours)")
+        }
     }
 
     private func compare(_ cases: [LaTeXOracle.Case], names: [String]) throws {
@@ -221,6 +314,10 @@ struct LaTeXExportTests {
         #expect(reason("#+LATEX_HEADER: \\usepackage[AUTO]{babel}\nx\n") != nil)
         #expect(reason("#+begin_src sh :exports results\necho\n#+end_src\n") == ":exports results")
         #expect(reason("[cite:@key]\n") == "Citations")
+        #expect(reason("#+OPTIONS: tex:verbatim\nMath \\(a_1\\).\n") == "#+OPTIONS: tex:verbatim")
+        let pre = "* Top\n:PROPERTIES:\n:EXPORT_LATEX_CLASS_PRE: \\x\n:END:\nBody.\n"
+        #expect(ExportScope.subtree(pre, at: 0).flatMap(reason) == "#+LATEX_CLASS_PRE")
+        #expect(reason("#+OPTIONS: tags:not-in-toc\n* 100% done :a:\n")?.hasPrefix("% in a heading") == true)
     }
 
     @Test func labelsStayTheSame() throws {
