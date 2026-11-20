@@ -5,13 +5,14 @@ import Testing
 @testable import OrgCore
 
 /// `content.xml` reduced to what ox-odt and the native export must agree on: headings with
-/// their outline level, paragraphs, lists, sections, tables and their rows and cells, links
-/// and images with their targets, notes and frames, and the text runs. Spaces written as
-/// elements count as spaces; references are numbered in order of appearance, since ox-odt's
-/// are random.
+/// their outline level, paragraphs, lists, sections, spans, tables and their rows and cells,
+/// links and images with their targets, notes and frames, the style names of these, and the
+/// text runs. `text:s` counts as spaces; tabs and line breaks are tokens of their own;
+/// references are numbered in order of appearance, since ox-odt's are random. The spans
+/// ox-odt colors source code with are left out: the export doesn't fontify.
 enum ODTSkeleton {
     static let kept: Set<String> = [
-        "text:h", "text:p", "text:list", "text:list-item", "text:list-header", "text:section", "text:note",
+        "text:h", "text:p", "text:span", "text:list", "text:list-item", "text:list-header", "text:section", "text:note",
         "table:table", "table:table-header-rows", "table:table-rows", "table:table-row", "table:table-cell", "table:covered-table-cell",
         "text:a", "draw:a", "draw:frame", "draw:image", "draw:text-box", "text:table-of-content", "text:index-body",
     ]
@@ -22,6 +23,7 @@ enum ODTSkeleton {
         var lines: [String] = []
         var text = ""
         var references: [String: Int] = [:]
+        var spans: [Bool] = []
         func flush() {
             let collapsed = Skeleton.decode(text).split(whereSeparator: \.isWhitespace).joined(separator: " ")
             if !collapsed.isEmpty { lines.append("\"" + collapsed + "\"") }
@@ -45,18 +47,29 @@ enum ODTSkeleton {
                 text += String(repeating: " ", count: count)
                 continue
             case "text:tab", "text:line-break":
-                text += " "
+                flush()
+                lines.append("<\(name)/>")
                 continue
             default:
                 break
             }
             guard kept.contains(name) else { continue }
+            if name == "text:span", !tag.hasSuffix("/") {
+                if closing {
+                    if spans.popLast() == false { continue }
+                } else {
+                    let colored = tag.contains("text:style-name=\"OrgSrcFontLock")
+                    spans.append(!colored)
+                    if colored { continue }
+                }
+            }
             flush()
             if closing {
                 lines.append("</\(name)>")
                 continue
             }
             var attributes = ""
+            if let style = tag.firstMatch(of: /(?:text|table):style-name="([^"]*)"/) { attributes += " style=\(style.1)" }
             if let level = tag.firstMatch(of: /text:outline-level="([0-9]+)"/) { attributes += " level=\(level.1)" }
             if let href = tag.firstMatch(of: /xlink:href="([^"]*)"/) {
                 var value = String(href.1)
@@ -351,6 +364,101 @@ struct ODTExportTests {
             Text -- here a_b and a_{b} and \\(x\\).
             * Second
             """,
+        "deep-headings": """
+            #+OPTIONS: toc:nil
+            * One
+            ** Two
+            *** Three
+            **** Four
+            See [[Four]].
+            **** Five
+            """,
+        "num-past-h": """
+            #+OPTIONS: toc:nil num:3 H:1
+            * A
+            ** B
+            *** C
+            **** D
+            """,
+        "nested-footnotes": """
+            #+OPTIONS: toc:nil
+            A[fn:1] B[fn:2] C[fn:4].
+
+            [fn:1] One[fn:3][fn:4].
+
+            [fn:2] Two.
+
+            [fn:3] Three.
+
+            [fn:4] Four.
+            """,
+        "inline-footnotes": """
+            #+OPTIONS: toc:nil
+            First[fn:x] then[fn:x: inline /def/] and an anonymous[fn:: one[fn:y]] note.
+
+            [fn:y] Nested in an anonymous one.
+            """,
+        "tocs": """
+            #+OPTIONS: toc:nil
+            * Top
+            #+TOC: headlines 1 local
+            ** Child A
+            ** DONE Child B
+            *** Grand
+            * Appendix
+            :PROPERTIES:
+            :UNNUMBERED: notoc
+            :END:
+            ** Inside appendix
+            *** Deeper
+            :PROPERTIES:
+            :UNNUMBERED: nil
+            :END:
+            * Last
+            #+TOC: headlines 5
+            """,
+        "cookie-header": """
+            #+OPTIONS: toc:nil
+            | <r> | <l> |
+            |-----+-----|
+            | a   | b   |
+            """,
+        "preserve-breaks": """
+            #+OPTIONS: toc:nil \\n:t
+            Line one
+            line two.
+
+            Ends with a break\\\\
+            next line\\\\
+            """,
+        "no-footnotes-tables-entities": """
+            #+OPTIONS: toc:nil f:nil |:nil e:nil
+            Text[fn:1] with \\alpha and \\beta{} here.
+
+            #+CAPTION: Dropped
+            | a | b |
+
+            - item
+              | c |
+
+            [fn:1] Note.
+            """,
+        "no-drawers": """
+            #+OPTIONS: toc:nil d:nil
+            * H
+            :NOTES:
+            Hidden.
+            :END:
+            Shown.
+            """,
+        "all-drawers": """
+            #+OPTIONS: toc:nil d:t
+            * H
+            :LOGBOOK:
+            - Note taken on [2024-01-01 Mon 10:00]
+            :END:
+            Shown.
+            """,
     ]
 
     /// Exports each document with ox-odt in one Emacs: its `content.xml`, or `ERROR: ` and the
@@ -491,13 +599,45 @@ struct ODTExportTests {
         "Code src_python[:exports code]{1 + 1} here.\n",
         "#+DATE: 2024\n#+begin_annotation\nNote.\n#+end_annotation\n",
         "- a quote\n  #+begin_quote\n  | q |\n  #+end_quote\n",
+        "#+OPTIONS: p:t\n* H\nSCHEDULED: <2024-01-01 Mon>\n",
+        "#+OPTIONS: broken-links:t\nSee [[nowhere]].\n",
+        "#+OPTIONS: c:t\n* H\nCLOCK: [2024-01-01 Mon 10:00]--[2024-01-01 Mon 11:00] =>  1:00\n",
+        "#+OPTIONS: prop:t\n* H\n:PROPERTIES:\n:A: 1\n:END:\n",
+        "#+OPTIONS: ::nil\n: fixed\n",
+        "#+OPTIONS: *:nil\n*bold*\n",
+        "#+OPTIONS: stat:nil\n* H [1/2]\n",
+        "#+OPTIONS: tasks:nil\n* TODO H\n",
+        "#+OPTIONS: <:nil\n<2024-01-01 Mon>\n",
+        "#+OPTIONS: arch:nil\n* H :ARCHIVE:\nBody.\n",
+        "#+OPTIONS: email:t\n#+EMAIL: a@b.c\nText.\n",
+        "#+OPTIONS: ':t\n\"quoted\"\n",
+        "#+OPTIONS: tex:verbatim\n\\(x\\)\n",
+        "#+OPTIONS: d:(\"NOTES\")\n:NOTES:\nx\n:END:\n",
     ])
     func refuses(_ text: String) {
         #expect(throws: ODTExport.Failure.self) { try ODTExport.document(text, path: "/tmp/doc.org") }
     }
 
-    @Test func imageFiles() {
-        let files = ODTExport.imageFiles("[[file:a.png]] [[./b.jpg][desc]] [[https://x/c.png]] [[/abs/d.svg]]\n", path: "/doc/notes.org")
-        #expect(files == ["/doc/a.png", "/abs/d.svg"])
+    @Test func imageFiles() throws {
+        let files = ODTExport.imageFiles("[[file:a.png]] [[./b.jpg][desc]] [[https://x/c.png]] [[/abs/d.svg]] [[https://x][file:e.png]]\n", path: "/doc/notes.org")
+        #expect(files == ["/doc/a.png", "/abs/d.svg", "/doc/e.png"])
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-odt-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try "[[file:/elsewhere/f.png]]\n".write(to: folder.appendingPathComponent("part.org"), atomically: true, encoding: .utf8)
+        #expect(ODTExport.imageFiles("#+INCLUDE: \"part.org\"\n", path: folder.appendingPathComponent("doc.org").path) == ["/elsewhere/f.png"])
+    }
+
+    /// Every style `content.xml` names is in `styles.xml` or its automatic styles.
+    @Test func stylesDefined() throws {
+        let text = "#+OPTIONS: pri:t\n* TODO [#A] One\n* [#B] Two\n* DONE [#C] Three\n"
+        let parts = try ODTExport.parts(text, path: "/tmp/doc.org")
+        let content = String(decoding: parts.first { $0.name == "content.xml" }!.data, as: UTF8.self)
+        let styles = String(decoding: parts.first { $0.name == "styles.xml" }!.data, as: UTF8.self)
+        let used = Set(content.matches(of: /text:style-name="([^"]+)"/).map { String($0.1) })
+        #expect(used.isSuperset(of: ["OrgPriority-A", "OrgPriority-B", "OrgPriority-C"]))
+        for name in used {
+            #expect(styles.contains("style:name=\"\(name)\"") || content.contains("style:name=\"\(name)\""), "\(name)")
+        }
     }
 }

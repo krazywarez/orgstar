@@ -27,12 +27,19 @@ public enum ODTExport {
     }
 
     /// The image files `text` embeds, for the sandbox to reach before exporting.
+    /// Images in `#+INCLUDE`d files and images shown as a link's description count.
     public static func imageFiles(_ text: String, settings: OrgSettings = .default, path: String) -> [String] {
         let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+        let text = ExportPreprocess.macros(ExportPreprocess.includes(text, directory: directory), path: path, setup: settings.setupKeywords)
         return OrgParser.parse(text, defaults: settings).root.descendants().compactMap { node in
-            guard node.kind == .link, node.firstChild(.linkDescription) == nil,
-                  let file = ODTRenderer.filePath(node.tokens.first { $0.kind == .linkPath }?.text ?? ""), ODTRenderer.isImage(file) else { return nil }
-            return ODTRenderer.expand(file, directory: directory).path
+            guard node.kind == .link else { return nil }
+            let file: String?
+            if let description = node.firstChild(.linkDescription) {
+                file = ODTRenderer.describedImage(description)
+            } else {
+                file = ODTRenderer.filePath(node.tokens.first { $0.kind == .linkPath }?.text ?? "").flatMap { ODTRenderer.isImage($0) ? $0 : nil }
+            }
+            return file.map { ODTRenderer.expand($0, directory: directory).path }
         }
     }
 
@@ -46,6 +53,7 @@ public enum ODTExport {
         let meta = HTMLExport.metadata(text, settings: settings)
         let keywords = Self.keywords(text, settings: settings)
         let renderer = ODTRenderer(settings: settings, options: options, directory: directory ?? URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
+        try Self.read(settings.setupKeywords + text, into: renderer)
         renderer.language = meta.language ?? language
 
         // The title isn't part of the document Org processes citations in: they drop out.
@@ -88,11 +96,47 @@ public enum ODTExport {
 
         var parts: [(name: String, data: Data)] = [("mimetype", Data(ODTTemplate.mimetype.utf8))]
         parts.append(("content.xml", Data(contents.utf8)))
-        parts.append(("styles.xml", Data(ODTTemplate.styles(numbered: options.num ?? 0).utf8)))
+        parts.append(("styles.xml", Data(ODTTemplate.styles(numbered: min(renderer.numbered ?? 0, 10)).utf8)))
         parts.append(("meta.xml", Data(metaXML.utf8)))
         parts += renderer.images.map { ($0.name, $0.data) }
         parts.append(("META-INF/manifest.xml", Data(ODTTemplate.manifest(images: renderer.images.map(\.name)).utf8)))
         return parts
+    }
+
+    /// The `#+OPTIONS` items ox-odt reads that `ExportOptions` doesn't, or reads differently:
+    /// `num` to any depth, `\\n`, `f`, `|`, `e` and `d` honored; other items at a value other
+    /// than their default stop the export.
+    static func read(_ text: String, into renderer: ODTRenderer) throws {
+        var items: [String: String] = [:]
+        for line in text.matches(of: #/(?mi)^[ \t]*#\+OPTIONS:[ \t]*(.*?)[ \t]*$/#) {
+            for item in line.1.matches(of: /(\S+?):(\S+)/) { items[String(item.1)] = String(item.2) }
+        }
+        let defaults = [
+            "p": "nil", "broken-links": "nil", "c": "nil", "prop": "nil", ":": "t", "*": "t", "stat": "t",
+            "tasks": "t", "<": "t", "arch": "headline", "email": "nil", "'": "nil",
+        ]
+        for (key, value) in items.sorted(by: { $0.key < $1.key }) {
+            if let standard = defaults[key], value != standard {
+                throw Failure(message: "ODT export doesn't support #+OPTIONS: \(key):\(value)")
+            }
+        }
+        if let tex = items["tex"], tex != "t", tex != "nil" { throw Failure(message: "ODT export doesn't support #+OPTIONS: tex:\(tex)") }
+        switch items["d"] {
+        case nil: renderer.drawers = nil
+        case "nil": renderer.drawers = false
+        case "t": renderer.drawers = true
+        case let value?: throw Failure(message: "ODT export doesn't support #+OPTIONS: d:\(value)")
+        }
+        // `org-export-numbered-headline-p`: `t` numbers every level, `N` levels to N, past `H`.
+        switch items["num"] {
+        case "nil": renderer.numbered = nil
+        case let value?: renderer.numbered = Int(value) ?? Int.max
+        case nil: renderer.numbered = Int.max
+        }
+        renderer.preserveBreaks = items["\\n"].map { $0 != "nil" } ?? false
+        renderer.withFootnotes = items["f"] != "nil"
+        renderer.withTables = items["|"] != "nil"
+        renderer.withEntities = items["e"] != "nil"
     }
 
     /// `#+SUBTITLE`, `#+KEYWORDS` and `#+DESCRIPTION`: lines of the same keyword joined.
@@ -131,6 +175,16 @@ final class ODTRenderer {
     /// The first error, which stops the export as ox-odt's errors do.
     private(set) var failure: ODTExport.Failure?
     private(set) var images: [(name: String, data: Data)] = []
+
+    /// `num`: headings numbered to this relative level, `Int.max` for all; nil for none.
+    var numbered: Int? = Int.max
+    /// `\\n`, `f`, `|` and `e`.
+    var preserveBreaks = false
+    var withFootnotes = true
+    var withTables = true
+    var withEntities = true
+    /// `d`: nil for every drawer but `LOGBOOK`, true for every drawer, false for none.
+    var drawers: Bool?
 
     init(settings: OrgSettings, options: ExportOptions, directory: URL) {
         self.settings = settings
@@ -176,7 +230,8 @@ final class ODTRenderer {
     private var selected: Set<Int>?
     private var documentTree: OrgTree?
     private var blockLocs: [String: [Int?]] = [:]
-    private var definitions: [String: (text: String, base: Int)] = [:]
+    /// Footnote definitions by label: the last in the document, a definition or an inline one.
+    private var definitions: [String: (text: String, base: Int, inline: Bool)] = [:]
 
     /// Where the tree being read starts in the document, so elements read from a block's or a
     /// footnote's contents keep their place; how deep in such contents it is.
@@ -204,11 +259,8 @@ final class ODTRenderer {
             heading.relative = heading.level - top + 1
             heading.lowLevel = heading.relative > options.headlineLevels
             heading.reference = newReference()
-            let unnumbered = (heading.ancestors + [key]).contains { key in
-                guard let value = headings[key]?.info?.properties.last(where: { $0.key.uppercased() == "UNNUMBERED" })?.value else { return false }
-                return value.trimmingCharacters(in: .whitespaces) != "nil"
-            }
-            if let num = options.num, heading.relative <= num, !unnumbered {
+            let unnumbered = unnumberedValue(heading).map { $0 != "nil" } ?? false
+            if let numbered, heading.relative <= numbered, !unnumbered {
                 let index = heading.relative - 1
                 if counters.count <= index { counters += Array(repeating: 0, count: index + 1 - counters.count) }
                 counters[index] += 1
@@ -227,6 +279,16 @@ final class ODTRenderer {
             let variable = ["Table": "Table", "Figure": "Illustration", "Listing": "Listing"][item.category]!
             labels[item.key] = Label(category: item.category, variable: variable, sequence: sequence, reference: named ? newReference() : nil)
         }
+    }
+
+    /// `UNNUMBERED` of the heading or its closest ancestor that has it.
+    private func unnumberedValue(_ heading: Heading) -> String? {
+        for key in [heading.key] + heading.ancestors.reversed() {
+            if let value = headings[key]?.info?.properties.last(where: { $0.key.uppercased() == "UNNUMBERED" })?.value {
+                return value.trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return nil
     }
 
     private func collect(_ node: SyntaxNode, ancestors: [Int], infos: [Int: HeadingInfo]) {
@@ -260,6 +322,7 @@ final class ODTRenderer {
                 let inner = child.kind == .target ? child.text.dropFirst(2).dropLast(2) : child.text.dropFirst(3).dropLast(3)
                 targets.append((Self.words(inner.uppercased()), key, newReference()))
             case .table:
+                guard withTables else { continue }
                 if captioned { enumerables.append((key, "Table", ancestors)) }
                 collect(child, ancestors: ancestors, infos: infos)
             case .paragraph:
@@ -271,7 +334,7 @@ final class ODTRenderer {
                 if ["src", "example", "export", "comment", "verse"].contains(type) { continue }
                 within(body.text, base: key + body.offset) { tree in collect(tree.root, ancestors: ancestors, infos: [:]) }
             case .drawer, .dynamicBlock:
-                guard let inner = Self.inner(child) else { continue }
+                guard let inner = inner(child) else { continue }
                 within(inner.text, base: key + inner.offset) { tree in collect(tree.root, ancestors: ancestors, infos: [:]) }
             default:
                 collect(child, ancestors: ancestors, infos: infos)
@@ -279,13 +342,13 @@ final class ODTRenderer {
         }
     }
 
-    /// A drawer's or dynamic block's contents and their offset in it; nil for `LOGBOOK`, which
-    /// isn't exported.
-    static func inner(_ node: SyntaxNode) -> (text: String, offset: Int)? {
+    /// A drawer's or dynamic block's contents and their offset in it; nil for a drawer `d`
+    /// leaves out.
+    private func inner(_ node: SyntaxNode) -> (text: String, offset: Int)? {
         var lines = node.text.components(separatedBy: "\n")
         if lines.last == "" { lines.removeLast() }
         guard let first = lines.first else { return nil }
-        if node.kind == .drawer, first.trimmingCharacters(in: .whitespaces).uppercased() == ":LOGBOOK:" { return nil }
+        if node.kind == .drawer, !(drawers ?? (first.trimmingCharacters(in: .whitespaces).uppercased() != ":LOGBOOK:")) { return nil }
         return (lines.dropFirst().dropLast().joined(separator: "\n"), first.utf16.count + 1)
     }
 
@@ -333,10 +396,11 @@ final class ODTRenderer {
                     end = sibling.range.upperBound
                 }
             }
-            definitions[String(m.1)] = (ns.substring(with: NSRange(location: start, length: end - start)).trimmingCharacters(in: .newlines), start)
+            definitions[String(m.1)] = (ns.substring(with: NSRange(location: start, length: end - start)).trimmingCharacters(in: .newlines), start, false)
         }
         selected = HTMLRenderer.selection(tree, tags: options.selectTags)
         collect(tree)
+        if footnotePass == nil, withFootnotes { numberFootnotes(text) }
         return rendering(tree, text) { tree.root.children.map(element).joined() }
     }
 
@@ -357,14 +421,19 @@ final class ODTRenderer {
     /// `org-odt-toc` for the whole document: headings to `toc`, or nothing.
     func tableOfContents() -> String {
         guard let depth = options.toc else { return "" }
-        return toc(depth: depth, scope: nil)
+        return toc(depth: depth, scope: nil, template: true)
     }
 
-    private func toc(depth: Int, scope: Int?) -> String {
+    /// `org-export-collect-headlines`: `depth` relative to `scope`, within `H`, without the
+    /// headings `org-export-excluded-from-toc-p` leaves out.
+    /// In the `template` one, ox-odt reads `org-done-keywords` outside the Org buffer, where
+    /// it's empty: every keyword is a TODO one.
+    private func toc(depth: Int, scope: Int?, template: Bool = false) -> String {
+        let limit = min(scope.flatMap { headings[$0].map { $0.relative + depth } } ?? depth, options.headlineLevels)
         let keys = headingOrder.filter { key in
             let heading = headings[key]!
-            let notoc = heading.info?.properties.last { $0.key.uppercased() == "UNNUMBERED" }?.value.trimmingCharacters(in: .whitespaces) == "notoc"
-            return heading.relative <= depth && !notoc && (scope.map { heading.ancestors.contains($0) } ?? true)
+            let excluded = heading.lowLevel || unnumberedValue(heading) == "notoc" || options.toc.map { heading.relative > $0 } ?? false
+            return heading.relative <= limit && !excluded && (scope.map { heading.ancestors.contains($0) } ?? true)
         }
         guard !keys.isEmpty else { return "" }
         let title = scope == nil ? ExportDictionary.translate("Table of Contents", language: language, encoding: .utf8) : nil
@@ -392,7 +461,7 @@ final class ODTRenderer {
             let heading = headings[key]!
             var entry = heading.number.map { $0.map(String.init).joined(separator: ".") + ". " } ?? ""
             let parts = headlineParts(heading.node)
-            if let todo = parts.todo { entry += "<text:span text:style-name=\"\(settings.isDone(todo) ? "OrgDone" : "OrgTodo")\">\(Self.escape(todo))</text:span> " }
+            if let todo = parts.todo { entry += "<text:span text:style-name=\"\(settings.isDone(todo) && !template ? "OrgDone" : "OrgTodo")\">\(Self.escape(todo))</text:span> " }
             if let priority = parts.priority { entry += "<text:span text:style-name=\"OrgPriority-\(priority)\">[#\(priority)]</text:span> " }
             entry += parts.title
             if options.tagsInTOC, !parts.tags.isEmpty { entry += " " + tagsSpan(parts.tags) }
@@ -446,13 +515,13 @@ final class ODTRenderer {
         case .plainList:
             return list(node)
         case .table:
-            return table(node)
+            return withTables ? table(node) : ""
         case .block:
             return block(node)
         case .horizontalRule:
             return "\n<text:p text:style-name=\"Horizontal_20_Line\"></text:p>"
         case .drawer, .dynamicBlock:
-            guard let inner = Self.inner(node) else { return "" }
+            guard let inner = inner(node) else { return "" }
             return blocks(inner.text, base: base + node.range.lowerBound + inner.offset)
         case .inlineTask:
             // `emacs -Q` doesn't load org-inlinetask, so ox-odt reads them as headings.
@@ -469,7 +538,7 @@ final class ODTRenderer {
             return code(lines)
         case .tableEl:
             // ox-odt strips table.el tables, the list around them closed and opened again.
-            return frames.isEmpty ? "" : "\n" + reopening(nil, for: node)
+            return frames.isEmpty || !withTables ? "" : "\n" + reopening(nil, for: node)
         default:
             // Comments, property drawers, planning, clocks, footnote definitions, formulas.
             return ""
@@ -555,7 +624,13 @@ final class ODTRenderer {
         imageCaption = affiliated["CAPTION"]
         imageAttributes = affiliated["ATTR_ODT"]
         defer { imageKey = nil; imageCaptioned = false; imageCaption = nil; imageAttributes = nil }
-        return "\n<text:p text:style-name=\"\(chosen)\">\(prefix)\(inline(node).trimmingCharacters(in: .whitespacesAndNewlines))</text:p>"
+        var contents = inline(node)
+        // The paragraph's own last newline isn't a line break.
+        if preserveBreaks, node.text.hasSuffix("\n"), node.text.range(of: "\\\\\\\\[ \t]*\n$", options: .regularExpression) == nil,
+           contents.hasSuffix("<text:line-break/>") {
+            contents.removeLast("<text:line-break/>".count)
+        }
+        return "\n<text:p text:style-name=\"\(chosen)\">\(prefix)\(contents.trimmingCharacters(in: .whitespacesAndNewlines))</text:p>"
     }
 
     /// The link of a paragraph that is only an image link.
@@ -695,6 +770,7 @@ final class ODTRenderer {
     // MARK: - Tables
 
     private var tableStyles: [(name: String, width: String)] = []
+    private var tableCount = 0
 
     private func table(_ node: SyntaxNode) -> String {
         let attributeLine = affiliated["ATTR_ODT"]
@@ -756,10 +832,11 @@ final class ODTRenderer {
             if kinds[r] == .rule, seen { current += 1; seen = false }
             if kinds[r] == .data { group[r] = current; seen = true }
         }
-        let firstData = rows.indices.first { kinds[$0] == .data || kinds[$0] == .special }
+        // `org-export-table-has-header-p`: a rule between data rows; special rows don't count.
+        let firstData = data.first
         let hasHeader = firstData.map { start in
             guard let rule = rows.indices.first(where: { $0 > start && kinds[$0] == .rule }) else { return false }
-            return rule + 1 < rows.count
+            return data.contains { $0 > rule }
         } ?? false
         let headerColumns = attributes["header-columns"].map { Int($0) ?? 1 } ?? 0
         var body = ""
@@ -784,9 +861,11 @@ final class ODTRenderer {
             body += "\n<table:table-row>\n\(row)\n</table:table-row>"
             if ends { body += header ? "\n</table:table-header-rows>" : "\n</table:table-rows>" }
         }
+        // Every table counts toward the automatic style names, given only with `#+ATTR_ODT`.
+        tableCount += 1
         var style = "OrgTable"
         if attributeLine != nil {
-            style = "OrgTable\(tableStyles.count + 1)"
+            style = "OrgTable\(tableCount)"
             tableStyles.append((style, attributes["rel-width"] ?? "96"))
         }
         let firstRow = data.first.map { cells[$0] } ?? []
@@ -831,7 +910,8 @@ final class ODTRenderer {
         case "src":
             let caption = label(key, caption: affiliated["CAPTION"]).map { "\n<text:p text:style-name=\"Listing\">\($0)</text:p>" } ?? ""
             let attributes = affiliated["ATTR_ODT"].map(Self.attributes) ?? [:]
-            let formatted = numbered(lines, Self.dedent(unescaped))
+            let language = parameters.split(whereSeparator: \.isWhitespace).first.map(String.init).flatMap { $0.hasPrefix("-") || $0.hasPrefix(":") ? nil : $0 }
+            let formatted = numbered(lines, Self.dedent(unescaped), fontified: language.map(ODTSourceModes.fontified) ?? true)
             if let textbox = attributes["textbox"], textbox != "nil" {
                 return caption + "\n<text:p text:style-name=\"Text_20_body\">\(self.textbox(formatted, width: nil, height: nil, style: nil, extra: nil, anchor: nil))</text:p>"
             }
@@ -874,23 +954,31 @@ final class ODTRenderer {
     }
 
     /// The code of a src or example block, labels and numbers as its switches ask.
-    private func numbered(_ block: [String], _ body: [String]) -> String {
+    private func numbered(_ block: [String], _ body: [String], fontified: Bool = true) -> String {
         let switches = Coderef.block(block)?.switches ?? Coderef.Switches(nil)
         let (lines, refs) = Coderef.unravel(body, format: switches.labelFormat)
         let key = block.joined(separator: "\n")
         let loc = blockLocs[key]?.isEmpty == false ? blockLocs[key]!.removeFirst() : nil
-        return code(lines, refs: refs, retain: switches.retainLabels, loc: switches.numberLines == nil ? nil : loc)
+        return code(lines, refs: refs, retain: switches.retainLabels, loc: switches.numberLines == nil ? nil : loc, fontified: fontified)
     }
 
-    /// `org-odt-do-format-code`: one paragraph per line, the last one styled apart.
-    private func code(_ lines: [String], refs: [Int: String] = [:], retain: Bool = false, loc: Int? = nil, emptyLast: Bool = false) -> String {
+    /// `org-odt-do-format-code`: one paragraph per line. From the line `org-split-string`
+    /// counts as the last, which leaves out a leading and a trailing empty line, the style is
+    /// the last line's. Without a mode for the language, no fontifying: another style and
+    /// spaces encoded as in text.
+    private func code(_ lines: [String], refs: [Int: String] = [:], retain: Bool = false, loc: Int? = nil, emptyLast: Bool = false, fontified: Bool = true) -> String {
         let lines = emptyLast ? lines + [""] : lines
+        let joined = lines.joined(separator: "\n")
+        let last = lines.count - (joined.hasPrefix("\n") ? 1 : 0) - (joined.hasSuffix("\n") ? 1 : 0)
+        let style = fontified ? "OrgSrcBlock" : "OrgFixedWidthBlock"
         let out = lines.enumerated().map { index, line -> String in
             var text = line
             if let ref = refs[index + 1], retain { text += " (\(ref))" }
-            var encoded = Self.escape(text, quotes: true).replacingOccurrences(of: " ", with: "<text:s/>").replacingOccurrences(of: "\t", with: "<text:tab/>")
+            var encoded = fontified
+                ? Self.escape(text, quotes: true).replacingOccurrences(of: " ", with: "<text:s/>").replacingOccurrences(of: "\t", with: "<text:tab/>")
+                : Self.encodeSpaces(Self.escape(text))
             if let ref = refs[index + 1] { encoded = Self.target(encoded, "coderef-" + ref) }
-            let paragraph = "\n<text:p text:style-name=\"OrgSrcBlock\(index == lines.count - 1 ? "LastLine" : "")\">\(encoded)</text:p>"
+            let paragraph = "\n<text:p text:style-name=\"\(style)\(last > 0 && index >= last - 1 ? "LastLine" : "")\">\(encoded)</text:p>"
             return loc == nil ? paragraph : "\n<text:list-item>\(paragraph)\n</text:list-item>"
         }.joined()
         guard let loc else { return out }
@@ -942,6 +1030,11 @@ final class ODTRenderer {
         }
         if let range = file.range(of: "::") { file = String(file[..<range.lowerBound]) }
         return file
+    }
+
+    /// `org-export-insert-image-links`: the image a link's description shows, if it is one.
+    static func describedImage(_ description: SyntaxNode) -> String? {
+        filePath(description.text.trimmingCharacters(in: .whitespaces).replacing(/^\[\[(.*)\]\]$/) { String($0.1) }).flatMap { isImage($0) ? $0 : nil }
     }
 
     static func isImage(_ file: String) -> Bool {
@@ -1003,6 +1096,8 @@ final class ODTRenderer {
         afterFootnote = false
         var out = ""
         var text = ""
+        // A line break object takes the newline after it, as Org's does.
+        var afterBreak = false
         for element in node.elements {
             switch element {
             case .token(let token):
@@ -1010,13 +1105,15 @@ final class ODTRenderer {
                 case .marker, .stars, .bullet, .checkbox, .tags, .todoKeyword, .priority, .counter:
                     continue
                 default:
-                    text += token.text
+                    text += afterBreak && text.isEmpty && token.text.hasPrefix("\n") ? String(token.text.dropFirst()) : token.text
+                    afterBreak = false
                 }
             case .node(let child):
                 if !text.isEmpty { afterFootnote = false }
                 out += plainText(text)
                 text = ""
                 out += object(child)
+                afterBreak = child.kind == .lineBreak
             }
         }
         if !text.isEmpty { afterFootnote = false }
@@ -1051,7 +1148,7 @@ final class ODTRenderer {
             if group(1) != nil || group(2) != nil || group(3) != nil || group(4) != nil {
                 if options.tex { out += "<text:span text:style-name=\"OrgCode\">\(Self.escape(whole))</text:span>" }
             } else if let name = group(5) {
-                out += OrgEntities.display[name].map { Self.escape($0) } ?? plain(whole)
+                out += withEntities ? OrgEntities.display[name].map { Self.escape($0) } ?? plain(whole) : plain(whole)
             } else if let marker = group(7), let body = group(8) {
                 let braced = body.hasPrefix("{")
                 if options.scripts == .off || (options.scripts == .braces && !braced) {
@@ -1067,7 +1164,8 @@ final class ODTRenderer {
         return out + plain(ns.substring(from: at))
     }
 
-    /// Escaped text with special strings, its line breaks as spaces outside verse.
+    /// Escaped text with special strings, its line breaks as spaces outside verse, or as line
+    /// breaks with `\\n`.
     private func plain(_ text: String) -> String {
         var out = Self.escape(text)
         if options.specialStrings {
@@ -1076,7 +1174,9 @@ final class ODTRenderer {
                 .replacingOccurrences(of: "--([^-])", with: "&#x2013;$1", options: .regularExpression)
                 .replacingOccurrences(of: "...", with: "&#x2026;")
         }
-        return verse ? out : out.replacingOccurrences(of: "\n", with: " ")
+        if verse { return out }
+        if preserveBreaks { return out.replacingOccurrences(of: "[ \t]*\n", with: "<text:line-break/>", options: .regularExpression) }
+        return out.replacingOccurrences(of: "\n", with: " ")
     }
 
     private func span(_ style: String, _ content: String) -> String {
@@ -1103,12 +1203,12 @@ final class ODTRenderer {
             if text.hasPrefix("<%%") { return plain(text) }
             return span(text.hasPrefix("<") ? "OrgActiveTimestamp" : "OrgInactiveTimestamp", plain(text))
         case .footnoteReference:
-            if tocEntry { return "" }
+            if tocEntry || !withFootnotes { return "" }
             let comma = afterFootnote ? span("OrgSuperscript", ",") : ""
-            return comma + footnote(node.text)
+            return comma + footnote(node)
         case .entity:
             let name = node.text.dropFirst().replacingOccurrences(of: "{}", with: "")
-            return OrgEntities.display[name].map { Self.escape($0) } ?? plain(node.text)
+            return withEntities ? OrgEntities.display[name].map { Self.escape($0) } ?? plain(node.text) : plain(node.text)
         case .radioTarget:
             let inner = plain(String(node.text.dropFirst(3).dropLast(3)))
             if tocEntry { return inner }
@@ -1166,35 +1266,91 @@ final class ODTRenderer {
 
     // MARK: - Footnotes
 
+    /// Numbers by footnote, a label or `@` and an anonymous reference's place, and the place
+    /// of each one's first reference.
     private var footnoteNumbers: [String: Int] = [:]
-    private var anonymous = 0
+    private var firstReferences: [String: Int] = [:]
 
-    private func footnote(_ text: String) -> String {
-        guard let m = text.firstMatch(of: /^\[fn:([^:\]]*)(?::(.*))?\]$/) else { return plain(text) }
-        var label = String(m.1)
-        let inlineText = m.2.map(String.init)
-        if label.isEmpty {
-            anonymous += 1
-            label = "anonymous-\(anonymous)"
+    /// The passes that number footnotes as ox-odt does, `org-export-get-footnote-number` with
+    /// BODY-FIRST: the references in the body in order, then those in the definitions of
+    /// these, each definition entered at its first reference.
+    private enum FootnotePass { case body, definitions }
+    private var footnotePass: FootnotePass?
+    private var referencesMet: [(id: String, key: Int)] = []
+    private var labelsSeen: Set<String> = []
+    private var definitionsWaiting: [(label: String?, inline: (text: String, base: Int)?)] = []
+
+    private func numberFootnotes(_ text: String) {
+        let pass = ODTRenderer(settings: settings, options: options, directory: directory)
+        pass.language = language
+        pass.author = author
+        pass.dated = dated
+        pass.numbered = numbered
+        pass.preserveBreaks = preserveBreaks
+        pass.withTables = withTables
+        pass.withEntities = withEntities
+        pass.drawers = drawers
+        pass.footnotePass = .body
+        _ = pass.document(text)
+        pass.footnotePass = .definitions
+        for waiting in pass.definitionsWaiting { _ = pass.definition(label: waiting.label, inline: waiting.inline) }
+        for reference in pass.referencesMet where footnoteNumbers[reference.id] == nil {
+            footnoteNumbers[reference.id] = footnoteNumbers.count + 1
+            firstReferences[reference.id] = reference.key
         }
-        if let n = footnoteNumbers[label] {
+        definitions = pass.definitions
+    }
+
+    /// A footnote's definition rendered: an anonymous one's own, else the label's.
+    private func definition(label: String?, inline: (text: String, base: Int)?) -> String? {
+        if label == nil, let inline { return inlineDefinition(inline.text, base: inline.base) }
+        guard let label, let found = definitions[label] else { return nil }
+        if found.inline { return inlineDefinition(found.text, base: found.base) }
+        return blocks(found.text, base: found.base).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func inlineDefinition(_ text: String, base: Int) -> String {
+        let rendered = within(text, base: base) { tree -> String in
+            guard let paragraph = tree.root.descendants().first(where: { $0.kind == .paragraph }) else { return Self.escape(text) }
+            return rendering(tree, text) { inline(paragraph).trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
+        return "\n<text:p text:style-name=\"Footnote\">\(rendered)</text:p>"
+    }
+
+    private func footnote(_ node: SyntaxNode) -> String {
+        let text = node.text
+        guard let m = text.firstMatch(of: /^\[fn:([^:\]]*)(?::(.*))?\]$/) else { return plain(text) }
+        let key = base + node.range.lowerBound
+        let label = m.1.isEmpty ? nil : String(m.1)
+        let id = label ?? "@\(key)"
+        let inline = m.2.map { (text: String($0), base: key + text.utf16.distance(from: text.startIndex, to: $0.startIndex)) }
+        if let label, let inline, definitions[label].map({ $0.base < inline.base }) ?? true {
+            definitions[label] = (inline.text, inline.base, true)
+        }
+        if let pass = footnotePass {
+            referencesMet.append((id, key))
+            if let label, !labelsSeen.insert(label).inserted { return "" }
+            if pass == .body {
+                definitionsWaiting.append((label, inline))
+            } else {
+                _ = definition(label: label, inline: inline)
+            }
+            return ""
+        }
+        if footnoteNumbers[id] == nil {
+            footnoteNumbers[id] = (footnoteNumbers.values.max() ?? 0) + 1
+            firstReferences[id] = key
+        }
+        let n = footnoteNumbers[id]!
+        if label != nil, firstReferences[id] != key {
             return span("OrgSuperscript", "<text:note-ref text:note-class=\"footnote\" text:reference-format=\"text\" text:ref-name=\"fn\(n)\">\(n)</text:note-ref>")
         }
-        let n = footnoteNumbers.count + 1
-        footnoteNumbers[label] = n
         let saved = (paragraphStyles, container, frames, afterFootnote)
         paragraphStyles = ("Footnote", "OrgFootnoteCenter", "OrgFootnoteQuotations")
         container = nil
         frames = []
         defer { (paragraphStyles, container, frames, afterFootnote) = saved }
-        let definition: String
-        if let inlineText {
-            definition = "\n<text:p text:style-name=\"Footnote\">\(inlineString(inlineText))</text:p>"
-        } else if let found = definitions[label] {
-            definition = blocks(found.text, base: found.base).trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            return fail("Definition not found for footnote \(m.1)")
-        }
+        guard let definition = definition(label: label, inline: inline) else { return fail("Definition not found for footnote \(m.1)") }
         return "<text:note text:id=\"fn\(n)\" text:note-class=\"footnote\"><text:note-citation>\(n)</text:note-citation><text:note-body>\(definition)</text:note-body></text:note>"
     }
 
@@ -1236,7 +1392,7 @@ final class ODTRenderer {
         let descriptionNode = node.firstChild(.linkDescription)
         var description = descriptionNode.map(inline).flatMap { $0.isEmpty ? nil : $0 }
         // `org-export-insert-image-links`: a description that is an image's path shows it.
-        let describedImage = descriptionNode.flatMap { Self.filePath($0.text.trimmingCharacters(in: .whitespaces).replacing(/^\[\[(.*)\]\]$/) { String($0.1) }) }.flatMap { Self.isImage($0) ? $0 : nil }
+        let describedImage = descriptionNode.flatMap(Self.describedImage)
         if let describedImage, !tocEntry { description = image(describedImage) }
         guard let path else {
             // A radio link refers to its target.

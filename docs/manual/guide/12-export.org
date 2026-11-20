@@ -253,15 +253,16 @@ For Org's own ASCII layout, with underlined headings and drawn tables, use Expor
 Export to ODT writes an OpenDocument text file (=.odt=) for LibreOffice, Pages or Word. orgstar writes it itself, on the Mac and on iOS, the way Emacs's =ox-odt= does under =emacs -Q=: the same headings, paragraphs, lists, tables, links, notes and images, with ox-odt's style names, so a template that restyles ox-odt's output restyles this one too.
 
 - The title, subtitle (=#+SUBTITLE:=), author and date come first, then the table of contents and the text. On the Mac, without =#+AUTHOR:=, the author is your account's full name, as =user-full-name= is in Emacs. Without =#+TITLE:= there is no title.
-- Headings are numbered by the word processor, to the depth =num= gives. Headings deeper than =H= become list items. =#+TOC: headlines= puts a table of contents where it is; =local= limits it to the section.
-- Footnotes are the word processor's own notes. A note referred to again shows its number.
+- Headings are numbered by the word processor, to the depth =num= gives (=num:t= numbers every level). Headings deeper than =H= become list items. =#+TOC: headlines= puts a table of contents where it is; =local= limits it to the section and counts the depth from there.
+- Footnotes are the word processor's own notes, numbered as ox-odt numbers them: those referred to in the text first, then those referred to only from other notes. A note referred to again shows its number.
 - Tables keep their header rows, alignment cookies, column groups and cell borders. A table inside a list item ends the list, sits indented below it, and the list carries on after it, as in ox-odt.
 - Images from =file:= links (PNG, JPEG, GIF and SVG) are put inside the file. Their size is their pixels at 96 to the inch, or =#+ATTR_ODT: :width=, =:length= (the height) or =:scale=, and no more than 17 by 20 cm. A caption or =#+NAME:= numbers figures, tables and source blocks, and a link to the name shows the number.
-- LaTeX fragments and environments are kept as written, in code style, as ox-odt does without a MathML converter. Source blocks are not colored.
+- LaTeX fragments and environments are kept as written, in code style, as ox-odt does without a MathML converter. Source blocks are not colored; a language Emacs has no mode for gets ox-odt's plain code style.
+- Of the =#+OPTIONS=, =\n=, =f=, =|=, =e= and =d= (=t= or =nil=) are read, along with those every export reads.
 - =#+ODT:= lines, =#+BEGIN_EXPORT odt= blocks and =@@odt:...@@= snippets go in as they are.
 - The styles (=styles.xml=) are orgstar's own: A4 pages with 2 cm margins. =#+ODT_STYLES_FILE:= is not read.
 
-The export stops with a message, instead of writing something different from ox-odt, for: a link that leads nowhere, an image file that can't be read, inline tasks, table templates (=#+ATTR_ODT: :style=), a link without a description to a =<<target>>= or to a code line that isn't numbered, an inline source block exported as code, a table in a quote or other block inside a list, an annotation in a dated document, and =#+TOC:= with =:target=. ODT export is always the whole document: the export dialog's *Body only* doesn't apply.
+The export stops with a message, instead of writing something different from ox-odt, for: a link that leads nowhere, an image file that can't be read, inline tasks, table templates (=#+ATTR_ODT: :style=), a link without a description to a =<<target>>= or to a code line that isn't numbered, an inline source block exported as code, a table in a quote or other block inside a list, an annotation in a dated document, =#+TOC:= with =:target=, and these =#+OPTIONS= at other than their default: =p=, =c=, =prop=, =broken-links=, =:=, =*=, =stat=, =tasks=, =<=, =arch=, =email=, ='=, =tex= other than =t= or =nil=, and =d= with a list of drawers. ODT export is always the whole document: the export dialog's *Body only* doesn't apply.
 
 * Markdown export
 

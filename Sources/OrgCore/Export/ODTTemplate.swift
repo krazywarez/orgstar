@@ -55,6 +55,12 @@ enum ODTTemplate {
 
             """
         }
+        styles += """
+                <style:style style:name="Sect1" style:family="section">
+                  <style:section-properties style:editable="false"/>
+                </style:style>
+
+            """
         let sequences = ["Table", "Illustration", "Text", "Equation", "Listing"].map {
             "<text:sequence-decl text:display-outline-level=\"2\" text:name=\"\($0)\"/>"
         }.joined(separator: "\n")
@@ -151,6 +157,8 @@ enum ODTTemplate {
         styles += paragraph("OrgVerse", parent: "Text_20_body", "fo:margin-left=\"1cm\"")
         styles += paragraph("OrgSrcBlock", parent: "Standard", "fo:margin-top=\"0cm\" fo:margin-bottom=\"0cm\" fo:background-color=\"#f0f0f0\"", text: mono)
         styles += paragraph("OrgSrcBlockLastLine", parent: "OrgSrcBlock", "fo:margin-bottom=\"0.212cm\"")
+        styles += paragraph("OrgFixedWidthBlock", parent: "Standard", "fo:margin-top=\"0cm\" fo:margin-bottom=\"0cm\" fo:background-color=\"#f0f0f0\"", text: mono)
+        styles += paragraph("OrgFixedWidthBlockLastLine", parent: "OrgFixedWidthBlock", "fo:margin-bottom=\"0.212cm\"")
         styles += paragraph("Footnote", parent: "Standard", "fo:margin-left=\"0.5cm\" fo:text-indent=\"-0.5cm\"", text: "fo:font-size=\"10pt\"")
         styles += paragraph("OrgFootnoteCenter", parent: "Footnote", "fo:text-align=\"center\"")
         styles += paragraph("OrgFootnoteQuotations", parent: "Footnote", "fo:margin-left=\"1cm\" fo:margin-right=\"1cm\"")
@@ -178,6 +186,7 @@ enum ODTTemplate {
         styles += span("OrgTags", "fo:font-size=\"85%\"")
         styles += span("OrgTag", "fo:font-weight=\"bold\"")
         styles += span("OrgPriority", "fo:font-weight=\"bold\"")
+        for priority in ["A", "B", "C"] { styles += span("OrgPriority-\(priority)", "fo:font-weight=\"bold\"") }
         styles += span("OrgActiveTimestamp", "fo:color=\"#555555\"")
         styles += span("OrgInactiveTimestamp", "fo:color=\"#888888\"")
         styles += span("Internet_20_link", display: "Internet link", "fo:color=\"#000080\" style:text-underline-style=\"solid\" style:text-underline-width=\"auto\" style:text-underline-color=\"font-color\"")
