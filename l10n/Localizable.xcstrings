@@ -27482,6 +27482,40 @@
         }
       }
     },
+    "Some tips aren't available from the App Store right now.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einige Trinkgelder sind gerade nicht im App Store verfügbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunas propinas no están disponibles en la App Store en este momento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Certains pourboires ne sont pas disponibles sur l'App Store pour le moment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部のチップは現在App Storeで利用できません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algumas gorjetas não estão disponíveis na App Store no momento."
+          }
+        }
+      }
+    },
     "Sort Entries": {
       "comment": "Command title",
       "localizations": {
@@ -28414,6 +28448,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pôr do Sol"
+          }
+        }
+      }
+    },
+    "Support Development": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entwicklung unterstützen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apoyar el desarrollo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soutenir le développement"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開発を応援"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apoiar o desenvolvimento"
           }
         }
       }
@@ -29379,6 +29447,108 @@
         }
       }
     },
+    "Thank You": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danke"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gracias"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merci"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ありがとうございます"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obrigado"
+          }
+        }
+      }
+    },
+    "The App Store can't be reached right now.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der App Store ist gerade nicht erreichbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede acceder a la App Store en este momento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'App Store est inaccessible pour le moment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在App Storeに接続できません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível acessar a App Store no momento."
+          }
+        }
+      }
+    },
+    "The App Store couldn't verify the purchase.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der App Store konnte den Kauf nicht bestätigen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La App Store no pudo verificar la compra."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'App Store n'a pas pu vérifier l'achat."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Storeで購入を確認できませんでした。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A App Store não conseguiu verificar a compra."
+          }
+        }
+      }
+    },
     "The Watch app needs orgstar+. Get it in orgstar on your iPhone, in Settings.": {
       "localizations": {
         "de": {
@@ -29753,6 +29923,40 @@
         }
       }
     },
+    "The purchase didn't go through. %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Kauf wurde nicht abgeschlossen. %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La compra no se completó. %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'achat n'a pas abouti. %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入を完了できませんでした。%@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A compra não foi concluída. %@"
+          }
+        }
+      }
+    },
     "The running clock and its time so far.": {
       "localizations": {
         "de": {
@@ -29851,6 +30055,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "O arquivo de tema %@ define cores por cima destas, e as cores de config.toml são aplicadas por cima de ambos."
+          }
+        }
+      }
+    },
+    "The tip is waiting for approval.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Trinkgeld wartet auf Genehmigung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La propina está pendiente de aprobación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le pourboire est en attente d'approbation."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "チップは承認待ちです。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gorjeta está aguardando aprovação."
           }
         }
       }
@@ -30126,6 +30364,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Carimbo de Data/Hora Um Dia Depois"
+          }
+        }
+      }
+    },
+    "Tips are one-time purchases that help pay for orgstar's development. They don't unlock anything.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trinkgelder sind einmalige Käufe, die die Entwicklung von orgstar finanzieren. Sie schalten nichts frei."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las propinas son compras únicas que ayudan a financiar el desarrollo de orgstar. No desbloquean nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les pourboires sont des achats uniques qui aident à financer le développement d'orgstar. Ils ne débloquent rien."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "チップはorgstarの開発を支える1回限りの購入です。機能は何も追加されません。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As gorjetas são compras únicas que ajudam a financiar o desenvolvimento do orgstar. Elas não desbloqueiam nada."
           }
         }
       }
@@ -30646,6 +30918,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Truncar ou Quebrar Linhas Longas"
+          }
+        }
+      }
+    },
+    "Try Again": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度試す"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar novamente"
           }
         }
       }
@@ -32395,6 +32701,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seus próprios atalhos ficam em %@, por cima da predefinição."
+          }
+        }
+      }
+    },
+    "Your tip helps keep orgstar going.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Trinkgeld hilft, orgstar weiterzuentwickeln."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu propina ayuda a que orgstar siga adelante."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre pourboire aide orgstar à continuer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたのチップがorgstarの開発を支えます。"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua gorjeta ajuda o orgstar a continuar."
           }
         }
       }

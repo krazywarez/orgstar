@@ -52,6 +52,21 @@ On iOS, orgstar in the share sheet takes a page or text with a template; the app
 its capture sheet with it when it's next active. Shortcuts has the same "Capture to
 orgstar" action as on the Mac.
 
+** In-app purchases
+
+=ios/Orgstar.storekit= is the StoreKit configuration the "Orgstar iOS" scheme runs with, so
+purchases work in Xcode without App Store Connect. It holds orgstar+
+(=sh.krz.orgstar.pro.monthly=, =.yearly=, =.lifetime=) and the consumable tips
+(=sh.krz.orgstar.tip.small=, =.medium=, =.large=, at 0.99, 2.99 and 4.99). Tips are in
+Settings ▸ About orgstar ▸ Support Development, for everyone, and unlock nothing. The Mac app
+has no tips: it is sold outside the App Store and has no StoreKit.
+
+In App Store Connect, create each tip as a Consumable with the exact product ID, a display
+name and description in every localization the app has (de, fr, ja, es-ES, pt-BR), a price
+and availability, and a review screenshot of the About screen's Support Development section.
+Submit new in-app purchases with an app version. Changes take up to an hour to reach the
+sandbox; test there with a Sandbox Apple Account (Settings ▸ Developer on the device).
+
 * Tests
 
 #+BEGIN_SRC sh

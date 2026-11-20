@@ -26,6 +26,126 @@
       "productID": "sh.krz.orgstar.pro.lifetime",
       "referenceName": "orgstar+ Lifetime",
       "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "6700000010",
+      "localizations": [
+        {
+          "description": "A one-time tip that supports orgstar",
+          "displayName": "Small Tip",
+          "locale": "en_US"
+        },
+        {
+          "description": "Ein einmaliges Trinkgeld zur Unterstützung von orgstar",
+          "displayName": "Kleines Trinkgeld",
+          "locale": "de"
+        },
+        {
+          "description": "Un pourboire unique pour soutenir orgstar",
+          "displayName": "Petit pourboire",
+          "locale": "fr"
+        },
+        {
+          "description": "orgstarを応援する1回限りのチップ",
+          "displayName": "小さなチップ",
+          "locale": "ja"
+        },
+        {
+          "description": "Una propina única para apoyar orgstar",
+          "displayName": "Propina pequeña",
+          "locale": "es_ES"
+        },
+        {
+          "description": "Uma gorjeta única para apoiar o orgstar",
+          "displayName": "Gorjeta pequena",
+          "locale": "pt_BR"
+        }
+      ],
+      "productID": "sh.krz.orgstar.tip.small",
+      "referenceName": "Small Tip",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "6700000011",
+      "localizations": [
+        {
+          "description": "A one-time tip that supports orgstar",
+          "displayName": "Medium Tip",
+          "locale": "en_US"
+        },
+        {
+          "description": "Ein einmaliges Trinkgeld zur Unterstützung von orgstar",
+          "displayName": "Mittleres Trinkgeld",
+          "locale": "de"
+        },
+        {
+          "description": "Un pourboire unique pour soutenir orgstar",
+          "displayName": "Pourboire moyen",
+          "locale": "fr"
+        },
+        {
+          "description": "orgstarを応援する1回限りのチップ",
+          "displayName": "中くらいのチップ",
+          "locale": "ja"
+        },
+        {
+          "description": "Una propina única para apoyar orgstar",
+          "displayName": "Propina mediana",
+          "locale": "es_ES"
+        },
+        {
+          "description": "Uma gorjeta única para apoiar o orgstar",
+          "displayName": "Gorjeta média",
+          "locale": "pt_BR"
+        }
+      ],
+      "productID": "sh.krz.orgstar.tip.medium",
+      "referenceName": "Medium Tip",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "6700000012",
+      "localizations": [
+        {
+          "description": "A one-time tip that supports orgstar",
+          "displayName": "Large Tip",
+          "locale": "en_US"
+        },
+        {
+          "description": "Ein einmaliges Trinkgeld zur Unterstützung von orgstar",
+          "displayName": "Großes Trinkgeld",
+          "locale": "de"
+        },
+        {
+          "description": "Un pourboire unique pour soutenir orgstar",
+          "displayName": "Gros pourboire",
+          "locale": "fr"
+        },
+        {
+          "description": "orgstarを応援する1回限りのチップ",
+          "displayName": "大きなチップ",
+          "locale": "ja"
+        },
+        {
+          "description": "Una propina única para apoyar orgstar",
+          "displayName": "Propina grande",
+          "locale": "es_ES"
+        },
+        {
+          "description": "Uma gorjeta única para apoiar o orgstar",
+          "displayName": "Gorjeta grande",
+          "locale": "pt_BR"
+        }
+      ],
+      "productID": "sh.krz.orgstar.tip.large",
+      "referenceName": "Large Tip",
+      "type": "Consumable"
     }
   ],
   "settings": {

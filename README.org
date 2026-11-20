@@ -72,6 +72,9 @@ the agenda; and Shortcuts actions.
 
 Anyone who installed orgstar before orgstar+ keeps every feature without buying it.
 
+On iPhone and iPad, anyone can also leave a one-time tip in Settings ▸ About orgstar. Tips
+unlock nothing.
+
 To build from source, contribute or release (the Mac app and the App Store), see
 [[file:CONTRIBUTING.org]].
 

@@ -2,7 +2,7 @@
 import SwiftUI
 import UIKit
 
-/// The version, and where to read the manual and source, report a problem or ask for help.
+/// The version, where to read the manual and source, report a problem or ask for help, and tips.
 struct AboutScreen: View {
     /// The app icon in use, as `AppIcons` names it.
     let appIcon: String
@@ -48,6 +48,7 @@ struct AboutScreen: View {
             } footer: {
                 Text("Reporting an issue needs a gitbay account. Without one, email \(Self.supportEmail).")
             }
+            TipSection()
             Section {
                 link("Third-Party Notices", "doc.on.doc", Self.site + "third-party.html")
                 link("Privacy Policy", "hand.raised", "https://krz.sh/privacy/orgstar/")
