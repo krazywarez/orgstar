@@ -933,14 +933,26 @@ public enum Calc {
         case call(String, [Node])
         case variable(String)
 
-        /// Whether the formula has a quotient, a power or a function call.
+        /// Whether the formula has a quotient, a power, a function call, or a product
+        /// whose factors share a variable, which Calc simplifies to a power.
         var mayExplain: Bool {
             switch self {
             case .number, .variable: false
             case .call: true
             case .vector(let items): items.contains { $0.mayExplain }
             case .unary(_, let a): a.mayExplain
+            case .binary("*", let a, let b) where !a.variables.isDisjoint(with: b.variables): true
             case .binary(let op, let a, let b): "/%\\^".contains(op) || a.mayExplain || b.mayExplain
+            }
+        }
+
+        var variables: Set<String> {
+            switch self {
+            case .number: []
+            case .variable(let name): [name]
+            case .call(_, let items), .vector(let items): items.reduce(into: []) { $0.formUnion($1.variables) }
+            case .unary(_, let a): a.variables
+            case .binary(_, let a, let b): a.variables.union(b.variables)
             }
         }
     }

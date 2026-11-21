@@ -100,6 +100,7 @@ struct TableFormulaTests {
         "| a | b |\n|---+---|\n| 21.11.2026 | |\n| 192.168.1.1 | |\n| 1.5 | |\n#+TBLFM: $2=$1+1\n",
         "| a | b |\n|---+---|\n| 21.11.2026 | |\n#+TBLFM: $2=$1+1;T\n",
         "| a | b |\n|---+---|\n| 1:00 | |\n#+TBLFM: $2=$1+x;T\n",
+        "| a | b |\n|---+---|\n| 1:00 | |\n#+TBLFM: $2=$1+x*y;T\n",
     ]
 
     /// A range of one field with a space is a vector without commas, which Calc splits at the
@@ -110,6 +111,8 @@ struct TableFormulaTests {
             "| a | b | c |\n|---+---+---|\n| 1 2 | | |\n#+TBLFM: $3=vsum($1..$2)\n",
             "| a | b |\n|---+---|\n| N A | |\n| | |\n#+TBLFM: @2$2=vmean(@2$1..@3$1)\n",
             "| a | b |\n|---+---|\n| 1:00 | |\n#+TBLFM: $2=$1+x^2/x;T\n",
+            "| a | b |\n|---+---|\n| 1:00 | |\n#+TBLFM: $2=$1+x*x;T\n",
+            "| a | b |\n|---+---|\n| 1:00 | |\n#+TBLFM: $2=$1+x x;T\n",
         ] {
             let caret = (text as NSString).range(of: "#+TBLFM").location + 3
             let failure = Self.recalculate(TableRecalculate(all: true), text, caret: caret).failure ?? ""

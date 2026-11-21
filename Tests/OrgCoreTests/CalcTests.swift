@@ -427,10 +427,10 @@ struct CalcTests {
         #expect(throws: Calc.Failure("Number expected")) { try Calc.evaluate("x+1", numeric: true) }
         #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("1/0", numeric: true) }
         // Calc explains what a quotient, power or function rejected, even when it cancels.
-        for e in ["x^2/x", "x*x/x", "inf+(1/0)", "x/2", "abs(x)", "x%2"] {
+        for e in ["x^2/x", "x*x/x", "inf+(1/0)", "x/2", "abs(x)", "x%2", "x*x", "x x", "x*y*x"] {
             #expect(throws: Calc.Unsupported.self, "\(e)") { try Calc.evaluate(e, numeric: true) }
         }
-        for e in ["-x", "x*2", "2 x", "x+2-2", "nan"] {
+        for e in ["-x", "x*2", "2 x", "x*y", "x+x", "x+2-2", "nan"] {
             #expect(throws: Calc.Failure("Number expected"), "\(e)") { try Calc.evaluate(e, numeric: true) }
         }
         #expect(try Calc.evaluate("x/x", numeric: true) == "1")
