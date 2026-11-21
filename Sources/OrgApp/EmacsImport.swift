@@ -1095,6 +1095,30 @@ extension EmacsImport {
         }
     }
 
+    /// `org-agenda-files` (one path a line) with each path below a folder in `chosenFolders` moved
+    /// to the folder chosen for it. Paths with no chosen folder that don't exist here are left
+    /// out; nil when none remain. With `keepingOriginals`, for a config.toml the Mac reads too,
+    /// the Mac's paths are all kept, a moved one beside its new path; each device skips the paths
+    /// it doesn't have.
+    static func agendaFiles(_ list: String, chosenFolders: [String: URL], keepingOriginals: Bool = false) -> String? {
+        func standard(_ path: String) -> String { URL(fileURLWithPath: OrgPaths.expandingTilde(path)).standardizedFileURL.path }
+        let folders = chosenFolders.map { (standard($0.key), $0.value.standardizedFileURL.path) }.sorted { $0.0.count > $1.0.count }
+        var here: [String] = [], all: [String] = []
+        for path in list.split(separator: "\n").map(String.init) {
+            let full = standard(path)
+            if let (mac, device) = folders.first(where: { full == $0.0 || full.hasPrefix($0.0 + "/") }) {
+                let moved = device + full.dropFirst(mac.count)
+                here.append(moved)
+                all += moved == full ? [path] : [path, moved]
+            } else {
+                if FileManager.default.fileExists(atPath: full) { here.append(path) }
+                all.append(path)
+            }
+        }
+        guard !here.isEmpty else { return nil }
+        return (keepingOriginals ? all : here).joined(separator: "\n")
+    }
+
     @MainActor
     static func isRoot(_ url: URL, in workspace: WorkspaceModel) -> Bool {
         workspace.roots.contains { URL(fileURLWithPath: $0.path).standardizedFileURL.path == url.path }
@@ -1108,6 +1132,7 @@ extension EmacsImport {
     /// With `writeConfig`, settings and structure templates are written into `config.toml` too,
     /// for where nothing syncs user defaults into it (iOS). With `chosenFolders`, folders chosen in
     /// open panels by the path of their item, a folder item is added only as the folder chosen for it.
+    /// `org-agenda-files` paths below a chosen folder are moved into it; see `agendaFiles`.
     public static func apply(
         _ items: [Item], defaults: UserDefaults = .standard, workspace: WorkspaceModel?, directory: URL = UserConfig.directory,
         writeConfig: Bool = false, chosenFolders: [String: URL]? = nil
@@ -1116,8 +1141,15 @@ extension EmacsImport {
         var settings = 0, folders = 0, templates = 0, bindings = 0, blocks = 0, views = 0, projects = 0
         var problems: [String] = []
         for item in items {
-            guard case .setting(let key, let value) = item.change,
+            guard case .setting(let key, var value) = item.change,
                   let setting = UserConfig.settings.first(where: { $0.path == key || $0.key == key }) else { continue }
+            if key == "org-agenda-files", let chosenFolders {
+                guard let paths = Self.agendaFiles(value.string ?? "", chosenFolders: chosenFolders, keepingOriginals: writeConfig) else {
+                    problems.append("org-agenda-files wasn't set: no folder was chosen for its files")
+                    continue
+                }
+                value = .string(paths)
+            }
             if let problem = UserConfig.store(value, setting, in: defaults) {
                 problems.append(problem)
             } else {

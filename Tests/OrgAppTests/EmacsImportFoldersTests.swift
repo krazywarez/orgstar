@@ -32,6 +32,28 @@ struct EmacsImportFoldersTests {
         #expect(!summary.contains(first), "\(summary)")
     }
 
+    @Test func movesAgendaFilesToTheChosenFolders() async throws {
+        let picked = try Folder()
+        let config = try Folder()
+        let model = try WorkspaceModel(directory: nil)
+        let mac = "/nowhere-\(UUID().uuidString)/org", other = "/also-nowhere-\(UUID().uuidString)"
+        let files = EmacsImport.Item(id: 0, name: "org-agenda-files", summary: "", source: "config.el:1",
+                                     change: .setting(key: "org-agenda-files", value: .string("\(mac)/inbox.org\n\(mac)/work/a.org\n\(other)/b.org")))
+        let stored = defaults()
+        _ = await EmacsImport.apply([files] + items([mac, other]), defaults: stored, workspace: model, directory: config.url, chosenFolders: [mac: picked.url])
+        let dir = picked.url.standardizedFileURL.path
+        #expect(stored.string(forKey: "agendaFiles") == "\(dir)/inbox.org\n\(dir)/work/a.org")
+
+        let none = defaults()
+        let summary = await EmacsImport.apply([files], defaults: none, workspace: model, directory: config.url, chosenFolders: [:])
+        #expect(none.string(forKey: "agendaFiles") == nil)
+        #expect(summary.contains("org-agenda-files wasn't set"), "\(summary)")
+
+        // A config.toml the Mac reads too keeps the Mac's paths beside the device's.
+        let shared = EmacsImport.agendaFiles("\(mac)/inbox.org\n\(other)/b.org", chosenFolders: [mac: picked.url], keepingOriginals: true)
+        #expect(shared == "\(mac)/inbox.org\n\(dir)/inbox.org\n\(other)/b.org")
+    }
+
     @Test func withoutChosenFoldersAddsWhatsWritten() async throws {
         let notes = try Folder()
         let config = try Folder()

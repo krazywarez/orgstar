@@ -315,7 +315,7 @@ Recent Entries, in the bar and in the editor's More menu, lists the recently clo
 
 Clock questions open in a sheet: the task selection and the resolution keys as lists to tap, and minutes or a date and time as a field. Cancel answers nothing, as =q= does. Clocking in with no clock running first asks about open clocks in your folders, from the editor, an agenda entry's Clock In or a capture template with =clock-in=; Resolve Open Clocks… asks about every open clock. Both work as on the Mac.
 
-With =org-clock-idle-time= set, returning to the app while a clock runs asks what to do with the time away, if it was longer than that many minutes: iOS has no idle time, so time in other apps or with the device locked stands in for it. See [[file:06-dates-and-clocking.org][Dates and clocking]]. =org-clock-history-length= applies too.
+With =org-clock-idle-time= set, returning to the app while a clock runs asks what to do with the time away, if it was longer than that many minutes: iOS has no idle time, so time in other apps or with the device locked stands in for it. Time working in another orgstar window doesn't count. See [[file:06-dates-and-clocking.org][Dates and clocking]]. =org-clock-history-length= applies too.
 
 Clock Report shows the time per day and heading for the files you choose. It starts with the files that contain clock lines. Turn on Limit dates to choose a range. The share button sends the report as text.
 
@@ -393,7 +393,7 @@ Import from Emacs reads an Emacs or Doom configuration folder, such as a synced 
 
 With a configuration folder, settings and structure templates are written to its =config.toml=, and capture templates, key bindings and agenda views to its =capture.toml=, =keymap.toml= and =views.toml=, so the Mac reads them too. Without one, settings are kept on the device.
 
-Folders from =org-directory= and =org-agenda-files= name the Mac's paths, so the screen lists them under Folders on this device. Tap each one and choose the folder on this device that holds the same files, such as its synced copy in iCloud Drive. Import adds the chosen folders to the Folders tab; folders not chosen aren't added, and the summary says so.
+Folders from =org-directory= and =org-agenda-files= name the Mac's paths, so the screen lists them under Folders on this device. Tap each one and choose the folder on this device that holds the same files, such as its synced copy in iCloud Drive. Import adds the chosen folders to the Folders tab; folders not chosen aren't added, and the summary says so. =org-agenda-files= entries in a chosen folder point to the same files in the folder chosen for it, and entries in folders not chosen are left out. With a configuration folder, =config.toml= keeps the Mac's entries as well, beside the device's; each device skips the files it doesn't have.
 
 The Agenda, TODO Dependencies, Calendar and Reminders sections are the only places the app changes a setting itself, besides Import from Emacs:
 
