@@ -220,12 +220,50 @@ extension Calc {
 
         static func knownNonneg(_ t: Term) throws -> Bool { [2, 4, 6].contains(try signs(t)) }
 
-        /// `math-known-num-integerp` and `math-known-integerp`: only numbers are known to be
-        /// integers, as nothing is declared.
+        /// `math-known-num-integerp`.
         static func knownNumInteger(_ t: Term) throws -> Bool {
             if let v = number(t) { return isWhole(v) }
             guard !containsConstant(t) else { throw Unsupported("symbolic arithmetic") }
-            return false
+            return try possibleTypes(t, num: true) <= 3
+        }
+
+        /// `math-possible-types`: the bits 1 integer, 2 integer-valued float, 4 fraction and
+        /// 8 float, with `num` merging 1 and 2 and merging 4 and 8. Nothing is declared, so a
+        /// variable may be anything (63). Results above 15 are all 63 here: only whether a
+        /// result is at most 3 is used, and no larger operand can make it so.
+        static func possibleTypes(_ a: Term, num: Bool = false) throws -> Int {
+            func merge(_ t1: Int, _ t2: Int, _ mask: Int) -> Int {
+                if num { return mask * 3 }
+                return (t1 & 5 > 0 && t2 & 5 > 0 ? mask : 0) | ((t1 | t2) & 10 > 0 ? mask * 2 : 0)
+            }
+            switch a {
+            case .number(.int): return num ? 3 : 1
+            case .number(.float(_, let e)) where e >= 0: return num ? 3 : 2
+            case .number(.frac): return num ? 12 : 4
+            case .number(.float): return num ? 12 : 8
+            case .number: throw Unsupported("symbolic arithmetic")
+            case .variable: return 63
+            case .op("neg", let args): return try possibleTypes(args[0])
+            case .op(let f, let args) where args.count == 2 && ["+", "-", "*", "/", "^"].contains(f):
+                let (t1, t2) = (try possibleTypes(args[0], num: num), try possibleTypes(args[1], num: num))
+                let t12 = t1 | t2
+                if f == "^" {
+                    guard t2 <= 3, try knownNonneg(args[1]), t1 < 16 else {
+                        return try knownNonneg(args[0]) && signs(args[1]) == 4 ? 15 : 63
+                    }
+                    let mask = (t1 & 3 > 0 ? 1 : 0) | (t1 & 4) | (t1 & 12 > 0 ? 5 : 0)
+                    return merge(t1, t2, mask)
+                }
+                guard t12 < 16 else { return 63 }
+                if f == "/" {
+                    if t12 & 10 > 0 { return 10 }
+                    return t1 == 4 || t2 == 4 || fractions ? 5 : 15
+                }
+                let mask = t12 <= 3 ? 1
+                    : ((t1 <= 3 && t2 & 3 == 0) || (t2 <= 3 && t1 & 3 == 0)) && f != "*" ? 4 : 5
+                return merge(t1, t2, mask)
+            default: throw Unsupported("function \(head(a) ?? "")")
+            }
         }
 
         // MARK: Arithmetic
