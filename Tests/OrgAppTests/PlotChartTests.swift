@@ -1,3 +1,4 @@
+import Charts
 import Foundation
 import OrgCore
 @testable import OrgApp
@@ -146,6 +147,17 @@ struct PlotChartTests {
             let plot = try Self.plot("#+PLOT: ind:1 set:\"logscale y\" set:\"yrange \(range)\"\n| 1 | 10 |\n| 2 | 20 |\n")
             #expect(throws: PlotOutput.Failure.self, "\(range)") { try PlotOutput.check(plot) }
         }
+    }
+
+    @Test func placesALoneKeyDirectionAsGnuplot() throws {
+        func position(_ set: String) throws -> String {
+            String(describing: PlotChart.keyPosition(TablePlot.settings(try Self.plot("#+PLOT: set:\"\(set)\"\n" + Self.table)).key))
+        }
+        #expect(try position("key top") == String(describing: AnnotationPosition.topTrailing))
+        #expect(try position("key left") == String(describing: AnnotationPosition.topLeading))
+        #expect(try position("key bottom") == String(describing: AnnotationPosition.bottomTrailing))
+        #expect(try position("key right") == String(describing: AnnotationPosition.topTrailing))
+        #expect(try position("key bottom left") == String(describing: AnnotationPosition.bottomLeading))
     }
 
     @Test func capsRadarRingsWithoutGnuplot() throws {

@@ -216,22 +216,22 @@ public struct PlotChart: View {
 extension View {
     /// The legend as `set key` places it, else shown or not.
     func key(_ key: TablePlot.Settings.Key?, shown: Bool) -> some View {
-        var position = AnnotationPosition.automatic
-        if case .at(let vertical, let horizontal) = key {
-            switch (vertical, horizontal) {
-            case ("top", "left"): position = .topLeading
-            case ("top", "right"): position = .topTrailing
-            case ("bottom", "left"): position = .bottomLeading
-            case ("bottom", "right"): position = .bottomTrailing
-            case ("top", _): position = .top
-            case ("bottom", _): position = .bottom
-            case (_, "left"): position = .leading
-            case (_, "right"): position = .trailing
-            default: break
-            }
-        }
         let visible = key.map { $0 != .off } ?? shown
-        return chartLegend(visible ? .visible : .hidden).chartLegend(position: position)
+        return chartLegend(visible ? .visible : .hidden).chartLegend(position: PlotChart.keyPosition(key))
+    }
+}
+
+extension PlotChart {
+    /// Where `set key` puts the legend; gnuplot keeps a direction not given at its default, right top.
+    static func keyPosition(_ key: TablePlot.Settings.Key?) -> AnnotationPosition {
+        guard case .at(let vertical, let horizontal) = key else { return .automatic }
+        switch (vertical ?? "top", horizontal ?? "right") {
+        case ("top", "left"): return .topLeading
+        case ("top", "right"): return .topTrailing
+        case ("bottom", "left"): return .bottomLeading
+        case ("bottom", "right"): return .bottomTrailing
+        default: return .automatic
+        }
     }
 }
 

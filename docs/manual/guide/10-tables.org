@@ -820,7 +820,7 @@ Without gnuplot these =set:= commands are followed, also as a =line:= that start
 | =xrange [0:10]=, =yrange [*:5]=        | The axes' ranges, low to high; =*= or nothing leaves an end to the data |
 | =logscale=, =logscale x=, =logscale y= | Logarithmic axes                                                        |
 | =grid=                                 | Grid lines at the marks                                                 |
-| =key off=, =key top left=              | Hides or places the legend (top, bottom, left, right)                   |
+| =key off=, =key top left=              | Hides or places the legend (top, bottom, left, right; else top right)   |
 | =xtics 2=, =ytics 0.5=                 | A mark every so many units, on an axis that isn't logarithmic           |
 
 =2d= plots follow all of them, except that an x axis of text or dates takes no range, steps or
