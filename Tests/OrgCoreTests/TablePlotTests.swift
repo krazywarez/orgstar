@@ -214,6 +214,13 @@ struct TablePlotTests {
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ymax:0\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ticks:-1\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ticks:99999999999999999999\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
+        // gnuplot draws as many rings as it's given.
+        _ = try TablePlot.plot("#+PLOT: type:radar ticks:2000\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0)
+        // Emacs scales every row with or without ticks:, and signals overflow-error past a double.
+        for row in ["| x | 1e400 | 5 |", "| x | 1e400 | 1e400 |", "| x | -1e400 | 5 |", "| x | 1e308 | -1e308 |"] {
+            #expect(throws: TablePlot.Failure.self, "\(row)") { try TablePlot.plot("#+PLOT: type:radar ticks:3\n\(row)\n| y | 2 | 3 |\n", at: 0) }
+            #expect(throws: TablePlot.Failure.self, "\(row)") { try TablePlot.plot("#+PLOT: type:radar ticks:3 ymin:0 ymax:10\n\(row)\n| y | 2 | 3 |\n", at: 0) }
+        }
         // Emacs prints a bignum as it is.
         let big = try TablePlot.radarSetup(TablePlot.plot("#+PLOT: type:radar ticks:3\n| x | 100000000000000000000 | 100000000000000000000 |\n| y | -007 | -007 |\n", at: 0))
         #expect(big.contains("\"x\" 100000000000000000000 100000000000000000000 3\n\"y\" -7 -7 3\n"), "\(big)")

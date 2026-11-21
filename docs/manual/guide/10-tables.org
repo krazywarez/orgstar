@@ -796,7 +796,9 @@ the first as a series named by the header. Each axis is scaled from its row's lo
 highest values rounded outward (120 to 340 becomes 100 to 400), or from =ymin= to =ymax=. Org
 works out the number of rings from the values; where Org can't (it signals an error, as for a
 =ymin= above a row's values, or never finishes, as for a row whose values are all the same),
-orgstar reports it and asks for =ticks:=. =ticks:= takes 0 to 1000.
+orgstar reports it and asks for =ticks:=. =ticks:= can't be below 0, and without gnuplot it
+takes at most 1000. A row whose values or their range overflow a double is refused, as Emacs signals an
+error for it.
 
 On the Mac, when gnuplot is installed (orgstar looks on the same =PATH= as code blocks), the
 table goes to gnuplot as Emacs sends it: the same data file and script, so every option and

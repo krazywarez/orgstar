@@ -127,17 +127,21 @@ extension TablePlot {
         let ymin = try number("ymin"), ymax = try number("ymax")
         let ticks: Int
         if let given = try number("ticks") {
-            // gnuplot can't draw fewer than none, and the web has a ring for each.
-            guard given >= 0, given <= 1000 else { throw Failure(description: "ticks: must be from 0 to 1000") }
+            // gnuplot can't draw fewer than none.
+            guard given >= 0, given < 0x1p63 else { throw Failure(description: "ticks: is out of range") }
             ticks = Int(given)
         } else if let sensible = sensibleTicks(rows, hardMin: ymin, hardMax: ymax) {
             ticks = sensible
         } else {
             throw Failure(description: "Org can't choose this radar plot's ticks; give ticks:")
         }
-        let axes = rows.map { row -> Radar.Axis in
+        let axes = try rows.map { row -> Radar.Axis in
             let nums = row.dropFirst().map(lispNumber)
             let s = stats(nums)
+            // Emacs scales every row, given ticks: or not; past a double, `ceiling` signals overflow-error.
+            guard s.factor.isFinite, s.niceMin.value.isFinite, s.niceMax.value.isFinite else {
+                throw Failure(description: "Org can't scale the radar row \"\(row[0])\"")
+            }
             return Radar.Axis(label: row[0], fields: Array(row.dropFirst()), values: nums.map(\.value),
                               low: ymin ?? s.niceMin.value, high: ymax ?? s.niceMax.value,
                               lowText: plot.options["ymin"]?.description ?? (s.niceMin.integer ? integerText(row[1]) : printed(s.niceMin)),
