@@ -36,11 +36,18 @@ public enum EmacsRunner {
         let script = folder.appendingPathComponent("recalc.el")
         try text.write(to: input, atomically: true, encoding: .utf8)
         func lisp(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
+        // `org-sbe` runs blocks: the user agreed to the table's Lisp, and Babel needs the languages.
+        let blocks = text.contains("org-sbe") ? """
+            (setq org-confirm-babel-evaluate nil)
+            (dolist (language '(C awk clojure java js python R ruby shell))
+              (require (intern (format "ob-%s" language)) nil t))
+            """ : ""
         try """
         ;;; -*- lexical-binding: t -*-
         (require 'org)
         (require 'org-table)
         (setq enable-local-variables :safe)
+        \(blocks)
         (with-temp-buffer
           (let ((coding-system-for-read 'utf-8-unix))
             (insert-file-contents \(lisp(input.path))))

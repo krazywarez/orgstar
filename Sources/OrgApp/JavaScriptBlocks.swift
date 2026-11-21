@@ -36,6 +36,13 @@ public enum JavaScriptBlocks {
         }
     }
 
+    /// Runs a js `job` without a session on the calling thread, as `org-sbe` in a table
+    /// formula needs; nil for other jobs.
+    public static func runHere(_ job: BabelJob) throws -> BabelOutput? {
+        guard job.language == "js" || job.language == "javascript", case .process = job.runner else { return nil }
+        return try Engine().main(job.input, run: Run())
+    }
+
     struct Stopped: Error, CustomStringConvertible {
         let description: String
     }

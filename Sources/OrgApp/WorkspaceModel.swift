@@ -64,6 +64,10 @@ public final class WorkspaceModel {
             guard let path = (try? index.headings(withID: id))?.first?.path else { return nil }
             return FileManager.default.contents(atPath: path).map { SourceText(bytes: [UInt8]($0)).text }
         }
+        #if canImport(JavaScriptCore)
+        // `org-sbe` in table formulas runs js blocks in JavaScriptCore.
+        TableBlocks.javaScript = JavaScriptBlocks.runHere
+        #endif
     }
 
     /// `~/Library/Application Support/Orgstar`, or `ORGSTAR_DATA_DIR` when set (for development).

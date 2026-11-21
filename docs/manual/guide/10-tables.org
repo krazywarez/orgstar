@@ -573,6 +573,31 @@ widths; other codes need Emacs, as do float times in =time-add= and =time-subtra
 Any other function, or a macro not listed, needs Emacs. An error inside a Lisp formula
 writes =#ERROR= in the field, as does a Calc error.
 
+=org-sbe= writes the value of a named src block, run with the variables given:
+
+#+BEGIN_SRC org
+,#+NAME: square
+,#+begin_src emacs-lisp :var n=2
+(* n n)
+,#+end_src
+
+| n | square |
+|---+--------|
+| 3 |      9 |
+,#+TBLFM: $2='(org-sbe square (n $1))
+#+END_SRC
+
+As in Org, a field's text is read as a value, so =abc= names another block or table;
+write =$$1= instead of =$1= to pass the text as a string. A string before the variables
+holds header arguments, and the name may also be a named table or list in the file.
+Emacs Lisp blocks run in orgstar's interpreter, with dynamic binding unless the block
+has =:lexical yes=, and =js= blocks run in JavaScriptCore, everywhere and without asking,
+since neither can reach files or other programs. Blocks in other languages, blocks with
+=:cache yes=, =:file= results or column and row names, Lisp values with symbols in a
+variable with several values, references to an =ID= or =CUSTOM_ID=, and =js= values
+that are arrays need Emacs. When Emacs runs the table for =org-sbe=, it runs the
+blocks without asking again.
+
 * Entering formulas
 
 There are three ways to set a formula.

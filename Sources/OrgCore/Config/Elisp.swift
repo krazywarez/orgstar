@@ -68,6 +68,8 @@ public final class Elisp {
         didSet { regexes = [:] }
     }
     private var functions: [String: Builtin] = [:]
+    /// Forms the host defines, given their arguments unevaluated.
+    private var forms: [String: Builtin] = [:]
     var steps = 0
     static let stepLimit = 1_000_000
     /// Nested evaluations, as `max-lisp-eval-depth` limits them.
@@ -94,6 +96,9 @@ public final class Elisp {
 
     /// Defines or replaces a function.
     public func define(_ name: String, _ function: @escaping Builtin) { functions[name] = function }
+
+    /// Defines a macro by its value: `form` gets the arguments unevaluated.
+    public func defineForm(_ name: String, _ form: @escaping Builtin) { forms[name] = form }
 
     /// Sets a global variable, which is special.
     public func set(_ name: String, _ value: Sexp) {
@@ -375,6 +380,7 @@ public final class Elisp {
             }
             let args = Array(items.dropFirst())
             if let value = try special(name, args) { return value }
+            if let form = forms[name] { return try form(self, args) }
             // The function first, so an unknown one, or a macro this evaluator lacks, is
             // unsupported rather than an error from its arguments.
             guard let function = functions[name] else { throw Unsupported(what: "function \(name)") }

@@ -38,6 +38,25 @@ struct EmacsFallbackTests {
         #expect(session.document?.text == "* Prices\n| item | n | twice     |\n|------+---+-----------|\n| x    | a | sqrt(a)   |\n| y    | 2 | 1.4142136 |\n#+TBLFM: $3=sqrt($2)\n")
     }
 
+    /// `org-sbe` on a block only Emacs runs: Emacs runs it without asking again.
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func runsOtherLanguagesForOrgSbe() async throws {
+        let notes = try Folder()
+        let text = "#+NAME: f\n#+begin_src sh :var n=2\necho $((n * 3))\n#+end_src\n\n| n | f |\n|---+---|\n| 3 | |\n#+TBLFM: $2='(org-sbe f (n $1))\n"
+        let file = try notes.write("t.org", text)
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        let step = session.perform(TableRecalculate(all: true), path: file.path, at: (text as NSString).range(of: "#+TBLFM").location + 3, expect: nil)
+        guard case .external(.emacsTable(let table, let point, let form, let reason, let lisp, _, _)) = step else {
+            Issue.record("\(step)")
+            return
+        }
+        #expect(reason == "Lisp org-sbe with sh blocks")
+        #expect(lisp)
+        #expect(await session.recalculateInEmacs(table: table, point: point, form: form) == "Recalculated in Emacs")
+        #expect(session.document?.text.hasSuffix("| n | f |\n|---+---|\n| 3 | 9 |\n#+TBLFM: $2='(org-sbe f (n $1))\n") == true)
+    }
+
     @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func cancelingARecalculationLeavesTheTable() async throws {
         let notes = try Folder()

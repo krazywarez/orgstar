@@ -266,4 +266,58 @@ struct JavaScriptBlocksTests {
         let interval = try Self.plan("#+begin_src js :results output\nsetInterval(() => {}, 10)\n#+end_src\n")
         await #expect(throws: JavaScriptBlocks.Stopped.self) { try await JavaScriptBlocks.run(interval, directory: folder, timeout: .milliseconds(100)) }
     }
+
+    /// `org-sbe` on js blocks in a table formula, as Emacs runs them with node.
+    @Test(.enabled(if: oracle && nodeInstalled))
+    func tableFormulasMatchEmacs() throws {
+        TableBlocks.javaScript = JavaScriptBlocks.runHere
+        let text = """
+            #+NAME: sq
+            #+begin_src js :var n=2
+            return n*n
+            #+end_src
+
+            #+NAME: hi
+            #+begin_src js :var who="x"
+            return 'hi ' + who
+            #+end_src
+
+            #+NAME: quote
+            #+begin_src js :var who="x"
+            return who + "'s"
+            #+end_src
+
+            #+NAME: out
+            #+begin_src js :results output :var n=1
+            console.log(' n is', n)
+            #+end_src
+
+            #+NAME: obj
+            #+begin_src js
+            return {a: 1}
+            #+end_src
+
+            | n | sq | hi | hi$ | quote | out | obj |
+            |---+----+----+-----+-------+-----+-----|
+            | 3 | | | | | | |
+            | abc | | | | | | |
+            | 2.5 | | | | | | |
+            #+TBLFM: $2='(org-sbe sq (n $1))::$3='(org-sbe hi (who $1))::$4='(org-sbe hi (who $$1))::$5='(org-sbe quote (who $$1))::$6='(org-sbe out (n $1))::$7='(org-sbe obj)
+
+            """
+        let caret = (text as NSString).range(of: "#+TBLFM").location + 3
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+        guard case .commit(let result) = TableRecalculate(all: true).run(in: context) else {
+            Issue.record("not calculated: \(TableRecalculate(all: true).run(in: context))")
+            return
+        }
+        let ours = result.edits.sorted { $0.range.lowerBound > $1.range.lowerBound }.reduce(text) { $1.apply(to: $0) }
+        let quoted = "\"" + text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        let emacs = try DailiesTests.emacs("""
+            (progn (require 'org) (require 'ob-js)
+              (setq org-confirm-babel-evaluate nil org-babel-js-cmd "node")
+              (with-temp-buffer (insert \(quoted)) (org-mode) (goto-char \(caret + 1)) (org-ctrl-c-ctrl-c) (princ (buffer-string))))
+            """)
+        #expect(ours == emacs, "ours:\n\(ours)\nemacs:\n\(emacs)")
+    }
 }

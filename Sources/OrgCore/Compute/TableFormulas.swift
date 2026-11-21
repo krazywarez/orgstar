@@ -652,6 +652,7 @@ extension EmacsBuffer {
         let lisp = Elisp()
         lisp.standardTime()
         Self.defineLookups(lisp)
+        Babel.defineSbe(lisp) { [unowned self] in text as String }
         let value: Sexp
         do {
             value = try lisp.eval(try lisp.eval(try LispReader.readFirst(form).sexp))
