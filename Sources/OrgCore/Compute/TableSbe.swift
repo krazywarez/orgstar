@@ -9,12 +9,19 @@ import Foundation
 public enum TableBlocks {
     /// Runs a js job to the end on the calling thread; nil when it can't. The app sets it.
     nonisolated(unsafe) public static var javaScript: ((BabelJob) throws -> BabelOutput?)?
+    /// Whether `org-sbe` may run; the app ties it to running source blocks.
+    nonisolated(unsafe) public static var allowed: () -> Bool = { true }
+    /// The reason a table goes to the app when `allowed` is false.
+    public static let lockedReason = "Lisp org-sbe with source blocks locked"
 }
 
 extension Babel {
     /// Defines `org-sbe` for formulas in the file whose text `text` gives.
     static func defineSbe(_ lisp: Elisp, text: @escaping () -> String) {
-        lisp.defineForm("org-sbe") { _, args in .string(try sbe(args, text: text())) }
+        lisp.defineForm("org-sbe") { _, args in
+            guard TableBlocks.allowed() else { throw Elisp.Unsupported(what: "org-sbe with source blocks locked") }
+            return .string(try sbe(args, text: text()))
+        }
     }
 
     /// The macro's value: `(org-trim (format "%S" result))`, or the result when it is a string.
@@ -82,16 +89,40 @@ extension Babel {
         let ns = text as NSString
         let model = DocumentModel(tree: OrgParser.parse(text))
         let options = Options()
-        // The first `#+NAME:` line with the name: a src block's, or another element's.
+        // The first `#+NAME:` line with the name outside COMMENTed headings that names an
+        // element: a src block's, or another element's.
         let pattern = "(?im)^[ \\t]*#\\+name:[ \\t]*" + NSRegularExpression.escapedPattern(for: name) + "[ \\t]*$"
-        guard let named = text.range(of: pattern, options: .regularExpression) else { throw notFound(name, text: text) }
-        let start = NSRange(named, in: text).location
+        let matches = try NSRegularExpression(pattern: pattern).matches(in: text, range: NSRange(location: 0, length: ns.length)).map(\.range)
+        let headingStarts = model.headings.map(\.headingRange.lowerBound)
+        func commented(_ location: Int) -> Bool {
+            guard let h = headingStarts.lastIndex(where: { $0 <= location }) else { return false }
+            return ([h] + model.ancestors(of: h)).contains { model.headings[$0].title == "COMMENT" || model.headings[$0].title.hasPrefix("COMMENT ") }
+        }
+        // A keyword followed by a blank line, after any other affiliated keywords, names nothing.
+        func orphaned(_ match: NSRange) -> Bool {
+            var location = NSMaxRange(ns.lineRange(for: match))
+            while location < ns.length {
+                let line = ns.lineRange(for: NSRange(location: location, length: 0))
+                let content = ns.substring(with: line)
+                if content.range(of: "(?i)^[ \\t]*#\\+(name|caption|header|plot|results|attr_[-\\w]+)(\\[.*\\])?:", options: .regularExpression) == nil {
+                    return content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                }
+                location = NSMaxRange(line)
+            }
+            return true
+        }
+        guard let named = matches.first(where: { !commented($0.location) && !orphaned($0) }) else { throw notFound(name, text: text) }
+        let start = named.location
         let block = model.srcBlocks.first { block in
             guard block.name == name, block.range.lowerBound > start else { return false }
             let between = ns.substring(with: NSRange(location: start, length: block.range.lowerBound - start))
             return between.split(separator: "\n").allSatisfy { $0.trimmingCharacters(in: .whitespaces).hasPrefix("#+") }
         }
         guard let block else {
+            // `resolve` reads the first element with the name, and runs a src block before it.
+            guard named == matches.first, !model.srcBlocks.contains(where: { $0.name == name }) else {
+                throw Elisp.Unsupported(what: "org-sbe with a name used more than once")
+            }
             do {
                 return try sbeSexp(resolve(name, model: model, text: ns, refs: References(resolved: [:], options: options)))
             } catch let failure as Failure {
@@ -118,7 +149,14 @@ extension Babel {
                     refs.resolved[need.reference] = varValue(need.job.finish, try sbeRun(need.job))
                     continue
                 }
-                return try sbeValue(job, lexical: params.single[":lexical"] == "yes")
+                // `org-babel-emacs-lisp-lexical`: "yes" and "t" are lexical; other Lisp is read.
+                let lexical: Bool
+                switch params.single[":lexical"] {
+                case "yes", "t": lexical = true
+                case nil, "no", "nil": lexical = false
+                default: throw Elisp.Unsupported(what: "org-sbe with this :lexical")
+                }
+                return try sbeValue(job, lexical: lexical)
             }
         }
     }
@@ -149,13 +187,13 @@ extension Babel {
             || params.contains("pp") || ((params.contains("output") || params.contains("raw") || params.contains("org")) && !params.contains("table"))
         var result: Sexp
         if let form = job.lispForm {
-            // `org-babel-execute:emacs-lisp`: dynamic binding unless `:lexical yes`.
+            // `org-babel-execute:emacs-lisp`: dynamic binding unless `:lexical` is yes or t.
             let lisp = Elisp()
             lisp.lexical = lexical
             lisp.syntax = .emacsLisp
             lisp.standardTime()
             result = try lisp.eval(try LispReader.readFirst(form).sexp)
-            if Elisp.containsClosure(result) { throw Elisp.Unsupported(what: "org-sbe with a closure") }
+            if Elisp.containsFunction(result) { throw Elisp.Unsupported(what: "org-sbe with a function value") }
             if scalar {
                 result = .string(params.contains("scalar") || params.contains("verbatim") ? Elisp.printed(result, escape: true) : try Elisp.format([.string("%s"), result]))
             }

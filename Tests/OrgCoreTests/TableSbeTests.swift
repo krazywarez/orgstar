@@ -76,6 +76,15 @@ struct TableSbeTests {
         blocks + "| n | out | quad | oops | data | items | verbatim | empty | two |\n|---+-----+------+------+------+-------+----------+-------+-----|\n| 4 | | | | | | | | |\n"
             + "#+TBLFM: $2='(org-sbe out (x $1))::$3='(org-sbe quad)::$4='(org-sbe oops)::$5='(org-sbe data)::$6='(org-sbe items)::$7='(org-sbe greet \":results verbatim\" (who $$1))::$8='(org-sbe \"\")::$9='(org-sbe two (a $1 $1) (b $$1))\n",
         blocks + "| n | sum |\n|---+-----|\n| 2 | |\n| 5 | |\n#+TBLFM: $2='(+ 1 (string-to-number (org-sbe square (n $1))))\n",
+        // `:lexical t` and `yes` are lexical; a name under a COMMENT heading, or on a keyword
+        // that names nothing, is skipped.
+        "#+NAME: lext\n#+begin_src emacs-lisp :lexical t\n(let ((f (let ((y 2)) (lambda () y)))) (let ((y 3)) (funcall f)))\n#+end_src\n\n"
+            + "#+NAME: lexy\n#+begin_src emacs-lisp :lexical yes\n(let ((f (let ((y 2)) (lambda () y)))) (let ((y 3)) (funcall f)))\n#+end_src\n\n"
+            + "#+NAME: dyn\n#+begin_src emacs-lisp :lexical no\n(let ((f (let ((y 2)) (lambda () y)))) (let ((y 3)) (funcall f)))\n#+end_src\n\n"
+            + "#+NAME: orph\n\n#+NAME: orph\n#+begin_src emacs-lisp\n\"real\"\n#+end_src\n\n"
+            + "| t | yes | no | cm | orph |\n|---+-----+----+----+------|\n| | | | | |\n"
+            + "#+TBLFM: $1='(org-sbe lext)::$2='(org-sbe lexy)::$3='(org-sbe dyn)::$4='(org-sbe cm)::$5='(org-sbe orph)\n\n"
+            + "* COMMENT Old\n#+NAME: cm\n| old |\n\n* New\n#+NAME: cm\n#+begin_src emacs-lisp\n\"new\"\n#+end_src\n",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
@@ -93,6 +102,41 @@ struct TableSbeTests {
             #expect(mine.text == expected.0 && mine.caret == expected.1 && mine.failure == expected.2,
                     "case \(i)\nours:\n\(mine.text.components(separatedBy: "\n\n").last ?? "") \(mine.failure ?? "")\nemacs:\n\(theirs.text.components(separatedBy: "\n\n").last ?? "") \(theirs.error)")
         }
+    }
+
+    /// The reason a table with `org-sbe` in `formula` goes to Emacs; nil when it doesn't.
+    static func reason(_ head: String, _ formula: String) -> String? {
+        let text = head + "| n | f |\n|---+---|\n| 3 | |\n#+TBLFM: $2=" + formula + "\n"
+        let caret = (text as NSString).range(of: "#+TBLFM").location + 3
+        let context = EditContext(revision: 0, text: text, tree: OrgParser.parse(text), selection: [caret..<caret])
+        guard case .external(.emacsTable(_, _, _, let reason, _, _, _)) = TableRecalculate(all: true).run(in: context) else { return nil }
+        return reason
+    }
+
+    /// Values Emacs 31 prints as interpreted-function objects, `:lexical` values Emacs reads as
+    /// Lisp, and a name whose first use is skipped and that doesn't name a src block go to Emacs.
+    @Test func refusesWhatPrintsOrReadsDifferently() {
+        let lambda = "#+NAME: lam\n#+begin_src emacs-lisp\n(lambda () 1)\n#+end_src\n\n"
+        let quoted = "#+NAME: lam\n#+begin_src emacs-lisp :lexical yes\n(list 1 '(lambda () 1))\n#+end_src\n\n"
+        let lexical = "#+NAME: lam\n#+begin_src emacs-lisp :lexical (identity t)\n1\n#+end_src\n\n"
+        let twice = "* COMMENT Old\n#+NAME: lam\n| a |\n\n* New\n#+NAME: lam\n| b |\n\n"
+        #expect(Self.reason(lambda, "'(org-sbe lam)") == "Lisp org-sbe with a function value")
+        #expect(Self.reason(quoted, "'(org-sbe lam)") == "Lisp org-sbe with a function value")
+        #expect(Self.reason(lexical, "'(org-sbe lam)") == "Lisp org-sbe with this :lexical")
+        #expect(Self.reason(twice, "'(org-sbe lam)") == "Lisp org-sbe with a name used more than once")
+        #expect(Self.reason("#+NAME: lam\n| a |\n\n", "'(org-sbe lam)") == nil)
+    }
+
+    @TaskLocal static var locked = false
+
+    /// Without the app's leave to run blocks, `org-sbe` goes to the app with `lockedReason`.
+    @Test func lockedWithoutBabel() {
+        TableBlocks.allowed = { !TableSbeTests.locked }
+        let square = "#+NAME: f\n#+begin_src emacs-lisp :var n=2\n(* n n)\n#+end_src\n\n"
+        Self.$locked.withValue(true) {
+            #expect(Self.reason(square, "'(org-sbe f (n $1))") == TableBlocks.lockedReason)
+        }
+        #expect(Self.reason(square, "'(org-sbe f (n $1))") == nil)
     }
 
     /// Other languages, and references only Emacs follows, go to Emacs.
