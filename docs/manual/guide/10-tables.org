@@ -234,6 +234,10 @@ and are left out of ranges.
 A field's text goes into the formula as it is, so a field holding text such as =N/A= or
 =TBD= becomes Calc variables and the result is a formula: =$1+5= with =N/A= in =$1=
 gives =N / A + 5=. The =N= flag reads every field as a number instead, with text as 0.
+A field such as =21.11.2026= or =192.168.1.1=, with more than one decimal point, is
+=#ERROR=, as Calc can't read it as a number. A range whose only non-empty field holds
+text with a space, such as =5 kg=, needs Emacs: Calc reads a vector without commas as
+elements separated by spaces.
 
 ** Names, parameters and constants
 

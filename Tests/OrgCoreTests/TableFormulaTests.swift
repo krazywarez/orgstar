@@ -96,11 +96,30 @@ struct TableFormulaTests {
         "| r | area | half |\n|---+------+------|\n| 3 | | |\n| x | | |\n#+TBLFM: $2=$1^2*pi::$3=$2/2;S\n",
         "| a | b | c | d |\n|---+---+---+---|\n| 1 | | n/a | |\n| 2 | 3 | | |\n#+TBLFM: $4=vsum($1..$3)::@2$2=$1 + inf;S\n",
         "| a | b | c |\n|---+---+---|\n| x | 1 | |\n| | 2 | |\n#+TBLFM: $3=$1*$2;E\n",
+        // Calc rejects a number with two points.
+        "| a | b |\n|---+---|\n| 21.11.2026 | |\n| 192.168.1.1 | |\n| 1.5 | |\n#+TBLFM: $2=$1+1\n",
+        "| a | b |\n|---+---|\n| 21.11.2026 | |\n#+TBLFM: $2=$1+1;T\n",
+        "| a | b |\n|---+---|\n| 1:00 | |\n#+TBLFM: $2=$1+x;T\n",
     ]
+
+    /// A range of one field with a space is a vector without commas, which Calc splits at the
+    /// space; a power or quotient left symbolic under a duration flag has Calc's explanation.
+    @Test func refusesWhatCalcReadsOrExplainsDifferently() {
+        for text in [
+            "| a | b | c |\n|---+---+---|\n| 5 kg | | |\n#+TBLFM: $3=vsum($1..$2)\n",
+            "| a | b | c |\n|---+---+---|\n| 1 2 | | |\n#+TBLFM: $3=vsum($1..$2)\n",
+            "| a | b |\n|---+---|\n| N A | |\n| | |\n#+TBLFM: @2$2=vmean(@2$1..@3$1)\n",
+            "| a | b |\n|---+---|\n| 1:00 | |\n#+TBLFM: $2=$1+x^2/x;T\n",
+        ] {
+            let caret = (text as NSString).range(of: "#+TBLFM").location + 3
+            let failure = Self.recalculate(TableRecalculate(all: true), text, caret: caret).failure ?? ""
+            #expect(failure.hasPrefix("external:"), "\(failure) in\n\(text)")
+        }
+    }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func textAndBlankFieldsMatchEmacsNatively() throws {
-        try compare(Self.symbolic, fallbacksAllowed: false)
+        try compare(Self.symbolic, fallbacksAllowed: false, headerFallbacksAllowed: false)
     }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
@@ -164,7 +183,9 @@ struct TableFormulaTests {
         try compare(Self.lisp, fallbacksAllowed: false)
     }
 
-    func compare(_ tables: [String], fallbacksAllowed: Bool) throws {
+    /// With `headerFallbacksAllowed`, a formula Calc would leave symbolic over a header's
+    /// text may go to Emacs even when other fallbacks aren't allowed.
+    func compare(_ tables: [String], fallbacksAllowed: Bool, headerFallbacksAllowed: Bool = true) throws {
         var cases: [EmacsOracle.Case] = []
         var ours: [(text: String, caret: Int, failure: String?)] = []
         for text in tables {
@@ -184,9 +205,8 @@ struct TableFormulaTests {
         for (i, (mine, theirs)) in zip(ours, emacs).enumerated() {
             if let failure = mine.failure, failure.hasPrefix("external:") {
                 fallbacks += 1
-                // Formulas over a header's text that Calc would leave symbolic in ways not
-                // reproduced go to Emacs.
-                #expect(fallbacksAllowed || failure.contains("symbolic") || failure.contains("of a formula"), "\(failure) in\n\(cases[i].text)")
+                let header = failure.contains("symbolic") || failure.contains("of a formula")
+                #expect(fallbacksAllowed || (headerFallbacksAllowed && header), "\(failure) in\n\(cases[i].text)")
                 continue
             }
             let expected = (theirs.text, EmacsOracle.offset(theirs.point, in: theirs.text), theirs.error.isEmpty ? nil : theirs.error)

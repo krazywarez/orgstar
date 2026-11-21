@@ -16,8 +16,10 @@ public enum Calc {
     /// An error Calc reports, which a table shows as `#ERROR`.
     public struct Failure: Error, Equatable, CustomStringConvertible {
         public let reason: String
+        /// Where in the expression Calc reports the error.
+        public let position: Int
         public var description: String { reason }
-        init(_ reason: String) { self.reason = reason }
+        init(_ reason: String, position: Int = 0) { (self.reason, self.position) = (reason, position) }
     }
 
     public indirect enum Value: Equatable, Sendable {
@@ -67,10 +69,11 @@ public enum Calc {
                     if numeric {
                         switch value {
                         case .int, .float, .frac: break
-                        // Calc explains a division by zero or a power it left alone.
-                        case .symbolic(let t) where t.contains(where: { ["/", "^"].contains($0) }):
-                            throw Unsupported("symbolic arithmetic")
-                        default: throw Failure("Number expected")
+                        default:
+                            // Calc explains the first argument a quotient, power or function
+                            // rejected along the way, which isn't tracked here.
+                            if tree.mayExplain { throw Unsupported("symbolic arithmetic") }
+                            throw Failure("Number expected")
                         }
                     }
                     return try format(value, modes.format)
@@ -929,6 +932,17 @@ public enum Calc {
         case binary(Character, Node, Node)
         case call(String, [Node])
         case variable(String)
+
+        /// Whether the formula has a quotient, a power or a function call.
+        var mayExplain: Bool {
+            switch self {
+            case .number, .variable: false
+            case .call: true
+            case .vector(let items): items.contains { $0.mayExplain }
+            case .unary(_, let a): a.mayExplain
+            case .binary(let op, let a, let b): "/%\\^".contains(op) || a.mayExplain || b.mayExplain
+            }
+        }
     }
 
     struct Parser {
@@ -936,6 +950,8 @@ public enum Calc {
         var i = 0
         /// Inside `[...]`, where Calc reads `x -1` as two elements.
         var inVector = false
+        /// Inside `[...]` with no comma, where Calc reads `1 2` as two elements.
+        var spaceSeparated = false
 
         init(_ s: String) { chars = Array(s) }
 
@@ -1026,6 +1042,9 @@ public enum Calc {
                 } else if !(c.isASCII && c.isNumber) && !c.isLetter && c != "(" && c != "["
                             && !(c == "." && i + 1 < chars.count && chars[i + 1].isASCII && chars[i + 1].isNumber) {
                     break
+                } else if spaceSeparated, chars[i - 1] == " " || chars[i - 1] == "\t" {
+                    // Calc reads `[1 2]` as two elements and `[1 2 * 3]` as one; not reproduced.
+                    throw Unsupported("formula syntax")
                 }
                 left = .binary("*", left, try unary())
             }
@@ -1086,19 +1105,19 @@ public enum Calc {
             guard let c = peek() else { throw Unsupported("formula syntax") }
             if c == "(" {
                 i += 1
-                let outer = inVector
-                inVector = false
+                let outer = (inVector, spaceSeparated)
+                (inVector, spaceSeparated) = (false, false)
                 let inner = try or()
-                inVector = outer
+                (inVector, spaceSeparated) = outer
                 guard peek() == ")" else { throw Unsupported("formula syntax") }
                 i += 1
                 return inner
             }
             if c == "[" {
                 i += 1
-                let outer = inVector
-                inVector = true
-                defer { inVector = outer }
+                let outer = (inVector, spaceSeparated)
+                (inVector, spaceSeparated) = (true, !hasComma())
+                defer { (inVector, spaceSeparated) = outer }
                 var items: [Node] = []
                 if peek() != "]" {
                     items.append(try or())
@@ -1124,6 +1143,8 @@ public enum Calc {
                     name.append(chars[i])
                     i += 1
                 }
+                // `[f (x)]` is two elements.
+                if spaceSeparated, i < chars.count, chars[i] != "(", peek() == "(" { throw Unsupported("formula syntax") }
                 guard peek() == "(" else {
                     if name == "nan" { return .number(.nan) }
                     // Calc's names are letters and digits; `_` is a subscript, and `'` and `#`
@@ -1133,6 +1154,9 @@ public enum Calc {
                     return .variable(name)
                 }
                 i += 1
+                let outer = (inVector, spaceSeparated)
+                (inVector, spaceSeparated) = (false, false)
+                defer { (inVector, spaceSeparated) = outer }
                 var args: [Node] = []
                 if peek() != ")" {
                     args.append(try or())
@@ -1146,6 +1170,18 @@ public enum Calc {
                 return .call(name, args)
             }
             throw Unsupported("formula syntax")
+        }
+
+        /// `math-check-for-commas`: whether a comma follows before the bracket that closes.
+        func hasComma() -> Bool {
+            var depth = 0
+            for c in chars[i...] {
+                if "[{(".contains(c) { depth += 1 }
+                if "]})".contains(c) { depth -= 1 }
+                if depth < 0 { return false }
+                if c == ",", depth == 0 { return true }
+            }
+            return false
         }
 
         /// Calc's number syntax: `7`, `007`, `1.5`, `.5`, `5.`, `1e3`, `1.5e-3`, fractions `1:3`
@@ -1193,6 +1229,17 @@ public enum Calc {
                     i += 1
                 }
                 fraction = f
+                // Calc reads digits and points as one number: `21.11.2026` is a bad format.
+                if i < chars.count, chars[i] == ".", i + 1 >= chars.count || chars[i + 1] != "." {
+                    while i < chars.count, (chars[i].isASCII && chars[i].isNumber)
+                            || (chars[i] == "." && (i + 1 >= chars.count || chars[i + 1] != ".")) { i += 1 }
+                    // The position is in the string Calc reads, after it rewrites `..` and
+                    // characters such as `²`; an exponent belongs to the number.
+                    let before = String(chars[..<i])
+                    guard before.allSatisfy(\.isASCII), !before.contains(".."),
+                          i >= chars.count || !"eE".contains(chars[i]) else { throw Unsupported("formula syntax") }
+                    throw Failure("Bad format", position: i)
+                }
             }
             var exponent: Int?
             if i < chars.count, chars[i] == "e" || chars[i] == "E" {

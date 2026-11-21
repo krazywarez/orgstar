@@ -654,11 +654,3 @@ extension Calc {
         }
     }
 }
-
-extension Calc.Term {
-    /// Whether an operator or function in the formula satisfies `predicate`.
-    func contains(where predicate: (String) -> Bool) -> Bool {
-        guard case .op(let f, let args) = self else { return false }
-        return predicate(f) || args.contains { $0.contains(where: predicate) }
-    }
-}

@@ -1,8 +1,8 @@
 import Foundation
 
 // Table formulas (org-table.el, Org 9.8.7): `org-table-recalculate` and
-// `org-table-eval-formula` with Calc and Lisp evaluated natively. Symbolic results, Calc
-// features beyond `Calc` and Lisp beyond `Elisp` throw `Calc.Unsupported`; the caller then
+// `org-table-eval-formula` with Calc and Lisp evaluated natively. Calc features beyond
+// `Calc` and Lisp beyond `Elisp` throw `Calc.Unsupported`; the caller then
 // recalculates the table in Emacs. `remote()` finds tables by name in the file, and by ID
 // here or, through `RemoteTables`, in other files.
 
@@ -626,7 +626,7 @@ extension EmacsBuffer {
                     result = try Calc.evaluate(form, modes: modes, numeric: !mode.keepEmpty && mode.numbers)
                 } catch let failure as Calc.Failure {
                     // A duration formula takes Calc's error for a string, as org does.
-                    if duration != nil { throw UserError(message: "Wrong type argument: stringp, (0 \"\(failure.reason)\")") }
+                    if duration != nil { throw UserError(message: "Wrong type argument: stringp, (\(failure.position) \"\(failure.reason)\")") }
                     (result, fmt) = ("#ERROR", nil)
                 }
             }

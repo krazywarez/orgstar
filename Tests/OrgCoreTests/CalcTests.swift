@@ -359,6 +359,8 @@ struct CalcTests {
         "uinf+1", "inf/0", "uinf/0", "inf^-1", "x/inf", "2^inf", "0.5^inf", "(-2)^inf", "inf^0", "nan*x", "x+nan", "x/nan",
         "vsum([x,1,2])", "vmean([x,1])", "vmean([x,2,3])", "vsum([x,y,1])", "vprod([x,2,3])", "vmean([a,b])", "vcount([x,1])",
         "vsum([1/0, 2])", "vsum([5 kg,3])", "vsum([2 (3),1])",
+        // No comma: Calc separates elements by spaces, except inside parentheses and arguments.
+        "vsum([1 - 2])", "vsum([x - 1])", "vsum([2x])", "vsum([(1 2)])", "vsum([max(1 2,3)])", "vcount([x])",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
@@ -386,7 +388,9 @@ struct CalcTests {
     }
 
     @Test func unsupported() throws {
-        for e in ["sqrt(x)", "vmax([x,1])", "vsum(x,1)", "x<1", "if(x,1,2)", "x%2", "x_1", "x'", "Holidays+1", "café+1",
+        for e in ["vsum([5 kg])", "vsum([1 2])", "vcount([N A])", "vsum([2 3 4])", "vsum([1 1/2])", "vmin([3 4])",
+                  "vcount([f (x)])", "vcount([1 [2]])", "vcount([(1) 2])", "vcount([1 sin (2)])", "1.2.3e5",
+                  "sqrt(x)", "vmax([x,1])", "vsum(x,1)", "x<1", "if(x,1,2)", "x%2", "x_1", "x'", "Holidays+1", "café+1",
                   "x+<2026-10-05 Mon>", "[x,1]", "vcount([x -1])", "(1/0)+1", "vmean([])", "(-8)^(1/3)", "vvar([5])", "1<2<3",
                   "vmax([])", "vmin([])", "vrms([1,2])", "vmeane([1,2])", "vcov([1,2],[3])", "vcov([1],[2])",
                   "fdiv(7.5,2)", "fdiv(7,0)", "perm(5,6)", "log(8,1)", "log(0,2)", "log(-8,2)", "arctanh(1)", "arccosh(0.5)",
@@ -422,6 +426,19 @@ struct CalcTests {
         // `calc-eval` with `num`: a formula is an error, unless Calc explains it.
         #expect(throws: Calc.Failure("Number expected")) { try Calc.evaluate("x+1", numeric: true) }
         #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("1/0", numeric: true) }
+        // Calc explains what a quotient, power or function rejected, even when it cancels.
+        for e in ["x^2/x", "x*x/x", "inf+(1/0)", "x/2", "abs(x)", "x%2"] {
+            #expect(throws: Calc.Unsupported.self, "\(e)") { try Calc.evaluate(e, numeric: true) }
+        }
+        for e in ["-x", "x*2", "2 x", "x+2-2", "nan"] {
+            #expect(throws: Calc.Failure("Number expected"), "\(e)") { try Calc.evaluate(e, numeric: true) }
+        }
+        #expect(try Calc.evaluate("x/x", numeric: true) == "1")
+        // Digits and points read as one number, at the position Calc gives.
+        for (e, position) in [("21.11.2026+1", 10), ("(21.11.2026)+1", 11), ("1.5.+1", 4), (".5.5", 4), ("3.14.15", 7),
+                              ("192.168.1.1", 11), ("1.2.3x", 5), ("1.5.", 4)] {
+            #expect(throws: Calc.Failure("Bad format", position: position), "\(e)") { try Calc.evaluate(e) }
+        }
         var symbolic = Calc.Modes()
         symbolic.symbolic = true
         for e in ["sqrt(2)", "2^0.5", "ln(2)", "x^0.5"] {
