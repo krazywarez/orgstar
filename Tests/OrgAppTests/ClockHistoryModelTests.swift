@@ -192,4 +192,17 @@ struct ClockHistoryModelTests {
         #expect(next.asked == ["You stopped another clock 50 mins ago; start this one from then? (y or n) "])
         #expect(clock.running?.heading == "C" && clock.running?.startedAt == idle && clock.leftover == nil)
     }
+
+    /// iOS: time in the background past `org-clock-idle-time` is idle from when the app left,
+    /// or from clocking in, when that came later.
+    @Test func backgroundTimeIsIdleTime() {
+        let running = ClockModel.Running(path: work.path, start: "2026-09-09 Wed 10:00", heading: "A", startedAt: start)
+        let left = start.addingTimeInterval(10 * 60)
+        #expect(ClockModel.idleSince(backgrounded: left, now: left.addingTimeInterval(16 * 60), running: running, idleMinutes: 15) == left)
+        #expect(ClockModel.idleSince(backgrounded: left, now: left.addingTimeInterval(15 * 60), running: running, idleMinutes: 15) == nil)
+        #expect(ClockModel.idleSince(backgrounded: left, now: left.addingTimeInterval(60 * 60), running: running, idleMinutes: 0) == nil)
+        #expect(ClockModel.idleSince(backgrounded: left, now: left.addingTimeInterval(60 * 60), running: nil, idleMinutes: 15) == nil)
+        let earlier = start.addingTimeInterval(-30 * 60)
+        #expect(ClockModel.idleSince(backgrounded: earlier, now: start.addingTimeInterval(20 * 60), running: running, idleMinutes: 15) == start)
+    }
 }

@@ -284,6 +284,35 @@ public enum Publish {
         return report
     }
 
+    /// What `function` makes of `text`, the file at `path`: HTML, Markdown, LaTeX or plain text,
+    /// with `settings` and the file's setup files. The `export` of `publish` on every platform.
+    public static func export(
+        _ function: String, text: String, path: String, bodyOnly: Bool, settings: OrgSettings, codeStyle: HTMLCodeStyle?,
+        author: String = NSFullUserName(), language: String = OrgPreferences.exportLanguage()
+    ) throws -> String {
+        let settings = settings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
+        let name = (path as NSString).lastPathComponent
+        switch function {
+        case "org-md-publish-to-md":
+            return MarkdownExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly)
+        case "org-latex-publish-to-latex":
+            do {
+                return try LaTeXExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: author, language: language, file: true)
+            } catch let error as LaTeXExport.Unsupported {
+                throw LaTeXExport.Unsupported(reason: "Can't export \(name) to LaTeX: \(error.reason)")
+            }
+        case "org-ascii-publish-to-ascii":
+            do {
+                return try ASCIIExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: author, language: language, file: true)
+            } catch let error as ASCIIExport.Unsupported {
+                throw ASCIIExport.Unsupported(reason: "Can't export \(name) to plain text: \(error.reason)")
+            }
+        default:
+            let base = (name as NSString).deletingPathExtension
+            return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, bodyOnly: bodyOnly, codeStyle: codeStyle, language: language)
+        }
+    }
+
     /// Where `function` publishes `file` in `outputDirectory`; nil for an attachment already there.
     private static func outputPath(_ file: String, function: String, in outputDirectory: String, read: (String) -> String?) throws -> String? {
         guard function != "org-publish-attachment" else {

@@ -278,4 +278,69 @@ struct PublishTests {
         #expect(Publish.projects(fromConfig: "[[publish]]\nname = \"x\"\n", root: nil).problems.count == 1)
         #expect(throws: Publish.Failure.self) { try Publish.expand([PublishProject(name: "m")].map { var p = $0; p.components = ["nope"]; return p }, all: []) }
     }
+
+    /// The exporter both apps publish with: each function's format, and the file named in a
+    /// refusal.
+    @Test func exportsByFunction() throws {
+        let path = "/notes/a.org"
+        let text = "#+TITLE: A\n* One\nText.\n"
+        func export(_ function: String) throws -> String {
+            try Publish.export(function, text: text, path: path, bodyOnly: false, settings: .default, codeStyle: nil, author: "A. Writer", language: "en")
+        }
+        #expect(try export("org-html-publish-to-html").contains("<title>A</title>"))
+        #expect(try export("org-md-publish-to-md").contains("# One"))
+        #expect(try export("org-latex-publish-to-latex").contains("\\title{A}"))
+        #expect(try export("org-ascii-publish-to-ascii").contains("1 One"))
+        #expect(throws: LaTeXExport.Unsupported(reason: "Can't export a.org to LaTeX: Radio targets")) {
+            try Publish.export("org-latex-publish-to-latex", text: "<<<radio>>> radio\n", path: path, bodyOnly: false, settings: .default, codeStyle: nil, author: "", language: "en")
+        }
+    }
+}
+
+/// Publishing on iOS: a project that publishes outside the app's folders writes to the folder
+/// chosen for it, kept as a bookmark.
+@MainActor
+struct PublishFoldersTests {
+    @Test func publishesToTheBookmarkedFolder() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-ios-\(UUID().uuidString)").resolvingSymlinksInPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try PublishTests.tree(folder)
+        let chosen = folder.appendingPathComponent("chosen")
+        try FileManager.default.createDirectory(at: chosen, withIntermediateDirectories: true)
+        let config = """
+        [[publish]]
+        name = "site"
+        base-directory = "src"
+        publishing-directory = "~/public_html"
+
+        [[publish]]
+        name = "inside"
+        base-directory = "src"
+        publishing-directory = "src/out"
+
+        [[publish]]
+        name = "both"
+        components = "site inside"
+        """
+        let root = folder.path
+        let loaded = Publish.projects(fromConfig: config, root: root)
+        let defaults = UserDefaults(suiteName: "orgstar-publish-\(UUID().uuidString)")!
+        let folders = PublishFolders(defaults: defaults, sandboxed: false)
+        let both = loaded.projects.first { $0.name == "both" }!
+        #expect(try folders.needed([both], all: loaded.projects, roots: [root]).map(\.name) == ["site"])
+        #expect(folders.set(chosen, for: "site"))
+
+        // After a relaunch, the bookmark gives the folder back.
+        let again = PublishFolders(defaults: defaults, sandboxed: false)
+        #expect(again.folder(for: "site")?.standardizedFileURL == chosen.standardizedFileURL)
+        #expect(try again.needed([both], all: loaded.projects, roots: [root]).isEmpty)
+        let projects = again.applied(to: loaded.projects)
+        let site = projects.first { $0.name == "site" }!
+        #expect(URL(fileURLWithPath: site.publishingDirectory).standardizedFileURL == chosen.standardizedFileURL)
+        #expect(projects.first { $0.name == "inside" }?.publishingDirectory == root + "/src/out")
+        let read = { (path: String) in try? String(contentsOfFile: path, encoding: .utf8) }
+        let report = try Publish.publish([site], all: projects, read: read) { _, text, _, _ in text }
+        #expect(!report.published.isEmpty)
+        #expect(FileManager.default.fileExists(atPath: chosen.appendingPathComponent("a.html").path))
+    }
 }

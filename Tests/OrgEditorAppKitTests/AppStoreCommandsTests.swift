@@ -29,4 +29,12 @@ struct AppStoreCommandsTests {
             #expect(AppStoreCommands.replacement(for: id) == nil)
         }
     }
+
+    /// Linking a file from another container fails in the sandbox, so iOS refuses these too.
+    @Test func attachingByLinkIsUnavailable() {
+        #expect(AppStoreCommands.unavailable("app.attach.link"))
+        #expect(AppStoreCommands.unavailable("app.attach.symlink"))
+        #expect(!AppStoreCommands.unavailable("app.attach.attach"))
+        #expect(!AppStoreCommands.unavailable("app.export.pdf"))
+    }
 }

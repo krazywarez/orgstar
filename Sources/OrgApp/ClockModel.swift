@@ -567,6 +567,15 @@ public final class ClockModel {
         )
     }
 
+    /// Where iOS has no idle time: since when the user was away, for `resolveIdle`, when the
+    /// app was in the background from `backgrounded` to `now` with `running` going for more
+    /// than `idleMinutes` of that time (`org-clock-idle-time`, 0 for never).
+    public nonisolated static func idleSince(backgrounded: Date, now: Date, running: Running?, idleMinutes: Int) -> Date? {
+        guard idleMinutes > 0, let running else { return nil }
+        let since = max(backgrounded, running.startedAt)
+        return now.timeIntervalSince(since) > Double(idleMinutes * 60) ? since : nil
+    }
+
     /// `org-clock-resolve`: asks what to do with `clock`'s time since `lastValid` and does it.
     func resolve(
         _ clock: OpenClock, description: String, lastValid: Date, clockingIn: Bool, _ session: DocumentSession, ask: Ask, now: () -> Date

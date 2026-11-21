@@ -1004,24 +1004,7 @@ struct ContentView: View {
             guard reach(involved().flatMap { [$0.baseDirectory, $0.publishingDirectory] }, directories: true) else { return }
             do {
                 let report = try Publish.publish(chosen, all: loaded.projects, only: only, read: read) { function, text, path, bodyOnly in
-                    let settings = Preferences.orgSettings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
-                    if function == "org-md-publish-to-md" { return MarkdownExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly) }
-                    if function == "org-latex-publish-to-latex" {
-                        do {
-                            return try LaTeXExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
-                        } catch let error as LaTeXExport.Unsupported {
-                            throw LaTeXExport.Unsupported(reason: "Can't export \((path as NSString).lastPathComponent) to LaTeX: \(error.reason)")
-                        }
-                    }
-                    if function == "org-ascii-publish-to-ascii" {
-                        do {
-                            return try ASCIIExport.document(text, settings: settings, path: path, bodyOnly: bodyOnly, author: NSFullUserName(), language: OrgPreferences.exportLanguage(), file: true)
-                        } catch let error as ASCIIExport.Unsupported {
-                            throw ASCIIExport.Unsupported(reason: "Can't export \((path as NSString).lastPathComponent) to plain text: \(error.reason)")
-                        }
-                    }
-                    let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
-                    return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path, bodyOnly: bodyOnly, codeStyle: codeStyle, language: OrgPreferences.exportLanguage())
+                    try Publish.export(function, text: text, path: path, bodyOnly: bodyOnly, settings: Preferences.orgSettings, codeStyle: codeStyle)
                 }
                 commands.show("Published \(report.published.count) files" + (report.skipped.isEmpty ? "" : ", \(report.skipped.count) up to date"))
             } catch {
