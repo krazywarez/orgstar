@@ -43,17 +43,18 @@ struct PlotChartTests {
     static let table = "| x | a | b |\n|---+---+---|\n| 1 | 2 | 30 |\n| 2 | 4 | 10 |\n| 3 | 3 | 50 |\n"
 
     @Test func followsTheSetSubset() throws {
-        let sets = ["title 'Set'", "xlabel 'Day'", "ylabel 'Count'", "xrange [0:10]", "yrange [*:60]", "logscale y",
+        let sets = ["title 'Set'", "xlabel 'Day'", "ylabel 'Count'", "xrange [0:10]", "yrange [*:60]",
                     "grid", "key left top", "xtics 2", "ytics 0.5"]
         let plot = try Self.plot("#+PLOT: title:\"Given\" ind:1 " + sets.map { "set:\"\($0)\"" }.joined(separator: " ") + "\n" + Self.table)
         let s = TablePlot.settings(plot)
         #expect(s.title == "Set" && s.xlabel == "Day" && s.ylabel == "Count")
         #expect(s.xrange?.low == 0 && s.xrange?.high == 10 && s.yrange?.low == nil && s.yrange?.high == 60)
-        #expect(s.logY && !s.logX && s.grid && s.xtics == 2 && s.ytics == 0.5)
+        #expect(!s.logY && !s.logX && s.grid && s.xtics == 2 && s.ytics == 0.5)
         #expect(s.key == .at(vertical: "top", horizontal: "left"))
         #expect(s.unfollowed.isEmpty && PlotOutput.note(plot) == nil)
 
         #expect(TablePlot.settings(try Self.plot("#+PLOT: set:\"logscale\"\n" + Self.table)).logX)
+        #expect(TablePlot.settings(try Self.plot("#+PLOT: set:\"logscale y\"\n" + Self.table)).logY)
         #expect(TablePlot.settings(try Self.plot("#+PLOT: set:\"key off\"\n" + Self.table)).key == .off)
         #expect(TablePlot.settings(try Self.plot("#+PLOT: line:\"set key bottom\"\n" + Self.table)).key == .at(vertical: "bottom", horizontal: nil))
         // gnuplot reads title:, then line:, then set:, so a set: wins.
@@ -69,6 +70,19 @@ struct PlotChartTests {
         #expect(TablePlot.settings(text).unfollowed == ["set:\"xtics 2\""])
         let grid = try Self.plot("#+PLOT: type:grid set:\"logscale\" set:\"xlabel 'C'\"\n| 1 | 2 |\n| 3 | 4 |\n")
         #expect(TablePlot.settings(grid).unfollowed == ["set:\"logscale\""] && TablePlot.settings(grid).xlabel == "C")
+        // gnuplot's key leaves a heat map's colour scale alone.
+        let heat = try Self.plot("#+PLOT: type:grid set:\"key off\"\n| 1 | 2 |\n| 3 | 4 |\n")
+        #expect(TablePlot.settings(heat).unfollowed == ["set:\"key off\""] && TablePlot.settings(heat).key == nil)
+        let map = try Self.plot("#+PLOT: type:3d map:t set:\"key left\"\n| 1 | 2 |\n| 3 | 4 |\n")
+        #expect(TablePlot.settings(map).unfollowed == ["set:\"key left\""])
+        // On a log axis gnuplot's step is a factor, whichever comes first.
+        let logTics = try Self.plot("#+PLOT: ind:1 set:\"ytics 2\" set:\"logscale y\" set:\"xtics 1\"\n" + Self.table)
+        #expect(TablePlot.settings(logTics).unfollowed == ["set:\"ytics 2\""] && TablePlot.settings(logTics).ytics == nil && TablePlot.settings(logTics).xtics == 1)
+        let logX = try Self.plot("#+PLOT: ind:1 line:\"set xtics 2\" set:\"logscale x\"\n" + Self.table)
+        #expect(TablePlot.settings(logX).unfollowed == ["line:\"set xtics 2\""])
+        // gnuplot reverses an axis whose range runs high to low.
+        let reversed = try Self.plot("#+PLOT: ind:1 set:\"xrange [10:0]\" set:\"yrange [5:0]\" set:\"yrange [0:5]\"\n" + Self.table)
+        #expect(TablePlot.settings(reversed).unfollowed == ["set:\"xrange [10:0]\"", "set:\"yrange [5:0]\""] && TablePlot.settings(reversed).xrange == nil)
         let radar = try Self.plot("#+PLOT: type:radar ticks:2 set:\"key off\" set:\"title 'R'\"\n| n | a |\n|---+---|\n| x | 1 |\n| y | 2 |\n| z | 3 |\n")
         #expect(TablePlot.settings(radar).unfollowed == ["set:\"key off\""] && TablePlot.settings(radar).title == "R")
     }
@@ -102,6 +116,12 @@ struct PlotChartTests {
         #expect(bars.contains(">a</text>") && !bars.contains(">v</text>") && !bars.contains("stroke-dasharray"))
         let log = try TablePlot.svg(Self.plot("#+PLOT: ind:1 with:points set:\"logscale y\"\n| x | v |\n|---+---|\n| 1 | 5 |\n| 2 | 500 |\n| 3 | 0 |\n"))
         #expect(log.contains(">1</text>") && log.contains(">1000</text>") && log.components(separatedBy: "<circle").count - 1 == 2)
+        // A log range with no power of ten in it is labelled at its ends.
+        let narrow = try TablePlot.svg(Self.plot("#+PLOT: ind:1 set:\"logscale y\" set:\"yrange [2:5]\"\n| 1 | 3 |\n| 2 | 4 |\n"))
+        #expect(narrow.contains(">2</text>") && narrow.contains(">5</text>"))
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.svg(Self.plot("#+PLOT: ind:1 set:\"logscale y\"\n| 1 | 0 |\n| 2 | -4 |\n")) }
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.svg(Self.plot("#+PLOT: ind:1 set:\"logscale y\" set:\"yrange [0:100]\"\n| 1 | 3 |\n| 2 | 4 |\n")) }
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.svg(Self.plot("#+PLOT: ind:1 set:\"logscale x\" set:\"xrange [*:10]\"\n| 0 | 3 |\n| -1 | 4 |\n")) }
         let ranged = try TablePlot.svg(Self.plot("#+PLOT: ind:1 set:\"xrange [0:10]\" set:\"ytics 25\"\n" + Self.table))
         #expect(ranged.contains(">10</text>") && ranged.contains(">25</text>") && ranged.contains(">50</text>"))
         #expect(throws: TablePlot.Failure.self) { try TablePlot.svg(Self.plot("#+PLOT: type:3d\n| 1 | 2 |\n| 3 | 4 |\n")) }

@@ -36,8 +36,9 @@ extension TablePlot {
             let numericX = plot.options.ind <= 0 || !(plot.timeInd || plot.textInd || plot.options.with == "histograms")
             return numericX ? ["title", "xlabel", "ylabel", "xrange", "yrange", "logscale", "grid", "key", "xtics", "ytics"]
                 : ["title", "xlabel", "ylabel", "yrange", "logscale y", "grid", "key", "ytics"]
-        case "grid": return ["title", "xlabel", "ylabel", "key"]
-        case "3d" where plot.options["map"]?.truthy == true: return ["title", "xlabel", "ylabel", "key"]
+        // The heat map's legend is its colour scale, which gnuplot's `set key` leaves alone.
+        case "grid": return ["title", "xlabel", "ylabel"]
+        case "3d" where plot.options["map"]?.truthy == true: return ["title", "xlabel", "ylabel"]
         // The radar script sets its own key, after these.
         default: return ["title"]
         }
@@ -48,13 +49,24 @@ extension TablePlot {
     public static func settings(_ plot: Plot) -> Settings {
         var s = Settings()
         let o = plot.options
-        let follows = followed(plot)
-        s.title = o.title
-        var lines: [String] = [], sets: [String] = []
-        for line in o.lines {
-            if !(line.hasPrefix("set ") && apply(String(line.dropFirst(4)), to: &s, follows: follows)) { lines.append("line:\"\(line)\"") }
+        var follows = followed(plot)
+        func read() -> (lines: [String], sets: [String]) {
+            s = Settings()
+            s.title = o.title
+            var lines: [String] = [], sets: [String] = []
+            for line in o.lines {
+                if !(line.hasPrefix("set ") && apply(String(line.dropFirst(4)), to: &s, follows: follows)) { lines.append("line:\"\(line)\"") }
+            }
+            for set in o.sets where !apply(set, to: &s, follows: follows) { sets.append("set:\"\(set)\"") }
+            return (lines, sets)
         }
-        for set in o.sets where !apply(set, to: &s, follows: follows) { sets.append("set:\"\(set)\"") }
+        var (lines, sets) = read()
+        // On a log axis gnuplot steps by a factor, not an increment.
+        if s.logX || s.logY {
+            if s.logX { follows.remove("xtics") }
+            if s.logY { follows.remove("ytics") }
+            (lines, sets) = read()
+        }
         // Each comes twice, as Org reads the options twice; list them once, as written.
         for u in lines.reversed() + sets.reversed() where !s.unfollowed.contains(u) { s.unfollowed.append(u) }
         if let script = o["script"] { s.unfollowed.append("script:\"\(script)\"") }
@@ -73,6 +85,8 @@ extension TablePlot {
             guard let m = rest.firstMatch(of: /^\[\s*([^:\]]*?)\s*:\s*([^:\]]*?)\s*\]$/) else { return nil }
             func bound(_ t: Substring) -> Double?? { t.isEmpty || t == "*" ? .some(nil) : Double(t).map { .some($0) } }
             guard let low = bound(m.1), let high = bound(m.2) else { return nil }
+            // gnuplot reverses the axis for these, which the charts here don't.
+            if let low, let high, low > high { return nil }
             return Settings.Range(low: low, high: high)
         }
         func step() -> Double? { Double(rest).flatMap { $0 > 0 ? $0 : nil } }

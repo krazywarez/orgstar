@@ -19,8 +19,11 @@ extension TablePlot {
         var log: Bool
         var ticks: [Double] = []
 
-        init(values: [Double], given: Settings.Range?, log: Bool, step: Double?, zero: Bool) {
+        init(values: [Double], given: Settings.Range?, log: Bool, step: Double?, zero: Bool) throws {
             var data = values.filter { !log || $0 > 0 }
+            // gnuplot refuses these too.
+            if log, data.isEmpty, given?.low == nil || given?.high == nil { throw Failure(description: "A log axis needs values above 0") }
+            if log, [given?.low, given?.high].contains(where: { ($0 ?? 1) <= 0 }) { throw Failure(description: "A log axis's range must be above 0") }
             if zero, !log { data.append(0) }
             var low = given?.low ?? data.min() ?? 0, high = given?.high ?? data.max() ?? 1
             if low == high { (low, high) = log ? (low / 10, high * 10) : (low - 1, high + 1) }
@@ -29,7 +32,9 @@ extension TablePlot {
             if log {
                 if given?.low == nil { low = pow(10, log10(low).rounded(.down)) }
                 if given?.high == nil { high = pow(10, log10(high).rounded(.up)) }
-                ticks = Array(Int(log10(low).rounded(.up))...Int(log10(high).rounded(.down))).map { pow(10, Double($0)) }
+                let first = log10(low).rounded(.up), last = log10(high).rounded(.down)
+                // A range with no power of ten in it is labelled at its ends.
+                ticks = first <= last ? Array(Int(first)...Int(last)).map { pow(10, Double($0)) } : [low, high]
             } else {
                 let step = step ?? TablePlot.niceStep(high - low)
                 if given?.low == nil { low = (low / step).rounded(.down) * step }
@@ -76,13 +81,13 @@ extension TablePlot {
             return r.low == nil && r.high == nil ? nil : r
         }
         let ys = series.flatMap { $0.points.map(\.y) }
-        let y = Axis(values: ys, given: given(s.yrange, "ymin", "ymax"), log: s.logY, step: s.ytics, zero: bars || with == "impulses")
+        let y = try Axis(values: ys, given: given(s.yrange, "ymin", "ymax"), log: s.logY, step: s.ytics, zero: bars || with == "impulses")
         var x: Axis
         if !categories.isEmpty {
-            x = Axis(values: [], given: .init(low: -0.5, high: Double(categories.count) - 0.5), log: false, step: 1, zero: false)
+            x = try Axis(values: [], given: .init(low: -0.5, high: Double(categories.count) - 0.5), log: false, step: 1, zero: false)
             x.ticks = categories.indices.map(Double.init)
         } else {
-            x = Axis(values: series.flatMap { $0.points.map { xValue($0.x) } }, given: given(s.xrange, "xmin", "xmax"), log: s.logX, step: s.xtics, zero: false)
+            x = try Axis(values: series.flatMap { $0.points.map { xValue($0.x) } }, given: given(s.xrange, "xmin", "xmax"), log: s.logX, step: s.xtics, zero: false)
         }
 
         let width = 640.0, height = 480.0
