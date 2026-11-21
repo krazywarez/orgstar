@@ -69,6 +69,15 @@ struct EditorScreen: View {
     @State private var photos: [PhotosPickerItem] = []
     /// A file shown in Quick Look.
     @State private var previewed: URL?
+    /// The project whose publishing folder the folder picker is choosing.
+    @State private var publishFolder: PublishFolderRequest?
+    @State private var choosingPublishFolder = false
+
+    struct PublishFolderRequest {
+        let project: String
+        /// Publishes again, with the folder.
+        let then: () -> Void
+    }
 
     enum Sheet: Identifiable {
         case palette, conflict, syncCopies, recovery
@@ -281,6 +290,18 @@ struct EditorScreen: View {
                 }
             }
         }
+        .background {
+            Color.clear.fileImporter(isPresented: $choosingPublishFolder, allowedContentTypes: [.folder]) { result in
+                guard let request = publishFolder else { return }
+                publishFolder = nil
+                switch result {
+                case .success(let url):
+                    if !PublishFolders.shared.set(url, for: request.project) { message = "orgstar can use \(url.lastPathComponent) only until it quits" }
+                    request.then()
+                case .failure(let error): message = error.localizedDescription
+                }
+            }
+        }
         .photosPicker(isPresented: $attachingPhotos, selection: $photos, matching: .any(of: [.images, .videos]))
         .fullScreenCover(isPresented: $takingPhoto) {
             CameraPicker { data in
@@ -441,6 +462,18 @@ struct EditorScreen: View {
                 if let onPaneCommand { onPaneCommand(id) } else { message = "Not available here" }
             } else if id == "app.save" {
                 _ = session.save(path)
+            } else if id == "app.archive" {
+                if let caret = self.editor?.editContext().caret { message = session.archive(from: (path, caret)) }
+            } else if id == "app.copy-rich-text" {
+                if let text = session.document(of: path)?.text { message = ExportMenu.copy(path: path, text: text, theme: model.theme) }
+            } else if id == "app.export.html-open" {
+                exportHTMLAndOpen()
+            } else if id == "app.export.icalendar-agenda" || id == "app.export.icalendar-combined" {
+                agendaCalendars(combined: id == "app.export.icalendar-combined")
+            } else if id.hasPrefix("app.publish") {
+                publish(id)
+            } else if AppStoreCommands.unavailable(id) {
+                message = "Attachments can't be linked on iPhone and iPad; Attach File… copies the file."
             } else if ["app.refile", "app.refile.copy", "app.refile.goto"].contains(id) {
                 sheet = .refile(id)
             } else if id == "app.table-import" {
@@ -574,6 +607,92 @@ extension EditorScreen {
         guard let context = editor?.editContext() else { return }
         guard ExportScope.subtree(context.text, at: context.caret) != nil else { return message = "Not in a subtree" }
         sheet = .exportSubtree(context.caret)
+    }
+
+    /// `org-html-export-to-html` and open: the page in Quick Look, from a temporary file.
+    private func exportHTMLAndOpen() {
+        guard let text = session.document(of: path)?.text else { return }
+        let html = OrgExport.html(text, path: path, theme: model.theme)
+        let name = ExportScope.output(for: URL(fileURLWithPath: path), name: ExportScope.fileName(text, settings: OrgPreferences.orgSettings()), extension: "html")
+            .lastPathComponent
+        do {
+            previewed = try HTMLPreview.write(html, directory: URL(fileURLWithPath: path).deletingLastPathComponent(), name: name)
+        } catch {
+            message = "Can't export \(name): \(error.localizedDescription)"
+        }
+    }
+
+    /// The agenda files' calendars written beside them, or combined in one shown in Quick Look,
+    /// whose share button saves or sends it.
+    private func agendaCalendars(combined: Bool) {
+        guard let calendars = AgendaCalendars(model: model) else { return message = "No agenda files" }
+        guard combined else { return message = calendars.exportEach() }
+        do {
+            previewed = try calendars.combined()
+        } catch {
+            message = "Can't export: \(error.localizedDescription)"
+        }
+    }
+
+    /// `org-publish` and its variants, for the `[[publish]]` projects in config.toml.
+    private func publish(_ id: String) {
+        guard let all = publishProjects() else { return }
+        let current = Publish.projects(containing: path, in: all)
+        switch id {
+        case "app.publish.all":
+            publish(all.map(\.name))
+        case "app.publish.current-file":
+            guard let project = current.first else { return message = "File is not part of any known project" }
+            publish([project.name], only: path)
+        case "app.publish.current-project":
+            guard let project = current.first else { return message = "File is not part of any known project" }
+            publish([project.name])
+        default:
+            prompt = PromptRequest(prompt: Prompt(key: "project", message: "Publish project:", choices: all.map(\.name))) { answer in
+                if let answer, all.contains(where: { $0.name == answer }) { publish([answer]) }
+            }
+        }
+    }
+
+    /// The projects in config.toml, each publishing to the folder chosen for it; nil, with a
+    /// message, when there are none.
+    private func publishProjects() -> [PublishProject]? {
+        let config = (try? String(contentsOf: UserConfig.file("config.toml"), encoding: .utf8)) ?? ""
+        let loaded = Publish.projects(fromConfig: config, root: workspace.rootPaths.first)
+        if let problem = loaded.problems.first { message = problem }
+        guard !loaded.projects.isEmpty else {
+            message = "No [[publish]] projects in config.toml"
+            return nil
+        }
+        return PublishFolders.shared.applied(to: loaded.projects)
+    }
+
+    /// Publishes the projects named, `only` that file when given. A project that publishes
+    /// outside the folders added to orgstar asks for its folder first, once.
+    private func publish(_ names: [String], only: String? = nil) {
+        guard let all = publishProjects() else { return }
+        let chosen = all.filter { names.contains($0.name) }
+        do {
+            if let project = try PublishFolders.shared.needed(chosen, all: all, roots: workspace.rootPaths).first {
+                message = "Choose the folder \(project.name) publishes to"
+                publishFolder = PublishFolderRequest(project: project.name) { publish(names, only: only) }
+                choosingPublishFolder = true
+                return
+            }
+            if let project = try Publish.expand(chosen, all: all).first(where: { !FileManager.default.fileExists(atPath: $0.baseDirectory) }) {
+                return message = "Can't read \(project.name)'s base-directory, \(OrgPaths.abbreviatingWithTilde(project.baseDirectory))"
+            }
+            let read = { (file: String) -> String? in
+                session.openDocuments.first { $0.path == file }?.document.text ?? (try? String(contentsOfFile: file, encoding: .utf8))
+            }
+            let codeStyle = HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme)
+            let report = try Publish.publish(chosen, all: all, only: only, read: read) { function, text, file, bodyOnly in
+                try Publish.export(function, text: text, path: file, bodyOnly: bodyOnly, settings: OrgPreferences.orgSettings(), codeStyle: codeStyle)
+            }
+            message = "Published \(report.published.count) files" + (report.skipped.isEmpty ? "" : ", \(report.skipped.count) up to date")
+        } catch {
+            message = "\(error)"
+        }
     }
 
     /// Org-roam's commands, with Pro.
@@ -949,6 +1068,10 @@ struct CommandPalette: View {
         ("app.clock.in-last", "Clock In to Last Entry"), ("app.clock.goto-recent", "Go to Recent Clocked Entry…"),
         ("app.clock.default", "Mark as Default Clock Task"), ("app.clock.resolve", "Resolve Open Clocks…"),
         ("app.refile", "Refile…"), ("app.refile.copy", "Copy to Refile Target…"), ("app.refile.goto", "Go to Refile Target…"),
+        ("app.archive", "Archive Subtree"), ("app.copy-rich-text", "Copy as Rich Text"), ("app.export.html-open", "Export to HTML and Open"),
+        ("app.export.icalendar-agenda", "Export Agenda Files to iCalendar"), ("app.export.icalendar-combined", "Combine Agenda Files into iCalendar"),
+        ("app.publish", "Publish Project…"), ("app.publish.all", "Publish All Projects"), ("app.publish.current-file", "Publish Current File"),
+        ("app.publish.current-project", "Publish Current Project"),
         ("app.toggle-markup", "Show or Hide Markup"),
         ("org.toggle-inline-images", "Show or Hide Inline Images"), ("org.latex-preview", "Show or Hide LaTeX Previews"), ("editor.toggle-truncate-lines", "Truncate or Wrap Long Lines"), ("editor.toggle-auto-fill", "Turn Auto Fill On or Off"),
         ("edit.isearch-forward", "Incremental Search"), ("edit.isearch-backward", "Incremental Search Backward"),

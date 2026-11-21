@@ -119,6 +119,8 @@ struct RootView: View {
     @State private var hour = 0
     @State private var showingClockReport = false
     @State private var message: String?
+    /// When the app went to the background, for the clock's idle time.
+    @State private var backgrounded: Date?
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(OnboardingScreen.doneKey) private var onboarded = false
     @State private var onboarding = false
@@ -321,9 +323,16 @@ struct RootView: View {
             // Unsaved edits are written before the app may be stopped.
             if phase == .background {
                 for path in session.dirtyPaths { _ = session.save(path) }
+                backgrounded = Date()
             }
             // Files and settings synced while away; not every sync tool tells file presenters.
             guard phase == .active else { return }
+            // iOS has no idle time: time away from the app while a clock ran stands in for it.
+            if let left = backgrounded, let since = ClockModel.idleSince(
+                backgrounded: left, now: Date(), running: model.clock.running, idleMinutes: OrgPreferences.clockIdleTime()) {
+                MobileClock.resolveIdle(since: since, model: model) { message = $0 }
+            }
+            backgrounded = nil
             takeShared()
             model.reloadConfig()
             Task { await workspace.refresh() }

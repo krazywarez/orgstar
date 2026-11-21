@@ -5,8 +5,8 @@ import SwiftUI
 
 /// Import from Emacs: a configuration folder (a synced `~/.config/doom` or `~/.emacs.d`), read
 /// and picked from before anything changes. Settings go into the configuration
-/// folder's config.toml when there is one; agenda folders, which name the Mac's paths, are left
-/// out.
+/// folder's config.toml when there is one. Agenda folders name the Mac's paths, so each is
+/// added as the folder chosen for it on this device.
 struct EmacsImportScreen: View {
     let model: MobileModel
     @State private var location: URL?
@@ -15,6 +15,11 @@ struct EmacsImportScreen: View {
     @State private var choosing = false
     @State private var summary: String?
     @State private var importing = false
+    /// The folders chosen on this device, by the Mac path they stand for.
+    @State private var folders: [String: URL] = [:]
+    /// The Mac path the folder picker is choosing for.
+    @State private var folderFor: String?
+    @State private var choosingFolder = false
 
     var body: some View {
         List {
@@ -27,8 +32,25 @@ struct EmacsImportScreen: View {
             if let summary {
                 Section { Text(summary) }
             } else if let result {
-                EmacsImportSections(result: result, groups: result.groups(folders: false), selected: $selected,
+                EmacsImportSections(result: result, groups: result.groups(folders: true), selected: $selected,
                                     font: .system(.callout, design: .monospaced))
+                let paths = EmacsImport.foldersToAdd(result.items.filter { selected.contains($0.id) }, workspace: model.workspace)
+                if !paths.isEmpty {
+                    Section {
+                        ForEach(paths, id: \.self) { path in
+                            Button {
+                                folderFor = path
+                                choosingFolder = true
+                            } label: {
+                                LabeledContent(path, value: folders[path]?.lastPathComponent ?? "Choose…")
+                            }
+                        }
+                    } header: {
+                        Text("Folders on this device")
+                    } footer: {
+                        Text("Choose the folder on this device for each one. Folders not chosen aren't added.")
+                    }
+                }
             }
         }
         .navigationTitle("Import from Emacs")
@@ -40,6 +62,15 @@ struct EmacsImportScreen: View {
         .fileImporter(isPresented: $choosing, allowedContentTypes: [.folder]) { chosen in
             if case .success(let url) = chosen { read(url) }
         }
+        .background {
+            // A second importer on the same view would replace the first.
+            Color.clear.fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { chosen in
+                guard let path = folderFor, case .success(let url) = chosen else { return }
+                // Kept for the bookmark the import makes; access stays on for the session.
+                _ = url.startAccessingSecurityScopedResource()
+                folders[path] = url
+            }
+        }
     }
 
     private func read(_ url: URL) {
@@ -48,7 +79,8 @@ struct EmacsImportScreen: View {
         location = url
         let scanned = EmacsImport.scan(EmacsImport.files(in: url))
         result = scanned
-        selected = Set(scanned.groups(folders: false).flatMap(\.1).map(\.id))
+        selected = Set(scanned.groups(folders: true).flatMap(\.1).map(\.id))
+        folders = [:]
         summary = nil
     }
 
@@ -57,8 +89,8 @@ struct EmacsImportScreen: View {
         importing = true
         let chosen = result.items.filter { selected.contains($0.id) }
         Task {
-            summary = await EmacsImport.apply(chosen, workspace: nil, directory: model.configFolder ?? UserConfig.directory,
-                                              writeConfig: model.configFolder != nil)
+            summary = await EmacsImport.apply(chosen, workspace: model.workspace, directory: model.configFolder ?? UserConfig.directory,
+                                              writeConfig: model.configFolder != nil, chosenFolders: folders)
             model.reloadConfig()
             importing = false
         }

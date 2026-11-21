@@ -54,4 +54,16 @@ struct PDFExportTests {
         let html = #"<img src="img/a.png"> <img alt="c" src="/abs/c.svg"> <img src="https://x.org/r.png"> <img src="img/a.png">"#
         #expect(PDFExport.imageFiles(html, directory: URL(fileURLWithPath: "/notes")) == ["/notes/img/a.png", "/abs/c.svg"])
     }
+
+    /// Export to HTML and Open on iOS: a temporary page with its images in it.
+    @Test func previewHasItsImages() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Data([1, 2, 3]).write(to: folder.appendingPathComponent("a.png"))
+        let url = try HTMLPreview.write(#"<p><img src="a.png"></p>"#, directory: folder, name: "notes.html")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        #expect(url.lastPathComponent == "notes.html")
+        #expect(try String(contentsOf: url, encoding: .utf8) == #"<p><img src="data:image/png;base64,AQID"></p>"#)
+    }
 }

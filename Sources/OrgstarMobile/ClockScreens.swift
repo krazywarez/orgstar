@@ -76,6 +76,15 @@ enum MobileClock {
         }
         return true
     }
+
+    /// `org-resolve-clocks-if-idle` for the running clock, idle since `since`.
+    static func resolveIdle(since: Date, model: MobileModel, show: @escaping (String) -> Void) {
+        Task {
+            let outcome = await model.clock.resolveIdle(model.session, idleSince: since, ask: model.clockPrompts.ask)
+            if let jump = outcome.jump { model.openRequest = .offset(jump.path, jump.offset) }
+            if let message = outcome.messages.last(where: { !$0.isEmpty }) { show(message) }
+        }
+    }
 }
 
 /// Recent entries to clock in to, and the commands that choose among them.

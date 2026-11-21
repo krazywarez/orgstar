@@ -91,6 +91,15 @@ struct OrgExport: Transferable {
             .exportingCondition { $0.format == .ascii }
     }
 
+    /// The page HTML export makes of `text`, the file at `path`, with its setup files.
+    @MainActor
+    static func html(_ text: String, path: String, theme: ThemeSpec) -> String {
+        let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+        let settings = OrgPreferences.orgSettings().resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
+        return HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path,
+                               codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: theme), language: OrgPreferences.exportLanguage())
+    }
+
     private func write() async throws -> SentTransferredFile {
         let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
         let settings = settings.resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
@@ -172,23 +181,75 @@ struct ExportMenu: View {
             if let exportSubtree {
                 Button("Export Subtree…", systemImage: "list.bullet.indent") { exportSubtree() }
             }
+            if let calendars = AgendaCalendars(model: model) {
+                Divider()
+                if OrgExport.Format.icalendar.locked {
+                    Button("Agenda Files to iCalendar (orgstar+)") { ProAccess.shared.allows(.export) }
+                } else {
+                    Button("Export Agenda Files to iCalendar", systemImage: "calendar") { report(calendars.exportEach()) }
+                    ShareLink(item: calendars, preview: SharePreview(calendars.fileName)) {
+                        Label("Combine Agenda Files into iCalendar", systemImage: "calendar.badge.plus")
+                    }
+                }
+            }
             Divider()
-            Button("Copy as Rich Text", systemImage: "doc.on.doc") { if ProAccess.shared.allows(.export) { copy() } }
+            Button("Copy as Rich Text", systemImage: "doc.on.doc") { if ProAccess.shared.allows(.export) { report(Self.copy(path: path, text: text, theme: model.theme)) } }
         }
     }
 
-    /// The file on the clipboard as HTML, RTF and plain text, to paste formatted.
-    private func copy() {
-        let base = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
-        let settings = OrgPreferences.orgSettings().resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile)
-        let html = HTMLExport.page(text, fallbackTitle: base, settings: settings, path: path,
-                                   codeStyle: HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme), language: OrgPreferences.exportLanguage())
+    /// The file on the clipboard as HTML, RTF and plain text, to paste formatted. Returns a message.
+    @MainActor
+    static func copy(path: String, text: String, theme: ThemeSpec) -> String {
+        let html = OrgExport.html(text, path: path, theme: theme)
         do {
             try RichTextExport.copy(html: html, directory: URL(fileURLWithPath: path).deletingLastPathComponent())
-            report("Copied as rich text")
+            return "Copied as rich text"
         } catch {
-            report("\(error)")
+            return "\(error)"
         }
+    }
+}
+
+/// The agenda files as iCalendar: each to a calendar beside it
+/// (`org-icalendar-export-agenda-files`), or all in one calendar to share
+/// (`org-icalendar-combine-agenda-files`), named as `org-icalendar-combined-agenda-file` is.
+struct AgendaCalendars: Transferable {
+    let paths: [String]
+    /// The open files' text, which may not be saved yet.
+    let open: [String: String]
+
+    /// Nil without agenda files.
+    @MainActor init?(model: MobileModel) {
+        guard let paths = model.workspace?.agendaFilePaths(), !paths.isEmpty else { return nil }
+        self.paths = paths
+        open = Dictionary(model.session.openDocuments.map { ($0.path, $0.document.text) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    var fileName: String { (OrgPreferences.icalendarCombinedFile() as NSString).lastPathComponent }
+
+    private func read(_ path: String) -> (text: String, settings: OrgSettings)? {
+        guard let text = open[path] ?? (try? String(contentsOfFile: path, encoding: .utf8)) else { return nil }
+        return (text, OrgPreferences.orgSettings().resolvingSetupFiles(in: text, path: path, read: OrgSettings.readFile))
+    }
+
+    /// Writes each agenda file's calendar beside it. Returns a message.
+    func exportEach() -> String {
+        do {
+            let written = try ICalendarFiles.exportEach(paths, options: OrgPreferences.icalendarOptions(), read: read)
+            return "Exported \(written.count) agenda files to iCalendar"
+        } catch {
+            return "Can't export: \(error.localizedDescription)"
+        }
+    }
+
+    /// The combined calendar, in a new temporary folder.
+    func combined() throws -> URL {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        return try ICalendarFiles.combine(paths, to: folder.appendingPathComponent(fileName).path, options: OrgPreferences.icalendarOptions(), read: read)
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .calendarEvent) { SentTransferredFile(try $0.combined()) }
     }
 }
 
