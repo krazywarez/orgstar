@@ -194,6 +194,17 @@ public final class Elisp {
         }
     }
 
+    /// Whether `v` contains a closure or a `(lambda ...)` list, which Emacs 31 prints as an
+    /// interpreted-function object.
+    static func containsFunction(_ v: Sexp) -> Bool {
+        switch v {
+        case .list(let items): isClosure(v) || items.first == .symbol("lambda") || items.contains(where: containsFunction)
+        case .dotted(let items, let last): items.first == .symbol("lambda") || items.contains(where: containsFunction) || containsFunction(last)
+        case .vector(let items): items.contains(where: containsFunction)
+        default: false
+        }
+    }
+
     /// The variable named by the first argument of the function being called from `eval`, read
     /// once.
     func takeInPlaceVariable() -> String? {
