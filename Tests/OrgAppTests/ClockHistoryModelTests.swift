@@ -205,4 +205,17 @@ struct ClockHistoryModelTests {
         let earlier = start.addingTimeInterval(-30 * 60)
         #expect(ClockModel.idleSince(backgrounded: earlier, now: start.addingTimeInterval(20 * 60), running: running, idleMinutes: 15) == start)
     }
+
+    /// iOS: only time with every window in the background is idle, and it's asked about once.
+    @Test func awayTimeIsTheWholeApps() {
+        let clock = ClockModel(file: stateFile, defaults: defaults)
+        _ = clock.clockIn(session, path: work.path, at: offset("* A"), now: start)
+        // One window went to the background while another stayed in use.
+        #expect(clock.cameBack(now: start.addingTimeInterval(60 * 60), idleMinutes: 15) == nil)
+        let left = start.addingTimeInterval(10 * 60)
+        clock.wentAway(at: left)
+        #expect(clock.cameBack(now: left.addingTimeInterval(20 * 60), idleMinutes: 15) == left)
+        // A second window becoming active isn't asked about again.
+        #expect(clock.cameBack(now: left.addingTimeInterval(21 * 60), idleMinutes: 15) == nil)
+    }
 }

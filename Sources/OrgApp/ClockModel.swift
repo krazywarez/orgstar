@@ -567,6 +567,20 @@ public final class ClockModel {
         )
     }
 
+    /// When every window of the app went to the background, for `cameBack`.
+    @ObservationIgnored private var awayAt: Date?
+
+    /// iOS: the app, all its windows, went to the background at `now`.
+    public func wentAway(at now: Date = Date()) { awayAt = now }
+
+    /// iOS: a window became active. Since when the user was idle, the first time after the
+    /// whole app was away; nil when a window came back while another was in use.
+    public func cameBack(now: Date = Date(), idleMinutes: Int) -> Date? {
+        defer { awayAt = nil }
+        guard let awayAt else { return nil }
+        return Self.idleSince(backgrounded: awayAt, now: now, running: running, idleMinutes: idleMinutes)
+    }
+
     /// Where iOS has no idle time: since when the user was away, for `resolveIdle`, when the
     /// app was in the background from `backgrounded` to `now` with `running` going for more
     /// than `idleMinutes` of that time (`org-clock-idle-time`, 0 for never).
