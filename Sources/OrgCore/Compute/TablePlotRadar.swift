@@ -26,8 +26,11 @@ extension TablePlot {
     /// A number as `string-to-number` reads it, and whether it's an integer.
     static func lispNumber(_ s: String) -> (value: Double, integer: Bool) {
         let trimmed = s.drop { $0 == " " || $0 == "\t" }
-        guard let m = trimmed.firstMatch(of: /^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?/) else { return (0, true) }
-        let text = String(m.0)
+        guard let m = trimmed.firstMatch(of: /^([-+]?)([0-9]+\.?[0-9]*|\.[0-9]+)([eE]([-+]?[0-9]+|\+INF|\+NaN))?/) else { return (0, true) }
+        let text = String(m.0), sign: Double = m.1 == "-" ? -1 : 1
+        // The reader's `1.0e+INF` and `1.0e+NaN`.
+        if text.hasSuffix("INF") { return (sign * .infinity, false) }
+        if text.hasSuffix("NaN") { return (sign * .nan, false) }
         return (Double(text) ?? 0, text.firstMatch(of: /\.[0-9]|[eE]/) == nil)
     }
 
@@ -46,7 +49,9 @@ extension TablePlot {
     /// `org--plot/values-stats`.
     static func stats(_ nums: [(value: Double, integer: Bool)], hardMin: Double? = nil, hardMax: Double? = nil)
         -> (factor: Double, niceMin: (value: Double, integer: Bool), niceMax: (value: Double, integer: Bool)) {
-        let low = hardMin ?? nums.map(\.value).min()!, high = hardMax ?? nums.map(\.value).max()!
+        // Emacs's `min` and `max` return a NaN argument.
+        let values = nums.map(\.value), nan = values.contains { $0.isNaN }
+        let low = hardMin ?? (nan ? .nan : values.min()!), high = hardMax ?? (nan ? .nan : values.max()!)
         let range = high - low
         guard range != 0 else { return (1, nums[0], nums[0]) }
         let order = (1 - log10(range)).rounded(.up)

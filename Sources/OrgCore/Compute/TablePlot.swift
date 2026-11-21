@@ -236,9 +236,7 @@ public enum TablePlot {
 
     /// `string-to-number`: the leading number, else 0.
     static func stringToNumber(_ s: String) -> Double {
-        let trimmed = s.drop { $0 == " " || $0 == "\t" }
-        guard let m = trimmed.firstMatch(of: /^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?/) else { return 0 }
-        return Double(m.0) ?? 0
+        lispNumber(s).value
     }
 
     /// `org-plot/gnuplot-script`, with `org-plot/gnuplot-term-extra` and the preamble empty.

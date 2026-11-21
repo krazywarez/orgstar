@@ -213,6 +213,12 @@ struct TablePlotTests {
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ymin:100\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ymax:0\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ticks:-1\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
+        // string-to-number reads the reader's infinities and NaNs; Emacs then signals overflow-error.
+        #expect(TablePlot.lispNumber("-2.0e+INF").value == -.infinity && TablePlot.lispNumber("1e+NaN").value.isNaN)
+        #expect(TablePlot.lispNumber("1.0e-INF").value == 1 && TablePlot.lispNumber("1.0e+inf").value == 1 && TablePlot.stringToNumber(".5e+INFx") == .infinity)
+        for field in ["1.0e+INF", "1.0e+NaN"] {
+            #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ticks:4\n| a | 1 | \(field) |\n| b | 2 | 5 |\n", at: 0) }
+        }
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ticks:99999999999999999999\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
         // gnuplot draws as many rings as it's given.
         _ = try TablePlot.plot("#+PLOT: type:radar ticks:2000\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0)
