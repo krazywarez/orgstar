@@ -267,10 +267,20 @@ struct JavaScriptBlocksTests {
         await #expect(throws: JavaScriptBlocks.Stopped.self) { try await JavaScriptBlocks.run(interval, directory: folder, timeout: .milliseconds(100)) }
     }
 
+    /// A block `org-sbe` runs that doesn't finish is stopped, so recalculating can't hang.
+    @Test func runHereStopsAtItsDeadline() throws {
+        let start = ContinuousClock.now
+        let interval = try Self.plan("#+begin_src js\nsetInterval(() => {}, 10)\n#+end_src\n")
+        #expect(throws: JavaScriptBlocks.Stopped.self) { try JavaScriptBlocks.runHere(interval, timeout: .milliseconds(100)) }
+        #expect(ContinuousClock.now - start < .seconds(2))
+        let quick = try Self.plan("#+begin_src js\nreturn 6*7\n#+end_src\n")
+        #expect(try JavaScriptBlocks.runHere(quick)?.stdout.contains("42") == true)
+    }
+
     /// `org-sbe` on js blocks in a table formula, as Emacs runs them with node.
     @Test(.enabled(if: oracle && nodeInstalled))
     func tableFormulasMatchEmacs() throws {
-        TableBlocks.javaScript = JavaScriptBlocks.runHere
+        TableBlocks.javaScript = { try JavaScriptBlocks.runHere($0) }
         let text = """
             #+NAME: sq
             #+begin_src js :var n=2

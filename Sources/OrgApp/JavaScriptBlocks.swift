@@ -36,11 +36,15 @@ public enum JavaScriptBlocks {
         }
     }
 
-    /// Runs a js `job` without a session on the calling thread, as `org-sbe` in a table
-    /// formula needs; nil for other jobs.
-    public static func runHere(_ job: BabelJob) throws -> BabelOutput? {
+    /// Runs a js `job` without a session, as `org-sbe` in a table formula needs, waiting on the
+    /// calling thread at most `timeout`; nil for other jobs.
+    public static func runHere(_ job: BabelJob, timeout: Duration = .seconds(5)) throws -> BabelOutput? {
         guard job.language == "js" || job.language == "javascript", case .process = job.runner else { return nil }
-        return try Engine().main(job.input, run: Run())
+        let run = Run()
+        let thread = Thread { run.end(Result { try Engine().main(job.input, run: run) }) }
+        thread.stackSize = 8 << 20
+        thread.start()
+        return try run.result(within: timeout)
     }
 
     struct Stopped: Error, CustomStringConvertible {
@@ -71,6 +75,7 @@ public enum JavaScriptBlocks {
         private var result: Result<BabelOutput, Error>?
         private var continuation: CheckedContinuation<BabelOutput, Error>?
         private let wake = DispatchSemaphore(value: 0)
+        private let done = DispatchSemaphore(value: 0)
 
         var stopped: Bool { lock.withLock { result != nil } }
 
@@ -84,6 +89,16 @@ public enum JavaScriptBlocks {
             guard first else { return }
             waiting?.resume(with: outcome)
             wake.signal()
+            done.signal()
+        }
+
+        /// Blocks until the run ends, ending it when `timeout` passes first.
+        func result(within timeout: Duration) throws -> BabelOutput {
+            let (seconds, attoseconds) = timeout.components
+            if done.wait(timeout: .now() + .nanoseconds(Int(seconds) * 1_000_000_000 + Int(attoseconds / 1_000_000_000))) == .timedOut {
+                end(.failure(Stopped(description: "The block took longer than \(timeout) and was stopped.")))
+            }
+            return try lock.withLock { result! }.get()
         }
 
         func wait(_ continuation: CheckedContinuation<BabelOutput, Error>) {

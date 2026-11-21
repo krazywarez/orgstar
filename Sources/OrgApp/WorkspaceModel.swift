@@ -66,7 +66,7 @@ public final class WorkspaceModel {
         }
         #if canImport(JavaScriptCore)
         // `org-sbe` in table formulas runs js blocks in JavaScriptCore.
-        TableBlocks.javaScript = JavaScriptBlocks.runHere
+        TableBlocks.javaScript = { try JavaScriptBlocks.runHere($0) }
         #endif
     }
 
