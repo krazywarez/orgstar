@@ -4,7 +4,7 @@ import Testing
 
 /// Runs `calc-eval` with org's table modes over a list of expressions.
 enum CalcOracle {
-    static func run(_ cases: [(expression: String, format: String)], precision: Int = 12, zone: String = "UTC") throws -> [String] {
+    static func run(_ cases: [(expression: String, format: String)], precision: Int = 12, zone: String = "UTC", symbolic: Bool = false) throws -> [String] {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-calc-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -26,6 +26,7 @@ enum CalcOracle {
                                  (format (car (read-from-string (nth 1 c)))))
                             (setq modes (plist-put modes 'calc-float-format format))
                             (setq modes (plist-put modes 'calc-internal-prec (string-to-number (getenv "ORACLE_PREC"))))
+                            (when (getenv "ORACLE_SYMBOLIC") (setq modes (plist-put modes 'calc-symbolic-mode t)))
                             (let ((r (condition-case e (calc-eval (cons (car c) modes) nil)
                                        (error (format "LISP ERROR %S" e)))))
                               (if (stringp r) r (format "ERROR %S" r)))))
@@ -33,7 +34,7 @@ enum CalcOracle {
           (with-temp-file (getenv "ORACLE_OUTPUT")
             (insert (json-encode (vconcat results)))))
         """#.write(to: script, atomically: true, encoding: .utf8)
-        _ = try EmacsOracle.run(["-Q", "--batch", "-l", script.path], environment: ["ORACLE_INPUT": input.path, "ORACLE_OUTPUT": output.path, "ORACLE_PREC": String(precision), "TZ": zone])
+        _ = try EmacsOracle.run(["-Q", "--batch", "-l", script.path], environment: ["ORACLE_INPUT": input.path, "ORACLE_OUTPUT": output.path, "ORACLE_PREC": String(precision), "TZ": zone].merging(symbolic ? ["ORACLE_SYMBOLIC": "1"] : [:]) { $1 })
         return try JSONDecoder().decode([String].self, from: Data(contentsOf: output))
     }
 }
@@ -223,13 +224,14 @@ struct CalcTests {
 
     /// Each case through Calc and through `Calc.evaluate`, expecting the same text; returns the
     /// cases `Calc.evaluate` doesn't support.
-    static func compare(_ cases: [(String, String)], precision: Int = 12, zone: (name: String, offset: Int) = ("UTC", 0)) throws -> [String] {
-        let emacs = try CalcOracle.run(cases, precision: precision, zone: zone.name)
+    static func compare(_ cases: [(String, String)], precision: Int = 12, zone: (name: String, offset: Int) = ("UTC", 0), symbolic: Bool = false) throws -> [String] {
+        let emacs = try CalcOracle.run(cases, precision: precision, zone: zone.name, symbolic: symbolic)
         #expect(emacs.count == cases.count)
         var skipped: [String] = []
         for (c, expected) in zip(cases, emacs) {
             var modes = Calc.Modes()
             modes.precision = precision
+            modes.symbolic = symbolic
             modes.timeZone = TimeZone(secondsFromGMT: zone.offset)!
             let f = c.1.dropFirst().dropLast().split(separator: " ")
             let n = Int(f[1])!
@@ -340,14 +342,58 @@ struct CalcTests {
         }
     }
 
+    /// Formulas Calc leaves unevaluated: variables, text from fields, quotients by zero and
+    /// infinities.
+    static let symbolic = [
+        "x", "pi", "e", "phi", "gamma", "2 pi", "pi*2", "pi+pi", "pi*pi", "e^2", "i*i", "abc*2", "x+5", "5 + x", "y + x",
+        "(N/A)+5", "(N/A)*(2)", "(N/A)+(N/A)", "(TBD)-(3)", "(5 kg)+(3)", "(5 kg)+(3 kg)", "a b c", "x2", "2x", "2e", ".5x",
+        "x+x", "x*2", "x+1+2", "x-x", "x/x", "x^2", "x*x", "(x)*(3)+(x)", "2 x + 3 y", "x - 5", "5 - x", "-x + 5", "-(x)",
+        "(x+1)*2", "(x+1)/2", "2/x", "x*y", "y*x", "x*x*x", "x + 2.5", "x * 2.5", "x * 1:3", "x*0", "x*0.", "x+0.",
+        "x - 0.5 x", "x / -2", "2^x", "x^0", "x^1", "x^-1", "x*(y+1)", "(y+1)*x", "x/(2 y)", "x/2 + x", "x/2 + x/3",
+        "a-(b-c)", "-(a+b)", "-(a/2)", "(a b)^2", "(a/b)^2", "(-a)^3", "a^2^3", "(a^2)^3", "1/a^2", "a^2/a", "2^x*2^x",
+        "x/1:2", "0/x", "0./x", "(2 x)^0.5", "(x/2)^0.5", "(2/x)^0.5", "(x^2)^0.5", "(-x)^2.", "(-x)^-3", "x^2*x^-3",
+        "2^x*3^x", "x/y/z", "(x/y)/(z/w)", "2/(3/x)", "-x*y", "x+2y-x", "(x+1)-(x+1)", "x^0.", "1^x", "0^x", "0.^x", "0^-x",
+        "1/0", "x/0", "0/0", "(5)/(0)", "(5.5)/(0)", "(0.)/(0)", "5/0.", "1:2/0", "x/0+1", "2*(1/0)", "(1/0)*2", "-(1/0)",
+        "(1/0)+(1/0)", "(1/0)^2", "2^(1/0)", "x/0 - x/0", "2*x/0", "0^-1", "0^0.", "2^(0^-1)", "x+0^-1",
+        "inf", "-inf", "uinf", "inf+1", "inf-inf", "inf*0", "1/inf", "inf*2", "x*inf", "inf*-2", "inf+x", "-inf-inf",
+        "uinf+1", "inf/0", "uinf/0", "inf^-1", "x/inf", "2^inf", "0.5^inf", "(-2)^inf", "inf^0", "nan*x", "x+nan", "x/nan",
+        "vsum([x,1,2])", "vmean([x,1])", "vmean([x,2,3])", "vsum([x,y,1])", "vprod([x,2,3])", "vmean([a,b])", "vcount([x,1])",
+        "vsum([1/0, 2])", "vsum([5 kg,3])", "vsum([2 (3),1])",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func symbolicMatchesCalc() throws {
+        var cases = Self.symbolic.map { ($0, "(float 8)") }
+        for format in ["(fix 2)", "(sci 3)"] {
+            for e in ["x/3 + 1/3", "vmean([x,2,3])", "2.5 x - 1:3"] { cases.append((e, format)) }
+        }
+        // Generated: a variable or two mixed with numbers. What Calc would decide from more
+        // than this arithmetic is refused, so only what is computed is compared.
+        var generator = SystemRandomNumberGenerator()
+        let leaves = ["x", "x", "y", "1", "2", "3", "0", "0.5", "2.5", "1:3", "-1", "10", "inf", "a b"]
+        let ops = ["+", "-", "*", "/", "^"]
+        func expression(_ depth: Int) -> String {
+            if depth == 0 || Int.random(in: 0..<3, using: &generator) == 0 { return leaves.randomElement(using: &generator)! }
+            let op = ops.randomElement(using: &generator)!
+            let right = op == "^" ? ["2", "3", "-1", "0.5", "x", "-2"].randomElement(using: &generator)! : expression(depth - 1)
+            let e = "(\(expression(depth - 1)))\(op)(\(right))"
+            return Int.random(in: 0..<6, using: &generator) == 0 ? "-\(e)" : e
+        }
+        for _ in 0..<2000 { cases.append((expression(4), "(float 8)")) }
+        let skipped = try Self.compare(cases)
+        #expect(Set(skipped).intersection(Self.symbolic) == [], "\(skipped)")
+        #expect(skipped.count < cases.count / 4, "\(skipped.count) of \(cases.count) refused")
+    }
+
     @Test func unsupported() throws {
-        for e in ["abc*2", "1/0", "vmean([])", "pi", "e", "phi", "gamma", "2 pi", "(-8)^(1/3)", "vvar([5])", "1<2<3",
+        for e in ["sqrt(x)", "vmax([x,1])", "vsum(x,1)", "x<1", "if(x,1,2)", "x%2", "x_1", "x'", "Holidays+1", "café+1",
+                  "x+<2026-10-05 Mon>", "[x,1]", "vcount([x -1])", "(1/0)+1", "vmean([])", "(-8)^(1/3)", "vvar([5])", "1<2<3",
                   "vmax([])", "vmin([])", "vrms([1,2])", "vmeane([1,2])", "vcov([1,2],[3])", "vcov([1],[2])",
                   "fdiv(7.5,2)", "fdiv(7,0)", "perm(5,6)", "log(8,1)", "log(0,2)", "log(-8,2)", "arctanh(1)", "arccosh(0.5)",
                   "nroot(-8,3)", "vgmean([-1,2])", "vhmean([0,1])", "gcd(1.5,3)", "gcd(12,18,4)", "5%%3", "1:0", "1:2:3:4",
                   "16#1.8", "16#FG", "2##11", "2.5!", "(-1)!", "(-3)!!", "choose(5.5,2)", "exp10(0.5)", "3!!!",
                   "eq(1,1,1)", "percent(nan)", "frac(0.5,0.1)", "frac(1e-20)",
-                  "(2..5)", "[2..5]", "vmax([1..5])", "vcount([1..5])", "2...5", "(-8)^(1:3)", "(-2)^1.5", "0^-1", "0^0.", "ln(0)", "ln(-1)",
+                  "(2..5)", "[2..5]", "vmax([1..5])", "vcount([1..5])", "2...5", "(-8)^(1:3)", "(-2)^1.5", "ln(0)", "ln(-1)",
                   // Calc leaves these date expressions unevaluated.
                   "<2026-10-05 Mon>*2", "2*<2026-10-05 Mon>", "<2026-10-05 Mon>/2", "<2026-10-05 Mon>*0", "<2026-10-05 Mon> < 5",
                   "vmedian([<2026-10-05 Mon>,<2026-10-07 Wed>])", "vmean([<2026-10-05 Mon>,1])", "vmean([<2026-10-05 Mon>])",
@@ -373,5 +419,22 @@ struct CalcTests {
         #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("<2026-10-05 Mon 10:00>+1", modes: modes) }
         modes.precision = 19
         #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("1+1", modes: modes) }
+        // `calc-eval` with `num`: a formula is an error, unless Calc explains it.
+        #expect(throws: Calc.Failure("Number expected")) { try Calc.evaluate("x+1", numeric: true) }
+        #expect(throws: Calc.Unsupported.self) { try Calc.evaluate("1/0", numeric: true) }
+        var symbolic = Calc.Modes()
+        symbolic.symbolic = true
+        for e in ["sqrt(2)", "2^0.5", "ln(2)", "x^0.5"] {
+            #expect(throws: Calc.Unsupported.self, "\(e)") { try Calc.evaluate(e, modes: symbolic) }
+        }
+    }
+
+    /// `;S`: what is computed matches; functions and powers that may not be exact are refused.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func symbolicModeMatchesCalc() throws {
+        let cases = (Self.fixed + Self.functions + Self.symbolic).map { ($0, "(float 8)") }
+        let skipped = try Self.compare(cases, symbolic: true)
+        #expect(Set(skipped).isDisjoint(with: ["1/3", "x+5", "1/0", "2 pi", "vmean([x,2,3])", "sin(30)", "x^2", "round(2.5)"]))
+        #expect(skipped.count < cases.count / 3, "\(skipped.count) of \(cases.count) refused")
     }
 }

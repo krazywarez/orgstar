@@ -92,14 +92,14 @@ extension TableFormulaEntryTests {
         let text = "| a | b |\n|---+---|\n| 1 | 2 |\n#+TBLFM: $2=$1*2\n"
         let removed = try #require(committed(TableEvalFormula(named: false), text, after: "| 1 | 2", answers: ["formula": ""]))
         #expect(removed.text == "| a | b |\n|---+---|\n| 1 | 2 |\n#+TBLFM: \n" && removed.message == "Formula removed", "\(removed)")
-        // Text in a field is a Calc symbol, which needs Emacs: the formula is stored and TAB
+        // A function of a field holding text needs Emacs: the formula is stored and TAB
         // still moves on.
-        let symbolic = "| a | b |\n| x | =$1*2 |\n| y |   |\n"
-        let tab = try #require(committed(TableCommand(.nextField), symbolic, after: "*2"))
-        #expect(tab.text == "| a | b     |\n| x | =$1*2 |\n| y |       |\n#+TBLFM: $2=$1*2\n", "\(tab.text.debugDescription)")
+        let symbolic = "| a | b |\n| x | =sqrt($1) |\n| y |   |\n"
+        let tab = try #require(committed(TableCommand(.nextField), symbolic, after: "($1)"))
+        #expect(tab.text == "| a | b         |\n| x | =sqrt($1) |\n| y |           |\n#+TBLFM: $2=sqrt($1)\n", "\(tab.text.debugDescription)")
         #expect(tab.caret == (tab.text as NSString).range(of: "| y").location + 2)
         #expect(tab.message?.hasPrefix("The formula was stored; recalculating it needs Emacs") == true)
-        let prompted = try #require(committed(TableEvalFormula(named: false), symbolic, after: "| x", answers: ["formula": "$1+1"]))
-        #expect(prompted.text.hasSuffix("#+TBLFM: $1=$1+1\n") && prompted.message != nil, "\(prompted)")
+        let prompted = try #require(committed(TableEvalFormula(named: false), symbolic, after: "| x", answers: ["formula": "sqrt($1)"]))
+        #expect(prompted.text.hasSuffix("#+TBLFM: $1=sqrt($1)\n") && prompted.message != nil, "\(prompted)")
     }
 }

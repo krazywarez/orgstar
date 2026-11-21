@@ -306,7 +306,6 @@ extension EmacsBuffer {
         case list([String])
     }
 
-    static let calcNumber = "^[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?$"
     /// `org-ts-regexp-both`.
     static let timestampBoth = "[\\[<]([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\\]>\\n]*)?)[\\]>]"
 
@@ -321,8 +320,8 @@ extension EmacsBuffer {
     /// `number-to-string` of `string-to-number`.
     static func numberText(_ s: String) -> String { Elisp.printed(Elisp.stringToNumber(s)) }
 
-    /// `org-table-make-reference`. For Calc, a field that isn't a number, a date or `nan`
-    /// would be a symbol, which isn't supported.
+    /// `org-table-make-reference`. For Calc, a field's text goes in as it is, so text that
+    /// isn't a number reads as variables.
     static func makeReference(_ value: TableRangeValue, _ mode: ReferenceMode) throws -> String {
         func blank(_ s: String) -> Bool { !s.contains { !$0.isWhitespace } }
         func lisp(_ s: String) -> String {
@@ -331,24 +330,16 @@ extension EmacsBuffer {
             default: mode.numbers ? numberText(s) : Elisp.printed(.string(s), escape: true)
             }
         }
-        func calc(_ s: String) throws -> String {
-            let text = mode.numbers ? numberText(s) : s
-            guard text.range(of: calcNumber, options: .regularExpression) != nil || text == "nan"
-                || text.range(of: "^[-+]?[0-9]+:[0-9:]+$", options: .regularExpression) != nil
-                || text.range(of: "^" + timestampBoth + "$", options: .regularExpression) != nil else {
-                throw Calc.Unsupported("non-numeric field \(text)")
-            }
-            return text
-        }
+        func calc(_ s: String) -> String { mode.numbers ? numberText(s) : s }
         let empty = !mode.keepEmpty || mode.numbers ? "0" : "nan"
         switch value {
         case .field(let s):
             if mode.lisp != .none { return lisp(s) }
-            return blank(s) ? (empty == "0" ? "(0)" : "nan") : "(" + (try calc(s)) + ")"
+            return blank(s) ? (empty == "0" ? "(0)" : "nan") : "(" + calc(s) + ")"
         case .list(var items):
             if !mode.keepEmpty { items = items.filter { !blank($0) } }
             if mode.lisp != .none { return items.map(lisp).joined(separator: " ") }
-            return "[" + (try items.map { blank($0) ? empty : try calc($0) }).joined(separator: ",") + "]"
+            return "[" + items.map { blank($0) ? empty : calc($0) }.joined(separator: ",") + "]"
         }
     }
 
@@ -543,6 +534,7 @@ extension EmacsBuffer {
                 case "F": modes.preferFractions = true
                 case "D": modes.degrees = true
                 case "R": modes.degrees = false
+                case "S": modes.symbolic = true
                 default: throw Calc.Unsupported("format flag \(ns.substring(with: m.range))")
                 }
                 flags = ns.replacingCharacters(in: m.range, with: "")

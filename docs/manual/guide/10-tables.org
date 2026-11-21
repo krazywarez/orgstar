@@ -231,9 +231,9 @@ In a Calc formula a single field becomes a number in parentheses, and a range be
 a vector such as =[1,2,3]=. Without the =E= flag, empty fields count as 0 on their own
 and are left out of ranges.
 
-Fields in a Calc formula must hold numbers, fractions such as =1:30=, timestamps or
-=nan=, unless the =N= flag reads every field as a number. A reference to a field with
-other text needs Emacs, because Calc would treat the text as a symbol.
+A field's text goes into the formula as it is, so a field holding text such as =N/A= or
+=TBD= becomes Calc variables and the result is a formula: =$1+5= with =N/A= in =$1=
+gives =N / A + 5=. The =N= flag reads every field as a number instead, with text as 0.
 
 ** Names, parameters and constants
 
@@ -372,8 +372,21 @@ Functions:
 | =land=, =lor=, =lnot=                      | As =&&=, ~||~ and =!=.                                        |
 
 The statistics functions take any number of vectors and numbers, as in
-=vmean($2..$4, $6)=. Other Calc functions, variables such as =pi= or =e= (which Calc
-keeps as symbols), symbolic results, complex results and division by zero need Emacs.
+=vmean($2..$4, $6)=.
+
+Calc leaves what it can't reduce to a number as a formula, and so does orgstar for
+sums, differences, products, quotients and powers:
+
+- A name is a variable: =2*x + x= is =3 x=. Calc's constants =pi=, =e=, =phi= and =gamma=
+  stay names too: =$1^2*pi= gives =9 pi= for 3.
+- Division by zero stays unevaluated: =$1/$2= with 6 and an empty field gives =6/0=,
+  and =x/0 + 1= gives =x / 0 + 1=.
+- =inf=, =-inf= and =uinf= (infinity of unknown sign) follow Calc's rules: =inf - inf= is
+  =nan=, =1/inf= is =0=, =2^inf= is =inf=.
+- =vsum=, =vprod=, =vmean= and =vcount= take vectors holding such formulas.
+
+Other functions of a formula, comparisons and conditions on one, and complex results
+need Emacs.
 
 ** Mode flags and formats
 
@@ -389,6 +402,7 @@ After the formula, a =;= starts its flags, as in ~$3=$1/$2;%.2f~ or ~$4=$1*2;f2~
 | =D=, =R=  | Angles in degrees (the default) or radians.                                               |
 | =F=       | Prefer fractions: =1/3= stays =1:3=.                                                      |
 | =N=       | Treat every field as a number; text counts as 0.                                          |
+| =S=       | Symbolic: results that aren't exact stay as formulas, such as =sqrt(2)=.                  |
 | =E=       | Keep empty fields: in ranges they stay in, and count as =nan= in Calc.                    |
 | =L=       | Literal: in Lisp formulas, insert fields as they are written.                             |
 | =T=       | Durations: read =H:MM= and =H:MM:SS= fields as times, show the result as =HH:MM:SS=.      |
@@ -399,7 +413,13 @@ Above =p14=, functions worked out from decimal approximations (=sqrt= of a non-s
 =exp=, =ln=, =log=, non-integer powers, trigonometric and hyperbolic functions) may need
 Emacs, and above =p16= so may the statistics functions and powers of decimal numbers.
 
-The flags =S= (symbolic) and =u= need Emacs. Any other text after the flags is a
+With =S=, the functions that may give an inexact result (=sqrt=, =exp=, =ln=, =log=,
+=log10=, =pow=, =nroot=, =hypot=, the inverse trigonometric and hyperbolic functions,
+=fact=, =dfact=, the standard deviations, =vgmean=, =vhmean=, the covariances and
+=agmean=), powers other than integer powers, and =sin=, =cos= and =tan= in radians need
+Emacs.
+
+The flag =u= needs Emacs. Any other text after the flags is a
 =format= string applied to the result, such as =%.2f= or =%d=; =format= supports
 =%s=, =%S=, =%d=, =%o=, =%x=, =%X=, =%c=, =%e=, =%f= and =%g=.
 
@@ -621,12 +641,11 @@ time, which gives the same result unless a formula depends on its own value.
 When a formula uses something the native evaluator doesn't have, the command reports
 what it was and the Mac recalculates the table in Emacs instead. This happens for:
 
-- references to fields holding text in a Calc formula, and symbolic results;
-- Calc functions and variables not listed above, intervals such as =[1..5]=,
-  precisions beyond those given under /Mode flags and formats/, and the =S= and =u=
-  flags;
-- division by zero, complex results, vector results, and numbers too large for
-  64-bit integers;
+- symbolic results beyond those under /Calc expressions/, such as a function of a field
+  holding text;
+- Calc functions not listed above, intervals such as =[1..5]=, precisions beyond those
+  given under /Mode flags and formats/, parts of the =S= flag, and the =u= flag;
+- complex results, vector results, and numbers too large for 64-bit integers;
 - Lisp functions not listed above.
 
 The echo area shows =Recalculating in Emacs (reason)…=, then =Recalculated in Emacs=.

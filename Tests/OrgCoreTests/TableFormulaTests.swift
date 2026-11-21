@@ -89,6 +89,20 @@ struct TableFormulaTests {
         "| a | b |\n|---+---|\n| <2026-01-01 Thu> | |\n#+TBLFM: $2=<2026-12-25 Fri>-$1;U\n",
     ]
 
+    /// Text and blank fields, which Calc reads as variables and zero, and the `S` flag.
+    static let symbolic = [
+        "| item | cost |\n|------+------|\n| a | 5 |\n| b | N/A |\n| c | 3 |\n|------+------|\n| total | |\n| mean | |\n#+TBLFM: @>>$2=vsum(@I..@II)::@>$2=vmean(@I..@II)\n",
+        "| a | b | ratio | twice |\n|---+---+-------+-------|\n| 6 | 0 | | |\n| 6 | | | |\n| 4.5 | 2 | | |\n| TBD | 4 | | |\n| 5 kg | 2 | | |\n#+TBLFM: $3=$1/$2::$4=2*$1+$2\n",
+        "| r | area | half |\n|---+------+------|\n| 3 | | |\n| x | | |\n#+TBLFM: $2=$1^2*pi::$3=$2/2;S\n",
+        "| a | b | c | d |\n|---+---+---+---|\n| 1 | | n/a | |\n| 2 | 3 | | |\n#+TBLFM: $4=vsum($1..$3)::@2$2=$1 + inf;S\n",
+        "| a | b | c |\n|---+---+---|\n| x | 1 | |\n| | 2 | |\n#+TBLFM: $3=$1*$2;E\n",
+    ]
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func textAndBlankFieldsMatchEmacsNatively() throws {
+        try compare(Self.symbolic, fallbacksAllowed: false)
+    }
+
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func datesMatchEmacs() throws {
         try compare(Self.dates + Self.numericResults, fallbacksAllowed: false)
@@ -170,10 +184,9 @@ struct TableFormulaTests {
         for (i, (mine, theirs)) in zip(ours, emacs).enumerated() {
             if let failure = mine.failure, failure.hasPrefix("external:") {
                 fallbacks += 1
-                // Calc keeps text as symbols, which goes to Emacs.
-                #expect(fallbacksAllowed || failure.contains("non-numeric field"), "\(failure) in\n\(cases[i].text)")
-                // Emacs gives symbolic results for text and division by zero.
-                #expect(failure.contains("non-numeric field") || failure.contains("division by zero"), "\(failure)")
+                // Formulas over a header's text that Calc would leave symbolic in ways not
+                // reproduced go to Emacs.
+                #expect(fallbacksAllowed || failure.contains("symbolic") || failure.contains("of a formula"), "\(failure) in\n\(cases[i].text)")
                 continue
             }
             let expected = (theirs.text, EmacsOracle.offset(theirs.point, in: theirs.text), theirs.error.isEmpty ? nil : theirs.error)

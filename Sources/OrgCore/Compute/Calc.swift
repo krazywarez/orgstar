@@ -30,6 +30,8 @@ public enum Calc {
         case nan
         /// An exact fraction, reduced, the denominator above 1 (`calc-prefer-frac`).
         case frac(Int, Int)
+        /// A formula Calc leaves unevaluated, with variables or a quotient by zero.
+        case symbolic(Term)
     }
 
     public enum FloatFormat: Equatable, Sendable {
@@ -42,6 +44,8 @@ public enum Calc {
         public var degrees = true
         /// `calc-prefer-frac`: dividing integers gives a fraction.
         public var preferFractions = false
+        /// `calc-symbolic-mode`: functions whose result isn't exact stay unevaluated.
+        public var symbolic = false
         /// The clock `now()` reads; nil is the system clock.
         public var now: Date?
         /// The local time zone, for `now()`, `julian` and `unixtime`.
@@ -55,16 +59,23 @@ public enum Calc {
         // Mantissas live in an Int, so 18 digits at most.
         guard (3...18).contains(modes.precision) else { throw Unsupported("calc precision") }
         return try $precision.withValue(modes.precision) {
-            var parser = Parser(expression)
-            let tree = try parser.parse()
-            let value = try Evaluator(modes: modes).eval(tree)
-            if numeric {
-                switch value {
-                case .int, .float, .frac: break
-                default: throw Failure("Number expected")
+            try $fractions.withValue(modes.preferFractions) {
+                try $symbolicMode.withValue(modes.symbolic) {
+                    var parser = Parser(expression)
+                    let tree = try parser.parse()
+                    let value = try Evaluator(modes: modes).eval(tree)
+                    if numeric {
+                        switch value {
+                        case .int, .float, .frac: break
+                        // Calc explains a division by zero or a power it left alone.
+                        case .symbolic(let t) where t.contains(where: { ["/", "^"].contains($0) }):
+                            throw Unsupported("symbolic arithmetic")
+                        default: throw Failure("Number expected")
+                        }
+                    }
+                    return try format(value, modes.format)
                 }
             }
-            return try format(value, modes.format)
         }
     }
 
@@ -78,6 +89,7 @@ public enum Calc {
         let v = try $precision.withValue(precision + n, operation: body)
         if case .float(let m, let e) = v { return try makeFloat(Int128(m), e) }
         if case .date(.float(let m, let e)) = v { return .date(try makeFloat(Int128(m), e)) }
+        if case .symbolic(let t) = v { return value(try Symbolic.normalize(t)) }
         return v
     }
 
@@ -216,6 +228,7 @@ public enum Calc {
         case .frac(let n, let d): return try parts(try divide(.int(n), .int(d)))
         case .vector: throw Unsupported("vector arithmetic")
         case .date, .nan: throw Unsupported("date arithmetic")
+        case .symbolic: throw Unsupported("symbolic arithmetic")
         }
     }
 
@@ -257,6 +270,7 @@ public enum Calc {
         case .frac(let n, let d): return Double(n) / Double(d)
         case .vector: throw Unsupported("vector arithmetic")
         case .date, .nan: throw Unsupported("date arithmetic")
+        case .symbolic: throw Unsupported("symbolic arithmetic")
         }
     }
 
@@ -273,7 +287,12 @@ public enum Calc {
         return try makeFloat(mantissa, exponent - 16)
     }
 
+    static func isSymbolic(_ vs: Value...) -> Bool {
+        vs.contains { if case .symbolic = $0 { true } else { false } }
+    }
+
     static func add(_ a: Value, _ b: Value) throws -> Value {
+        if isSymbolic(a, b) { return value(try Symbolic.add(try term(a), try term(b))) }
         switch (a, b) {
         case (.nan, .vector), (.vector, .nan): throw Unsupported("vector arithmetic")
         case (.nan, _), (_, .nan): return .nan
@@ -310,6 +329,7 @@ public enum Calc {
 
     static func negate(_ a: Value) throws -> Value {
         switch a {
+        case .symbolic(let t): return value(try Symbolic.neg(t))
         case .int(let i):
             guard i != .min else { throw Unsupported("integer size") }
             return .int(-i)
@@ -333,6 +353,7 @@ public enum Calc {
     }
 
     static func multiply(_ a: Value, _ b: Value) throws -> Value {
+        if isSymbolic(a, b) { return value(try Symbolic.mul(try term(a), try term(b))) }
         if isNaN(a, b) { return .nan }
         if case .int(let x) = a, case .int(let y) = b {
             let (product, overflow) = x.multipliedReportingOverflow(by: y)
@@ -352,6 +373,10 @@ public enum Calc {
     }
 
     static func divide(_ a: Value, _ b: Value, fractions: Bool = false) throws -> Value {
+        // `math-div-by-zero` leaves the quotient alone.
+        if isSymbolic(a, b) || (isZero(b) && (try? sign(a)) != nil) {
+            return try $fractions.withValue(fractions) { value(try Symbolic.div(try term(a), try term(b))) }
+        }
         if isNaN(a, b) { return .nan }
         if fractions || { if case .frac = a { return true }; if case .frac = b { return true }; return false }(),
            let (n1, d1) = rational(a), let (n2, d2) = rational(b) {
@@ -391,15 +416,17 @@ public enum Calc {
 
     /// `math-pow` of real numbers.
     static func power(_ a: Value, _ b: Value, fractions: Bool = false) throws -> Value {
+        // In symbolic mode Calc keeps a power that isn't exact, which isn't reproduced.
+        if symbolicMode, !isInteger(b) { throw Unsupported("symbolic mode") }
+        if isSymbolic(a, b) { return try $fractions.withValue(fractions) { value(try Symbolic.pow(try term(a), try term(b))) } }
         if isNaN(a, b) { return .nan }
         _ = (try sign(a), try sign(b))
         var floatB = false
         if case .float = b { floatB = true }
         if isZero(a) {
-            // `math-pow-of-zero`.
+            // `math-pow-of-zero`: an indeterminate form, or a division by zero, stays alone.
             if b == .int(0) { return .int(1) }
-            if isZero(b) { throw Unsupported("arguments") }
-            guard try sign(b) > 0 else { throw Unsupported("division by zero") }
+            guard try sign(b) > 0 else { throw Rejected() }
             return floatB ? try float(a) : a
         }
         if a == .int(1) || b == .int(1) || a == .float(1, 0) || b == .float(1, 0) { return a }
@@ -713,6 +740,7 @@ public enum Calc {
         case .int(let i): return String(i)
         case .frac(let n, let d): return "\(n):\(d)"
         case .vector: throw Unsupported("vector result")
+        case .symbolic(let t): return try Symbolic.format(t, floatFormat)
         case .nan: return "nan"
         case .date(let d): return "<" + (try formatDate(d)) + ">"
         case .float(let m, _) where m < 0:
@@ -900,11 +928,14 @@ public enum Calc {
         case unary(Character, Node)
         case binary(Character, Node, Node)
         case call(String, [Node])
+        case variable(String)
     }
 
     struct Parser {
         let chars: [Character]
         var i = 0
+        /// Inside `[...]`, where Calc reads `x -1` as two elements.
+        var inVector = false
 
         init(_ s: String) { chars = Array(s) }
 
@@ -968,6 +999,9 @@ public enum Calc {
         mutating func sum() throws -> Node {
             var left = try quotient()
             while let c = peek(), c == "+" || c == "-" {
+                if inVector, i > 0, chars[i - 1] == " " || chars[i - 1] == "\t", i + 1 < chars.count, chars[i + 1] != " ", chars[i + 1] != "\t" {
+                    throw Unsupported("formula syntax")
+                }
                 i += 1
                 left = .binary(c, left, try quotient())
             }
@@ -1052,13 +1086,19 @@ public enum Calc {
             guard let c = peek() else { throw Unsupported("formula syntax") }
             if c == "(" {
                 i += 1
+                let outer = inVector
+                inVector = false
                 let inner = try or()
+                inVector = outer
                 guard peek() == ")" else { throw Unsupported("formula syntax") }
                 i += 1
                 return inner
             }
             if c == "[" {
                 i += 1
+                let outer = inVector
+                inVector = true
+                defer { inVector = outer }
                 var items: [Node] = []
                 if peek() != "]" {
                     items.append(try or())
@@ -1086,7 +1126,11 @@ public enum Calc {
                 }
                 guard peek() == "(" else {
                     if name == "nan" { return .number(.nan) }
-                    throw Unsupported("variable \(name)")
+                    // Calc's names are letters and digits; `_` is a subscript, and `'` and `#`
+                    // belong to the name.
+                    guard name.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }), !reserved.contains(name),
+                          i >= chars.count || !"'#".contains(chars[i]) else { throw Unsupported("variable \(name)") }
+                    return .variable(name)
                 }
                 i += 1
                 var args: [Node] = []
@@ -1190,11 +1234,51 @@ public enum Calc {
             case .number(let v): return v
             case .vector(let items): return .vector(try items.map(eval))
             case .unary("!", let operand): return .int(try truth(try eval(operand)) ? 0 : 1)
-            case .unary(_, let operand): return try negate(try eval(operand))
+            case .unary(_, let operand):
+                let a = try eval(operand)
+                do { return try negate(a) } catch is Rejected { return .symbolic(.op("neg", [try term(a)])) }
             case .binary(let op, let l, let r):
-                return try binary(op, try eval(l), try eval(r))
+                let (a, b) = (try eval(l), try eval(r))
+                do {
+                    return try binary(op, a, b)
+                } catch is Rejected {
+                    // `math-normalize` keeps the operation, its arguments evaluated.
+                    guard let name = ["+": "+", "-": "-", "*": "*", "/": "/", "^": "^"][op] else { throw Unsupported("division by zero") }
+                    return .symbolic(.op(name, [try term(a), try term(b)]))
+                }
             case .call(let name, let args):
-                return try call(name, try args.map(eval))
+                let values = try args.map(eval)
+                // In symbolic mode Calc keeps these unevaluated when the result isn't exact,
+                // which isn't reproduced.
+                if modes.symbolic, Self.inexact.contains(name) || (!modes.degrees && ["sin", "cos", "tan"].contains(name)) {
+                    throw Unsupported("function \(name) in symbolic mode")
+                }
+                if values.contains(where: Self.hasSymbol) {
+                    // Calc leaves most functions of a formula alone, and simplifies some.
+                    guard ["vsum", "vprod", "vmean", "vcount"].contains(name),
+                          values.allSatisfy({ if case .vector = $0 { true } else { !Self.hasSymbol($0) } }) else {
+                        throw Unsupported("function \(name) of a formula")
+                    }
+                }
+                do {
+                    return try call(name, values)
+                } catch is Rejected {
+                    throw Unsupported("division by zero")
+                }
+            case .variable(let name):
+                return .symbolic(.variable(name))
+            }
+        }
+
+        static let inexact: Set<String> = ["sqrt", "exp", "ln", "log10", "log", "vsdev", "vpsdev", "vgmean", "vhmean", "vcorr",
+                                           "vcov", "vpcov", "agmean", "pow", "nroot", "hypot", "sinh", "cosh", "tanh", "arcsinh",
+                                           "arccosh", "arctanh", "arcsin", "arccos", "arctan", "arctan2", "fact", "dfact"]
+
+        static func hasSymbol(_ v: Value) -> Bool {
+            switch v {
+            case .symbolic: true
+            case .vector(let items): items.contains(where: hasSymbol)
+            default: false
             }
         }
 

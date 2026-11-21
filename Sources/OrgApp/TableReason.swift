@@ -17,7 +17,6 @@ public enum TableReason {
         func value(_ prefix: String) -> String? { reason.hasPrefix(prefix) ? String(reason.dropFirst(prefix.count)) : nil }
         if let name = value("function ") { return String(localized: "function \(name)", comment: "Why a table needs Emacs: a Calc function") }
         if let name = value("variable ") { return String(localized: "variable \(name)", comment: "Why a table needs Emacs: a Calc variable") }
-        if let text = value("non-numeric field ") { return String(localized: "non-numeric field \(text)", comment: "Why a table needs Emacs") }
         if let number = value("number size ") { return String(localized: "number size \(number)", comment: "Why a table needs Emacs: a number too large") }
         if let flag = value("format flag ") { return String(localized: "format flag \(flag)", comment: "Why a table needs Emacs: a format specifier flag") }
         return nil
@@ -118,6 +117,8 @@ public enum TableReason {
         case "reference outside table": return String(localized: "reference outside table", comment: comment)
         case "remote table name from a range": return String(localized: "remote table name from a range", comment: comment)
         case "row out of range": return String(localized: "row out of range", comment: comment)
+        case "symbolic arithmetic": return String(localized: "symbolic arithmetic", comment: comment)
+        case "symbolic mode": return String(localized: "symbolic mode", comment: comment)
         case "table position": return String(localized: "table position", comment: comment)
         case "variance of one value": return String(localized: "variance of one value", comment: comment)
         case "vector argument": return String(localized: "vector argument", comment: comment)
