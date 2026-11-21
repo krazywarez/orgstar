@@ -970,18 +970,19 @@ struct ContentView: View {
             guard reach([url.path]) else { return }
             do {
                 try PlotOutput.write(plot, to: url)
-                plotWritten(url, editor: editor)
+                plotWritten(url, editor: editor, note: PlotOutput.note(plot))
             } catch {
                 commands.show("\(error)")
             }
         } else {
             panel = .plot(UUID(), plot)
+            if let note = PlotOutput.note(plot) { commands.show(note) }
         }
     }
 
     /// The image is where `file:` says; a link to it shows it again.
-    private func plotWritten(_ url: URL, editor: OrgEditor) {
-        commands.show("Plot written to \(url.lastPathComponent)")
+    private func plotWritten(_ url: URL, editor: OrgEditor, note: String? = nil) {
+        commands.show("Plot written to \(url.lastPathComponent)" + (note.map { ". " + $0 } ?? ""))
         if editor.showsImages { editor.refreshImages() }
     }
 

@@ -773,7 +773,7 @@ after it, as the =#+PLOT:= lines above it say:
 
 | Option     | Meaning                                                                     |
 |------------+-----------------------------------------------------------------------------|
-| =type=     | =2d= (the default), =3d= or =grid=                                          |
+| =type=     | =2d= (the default), =3d=, =grid= or =radar=                                 |
 | =ind=      | The column of x values, counting from 1; 0 (the default) plots against row numbers |
 | =deps=     | The columns to plot, as a list such as =(2 3)=; all but =ind= by default    |
 | =with=     | =lines= (the default), =points=, =linespoints=, =impulses=, =boxes=, =histograms=, =steps=, =fsteps= |
@@ -782,7 +782,7 @@ after it, as the =#+PLOT:= lines above it say:
 | =labels=   | Names for the columns, as a list; a header row above a rule names them otherwise |
 | =map=      | With =t=, a =3d= plot is seen from above                                    |
 | =ymin=, =ymax=, =xmin=, =xmax= | The axes' ranges; =min= and =max= are =ymin= and =ymax=   |
-| =ticks=    | How many marks the y axis has                                               |
+| =ticks=    | How many marks the y axis has; for =radar=, how many rings the web has      |
 | =transpose= | With =yes=, rows become columns                                            |
 | =set=, =line=, =script=, =timefmt= | gnuplot commands, a line of gnuplot, a gnuplot script file and the time format, for gnuplot |
 
@@ -791,19 +791,41 @@ a longer word (=timeind:t= sets =ind=), an unquoted value ends at a =.=, =,= or 
 options before the last =line:= are dropped, and each =set:= and =line:= that's kept comes
 twice, as Org reads the options twice. An ind column of timestamps is plotted as dates, and one of text as labels.
 
+A =radar= plot draws each row as an axis, clockwise from the top, and each column after
+the first as a series named by the header. Each axis is scaled from its row's lowest to
+highest value, or from =ymin= to =ymax=. Org works out the number of rings from the values;
+where Org can't (it signals an error, or never finishes, as for a row whose values are all
+the same), orgstar reports it and asks for =ticks:=.
+
 On the Mac, when gnuplot is installed (orgstar looks on the same =PATH= as code blocks), the
 table goes to gnuplot as Emacs sends it: the same data file and script, so every option and
 gnuplot's own terminals and styles apply. A plot without =file:= is drawn to an image and shown
 in a sheet. Without gnuplot, and on iOS, orgstar draws the plot itself with Swift Charts: =2d=
 as lines, points or bars by =with:=, =grid= as a heat map, =3d= as a surface (a wireframe in a
-file). =file:= then takes =.png=, =.jpg= or =.pdf=, 640 by 480 points as gnuplot's default; the
-gnuplot-only options are ignored. If inline images are showing, a link to the file shows the
-new plot.
+file), =radar= as a web. =file:= then takes =.png=, =.jpg= or =.pdf=, 640 by 480 points as
+gnuplot's default, or =.svg= for a =2d= plot. If inline images are showing, a link to the file
+shows the new plot.
 
-=type:radar= needs gnuplot; orgstar reports it.
+Without gnuplot these =set:= commands are followed, also as a =line:= that starts with =set=:
+
+| Command                                  | Effect                                                     |
+|------------------------------------------+------------------------------------------------------------|
+| =title 'T'=                              | The title, over =title:=                                   |
+| =xlabel 'X'=, =ylabel 'Y'=               | The axes' names                                            |
+| =xrange [0:10]=, =yrange [*:5]=          | The axes' ranges; =*= or nothing leaves an end to the data |
+| =logscale=, =logscale x=, =logscale y=   | Logarithmic axes                                           |
+| =grid=                                   | Grid lines at the marks                                    |
+| =key off=, =key top left=                | Hides or places the legend (top, bottom, left, right)      |
+| =xtics 2=, =ytics 0.5=                   | A mark every so many units                                 |
+
+=2d= plots follow all of them, except that an x axis of text or dates takes no range, steps or
+log scale. =grid= and =3d map:t= plots follow the title, axis names and key; other =3d= plots
+and =radar= plots only the title. Other commands, other =line:= options and =script:= are left
+out, and the message after plotting names them, such as =Not followed without gnuplot:
+set:"style fill solid"=.
 
 The [[file:../install.org][Mac App Store version]] doesn't use gnuplot: it always draws
-the plot with Swift Charts, and reports =type:radar= in the same way.
+the plot itself in the same way.
 
 * On iOS
 

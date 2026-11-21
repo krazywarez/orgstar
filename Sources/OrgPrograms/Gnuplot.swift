@@ -22,7 +22,9 @@ extension PlotOutput {
         if plot.options.file == nil { plot.options.values["file"] = .string(output.path) }
         let (data, labels): (String, [(Int, String)]) = plot.options.type == "grid" ? TablePlot.gridData(plot) : (TablePlot.data(plot), [])
         try data.write(to: dataFile, atomically: true, encoding: .utf8)
-        var script = TablePlot.script(plot, dataFile: dataFile.path, output: output.path, yLabels: labels)
+        let setupFile = folder.appendingPathComponent("setup.gp")
+        if plot.options.type == "radar", plot.options["script"] == nil { try TablePlot.radarSetup(plot).write(to: setupFile, atomically: true, encoding: .utf8) }
+        var script = TablePlot.script(plot, dataFile: dataFile.path, output: output.path, yLabels: labels, setupFile: setupFile.path)
         if let custom = plot.options["script"]?.description {
             let path = OrgPaths.expandingTilde(custom)
             let url = path.hasPrefix("/") ? URL(fileURLWithPath: path) : (directory ?? folder).appendingPathComponent(path)

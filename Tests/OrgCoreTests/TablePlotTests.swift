@@ -57,6 +57,49 @@ struct TablePlotTests {
         | 1 | 2 |
         | 3 | 4 |
         """,
+        """
+        #+PLOT: type:radar title:"Skills"
+        | skill  | Anna | Ben | Cleo |
+        |--------+------+-----+------|
+        | Swift  | 7    | 4   | 9    |
+        | Lisp   | 3    | 8   | 5    |
+        | SQL    | 6    | 6   | 2    |
+        | Design | 2.5  | 9   | 4    |
+        | Ops    | 8    | 1   | 7    |
+        """,
+        """
+        #+PLOT: type:radar ymin:0 ymax:8
+        | axis | a  | b  |
+        |------+----+----|
+        | x    | 1  | 9  |
+        | y    | 4  | 4  |
+        | z    | 8  | 3  |
+        """,
+        """
+        #+PLOT: type:radar ticks:0
+        | axis | a   | b   |
+        |------+-----+-----|
+        | p    | 120 | 340 |
+        | q    | 0.5 | 0.2 |
+        | r    | 15  | 90  |
+        """,
+        """
+        #+PLOT: type:radar ticks:4 file:"/tmp/orgstar-radar.png"
+        | axis | a  |
+        |------+----|
+        | one  | 3  |
+        | two  | 12 |
+        | three | 7 |
+        """,
+        """
+        #+PLOT: type:radar
+        | axis | a    | b    | c   | d   |
+        |------+------+------+-----+-----|
+        | u    | 1    | 2    | 3   | 4   |
+        | v    | 10   | 40   | 25  | 33  |
+        | w    | 0.01 | 0.05 | 0.2 | 0.3 |
+        | x    | 100  | 700  | 350 | 250 |
+        """,
     ]
 
     static func lisp(_ s: String) -> String {
@@ -64,7 +107,7 @@ struct TablePlotTests {
     }
 
     /// The script and the data file `org-plot/gnuplot` writes, gnuplot itself left out.
-    static func emacs(_ text: String, data: String) throws -> (script: String, data: String) {
+    static func emacs(_ text: String, data: String, setup: String = "") throws -> (script: String, data: String, setup: String) {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-plot-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -77,7 +120,8 @@ struct TablePlotTests {
           (provide 'gnuplot)
           (let ((captured nil))
             (cl-letf (((symbol-function 'gnuplot-send-buffer-to-gnuplot) (lambda () (setq captured (buffer-string))))
-                      ((symbol-function 'org-babel-temp-stable-file) (lambda (&rest _) \(lisp(data)))))
+                      ((symbol-function 'org-babel-temp-stable-file) (lambda (&rest _) \(lisp(data))))
+                      ((symbol-function 'make-temp-file) (lambda (&rest _) \(lisp(setup)))))
               (with-temp-buffer
                 (insert \(lisp(text)))
                 (org-mode)
@@ -88,23 +132,54 @@ struct TablePlotTests {
         """
         let log = try EmacsOracle.run(["-Q", "--batch", "--eval", form], environment: ["TZ": "UTC"])
         guard let script = try? String(contentsOfFile: output, encoding: .utf8) else { throw EmacsOracle.EvaluateError(log: log) }
-        return (script, (try? String(contentsOfFile: data, encoding: .utf8)) ?? "")
+        return (script, (try? String(contentsOfFile: data, encoding: .utf8)) ?? "", (try? String(contentsOfFile: setup, encoding: .utf8)) ?? "")
     }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil), arguments: cases.indices)
     func scriptsAndDataMatchEmacs(index: Int) throws {
         let text = Self.cases[index]
         let dataFile = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-plot-data-\(UUID().uuidString)").path
-        defer { try? FileManager.default.removeItem(atPath: dataFile) }
-        let expected = try Self.emacs(text, data: dataFile)
+        let setupFile = dataFile + "-setup"
+        defer { try? FileManager.default.removeItem(atPath: dataFile); try? FileManager.default.removeItem(atPath: setupFile) }
+        let expected = try Self.emacs(text, data: dataFile, setup: setupFile)
         let offset = (text as NSString).range(of: "|").location
         let plot = try TablePlot.plot(text, at: offset)
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(identifier: "UTC")!
         let (data, labels): (String, [(Int, String)]) = plot.options.type == "grid" ? TablePlot.gridData(plot) : (TablePlot.data(plot, calendar: utc), [])
-        let script = TablePlot.script(plot, dataFile: dataFile, output: plot.options.file, yLabels: labels)
+        let script = TablePlot.script(plot, dataFile: dataFile, output: plot.options.file, yLabels: labels, setupFile: setupFile)
+        if plot.options.type == "radar" {
+            let setup = try TablePlot.radarSetup(plot)
+            #expect(setup == expected.setup, "case \(index)\nours:\n\(setup)\nemacs:\n\(expected.setup)")
+        }
         #expect(script == expected.script, "case \(index)\nours:\n\(script)\nemacs:\n\(expected.script)")
         #expect(data == expected.data, "case \(index)\nours:\n\(data.debugDescription)\nemacs:\n\(expected.data.debugDescription)")
+    }
+
+    /// `org--plot/sensible-tick-num` over tables of varied ranges; "error" where Emacs signals one.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func radarTicksMatchEmacs() throws {
+        var seed: UInt64 = 7
+        func next(_ n: Int) -> Int { seed = seed &* 6364136223846793005 &+ 1442695040888963407; return Int(seed >> 33) % n }
+        let scales = [1.0, 10, 100, 0.1, 1000, 3]
+        var tables: [[[String]]] = []
+        for _ in 0..<60 {
+            let scale = scales[next(scales.count)]
+            let rows = (0..<(2 + next(4))).map { r in
+                // Distinct values, so no axis is flat (Emacs never returns on one).
+                ["r\(r)"] + (0..<(2 + next(3))).map { c in TablePlot.printed((Double(next(50) * 10 + c) * scale / 10, scale >= 10)) }
+            }
+            tables.append(rows)
+        }
+        let forms = tables.map { t in
+            "(condition-case nil (format \"%S\" (org--plot/sensible-tick-num '(" + t.map { "(" + $0.map { Self.lisp($0) }.joined(separator: " ") + ")" }.joined(separator: " ") + "))) (error \"error\"))"
+        }
+        let expected = try EmacsOracle.evaluate("", "(progn (require 'org-plot) (list " + forms.joined(separator: " ") + "))")
+        #expect(Set(expected).count > 4 && expected.count == tables.count)
+        for (t, want) in zip(tables, expected) {
+            let ours = TablePlot.sensibleTicks(t, hardMin: nil, hardMax: nil).map(String.init) ?? "error"
+            #expect(ours == want, "\(t)")
+        }
     }
 
     @Test func seriesAndMatrices() throws {
@@ -121,6 +196,14 @@ struct TablePlotTests {
         let m = TablePlot.matrix(grid)
         #expect(m.values == [[1, 2], [3, 4]] && m.rowLabels == ["r1", "r2"])
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar\n| 1 |\n", at: 0) }
+        // Emacs never returns choosing ticks for an axis whose values are all the same.
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar\n| a | 1 | 1 |\n| b | 2 | 3 |\n", at: 0) }
+        // Emacs signals an error where the ranges leave nothing to pick ticks from.
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ymin:0 ymax:10\n| a | 1 | 9 |\n| b | 2 | 3 |\n", at: 0) }
+        _ = try TablePlot.plot("#+PLOT: type:radar ticks:3\n| a | 1 | 1 |\n| b | 2 | 3 |\n", at: 0)
+        let radar = try TablePlot.radar(TablePlot.plot(Self.cases[9], at: 40))
+        #expect(radar.series == ["a", "b"] && radar.axes.map(\.label) == ["x", "y", "z"] && radar.sharedTicks)
+        #expect(radar.axes[2].values == [8, 3] && radar.axes[0].low == 0 && radar.axes[0].high == 8)
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("no table\n", at: 0) }
     }
 }

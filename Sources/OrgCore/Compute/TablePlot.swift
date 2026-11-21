@@ -132,8 +132,8 @@ public enum TablePlot {
         }
         let first = table.first.flatMap { $0 } ?? (table.count > 1 ? table[1] : nil)
         let columns = first?.count ?? 0
-        guard ["2d", "3d", "grid"].contains(options.type) else {
-            throw Failure(description: options.type == "radar" ? "Radar plots need gnuplot" : "Org-plot type `\(options.type)' is undefined")
+        guard ["2d", "3d", "grid", "radar"].contains(options.type) else {
+            throw Failure(description: "Org-plot type `\(options.type)' is undefined")
         }
         if table.count > 1, table[1] == nil, let header = table[0] {
             options.values["labels"] = .list(header.map { .string($0) })
@@ -152,6 +152,7 @@ public enum TablePlot {
                 }
             }
         }
+        if options.type == "radar", options["script"] == nil { _ = try radar(plot) }
         return plot
     }
 
@@ -243,7 +244,8 @@ public enum TablePlot {
     /// `org-plot/gnuplot-script`, with `org-plot/gnuplot-term-extra` and the preamble empty.
     /// `output` is where `file:` goes, expanded. A `preface` leaves out the plot command, for
     /// a `script:` file to follow.
-    public static func script(_ plot: Plot, dataFile: String, output: String?, yLabels: [(Int, String)] = [], preface: Bool = false) -> String {
+    /// `setupFile` is where a radar plot's `radarSetup` goes.
+    public static func script(_ plot: Plot, dataFile: String, output: String?, yLabels: [(Int, String)] = [], preface: Bool = false, setupFile: String = "") -> String {
         let o = plot.options
         var script = "reset"
         func add(_ line: String?) { if let line { script += "\n" + line } }
@@ -281,6 +283,8 @@ public enum TablePlot {
             add("plot " + plotLines.joined(separator: ",\\\n    "))
         case "3d":
             add("splot '\(dataFile)' matrix with \(with) title ''")
+        case "radar":
+            if let radar = try? radar(plot) { add(radarScript(radar, setupFile: setupFile)) }
         default:
             add("splot '\(dataFile)' with \(with) title ''")
         }

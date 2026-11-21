@@ -614,10 +614,11 @@ extension EditorScreen {
             let plot = try TablePlot.plot(context.text, at: context.caret)
             if let url = PlotOutput.file(plot, directory: URL(fileURLWithPath: path).deletingLastPathComponent()) {
                 try PlotOutput.write(plot, to: url)
-                message = "Plot written to \(url.lastPathComponent)"
+                message = "Plot written to \(url.lastPathComponent)" + (PlotOutput.note(plot).map { ". " + $0 } ?? "")
                 if editor.showsImages { editor.restyleAll() }
             } else {
                 sheet = .plot(plot)
+                if let note = PlotOutput.note(plot) { message = note }
             }
         } catch {
             message = "\(error)"

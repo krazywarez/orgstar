@@ -5,7 +5,8 @@ import SwiftUI
 
 /// A `#+PLOT` table drawn by Swift Charts, as gnuplot would draw it for org-plot: 2d as lines,
 /// points, bars or impulses per `with:`, grid as a heat map, 3d as a surface (seen from above
-/// with `map:t`). `still` draws 3d as a wireframe, which an image can hold.
+/// with `map:t`), radar as a web. `still` draws 3d as a wireframe, which an image can hold.
+/// The `set` commands in `TablePlot.settings` are followed; the rest are left out.
 public struct PlotChart: View {
     let plot: TablePlot.Plot
     let still: Bool
@@ -16,33 +17,47 @@ public struct PlotChart: View {
     }
 
     public var body: some View {
+        let settings = TablePlot.settings(plot)
         VStack(spacing: 8) {
-            if let title = plot.options.title { Text(title).font(.headline) }
+            if let title = settings.title { Text(title).font(.headline) }
             switch plot.options.type {
-            case "grid": HeatMap(plot: plot)
-            case "3d" where plot.options["map"]?.truthy == true: HeatMap(plot: plot)
+            case "grid": HeatMap(plot: plot, settings: settings)
+            case "3d" where plot.options["map"]?.truthy == true: HeatMap(plot: plot, settings: settings)
             case "3d" where still: Wireframe(values: TablePlot.matrix(plot).values)
             case "3d": Surface(plot: plot)
-            default: Lines(plot: plot)
+            case "radar": if let radar = try? TablePlot.radar(plot) { Radar(radar: radar) }
+            default: Lines(plot: plot, settings: settings)
             }
         }
         .padding()
     }
 
-    /// The `ymin`/`ymax` (or `xmin`/`xmax`) range, filling in from `values` what isn't given.
-    static func domain(_ low: TablePlot.Value?, _ high: TablePlot.Value?, values: [Double]) -> ClosedRange<Double>? {
-        func number(_ v: TablePlot.Value?) -> Double? { if case .number(let n)? = v { n } else { nil } }
-        guard number(low) != nil || number(high) != nil else { return nil }
-        let lower = number(low) ?? values.min() ?? 0
-        let upper = number(high) ?? values.max() ?? lower + 1
+    /// The range given by `set` or the options, filling in from `values` what isn't given.
+    static func domain(_ low: Double?, _ high: Double?, values: [Double]) -> ClosedRange<Double>? {
+        guard low != nil || high != nil else { return nil }
+        let lower = low ?? values.min() ?? 0
+        let upper = high ?? values.max() ?? lower + 1
         return lower < upper ? lower...upper : nil
     }
 
+    static func number(_ v: TablePlot.Value?) -> Double? { if case .number(let n)? = v { n } else { nil } }
+
     struct Lines: View {
         let plot: TablePlot.Plot
+        let settings: TablePlot.Settings
 
         var body: some View {
-            let series = TablePlot.series(plot)
+            let s = settings
+            // Log axes leave out what they can't place.
+            let series = TablePlot.series(plot).map { series in
+                var series = series
+                series.points.removeAll { point in
+                    if s.logY, point.y <= 0 { return true }
+                    if s.logX, case .number(let n) = point.x, n <= 0 { return true }
+                    return false
+                }
+                return series
+            }
             let o = plot.options
             let ys = series.flatMap { $0.points.map(\.y) }
             let xs = series.flatMap { $0.points.compactMap { if case .number(let n) = $0.x { n } else { nil } } }
@@ -56,20 +71,36 @@ public struct PlotChart: View {
                     }
                 }
             }
-            .chartYAxis { AxisMarks(values: .automatic(desiredCount: ticks ?? 5)) }
-            .chartLegend(series.count > 1 ? .visible : .hidden)
-            // As gnuplot autoscales: to the data, from zero for bars.
-            let y = Group {
-                if let domain = PlotChart.domain(o["ymin"], o["ymax"], values: ys) {
-                    chart.chartYScale(domain: domain)
-                } else {
-                    chart.chartYScale(domain: .automatic(includesZero: bars))
+            .chartXAxis {
+                AxisMarks(values: s.xtics.map { AxisMarkValues.stride(by: $0) } ?? .automatic) { _ in
+                    if s.grid { AxisGridLine() }
+                    AxisTick()
+                    AxisValueLabel()
                 }
             }
-            if numericX, let domain = PlotChart.domain(o["xmin"], o["xmax"], values: xs) {
-                y.chartXScale(domain: domain)
+            .chartYAxis {
+                AxisMarks(values: s.ytics.map { AxisMarkValues.stride(by: $0) } ?? .automatic(desiredCount: ticks ?? 5)) { _ in
+                    if s.grid { AxisGridLine() }
+                    AxisTick()
+                    AxisValueLabel()
+                }
+            }
+            .chartXAxisLabel { if let label = s.xlabel { Text(label) } }
+            .chartYAxisLabel { if let label = s.ylabel { Text(label) } }
+            .key(s.key, shown: series.count > 1)
+            // As gnuplot autoscales: to the data, from zero for bars.
+            let yType: ScaleType? = s.logY ? .log : nil, xType: ScaleType? = s.logX ? .log : nil
+            let y = Group {
+                if let domain = PlotChart.domain(s.yrange?.low ?? PlotChart.number(o["ymin"]), s.yrange?.high ?? PlotChart.number(o["ymax"]), values: ys) {
+                    chart.chartYScale(domain: domain, type: yType)
+                } else {
+                    chart.chartYScale(domain: .automatic(includesZero: bars && !s.logY), type: yType)
+                }
+            }
+            if numericX, let domain = PlotChart.domain(s.xrange?.low ?? PlotChart.number(o["xmin"]), s.xrange?.high ?? PlotChart.number(o["xmax"]), values: xs) {
+                y.chartXScale(domain: domain, type: xType)
             } else if numericX {
-                y.chartXScale(domain: .automatic(includesZero: false))
+                y.chartXScale(domain: .automatic(includesZero: false), type: xType)
             } else {
                 y
             }
@@ -107,6 +138,7 @@ public struct PlotChart: View {
 
     struct HeatMap: View {
         let plot: TablePlot.Plot
+        let settings: TablePlot.Settings
 
         var body: some View {
             let (values, rowLabels) = TablePlot.matrix(plot)
@@ -124,6 +156,9 @@ public struct PlotChart: View {
             // The first row at the bottom, as gnuplot draws it.
             .chartYScale(domain: values.indices.reversed().map { rowName($0, rowLabels) })
             .chartXScale(domain: columnLabels)
+            .chartXAxisLabel { if let label = settings.xlabel { Text(label) } }
+            .chartYAxisLabel { if let label = settings.ylabel { Text(label) } }
+            .key(settings.key, shown: true)
         }
 
         func rowName(_ r: Int, _ labels: [String]) -> String { r < labels.count ? labels[r] : "\(r + 1)" }
@@ -162,6 +197,98 @@ public struct PlotChart: View {
             let bottom = at(r1, c0) * (1 - fc) + at(r1, c1) * fc
             return top * (1 - fr) + bottom * fr
         }
+    }
+}
+
+extension View {
+    /// The legend as `set key` places it, else shown or not.
+    func key(_ key: TablePlot.Settings.Key?, shown: Bool) -> some View {
+        var position = AnnotationPosition.automatic
+        if case .at(let vertical, let horizontal) = key {
+            switch (vertical, horizontal) {
+            case ("top", "left"): position = .topLeading
+            case ("top", "right"): position = .topTrailing
+            case ("bottom", "left"): position = .bottomLeading
+            case ("bottom", "right"): position = .bottomTrailing
+            case ("top", _): position = .top
+            case ("bottom", _): position = .bottom
+            case (_, "left"): position = .leading
+            case (_, "right"): position = .trailing
+            default: break
+            }
+        }
+        let visible = key.map { $0 != .off } ?? shown
+        return chartLegend(visible ? .visible : .hidden).chartLegend(position: position)
+    }
+}
+
+/// A radar plot as org-plot's gnuplot script draws it: an axis per row, clockwise from the
+/// top, each scaled from its low to its high value; a web at each tick; each series filled.
+struct Radar: View {
+    let radar: TablePlot.Radar
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Canvas { context, size in
+                let n = radar.axes.count
+                guard n > 0 else { return }
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                // gnuplot's range is 1.4 times the axes' length each way.
+                let unit = min(size.width, size.height) / 2 / 1.4
+                func point(_ axis: Int, _ r: Double, offset: Double = 0) -> CGPoint {
+                    let angle = (90 - Double(axis) * 360 / Double(n)) * .pi / 180
+                    return CGPoint(x: center.x + (r * cos(angle) + offset * sin(angle)) * unit,
+                                   y: center.y - (r * sin(angle) - offset * cos(angle)) * unit)
+                }
+                let count = radar.ticks == 0 ? 2 : radar.ticks
+                if radar.ticks != 0 {
+                    for i in 1...count {
+                        let r = Double(i) / Double(count)
+                        var web = Path()
+                        web.move(to: point(0, r))
+                        for axis in 1...n { web.addLine(to: point(axis % n, r)) }
+                        context.stroke(web, with: .color(.secondary), style: StrokeStyle(lineWidth: 0.5, dash: [3, 3]))
+                        for axis in 0..<n {
+                            let scale = radar.axes[radar.sharedTicks ? 0 : axis]
+                            let value = Double(i) * (scale.high - scale.low) / Double(count) + scale.low
+                            context.draw(Text(String(format: "%g", value)).font(.system(size: 8)).foregroundStyle(.secondary), at: point(axis, r, offset: 0.1))
+                        }
+                    }
+                }
+                for axis in 0..<n {
+                    var line = Path()
+                    line.move(to: center)
+                    line.addLine(to: point(axis, 1.1))
+                    context.stroke(line, with: .color(.primary), lineWidth: 1)
+                    context.draw(Text(radar.axes[axis].label), at: point(axis, 1.2))
+                }
+                for s in radar.series.indices {
+                    var shape = Path()
+                    for (axis, a) in radar.axes.enumerated() where s < a.values.count && a.high != a.low {
+                        let p = point(axis, (a.values[s] - a.low) / (a.high - a.low))
+                        if shape.isEmpty { shape.move(to: p) } else { shape.addLine(to: p) }
+                    }
+                    shape.closeSubpath()
+                    context.fill(shape, with: .color(Radar.color(s).opacity(0.2)))
+                    context.stroke(shape, with: .color(Radar.color(s)), lineWidth: 1.5)
+                }
+            }
+            .aspectRatio(1, contentMode: .fit)
+            HStack(spacing: 16) {
+                ForEach(Array(radar.series.enumerated()), id: \.offset) { s, name in
+                    HStack(spacing: 4) {
+                        Rectangle().fill(Radar.color(s).opacity(0.4)).frame(width: 16, height: 10)
+                        Text(name).font(.caption)
+                    }
+                }
+            }
+        }
+    }
+
+    /// gnuplot's colour for series `i`.
+    static func color(_ i: Int) -> Color {
+        let v = Int(TablePlot.colors[i % TablePlot.colors.count].dropFirst(), radix: 16) ?? 0
+        return Color(red: Double(v >> 16 & 255) / 255, green: Double(v >> 8 & 255) / 255, blue: Double(v & 255) / 255)
     }
 }
 
@@ -227,8 +354,20 @@ public enum PlotOutput {
         return expanded.hasPrefix("/") ? URL(fileURLWithPath: expanded) : (directory ?? URL(fileURLWithPath: OrgPaths.home)).appendingPathComponent(expanded)
     }
 
-    /// The chart as gnuplot's default 640×480, as PNG, JPEG or PDF by the file's extension.
+    /// The options a chart drawn here leaves out, for the result message.
+    public static func note(_ plot: TablePlot.Plot) -> String? {
+        let unfollowed = TablePlot.settings(plot).unfollowed
+        return unfollowed.isEmpty ? nil : "Not followed without gnuplot: " + unfollowed.joined(separator: ", ")
+    }
+
+    /// The chart as gnuplot's default 640×480, as PNG, JPEG, PDF or SVG by the file's extension.
     public static func write(_ plot: TablePlot.Plot, to url: URL) throws {
+        if url.pathExtension.lowercased() == "svg" {
+            let svg: String
+            do { svg = try TablePlot.svg(plot) } catch { throw Failure(description: "\(error)") }
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            return try svg.write(to: url, atomically: true, encoding: .utf8)
+        }
         let renderer = ImageRenderer(content: PlotChart(plot, still: true).frame(width: 640, height: 480).background(Color.white).environment(\.colorScheme, .light))
         renderer.scale = 2
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -253,7 +392,7 @@ public enum PlotOutput {
             CGImageDestinationAddImage(destination, image, nil)
             guard CGImageDestinationFinalize(destination) else { throw Failure(description: "Can't write \(url.lastPathComponent)") }
         default:
-            throw Failure(description: "Without gnuplot, plots are written as .png, .jpg or .pdf, not .\(url.pathExtension)")
+            throw Failure(description: "Without gnuplot, plots are written as .png, .jpg, .pdf or .svg, not .\(url.pathExtension)")
         }
     }
 }

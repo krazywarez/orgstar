@@ -58,7 +58,7 @@ App Store version.
 | Sessions, graphics         | JavaScript sessions; no graphics                                              | Yes                                                                                             |
 | Tangling                   | Yes                                                                           | Yes                                                                                             |
 | Table formulas             | Those orgstar computes itself                                                 | The rest in Emacs as well                                                                       |
-| Plots                      | Drawn with Swift Charts                                                       | gnuplot when installed, else Swift Charts                                                       |
+| Plots                      | Drawn with Swift Charts, following a subset of gnuplot's =set=                | gnuplot when installed, else Swift Charts                                                       |
 | Export                     | HTML, Markdown, PDF, Word, RTF, plain text, ODT, iCalendar, LaTeX, ASCII; publishing | Also PDF through LaTeX, in Emacs                                                         |
 | Settings                   | In the app's container, or a folder you choose                                | =~/.config/orgstar=                                                                             |
 | Files outside your folders | After you grant access to their folder                                        | Directly                                                                                        |
