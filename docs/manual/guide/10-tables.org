@@ -574,7 +574,8 @@ Any other function, or a macro not listed, needs Emacs. As in Emacs 31, =lambda=
 =function= make function objects rather than lists, so a formula whose value is one, or
 that prints one or takes it apart as a list, needs Emacs; calling one, or passing it to a
 function that calls it, doesn't. An error inside a Lisp formula
-writes =#ERROR= in the field, as does a Calc error.
+writes =#ERROR= in the field, as does a Calc error. So does a value that is a non-empty
+list, ignoring the format; with =T=, =U= or =t= such a value needs Emacs.
 
 =org-sbe= writes the value of a named src block, run with the variables given:
 

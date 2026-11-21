@@ -615,7 +615,7 @@ extension EmacsBuffer {
 
         var result: String
         if mode.lisp != .none {
-            result = try evalLisp(form, duration: duration)
+            if let value = try evalLisp(form, duration: duration) { result = value } else { (result, fmt) = ("#ERROR", nil) }
         } else {
             form = form.replacingOccurrences(of: "\\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\\]>\\n]*)?)\\]", with: "<$1>", options: .regularExpression)
             form = Self.normalizeTimestamps(form)
@@ -647,8 +647,9 @@ extension EmacsBuffer {
         tableSetField(result)
     }
 
-    /// `(eval (eval (read form)))` for a Lisp formula; an error is `#ERROR`.
-    func evalLisp(_ form: String, duration: DurationFormat?) throws -> String {
+    /// `(eval (eval (read form)))` for a Lisp formula; an error is `#ERROR`, and a cons is nil
+    /// (`#ERROR` without the format).
+    func evalLisp(_ form: String, duration: DurationFormat?) throws -> String? {
         let lisp = Elisp()
         lisp.standardTime()
         Self.defineLookups(lisp)
@@ -663,6 +664,14 @@ extension EmacsBuffer {
         }
         // Emacs prints functions as `#[ARGS BODY ENV]`.
         if Elisp.containsClosure(value) { throw Calc.Unsupported("Lisp formula with a function value") }
+        switch value {
+        case .list([]): break
+        case .list, .dotted:
+            // Org converts a duration before checking for a cons, which signals.
+            if duration != nil { throw Calc.Unsupported("Lisp formula with a list value and a duration") }
+            return nil
+        default: break
+        }
         var result = Elisp.printed(value)
         if let duration { result = try Self.secondsToString(Elisp.stringToNumber(result), duration) }
         return result

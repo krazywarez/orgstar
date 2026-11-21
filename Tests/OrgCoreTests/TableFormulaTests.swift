@@ -45,6 +45,7 @@ struct TableFormulaTests {
         "| a | b | c |\n|---+---+---|\n| 1 | 2 | |\n| 3 | 4 | |\n#+TBLFM: $3='(+ $1 $2);L\n",
         "| a |\n|---|\n| 1 |\n| 2 |\n|---|\n| |\n#+TBLFM: @>$1='(apply '+ '(@I..@II));N\n",
         "| a | b |\n|---+---|\n| 1 | |\n#+TBLFM: $2='(car 1)\n",
+        "| a | b | c | d | e | f |\n|---+---+---+---+---+---|\n| 1 | | | | | |\n#+TBLFM: $2='(list 1 2)::$3='(list \"a\" \"b\")::$4='(cons \"a\" \"b\");%.2f::$5='(list \"a b\" (list \"c\"))::$6='(list)\n",
         "| a | b | c |\n|---+---+---|\n| 3.14159 | | |\n| 2 | | |\n#+TBLFM: $2='(format \"%05.1f\" $1);N::$3='(+ $1 1);N%.2f\n",
         "| a | b |\n|---+---|\n| 5 | |\n| 12 | |\n#+TBLFM: $2='(if (> $1 10) \"big\" \"small\");N\n",
         "| ! | qty | price | total |\n|---+-----+-------+-------|\n|   | 2 | 3 | |\n|   | 4 | 0.5 | |\n#+TBLFM: $4=$qty*$price\n",
@@ -221,6 +222,21 @@ struct TableFormulaTests {
 
     /// Two formulas, then one only Emacs can do: in row order, as Emacs applies them.
     static let unsupported = "| a | b | c | d |\n|---+---+---+---|\n| 1 | | | |\n| 2 | | | |\n#+TBLFM: $2=$1*2::$3=$1+1::$4='(shell-command-to-string $1)\n"
+
+    @Test func lispConsIsAnError() {
+        let text = "| a | b | c | d | e |\n|---+---+---+---+---|\n| 1 | | | | |\n#+TBLFM: $2='(list 1 2)::$3='(cons \"a\" \"b\");N%.2f::$4='(list 'quote '(\"a\" \"b\"))::$5='(list)\n"
+        let caret = (text as NSString).range(of: "#+TBLFM").location
+        let result = Self.recalculate(TableRecalculate(all: true), text, caret: caret)
+        #expect(result.failure == nil)
+        #expect(result.text.hasPrefix("| a | b      | c      | d      | e   |\n|---+--------+--------+--------+-----|\n| 1 | #ERROR | #ERROR | #ERROR | nil |\n"))
+        let duration = "| a | b |\n|---+---|\n| 1 | |\n#+TBLFM: $2='(list 1 2);T\n"
+        let context = EditContext(revision: 0, text: duration, tree: OrgParser.parse(duration), selection: [3..<3])
+        guard case .external(.emacsTable(_, _, _, let reason, _, _, _)) = TableRecalculate(all: true).run(in: context) else {
+            Issue.record("not a request")
+            return
+        }
+        #expect(reason == "Lisp formula with a list value and a duration")
+    }
 
     @Test func keepsFieldsWrittenBeforeAFormulaOnlyEmacsCanDo() {
         let text = Self.unsupported
