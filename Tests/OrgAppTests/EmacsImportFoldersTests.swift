@@ -54,8 +54,20 @@ struct EmacsImportFoldersTests {
         #expect(shared == "\(mac)/inbox.org\n\(dir)/inbox.org\n\(other)/b.org")
 
         // Relative paths count from org-directory, so they're kept as written.
-        #expect(EmacsImport.agendaFiles("work.org", chosenFolders: ["~/org": picked.url, "": picked.url]) == "work.org")
+        #expect(EmacsImport.agendaFiles("work.org", chosenFolders: ["~/org": picked.url]) == "work.org")
         #expect(EmacsImport.agendaFiles("work.org\n\(mac)/inbox.org", chosenFolders: [mac: picked.url]) == "work.org\n\(dir)/inbox.org")
+    }
+
+    @Test func relativeAgendaFilesAddNoFolder() throws {
+        let folder = try Folder()
+        try #"(setq org-agenda-files '("work.org" "sub/b.org" "~/notes/" "/srv/org/a.org"))"#
+            .write(to: folder.url.appendingPathComponent("init.el"), atomically: true, encoding: .utf8)
+        let result = EmacsImport.scan(EmacsImport.files(in: folder.url))
+        let folders = result.items.compactMap { item -> String? in
+            if case .folder(let path) = item.change { return path }
+            return nil
+        }
+        #expect(folders == ["~/notes/", "/srv/org"])
     }
 
     @Test func withoutChosenFoldersAddsWhatsWritten() async throws {

@@ -762,7 +762,8 @@ public struct EmacsImport: Sendable {
             add(name, .string(paths.joined(separator: "\n")))
             // A file listing the files (the variable's string form) gives no folder.
             if value.string != nil, !paths[0].hasSuffix(".org") { return }
-            for path in paths {
+            // A relative entry counts from org-directory, so it has no folder of its own.
+            for path in paths where OrgPaths.expandingTilde(path).hasPrefix("/") {
                 let folder = path.hasSuffix(".org") ? (path as NSString).deletingLastPathComponent : path
                 items.append(Item(id: id(), name: name, summary: "add folder \(folder)", source: source, change: .folder(folder)))
             }
