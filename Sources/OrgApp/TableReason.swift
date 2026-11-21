@@ -62,6 +62,7 @@ public enum TableReason {
         if let clause = value("cl-loop ") { return String(localized: "cl-loop \(clause)", comment: comment) }
         if let names = value("condition-case on ") { return String(localized: "condition-case on \(names)", comment: comment) }
         if let pattern = value("pcase pattern ") { return String(localized: "pcase pattern \(pattern)", comment: comment) }
+        if let name = value("variable ") { return String(localized: "variable \(name)", comment: "Why a table needs Emacs: a Lisp variable with no value") }
         if let name = value("let-alist ") { return String(localized: "let-alist \(name)", comment: comment) }
         if let text = value("string-width of ") { return String(localized: "string-width of \(text)", comment: comment) }
         if let rest = value("regexp "), let parts = split(rest, " in ") {

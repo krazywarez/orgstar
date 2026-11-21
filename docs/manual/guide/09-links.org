@@ -149,7 +149,8 @@ changes. The echo area then shows =(form) => value=, or the error's message.
   makes to the buffer or to files in Emacs's session are not kept.
 - On iOS, in the Mac App Store version, and on the Mac without Emacs, the form runs in
   orgstar's Emacs Lisp interpreter, with the functions listed under Lisp formulas in
-  [[file:10-tables.org][Tables]]. A form that uses anything else shows
+  [[file:10-tables.org][Tables]]. A form that uses anything else, or a variable it doesn't
+  bind itself, such as =fill-column=, shows
   =This link uses Emacs Lisp that runs only in Emacs.=
 
 A path that names a command, such as =elisp:org-agenda=, isn't run. The reader view on iOS

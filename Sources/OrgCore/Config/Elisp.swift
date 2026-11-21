@@ -46,6 +46,9 @@ public final class Elisp {
     /// `lexical-binding`: lambdas close over the local frames, and only special variables
     /// (the host's and `defvar`'s) are bound dynamically.
     public var lexical = false
+    /// A variable with no value throws `Unsupported` rather than `void-variable`: Emacs may
+    /// give it one, such as `fill-column`.
+    public var unboundUnsupported = false
     /// Variables bound dynamically when `lexical` is set.
     var specials: Set<String> = []
     /// Under lexical binding, running a lambda list, which Emacs evaluates with dynamic binding:
@@ -112,6 +115,7 @@ public final class Elisp {
             if v == Self.unknownError { throw Unsupported(what: "the data of this error") }
             return v
         }
+        if unboundUnsupported { throw Unsupported(what: "variable \(name)") }
         throw Signal(message: "Symbol’s value as variable is void: \(name)", data: [.symbol(name)])
     }
 

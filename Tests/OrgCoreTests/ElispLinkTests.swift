@@ -25,6 +25,11 @@ struct ElispLinkTests {
 
     @Test func refusesWhatOnlyEmacsHas() {
         #expect(Links.evaluateElisp("(org-agenda nil \"a\")") == "This link uses Emacs Lisp that runs only in Emacs.")
+        // Emacs has values for variables the interpreter doesn't define.
+        for form in ["(+ fill-column 1)", "most-positive-fixnum", "(concat user-full-name \"\")", "(condition-case nil org-directory (void-variable 0))"] {
+            #expect(Links.evaluateElisp(form) == "This link uses Emacs Lisp that runs only in Emacs.", "\(form)")
+        }
+        #expect(Links.evaluateElisp("(let ((x 2)) (+ x 1))") == "(let ((x 2)) (+ x 1)) => 3")
         // Emacs 31 prints a function made under dynamic binding as `#[nil (1) nil]`.
         for form in ["(let ((f (lambda () 1))) f)", "(prin1-to-string (lambda () 1))", "(format \"%S\" (lambda () 1))", "(car (lambda () 1))"] {
             #expect(Links.evaluateElisp(form) == "This link uses Emacs Lisp that runs only in Emacs.", "\(form)")
