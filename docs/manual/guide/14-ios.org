@@ -159,7 +159,9 @@ Incremental Search is in Commands, and on =C-s= and =C-r= with a hardware keyboa
 
 The org-timer commands are in Commands; a running timer shows above the text. See [[file:06-dates-and-clocking.org][Dates and clocking]].
 
-More ▸ Attachments has the org-attach commands, Attach Photo or Video… and Take Photo…, which insert the photo's link at the caret; files shared to orgstar can be attached to an entry. Pasting an image and dropping files on the editor attach them and link them at the caret. See [[file:04-outlines.org][Outlines]] and [[file:09-links.org][Links]].
+More ▸ Attachments has the org-attach commands, Attach Photo or Video… and Take Photo…, which insert the photo's link at the caret; files shared to orgstar can be attached to an entry. Pasting an image and dropping files on the editor attach them and link them at the caret. Attachments are copied or moved: iOS doesn't let orgstar link a file from another app's storage, so the keys for attaching by hard link or symbolic link say "Attachments can't be linked on iPhone and iPad; Attach File… copies the file." See [[file:04-outlines.org][Outlines]] and [[file:09-links.org][Links]].
+
+Archive Subtree in Commands (or =C-c C-x C-s= with a hardware keyboard) archives the entry at the caret where =org-archive-location= says, as on the Mac.
 
 More ▸ Encryption has the org-crypt commands; see [[file:04-outlines.org][Outlines]]. A remembered passphrase is used after Face ID, Touch ID or the device passcode.
 
@@ -313,7 +315,7 @@ Recent Entries, in the bar and in the editor's More menu, lists the recently clo
 
 Clock questions open in a sheet: the task selection and the resolution keys as lists to tap, and minutes or a date and time as a field. Cancel answers nothing, as =q= does. Clocking in with no clock running first asks about open clocks in your folders, from the editor, an agenda entry's Clock In or a capture template with =clock-in=; Resolve Open Clocks… asks about every open clock. Both work as on the Mac.
 
-The iOS app has no idle detection, so =org-clock-idle-time= doesn't apply. =org-clock-history-length= does.
+With =org-clock-idle-time= set, returning to the app while a clock runs asks what to do with the time away, if it was longer than that many minutes: iOS has no idle time, so time in other apps or with the device locked stands in for it. See [[file:06-dates-and-clocking.org][Dates and clocking]]. =org-clock-history-length= applies too.
 
 Clock Report shows the time per day and heading for the files you choose. It starts with the files that contain clock lines. Turn on Limit dates to choose a range. The share button sends the report as text.
 
@@ -331,7 +333,11 @@ The app icon's badge counts the entries in the agenda's Overdue section that are
 
 Export (in the reader's toolbar and the editor's More menu) offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, ODT, iCalendar, LaTeX and Plain Text (ASCII), and Copy as Rich Text. Each opens the share sheet with a file named after the org file, which you can send to another app or keep with Save to Files. The export reads the file's setup files and follows its export keywords, as the Mac's export does. For a file the LaTeX or ASCII export can't write as Emacs would, the share sheet stops and "Can't export to LaTeX: " or "Can't export to plain text: " and the reason show at the bottom of the screen.
 
-PDF export follows =pdf-margin=, =pdf-font= and =pdf-page-numbers= in =config.toml=, and Word files get heading styles and the file's images, as on the Mac. PDF through LaTeX isn't available on iOS. See [[file:12-export.org][Export]].
+PDF export follows =pdf-margin=, =pdf-font= and =pdf-page-numbers= in =config.toml=, and Word files get heading styles and the file's images, as on the Mac. PDF through LaTeX isn't available on iOS.
+
+The Export menu also has Export Agenda Files to iCalendar, which writes an =.ics= beside each agenda file, and Combine Agenda Files into iCalendar, which shares one calendar of them all. Commands has these, Copy as Rich Text, and Export to HTML and Open, which shows the HTML export in Quick Look.
+
+Publishing works from Commands as on the Mac, with the =[[publish]]= projects in =config.toml=. A project that publishes outside your folders asks for a folder the first time, and uses it from then on. See [[file:12-export.org][Export]].
 
 * Code blocks and tables
 
@@ -385,7 +391,9 @@ Import from Emacs reads an Emacs or Doom configuration folder, such as a synced 
 2. The screen lists the settings, capture templates, key bindings, structure templates and agenda views it found, each with the line it came from, all selected. Clear what you don't want.
 3. Tap Import. The screen then summarizes what was imported and any problems.
 
-With a configuration folder, settings and structure templates are written to its =config.toml=, and capture templates, key bindings and agenda views to its =capture.toml=, =keymap.toml= and =views.toml=, so the Mac reads them too. Without one, settings are kept on the device. Folders from =org-agenda-files= name the Mac's paths and aren't offered.
+With a configuration folder, settings and structure templates are written to its =config.toml=, and capture templates, key bindings and agenda views to its =capture.toml=, =keymap.toml= and =views.toml=, so the Mac reads them too. Without one, settings are kept on the device.
+
+Folders from =org-directory= and =org-agenda-files= name the Mac's paths, so the screen lists them under Folders on this device. Tap each one and choose the folder on this device that holds the same files, such as its synced copy in iCloud Drive. Import adds the chosen folders to the Folders tab; folders not chosen aren't added, and the summary says so.
 
 The Agenda, TODO Dependencies, Calendar and Reminders sections are the only places the app changes a setting itself, besides Import from Emacs:
 
@@ -423,9 +431,10 @@ These settings from =config.toml= apply on iOS:
 - =org-agenda-span=, =org-agenda-start-day=, =org-agenda-start-on-weekday=, =org-deadline-warning-days=, =agenda-include-subfolders=, =agenda-exclude-archives=, =org-agenda-show-all-dates=, =org-agenda-skip-scheduled-if-done=, =org-agenda-skip-deadline-if-done=, =org-habit-show-habits-only-for-today=, =org-agenda-search-view-always-boolean=, =org-agenda-search-view-force-full-words=, =org-agenda-log-mode-items=, the =org-agenda-todo-ignore-= settings, =org-agenda-tags-todo-honor-ignore-options=
 - =calendar-events=, =calendar-event-calendars=, =agenda-reminders=, =agenda-reminder-lists=
 - =reminders=, =appt-message-warning-time=
-- =org-clock-history-length=, =org-clock-into-drawer=, =org-clock-rounding-minutes=, =org-clock-out-remove-zero-time-clocks=, =org-clock-in-switch-to-state=, =org-clock-out-when-done=
+- =org-clock-history-length=, =org-clock-into-drawer=, =org-clock-rounding-minutes=, =org-clock-out-remove-zero-time-clocks=, =org-clock-in-switch-to-state=, =org-clock-out-when-done=, =org-clock-idle-time=
+- =org-icalendar-combined-agenda-file= (its name) and the other =org-icalendar-= settings, =[[publish]]=
 
-=capture.toml= and =views.toml= in the folder apply too. =keymap= and =keymap.toml= apply with a hardware keyboard. Other settings, including =save= and =org-clock-idle-time=, don't apply on iOS. See [[file:13-configuration.org][Configuration]].
+=capture.toml= and =views.toml= in the folder apply too. =keymap= and =keymap.toml= apply with a hardware keyboard. Other settings, including =save=, don't apply on iOS. See [[file:13-configuration.org][Configuration]].
 
 * Spotlight and Quick Look
 
@@ -436,9 +445,9 @@ Quick Look in the Files app shows org files as the HTML export renders them.
 * What the Mac has that iOS doesn't
 
 - In the download version: running code blocks in languages other than Emacs Lisp and JavaScript, Emacs Lisp beyond orgstar's interpreter, JavaScript that needs node, and tables that need Emacs.
-- Publishing, and in the download version LaTeX-made PDF export.
-- Idle detection while a clock runs.
-- Import from Emacs of agenda folders.
+- In the download version, LaTeX-made PDF export.
+- Idle detection from keyboard and mouse input; iOS uses the time away from the app instead.
+- In the download version, attaching by hard link or symbolic link.
 - The Columns inspector, the buffer list and tab bar, and resizing panes by dragging their divider. The board and column view are there (see [[file:07-agenda.org][The agenda]] and [[file:04-outlines.org][Outlines]]).
 - The global capture hotkey and the Settings window.
 - Explicit saving.

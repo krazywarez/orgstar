@@ -399,7 +399,9 @@ While a clock runs, orgstar checks every minute how long the Mac has had no keyb
 Clocked in & idle for 17.3 mins [jkKtTgGSscCiq]?
 #+END_EXAMPLE
 
-The keys are those in the table above, with the idle time starting when input stopped. The iOS app has no idle detection.
+The keys are those in the table above, with the idle time starting when input stopped.
+
+iOS doesn't tell apps how long the device has been idle. Instead, when you return to the app while a clock runs, time spent in other apps or with the device locked counts as idle: past =org-clock-idle-time=, orgstar asks the same question, with the idle time starting when you left the app, or when the clock started if that was later.
 
 ** Editing clock lines
 

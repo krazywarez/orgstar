@@ -46,7 +46,9 @@ The dialog remembers the format and the *Open after export* setting. The PDF set
 
 ** On iOS
 
-The Export menu offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, ODT, iCalendar, LaTeX and Plain Text (ASCII), and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac, except that LaTeX, ODT and ASCII have no author unless the file has =#+AUTHOR:=. PDF through LaTeX is not available on iOS, nor are the agenda-file iCalendar exports.
+The Export menu offers HTML, Markdown, PDF, Word, Rich Text (RTF), Plain Text, ODT, iCalendar, LaTeX and Plain Text (ASCII), and Copy as Rich Text. It is under More in the editor, and in the toolbar in the reader. Choosing one opens the share sheet with the exported file, named after the Org file or its =#+EXPORT_FILE_NAME:=. Send it to another app, or use Save to Files to keep it. The export is the same as on the Mac, except that LaTeX, ODT and ASCII have no author unless the file has =#+AUTHOR:=. PDF through LaTeX is not available on iOS.
+
+The Export menu also has Export Agenda Files to iCalendar and Combine Agenda Files into iCalendar (see [[*iCalendar export][iCalendar export]]). Export to HTML and Open, in Commands or on =C-c C-e h o= with a hardware keyboard, shows the HTML export in Quick Look, with the file's images in the page; nothing is written beside the Org file. Copy as Rich Text is in Commands too.
 
 * HTML export
 
@@ -310,7 +312,7 @@ The summary is the heading's title, or its =SUMMARY= property. The description i
 
 =#+ICALENDAR_EXCLUDE_TAGS:= lists tags whose subtrees are left out; =#+EXCLUDE_TAGS:= doesn't apply, so =noexport= subtrees are exported unless listed. =#+SELECT_TAGS=, =COMMENT= headings and =ARCHIVE= tags apply as in the other exports. =#+ICAL-TTL:= sets =X-PUBLISHED-TTL=, the refresh period, such as =PT1H=. The calendar is named after the file, its description is =#+TITLE:=, and its owner =#+AUTHOR:= or your full name. Lines longer than 75 characters are folded and lines end in CRLF, as RFC 5545 asks.
 
-Export Agenda Files to iCalendar writes an =.ics= beside each agenda file (see [[file:07-agenda.org][The agenda]]). Combine Agenda Files into iCalendar writes all their entries to one calendar named =OrgMode= at =org-icalendar-combined-agenda-file=. On iOS, the Export menu's iCalendar shares the current file's calendar.
+Export Agenda Files to iCalendar writes an =.ics= beside each agenda file (see [[file:07-agenda.org][The agenda]]). Combine Agenda Files into iCalendar writes all their entries to one calendar named =OrgMode= at =org-icalendar-combined-agenda-file=. On iOS, the Export menu's iCalendar shares the current file's calendar, Export Agenda Files to iCalendar writes beside each agenda file as on the Mac, and Combine Agenda Files into iCalendar opens the share sheet with the combined calendar, named as =org-icalendar-combined-agenda-file= is; from Commands it opens in Quick Look, whose share button saves or sends it.
 
 Differences from Org: diary sexps (=%%(…)= lines and =<%%(…)>= timestamps) are left out, as they need Emacs's =icalendar.el=. The other =org-icalendar-*= variables keep Org's defaults: alarms only from =APPT_WARNTIME=, categories =(local-tags category)=, the whole body as the description, and local times. Descriptions of tables with column groups or alignment cookies, center blocks and links to targets can differ from Org's in layout.
 
@@ -362,7 +364,7 @@ components = "notes static"
 
 Files whose names start with a dot are left out. An Org file publishes to the same path under =publishing-directory=, named by =#+EXPORT_FILE_NAME= when it has one, with links to other =.org= files pointing to their =.html=. The sitemap lists each file as a link with its =#+TITLE= (or its name), as Org's default sitemap does.
 
-On the Mac, File ▸ Publish has the commands, which are also in the command palette:
+On the Mac, File ▸ Publish has the commands, which are also in the command palette. On iOS they are in Commands in the editor; Publish Project… lists the projects to choose from.
 
 | Command                 | Emacs preset  | What it does                                               |
 |-------------------------+---------------+------------------------------------------------------------|
@@ -371,7 +373,9 @@ On the Mac, File ▸ Publish has the commands, which are also in the command pal
 | Publish Current File    | =C-c C-e P f= | The current file, in the first project that has it (=org-publish-current-file=) |
 | Publish Current Project | =C-c C-e P p= | The first project that has the current file (=org-publish-current-project=) |
 
-A file whose published copy is newer than it is skipped, as Org skips files that haven't changed; delete the copy to publish it again. The message area says how many files were published and how many were up to date. Differences from Org: preparation and completion functions, =:makeindex=, custom sitemap functions and the export options a project can set (=:with-toc=, =:html-head= and the rest) aren't read; set those with =#+OPTIONS= and the other keywords in the files, or a =#+SETUPFILE=. Publishing is on the Mac only.
+A file whose published copy is newer than it is skipped, as Org skips files that haven't changed; delete the copy to publish it again. The message area says how many files were published and how many were up to date. Differences from Org: preparation and completion functions, =:makeindex=, custom sitemap functions and the export options a project can set (=:with-toc=, =:html-head= and the rest) aren't read; set those with =#+OPTIONS= and the other keywords in the files, or a =#+SETUPFILE=.
+
+On iOS, orgstar can write only inside the folders you added. A relative =base-directory= or =publishing-directory= is read from the first folder. For a project whose =publishing-directory= is outside your folders, orgstar asks for a folder the first time it publishes the project ("Choose the folder /name/ publishes to"), and publishes there from then on. A project whose =base-directory= can't be read stops with "Can't read /name/'s base-directory".
 
 * Exporting through Emacs
 
