@@ -56,6 +56,21 @@ struct FolderGrantsTests {
         #expect(resolved.url.resolvingSymlinksInPath().path == file.resolvingSymlinksInPath().path)
     }
 
+    @Test func staleBookmarkIsRenewed() throws {
+        let folder = try Folder()
+        let before = folder.url.appendingPathComponent("before")
+        let after = folder.url.appendingPathComponent("after")
+        try FileManager.default.createDirectory(at: before, withIntermediateDirectories: true)
+        let data = try #require(SecurityBookmark.make(before, sandboxed: false))
+        try FileManager.default.moveItem(at: before, to: after)
+        let resolved = try #require(SecurityBookmark.resolve(data, sandboxed: false))
+        #expect(resolved.url.resolvingSymlinksInPath().path == after.resolvingSymlinksInPath().path)
+        let renewed = try #require(resolved.renewed)
+        let again = try #require(SecurityBookmark.resolve(renewed, sandboxed: false))
+        #expect(again.url.resolvingSymlinksInPath().path == after.resolvingSymlinksInPath().path)
+        #expect(again.renewed == nil)
+    }
+
     @Test func foldersToGrantSkipReachablePaths() {
         let reachable = [URL(fileURLWithPath: "/notes"), URL(fileURLWithPath: "/container")]
         let existing: Set<String> = ["/", "/notes", "/container", "/other", "/other/site"]
