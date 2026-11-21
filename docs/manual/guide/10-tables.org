@@ -598,8 +598,9 @@ feature.
 
 Emacs Lisp blocks run in orgstar's interpreter, with dynamic binding unless the block
 has =:lexical yes= or =:lexical t=, and =js= blocks run in JavaScriptCore, everywhere and
-without asking, since neither can reach files or other programs. A =js= block that runs
-longer than five seconds is stopped, and the table needs Emacs. Blocks in other languages, blocks with =:cache yes=,
+without asking, since neither can reach files or other programs. After five seconds orgstar
+stops waiting for a =js= block and the table needs Emacs; a block that never finishes
+keeps running in the background until orgstar quits. Blocks in other languages, blocks with =:cache yes=,
 =:file= results or column and row names, other =:lexical= values, values that hold a
 function, Lisp values with symbols in a variable with several values, a name given to
 more than one element, in any case, when the first isn't a src block, references to an =ID= or
