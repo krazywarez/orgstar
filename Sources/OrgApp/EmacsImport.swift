@@ -1167,6 +1167,7 @@ extension EmacsImport {
         for item in items {
             guard case .folder(let path) = item.change else { continue }
             var url = URL(fileURLWithPath: OrgPaths.expandingTilde(path)).standardizedFileURL
+            var picked: URL?
             if let chosenFolders {
                 if let workspace, Self.isRoot(url, in: workspace) { continue }
                 guard let chosen = chosenFolders[path] else {
@@ -1174,14 +1175,18 @@ extension EmacsImport {
                     continue
                 }
                 url = chosen.standardizedFileURL
+                picked = chosen
             }
+            // A folder from a picker is security-scoped; the root's bookmark keeps its own access.
+            let accessing = picked?.startAccessingSecurityScopedResource() ?? false
+            defer { if accessing { picked?.stopAccessingSecurityScopedResource() } }
             guard let workspace, FileManager.default.fileExists(atPath: url.path) else {
                 problems.append("\(path) doesn't exist")
                 continue
             }
             if Self.isRoot(url, in: workspace) { continue }
             do {
-                try await workspace.addRoot(url)
+                try await workspace.addRoot(picked ?? url)
                 folders += 1
             } catch {
                 problems.append("Can't add \(path): \(error.localizedDescription)")

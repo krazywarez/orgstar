@@ -13,7 +13,9 @@ public enum SecurityBookmark {
         var stale = false
         guard let url = try? URL(resolvingBookmarkData: data, options: Sandbox.bookmarkResolutionOptions(sandboxed: sandboxed), bookmarkDataIsStale: &stale) else { return nil }
         _ = url.startAccessingSecurityScopedResource()
-        return (url, stale ? make(url, sandboxed: sandboxed) : nil)
+        // Not `make`, which would start access a second time.
+        let renewed = stale ? try? url.bookmarkData(options: Sandbox.bookmarkCreationOptions(sandboxed: sandboxed), includingResourceValuesForKeys: nil, relativeTo: nil) : nil
+        return (url, renewed)
     }
 }
 

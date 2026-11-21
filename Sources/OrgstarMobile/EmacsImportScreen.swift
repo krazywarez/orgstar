@@ -66,8 +66,7 @@ struct EmacsImportScreen: View {
             // A second importer on the same view would replace the first.
             Color.clear.fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { chosen in
                 guard let path = folderFor, case .success(let url) = chosen else { return }
-                // Kept for the bookmark the import makes; access stays on for the session.
-                _ = url.startAccessingSecurityScopedResource()
+                // Access starts when the import adds it.
                 folders[path] = url
             }
         }

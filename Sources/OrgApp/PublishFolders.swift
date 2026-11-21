@@ -30,11 +30,10 @@ public final class PublishFolders {
     /// The folder chosen for `project`, if any.
     public func folder(for project: String) -> URL? { folders[project] }
 
-    /// Keeps `url`, a folder from a folder picker, as where `project` publishes. False when its
-    /// bookmark can't be made, so it lasts only until the app quits.
+    /// Keeps `url`, a folder from a folder picker, as where `project` publishes; making its bookmark
+    /// starts access. False when the bookmark can't be made, so it lasts only until the app quits.
     @discardableResult
     public func set(_ url: URL, for project: String) -> Bool {
-        _ = url.startAccessingSecurityScopedResource()
         folders[project] = url
         guard let data = SecurityBookmark.make(url, sandboxed: sandboxed) else { return false }
         var saved = defaults.dictionary(forKey: Self.key) as? [String: Data] ?? [:]
