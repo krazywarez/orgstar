@@ -361,7 +361,25 @@ struct CalcTests {
         "vsum([1/0, 2])", "vsum([5 kg,3])", "vsum([2 (3),1])",
         // No comma: Calc separates elements by spaces, except inside parentheses and arguments.
         "vsum([1 - 2])", "vsum([x - 1])", "vsum([2x])", "vsum([(1 2)])", "vsum([max(1 2,3)])", "vcount([x])",
+        "(1/x) * 2 x", "(1/x) * 2 * x", "2 x * (1/x)", "(1/(2 x)) * 2 x", "x^-1 * 2 x", "((x)^2)^((0.0)^(0.0))",
+        "(x*y)^(0.0^0.0)", "(y^2)^(2*(0.0^0.0))", "(x^2)^(0.0^0.0 + 1)", "(x^2)^(-(0.0^0.0))", "(x^2)^(2^(0.0^0.0))",
     ]
+
+    /// Products are right-associative, and a formula of integer-valued numbers is known to
+    /// be integer-valued.
+    @Test func symbolicOrder() throws {
+        var modes = Calc.Modes()
+        modes.format = .float(8)
+        for (e, expected) in [("(1/x) * 2 x", "2 x / x"), ("(1/x) * 2 * x", "2 x / x"), ("2 x * (1/x)", "2"),
+                              ("(1/(2 x)) * 2 x", "1"), ("x^-1 * 2 x", "2 x / x"),
+                              ("((x)^2)^((0.0)^(0.0))", "x^(2 0.^0.)"), ("(x*y)^(0.0^0.0)", "x^0.^0. y^0.^0."),
+                              ("(y^2)^(2*(0.0^0.0))", "y^(4 0.^0.)"), ("(x^2)^(0.0^0.0 + 1)", "x^(2 0.^0. + 2)"),
+                              ("(x^2)^(-(0.0^0.0))", "x^(-2 0.^0.)"), ("(x^2)^(2^(0.0^0.0))", "(x^2)^2^0.^0.")] {
+            #expect(try Calc.evaluate(e, modes: modes) == expected, "\(e)")
+        }
+        modes.format = .sci(11)
+        #expect(try Calc.evaluate("9.48205255399 * 7.65908717266 9.30092496999", modes: modes) == "6.7546913880e2")
+    }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func symbolicMatchesCalc() throws {

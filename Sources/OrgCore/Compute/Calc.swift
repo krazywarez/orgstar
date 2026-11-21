@@ -1045,22 +1045,22 @@ public enum Calc {
             return left
         }
 
-        /// `*`, and juxtaposition `2 3` or `2 (x)`, which Calc reads as `*`.
+        /// `*`, and juxtaposition `2 3` or `2 (x)`, which Calc reads as `*`. With
+        /// `calc-multiplication-has-precedence` both are right-associative: `a * b c` and
+        /// `a * b * c` are `a * (b * c)`.
         mutating func product() throws -> Node {
-            var left = try unary()
-            while let c = peek() {
-                if c == "*" {
-                    i += 1
-                } else if !(c.isASCII && c.isNumber) && !c.isLetter && c != "(" && c != "["
-                            && !(c == "." && i + 1 < chars.count && chars[i + 1].isASCII && chars[i + 1].isNumber) {
-                    break
-                } else if spaceSeparated, chars[i - 1] == " " || chars[i - 1] == "\t" {
-                    // Calc reads `[1 2]` as two elements and `[1 2 * 3]` as one; not reproduced.
-                    throw Unsupported("formula syntax")
-                }
-                left = .binary("*", left, try unary())
+            let left = try unary()
+            guard let c = peek() else { return left }
+            if c == "*" {
+                i += 1
+            } else if !(c.isASCII && c.isNumber) && !c.isLetter && c != "(" && c != "["
+                        && !(c == "." && i + 1 < chars.count && chars[i + 1].isASCII && chars[i + 1].isNumber) {
+                return left
+            } else if spaceSeparated, chars[i - 1] == " " || chars[i - 1] == "\t" {
+                // Calc reads `[1 2]` as two elements and `[1 2 * 3]` as one; not reproduced.
+                throw Unsupported("formula syntax")
             }
-            return left
+            return .binary("*", left, try product())
         }
 
         /// `math-factor-after`: whether what follows can start an operand, which makes `%`

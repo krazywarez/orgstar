@@ -325,7 +325,7 @@ side if it is nonzero, else the right side):
 | ~==~, ~!=~, =<=, =>=, ~<=~, ~>=~    | Comparisons, giving 1 or 0. They can't be chained.        |
 | =+=, =-=                           | Addition and subtraction.                                 |
 | =/=, =%=, =\=                      | Division, modulo (sign of the divisor), integer division rounding down. |
-| =*=                                | Multiplication. Values side by side also multiply: =2 3=, =2 (x)=. |
+| =*=                                | Multiplication. Values side by side also multiply: =2 3=, =2 (x)=. It groups from the right: =a * b c= is =a * (b c)=. |
 | unary =-=                          | Negation.                                                 |
 | =^=                                | Power.                                                    |
 | =!=, =!!= after a value            | Factorial, double factorial.                              |
