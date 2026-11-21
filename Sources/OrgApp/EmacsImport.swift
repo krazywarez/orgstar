@@ -1096,8 +1096,9 @@ extension EmacsImport {
     }
 
     /// `org-agenda-files` (one path a line) with each path below a folder in `chosenFolders` moved
-    /// to the folder chosen for it. Paths with no chosen folder that don't exist here are left
-    /// out; nil when none remain. With `keepingOriginals`, for a config.toml the Mac reads too,
+    /// to the folder chosen for it. Relative paths are kept as written; they count from the first
+    /// folder, standing in for `org-directory`. Other paths with no chosen folder that don't exist
+    /// here are left out; nil when none remain. With `keepingOriginals`, for a config.toml the Mac reads too,
     /// the Mac's paths are all kept, a moved one beside its new path; each device skips the paths
     /// it doesn't have.
     static func agendaFiles(_ list: String, chosenFolders: [String: URL], keepingOriginals: Bool = false) -> String? {
@@ -1105,6 +1106,11 @@ extension EmacsImport {
         let folders = chosenFolders.map { (standard($0.key), $0.value.standardizedFileURL.path) }.sorted { $0.0.count > $1.0.count }
         var here: [String] = [], all: [String] = []
         for path in list.split(separator: "\n").map(String.init) {
+            guard OrgPaths.expandingTilde(path).hasPrefix("/") else {
+                here.append(path)
+                all.append(path)
+                continue
+            }
             let full = standard(path)
             if let (mac, device) = folders.first(where: { full == $0.0 || full.hasPrefix($0.0 + "/") }) {
                 let moved = device + full.dropFirst(mac.count)

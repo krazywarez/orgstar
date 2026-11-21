@@ -52,6 +52,10 @@ struct EmacsImportFoldersTests {
         // A config.toml the Mac reads too keeps the Mac's paths beside the device's.
         let shared = EmacsImport.agendaFiles("\(mac)/inbox.org\n\(other)/b.org", chosenFolders: [mac: picked.url], keepingOriginals: true)
         #expect(shared == "\(mac)/inbox.org\n\(dir)/inbox.org\n\(other)/b.org")
+
+        // Relative paths count from org-directory, so they're kept as written.
+        #expect(EmacsImport.agendaFiles("work.org", chosenFolders: ["~/org": picked.url, "": picked.url]) == "work.org")
+        #expect(EmacsImport.agendaFiles("work.org\n\(mac)/inbox.org", chosenFolders: [mac: picked.url]) == "work.org\n\(dir)/inbox.org")
     }
 
     @Test func withoutChosenFoldersAddsWhatsWritten() async throws {
