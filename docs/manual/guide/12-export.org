@@ -364,7 +364,7 @@ components = "notes static"
 
 Files whose names start with a dot are left out. An Org file publishes to the same path under =publishing-directory=, named by =#+EXPORT_FILE_NAME= when it has one, with links to other =.org= files pointing to their =.html=. The sitemap lists each file as a link with its =#+TITLE= (or its name), as Org's default sitemap does.
 
-On the Mac, File ▸ Publish has the commands, which are also in the command palette. On iOS they are in Commands in the editor; Publish Project… lists the projects to choose from.
+On the Mac, File ▸ Publish has the commands, which are also in the command palette. On iOS they are in Commands in the editor; Publish Project… lists the projects to choose from. As with the iOS share sheet, LaTeX, ODT and plain text published on iOS have no author unless the file has =#+AUTHOR:=.
 
 | Command                 | Emacs preset  | What it does                                               |
 |-------------------------+---------------+------------------------------------------------------------|

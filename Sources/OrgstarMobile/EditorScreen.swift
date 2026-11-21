@@ -686,8 +686,9 @@ extension EditorScreen {
                 session.openDocuments.first { $0.path == file }?.document.text ?? (try? String(contentsOfFile: file, encoding: .utf8))
             }
             let codeStyle = HTMLCodeStyle(highlighter: MobileEditor.highlighter, theme: model.theme)
-            let report = try Publish.publish(chosen, all: all, only: only, read: read) { function, text, file, bodyOnly in
-                try Publish.export(function, text: text, path: file, bodyOnly: bodyOnly, settings: OrgPreferences.orgSettings(), codeStyle: codeStyle)
+            // As the Export menu: no author unless the file has #+AUTHOR:.
+            let report = try Publish.publish(chosen, all: all, only: only, author: "", read: read) { function, text, file, bodyOnly in
+                try Publish.export(function, text: text, path: file, bodyOnly: bodyOnly, settings: OrgPreferences.orgSettings(), codeStyle: codeStyle, author: "")
             }
             message = "Published \(report.published.count) files" + (report.skipped.isEmpty ? "" : ", \(report.skipped.count) up to date")
         } catch {

@@ -261,6 +261,21 @@ struct PublishTests {
         #expect(String(decoding: data[30..<38], as: UTF8.self) == "mimetype")
     }
 
+    /// The ODT author comes from the caller: iOS passes none, as its Export menu does.
+    @Test func publishesODTWithTheCallersAuthor() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Self.tree(folder)
+        let config = "[[publish]]\nname = \"odt\"\nbase-directory = \"\(folder.path)/src\"\npublishing-directory = \"\(folder.path)/odt\"\npublishing-function = \"org-odt-publish-to-odt\"\n"
+        let loaded = Publish.projects(fromConfig: config, root: nil)
+        let read = { (path: String) in try? String(contentsOfFile: path, encoding: .utf8) }
+        let odt = folder.appendingPathComponent("odt/a.odt")
+        _ = try Publish.publish(loaded.projects, all: loaded.projects, author: "Quill Writer", read: read) { _, _, _, _ in "" }
+        #expect(try Data(contentsOf: odt).range(of: Data("Quill Writer".utf8)) != nil)
+        _ = try Publish.publish(loaded.projects, all: loaded.projects, force: true, author: "", read: read) { _, _, _, _ in "" }
+        #expect(try Data(contentsOf: odt).range(of: Data("Quill Writer".utf8)) == nil)
+    }
+
     @Test func skipsUpToDateFilesAndFindsProjects() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-publish-\(UUID().uuidString)").resolvingSymlinksInPath()
         defer { try? FileManager.default.removeItem(at: folder) }

@@ -252,9 +252,10 @@ public enum Publish {
 
     /// `org-publish-projects`: each project's sitemap, when it has one, then its files, through
     /// its publishing functions. A file whose output is newer than it is skipped unless `force`.
-    /// `export` turns an Org file's text into the HTML, Markdown, LaTeX or plain text to write.
+    /// `export` turns an Org file's text into the HTML, Markdown, LaTeX or plain text to write;
+    /// ODT is exported here, with `author` for a file without `#+AUTHOR:`.
     public static func publish(
-        _ chosen: [PublishProject], all: [PublishProject], force: Bool = false, only: String? = nil,
+        _ chosen: [PublishProject], all: [PublishProject], force: Bool = false, only: String? = nil, author: String = NSFullUserName(),
         read: (String) -> String?, export: (_ function: String, _ text: String, _ path: String, _ bodyOnly: Bool) throws -> String
     ) throws -> Report {
         var report = Report()
@@ -276,7 +277,7 @@ public enum Publish {
                         continue
                     }
                     try fm.createDirectory(atPath: (output as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
-                    try write(file, to: output, function: function, bodyOnly: p.bodyOnly, read: read, export: export)
+                    try write(file, to: output, function: function, bodyOnly: p.bodyOnly, author: author, read: read, export: export)
                     report.published.append(file)
                 }
             }
@@ -328,7 +329,7 @@ public enum Publish {
     /// Copies an attachment to `output`, or writes what `function` exports from `file`; ODT is
     /// exported here, with the preferences' settings.
     private static func write(
-        _ file: String, to output: String, function: String, bodyOnly: Bool,
+        _ file: String, to output: String, function: String, bodyOnly: Bool, author: String,
         read: (String) -> String?, export: (_ function: String, _ text: String, _ path: String, _ bodyOnly: Bool) throws -> String
     ) throws {
         let fm = FileManager.default
@@ -338,7 +339,7 @@ public enum Publish {
         } else if function == "org-odt-publish-to-odt" {
             let text = read(file) ?? ""
             let settings = OrgPreferences.orgSettings().resolvingSetupFiles(in: text, path: file, read: OrgSettings.readFile)
-            try ODTExport.document(text, settings: settings, path: file, author: NSFullUserName(), language: OrgPreferences.exportLanguage())
+            try ODTExport.document(text, settings: settings, path: file, author: author, language: OrgPreferences.exportLanguage())
                 .write(to: URL(fileURLWithPath: output), options: .atomic)
         } else {
             try export(function, read(file) ?? "", file, bodyOnly).write(toFile: output, atomically: true, encoding: .utf8)
