@@ -384,6 +384,7 @@ struct ReaderScreen: View {
         case .openExternally(let target): openURL(target)
         case .message(let text): message = text
         case .choose(let question, let paths): message = question + paths.map { ($0 as NSString).lastPathComponent }.joined(separator: ", ")
+        case .elisp: message = "Open the file in the editor to run elisp links."
         }
         return .handled
     }

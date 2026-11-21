@@ -1049,7 +1049,7 @@ struct ContentView: View {
     private func runExternal(_ request: ExternalRequest) {
         switch request {
         case .openLink(let link):
-            if let message = LinkOpener.open(link, session: session, workspace: workspace, ask: commands.ask) { commands.show(message) }
+            if let message = LinkOpener.open(link, session: session, workspace: workspace, ask: commands.ask, elisp: runElispLink) { commands.show(message) }
             // `org-occur` for a regexp link, once the editor shows the file.
             if let regexp = Links.regexpSearch(link) {
                 DispatchQueue.main.async { commands.editor?.perform(SparseTreeCommand(), answers: ["sparse": "/", "regexp": regexp]) }
@@ -1118,6 +1118,23 @@ struct ContentView: View {
                 case "yes": run()
                 default: commands.show("Not run")
                 }
+            }
+        }
+    }
+
+    /// Runs an `elisp:` link's form once trusted, asking as `org-link-elisp-confirm-function` does.
+    private func runElispLink(_ form: String) {
+        let run = { _ = Task { commands.show(await session.evaluateLink(form)) } }
+        let content = "elisp:" + form
+        if let path = session.path, trust.isTrusted(path: path, content: content) { return run() }
+        let choices = session.path == nil ? ["yes", "no"] : ["yes", "no", "always"]
+        commands.ask(Prompt(key: "confirm", message: "Execute \(form) as Elisp? (\(choices.joined(separator: ", ")))", choices: choices)) { answer in
+            switch answer {
+            case "always":
+                if let path = session.path { trust.trust(path: path, content: content) }
+                run()
+            case "yes": run()
+            default: commands.show("Not run")
             }
         }
     }

@@ -273,6 +273,24 @@ public struct OpenLinkAtPoint: OrgCommand {
 }
 
 extension Links {
+    /// An `elisp:` link's form evaluated in `Elisp`: `org-link--open-elisp`'s message, the
+    /// error's, or why it needs Emacs.
+    public static func evaluateElisp(_ form: String) -> String {
+        let lisp = Elisp()
+        lisp.standardTime()
+        do {
+            let value = try lisp.eval(try LispReader.readFirst(form).sexp)
+            if Elisp.containsClosure(value) { throw Elisp.Unsupported(what: "a closure") }
+            return "\(form) => \(try Elisp.format([.string("%s"), value]))"
+        } catch is Elisp.Unsupported {
+            return "This link uses Emacs Lisp that runs only in Emacs."
+        } catch {
+            return "\(error)"
+        }
+    }
+}
+
+extension Links {
     /// `org-at-date-range-p` with INACTIVE-OK: the range starting at one of the two brackets
     /// back from `offset` that reaches it.
     static func dateRange(at offset: Int, text ns: NSString) -> [Range<Int>?]? {

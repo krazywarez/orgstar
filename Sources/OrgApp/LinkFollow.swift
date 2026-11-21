@@ -10,6 +10,8 @@ public enum LinkFollow: Equatable, Sendable {
     case message(String)
     /// Files to choose one of to open: a Denote query link's matches.
     case choose(prompt: String, paths: [String])
+    /// An `elisp:` link's form, to run with `evaluateLink` once the user agrees.
+    case elisp(String)
 }
 
 extension DocumentSession {
@@ -66,11 +68,31 @@ extension DocumentSession {
             return followFile(file, isText: isText)
         case "coderef":
             return searchCurrent("(" + link.path + ")")
-        case "shell", "elisp":
-            return .message("orgstar doesn't run \(link.type) links")
+        case "elisp":
+            // `org-link--open-elisp`: a form is evaluated, anything else is a command to call.
+            guard link.path.hasPrefix("(") else { return .message("orgstar doesn't run Emacs commands from elisp: links") }
+            return .elisp(link.path)
+        case "shell":
+            return .message("orgstar doesn't run shell links")
         default:
             return .message("orgstar can't open \(link.type) links")
         }
+    }
+
+    /// Evaluates an `elisp:` link's form as `org-link--open-elisp` does: in Emacs, in a copy of
+    /// the open file, when `programs` has it, otherwise in `Elisp`. Returns the message to show.
+    public func evaluateLink(_ form: String) async -> String {
+        if let programs = Self.runner, let path, let text = document?.text {
+            let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
+            do {
+                if let value = try await programs.evaluateLisp(form, text: text, point: caret(of: path) ?? 0, directory: directory) {
+                    return "\(form) => \(value)"
+                }
+            } catch {
+                return "\(error)"
+            }
+        }
+        return Links.evaluateElisp(form)
     }
 
     static func url(_ string: String) -> LinkFollow {

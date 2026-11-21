@@ -486,6 +486,20 @@ extension EditorScreen {
                 guard let answer, let index = labels.firstIndex(of: answer) else { return }
                 follow(OrgLink(type: "file", path: paths[index], raw: "file:" + paths[index]))
             }
+        case .elisp(let form):
+            // Once trusted, as `org-link-elisp-confirm-function` asks.
+            let go = { _ = Task { message = await session.evaluateLink(form) } }
+            let content = "elisp:" + form
+            if trust.isTrusted(path: path, content: content) { return go() }
+            prompt = PromptRequest(prompt: Prompt(key: "confirm", message: "Execute \(form) as Elisp?", choices: ["yes", "no", "always"])) { answer in
+                switch answer {
+                case "always":
+                    trust.trust(path: path, content: content)
+                    go()
+                case "yes": go()
+                default: message = "Not run"
+                }
+            }
         }
     }
 

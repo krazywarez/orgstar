@@ -33,5 +33,11 @@ public struct Programs: ProgramRunning {
     public func recalculateTable(text: String, directory: URL, table: Range<Int>, point: Int, form: String) async throws -> String {
         try await EmacsRunner.recalculateTable(text: text, directory: directory, table: table, point: point, form: form)
     }
+
+    /// `elisp:` links in Emacs; nil without it, so they run in `Elisp`.
+    public func evaluateLisp(_ form: String, text: String, point: Int, directory: URL) async throws -> String? {
+        guard emacs() != nil else { return nil }
+        return try await EmacsRunner.evaluate(form, text: text, point: point, directory: directory)
+    }
 }
 #endif

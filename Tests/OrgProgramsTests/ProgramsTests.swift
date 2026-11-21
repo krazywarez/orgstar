@@ -38,6 +38,26 @@ struct EmacsFallbackTests {
         #expect(session.document?.text == "* Prices\n| item | n | twice     |\n|------+---+-----------|\n| x    | a | sqrt(a)   |\n| y    | 2 | 1.4142136 |\n#+TBLFM: $3=sqrt($2)\n")
     }
 
+    /// `elisp:` links run in Emacs, in a copy of the file with point at the caret; in
+    /// orgstar's interpreter when Emacs is missing.
+    @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
+    func evaluatesElispLinks() async throws {
+        let notes = try Folder()
+        let file = try notes.write("l.org", "* Head\nSee [[elisp:(org-get-heading t t)]].\n")
+        let session = DocumentSession(recovery: FileRecoveryStore(directory: notes.url.appendingPathComponent(".r")))
+        session.open(file.path)
+        let heading = await session.evaluateLink("(org-get-heading t t)")
+        #expect(heading == "(org-get-heading t t) => Head")
+        let list = await session.evaluateLink("(list 1 \"a\")")
+        #expect(list == "(list 1 \"a\") => (1 a)")
+        let error = await session.evaluateLink("(car 1)")
+        #expect(error == "Wrong type argument: listp, 1")
+        await DocumentSession.$scopedPrograms.withValue(Programs(emacs: { nil })) {
+            #expect(await session.evaluateLink("(+ 1 2)") == "(+ 1 2) => 3")
+            #expect(await session.evaluateLink("(org-get-heading t t)") == "This link uses Emacs Lisp that runs only in Emacs.")
+        }
+    }
+
     /// `org-sbe` on a block only Emacs runs: Emacs runs it without asking again.
     @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func runsOtherLanguagesForOrgSbe() async throws {

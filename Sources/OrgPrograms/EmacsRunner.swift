@@ -89,6 +89,66 @@ public enum EmacsRunner {
         return String(decoding: data, as: UTF8.self)
     }
 
+    /// Evaluates `form` as `org-link--open-elisp` does, in a copy of `text` with point at
+    /// `point` and `directory` as its directory; returns the value as `%s` prints it, or throws
+    /// the error's message.
+    public static func evaluate(_ form: String, text: String, point: Int, directory: URL, timeout: Duration = .seconds(60)) async throws -> String {
+        guard let emacs = executable() else { throw Failure(description: "Emacs isn't installed.") }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-emacs-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let input = folder.appendingPathComponent("input.org")
+        let output = folder.appendingPathComponent("output")
+        let script = folder.appendingPathComponent("eval.el")
+        try text.write(to: input, atomically: true, encoding: .utf8)
+        func lisp(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
+        try """
+        ;;; -*- lexical-binding: t -*-
+        (require 'org)
+        (setq enable-local-variables :safe)
+        (with-temp-buffer
+          (let ((coding-system-for-read 'utf-8-unix))
+            (insert-file-contents \(lisp(input.path))))
+          (setq default-directory \(lisp(directory.path + "/")))
+          (org-mode)
+          (goto-char \(Self.point(min(point, (text as NSString).length), in: text)))
+          (let ((result (condition-case e
+                            (concat "=" (format "%s" (eval (read \(lisp(form))))))
+                          (error (concat "!" (error-message-string e)))))
+                (coding-system-for-write 'utf-8-unix))
+            (with-temp-file \(lisp(output.path)) (insert result))))
+        """.write(to: script, atomically: true, encoding: .utf8)
+
+        let process = Process()
+        process.executableURL = emacs
+        process.arguments = ["-Q", "--batch", "-l", script.path]
+        process.currentDirectoryURL = directory
+        process.environment = BabelRunner.environment
+        let errors = Pipe()
+        process.standardError = errors
+        process.standardOutput = FileHandle.nullDevice
+        process.standardInput = FileHandle.nullDevice
+        try process.run()
+        let deadline = ContinuousClock.now + timeout
+        while process.isRunning {
+            if ContinuousClock.now > deadline {
+                process.terminate()
+                throw Failure(description: "Emacs took too long to evaluate the link.")
+            }
+            try? await Task.sleep(for: .milliseconds(50))
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
+        }
+        guard let written = try? String(contentsOf: output, encoding: .utf8), let mark = written.first else {
+            let log = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            throw Failure(description: log.split(separator: "\n").last.map(String.init) ?? "Emacs failed")
+        }
+        guard mark == "=" else { throw Failure(description: String(written.dropFirst())) }
+        return String(written.dropFirst())
+    }
+
     /// Exports `text`, the buffer of the file at `path`, with an ox function such as
     /// `org-latex-export-to-pdf`. The file is written beside `path`, as Emacs does; source
     /// blocks are not run. Returns the path Emacs wrote.

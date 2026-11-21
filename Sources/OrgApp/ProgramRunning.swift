@@ -7,6 +7,13 @@ public protocol ProgramRunning: Sendable {
     func runBabel(_ job: BabelJob, fileDirectory: URL) async throws -> BabelOutput
     /// Runs `form` in Emacs on a copy of `text`; returns the table that starts at `table.lowerBound`.
     func recalculateTable(text: String, directory: URL, table: Range<Int>, point: Int, form: String) async throws -> String
+    /// Evaluates `form` in Emacs, in a copy of `text` with point at `point`, and returns its
+    /// value as `%s` prints it; nil when there is no Emacs to run.
+    func evaluateLisp(_ form: String, text: String, point: Int, directory: URL) async throws -> String?
+}
+
+extension ProgramRunning {
+    public func evaluateLisp(_ form: String, text: String, point: Int, directory: URL) async throws -> String? { nil }
 }
 
 extension DocumentSession {

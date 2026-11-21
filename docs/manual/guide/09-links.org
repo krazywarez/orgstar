@@ -61,7 +61,8 @@ A message in the echo area explains a link that can't be followed.
 | Text                                         | =[[budget table]]=                   | Searches this file: a =<<budget table>>= target, then =#+NAME: budget table=, then a heading. |
 | Coderef                                      | =[[(ref)]]=                          | Moves to the label =(ref:ref)= in a src or example block; see /Code references/ below.      |
 | Regexp                                       | =[[/TODO.*soon/]]=                   | Shows a sparse tree of the regular expression's matches, as =org-occur=; iOS moves to the first match. |
-| =shell=, =elisp=                             | =[[shell:ls]]=                       | Not run. orgstar never executes these links.                                               |
+| =shell=                                      | =[[shell:ls]]=                       | Not run. orgstar never executes these links.                                               |
+| =elisp=                                      | =[[elisp:(+ 1 2)]]=                  | Runs the form once you agree; see /Emacs Lisp links/ below.                                |
 | =attachment=                                 | =[[attachment:scan.pdf]]=            | Opens the file in the entry's attachment folder; see /Attachment links/ below.             |
 | Radio link                                   | Text matching a =<<<radio target>>>= | Moves to the radio target.                                                                 |
 | =info=, =help=, others                       |                                      | Not followed. The echo area says orgstar can't open the type.                              |
@@ -135,6 +136,24 @@ identifier, at its start or after =@@=; an Org file comes before others with the
 identifier, such as a PDF. A search after =::=, such as =::#custom-id= or =::*Heading=,
 works as in a =file:= link. Backlinks list =denote:= links to a file, and to a heading when
 the link searches for it.
+
+** Emacs Lisp links
+
+Following an =elisp:= link whose path starts with =(= asks
+=Execute (form) as Elisp? (yes, no, always)=, as =org-link-elisp-confirm-function= does.
+=always= trusts the link's form in this file, so the question isn't asked again until it
+changes. The echo area then shows =(form) => value=, or the error's message.
+
+- On the Mac with Emacs installed, the form runs in =emacs -Q --batch= in a copy of the
+  file, with point at the caret, so Org functions see the file's text. Changes the form
+  makes to the buffer or to files in Emacs's session are not kept.
+- On iOS, in the Mac App Store version, and on the Mac without Emacs, the form runs in
+  orgstar's Emacs Lisp interpreter, with the functions listed under Lisp formulas in
+  [[file:10-tables.org][Tables]]. A form that uses anything else shows
+  =This link uses Emacs Lisp that runs only in Emacs.=
+
+A path that names a command, such as =elisp:org-agenda=, isn't run. The reader view on iOS
+doesn't run =elisp:= links; open the file in the editor.
 
 ** Timestamps
 

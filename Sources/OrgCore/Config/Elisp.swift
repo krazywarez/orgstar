@@ -321,15 +321,15 @@ public final class Elisp {
         }
     }
 
-    /// `prin1-to-string` with `princ` for strings when `escape` is false.
+    /// `prin1-to-string`, or `princ` when `escape` is false.
     public static func printed(_ v: Sexp, escape: Bool = false) -> String {
         switch v {
         case .string(let s): return escape ? "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" : s
         case .float(let d): return floatText(d)
         case .character(let c): return String(c)
-        case .list(let items): return "(" + items.map { printed($0, escape: true) }.joined(separator: " ") + ")"
-        case .dotted(let items, let last): return "(" + items.map { printed($0, escape: true) }.joined(separator: " ") + " . " + printed(last, escape: true) + ")"
-        case .vector(let items): return "[" + items.map { printed($0, escape: true) }.joined(separator: " ") + "]"
+        case .list(let items): return "(" + items.map { printed($0, escape: escape) }.joined(separator: " ") + ")"
+        case .dotted(let items, let last): return "(" + items.map { printed($0, escape: escape) }.joined(separator: " ") + " . " + printed(last, escape: escape) + ")"
+        case .vector(let items): return "[" + items.map { printed($0, escape: escape) }.joined(separator: " ") + "]"
         default: return v.description
         }
     }
