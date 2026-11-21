@@ -64,10 +64,13 @@ public struct PlotChart: View {
             let ticks = o["ticks"].flatMap { if case .number(let n) = $0 { Int(n) } else { nil } }
             let numericX = series.allSatisfy { $0.points.allSatisfy { if case .number = $0.x { true } else { false } } }
             let bars = ["boxes", "histograms", "hist", "impulses"].contains(o.with)
+            let yGiven = (low: s.yrange?.low ?? PlotChart.number(o["ymin"]), high: s.yrange?.high ?? PlotChart.number(o["ymax"]))
+            // A log axis has no 0, so bars stand on its foot, the range the SVG gives it.
+            let logBars = bars && s.logY ? try? TablePlot.Axis(values: ys, given: yGiven.low == nil && yGiven.high == nil ? nil : .init(low: yGiven.low, high: yGiven.high), log: true, step: nil, zero: false) : nil
             let chart = Chart {
                 ForEach(Array(series.enumerated()), id: \.offset) { _, s in
                     ForEach(Array(s.points.enumerated()), id: \.offset) { _, point in
-                        mark(point.x, point.y, series: s.label)
+                        mark(point.x, point.y, base: logBars?.low, series: s.label)
                     }
                 }
             }
@@ -91,7 +94,9 @@ public struct PlotChart: View {
             // As gnuplot autoscales: to the data, from zero for bars.
             let yType: ScaleType? = s.logY ? .log : nil, xType: ScaleType? = s.logX ? .log : nil
             let y = Group {
-                if let domain = PlotChart.domain(s.yrange?.low ?? PlotChart.number(o["ymin"]), s.yrange?.high ?? PlotChart.number(o["ymax"]), values: ys) {
+                if let logBars {
+                    chart.chartYScale(domain: logBars.low...logBars.high, type: yType)
+                } else if let domain = PlotChart.domain(yGiven.low, yGiven.high, values: ys) {
                     chart.chartYScale(domain: domain, type: yType)
                 } else {
                     chart.chartYScale(domain: .automatic(includesZero: bars && !s.logY), type: yType)
@@ -107,25 +112,33 @@ public struct PlotChart: View {
         }
 
         @ChartContentBuilder
-        func mark(_ x: TablePlot.Series.X, _ y: Double, series: String) -> some ChartContent {
+        func mark(_ x: TablePlot.Series.X, _ y: Double, base: Double?, series: String) -> some ChartContent {
             switch x {
-            case .number(let n): marks(.value("x", n), y, series)
-            case .date(let d): marks(.value("x", d), y, series)
-            case .label(let l): marks(.value("x", l), y, series)
+            case .number(let n): marks(.value("x", n), y, base, series)
+            case .date(let d): marks(.value("x", d), y, base, series)
+            case .label(let l): marks(.value("x", l), y, base, series)
             }
         }
 
         @ChartContentBuilder
-        func marks<X: Plottable>(_ x: PlottableValue<X>, _ y: Double, _ series: String) -> some ChartContent {
+        func marks<X: Plottable>(_ x: PlottableValue<X>, _ y: Double, _ base: Double?, _ series: String) -> some ChartContent {
             switch plot.options.with {
             case "points", "dots":
                 PointMark(x: x, y: .value("y", y)).foregroundStyle(by: .value("Series", series))
             case "linespoints":
                 LineMark(x: x, y: .value("y", y)).foregroundStyle(by: .value("Series", series)).symbol(by: .value("Series", series))
             case "impulses":
-                BarMark(x: x, y: .value("y", y), width: 2).foregroundStyle(by: .value("Series", series))
+                if let base {
+                    BarMark(x: x, yStart: .value("y", base), yEnd: .value("y", y), width: 2).foregroundStyle(by: .value("Series", series))
+                } else {
+                    BarMark(x: x, y: .value("y", y), width: 2).foregroundStyle(by: .value("Series", series))
+                }
             case "boxes", "histograms", "hist":
-                BarMark(x: x, y: .value("y", y)).foregroundStyle(by: .value("Series", series)).position(by: .value("Series", series))
+                if let base {
+                    BarMark(x: x, yStart: .value("y", base), yEnd: .value("y", y)).foregroundStyle(by: .value("Series", series)).position(by: .value("Series", series))
+                } else {
+                    BarMark(x: x, y: .value("y", y)).foregroundStyle(by: .value("Series", series)).position(by: .value("Series", series))
+                }
             case "steps":
                 LineMark(x: x, y: .value("y", y)).foregroundStyle(by: .value("Series", series)).interpolationMethod(.stepEnd)
             case "fsteps":
@@ -361,10 +374,21 @@ public enum PlotOutput {
     }
 
     /// Refuses what the chart can't draw: a radar plot `TablePlot.radar` refuses, which
-    /// `TablePlot.plot` leaves to gnuplot when there's a `script:`.
+    /// `TablePlot.plot` leaves to gnuplot when there's a `script:`, or one with more than 1000
+    /// rings, and a log axis the SVG refuses, which Swift Charts traps on.
     public static func check(_ plot: TablePlot.Plot) throws {
-        guard plot.options.type == "radar" else { return }
-        do { _ = try TablePlot.radar(plot) } catch { throw Failure(description: "\(error)") }
+        switch plot.options.type {
+        case "radar":
+            let radar: TablePlot.Radar
+            do { radar = try TablePlot.radar(plot) } catch { throw Failure(description: "\(error)") }
+            guard radar.ticks <= 1000 else { throw Failure(description: "Without gnuplot, ticks: takes 0 to 1000") }
+        case "2d":
+            let s = TablePlot.settings(plot)
+            guard s.logX || s.logY else { return }
+            do { _ = try TablePlot.svg(plot) } catch { throw Failure(description: "\(error)") }
+        default:
+            return
+        }
     }
 
     /// The chart as gnuplot's default 640×480, as PNG, JPEG, PDF or SVG by the file's extension.

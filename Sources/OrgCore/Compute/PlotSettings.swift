@@ -12,6 +12,11 @@ extension TablePlot {
         public struct Range: Sendable, Equatable {
             public var low: Double?
             public var high: Double?
+
+            public init(low: Double?, high: Double?) {
+                self.low = low
+                self.high = high
+            }
         }
 
         public var title: String?

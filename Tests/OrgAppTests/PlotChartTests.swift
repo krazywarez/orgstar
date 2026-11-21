@@ -105,6 +105,37 @@ struct PlotChartTests {
         try PlotOutput.check(plot)
     }
 
+    @Test func refusesLogRangesAndDrawsLogBars() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-log-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let data = "| 1 | 3 |\n| 2 | 4 |\n"
+        for options in ["set:\"logscale y\" set:\"yrange [0:100]\"", "set:\"logscale x\" set:\"xrange [0:10]\"",
+                        "set:\"logscale y\" set:\"yrange [-1:100]\"", "set:\"logscale y\" ymin:0", "set:\"logscale x\" xmin:-1"] {
+            let plot = try Self.plot("#+PLOT: ind:1 \(options)\n" + data)
+            #expect(throws: PlotOutput.Failure.self, "\(options)") { try PlotOutput.check(plot) }
+            for name in ["o.png", "o.pdf"] {
+                #expect(throws: PlotOutput.Failure.self, "\(options)") { try PlotOutput.write(plot, to: folder.appendingPathComponent(name)) }
+            }
+        }
+        for options in ["with:boxes set:\"logscale y\"", "with:impulses set:\"logscale y\"", "with:histograms set:\"logscale y\"",
+                        "with:boxes set:\"logscale y\" set:\"yrange [0.5:10]\"", "with:impulses set:\"logscale y\" set:\"yrange [2:10]\"", "with:boxes set:\"logscale xy\"", "with:lines set:\"logscale y\""] {
+            let plot = try Self.plot("#+PLOT: ind:1 \(options)\n| 1 | 1 |\n| 2 | 5 |\n")
+            for name in ["b.png", "b.pdf"] {
+                let url = folder.appendingPathComponent(name)
+                try PlotOutput.write(plot, to: url)
+                let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+                #expect(size > 1000, "\(options) \(name) is \(size) bytes")
+            }
+        }
+    }
+
+    @Test func capsRadarRingsWithoutGnuplot() throws {
+        let plot = try Self.plot("#+PLOT: type:radar ticks:2000\n| n | a | b |\n|---+---+---|\n| x | 1 | 5 |\n| y | 2 | 3 |\n")
+        #expect(try TablePlot.radarSetup(plot).hasSuffix(" 2000\nEOD\n"))
+        #expect(throws: PlotOutput.Failure.self) { try PlotOutput.check(plot) }
+        try PlotOutput.check(Self.plot("#+PLOT: type:radar ticks:1000\n| n | a | b |\n|---+---+---|\n| x | 1 | 5 |\n| y | 2 | 3 |\n"))
+    }
+
     @Test func writesSVG() throws {
         let lines = try TablePlot.svg(Self.plot("#+PLOT: ind:1 set:\"title 'T&C'\" set:\"xlabel 'Day'\" set:\"grid\"\n" + Self.table))
         #expect(lines.hasPrefix("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"480\""))

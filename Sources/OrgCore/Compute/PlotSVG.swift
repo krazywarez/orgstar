@@ -13,13 +13,13 @@ extension TablePlot {
     }
 
     /// An axis: its ends, widened to whole steps where they're not given, and its ticks.
-    struct Axis {
-        var low: Double
-        var high: Double
+    public struct Axis {
+        public var low: Double
+        public var high: Double
         var log: Bool
         var ticks: [Double] = []
 
-        init(values: [Double], given: Settings.Range?, log: Bool, step: Double?, zero: Bool) throws {
+        public init(values: [Double], given: Settings.Range?, log: Bool, step: Double?, zero: Bool) throws {
             var data = values.filter { !log || $0 > 0 }
             // gnuplot refuses these too.
             if log, data.isEmpty, given?.low == nil || given?.high == nil { throw Failure(description: "A log axis needs values above 0") }
