@@ -277,6 +277,18 @@ struct JavaScriptBlocksTests {
         #expect(try JavaScriptBlocks.runHere(quick)?.stdout.contains("42") == true)
     }
 
+    /// A block whose earlier run timed out and still runs isn't started again, so a later
+    /// recalculation neither waits nor leaves another thread busy; once it ends it runs again.
+    @Test func runHereRefusesABlockStillRunning() throws {
+        let spin = try Self.plan("#+begin_src js\nconst end = Date.now() + 1500; while (Date.now() < end) {}\nreturn 7\n#+end_src\n")
+        #expect(throws: JavaScriptBlocks.Stopped.self) { try JavaScriptBlocks.runHere(spin, timeout: .milliseconds(100)) }
+        let start = ContinuousClock.now
+        #expect(throws: JavaScriptBlocks.Stopped.self) { try JavaScriptBlocks.runHere(spin, timeout: .seconds(5)) }
+        #expect(ContinuousClock.now - start < .milliseconds(500))
+        Thread.sleep(forTimeInterval: 2)
+        #expect(try JavaScriptBlocks.runHere(spin)?.stdout.contains("7") == true)
+    }
+
     /// `org-sbe` on js blocks in a table formula, as Emacs runs them with node.
     @Test(.enabled(if: oracle && nodeInstalled))
     func tableFormulasMatchEmacs() throws {

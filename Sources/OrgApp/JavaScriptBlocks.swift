@@ -37,14 +37,56 @@ public enum JavaScriptBlocks {
     }
 
     /// Runs a js `job` without a session, as `org-sbe` in a table formula needs, waiting on the
-    /// calling thread at most `timeout`; nil for other jobs.
+    /// calling thread at most `timeout`; nil for other jobs. A block whose earlier run timed out
+    /// and is still running is refused without starting another.
     public static func runHere(_ job: BabelJob, timeout: Duration = .seconds(5)) throws -> BabelOutput? {
         guard job.language == "js" || job.language == "javascript", case .process = job.runner else { return nil }
+        if abandoned.contains(job.input) { throw Stopped(description: "The block took too long before and is still running.") }
         let run = Run()
-        let thread = Thread { run.end(Result { try Engine().main(job.input, run: run) }) }
+        let flag = Abandoned.Flag()
+        let thread = Thread {
+            run.end(Result { try Engine().main(job.input, run: run) })
+            abandoned.ended(job.input, flag)
+        }
         thread.stackSize = 8 << 20
         thread.start()
-        return try run.result(within: timeout)
+        do {
+            return try run.result(within: timeout)
+        } catch let error as Stopped {
+            abandoned.add(job.input, flag)
+            throw error
+        }
+    }
+
+    private static let abandoned = Abandoned()
+
+    /// The inputs of `runHere` blocks that timed out and whose threads still run.
+    final class Abandoned: @unchecked Sendable {
+        final class Flag: @unchecked Sendable {
+            var ended = false
+            var abandoned = false
+        }
+
+        private let lock = NSLock()
+        private var running: [String: Int] = [:]
+
+        func contains(_ input: String) -> Bool { lock.withLock { running[input] != nil } }
+
+        func add(_ input: String, _ flag: Flag) {
+            lock.withLock {
+                guard !flag.ended else { return }
+                flag.abandoned = true
+                running[input, default: 0] += 1
+            }
+        }
+
+        func ended(_ input: String, _ flag: Flag) {
+            lock.withLock {
+                flag.ended = true
+                guard flag.abandoned else { return }
+                if let n = running[input] { running[input] = n > 1 ? n - 1 : nil }
+            }
+        }
     }
 
     struct Stopped: Error, CustomStringConvertible {
