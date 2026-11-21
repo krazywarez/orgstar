@@ -72,6 +72,8 @@ final class MobileModel {
         UserConfig.directoryOverride = folder
         let (problems, colors) = Self.readConfig(folder)
         let settings = OrgPreferences.orgSettings()
+        // `org-sbe` in table formulas runs blocks, so it needs Babel as source blocks do.
+        TableBlocks.allowed = { ProAccess.isUnlockedNow }
         do {
             let workspace = try WorkspaceModel(directory: WorkspaceModel.defaultDirectory, settings: .with(todoKeywords: settings))
             // Recently Deleted where the folder's provider keeps one (iCloud Drive); otherwise gone.

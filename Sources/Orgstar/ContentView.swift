@@ -1068,6 +1068,10 @@ struct ContentView: View {
         case .emacsTable(_, _, _, let reason, _, let formula, let partial):
             // The fields written before the formula stay, as Emacs leaves them when a formula fails.
             if let partial { commands.editor?.perform(PrecomputedEdit(partial)) }
+            if reason == TableBlocks.lockedReason {
+                ProAccess.shared.allows(.babel)
+                return
+            }
             if let formula {
                 commands.show(String(localized: "The table was recalculated up to \(formula), which can't be calculated here: \(TableReason.localized(reason)).", comment: "Table formulas orgstar calculated up to one it can't"))
             } else {
@@ -1075,6 +1079,13 @@ struct ContentView: View {
             }
         #else
         case .emacsTable(let table, let point, let form, let reason, let lisp, let formula, let partial):
+            // Emacs runs the blocks `org-sbe` names without asking, so they need Babel, and
+            // the question below each time.
+            let blocks = reason == TableBlocks.lockedReason || session.document?.text.contains("org-sbe") == true
+            if blocks, !ProAccess.shared.allows(.babel) {
+                if let partial { commands.editor?.perform(PrecomputedEdit(partial)) }
+                return
+            }
             guard EmacsRunner.executable() != nil else {
                 // Without Emacs this is the App Store build's case: keep the fields written so far.
                 if let partial { commands.editor?.perform(PrecomputedEdit(partial)) }
@@ -1089,8 +1100,9 @@ struct ContentView: View {
             }
             guard lisp, let path = session.path, let text = session.document?.text else { return run() }
             let content = (text as NSString).substring(with: NSRange(location: table.lowerBound, length: min((text as NSString).length, table.upperBound + 2000) - table.lowerBound))
-            if trust.isTrusted(path: path, content: content) { return run() }
-            commands.ask(Prompt(key: "confirm", message: "This table's formulas run Lisp. Run them? (yes, no, always)", choices: ["yes", "no", "always"])) { answer in
+            if !blocks, trust.isTrusted(path: path, content: content) { return run() }
+            let message = blocks ? "This table's formulas run Lisp and source blocks. Run them? (yes, no)" : "This table's formulas run Lisp. Run them? (yes, no, always)"
+            commands.ask(Prompt(key: "confirm", message: message, choices: blocks ? ["yes", "no"] : ["yes", "no", "always"])) { answer in
                 switch answer {
                 case "always":
                     trust.trust(path: path, content: content)

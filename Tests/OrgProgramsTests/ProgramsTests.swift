@@ -58,6 +58,22 @@ struct EmacsFallbackTests {
         }
     }
 
+    /// Emacs can run each compiled language and interpreter orgstar runs, for `org-sbe`.
+    @Test(.enabled(if: EmacsRunner.executable() != nil))
+    func loadsEveryLanguageForOrgSbe() throws {
+        let languages = ["C", "C++", "D", "fortran", "java", "clojure", "awk", "js", "python", "R", "ruby", "sh", "bash"]
+        let process = Process()
+        process.executableURL = EmacsRunner.executable()
+        process.arguments = ["-Q", "--batch", "--eval", "(progn (require 'org) " + EmacsRunner.sbeLanguages
+            + " (princ (mapconcat (lambda (l) (if (fboundp (intern (concat \"org-babel-execute:\" l))) \"\" l)) '(" + languages.map { "\"\($0)\"" }.joined(separator: " ") + ") \"\")))"]
+        let out = Pipe()
+        process.standardOutput = out
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        #expect(String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self) == "")
+    }
+
     /// `org-sbe` on a block only Emacs runs: Emacs runs it without asking again.
     @Test(.enabled(if: EmacsRunner.executable() != nil && ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
     func runsOtherLanguagesForOrgSbe() async throws {

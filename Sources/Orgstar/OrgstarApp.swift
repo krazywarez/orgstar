@@ -384,6 +384,8 @@ struct OrgstarApp: App {
         MacPro.resolve()
         MacPro.renewInBackground()
         #endif
+        // `org-sbe` in table formulas runs blocks, so it needs Babel as source blocks do.
+        TableBlocks.allowed = { ProAccess.isUnlockedNow }
         // Debug builds, and runs with ORGSTAR_PERF set: main-thread stalls in the console.
         #if DEBUG
         Perf.watchMainThread()

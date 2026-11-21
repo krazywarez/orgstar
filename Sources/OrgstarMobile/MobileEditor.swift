@@ -337,6 +337,11 @@ final class MobileEditor: NSObject, DocumentBuffer {
             // The fields written before a formula only Emacs can do stay, as Emacs leaves them
             // when a formula fails.
             if case .emacsTable(_, _, _, _, _, _, let partial?) = request { _ = perform(PrecomputedEdit(partial)) }
+            // `org-sbe` without Babel shows its paywall.
+            if case .emacsTable(_, _, _, TableBlocks.lockedReason, _, _, _) = request {
+                ProAccess.shared.allows(.babel)
+                return step
+            }
             onMessage?(Self.unavailable(request, title: command.title))
         }
         return step

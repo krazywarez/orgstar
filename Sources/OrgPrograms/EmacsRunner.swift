@@ -36,11 +36,10 @@ public enum EmacsRunner {
         let script = folder.appendingPathComponent("recalc.el")
         try text.write(to: input, atomically: true, encoding: .utf8)
         func lisp(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
-        // `org-sbe` runs blocks: the user agreed to the table's Lisp, and Babel needs the languages.
+        // `org-sbe` runs blocks: the user agreed to the table and its blocks, and Babel needs the languages.
         let blocks = text.contains("org-sbe") ? """
             (setq org-confirm-babel-evaluate nil)
-            (dolist (language '(C awk clojure java js python R ruby shell))
-              (require (intern (format "ob-%s" language)) nil t))
+            \(sbeLanguages)
             """ : ""
         try """
         ;;; -*- lexical-binding: t -*-
@@ -88,6 +87,12 @@ public enum EmacsRunner {
         }
         return String(decoding: data, as: UTF8.self)
     }
+
+    /// Loads the Babel languages orgstar runs, for the blocks `org-sbe` runs in Emacs.
+    static let sbeLanguages = """
+        (dolist (language '(C awk clojure fortran java js python R ruby shell))
+          (require (intern (format "ob-%s" language)) nil t))
+        """
 
     /// Evaluates `form` as `org-link--open-elisp` does, in a copy of `text` with point at
     /// `point` and `directory` as its directory; returns the value as `%s` prints it, or throws
