@@ -661,6 +661,8 @@ extension EmacsBuffer {
         } catch {
             return "#ERROR"
         }
+        // Emacs prints functions as `#[ARGS BODY ENV]`.
+        if Elisp.containsClosure(value) { throw Calc.Unsupported("Lisp formula with a function value") }
         var result = Elisp.printed(value)
         if let duration { result = try Self.secondsToString(Elisp.stringToNumber(result), duration) }
         return result

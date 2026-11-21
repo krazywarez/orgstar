@@ -88,7 +88,7 @@ extension Babel {
     /// table.
     static func lispValue(_ value: String) throws -> VarValue {
         let refusal = Failure.message(":var value \(value) is Lisp that only Emacs can evaluate.")
-        guard let form = try? LispReader.readFirst(value).sexp, let result = try? Elisp().eval(form) else { throw refusal }
+        guard let form = try? LispReader.readFirst(value).sexp, let result = try? Elisp().eval(form), !Elisp.containsClosure(result) else { throw refusal }
         func cell(_ v: Sexp) throws -> Cell {
             if let s = v.string { return .text(s) }
             if let n = number(Elisp.printed(v)), Elisp.printed(v) == n { return .number(n) }

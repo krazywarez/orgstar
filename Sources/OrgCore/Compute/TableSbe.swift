@@ -90,9 +90,11 @@ extension Babel {
         let model = DocumentModel(tree: OrgParser.parse(text))
         let options = Options()
         // The first `#+NAME:` line with the name outside COMMENTed headings that names an
-        // element: a src block's, or another element's.
-        let pattern = "(?im)^[ \\t]*#\\+name:[ \\t]*" + NSRegularExpression.escapedPattern(for: name) + "[ \\t]*$"
-        let matches = try NSRegularExpression(pattern: pattern).matches(in: text, range: NSRange(location: 0, length: ns.length)).map(\.range)
+        // element: a src block's, or another element's. The keyword's case doesn't matter; the
+        // name's does.
+        let pattern = "(?im)^[ \\t]*#\\+name:[ \\t]*(" + NSRegularExpression.escapedPattern(for: name) + ")[ \\t]*$"
+        let found = try NSRegularExpression(pattern: pattern).matches(in: text, range: NSRange(location: 0, length: ns.length))
+        let matches = found.filter { ns.substring(with: $0.range(at: 1)) == name }.map(\.range)
         let headingStarts = model.headings.map(\.headingRange.lowerBound)
         func commented(_ location: Int) -> Bool {
             guard let h = headingStarts.lastIndex(where: { $0 <= location }) else { return false }
@@ -119,8 +121,9 @@ extension Babel {
             return between.split(separator: "\n").allSatisfy { $0.trimmingCharacters(in: .whitespaces).hasPrefix("#+") }
         }
         guard let block else {
-            // `resolve` reads the first element with the name, and runs a src block before it.
-            guard named == matches.first, !model.srcBlocks.contains(where: { $0.name == name }) else {
+            // `resolve` reads the first element with the name in any case, and runs a src block
+            // before it.
+            guard named == found.first?.range, !model.srcBlocks.contains(where: { $0.name == name }) else {
                 throw Elisp.Unsupported(what: "org-sbe with a name used more than once")
             }
             do {
@@ -193,7 +196,7 @@ extension Babel {
             lisp.syntax = .emacsLisp
             lisp.standardTime()
             result = try lisp.eval(try LispReader.readFirst(form).sexp)
-            if Elisp.containsFunction(result) { throw Elisp.Unsupported(what: "org-sbe with a function value") }
+            if Elisp.containsClosure(result) { throw Elisp.Unsupported(what: "org-sbe with a function value") }
             if scalar {
                 result = .string(params.contains("scalar") || params.contains("verbatim") ? Elisp.printed(result, escape: true) : try Elisp.format([.string("%s"), result]))
             }

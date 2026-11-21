@@ -21,7 +21,7 @@ extension Babel {
         mutating func evaluateLisp(file: String?) {
             for key in lisp {
                 guard let form = try? LispReader.readFirst(single[key] ?? "").sexp,
-                      let value = try? (file.map { Tangle.fileLisp(path: $0) } ?? Elisp()).eval(form) else { continue }
+                      let value = try? (file.map { Tangle.fileLisp(path: $0) } ?? Elisp()).eval(form), !Elisp.containsClosure(value) else { continue }
                 let printed = Elisp.printed(value)
                 if let s = value.string {
                     single[key] = s

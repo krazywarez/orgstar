@@ -570,7 +570,10 @@ when the error isn't one of =wrong-type-argument=, =args-out-of-range=, =arith-e
 widths; other codes need Emacs, as do float times in =time-add= and =time-subtract=. =date-to-time= and =days-between= read dates as
 =YYYY-MM-DD=, with an optional =HH:MM= or =HH:MM:SS=.
 
-Any other function, or a macro not listed, needs Emacs. An error inside a Lisp formula
+Any other function, or a macro not listed, needs Emacs. As in Emacs 31, =lambda= and
+=function= make function objects rather than lists, so a formula whose value is one, or
+that prints one or takes it apart as a list, needs Emacs; calling one, or passing it to a
+function that calls it, doesn't. An error inside a Lisp formula
 writes =#ERROR= in the field, as does a Calc error.
 
 =org-sbe= writes the value of a named src block, run with the variables given:
@@ -590,7 +593,7 @@ writes =#ERROR= in the field, as does a Calc error.
 As in Org, a field's text is read as a value, so =abc= names another block or table;
 write =$$1= instead of =$1= to pass the text as a string. A string before the variables
 holds header arguments, and the name may also be a named table or list in the file. As in
-Org, a name under a =COMMENT= heading is skipped. =org-sbe= needs Pro's source blocks
+Org, a name under a =COMMENT= heading is skipped, and the name's case must match. =org-sbe= needs Pro's source blocks
 feature.
 
 Emacs Lisp blocks run in orgstar's interpreter, with dynamic binding unless the block
@@ -599,7 +602,7 @@ without asking, since neither can reach files or other programs. A =js= block th
 longer than five seconds is stopped, and the table needs Emacs. Blocks in other languages, blocks with =:cache yes=,
 =:file= results or column and row names, other =:lexical= values, values that hold a
 function, Lisp values with symbols in a variable with several values, a name given to
-more than one element when the first isn't a src block, references to an =ID= or
+more than one element, in any case, when the first isn't a src block, references to an =ID= or
 =CUSTOM_ID=, and =js= values that are arrays need Emacs. When Emacs runs a table in a file
 that uses =org-sbe=, it runs the blocks without asking again, so orgstar asks
 =This table's formulas run Lisp and source blocks. Run them? (yes, no)= each time.

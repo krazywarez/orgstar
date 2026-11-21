@@ -7,7 +7,7 @@ struct ElispLinkTests {
     static let forms = [
         "(+ 1 2)", "(list 1 \"a\" 'b 2.5)", "(concat \"a\" \"b\")", "(message \"hi\")", "(let ((x 2)) (* x x))",
         "(mapcar (lambda (n) (* n 10)) '(1 2 3))", "nil", "(car 1)", "(/ 1 0)", "(error \"Nope %d\" 3)", "(format \"%S\" \"q\")",
-        "(org-lookup-first 2 '(1 2 3) '(a b c))", "(org-lookup-all 1 '(1 2 1) '(x y z))",
+        "(org-lookup-first 2 '(1 2 3) '(a b c))", "(org-lookup-all 1 '(1 2 1) '(x y z))", "(format \"%S\" '(lambda () 1))",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
@@ -26,6 +26,8 @@ struct ElispLinkTests {
     @Test func refusesWhatOnlyEmacsHas() {
         #expect(Links.evaluateElisp("(org-agenda nil \"a\")") == "This link uses Emacs Lisp that runs only in Emacs.")
         // Emacs 31 prints a function made under dynamic binding as `#[nil (1) nil]`.
-        #expect(Links.evaluateElisp("(let ((f (lambda () 1))) f)") == "This link uses Emacs Lisp that runs only in Emacs.")
+        for form in ["(let ((f (lambda () 1))) f)", "(prin1-to-string (lambda () 1))", "(format \"%S\" (lambda () 1))", "(car (lambda () 1))"] {
+            #expect(Links.evaluateElisp(form) == "This link uses Emacs Lisp that runs only in Emacs.", "\(form)")
+        }
     }
 }

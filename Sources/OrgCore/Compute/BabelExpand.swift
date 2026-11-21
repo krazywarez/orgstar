@@ -41,7 +41,7 @@ extension Babel {
         guard let raw = params.single[key] else { return nil }
         var value = params.evaluated[key]
         if value == nil, params.lisp.contains(key) {
-            guard let form = try? LispReader.readFirst(raw).sexp, let result = try? Elisp().eval(form) else {
+            guard let form = try? LispReader.readFirst(raw).sexp, let result = try? Elisp().eval(form), !Elisp.containsClosure(result) else {
                 throw Failure.message("\(key) \(raw) is Lisp that only Emacs can evaluate.")
             }
             value = result
@@ -61,7 +61,7 @@ extension Babel {
             guard case .string(let s) = read(value) else { return .string(value) }
             return .string(s)
         }
-        guard let form = try? LispReader.readFirst(value).sexp, let result = try? Elisp().eval(form) else {
+        guard let form = try? LispReader.readFirst(value).sexp, let result = try? Elisp().eval(form), !Elisp.containsClosure(result) else {
             throw Failure.message("The property value \(value) is Lisp that only Emacs can evaluate.")
         }
         if let s = result.string { return .string(s) }

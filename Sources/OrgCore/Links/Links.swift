@@ -281,7 +281,7 @@ extension Links {
         EmacsBuffer.defineLookups(lisp)
         do {
             let value = try lisp.eval(try LispReader.readFirst(form).sexp)
-            if Elisp.containsFunction(value) { return "This link uses Emacs Lisp that runs only in Emacs." }
+            if Elisp.containsClosure(value) { return "This link uses Emacs Lisp that runs only in Emacs." }
             return "\(form) => \(try Elisp.format([.string("%s"), value]))"
         } catch is Elisp.Unsupported {
             return "This link uses Emacs Lisp that runs only in Emacs."

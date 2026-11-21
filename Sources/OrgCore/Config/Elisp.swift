@@ -49,7 +49,7 @@ public final class Elisp {
     /// Variables bound dynamically when `lexical` is set.
     var specials: Set<String> = []
     /// Under lexical binding, running a lambda list, which Emacs evaluates with dynamic binding:
-    /// every variable is bound dynamically and lambdas aren't closures.
+    /// every variable is bound dynamically and lambdas capture nothing.
     private var dynamicOnly = false
     /// The functions `defun` defined, which may take closures.
     var defined: Set<String> = []
@@ -148,11 +148,19 @@ public final class Elisp {
         scopes[0].vars[name] = v
     }
 
+    /// The ids in `closures` of functions made under dynamic binding, which capture nothing.
+    var dynamicClosures: Set<Int> = []
+
     /// A lambda as `function` makes it: a closure over the local frames under lexical
-    /// binding, else the list itself.
+    /// binding, else one that captures nothing. Emacs 31 makes both function objects, not lists.
     func closure(_ lambda: Sexp) -> Sexp {
-        guard lexical, !dynamicOnly, case .list(let items) = lambda, items.first == .symbol("lambda"), items.count >= 2 else { return lambda }
-        closures.append(Array(scopes.dropFirst()))
+        guard case .list(let items) = lambda, items.first == .symbol("lambda"), items.count >= 2 else { return lambda }
+        if lexical, !dynamicOnly {
+            closures.append(Array(scopes.dropFirst()))
+        } else {
+            closures.append([])
+            dynamicClosures.insert(closures.count - 1)
+        }
         return .list([.symbol("closure"), .integer(closures.count - 1)] + items.dropFirst())
     }
 
@@ -166,7 +174,7 @@ public final class Elisp {
     static let closureArguments: [String: Int] = [
         "funcall": 0, "apply": 0, "mapcar": 0, "mapc": 0, "mapconcat": 0, "seq-map": 0, "seq-filter": 0, "seq-remove": 0,
         "seq-reduce": 0, "cl-reduce": 0, "cl-remove-if": 0, "cl-remove-if-not": 0, "cl-find": 1, "cl-position": 1, "sort": 0,
-        "replace-regexp-in-string": 1, "list": 0, "identity": 0, "ignore": 0, "null": 0, "not": 0,
+        "replace-regexp-in-string": 1, "org-lookup-first": 3, "org-lookup-last": 3, "org-lookup-all": 3, "list": 0, "identity": 0, "ignore": 0, "null": 0, "not": 0,
     ]
     /// Builtins that compare or print what lists hold.
     static let closureInspectors: Set<String> = [
@@ -190,17 +198,6 @@ public final class Elisp {
         case .list(let items): isClosure(v) || items.contains(where: containsClosure)
         case .dotted(let items, let last): items.contains(where: containsClosure) || containsClosure(last)
         case .vector(let items): items.contains(where: containsClosure)
-        default: false
-        }
-    }
-
-    /// Whether `v` contains a closure or a `(lambda ...)` list, which Emacs 31 prints as an
-    /// interpreted-function object.
-    static func containsFunction(_ v: Sexp) -> Bool {
-        switch v {
-        case .list(let items): isClosure(v) || items.first == .symbol("lambda") || items.contains(where: containsFunction)
-        case .dotted(let items, let last): items.first == .symbol("lambda") || items.contains(where: containsFunction) || containsFunction(last)
-        case .vector(let items): items.contains(where: containsFunction)
         default: false
         }
     }
@@ -338,6 +335,7 @@ public final class Elisp {
         case .string(let s): return escape ? "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" : s
         case .float(let d): return floatText(d)
         case .character(let c): return String(c)
+        case .list(let items) where items.isEmpty: return "nil"
         case .list(let items): return "(" + items.map { printed($0, escape: escape) }.joined(separator: " ") + ")"
         case .dotted(let items, let last): return "(" + items.map { printed($0, escape: escape) }.joined(separator: " ") + " . " + printed(last, escape: escape) + ")"
         case .vector(let items): return "[" + items.map { printed($0, escape: escape) }.joined(separator: " ") + "]"
@@ -583,6 +581,7 @@ public final class Elisp {
         case .symbol(let name): return try callNamed(name, args)
         case .list(let items) where Self.isClosure(function):
             guard closures.indices.contains(items[1].integer!) else { throw Unsupported(what: "a closure as a list") }
+            if dynamicClosures.contains(items[1].integer!) { return try call(.list([.symbol("lambda")] + items.dropFirst(2)), args) }
             let saved = dynamicOnly
             dynamicOnly = false
             defer { dynamicOnly = saved }

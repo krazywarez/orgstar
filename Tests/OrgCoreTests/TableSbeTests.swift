@@ -85,6 +85,12 @@ struct TableSbeTests {
             + "| t | yes | no | cm | orph |\n|---+-----+----+----+------|\n| | | | | |\n"
             + "#+TBLFM: $1='(org-sbe lext)::$2='(org-sbe lexy)::$3='(org-sbe dyn)::$4='(org-sbe cm)::$5='(org-sbe orph)\n\n"
             + "* COMMENT Old\n#+NAME: cm\n| old |\n\n* New\n#+NAME: cm\n#+begin_src emacs-lisp\n\"new\"\n#+end_src\n",
+        // A quoted lambda stays a list, a name in another case names nothing, and a lambda
+        // can be a lookup's predicate.
+        "#+NAME: quo\n#+begin_src emacs-lisp :lexical yes\n(list 1 '(lambda () 1))\n#+end_src\n\n"
+            + "| q | up | lk |\n|---+----+----|\n| | | |\n"
+            + "#+TBLFM: $1='(org-sbe quo)::$2='(org-sbe x)::$3='(org-lookup-first 2 '(1 2 3) '(a b c) (lambda (a b) (= a b)))\n\n"
+            + "#+NAME: X\n| up |\n",
     ]
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ORGSTAR_SKIP_ORACLE"] == nil))
@@ -113,15 +119,19 @@ struct TableSbeTests {
         return reason
     }
 
-    /// Values Emacs 31 prints as interpreted-function objects, `:lexical` values Emacs reads as
+    /// Values Emacs 31 prints or reads as interpreted-function objects, `:lexical` values Emacs reads as
     /// Lisp, and a name whose first use is skipped and that doesn't name a src block go to Emacs.
     @Test func refusesWhatPrintsOrReadsDifferently() {
         let lambda = "#+NAME: lam\n#+begin_src emacs-lisp\n(lambda () 1)\n#+end_src\n\n"
-        let quoted = "#+NAME: lam\n#+begin_src emacs-lisp :lexical yes\n(list 1 '(lambda () 1))\n#+end_src\n\n"
+        let printed = "#+NAME: lam\n#+begin_src emacs-lisp\n(format \"%S\" (lambda () 1))\n#+end_src\n\n"
+        let car = "#+NAME: lam\n#+begin_src emacs-lisp\n(car (lambda () 1))\n#+end_src\n\n"
         let lexical = "#+NAME: lam\n#+begin_src emacs-lisp :lexical (identity t)\n1\n#+end_src\n\n"
         let twice = "* COMMENT Old\n#+NAME: lam\n| a |\n\n* New\n#+NAME: lam\n| b |\n\n"
         #expect(Self.reason(lambda, "'(org-sbe lam)") == "Lisp org-sbe with a function value")
-        #expect(Self.reason(quoted, "'(org-sbe lam)") == "Lisp org-sbe with a function value")
+        #expect(Self.reason(printed, "'(org-sbe lam)") == "Lisp format on a closure")
+        #expect(Self.reason(car, "'(org-sbe lam)") == "Lisp car on a closure")
+        #expect(Self.reason("", "'(format \"%S\" (lambda () 1))") == "Lisp format on a closure")
+        #expect(Self.reason("", "'(lambda () 1)") == "Lisp formula with a function value")
         #expect(Self.reason(lexical, "'(org-sbe lam)") == "Lisp org-sbe with this :lexical")
         #expect(Self.reason(twice, "'(org-sbe lam)") == "Lisp org-sbe with a name used more than once")
         #expect(Self.reason("#+NAME: lam\n| a |\n\n", "'(org-sbe lam)") == nil)
