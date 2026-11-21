@@ -129,6 +129,25 @@ struct PlotChartTests {
         }
     }
 
+    @Test func skipsLogPointsPastADouble() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("orgstar-log-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        for axis in ["x", "y"] {
+            for field in ["1e400", "3e-324", "1e-320", "1.5e308", "1.0e+INF"] {
+                let row = axis == "x" ? "| \(field) | 5 |" : "| 2 | \(field) |"
+                let plot = try Self.plot("#+PLOT: ind:1 set:\"logscale \(axis)\"\n| x | y |\n|---+---|\n| 1 | 10 |\n\(row)\n| 3 | 20 |\n")
+                try PlotOutput.check(plot)
+                let svg = try TablePlot.svg(plot)
+                #expect(!svg.contains("inf") && !svg.contains("nan"), "\(axis) \(field)")
+                try PlotOutput.write(plot, to: folder.appendingPathComponent("l.png"))
+            }
+        }
+        for range in ["[1:1e400]", "[1e-320:10]"] {
+            let plot = try Self.plot("#+PLOT: ind:1 set:\"logscale y\" set:\"yrange \(range)\"\n| 1 | 10 |\n| 2 | 20 |\n")
+            #expect(throws: PlotOutput.Failure.self, "\(range)") { try PlotOutput.check(plot) }
+        }
+    }
+
     @Test func capsRadarRingsWithoutGnuplot() throws {
         let plot = try Self.plot("#+PLOT: type:radar ticks:2000\n| n | a | b |\n|---+---+---|\n| x | 1 | 5 |\n| y | 2 | 3 |\n")
         #expect(try TablePlot.radarSetup(plot).hasSuffix(" 2000\nEOD\n"))

@@ -52,8 +52,8 @@ public struct PlotChart: View {
             let series = TablePlot.series(plot).map { series in
                 var series = series
                 series.points.removeAll { point in
-                    if s.logY, point.y <= 0 { return true }
-                    if s.logX, case .number(let n) = point.x, n <= 0 { return true }
+                    if s.logY, !TablePlot.logRange.contains(point.y) { return true }
+                    if s.logX, case .number(let n) = point.x, !TablePlot.logRange.contains(n) { return true }
                     return false
                 }
                 return series

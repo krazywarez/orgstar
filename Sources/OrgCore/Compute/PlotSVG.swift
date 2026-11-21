@@ -12,6 +12,9 @@ extension TablePlot {
         return power * (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10)
     }
 
+    /// What a log axis places; gnuplot skips undefined points, and Swift Charts traps past these.
+    public static let logRange = 1e-307...1e308
+
     /// An axis: its ends, widened to whole steps where they're not given, and its ticks.
     public struct Axis {
         public var low: Double
@@ -20,10 +23,11 @@ extension TablePlot {
         var ticks: [Double] = []
 
         public init(values: [Double], given: Settings.Range?, log: Bool, step: Double?, zero: Bool) throws {
-            var data = values.filter { !log || $0 > 0 }
+            var data = values.filter { !log || TablePlot.logRange.contains($0) }
             // gnuplot refuses these too.
             if log, data.isEmpty, given?.low == nil || given?.high == nil { throw Failure(description: "A log axis needs values above 0") }
             if log, [given?.low, given?.high].contains(where: { ($0 ?? 1) <= 0 }) { throw Failure(description: "A log axis's range must be above 0") }
+            if log, [given?.low, given?.high].contains(where: { !TablePlot.logRange.contains($0 ?? 1) }) { throw Failure(description: "A log axis's range must be within 1e-307 to 1e308") }
             if zero, !log { data.append(0) }
             var low = given?.low ?? data.min() ?? 0, high = given?.high ?? data.max() ?? 1
             if low == high { (low, high) = log ? (low / 10, high * 10) : (low - 1, high + 1) }
@@ -32,6 +36,7 @@ extension TablePlot {
             if log {
                 if given?.low == nil { low = pow(10, log10(low).rounded(.down)) }
                 if given?.high == nil { high = pow(10, log10(high).rounded(.up)) }
+                guard TablePlot.logRange.contains(low), TablePlot.logRange.contains(high) else { throw Failure(description: "A log axis's range must be within 1e-307 to 1e308") }
                 let first = log10(low).rounded(.up), last = log10(high).rounded(.down)
                 // A range with no power of ten in it is labelled at its ends.
                 ticks = first <= last ? Array(Int(first)...Int(last)).map { pow(10, Double($0)) } : [low, high]
@@ -132,7 +137,7 @@ extension TablePlot {
         let base = py(y.log ? y.low : min(max(0, y.low), y.high))
         for (i, s) in series.enumerated() {
             let color = colors[i % colors.count]
-            let points = s.points.filter { (!y.log || $0.y > 0) && (!x.log || xValue($0.x) > 0) }.map { (px(xValue($0.x)), py($0.y)) }
+            let points = s.points.filter { (!y.log || logRange.contains($0.y)) && (!x.log || logRange.contains(xValue($0.x))) }.map { (px(xValue($0.x)), py($0.y)) }
             guard !points.isEmpty else { continue }
             func polyline(_ p: [(Double, Double)]) {
                 add("<polyline fill=\"none\" stroke=\"\(color)\" stroke-width=\"1.5\" points=\"" + p.map { "\(number($0.0)),\(number($0.1))" }.joined(separator: " ") + "\"/>")

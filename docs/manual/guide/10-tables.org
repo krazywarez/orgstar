@@ -806,8 +806,9 @@ gnuplot's own terminals and styles apply. A plot without =file:= is drawn to an 
 in a sheet. Without gnuplot, and on iOS, orgstar draws the plot itself with Swift Charts: =2d=
 as lines, points or bars by =with:=, =grid= as a heat map, =3d= as a surface (a wireframe in a
 file), =radar= as a web. =file:= then takes =.png=, =.jpg= or =.pdf=, 640 by 480 points as
-gnuplot's default, or =.svg= for a =2d= plot. A log axis needs values above 0, and its
-range, if given, must be above 0. If inline images are showing, a link to the file
+gnuplot's default, or =.svg= for a =2d= plot. A log axis places values from 1e-307 to
+1e308 and leaves out others; it needs at least one, and its range, if given, must lie
+within them. If inline images are showing, a link to the file
 shows the new plot.
 
 Without gnuplot these =set:= commands are followed, also as a =line:= that starts with =set=:
