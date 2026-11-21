@@ -32,7 +32,15 @@ extension TablePlot {
     }
 
     static func printed(_ n: (value: Double, integer: Bool)) -> String {
-        n.integer ? String(Int(n.value)) : Elisp.floatText(n.value)
+        n.integer && abs(n.value) < 0x1p63 ? String(Int(n.value)) : Elisp.floatText(n.value)
+    }
+
+    /// An integer field as Emacs prints what `string-to-number` reads from it, bignums included.
+    static func integerText(_ field: String) -> String {
+        let trimmed = field.drop { $0 == " " || $0 == "\t" }
+        guard let m = trimmed.firstMatch(of: /^([-+]?)0*([0-9]+)/) else { return "0" }
+        let digits = String(m.2)
+        return (m.1 == "-" && digits != "0" ? "-" : "") + digits
     }
 
     /// `org--plot/values-stats`.
@@ -51,7 +59,10 @@ extension TablePlot {
         var decompositions: [[(Int, Double)]] = []
         for row in rows {
             let s = stats(row.dropFirst().map(lispNumber), hardMin: hardMin, hardMax: hardMax)
-            var value = Int((s.factor * (s.niceMax.value - s.niceMin.value)).rounded(.toNearestOrEven))
+            let raw = (s.factor * (s.niceMax.value - s.niceMin.value)).rounded(.toNearestOrEven)
+            // A ymin above a row's values or a ymax below them: `ceiling` of NaN signals overflow-error.
+            guard raw.isFinite, raw >= 0, raw < 0x1p63 else { return nil }
+            var value = Int(raw)
             if value % 10 == 0 { value /= 10 }
             // `org--plot/prime-factors` loops forever on 0.
             guard value > 0 else { return nil }
@@ -116,6 +127,8 @@ extension TablePlot {
         let ymin = try number("ymin"), ymax = try number("ymax")
         let ticks: Int
         if let given = try number("ticks") {
+            // gnuplot can't draw fewer than none, and the web has a ring for each.
+            guard given >= 0, given <= 1000 else { throw Failure(description: "ticks: must be from 0 to 1000") }
             ticks = Int(given)
         } else if let sensible = sensibleTicks(rows, hardMin: ymin, hardMax: ymax) {
             ticks = sensible
@@ -127,8 +140,8 @@ extension TablePlot {
             let s = stats(nums)
             return Radar.Axis(label: row[0], fields: Array(row.dropFirst()), values: nums.map(\.value),
                               low: ymin ?? s.niceMin.value, high: ymax ?? s.niceMax.value,
-                              lowText: plot.options["ymin"]?.description ?? printed(s.niceMin),
-                              highText: plot.options["ymax"]?.description ?? printed(s.niceMax))
+                              lowText: plot.options["ymin"]?.description ?? (s.niceMin.integer ? integerText(row[1]) : printed(s.niceMin)),
+                              highText: plot.options["ymax"]?.description ?? (s.niceMax.integer ? integerText(row[1]) : printed(s.niceMax)))
         }
         return Radar(axes: axes, series: Array((plot.options.labels ?? []).dropFirst()), ticks: ticks, sharedTicks: ymin != nil && ymax != nil)
     }

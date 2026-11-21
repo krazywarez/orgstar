@@ -360,8 +360,16 @@ public enum PlotOutput {
         return unfollowed.isEmpty ? nil : "Not followed without gnuplot: " + unfollowed.joined(separator: ", ")
     }
 
+    /// Refuses what the chart can't draw: a radar plot `TablePlot.radar` refuses, which
+    /// `TablePlot.plot` leaves to gnuplot when there's a `script:`.
+    public static func check(_ plot: TablePlot.Plot) throws {
+        guard plot.options.type == "radar" else { return }
+        do { _ = try TablePlot.radar(plot) } catch { throw Failure(description: "\(error)") }
+    }
+
     /// The chart as gnuplot's default 640×480, as PNG, JPEG, PDF or SVG by the file's extension.
     public static func write(_ plot: TablePlot.Plot, to url: URL) throws {
+        try check(plot)
         if url.pathExtension.lowercased() == "svg" {
             let svg: String
             do { svg = try TablePlot.svg(plot) } catch { throw Failure(description: "\(error)") }

@@ -180,6 +180,14 @@ struct TablePlotTests {
             let ours = TablePlot.sensibleTicks(t, hardMin: nil, hardMax: nil).map(String.init) ?? "error"
             #expect(ours == want, "\(t)")
         }
+        let rows = [["a", "1", "5"], ["b", "3", "4"]]
+        let bounds: [(Double?, Double?, String)] = [(100, nil, "100 nil"), (nil, 0, "nil 0"), (0, 10, "0 10"), (-5, nil, "-5 nil")]
+        let hard = try EmacsOracle.evaluate("", "(progn (require 'org-plot) (list " + bounds.map {
+            "(condition-case nil (format \"%S\" (org--plot/sensible-tick-num '((\"a\" \"1\" \"5\") (\"b\" \"3\" \"4\")) \($0.2))) (error \"error\"))"
+        }.joined(separator: " ") + "))")
+        for (b, want) in zip(bounds, hard) {
+            #expect((TablePlot.sensibleTicks(rows, hardMin: b.0, hardMax: b.1).map(String.init) ?? "error") == want, "\(b.2)")
+        }
     }
 
     @Test func seriesAndMatrices() throws {
@@ -201,6 +209,14 @@ struct TablePlotTests {
         // Emacs signals an error where the ranges leave nothing to pick ticks from.
         #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ymin:0 ymax:10\n| a | 1 | 9 |\n| b | 2 | 3 |\n", at: 0) }
         _ = try TablePlot.plot("#+PLOT: type:radar ticks:3\n| a | 1 | 1 |\n| b | 2 | 3 |\n", at: 0)
+        // A ymin above a row's values, or a ymax below them: Emacs signals overflow-error.
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ymin:100\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ymax:0\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ticks:-1\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
+        #expect(throws: TablePlot.Failure.self) { try TablePlot.plot("#+PLOT: type:radar ticks:99999999999999999999\n| x | 1 | 5 |\n| y | 2 | 3 |\n", at: 0) }
+        // Emacs prints a bignum as it is.
+        let big = try TablePlot.radarSetup(TablePlot.plot("#+PLOT: type:radar ticks:3\n| x | 100000000000000000000 | 100000000000000000000 |\n| y | -007 | -007 |\n", at: 0))
+        #expect(big.contains("\"x\" 100000000000000000000 100000000000000000000 3\n\"y\" -7 -7 3\n"), "\(big)")
         let radar = try TablePlot.radar(TablePlot.plot(Self.cases[9], at: 40))
         #expect(radar.series == ["a", "b"] && radar.axes.map(\.label) == ["x", "y", "z"] && radar.sharedTicks)
         #expect(radar.axes[2].values == [8, 3] && radar.axes[0].low == 0 && radar.axes[0].high == 8)

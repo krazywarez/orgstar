@@ -617,6 +617,7 @@ extension EditorScreen {
                 message = "Plot written to \(url.lastPathComponent)" + (PlotOutput.note(plot).map { ". " + $0 } ?? "")
                 if editor.showsImages { editor.restyleAll() }
             } else {
+                try PlotOutput.check(plot)
                 sheet = .plot(plot)
                 if let note = PlotOutput.note(plot) { message = note }
             }

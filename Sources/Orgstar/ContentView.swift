@@ -975,6 +975,7 @@ struct ContentView: View {
                 commands.show("\(error)")
             }
         } else {
+            do { try PlotOutput.check(plot) } catch { return commands.show("\(error)") }
             panel = .plot(UUID(), plot)
             if let note = PlotOutput.note(plot) { commands.show(note) }
         }

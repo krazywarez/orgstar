@@ -83,6 +83,12 @@ struct PlotChartTests {
             #expect(size > 1000, "\(name) is \(size) bytes")
         }
         #expect(throws: PlotOutput.Failure.self) { try PlotOutput.write(plot, to: folder.appendingPathComponent("radar.svg")) }
+        // With script:, TablePlot.plot leaves the radar to gnuplot; drawn here, it's refused.
+        let scripted = try Self.plot("#+PLOT: type:radar script:\"r.gp\"\n| n | a | b |\n|---+---+---|\n| x | 1 | 1 |\n| y | 2 | 3 |\n")
+        #expect(throws: PlotOutput.Failure.self) { try PlotOutput.check(scripted) }
+        #expect(throws: PlotOutput.Failure.self) { try PlotOutput.write(scripted, to: folder.appendingPathComponent("scripted.png")) }
+        #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("scripted.png").path))
+        try PlotOutput.check(plot)
     }
 
     @Test func writesSVG() throws {
